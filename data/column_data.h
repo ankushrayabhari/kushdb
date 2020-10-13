@@ -23,7 +23,6 @@ class ColumnData {
   uint32_t capacity;
   T* data_;
   bool persistent;
-
   uint32_t file_length;
 
  public:
@@ -36,7 +35,8 @@ class ColumnData {
         file_length(0) {}
 
   // File-backed, immutable column
-  ColumnData(const std::string& path) : persistent(true) {
+  ColumnData(const std::string& path)
+      : persistent(true), cardinality(0), capacity(0) {
     int fd = open(path.c_str(), O_RDONLY);
     assert(fd != -1);
 
