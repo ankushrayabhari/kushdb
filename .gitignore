@@ -1,0 +1,8 @@
+# Bazel
+/bazel-*
+
+# VS Code
+/.vscode
+
+# Misc
+/db
