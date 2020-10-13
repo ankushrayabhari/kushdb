@@ -9,23 +9,45 @@
 #include "util/print_util.h"
 
 namespace skinner {
-namespace algebra {
 
-TableScan::TableScan(absl::string_view relation)
-    : name_("TABLE SCAN"), relation_(relation) {}
+Operator::Operator() : parent(nullptr) {}
 
-void TableScan::Print(std::ostream& out, int num_indent) const {
-  util::Indent(out, num_indent) << name_ << ": " << relation_ << std::endl;
+Scan::Scan(const std::string& rel) : relation(rel) {}
+
+const std::string Scan::ID = "SCAN";
+
+std::string Scan::Id() const { return ID; }
+
+void Scan::Print(std::ostream& out, int num_indent) const {
+  util::Indent(out, num_indent) << ID << ": " << relation << std::endl;
 }
 
-Select::Select(std::unique_ptr<Operator> child, absl::string_view expression)
-    : name_("SELECT"), expression_(expression), child_(std::move(child)) {}
+Select::Select(std::unique_ptr<Operator> c, const std::string& e)
+    : expression(e), child(std::move(c)) {
+  child->parent = this;
+}
+
+const std::string Select::ID = "SELECT";
+
+std::string Select::Id() const { return ID; }
 
 void Select::Print(std::ostream& out, int num_indent) const {
-  util::Indent(out, num_indent) << name_ << std::endl;
-  util::Indent(out, num_indent + 1) << expression_ << std::endl;
-  child_->Print(out, num_indent + 1);
+  util::Indent(out, num_indent) << ID << std::endl;
+  util::Indent(out, num_indent + 1) << expression << std::endl;
+  child->Print(out, num_indent + 1);
 }
 
-}  // namespace algebra
+Output::Output(std::unique_ptr<Operator> c) : child(std::move(c)) {
+  child->parent = this;
+}
+
+const std::string Output::ID = "OUTPUT";
+
+std::string Output::Id() const { return ID; }
+
+void Output::Print(std::ostream& out, int num_indent) const {
+  util::Indent(out, num_indent) << ID << std::endl;
+  child->Print(out, num_indent + 1);
+}
+
 }  // namespace skinner

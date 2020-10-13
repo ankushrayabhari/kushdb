@@ -8,7 +8,5 @@ cc_library(
     hdrs = ["operator.h"],
     deps = [
         "//util:print_util",
-        "@absl//absl/container:flat_hash_set",
-        "@absl//absl/strings",
     ],
 )

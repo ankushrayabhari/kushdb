@@ -2,12 +2,17 @@
 #include <string>
 
 #include "algebra/operator.h"
+#include "compilation/cpp_translator.h"
 
 using namespace skinner;
 
 int main() {
-  std::unique_ptr<algebra::Operator> select = std::make_unique<algebra::Select>(
-      std::make_unique<algebra::TableScan>("table"), "x = 5");
-  select->Print(std::cout);
+  const auto registry = GenerateCppRegistry();
+
+  std::unique_ptr<Operator> op = std::make_unique<Output>(
+      std::make_unique<Select>(std::make_unique<Scan>("table"), "x = 5"));
+
+  registry.GetProducer(op->Id())(registry, *op, std::cout);
+
   return 0;
 }

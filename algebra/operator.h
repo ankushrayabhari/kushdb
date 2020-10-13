@@ -5,33 +5,44 @@
 #include <utility>
 #include <vector>
 
-#include "absl/strings/string_view.h"
-
 namespace skinner {
-namespace algebra {
 
 class Operator {
  public:
+  Operator* parent;
+  Operator();
   virtual ~Operator() {}
+  virtual std::string Id() const = 0;
   virtual void Print(std::ostream& out, int num_indent = 0) const = 0;
 };
 
-class TableScan final : public Operator {
+class Scan final : public Operator {
  public:
-  std::string name_;
-  std::string relation_;
-  TableScan(absl::string_view relation);
+  static const std::string ID;
+  const std::string relation;
+
+  Scan(const std::string& rel);
+  std::string Id() const;
   void Print(std::ostream& out, int num_indent) const;
 };
 
 class Select final : public Operator {
  public:
-  std::string name_;
-  std::string expression_;
-  std::unique_ptr<Operator> child_;
-  Select(std::unique_ptr<Operator> child, absl::string_view expression);
+  static const std::string ID;
+  std::string expression;
+  std::unique_ptr<Operator> child;
+  Select(std::unique_ptr<Operator> c, const std::string& e);
+  std::string Id() const;
   void Print(std::ostream& out, int num_indent) const;
 };
 
-}  // namespace algebra
+class Output final : public Operator {
+ public:
+  static const std::string ID;
+  std::unique_ptr<Operator> child;
+  Output(std::unique_ptr<Operator> c);
+  std::string Id() const;
+  void Print(std::ostream& out, int num_indent) const;
+};
+
 }  // namespace skinner

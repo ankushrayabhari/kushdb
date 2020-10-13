@@ -1,0 +1,29 @@
+#include "compilation/translator_registry.h"
+
+#include <functional>
+#include <iostream>
+#include <unordered_map>
+
+#include "algebra/operator.h"
+
+namespace skinner {
+
+void TranslatorRegistry::RegisterProducer(const std::string& id,
+                                          ProduceFn produce) {
+  id_to_produce[id] = produce;
+}
+
+void TranslatorRegistry::RegisterConsumer(const std::string& id,
+                                          ConsumeFn consume) {
+  id_to_consume[id] = consume;
+}
+
+ProduceFn TranslatorRegistry::GetProducer(const std::string& id) const {
+  return id_to_produce.at(id);
+}
+
+ConsumeFn TranslatorRegistry::GetConsumer(const std::string& id) const {
+  return id_to_consume.at(id);
+}
+
+}  // namespace skinner

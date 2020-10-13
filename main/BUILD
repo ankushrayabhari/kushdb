@@ -5,6 +5,6 @@ cc_binary(
     srcs = ["main.cc"],
     deps = [
         "//algebra:operator",
-        "@absl//absl/strings",
+        "//compilation:cpp_translator",
     ],
 )
