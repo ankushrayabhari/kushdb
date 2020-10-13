@@ -8,3 +8,19 @@ cc_binary(
         "//compilation:cpp_translator",
     ],
 )
+
+cc_binary(
+    name = "generate_vector",
+    srcs = ["generate_vector.cc"],
+    deps = [
+        "//data:column_data",
+    ],
+)
+
+cc_binary(
+    name = "read_vector",
+    srcs = ["read_vector.cc"],
+    deps = [
+        "//data:column_data",
+    ],
+)
