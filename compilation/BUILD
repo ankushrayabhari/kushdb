@@ -24,6 +24,7 @@ cc_library(
     name = "cpp_translator",
     srcs = ["cpp_translator.cc"],
     hdrs = ["cpp_translator.h"],
+    linkopts = ["-ldl"],
     deps = [
         ":translator",
         ":translator_registry",

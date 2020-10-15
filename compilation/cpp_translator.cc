@@ -1,6 +1,15 @@
 #include "compilation/cpp_translator.h"
 
 #include <string>
+#include <fstream>
+#include <dlfcn.h>
+
+#include <exception>
+#include <functional>
+#include <string>
+#include <type_traits>
+#include <cstdlib>
+#include <chrono>
 
 #include "algebra/operator.h"
 #include "compilation/translator_registry.h"
@@ -66,13 +75,54 @@ CppTranslator::CppTranslator() {
 }
 
 void CppTranslator::Produce(Operator& op) {
-  std::cout << "#include \"catalog/catalog.h\"\n";
-  std::cout << "#include \"data/column_data.h\"\n";
-  std::cout << "#include <iostream>\n";
-  std::cout << "#include <cstdint>\n";
-  std::cout << "void compute() {\n";
-  registry_.GetProducer(op.Id())(registry_, op, std::cout);
-  std::cout << "}\n";
+  auto start = std::chrono::system_clock::now();
+  std::string file_name("test_generated.cpp");
+  std::string dylib("test_generated.so");
+  std::string command = "clang++ --std=c++17 -I. -shared -fpic " + file_name + " catalog/catalog.cc -o " + dylib;
+
+  std::ofstream fout;
+  fout.open(file_name);
+  fout << "#include \"catalog/catalog.h\"\n";
+  fout << "#include \"data/column_data.h\"\n";
+  fout << "#include <iostream>\n";
+  fout << "#include <cstdint>\n";
+  fout << "extern \"C\" void compute() {\n";
+  registry_.GetProducer(op.Id())(registry_, op, fout);
+  fout << "}\n";
+  fout.close();
+
+  using compute_fn = std::add_pointer<void()>::type;
+  auto gen = std::chrono::system_clock::now();
+
+  if (system(command.c_str()) < 0) {
+    throw std::runtime_error("Failed to execute command.");
+  }
+  auto comp = std::chrono::system_clock::now();
+
+  void* handle = dlopen(("./" + dylib).c_str(), RTLD_LAZY);
+
+  if (!handle) {
+    throw std::runtime_error("Failed to open");
+  }
+  auto link = std::chrono::system_clock::now();
+
+  auto process_query = (compute_fn)(dlsym(handle, "compute"));
+  if (!process_query) {
+    dlclose(handle);
+    throw std::runtime_error("Failed to get compute fn");
+  }
+
+  process_query();
+  dlclose(handle);
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = gen-start;
+  std::cout << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = comp-gen;
+  std::cout << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = link-comp;
+  std::cout << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = end-link;
+  std::cout << elapsed_seconds.count() << std::endl;
 }
 
 }  // namespace skinner
