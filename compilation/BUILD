@@ -12,10 +12,20 @@ cc_library(
 )
 
 cc_library(
+    name = "translator",
+    hdrs = ["translator.h"],
+    deps = [
+        ":translator_registry",
+        "//algebra:operator",
+    ],
+)
+
+cc_library(
     name = "cpp_translator",
     srcs = ["cpp_translator.cc"],
     hdrs = ["cpp_translator.h"],
     deps = [
+        ":translator",
         ":translator_registry",
         "//algebra:operator",
     ],

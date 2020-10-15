@@ -7,12 +7,12 @@
 using namespace skinner;
 
 int main() {
-  const auto registry = GenerateCppRegistry();
+  CppTranslator translator;
 
-  std::unique_ptr<Operator> op = std::make_unique<Output>(
-      std::make_unique<Select>(std::make_unique<Scan>("table"), "x = 5"));
+  std::unique_ptr<Operator> op =
+      std::make_unique<Output>(std::make_unique<Scan>("table"));
 
-  registry.GetProducer(op->Id())(registry, *op, std::cout);
+  translator.Produce(*op);
 
   return 0;
 }

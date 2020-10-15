@@ -1,5 +1,7 @@
 #include "compilation/cpp_translator.h"
 
+#include <string>
+
 #include "algebra/operator.h"
 #include "compilation/translator_registry.h"
 
@@ -7,9 +9,14 @@ namespace skinner {
 
 void ProduceScan(const TranslatorRegistry& registry, Operator& op,
                  std::ostream& out) {
-  Scan& scan = static_cast<Scan&>(op);
-  out << "for (tuple : " << scan.relation << ") {\n";
+  static int id = 0;
+  std::string rel_name = "relation" + std::to_string(id);
+  std::string val_name = "column" + std::to_string(id++);
 
+  Scan& scan = static_cast<Scan&>(op);
+  out << "skinner::ColumnData<int32_t> " << rel_name << "(\"test.skdbcol\");\n";
+
+  out << "for (const auto& " << val_name << " : " << rel_name << ") {\n";
   if (scan.parent != nullptr) {
     Operator& parent = *scan.parent;
     registry.GetConsumer(parent.Id())(registry, parent, scan, out);
@@ -47,17 +54,25 @@ void ProduceOutput(const TranslatorRegistry& registry, Operator& op,
 
 void ConsumeOutput(const TranslatorRegistry& registry, Operator& op,
                    Operator& src, std::ostream& out) {
-  out << "print(tuple)\n";
+  out << "std::cout << column0 << std::endl;\n";
 }
 
-TranslatorRegistry GenerateCppRegistry() {
-  TranslatorRegistry registry;
-  registry.RegisterProducer(Scan::ID, &ProduceScan);
-  registry.RegisterProducer(Select::ID, &ProduceSelect);
-  registry.RegisterConsumer(Select::ID, &ConsumeSelect);
-  registry.RegisterProducer(Output::ID, &ProduceOutput);
-  registry.RegisterConsumer(Output::ID, &ConsumeOutput);
-  return registry;
+CppTranslator::CppTranslator() {
+  registry_.RegisterProducer(Scan::ID, &ProduceScan);
+  registry_.RegisterProducer(Select::ID, &ProduceSelect);
+  registry_.RegisterConsumer(Select::ID, &ConsumeSelect);
+  registry_.RegisterProducer(Output::ID, &ProduceOutput);
+  registry_.RegisterConsumer(Output::ID, &ConsumeOutput);
+}
+
+void CppTranslator::Produce(Operator& op) {
+  std::cout << "#include \"catalog/catalog.h\"\n";
+  std::cout << "#include \"data/column_data.h\"\n";
+  std::cout << "#include <iostream>\n";
+  std::cout << "#include <cstdint>\n";
+  std::cout << "void compute() {\n";
+  registry_.GetProducer(op.Id())(registry_, op, std::cout);
+  std::cout << "}\n";
 }
 
 }  // namespace skinner
