@@ -36,7 +36,7 @@ class ColumnData {
 
   // File-backed, immutable column
   ColumnData(const std::string& path)
-      : persistent(true), cardinality(0), capacity(0) {
+      : cardinality(0), capacity(0), persistent(true) {
     int fd = open(path.c_str(), O_RDONLY);
     assert(fd != -1);
 
