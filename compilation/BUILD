@@ -23,6 +23,7 @@ cc_library(
     hdrs = ["cpp_translator.h"],
     linkopts = ["-ldl"],
     deps = [
+        "//catalog",
         ":translator",
         ":translator_registry",
         "//algebra:expression",

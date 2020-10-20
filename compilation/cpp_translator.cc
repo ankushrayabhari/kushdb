@@ -12,6 +12,7 @@
 
 #include "algebra/expression.h"
 #include "algebra/operator.h"
+#include "catalog/catalog.h"
 #include "compilation/translator_registry.h"
 
 namespace skinner {
@@ -20,19 +21,58 @@ namespace compile {
 using namespace algebra;
 using Context = CppTranslator::CompilationContext;
 
+std::string get_unique_loop_var() {
+  static std::string last = "a";
+  last.back()++;
+  if (last.back() > 'z') {
+    last.back() = 'z';
+    last.push_back('a');
+  }
+  return last;
+}
+
 void ProduceScan(Context& ctx, Operator& op, std::ostream& out) {
   Scan& scan = static_cast<Scan&>(op);
-  // TODO: replace with catalog data
-  out << "skinner::ColumnData<int32_t> table_x1(\"test.skdbcol\");\n";
-  out << "uint32_t table_card = table_x1.size();\n";
-  out << "for (int i = 0; i < table_card; i++) {\n";
-  out << "int32_t x1 = table_x1[i];\n";
-  ctx.col_to_var["table.x1"] = "x1";
+
+  if (!ctx.database.contains(scan.relation)) {
+    throw std::runtime_error("Unknown table: " + scan.relation);
+  }
+
+  const auto& table = ctx.database[scan.relation];
+  if (table.Columns().empty()) return;
+
+  std::string card;
+
+  for (const auto& [_, column] : table.Columns()) {
+    std::string var = scan.relation + "_" + column.name + "_data";
+    out << "skinner::ColumnData<" << column.type << "> ";
+    out << var << "(\"" << column.path << "\");\n";
+
+    if (card.empty()) {
+      card = var + ".size()";
+    }
+  }
+
+  std::string loop_var = get_unique_loop_var();
+  out << "for (uint32_t " << loop_var << " = 0; ";
+  out << loop_var << " < " << card << "; " << loop_var << "++) {\n";
+
+  for (const auto& [_, column] : table.Columns()) {
+    std::string data_var = scan.relation + "_" + column.name + "_data";
+    std::string var = scan.relation + "_" + column.name;
+    ctx.col_to_var[scan.relation + "." + column.name] = var;
+    out << column.type << " " << var << " = " << data_var;
+    out << "[" << loop_var << "];\n";
+  }
+
   if (scan.parent != nullptr) {
     Operator& parent = *scan.parent;
     ctx.registry.GetConsumer(parent.Id())(ctx, parent, scan, out);
   }
-  ctx.col_to_var.erase("table.x1");
+
+  for (const auto& [_, column] : table.Columns()) {
+    ctx.col_to_var.erase(scan.relation + "." + column.name);
+  }
 
   out << "}\n";
 }
@@ -68,9 +108,16 @@ void ProduceOutput(Context& ctx, Operator& op, std::ostream& out) {
 
 void ConsumeOutput(Context& ctx, Operator& op, Operator& src,
                    std::ostream& out) {
+  bool first = true;
   for (const auto& [_, var] : ctx.col_to_var) {
-    out << "std::cout << " << var << " << std::endl;\n";
+    if (first) {
+      first = false;
+      out << "std::cout << " << var << ";\n";
+    } else {
+      out << "std::cout << \" | \" << " << var << ";\n";
+    }
   }
+  out << "std::cout << \'\\n\';\n";
 }
 
 void ConsumeColumnRef(Context& ctx, algebra::Expression& expr,
@@ -105,7 +152,7 @@ void ConsumeBinaryExpression(Context& ctx, algebra::Expression& expr,
   out << ")";
 }
 
-CppTranslator::CppTranslator() {
+CppTranslator::CppTranslator(const catalog::Database& db) : context_(db) {
   context_.registry.RegisterProducer(Scan::ID, &ProduceScan);
   context_.registry.RegisterProducer(Select::ID, &ProduceSelect);
   context_.registry.RegisterConsumer(Select::ID, &ConsumeSelect);
@@ -160,6 +207,7 @@ void CppTranslator::Produce(Operator& op) {
 
   process_query();
   dlclose(handle);
+  system("rm /tmp/test_generated.so");
 
   std::cerr << "Performance stats (seconds):" << std::endl;
   auto end = std::chrono::system_clock::now();

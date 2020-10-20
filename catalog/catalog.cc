@@ -6,29 +6,43 @@
 #include "data/column_data.h"
 
 namespace skinner {
-
-Column::Column(const std::string& n, const std::string& t) : name(n), type(t) {}
+namespace catalog {
 
 Column::Column(const std::string& n, const std::string& t, const std::string& p)
-    : data_(p), name(n), type(t) {}
+    : name(n), type(t), path(p) {}
 
-Column& Table::insert(const std::string& attr, const std::string& type) {
-  name_to_col_.emplace(attr, std::make_unique<Column>(attr, type));
-  return *name_to_col_[attr];
-}
+Table::Table(const std::string& n) : name(n) {}
 
 Column& Table::insert(const std::string& attr, const std::string& type,
                       const std::string& path) {
-  name_to_col_.emplace(attr, std::make_unique<Column>(attr, type, path));
-  return *name_to_col_[attr];
+  name_to_col_.insert({attr, Column(attr, type, path)});
+  return name_to_col_.at(attr);
 }
 
-Column& Table::operator[](const std::string& attr) {
-  return *name_to_col_[attr];
+const Column& Table::operator[](const std::string& attr) const {
+  return name_to_col_.at(attr);
 }
 
-bool Table::contains(const std::string& attr) {
+bool Table::contains(const std::string& attr) const {
   return name_to_col_.find(attr) != name_to_col_.end();
 }
 
+Table& Database::insert(const std::string& table) {
+  name_to_table_.insert({table, Table(table)});
+  return name_to_table_.at(table);
+}
+
+const Table& Database::operator[](const std::string& table) const {
+  return name_to_table_.at(table);
+}
+
+bool Database::contains(const std::string& table) const {
+  return name_to_table_.find(table) != name_to_table_.end();
+}
+
+const std::unordered_map<std::string, Column>& Table::Columns() const {
+  return name_to_col_;
+}
+
+}  // namespace catalog
 }  // namespace skinner
