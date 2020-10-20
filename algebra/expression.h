@@ -15,21 +15,26 @@ namespace algebra {
 class Expression {
  public:
   virtual ~Expression() {}
+  virtual std::string Id() const = 0;
   virtual void Print(std::ostream& out, int num_indent) const = 0;
 };
 
 class IntLiteral final : public Expression {
  public:
+  const static std::string ID;
   const int64_t value;
   explicit IntLiteral(int64_t v);
   void Print(std::ostream& out, int num_indent) const;
+  std::string Id() const;
 };
 
 class ColumnRef final : public Expression {
  public:
+  const static std::string ID;
   const std::string column;
   explicit ColumnRef(const std::string& col);
   void Print(std::ostream& out, int num_indent) const;
+  std::string Id() const;
 };
 
 enum class BinaryOperatorType {
@@ -39,7 +44,6 @@ enum class BinaryOperatorType {
   EQ,
   GT,
   GTE,
-  LIKE,
   LT,
   LTE,
   MUL,
@@ -52,6 +56,7 @@ enum class BinaryOperatorType {
 
 class BinaryExpression final : public Expression {
  public:
+  const static std::string ID;
   BinaryOperatorType type;
   std::unique_ptr<Expression> left;
   std::unique_ptr<Expression> right;
@@ -60,6 +65,7 @@ class BinaryExpression final : public Expression {
                    std::unique_ptr<Expression> left,
                    std::unique_ptr<Expression> right);
   void Print(std::ostream& out, int num_indent) const;
+  std::string Id() const;
 };
 
 }  // namespace algebra

@@ -4,11 +4,8 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "translator_registry",
-    srcs = ["translator_registry.cc"],
     hdrs = ["translator_registry.h"],
-    deps = [
-        "//algebra:operator",
-    ],
+    deps = [],
 )
 
 cc_library(
@@ -28,6 +25,7 @@ cc_library(
     deps = [
         ":translator",
         ":translator_registry",
+        "//algebra:expression",
         "//algebra:operator",
     ],
 )

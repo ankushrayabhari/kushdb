@@ -10,6 +10,7 @@
 #include <string>
 #include <type_traits>
 
+#include "algebra/expression.h"
 #include "algebra/operator.h"
 #include "compilation/translator_registry.h"
 
@@ -17,65 +18,103 @@ namespace skinner {
 namespace compile {
 
 using namespace algebra;
+using Context = CppTranslator::CompilationContext;
 
-void ProduceScan(const TranslatorRegistry& registry, Operator& op,
-                 std::ostream& out) {
-  static int id = 0;
-  std::string rel_name = "relation" + std::to_string(id);
-  std::string val_name = "column" + std::to_string(id++);
-
+void ProduceScan(Context& ctx, Operator& op, std::ostream& out) {
   Scan& scan = static_cast<Scan&>(op);
-  out << "skinner::ColumnData<int32_t> " << rel_name << "(\"test.skdbcol\");\n";
-
-  out << "for (const auto& " << val_name << " : " << rel_name << ") {\n";
+  // TODO: replace with catalog data
+  out << "skinner::ColumnData<int32_t> table_x1(\"test.skdbcol\");\n";
+  out << "uint32_t table_card = table_x1.size();\n";
+  out << "for (int i = 0; i < table_card; i++) {\n";
+  out << "int32_t x1 = table_x1[i];\n";
+  ctx.col_to_var["table.x1"] = "x1";
   if (scan.parent != nullptr) {
     Operator& parent = *scan.parent;
-    registry.GetConsumer(parent.Id())(registry, parent, scan, out);
+    ctx.registry.GetConsumer(parent.Id())(ctx, parent, scan, out);
   }
+  ctx.col_to_var.erase("table.x1");
 
   out << "}\n";
 }
 
-void ProduceSelect(const TranslatorRegistry& registry, Operator& op,
-                   std::ostream& out) {
+void ProduceSelect(Context& ctx, Operator& op, std::ostream& out) {
   Select& select = static_cast<Select&>(op);
   Operator& child = *select.child;
-  registry.GetProducer(child.Id())(registry, child, out);
+  ctx.registry.GetProducer(child.Id())(ctx, child, out);
 }
 
-void ConsumeSelect(const TranslatorRegistry& registry, Operator& op,
-                   Operator& src, std::ostream& out) {
+void ConsumeSelect(Context& ctx, Operator& op, Operator& src,
+                   std::ostream& out) {
   Select& select = static_cast<Select&>(op);
 
-  // TODO: generate code for expression
-  out << "if (false) {\n";
+  out << "if (";
+  ctx.registry.GetExprConsumer(select.expression->Id())(ctx, *select.expression,
+                                                        out);
+  out << ") {\n";
 
   if (select.parent != nullptr) {
     Operator& parent = *select.parent;
-    registry.GetConsumer(parent.Id())(registry, parent, select, out);
+    ctx.registry.GetConsumer(parent.Id())(ctx, parent, select, out);
   }
 
   out << "}\n";
 }
 
-void ProduceOutput(const TranslatorRegistry& registry, Operator& op,
-                   std::ostream& out) {
+void ProduceOutput(Context& ctx, Operator& op, std::ostream& out) {
   Output& select = static_cast<Output&>(op);
   Operator& child = *select.child;
-  registry.GetProducer(child.Id())(registry, child, out);
+  ctx.registry.GetProducer(child.Id())(ctx, child, out);
 }
 
-void ConsumeOutput(const TranslatorRegistry& registry, Operator& op,
-                   Operator& src, std::ostream& out) {
-  out << "std::cout << column0 << std::endl;\n";
+void ConsumeOutput(Context& ctx, Operator& op, Operator& src,
+                   std::ostream& out) {
+  for (const auto& [_, var] : ctx.col_to_var) {
+    out << "std::cout << " << var << " << std::endl;\n";
+  }
+}
+
+void ConsumeColumnRef(Context& ctx, algebra::Expression& expr,
+                      std::ostream& out) {
+  ColumnRef& ref = static_cast<ColumnRef&>(expr);
+  out << ctx.col_to_var[ref.column];
+}
+
+void ConsumeIntLiteral(Context& ctx, algebra::Expression& expr,
+                       std::ostream& out) {
+  IntLiteral& literal = static_cast<IntLiteral&>(expr);
+  out << literal.value;
+}
+
+const std::unordered_map<BinaryOperatorType, std::string> op_to_cpp_op{
+    {BinaryOperatorType::ADD, "+"}, {BinaryOperatorType::AND, "&&"},
+    {BinaryOperatorType::DIV, "/"}, {BinaryOperatorType::EQ, "=="},
+    {BinaryOperatorType::GT, ">"},  {BinaryOperatorType::GTE, ">="},
+    {BinaryOperatorType::LT, "<"},  {BinaryOperatorType::LTE, "<="},
+    {BinaryOperatorType::MUL, "*"}, {BinaryOperatorType::NEQ, "!="},
+    {BinaryOperatorType::OR, "||"}, {BinaryOperatorType::SUB, "-"},
+    {BinaryOperatorType::MOD, "%"}, {BinaryOperatorType::XOR, "^"},
+};
+
+void ConsumeBinaryExpression(Context& ctx, algebra::Expression& expr,
+                             std::ostream& out) {
+  BinaryExpression& binop = static_cast<BinaryExpression&>(expr);
+  out << "(";
+  ctx.registry.GetExprConsumer(binop.left->Id())(ctx, *binop.left, out);
+  out << op_to_cpp_op.at(binop.type);
+  ctx.registry.GetExprConsumer(binop.right->Id())(ctx, *binop.right, out);
+  out << ")";
 }
 
 CppTranslator::CppTranslator() {
-  registry_.RegisterProducer(Scan::ID, &ProduceScan);
-  registry_.RegisterProducer(Select::ID, &ProduceSelect);
-  registry_.RegisterConsumer(Select::ID, &ConsumeSelect);
-  registry_.RegisterProducer(Output::ID, &ProduceOutput);
-  registry_.RegisterConsumer(Output::ID, &ConsumeOutput);
+  context_.registry.RegisterProducer(Scan::ID, &ProduceScan);
+  context_.registry.RegisterProducer(Select::ID, &ProduceSelect);
+  context_.registry.RegisterConsumer(Select::ID, &ConsumeSelect);
+  context_.registry.RegisterProducer(Output::ID, &ProduceOutput);
+  context_.registry.RegisterConsumer(Output::ID, &ConsumeOutput);
+  context_.registry.RegisterExprConsumer(ColumnRef::ID, &ConsumeColumnRef);
+  context_.registry.RegisterExprConsumer(BinaryExpression::ID,
+                                         &ConsumeBinaryExpression);
+  context_.registry.RegisterExprConsumer(IntLiteral::ID, &ConsumeIntLiteral);
 }
 
 void CppTranslator::Produce(Operator& op) {
@@ -85,6 +124,8 @@ void CppTranslator::Produce(Operator& op) {
   std::string command = "clang++ --std=c++17 -I. -shared -fpic " + file_name +
                         " catalog/catalog.cc -o " + dylib;
 
+  context_.col_to_var.clear();
+
   std::ofstream fout;
   fout.open(file_name);
   fout << "#include \"catalog/catalog.h\"\n";
@@ -92,7 +133,7 @@ void CppTranslator::Produce(Operator& op) {
   fout << "#include <iostream>\n";
   fout << "#include <cstdint>\n";
   fout << "extern \"C\" void compute() {\n";
-  registry_.GetProducer(op.Id())(registry_, op, fout);
+  context_.registry.GetProducer(op.Id())(context_, op, fout);
   fout << "}\n";
   fout.close();
 

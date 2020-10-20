@@ -11,17 +11,27 @@
 namespace skinner {
 namespace algebra {
 
+const std::string IntLiteral::ID = "INT_LITERAL";
+
 IntLiteral::IntLiteral(int64_t v) : value(v) {}
 
 void IntLiteral::Print(std::ostream& out, int num_indent) const {
   util::Indent(out, num_indent) << value << std::endl;
 }
 
+std::string IntLiteral::Id() const { return ID; }
+
+const std::string ColumnRef::ID = "COLUMN_REF";
+
 ColumnRef::ColumnRef(const std::string& col) : column(col) {}
 
 void ColumnRef::Print(std::ostream& out, int num_indent) const {
   util::Indent(out, num_indent) << column << std::endl;
 }
+
+std::string ColumnRef::Id() const { return ID; }
+
+const std::string BinaryExpression::ID = "BINOP";
 
 BinaryExpression::BinaryExpression(const BinaryOperatorType& t,
                                    std::unique_ptr<Expression> l,
@@ -33,6 +43,8 @@ void BinaryExpression::Print(std::ostream& out, int num_indent) const {
   left->Print(out, num_indent + 1);
   right->Print(out, num_indent + 1);
 }
+
+std::string BinaryExpression::Id() const { return ID; }
 
 }  // namespace algebra
 }  // namespace skinner
