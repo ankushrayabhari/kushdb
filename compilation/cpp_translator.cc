@@ -119,16 +119,16 @@ void CppTranslator::Produce(Operator& op) {
   process_query();
   dlclose(handle);
 
-  std::cout << "\nPerformance stats (seconds):" << std::endl;
+  std::cerr << "Performance stats (seconds):" << std::endl;
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = gen - start;
-  std::cout << "Code generation: " << elapsed_seconds.count() << std::endl;
+  std::cerr << "Code generation: " << elapsed_seconds.count() << std::endl;
   elapsed_seconds = comp - gen;
-  std::cout << "Compilation: " << elapsed_seconds.count() << std::endl;
+  std::cerr << "Compilation: " << elapsed_seconds.count() << std::endl;
   elapsed_seconds = link - comp;
-  std::cout << "Linking: " << elapsed_seconds.count() << std::endl;
+  std::cerr << "Linking: " << elapsed_seconds.count() << std::endl;
   elapsed_seconds = end - link;
-  std::cout << "Execution: " << elapsed_seconds.count() << std::endl;
+  std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
 }
 
 }  // namespace skinner
