@@ -14,6 +14,7 @@
 #include "compilation/translator_registry.h"
 
 namespace skinner {
+namespace compile {
 
 using namespace algebra;
 
@@ -131,4 +132,5 @@ void CppTranslator::Produce(Operator& op) {
   std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
 }
 
+}  // namespace compile
 }  // namespace skinner

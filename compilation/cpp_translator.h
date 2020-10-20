@@ -3,6 +3,7 @@
 #include "compilation/translator_registry.h"
 
 namespace skinner {
+namespace compile {
 
 class CppTranslator {
   TranslatorRegistry registry_;
@@ -12,4 +13,5 @@ class CppTranslator {
   void Produce(algebra::Operator& op);
 };
 
+}  // namespace compile
 }  // namespace skinner

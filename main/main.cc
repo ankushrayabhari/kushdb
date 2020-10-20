@@ -6,6 +6,7 @@
 
 using namespace skinner;
 using namespace skinner::algebra;
+using namespace skinner::compile;
 
 int main() {
   CppTranslator translator;
