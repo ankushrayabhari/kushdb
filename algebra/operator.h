@@ -5,7 +5,10 @@
 #include <utility>
 #include <vector>
 
+#include "algebra/expression.h"
+
 namespace skinner {
+namespace algebra {
 
 class Operator {
  public:
@@ -29,9 +32,9 @@ class Scan final : public Operator {
 class Select final : public Operator {
  public:
   static const std::string ID;
-  std::string expression;
+  std::unique_ptr<Expression> expression;
   std::unique_ptr<Operator> child;
-  Select(std::unique_ptr<Operator> c, const std::string& e);
+  Select(std::unique_ptr<Operator> c, std::unique_ptr<Expression> e);
   std::string Id() const;
   void Print(std::ostream& out, int num_indent) const;
 };
@@ -45,4 +48,5 @@ class Output final : public Operator {
   void Print(std::ostream& out, int num_indent) const;
 };
 
+}  // namespace algebra
 }  // namespace skinner

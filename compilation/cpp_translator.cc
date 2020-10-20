@@ -1,20 +1,21 @@
 #include "compilation/cpp_translator.h"
 
-#include <string>
-#include <fstream>
 #include <dlfcn.h>
 
+#include <chrono>
+#include <cstdlib>
 #include <exception>
+#include <fstream>
 #include <functional>
 #include <string>
 #include <type_traits>
-#include <cstdlib>
-#include <chrono>
 
 #include "algebra/operator.h"
 #include "compilation/translator_registry.h"
 
 namespace skinner {
+
+using namespace algebra;
 
 void ProduceScan(const TranslatorRegistry& registry, Operator& op,
                  std::ostream& out) {
@@ -44,7 +45,9 @@ void ProduceSelect(const TranslatorRegistry& registry, Operator& op,
 void ConsumeSelect(const TranslatorRegistry& registry, Operator& op,
                    Operator& src, std::ostream& out) {
   Select& select = static_cast<Select&>(op);
-  out << "if (" << select.expression << ") {\n";
+
+  // TODO: generate code for expression
+  out << "if (false) {\n";
 
   if (select.parent != nullptr) {
     Operator& parent = *select.parent;
@@ -76,9 +79,10 @@ CppTranslator::CppTranslator() {
 
 void CppTranslator::Produce(Operator& op) {
   auto start = std::chrono::system_clock::now();
-  std::string file_name("test_generated.cpp");
-  std::string dylib("test_generated.so");
-  std::string command = "clang++ --std=c++17 -I. -shared -fpic " + file_name + " catalog/catalog.cc -o " + dylib;
+  std::string file_name("/tmp/test_generated.cpp");
+  std::string dylib("/tmp/test_generated.so");
+  std::string command = "clang++ --std=c++17 -I. -shared -fpic " + file_name +
+                        " catalog/catalog.cc -o " + dylib;
 
   std::ofstream fout;
   fout.open(file_name);
@@ -99,7 +103,7 @@ void CppTranslator::Produce(Operator& op) {
   }
   auto comp = std::chrono::system_clock::now();
 
-  void* handle = dlopen(("./" + dylib).c_str(), RTLD_LAZY);
+  void* handle = dlopen((dylib).c_str(), RTLD_LAZY);
 
   if (!handle) {
     throw std::runtime_error("Failed to open");
@@ -114,15 +118,17 @@ void CppTranslator::Produce(Operator& op) {
 
   process_query();
   dlclose(handle);
+
+  std::cout << "\nPerformance stats (seconds):" << std::endl;
   auto end = std::chrono::system_clock::now();
-  std::chrono::duration<double> elapsed_seconds = gen-start;
-  std::cout << elapsed_seconds.count() << std::endl;
-  elapsed_seconds = comp-gen;
-  std::cout << elapsed_seconds.count() << std::endl;
-  elapsed_seconds = link-comp;
-  std::cout << elapsed_seconds.count() << std::endl;
-  elapsed_seconds = end-link;
-  std::cout << elapsed_seconds.count() << std::endl;
+  std::chrono::duration<double> elapsed_seconds = gen - start;
+  std::cout << "Code generation: " << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = comp - gen;
+  std::cout << "Compilation: " << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = link - comp;
+  std::cout << "Linking: " << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = end - link;
+  std::cout << "Execution: " << elapsed_seconds.count() << std::endl;
 }
 
 }  // namespace skinner

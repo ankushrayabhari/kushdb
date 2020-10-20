@@ -9,7 +9,7 @@ class CppTranslator {
 
  public:
   CppTranslator();
-  void Produce(Operator& op);
+  void Produce(algebra::Operator& op);
 };
 
 }  // namespace skinner

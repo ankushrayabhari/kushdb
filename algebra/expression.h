@@ -1,0 +1,66 @@
+#pragma once
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+namespace skinner {
+namespace algebra {
+
+// Basic expressions:
+// - Operators like +,-,*
+// - Functions like SUM,MIN,MAX,CAST
+// - Column References
+// - Constants
+class Expression {
+ public:
+  virtual ~Expression() {}
+  virtual void Print(std::ostream& out, int num_indent) const = 0;
+};
+
+class IntLiteral final : public Expression {
+ public:
+  const int64_t value;
+  explicit IntLiteral(int64_t v);
+  void Print(std::ostream& out, int num_indent) const;
+};
+
+class ColumnRef final : public Expression {
+ public:
+  const std::string column;
+  explicit ColumnRef(const std::string& col);
+  void Print(std::ostream& out, int num_indent) const;
+};
+
+enum class BinaryOperatorType {
+  ADD,
+  AND,
+  DIV,
+  EQ,
+  GT,
+  GTE,
+  LIKE,
+  LT,
+  LTE,
+  MUL,
+  NEQ,
+  OR,
+  SUB,
+  MOD,
+  XOR
+};
+
+class BinaryExpression final : public Expression {
+ public:
+  BinaryOperatorType type;
+  std::unique_ptr<Expression> left;
+  std::unique_ptr<Expression> right;
+
+  BinaryExpression(const BinaryOperatorType& op_type,
+                   std::unique_ptr<Expression> left,
+                   std::unique_ptr<Expression> right);
+  void Print(std::ostream& out, int num_indent) const;
+};
+
+}  // namespace algebra
+}  // namespace skinner

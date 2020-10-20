@@ -9,10 +9,11 @@ namespace skinner {
 
 class TranslatorRegistry;
 
-using ProduceFn =
-    std::function<void(const TranslatorRegistry&, Operator&, std::ostream&)>;
-using ConsumeFn = std::function<void(const TranslatorRegistry&, Operator&,
-                                     Operator&, std::ostream&)>;
+using ProduceFn = std::function<void(const TranslatorRegistry&,
+                                     algebra::Operator&, std::ostream&)>;
+using ConsumeFn =
+    std::function<void(const TranslatorRegistry&, algebra::Operator&,
+                       algebra::Operator&, std::ostream&)>;
 
 class TranslatorRegistry {
   std::unordered_map<std::string, ProduceFn> id_to_produce;

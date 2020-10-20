@@ -9,6 +9,7 @@
 #include "util/print_util.h"
 
 namespace skinner {
+namespace algebra {
 
 Operator::Operator() : parent(nullptr) {}
 
@@ -22,8 +23,8 @@ void Scan::Print(std::ostream& out, int num_indent) const {
   util::Indent(out, num_indent) << ID << ": " << relation << std::endl;
 }
 
-Select::Select(std::unique_ptr<Operator> c, const std::string& e)
-    : expression(e), child(std::move(c)) {
+Select::Select(std::unique_ptr<Operator> c, std::unique_ptr<Expression> e)
+    : expression(std::move(e)), child(std::move(c)) {
   child->parent = this;
 }
 
@@ -33,7 +34,7 @@ std::string Select::Id() const { return ID; }
 
 void Select::Print(std::ostream& out, int num_indent) const {
   util::Indent(out, num_indent) << ID << std::endl;
-  util::Indent(out, num_indent + 1) << expression << std::endl;
+  expression->Print(out, num_indent + 1);
   child->Print(out, num_indent + 1);
 }
 
@@ -50,4 +51,5 @@ void Output::Print(std::ostream& out, int num_indent) const {
   child->Print(out, num_indent + 1);
 }
 
+}  // namespace algebra
 }  // namespace skinner

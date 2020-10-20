@@ -5,6 +5,7 @@
 #include "compilation/cpp_translator.h"
 
 using namespace skinner;
+using namespace skinner::algebra;
 
 int main() {
   CppTranslator translator;
