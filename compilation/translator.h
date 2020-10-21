@@ -1,7 +1,7 @@
 #pragma once
 #include "algebra/operator.h"
 
-namespace skinner {
+namespace kush {
 namespace compile {
 
 class Translator {
@@ -10,4 +10,4 @@ class Translator {
 };
 
 }  // namespace compile
-}  // namespace skinner
+}  // namespace kush

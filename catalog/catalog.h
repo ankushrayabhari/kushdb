@@ -6,7 +6,7 @@
 #include "catalog/catalog.h"
 #include "data/column_data.h"
 
-namespace skinner {
+namespace kush {
 namespace catalog {
 
 class Column {
@@ -42,4 +42,4 @@ class Database {
 };
 
 }  // namespace catalog
-}  // namespace skinner
+}  // namespace kush

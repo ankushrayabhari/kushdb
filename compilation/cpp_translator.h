@@ -3,7 +3,7 @@
 #include "compilation/translator.h"
 #include "compilation/translator_registry.h"
 
-namespace skinner {
+namespace kush {
 namespace compile {
 
 class CppTranslator {
@@ -37,4 +37,4 @@ class CppTranslator {
 };
 
 }  // namespace compile
-}  // namespace skinner
+}  // namespace kush

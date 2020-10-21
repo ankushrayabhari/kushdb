@@ -6,7 +6,7 @@
 
 #include "data/column_data.h"
 
-using namespace skinner;
+using namespace kush;
 
 int main() {
   std::srand(std::time(nullptr));

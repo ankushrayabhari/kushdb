@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace skinner {
+namespace kush {
 namespace util {
 
 std::ostream& Indent(std::ostream& out, int num_indent) {
@@ -13,4 +13,4 @@ std::ostream& Indent(std::ostream& out, int num_indent) {
 }
 
 }  // namespace util
-}  // namespace skinner
+}  // namespace kush

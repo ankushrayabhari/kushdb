@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace skinner {
+namespace kush {
 namespace algebra {
 
 // Basic expressions:
@@ -69,4 +69,4 @@ class BinaryExpression final : public Expression {
 };
 
 }  // namespace algebra
-}  // namespace skinner
+}  // namespace kush

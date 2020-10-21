@@ -11,7 +11,7 @@
 #include <cstring>
 #include <exception>
 
-namespace skinner {
+namespace kush {
 
 /*
  * Hybrid in-memory/disk based column data based on
@@ -119,4 +119,4 @@ class ColumnData {
   const T& operator[](uint32_t idx) const { return data_[idx]; }
 };
 
-}  // namespace skinner
+}  // namespace kush

@@ -5,10 +5,10 @@
 #include "catalog/catalog.h"
 #include "compilation/cpp_translator.h"
 
-using namespace skinner;
-using namespace skinner::algebra;
-using namespace skinner::compile;
-using namespace skinner::catalog;
+using namespace kush;
+using namespace kush::algebra;
+using namespace kush::compile;
+using namespace kush::catalog;
 
 int main() {
   Database db;

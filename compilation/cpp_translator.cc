@@ -15,7 +15,7 @@
 #include "catalog/catalog.h"
 #include "compilation/translator_registry.h"
 
-namespace skinner {
+namespace kush {
 namespace compile {
 
 using namespace algebra;
@@ -45,7 +45,7 @@ void ProduceScan(Context& ctx, Operator& op, std::ostream& out) {
 
   for (const auto& [_, column] : table.Columns()) {
     std::string var = scan.relation + "_" + column.name + "_data";
-    out << "skinner::ColumnData<" << column.type << "> ";
+    out << "kush::ColumnData<" << column.type << "> ";
     out << var << "(\"" << column.path << "\");\n";
 
     if (card.empty()) {
@@ -222,4 +222,4 @@ void CppTranslator::Produce(Operator& op) {
 }
 
 }  // namespace compile
-}  // namespace skinner
+}  // namespace kush

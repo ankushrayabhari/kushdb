@@ -7,7 +7,7 @@
 
 #include "algebra/expression.h"
 
-namespace skinner {
+namespace kush {
 namespace algebra {
 
 class Operator {
@@ -49,4 +49,4 @@ class Output final : public Operator {
 };
 
 }  // namespace algebra
-}  // namespace skinner
+}  // namespace kush

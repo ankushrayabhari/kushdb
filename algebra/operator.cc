@@ -8,7 +8,7 @@
 
 #include "util/print_util.h"
 
-namespace skinner {
+namespace kush {
 namespace algebra {
 
 Operator::Operator() : parent(nullptr) {}
@@ -52,4 +52,4 @@ void Output::Print(std::ostream& out, int num_indent) const {
 }
 
 }  // namespace algebra
-}  // namespace skinner
+}  // namespace kush

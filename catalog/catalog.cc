@@ -5,7 +5,7 @@
 
 #include "data/column_data.h"
 
-namespace skinner {
+namespace kush {
 namespace catalog {
 
 Column::Column(const std::string& n, const std::string& t, const std::string& p)
@@ -45,4 +45,4 @@ const std::unordered_map<std::string, Column>& Table::Columns() const {
 }
 
 }  // namespace catalog
-}  // namespace skinner
+}  // namespace kush

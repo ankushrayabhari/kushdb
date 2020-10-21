@@ -3,7 +3,7 @@
 #include <iostream>
 #include <unordered_map>
 
-namespace skinner {
+namespace kush {
 namespace compile {
 
 template <class ProduceFn, class ConsumeFn, class ConsumeExprFn>
@@ -39,4 +39,4 @@ class TranslatorRegistry {
 };
 
 }  // namespace compile
-}  // namespace skinner
+}  // namespace kush

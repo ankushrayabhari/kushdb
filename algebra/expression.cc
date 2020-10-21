@@ -8,7 +8,7 @@
 #include "third_party/magic_enum.h"
 #include "util/print_util.h"
 
-namespace skinner {
+namespace kush {
 namespace algebra {
 
 const std::string IntLiteral::ID = "INT_LITERAL";
@@ -47,4 +47,4 @@ void BinaryExpression::Print(std::ostream& out, int num_indent) const {
 std::string BinaryExpression::Id() const { return ID; }
 
 }  // namespace algebra
-}  // namespace skinner
+}  // namespace kush
