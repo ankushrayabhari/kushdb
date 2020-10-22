@@ -168,7 +168,6 @@ void ConsumeHashJoin(Context& ctx, Operator& op, Operator& src,
       ref = rref;
     }
     std::string ref_var = ctx.col_to_var[ref->table + "_" + ref->column];
-    std::cerr << ref_var << std::endl;
 
     for (Column c : columns) {
       auto var = ctx.col_to_var[c.name];
@@ -270,8 +269,8 @@ void CppTranslator::Produce(Operator& op) {
   auto start = std::chrono::system_clock::now();
   std::string file_name("/tmp/test_generated.cpp");
   std::string dylib("/tmp/test_generated.so");
-  std::string command = "clang++ --std=c++17 -I. -shared -fpic " + file_name +
-                        " catalog/catalog.cc -o " + dylib;
+  std::string command = "clang++ -O3 --std=c++17 -I. -shared -fpic " +
+                        file_name + " catalog/catalog.cc -o " + dylib;
 
   context_.col_to_var.clear();
 
