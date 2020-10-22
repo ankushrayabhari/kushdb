@@ -15,6 +15,7 @@ int main() {
   db.insert("table").insert("x1", "int32_t", "test.skdbcol");
   db.insert("table1").insert("x2", "int32_t", "test.skdbcol");
   db.insert("table2").insert("x3", "int32_t", "test.skdbcol");
+  db.insert("table2").insert("x4", "int32_t", "test1.skdbcol");
 
   CppTranslator translator(db);
 

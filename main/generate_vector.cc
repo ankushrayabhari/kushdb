@@ -17,6 +17,6 @@ int main() {
     data.push_back(std::rand());
   }
 
-  data.serialize("test.skdbcol");
+  data.serialize("test1.skdbcol");
   return 0;
 }

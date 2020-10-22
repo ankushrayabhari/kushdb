@@ -200,7 +200,7 @@ void ConsumeHashJoin(Context& ctx, Operator& op, Operator& src,
     for (Column c : lcols) {
       ctx.col_to_var[c.name] = c.name;
       out << c.type << " " << c.name << " = " << buffer_var << "[" << var << "]"
-          << "[" << bucket_var << "+ " << i << "];\n";
+          << "[" << bucket_var << "+ " << i++ << "];\n";
     }
 
     std::vector<Column> newcols;
