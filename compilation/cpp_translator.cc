@@ -154,19 +154,37 @@ void ProduceHashJoin(Context& ctx, Operator& op, std::ostream& out) {
 void ConsumeHashJoin(Context& ctx, Operator& op, Operator& src,
                      std::vector<Column> columns, std::ostream& out) {
   HashJoin& join = static_cast<HashJoin&>(op);
+  auto lref = dynamic_cast<ColumnRef*>(join.expression->left.get());
+  auto rref = dynamic_cast<ColumnRef*>(join.expression->right.get());
   std::string buffer_var = hashjoin_buffer_var[&join];
   if (&src == join.left.get()) {
     hj_cols[join.left.get()] = columns;
-    auto ref = dynamic_cast<ColumnRef*>(join.expression->left.get());
-    auto ref_var = ctx.col_to_var[ref->table + "_" + ref->column];
+
+    ColumnRef* ref = nullptr;
+    if (ctx.col_to_var.find(lref->table + "_" + lref->column) !=
+        ctx.col_to_var.end()) {
+      ref = lref;
+    } else {
+      ref = rref;
+    }
+    std::string ref_var = ctx.col_to_var[ref->table + "_" + ref->column];
+    std::cerr << ref_var << std::endl;
+
     for (Column c : columns) {
       auto var = ctx.col_to_var[c.name];
       // add to hash table
       out << buffer_var << "[" << ref_var << "].push_back(" << var << ");\n";
     }
   } else {
-    auto ref = dynamic_cast<ColumnRef*>(join.expression->right.get());
-    auto var = ctx.col_to_var[ref->table + "_" + ref->column];
+    ColumnRef* ref = nullptr;
+    if (ctx.col_to_var.find(lref->table + "_" + lref->column) !=
+        ctx.col_to_var.end()) {
+      ref = lref;
+    } else {
+      ref = rref;
+    }
+    std::string var = ctx.col_to_var[ref->table + "_" + ref->column];
+
     auto loop_var = get_unique_loop_var();
 
     // probe hash table and start outputting tuples

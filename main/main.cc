@@ -20,6 +20,7 @@ int main() {
 
   std::unique_ptr<Operator> op =
       std::make_unique<Output>(std::make_unique<HashJoin>(
+          std::make_unique<Scan>("table2"),
           std::make_unique<HashJoin>(
               std::make_unique<Select>(
                   std::make_unique<Scan>("table"),
@@ -32,11 +33,10 @@ int main() {
                   BinaryOperatorType::EQ,
                   std::make_unique<ColumnRef>("table", "x1"),
                   std::make_unique<ColumnRef>("table1", "x2"))),
-          std::make_unique<Scan>("table2"),
           std::make_unique<BinaryExpression>(
               BinaryOperatorType::EQ,
               std::make_unique<ColumnRef>("table1", "x2"),
-              std::make_unique<ColumnRef>("table2", "x3")));
+              std::make_unique<ColumnRef>("table2", "x3"))));
 
   translator.Produce(*op);
 
