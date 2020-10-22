@@ -20,6 +20,7 @@ namespace compile {
 
 using namespace algebra;
 using Context = CppTranslator::CompilationContext;
+using Column = CppTranslator::Column;
 
 std::string get_unique_loop_var() {
   static std::string last = "a";
@@ -57,7 +58,11 @@ void ProduceScan(Context& ctx, Operator& op, std::ostream& out) {
   out << "for (uint32_t " << loop_var << " = 0; ";
   out << loop_var << " < " << card << "; " << loop_var << "++) {\n";
 
+  std::vector<Column> columns;
+
   for (const auto& [_, column] : table.Columns()) {
+    columns.emplace_back(scan.relation + "." + column.name, column.type);
+
     std::string data_var = scan.relation + "_" + column.name + "_data";
     std::string var = scan.relation + "_" + column.name;
     ctx.col_to_var[scan.relation + "." + column.name] = var;
@@ -67,7 +72,7 @@ void ProduceScan(Context& ctx, Operator& op, std::ostream& out) {
 
   if (scan.parent != nullptr) {
     Operator& parent = *scan.parent;
-    ctx.registry.GetConsumer(parent.Id())(ctx, parent, scan, out);
+    ctx.registry.GetConsumer(parent.Id())(ctx, parent, scan, columns, out);
   }
 
   for (const auto& [_, column] : table.Columns()) {
@@ -84,7 +89,7 @@ void ProduceSelect(Context& ctx, Operator& op, std::ostream& out) {
 }
 
 void ConsumeSelect(Context& ctx, Operator& op, Operator& src,
-                   std::ostream& out) {
+                   std::vector<Column> columns, std::ostream& out) {
   Select& select = static_cast<Select&>(op);
 
   out << "if (";
@@ -94,7 +99,7 @@ void ConsumeSelect(Context& ctx, Operator& op, Operator& src,
 
   if (select.parent != nullptr) {
     Operator& parent = *select.parent;
-    ctx.registry.GetConsumer(parent.Id())(ctx, parent, select, out);
+    ctx.registry.GetConsumer(parent.Id())(ctx, parent, select, columns, out);
   }
 
   out << "}\n";
@@ -107,9 +112,11 @@ void ProduceOutput(Context& ctx, Operator& op, std::ostream& out) {
 }
 
 void ConsumeOutput(Context& ctx, Operator& op, Operator& src,
-                   std::ostream& out) {
+                   std::vector<Column> columns, std::ostream& out) {
   bool first = true;
-  for (const auto& [_, var] : ctx.col_to_var) {
+
+  for (const auto& col : columns) {
+    const auto& var = ctx.col_to_var[col.name];
     if (first) {
       first = false;
       out << "std::cout << " << var << ";\n";
@@ -117,6 +124,7 @@ void ConsumeOutput(Context& ctx, Operator& op, Operator& src,
       out << "std::cout << \" | \" << " << var << ";\n";
     }
   }
+
   out << "std::cout << \'\\n\';\n";
 }
 
@@ -132,18 +140,38 @@ void ProduceHashJoin(Context& ctx, Operator& op, std::ostream& out) {
   }
 
   // TODO: replace this with a proper name
-  out << "std::unordered_map<int32_t, std::vector<int>> buffer;\n";
+  out << "std::unordered_map<int32_t, std::vector<int32_t>> buffer;\n";
   ctx.registry.GetProducer(join.left->Id())(ctx, *join.left, out);
   ctx.registry.GetProducer(join.right->Id())(ctx, *join.right, out);
 }
 
 void ConsumeHashJoin(Context& ctx, Operator& op, Operator& src,
-                     std::ostream& out) {
+                     std::vector<Column> columns, std::ostream& out) {
   HashJoin& join = static_cast<HashJoin&>(op);
   if (&src == join.left.get()) {
+    auto ref = dynamic_cast<ColumnRef*>(join.expression->left.get());
+    auto var = ctx.col_to_var[ref->table + "." + ref->column];
     // add to hash table
+    out << "buffer[" << var << "].push_back(" << var << ");\n";
   } else {
+    auto ref = dynamic_cast<ColumnRef*>(join.expression->right.get());
+    auto lref = dynamic_cast<ColumnRef*>(join.expression->left.get());
+    auto var = ctx.col_to_var[ref->table + "." + ref->column];
+    auto loop_var = get_unique_loop_var();
+
     // probe hash table and start outputting tuples
+    out << "for (int32_t " << loop_var << ": buffer[" << var << "]) {\n";
+
+    ctx.col_to_var[lref->table + "." + lref->column] = loop_var;
+    std::vector<Column> newcols;
+    newcols.emplace_back(lref->table + "." + lref->column, "int32_t");
+    newcols.insert(newcols.end(), columns.begin(), columns.end());
+    if (join.parent != nullptr) {
+      Operator& parent = *join.parent;
+      ctx.registry.GetConsumer(parent.Id())(ctx, parent, join, newcols, out);
+    }
+
+    out << "}\n";
   }
 }
 
@@ -185,6 +213,8 @@ CppTranslator::CppTranslator(const catalog::Database& db) : context_(db) {
   context_.registry.RegisterConsumer(Select::ID, &ConsumeSelect);
   context_.registry.RegisterProducer(Output::ID, &ProduceOutput);
   context_.registry.RegisterConsumer(Output::ID, &ConsumeOutput);
+  context_.registry.RegisterProducer(HashJoin::ID, &ProduceHashJoin);
+  context_.registry.RegisterConsumer(HashJoin::ID, &ConsumeHashJoin);
   context_.registry.RegisterExprConsumer(ColumnRef::ID, &ConsumeColumnRef);
   context_.registry.RegisterExprConsumer(BinaryExpression::ID,
                                          &ConsumeBinaryExpression);
@@ -206,6 +236,8 @@ void CppTranslator::Produce(Operator& op) {
   fout << "#include \"data/column_data.h\"\n";
   fout << "#include <iostream>\n";
   fout << "#include <cstdint>\n";
+  fout << "#include <vector>\n";
+  fout << "#include <unordered_map>\n";
   fout << "extern \"C\" void compute() {\n";
   context_.registry.GetProducer(op.Id())(context_, op, fout);
   fout << "}\n";

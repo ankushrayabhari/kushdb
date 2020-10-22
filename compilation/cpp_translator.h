@@ -1,4 +1,8 @@
 #pragma once
+#include <iostream>
+#include <string>
+#include <vector>
+
 #include "catalog/catalog.h"
 #include "compilation/translator.h"
 #include "compilation/translator_registry.h"
@@ -8,13 +12,21 @@ namespace compile {
 
 class CppTranslator {
  public:
+  struct Column {
+    std::string name;
+    std::string type;
+
+    Column(const std::string& n, const std::string& t) : name(n), type(t) {}
+  };
+
   class CompilationContext;
 
   typedef std::function<void(CompilationContext&, algebra::Operator&,
                              std::ostream&)>
       ProduceFn;
   typedef std::function<void(CompilationContext&, algebra::Operator&,
-                             algebra::Operator&, std::ostream&)>
+                             algebra::Operator&, std::vector<Column>,
+                             std::ostream&)>
       ConsumeFn;
   typedef std::function<void(CompilationContext&, algebra::Expression&,
                              std::ostream&)>
