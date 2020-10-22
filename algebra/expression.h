@@ -31,8 +31,9 @@ class IntLiteral final : public Expression {
 class ColumnRef final : public Expression {
  public:
   const static std::string ID;
+  const std::string table;
   const std::string column;
-  explicit ColumnRef(const std::string& col);
+  explicit ColumnRef(const std::string& tab, const std::string& col);
   void Print(std::ostream& out, int num_indent) const;
   std::string Id() const;
 };

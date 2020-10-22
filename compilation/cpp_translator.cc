@@ -120,10 +120,37 @@ void ConsumeOutput(Context& ctx, Operator& op, Operator& src,
   out << "std::cout << \'\\n\';\n";
 }
 
+void ProduceHashJoin(Context& ctx, Operator& op, std::ostream& out) {
+  HashJoin& join = static_cast<HashJoin&>(op);
+  if (join.expression->type != BinaryOperatorType::EQ) {
+    throw std::runtime_error("Only support eq op for hash joins.");
+  }
+  auto left = dynamic_cast<ColumnRef*>(join.expression->left.get());
+  auto right = dynamic_cast<ColumnRef*>(join.expression->right.get());
+  if (left == nullptr || right == nullptr) {
+    throw std::runtime_error("Only support column ref eq op hash joins.");
+  }
+
+  // TODO: replace this with a proper name
+  out << "std::unordered_map<int32_t, std::vector<int>> buffer;\n";
+  ctx.registry.GetProducer(join.left->Id())(ctx, *join.left, out);
+  ctx.registry.GetProducer(join.right->Id())(ctx, *join.right, out);
+}
+
+void ConsumeHashJoin(Context& ctx, Operator& op, Operator& src,
+                     std::ostream& out) {
+  HashJoin& join = static_cast<HashJoin&>(op);
+  if (&src == join.left.get()) {
+    // add to hash table
+  } else {
+    // probe hash table and start outputting tuples
+  }
+}
+
 void ConsumeColumnRef(Context& ctx, algebra::Expression& expr,
                       std::ostream& out) {
   ColumnRef& ref = static_cast<ColumnRef&>(expr);
-  out << ctx.col_to_var[ref.column];
+  out << ctx.col_to_var[ref.table + "." + ref.column];
 }
 
 void ConsumeIntLiteral(Context& ctx, algebra::Expression& expr,

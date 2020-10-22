@@ -48,5 +48,18 @@ class Output final : public Operator {
   void Print(std::ostream& out, int num_indent) const;
 };
 
+class HashJoin final : public Operator {
+ public:
+  static const std::string ID;
+  std::unique_ptr<Operator> left;
+  std::unique_ptr<Operator> right;
+  std::unique_ptr<BinaryExpression> expression;
+
+  HashJoin(std::unique_ptr<Operator> l, std::unique_ptr<Operator> r,
+           std::unique_ptr<BinaryExpression> e);
+  std::string Id() const;
+  void Print(std::ostream& out, int num_indent) const;
+};
+
 }  // namespace algebra
 }  // namespace kush

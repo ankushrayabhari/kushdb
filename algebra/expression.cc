@@ -23,7 +23,8 @@ std::string IntLiteral::Id() const { return ID; }
 
 const std::string ColumnRef::ID = "COLUMN_REF";
 
-ColumnRef::ColumnRef(const std::string& col) : column(col) {}
+ColumnRef::ColumnRef(const std::string& tab, const std::string& col)
+    : table(tab), column(col) {}
 
 void ColumnRef::Print(std::ostream& out, int num_indent) const {
   util::Indent(out, num_indent) << column << std::endl;

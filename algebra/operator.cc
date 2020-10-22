@@ -51,5 +51,23 @@ void Output::Print(std::ostream& out, int num_indent) const {
   child->Print(out, num_indent + 1);
 }
 
+HashJoin::HashJoin(std::unique_ptr<Operator> l, std::unique_ptr<Operator> r,
+                   std::unique_ptr<BinaryExpression> e)
+    : left(std::move(l)), right(std::move(r)), expression(std::move(e)) {
+  left->parent = this;
+  right->parent = this;
+}
+
+const std::string HashJoin::ID = "HASH_JOIN";
+
+std::string HashJoin::Id() const { return ID; }
+
+void HashJoin::Print(std::ostream& out, int num_indent) const {
+  util::Indent(out, num_indent) << ID << std::endl;
+  left->Print(out, num_indent + 1);
+  right->Print(out, num_indent + 1);
+  expression->Print(out, num_indent + 1);
+}
+
 }  // namespace algebra
 }  // namespace kush
