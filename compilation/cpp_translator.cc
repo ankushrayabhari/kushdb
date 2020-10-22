@@ -61,11 +61,11 @@ void ProduceScan(Context& ctx, Operator& op, std::ostream& out) {
   std::vector<Column> columns;
 
   for (const auto& [_, column] : table.Columns()) {
-    columns.emplace_back(scan.relation + "." + column.name, column.type);
+    columns.emplace_back(scan.relation + "_" + column.name, column.type);
 
     std::string data_var = scan.relation + "_" + column.name + "_data";
     std::string var = scan.relation + "_" + column.name;
-    ctx.col_to_var[scan.relation + "." + column.name] = var;
+    ctx.col_to_var[scan.relation + "_" + column.name] = var;
     out << column.type << " " << var << " = " << data_var;
     out << "[" << loop_var << "];\n";
   }
@@ -76,7 +76,7 @@ void ProduceScan(Context& ctx, Operator& op, std::ostream& out) {
   }
 
   for (const auto& [_, column] : table.Columns()) {
-    ctx.col_to_var.erase(scan.relation + "." + column.name);
+    ctx.col_to_var.erase(scan.relation + "_" + column.name);
   }
 
   out << "}\n";
@@ -128,6 +128,9 @@ void ConsumeOutput(Context& ctx, Operator& op, Operator& src,
   out << "std::cout << \'\\n\';\n";
 }
 
+std::unordered_map<HashJoin*, std::string> hashjoin_buffer_var;
+std::unordered_map<Operator*, std::vector<Column>> hj_cols;
+
 void ProduceHashJoin(Context& ctx, Operator& op, std::ostream& out) {
   HashJoin& join = static_cast<HashJoin&>(op);
   if (join.expression->type != BinaryOperatorType::EQ) {
@@ -140,7 +143,10 @@ void ProduceHashJoin(Context& ctx, Operator& op, std::ostream& out) {
   }
 
   // TODO: replace this with a proper name
-  out << "std::unordered_map<int32_t, std::vector<int32_t>> buffer;\n";
+  std::string buffer_var = "buffer" + get_unique_loop_var();
+  hashjoin_buffer_var[&join] = buffer_var;
+  out << "std::unordered_map<int32_t, std::vector<int32_t>> " << buffer_var
+      << ";\n";
   ctx.registry.GetProducer(join.left->Id())(ctx, *join.left, out);
   ctx.registry.GetProducer(join.right->Id())(ctx, *join.right, out);
 }
@@ -148,27 +154,48 @@ void ProduceHashJoin(Context& ctx, Operator& op, std::ostream& out) {
 void ConsumeHashJoin(Context& ctx, Operator& op, Operator& src,
                      std::vector<Column> columns, std::ostream& out) {
   HashJoin& join = static_cast<HashJoin&>(op);
+  std::string buffer_var = hashjoin_buffer_var[&join];
   if (&src == join.left.get()) {
+    hj_cols[join.left.get()] = columns;
     auto ref = dynamic_cast<ColumnRef*>(join.expression->left.get());
-    auto var = ctx.col_to_var[ref->table + "." + ref->column];
-    // add to hash table
-    out << "buffer[" << var << "].push_back(" << var << ");\n";
+    auto ref_var = ctx.col_to_var[ref->table + "_" + ref->column];
+    for (Column c : columns) {
+      auto var = ctx.col_to_var[c.name];
+      // add to hash table
+      out << buffer_var << "[" << ref_var << "].push_back(" << var << ");\n";
+    }
   } else {
     auto ref = dynamic_cast<ColumnRef*>(join.expression->right.get());
-    auto lref = dynamic_cast<ColumnRef*>(join.expression->left.get());
-    auto var = ctx.col_to_var[ref->table + "." + ref->column];
+    auto var = ctx.col_to_var[ref->table + "_" + ref->column];
     auto loop_var = get_unique_loop_var();
 
     // probe hash table and start outputting tuples
-    out << "for (int32_t " << loop_var << ": buffer[" << var << "]) {\n";
 
-    ctx.col_to_var[lref->table + "." + lref->column] = loop_var;
+    auto lcols = hj_cols[join.left.get()];
+
+    auto bucket_var = get_unique_loop_var();
+    out << "for (int " << bucket_var << " = 0; " << bucket_var << " < "
+        << buffer_var << "[" << var << "]"
+        << ".size()"
+        << "; " << bucket_var << "+= " << lcols.size() << "){\n";
+
+    int i = 0;
+    for (Column c : lcols) {
+      ctx.col_to_var[c.name] = c.name;
+      out << c.type << " " << c.name << " = " << buffer_var << "[" << var << "]"
+          << "[" << bucket_var << "+ " << i << "];\n";
+    }
+
     std::vector<Column> newcols;
-    newcols.emplace_back(lref->table + "." + lref->column, "int32_t");
+    newcols.insert(newcols.end(), lcols.begin(), lcols.end());
     newcols.insert(newcols.end(), columns.begin(), columns.end());
     if (join.parent != nullptr) {
       Operator& parent = *join.parent;
       ctx.registry.GetConsumer(parent.Id())(ctx, parent, join, newcols, out);
+    }
+
+    for (Column c : lcols) {
+      ctx.col_to_var.erase(c.name);
     }
 
     out << "}\n";
@@ -178,7 +205,7 @@ void ConsumeHashJoin(Context& ctx, Operator& op, Operator& src,
 void ConsumeColumnRef(Context& ctx, algebra::Expression& expr,
                       std::ostream& out) {
   ColumnRef& ref = static_cast<ColumnRef&>(expr);
-  out << ctx.col_to_var[ref.table + "." + ref.column];
+  out << ctx.col_to_var[ref.table + "_" + ref.column];
 }
 
 void ConsumeIntLiteral(Context& ctx, algebra::Expression& expr,
