@@ -13,7 +13,7 @@ cc_library(
     hdrs = ["translator.h"],
     deps = [
         ":translator_registry",
-        "//algebra:operator",
+        "//physical:operator",
     ],
 )
 
@@ -26,7 +26,7 @@ cc_library(
         "//catalog",
         ":translator",
         ":translator_registry",
-        "//algebra:expression",
-        "//algebra:operator",
+        "//physical:expression",
+        "//physical:operator",
     ],
 )

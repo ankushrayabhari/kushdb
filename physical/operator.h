@@ -5,10 +5,10 @@
 #include <utility>
 #include <vector>
 
-#include "algebra/expression.h"
+#include "physical/expression.h"
 
 namespace kush {
-namespace algebra {
+namespace physical {
 
 class Operator {
  public:
@@ -61,5 +61,5 @@ class HashJoin final : public Operator {
   void Print(std::ostream& out, int num_indent) const;
 };
 
-}  // namespace algebra
+}  // namespace physical
 }  // namespace kush

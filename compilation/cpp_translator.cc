@@ -10,15 +10,15 @@
 #include <string>
 #include <type_traits>
 
-#include "algebra/expression.h"
-#include "algebra/operator.h"
 #include "catalog/catalog.h"
 #include "compilation/translator_registry.h"
+#include "physical/expression.h"
+#include "physical/operator.h"
 
 namespace kush {
 namespace compile {
 
-using namespace algebra;
+using namespace physical;
 using Context = CppTranslator::CompilationContext;
 using Column = CppTranslator::Column;
 
@@ -219,13 +219,13 @@ void ConsumeHashJoin(Context& ctx, Operator& op, Operator& src,
   }
 }
 
-void ConsumeColumnRef(Context& ctx, algebra::Expression& expr,
+void ConsumeColumnRef(Context& ctx, physical::Expression& expr,
                       std::ostream& out) {
   ColumnRef& ref = static_cast<ColumnRef&>(expr);
   out << ctx.col_to_var[ref.table + "_" + ref.column];
 }
 
-void ConsumeIntLiteral(Context& ctx, algebra::Expression& expr,
+void ConsumeIntLiteral(Context& ctx, physical::Expression& expr,
                        std::ostream& out) {
   IntLiteral& literal = static_cast<IntLiteral&>(expr);
   out << literal.value;
@@ -241,7 +241,7 @@ const std::unordered_map<BinaryOperatorType, std::string> op_to_cpp_op{
     {BinaryOperatorType::MOD, "%"}, {BinaryOperatorType::XOR, "^"},
 };
 
-void ConsumeBinaryExpression(Context& ctx, algebra::Expression& expr,
+void ConsumeBinaryExpression(Context& ctx, physical::Expression& expr,
                              std::ostream& out) {
   BinaryExpression& binop = static_cast<BinaryExpression&>(expr);
   out << "(";

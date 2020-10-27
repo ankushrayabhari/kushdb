@@ -5,7 +5,7 @@
 #include <vector>
 
 namespace kush {
-namespace algebra {
+namespace physical {
 
 // Basic expressions:
 // - Operators like +,-,*
@@ -69,5 +69,5 @@ class BinaryExpression final : public Expression {
   std::string Id() const;
 };
 
-}  // namespace algebra
+}  // namespace physical
 }  // namespace kush

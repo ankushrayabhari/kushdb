@@ -21,14 +21,14 @@ class CppTranslator {
 
   class CompilationContext;
 
-  typedef std::function<void(CompilationContext&, algebra::Operator&,
+  typedef std::function<void(CompilationContext&, physical::Operator&,
                              std::ostream&)>
       ProduceFn;
-  typedef std::function<void(CompilationContext&, algebra::Operator&,
-                             algebra::Operator&, std::vector<Column>,
+  typedef std::function<void(CompilationContext&, physical::Operator&,
+                             physical::Operator&, std::vector<Column>,
                              std::ostream&)>
       ConsumeFn;
-  typedef std::function<void(CompilationContext&, algebra::Expression&,
+  typedef std::function<void(CompilationContext&, physical::Expression&,
                              std::ostream&)>
       ConsumeExprFn;
 
@@ -45,7 +45,7 @@ class CppTranslator {
 
  public:
   CppTranslator(const catalog::Database& db);
-  void Produce(algebra::Operator& op);
+  void Produce(physical::Operator& op);
 };
 
 }  // namespace compile

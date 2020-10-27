@@ -1,4 +1,4 @@
-#include "algebra/operator.h"
+#include "physical/operator.h"
 
 #include <initializer_list>
 #include <iostream>
@@ -9,7 +9,7 @@
 #include "util/print_util.h"
 
 namespace kush {
-namespace algebra {
+namespace physical {
 
 Operator::Operator() : parent(nullptr) {}
 
@@ -69,5 +69,5 @@ void HashJoin::Print(std::ostream& out, int num_indent) const {
   expression->Print(out, num_indent + 1);
 }
 
-}  // namespace algebra
+}  // namespace physical
 }  // namespace kush

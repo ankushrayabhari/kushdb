@@ -1,12 +1,12 @@
 #include <memory>
 #include <string>
 
-#include "algebra/operator.h"
 #include "catalog/catalog.h"
 #include "compilation/cpp_translator.h"
+#include "physical/operator.h"
 
 using namespace kush;
-using namespace kush::algebra;
+using namespace kush::physical;
 using namespace kush::compile;
 using namespace kush::catalog;
 
