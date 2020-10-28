@@ -20,3 +20,11 @@ http_archive(
     strip_prefix = "magic_enum-0.7.0",
     urls = ["https://github.com/Neargye/magic_enum/archive/v0.7.0.zip"],
 )
+
+http_archive(
+    name = "json",
+    build_file = "@//third_party:json.BUILD",
+    sha256 = "a88449d68aab8d027c5beefe911ba217f5ffcc0686ae1793d37f3d20698b37c6",
+    strip_prefix = "json-3.9.1",
+    urls = ["https://github.com/nlohmann/json/archive/v3.9.1.zip"],
+)
