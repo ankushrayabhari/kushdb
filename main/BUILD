@@ -4,8 +4,8 @@ cc_binary(
     name = "main",
     srcs = ["main.cc"],
     deps = [
-        "//physical:operator",
         "//compilation:cpp_translator",
+        "//physical:operator",
     ],
 )
 

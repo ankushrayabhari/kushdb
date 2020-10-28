@@ -7,11 +7,10 @@ cc_library(
     srcs = ["expression.cc"],
     hdrs = ["expression.h"],
     deps = [
-        "@magic_enum//:magic_enum",
         "//util:print_util",
+        "@magic_enum",
     ],
 )
-
 
 cc_library(
     name = "operator",
