@@ -7,7 +7,7 @@ cc_library(
     srcs = ["expression.cc"],
     hdrs = ["expression.h"],
     deps = [
-        "//third_party:magic_enum",
+        "@magic_enum//:magic_enum",
         "//util:print_util",
     ],
 )

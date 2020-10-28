@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "third_party/magic_enum.h"
+#include "magic_enum.hpp"
 #include "util/print_util.h"
 
 namespace kush {
