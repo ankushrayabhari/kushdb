@@ -1,4 +1,4 @@
-#include "physical/expression.h"
+#include "plan/expression/expression.h"
 
 #include <iostream>
 #include <memory>
@@ -9,7 +9,7 @@
 #include "util/print_util.h"
 
 namespace kush {
-namespace physical {
+namespace plan {
 
 const std::string IntLiteral::ID = "INT_LITERAL";
 
@@ -47,5 +47,5 @@ void BinaryExpression::Print(std::ostream& out, int num_indent) const {
 
 std::string BinaryExpression::Id() const { return ID; }
 
-}  // namespace physical
+}  // namespace plan
 }  // namespace kush

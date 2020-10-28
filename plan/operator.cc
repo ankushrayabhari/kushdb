@@ -1,4 +1,4 @@
-#include "physical/operator.h"
+#include "plan/operator.h"
 
 #include <initializer_list>
 #include <iostream>
@@ -8,8 +8,7 @@
 
 #include "util/print_util.h"
 
-namespace kush {
-namespace physical {
+namespace kush::plan {
 
 Operator::Operator() : parent(nullptr) {}
 
@@ -69,5 +68,4 @@ void HashJoin::Print(std::ostream& out, int num_indent) const {
   expression->Print(out, num_indent + 1);
 }
 
-}  // namespace physical
-}  // namespace kush
+}  // namespace kush::plan

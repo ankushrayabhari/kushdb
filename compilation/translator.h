@@ -1,12 +1,12 @@
 #pragma once
-#include "physical/operator.h"
+#include "plan/operator.h"
 
 namespace kush {
 namespace compile {
 
 class Translator {
  public:
-  virtual void Produce(physical::Operator& op) = 0;
+  virtual void Produce(plan::Operator& op) = 0;
 };
 
 }  // namespace compile

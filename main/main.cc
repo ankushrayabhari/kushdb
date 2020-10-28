@@ -3,10 +3,10 @@
 
 #include "catalog/catalog.h"
 #include "compilation/cpp_translator.h"
-#include "physical/operator.h"
+#include "plan/operator.h"
 
 using namespace kush;
-using namespace kush::physical;
+using namespace kush::plan;
 using namespace kush::compile;
 using namespace kush::catalog;
 

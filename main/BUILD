@@ -5,7 +5,7 @@ cc_binary(
     srcs = ["main.cc"],
     deps = [
         "//compilation:cpp_translator",
-        "//physical:operator",
+        "//plan:operator",
     ],
 )
 

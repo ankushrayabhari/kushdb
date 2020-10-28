@@ -4,8 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace kush {
-namespace physical {
+namespace kush::plan {
 
 // Basic expressions:
 // - Operators like +,-,*
@@ -69,5 +68,4 @@ class BinaryExpression final : public Expression {
   std::string Id() const;
 };
 
-}  // namespace physical
-}  // namespace kush
+}  // namespace kush::plan

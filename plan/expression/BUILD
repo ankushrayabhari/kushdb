@@ -11,13 +11,3 @@ cc_library(
         "@magic_enum",
     ],
 )
-
-cc_library(
-    name = "operator",
-    srcs = ["operator.cc"],
-    hdrs = ["operator.h"],
-    deps = [
-        ":expression",
-        "//util:print_util",
-    ],
-)
