@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_test")
 
 cc_binary(
     name = "main",
@@ -22,5 +22,13 @@ cc_binary(
     srcs = ["read_vector.cc"],
     deps = [
         "//data:column_data",
+    ],
+)
+
+cc_test(
+    name = "main_test",
+    srcs = ["main_test.cc"],
+    deps = [
+        "@googletest//:gtest_main",
     ],
 )
