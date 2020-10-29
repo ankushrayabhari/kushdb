@@ -35,3 +35,11 @@ http_archive(
     strip_prefix = "googletest-release-1.10.0",
     urls = ["https://github.com/google/googletest/archive/release-1.10.0.zip"],
 )
+
+http_archive(
+    name = "type_safe",
+    build_file = "@//third_party:type_safe.BUILD",
+    sha256 = "1c941f7ecd5e17e80773a2d8c9c905f552cc80417f8006ade7e9fa3525ff1b55",
+    strip_prefix = "type_safe-0.2.1",
+    urls = ["https://github.com/foonathan/type_safe/archive/v0.2.1.zip"],
+)

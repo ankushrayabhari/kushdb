@@ -10,3 +10,12 @@ cc_library(
         "//data:column_data",
     ],
 )
+
+cc_library(
+    name = "catalog_id",
+    srcs = ["catalog_id.cc"],
+    hdrs = ["catalog_id.h"],
+    deps = [
+        "@type_safe",
+    ],
+)
