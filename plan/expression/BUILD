@@ -11,3 +11,9 @@ cc_library(
         "@magic_enum",
     ],
 )
+
+cc_library(
+    name = "literal_expression",
+    srcs = ["literal_expression.cc"],
+    hdrs = ["literal_expression.h"],
+)
