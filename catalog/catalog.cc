@@ -3,8 +3,6 @@
 #include <memory>
 #include <string>
 
-#include "data/column_data.h"
-
 namespace kush {
 namespace catalog {
 

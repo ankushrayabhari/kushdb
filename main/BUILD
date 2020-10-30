@@ -4,8 +4,12 @@ cc_binary(
     name = "main",
     srcs = ["main.cc"],
     deps = [
-        "//compilation:cpp_translator",
+        "//catalog",
         "//plan:operator",
+        "//plan/expression:column_ref_expression",
+        "//plan/expression:comparison_expression",
+        "//plan/expression:literal_expression",
+        "@json",
     ],
 )
 

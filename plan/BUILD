@@ -8,6 +8,7 @@ cc_library(
     hdrs = ["operator.h"],
     deps = [
         "//plan/expression",
-        "//util:print_util",
+        "//plan/expression:column_ref_expression",
+        "@json",
     ],
 )

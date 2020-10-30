@@ -1,12 +1,8 @@
 #include "plan/operator.h"
 
-#include <initializer_list>
-#include <iostream>
-#include <memory>
 #include <string>
-#include <vector>
 
-#include "util/print_util.h"
+#include "nlohmann/json.hpp"
 
 namespace kush::plan {
 
@@ -14,12 +10,11 @@ Operator::Operator() : parent(nullptr) {}
 
 Scan::Scan(const std::string& rel) : relation(rel) {}
 
-const std::string Scan::ID = "SCAN";
-
-std::string Scan::Id() const { return ID; }
-
-void Scan::Print(std::ostream& out, int num_indent) const {
-  util::Indent(out, num_indent) << ID << ": " << relation << std::endl;
+nlohmann::json Scan::ToJson() const {
+  nlohmann::json j;
+  j["op"] = "SCAN";
+  j["relation"] = relation;
+  return j;
 }
 
 Select::Select(std::unique_ptr<Operator> c, std::unique_ptr<Expression> e)
@@ -27,45 +22,47 @@ Select::Select(std::unique_ptr<Operator> c, std::unique_ptr<Expression> e)
   child->parent = this;
 }
 
-const std::string Select::ID = "SELECT";
-
-std::string Select::Id() const { return ID; }
-
-void Select::Print(std::ostream& out, int num_indent) const {
-  util::Indent(out, num_indent) << ID << std::endl;
-  expression->Print(out, num_indent + 1);
-  child->Print(out, num_indent + 1);
+nlohmann::json Select::ToJson() const {
+  nlohmann::json j;
+  j["op"] = "SELECT";
+  j["relation"] = child->ToJson();
+  j["expression"] = expression->ToJson();
+  return j;
 }
 
 Output::Output(std::unique_ptr<Operator> c) : child(std::move(c)) {
   child->parent = this;
 }
 
-const std::string Output::ID = "OUTPUT";
-
-std::string Output::Id() const { return ID; }
-
-void Output::Print(std::ostream& out, int num_indent) const {
-  util::Indent(out, num_indent) << ID << std::endl;
-  child->Print(out, num_indent + 1);
+nlohmann::json Output::ToJson() const {
+  nlohmann::json j;
+  j["op"] = "OUTPUT";
+  j["relation"] = child->ToJson();
+  return j;
 }
 
 HashJoin::HashJoin(std::unique_ptr<Operator> l, std::unique_ptr<Operator> r,
-                   std::unique_ptr<BinaryExpression> e)
-    : left(std::move(l)), right(std::move(r)), expression(std::move(e)) {
+                   std::unique_ptr<ColumnRefExpression> left_column,
+                   std::unique_ptr<ColumnRefExpression> right_column)
+    : left(std::move(l)),
+      right(std::move(r)),
+      left_column_(std::move(left_column)),
+      right_column_(std::move(right_column)) {
   left->parent = this;
   right->parent = this;
 }
 
-const std::string HashJoin::ID = "HASH_JOIN";
+nlohmann::json HashJoin::ToJson() const {
+  nlohmann::json j;
+  j["op"] = "HASH_JOIN";
+  j["left_relation"] = left->ToJson();
+  j["right_relation"] = right->ToJson();
 
-std::string HashJoin::Id() const { return ID; }
-
-void HashJoin::Print(std::ostream& out, int num_indent) const {
-  util::Indent(out, num_indent) << ID << std::endl;
-  left->Print(out, num_indent + 1);
-  right->Print(out, num_indent + 1);
-  expression->Print(out, num_indent + 1);
+  nlohmann::json eq;
+  eq["left"] = left_column_->ToJson();
+  eq["right"] = right_column_->ToJson();
+  j["keys"].push_back(eq);
+  return j;
 }
 
 }  // namespace kush::plan

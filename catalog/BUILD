@@ -6,9 +6,7 @@ cc_library(
     name = "catalog",
     srcs = ["catalog.cc"],
     hdrs = ["catalog.h"],
-    deps = [
-        "//data:column_data",
-    ],
+    deps = [],
 )
 
 cc_library(

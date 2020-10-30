@@ -4,7 +4,6 @@
 #include <unordered_map>
 
 #include "catalog/catalog.h"
-#include "data/column_data.h"
 
 namespace kush {
 namespace catalog {

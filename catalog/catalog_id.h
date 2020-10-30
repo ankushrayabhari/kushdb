@@ -4,15 +4,13 @@
 
 namespace kush::catalog {
 
-struct table_id_t
-    : type_safe::strong_typedef<table_id_t, int>,
-      type_safe::strong_typedef_op::equality_comparison<table_id_t> {
+struct TableId : type_safe::strong_typedef<TableId, int>,
+                 type_safe::strong_typedef_op::equality_comparison<TableId> {
   using strong_typedef::strong_typedef;
 };
 
-struct column_id_t
-    : type_safe::strong_typedef<column_id_t, int>,
-      type_safe::strong_typedef_op::equality_comparison<column_id_t> {
+struct ColumnId : type_safe::strong_typedef<ColumnId, int>,
+                  type_safe::strong_typedef_op::equality_comparison<ColumnId> {
   using strong_typedef::strong_typedef;
 };
 
