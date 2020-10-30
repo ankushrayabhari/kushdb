@@ -1,8 +1,12 @@
 #include "plan/operator.h"
 
+#include <memory>
 #include <string>
 
 #include "nlohmann/json.hpp"
+#include "plan/expression/column_ref_expression.h"
+#include "plan/expression/expression.h"
+#include "plan/operator_visitor.h"
 
 namespace kush::plan {
 
@@ -17,6 +21,8 @@ nlohmann::json Scan::ToJson() const {
   return j;
 }
 
+void Scan::Accept(OperatorVisitor& visitor) { return visitor.Visit(*this); }
+
 Select::Select(std::unique_ptr<Operator> c, std::unique_ptr<Expression> e)
     : expression(std::move(e)), child(std::move(c)) {
   child->parent = this;
@@ -30,6 +36,8 @@ nlohmann::json Select::ToJson() const {
   return j;
 }
 
+void Select::Accept(OperatorVisitor& visitor) { return visitor.Visit(*this); }
+
 Output::Output(std::unique_ptr<Operator> c) : child(std::move(c)) {
   child->parent = this;
 }
@@ -40,6 +48,8 @@ nlohmann::json Output::ToJson() const {
   j["relation"] = child->ToJson();
   return j;
 }
+
+void Output::Accept(OperatorVisitor& visitor) { return visitor.Visit(*this); }
 
 HashJoin::HashJoin(std::unique_ptr<Operator> l, std::unique_ptr<Operator> r,
                    std::unique_ptr<ColumnRefExpression> left_column,
@@ -64,5 +74,7 @@ nlohmann::json HashJoin::ToJson() const {
   j["keys"].push_back(eq);
   return j;
 }
+
+void HashJoin::Accept(OperatorVisitor& visitor) { return visitor.Visit(*this); }
 
 }  // namespace kush::plan

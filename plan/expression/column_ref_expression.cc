@@ -2,6 +2,7 @@
 
 #include "nlohmann/json.hpp"
 #include "plan/expression/expression.h"
+#include "plan/expression/expression_visitor.h"
 
 namespace kush::plan {
 
@@ -14,6 +15,10 @@ nlohmann::json ColumnRefExpression::ToJson() const {
   nlohmann::json j;
   j["idx"] = column_idx_;
   return j;
+}
+
+void ColumnRefExpression::Accept(ExpressionVisitor& visitor) {
+  return visitor.Visit(*this);
 }
 
 }  // namespace kush::plan

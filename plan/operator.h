@@ -1,13 +1,11 @@
 #pragma once
-#include <iostream>
 #include <memory>
 #include <string>
-#include <utility>
-#include <vector>
 
 #include "nlohmann/json.hpp"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/expression.h"
+#include "plan/operator_visitor.h"
 
 namespace kush::plan {
 
@@ -17,6 +15,7 @@ class Operator {
   Operator();
   virtual ~Operator() = default;
   virtual nlohmann::json ToJson() const = 0;
+  virtual void Accept(OperatorVisitor& visitor) = 0;
 };
 
 class Scan final : public Operator {
@@ -25,6 +24,7 @@ class Scan final : public Operator {
 
   Scan(const std::string& rel);
   nlohmann::json ToJson() const override;
+  void Accept(OperatorVisitor& visitor) override;
 };
 
 class Select final : public Operator {
@@ -33,6 +33,7 @@ class Select final : public Operator {
   std::unique_ptr<Operator> child;
   Select(std::unique_ptr<Operator> c, std::unique_ptr<Expression> e);
   nlohmann::json ToJson() const override;
+  void Accept(OperatorVisitor& visitor) override;
 };
 
 class Output final : public Operator {
@@ -40,6 +41,7 @@ class Output final : public Operator {
   std::unique_ptr<Operator> child;
   Output(std::unique_ptr<Operator> c);
   nlohmann::json ToJson() const override;
+  void Accept(OperatorVisitor& visitor) override;
 };
 
 class HashJoin final : public Operator {
@@ -53,6 +55,7 @@ class HashJoin final : public Operator {
            std::unique_ptr<ColumnRefExpression> left_column_,
            std::unique_ptr<ColumnRefExpression> right_column_);
   nlohmann::json ToJson() const override;
+  void Accept(OperatorVisitor& visitor) override;
 };
 
 }  // namespace kush::plan

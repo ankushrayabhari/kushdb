@@ -3,9 +3,16 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "expression_visitor",
+    hdrs = ["expression_visitor.h"],
+    deps = [],
+)
+
+cc_library(
     name = "expression",
     hdrs = ["expression.h"],
     deps = [
+        ":expression_visitor",
         "//util:hash_util",
         "@json",
     ],
@@ -17,6 +24,7 @@ cc_library(
     hdrs = ["literal_expression.h"],
     deps = [
         ":expression",
+        ":expression_visitor",
         "@json",
     ],
 )
@@ -27,6 +35,7 @@ cc_library(
     hdrs = ["column_ref_expression.h"],
     deps = [
         ":expression",
+        ":expression_visitor",
         "@json",
     ],
 )
@@ -37,6 +46,7 @@ cc_library(
     hdrs = ["comparison_expression.h"],
     deps = [
         ":expression",
+        ":expression_visitor",
         "@json",
         "@magic_enum",
     ],

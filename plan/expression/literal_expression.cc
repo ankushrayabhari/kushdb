@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "nlohmann/json.hpp"
+#include "plan/expression/expression_visitor.h"
 
 namespace kush::plan {
 
@@ -19,6 +20,11 @@ nlohmann::json LiteralExpression<T>::ToJson() const {
   nlohmann::json j;
   j["value"] = value_;
   return j;
+}
+
+template <typename T>
+void LiteralExpression<T>::Accept(ExpressionVisitor& visitor) {
+  return visitor.Visit(*this);
 }
 
 // TODO: define this for all runtime types

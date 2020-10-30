@@ -5,6 +5,7 @@
 #include "magic_enum.hpp"
 #include "nlohmann/json.hpp"
 #include "plan/expression/expression.h"
+#include "plan/expression/expression_visitor.h"
 
 namespace kush::plan {
 
@@ -19,6 +20,10 @@ nlohmann::json ComparisonExpression::ToJson() const {
   j["left"] = left_->ToJson();
   j["right"] = right_->ToJson();
   return j;
+}
+
+void ComparisonExpression::Accept(ExpressionVisitor& visitor) {
+  return visitor.Visit(*this);
 }
 
 }  // namespace kush::plan

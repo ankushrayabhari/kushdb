@@ -4,6 +4,7 @@
 
 #include "nlohmann/json.hpp"
 #include "plan/expression/expression.h"
+#include "plan/expression/expression_visitor.h"
 
 namespace kush::plan {
 
@@ -14,6 +15,7 @@ class ComparisonExpression : public Expression {
   ComparisonExpression(ComparisonType type, std::unique_ptr<Expression> left,
                        std::unique_ptr<Expression> right);
   nlohmann::json ToJson() const override;
+  void Accept(ExpressionVisitor& visitor) override;
 
  private:
   ComparisonType type_;
