@@ -9,10 +9,28 @@ cc_library(
 )
 
 cc_library(
+    name = "sql_type",
+    hdrs = ["sql_type.h"],
+    deps = [],
+)
+
+cc_library(
+    name = "operator_schema",
+    srcs = ["operator_schema.cc"],
+    hdrs = ["operator_schema.h"],
+    deps = [
+        ":sql_type",
+        "@json",
+        "@magic_enum",
+    ],
+)
+
+cc_library(
     name = "operator",
     srcs = ["operator.cc"],
     hdrs = ["operator.h"],
     deps = [
+        ":operator_schema",
         ":operator_visitor",
         "//plan/expression",
         "//plan/expression:column_ref_expression",

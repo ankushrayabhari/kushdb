@@ -7,7 +7,12 @@
 namespace kush::plan {
 
 ColumnRefExpression::ColumnRefExpression(int column_idx)
-    : column_idx_(column_idx) {}
+    : child_idx_(0), column_idx_(column_idx) {}
+
+ColumnRefExpression::ColumnRefExpression(int child_idx, int column_idx)
+    : child_idx_(child_idx), column_idx_(column_idx) {}
+
+int ColumnRefExpression::GetChildIdx() { return child_idx_; }
 
 int ColumnRefExpression::GetColumnIdx() { return column_idx_; }
 
