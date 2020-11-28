@@ -103,6 +103,9 @@ void ProduceVisitor::Visit(HashJoin& hash_join) {}
 
 void ProduceVisitor::Produce(Operator& target) { target.Accept(*this); }
 
+ConsumeVisitor::ConsumeVisitor(CppTranslator& translator)
+    : translator_(translator) {}
+
 void ConsumeVisitor::Visit(plan::Scan& scan) {
   throw std::runtime_error("Scan cannot consume tuples - leaf operator");
 }
@@ -150,6 +153,16 @@ void ConsumeVisitor::Consume(Operator& target, Operator& src) {
 }
 
 Operator& ConsumeVisitor::GetSource() { return *src_.top(); }
+
+void CompilationContext::SetOutputVariables(
+    plan::Operator& op, std::vector<std::string> column_variables) {
+  operator_to_output_variables.emplace(&op, std::move(column_variables));
+}
+
+const std::vector<std::string>& CompilationContext::GetOutputVariables(
+    plan::Operator& op) {
+  return operator_to_output_variables.at(&op);
+}
 
 /*
 std::unordered_map<HashJoin*, std::string> hashjoin_buffer_var;
