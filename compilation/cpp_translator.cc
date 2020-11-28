@@ -105,7 +105,17 @@ void ProduceVisitor::Produce(Operator& target) { target.Accept(*this); }
 
 void ConsumeVisitor::Visit(plan::Scan& scan) {}
 
-void ConsumeVisitor::Visit(plan::Select& select) {}
+void ConsumeVisitor::Visit(plan::Select& select) {
+  // TODO: generate code for select expression
+  translator_.program_.fout << "if (false) {\n";
+
+  auto parent = select.Parent();
+  if (parent.has_value()) {
+    translator_.consumer_.Consume(parent.value(), select);
+  }
+
+  translator_.program_.fout << "}\n";
+}
 
 void ConsumeVisitor::Visit(plan::Output& output) {}
 
@@ -120,23 +130,6 @@ void ConsumeVisitor::Consume(Operator& target, Operator& src) {
 Operator& ConsumeVisitor::GetSource() { return *src_.top(); }
 
 /*
-void ConsumeSelect(Context& ctx, Operator& op, Operator& src,
-                   std::vector<Column> columns, std::ostream& out) {
-  Select& select = static_cast<Select&>(op);
-
-  out << "if (";
-  ctx.registry.GetExprConsumer(select.expression->Id())(ctx, *select.expression,
-                                                        out);
-  out << ") {\n";
-
-  if (select.parent != nullptr) {
-    Operator& parent = *select.parent;
-    ctx.registry.GetConsumer(parent.Id())(ctx, parent, select, columns, out);
-  }
-
-  out << "}\n";
-}
-
 std::unordered_map<HashJoin*, std::string> hashjoin_buffer_var;
 std::unordered_map<Operator*, std::vector<Column>> hj_cols;
 
