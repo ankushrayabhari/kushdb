@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "nlohmann/json.hpp"
 #include "plan/expression/column_ref_expression.h"
@@ -12,16 +14,41 @@ namespace kush::plan {
 
 class Operator {
  public:
-  Operator(OperatorSchema schema);
+  Operator(OperatorSchema schema,
+           std::vector<std::unique_ptr<Operator>> children);
   virtual ~Operator() = default;
+
   virtual nlohmann::json ToJson() const = 0;
   virtual void Accept(OperatorVisitor& visitor) = 0;
   const OperatorSchema& Schema() const;
-
-  Operator* parent;
+  std::optional<std::reference_wrapper<Operator>> Parent();
+  void SetParent(Operator* parent);
 
  private:
+  Operator* parent_;
   OperatorSchema schema_;
+
+ protected:
+  std::vector<std::unique_ptr<Operator>> children_;
+};
+
+class UnaryOperator : public Operator {
+ public:
+  UnaryOperator(OperatorSchema schema, std::unique_ptr<Operator> child);
+  virtual ~UnaryOperator() = default;
+  Operator& Child();
+  const Operator& Child() const;
+};
+
+class BinaryOperator : public Operator {
+ public:
+  BinaryOperator(OperatorSchema schema, std::unique_ptr<Operator> left_child,
+                 std::unique_ptr<Operator> right_child);
+  virtual ~BinaryOperator() = default;
+  Operator& LeftChild();
+  const Operator& LeftChild() const;
+  Operator& RightChild();
+  const Operator& RightChild() const;
 };
 
 class Scan final : public Operator {
@@ -33,33 +60,29 @@ class Scan final : public Operator {
   void Accept(OperatorVisitor& visitor) override;
 };
 
-class Select final : public Operator {
+class Select final : public UnaryOperator {
  public:
   std::unique_ptr<Expression> expression;
-  std::unique_ptr<Operator> child;
-  Select(OperatorSchema schema, std::unique_ptr<Operator> c,
+  Select(OperatorSchema schema, std::unique_ptr<Operator> child,
          std::unique_ptr<Expression> e);
   nlohmann::json ToJson() const override;
   void Accept(OperatorVisitor& visitor) override;
 };
 
-class Output final : public Operator {
+class Output final : public UnaryOperator {
  public:
-  std::unique_ptr<Operator> child;
   Output(OperatorSchema schema, std::unique_ptr<Operator> c);
   nlohmann::json ToJson() const override;
   void Accept(OperatorVisitor& visitor) override;
 };
 
-class HashJoin final : public Operator {
+class HashJoin final : public BinaryOperator {
  public:
-  std::unique_ptr<Operator> left;
-  std::unique_ptr<Operator> right;
   std::unique_ptr<ColumnRefExpression> left_column_;
   std::unique_ptr<ColumnRefExpression> right_column_;
 
-  HashJoin(OperatorSchema schema, std::unique_ptr<Operator> l,
-           std::unique_ptr<Operator> r,
+  HashJoin(OperatorSchema schema, std::unique_ptr<Operator> left,
+           std::unique_ptr<Operator> right,
            std::unique_ptr<ColumnRefExpression> left_column_,
            std::unique_ptr<ColumnRefExpression> right_column_);
   nlohmann::json ToJson() const override;

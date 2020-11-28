@@ -1,52 +1,74 @@
 #pragma once
 #include <iostream>
+#include <stack>
 #include <string>
 #include <vector>
 
 #include "catalog/catalog.h"
-#include "compilation/translator.h"
-#include "compilation/translator_registry.h"
+#include "compilation/cpp_program.h"
+#include "plan/operator.h"
+#include "plan/operator_visitor.h"
 
-namespace kush {
-namespace compile {
+namespace kush::compile {
+
+class CppTranslator;
+
+class ProduceVisitor : public plan::OperatorVisitor {
+ public:
+  ProduceVisitor(CppTranslator& translator);
+
+  void Visit(plan::Scan& scan) override;
+  void Visit(plan::Select& select) override;
+  void Visit(plan::Output& output) override;
+  void Visit(plan::HashJoin& hash_join) override;
+
+  void Produce(plan::Operator& target);
+
+ private:
+  CppTranslator& translator_;
+};
+
+class ConsumeVisitor : public plan::OperatorVisitor {
+ public:
+  ConsumeVisitor(CppTranslator& translator);
+
+  void Visit(plan::Scan& scan) override;
+  void Visit(plan::Select& select) override;
+  void Visit(plan::Output& output) override;
+  void Visit(plan::HashJoin& hash_join) override;
+
+  void Consume(plan::Operator& target, plan::Operator& src);
+
+ private:
+  plan::Operator& GetSource();
+  std::stack<plan::Operator*> src_;
+  CppTranslator& translator_;
+};
+
+class CompilationContext {
+ public:
+  void SetOutputVariables(plan::Operator& op,
+                          std::vector<std::string> column_variables);
+
+ private:
+  std::unordered_map<plan::Operator*, std::vector<std::string>>
+      operator_to_output_variables;
+};
 
 class CppTranslator {
  public:
-  struct Column {
-    std::string name;
-    std::string type;
-
-    Column(const std::string& n, const std::string& t) : name(n), type(t) {}
-  };
-
-  class CompilationContext;
-
-  typedef std::function<void(CompilationContext&, plan::Operator&,
-                             std::ostream&)>
-      ProduceFn;
-  typedef std::function<void(CompilationContext&, plan::Operator&,
-                             plan::Operator&, std::vector<Column>,
-                             std::ostream&)>
-      ConsumeFn;
-  typedef std::function<void(CompilationContext&, plan::Expression&,
-                             std::ostream&)>
-      ConsumeExprFn;
-
-  class CompilationContext {
-   public:
-    const catalog::Database& database;
-    CompilationContext(const catalog::Database& db) : database(db) {}
-    TranslatorRegistry<ProduceFn, ConsumeFn, ConsumeExprFn> registry;
-    std::unordered_map<std::string, std::string> col_to_var;
-  };
+  CppTranslator(const catalog::Database& db);
+  CppProgram& Produce(plan::Operator& op);
 
  private:
+  ProduceVisitor producer_;
+  ConsumeVisitor consumer_;
   CompilationContext context_;
+  const catalog::Database& db_;
+  CppProgram program_;
 
- public:
-  CppTranslator(const catalog::Database& db);
-  void Produce(plan::Operator& op);
+  friend class ProduceVisitor;
+  friend class ConsumeVisitor;
 };
 
-}  // namespace compile
-}  // namespace kush
+}  // namespace kush::compile

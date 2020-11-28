@@ -4,7 +4,7 @@
 #include <string>
 
 #include "catalog/catalog.h"
-// #include "compilation/cpp_translator.h"
+#include "compilation/cpp_translator.h"
 #include "nlohmann/json.hpp"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
@@ -15,7 +15,7 @@
 
 using namespace kush;
 using namespace kush::plan;
-// using namespace kush::compile;
+using namespace kush::compile;
 using namespace kush::catalog;
 
 int main() {

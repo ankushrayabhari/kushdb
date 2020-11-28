@@ -34,6 +34,7 @@ cc_library(
         ":operator_visitor",
         "//plan/expression",
         "//plan/expression:column_ref_expression",
+        "//util:vector_util",
         "@json",
     ],
 )

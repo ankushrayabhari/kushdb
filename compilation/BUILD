@@ -3,18 +3,10 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "translator_registry",
-    hdrs = ["translator_registry.h"],
+    name = "cpp_program",
+    srcs = ["cpp_program.cc"],
+    hdrs = ["cpp_program.h"],
     deps = [],
-)
-
-cc_library(
-    name = "translator",
-    hdrs = ["translator.h"],
-    deps = [
-        ":translator_registry",
-        "//plan:operator",
-    ],
 )
 
 cc_library(
@@ -23,8 +15,7 @@ cc_library(
     hdrs = ["cpp_translator.h"],
     linkopts = ["-ldl"],
     deps = [
-        ":translator",
-        ":translator_registry",
+        ":cpp_program",
         "//catalog",
         "//plan:operator",
         "//plan/expression",

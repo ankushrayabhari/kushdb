@@ -11,18 +11,15 @@
 #include <type_traits>
 
 #include "catalog/catalog.h"
-#include "compilation/translator_registry.h"
 #include "plan/expression/expression.h"
 #include "plan/operator.h"
+#include "plan/operator_schema.h"
 
-namespace kush {
-namespace compile {
+namespace kush::compile {
 
 using namespace plan;
-using Context = CppTranslator::CompilationContext;
-using Column = CppTranslator::Column;
 
-std::string get_unique_loop_var() {
+std::string GenerateVar() {
   static std::string last = "a";
   last.back()++;
   if (last.back() > 'z') {
@@ -32,62 +29,97 @@ std::string get_unique_loop_var() {
   return last;
 }
 
-void ProduceScan(Context& ctx, Operator& op, std::ostream& out) {
-  Scan& scan = static_cast<Scan&>(op);
+std::string SqlTypeToRuntimeType(SqlType type) {
+  switch (type) {
+    case SqlType::INT:
+      return "int32_t";
+  }
 
-  if (!ctx.database.contains(scan.relation)) {
+  throw new std::runtime_error("Unknown type");
+}
+
+ProduceVisitor::ProduceVisitor(CppTranslator& translator)
+    : translator_(translator) {}
+
+void ProduceVisitor::Visit(Scan& scan) {
+  if (!translator_.db_.contains(scan.relation)) {
     throw std::runtime_error("Unknown table: " + scan.relation);
   }
 
-  const auto& table = ctx.database[scan.relation];
-  if (table.Columns().empty()) return;
-
+  const auto& table = translator_.db_[scan.relation];
+  std::unordered_map<std::string, std::string> column_to_var;
   std::string card;
 
-  for (const auto& [_, column] : table.Columns()) {
-    std::string var = scan.relation + "_" + column.name + "_data";
-    out << "kush::ColumnData<" << column.type << "> ";
-    out << var << "(\"" << column.path << "\");\n";
+  for (const auto& column : scan.Schema().Columns()) {
+    std::string var = GenerateVar();
+    std::string type = SqlTypeToRuntimeType(column.Type());
+    std::string path = table[std::string(column.Name())].path;
+    column_to_var[std::string(column.Name())] = var;
+    translator_.program_.fout << "kush::ColumnData<" << type << "> " << var
+                              << "(\"" << path << "\");\n";
 
     if (card.empty()) {
       card = var + ".size()";
     }
   }
 
-  std::string loop_var = get_unique_loop_var();
-  out << "for (uint32_t " << loop_var << " = 0; ";
-  out << loop_var << " < " << card << "; " << loop_var << "++) {\n";
+  std::string loop_var = GenerateVar();
+  translator_.program_.fout << "for (uint32_t " << loop_var << " = 0; "
+                            << loop_var << " < " << card << "; " << loop_var
+                            << "++) {\n";
 
-  std::vector<Column> columns;
+  std::vector<std::string> column_variables;
 
-  for (const auto& [_, column] : table.Columns()) {
-    columns.emplace_back(scan.relation + "_" + column.name, column.type);
+  for (const auto& column : scan.Schema().Columns()) {
+    std::string type = SqlTypeToRuntimeType(column.Type());
+    std::string column_var = column_to_var[std::string(column.Name())];
+    std::string value_var = GenerateVar();
 
-    std::string data_var = scan.relation + "_" + column.name + "_data";
-    std::string var = scan.relation + "_" + column.name;
-    ctx.col_to_var[scan.relation + "_" + column.name] = var;
-    out << column.type << " " << var << " = " << data_var;
-    out << "[" << loop_var << "];\n";
+    column_variables.push_back(value_var);
+
+    translator_.program_.fout << type << " " << value_var << " = " << column_var
+                              << "[" << loop_var << "];\n";
   }
 
-  if (scan.parent != nullptr) {
-    Operator& parent = *scan.parent;
-    ctx.registry.GetConsumer(parent.Id())(ctx, parent, scan, columns, out);
+  translator_.context_.SetOutputVariables(scan, std::move(column_variables));
+
+  auto parent = scan.Parent();
+  if (parent.has_value()) {
+    translator_.consumer_.Consume(parent.value(), scan);
   }
 
-  for (const auto& [_, column] : table.Columns()) {
-    ctx.col_to_var.erase(scan.relation + "_" + column.name);
-  }
-
-  out << "}\n";
+  translator_.program_.fout << "}\n";
 }
 
-void ProduceSelect(Context& ctx, Operator& op, std::ostream& out) {
-  Select& select = static_cast<Select&>(op);
-  Operator& child = *select.child;
-  ctx.registry.GetProducer(child.Id())(ctx, child, out);
+void ProduceVisitor::Visit(Select& select) {
+  translator_.producer_.Produce(select.Child());
 }
 
+void ProduceVisitor::Visit(Output& output) {
+  translator_.producer_.Produce(output.Child());
+}
+
+void ProduceVisitor::Visit(HashJoin& hash_join) {}
+
+void ProduceVisitor::Produce(Operator& target) { target.Accept(*this); }
+
+void ConsumeVisitor::Visit(plan::Scan& scan) {}
+
+void ConsumeVisitor::Visit(plan::Select& select) {}
+
+void ConsumeVisitor::Visit(plan::Output& output) {}
+
+void ConsumeVisitor::Visit(plan::HashJoin& hash_join) {}
+
+void ConsumeVisitor::Consume(Operator& target, Operator& src) {
+  src_.push(&src);
+  target.Accept(*this);
+  src_.pop();
+}
+
+Operator& ConsumeVisitor::GetSource() { return *src_.top(); }
+
+/*
 void ConsumeSelect(Context& ctx, Operator& op, Operator& src,
                    std::vector<Column> columns, std::ostream& out) {
   Select& select = static_cast<Select&>(op);
@@ -103,29 +135,6 @@ void ConsumeSelect(Context& ctx, Operator& op, Operator& src,
   }
 
   out << "}\n";
-}
-
-void ProduceOutput(Context& ctx, Operator& op, std::ostream& out) {
-  Output& select = static_cast<Output&>(op);
-  Operator& child = *select.child;
-  ctx.registry.GetProducer(child.Id())(ctx, child, out);
-}
-
-void ConsumeOutput(Context& ctx, Operator& op, Operator& src,
-                   std::vector<Column> columns, std::ostream& out) {
-  bool first = true;
-
-  for (const auto& col : columns) {
-    const auto& var = ctx.col_to_var[col.name];
-    if (first) {
-      first = false;
-      out << "std::cout << " << var << ";\n";
-    } else {
-      out << "std::cout << \" | \" << " << var << ";\n";
-    }
-  }
-
-  out << "std::cout << \'\\n\';\n";
 }
 
 std::unordered_map<HashJoin*, std::string> hashjoin_buffer_var;
@@ -322,6 +331,5 @@ void CppTranslator::Produce(Operator& op) {
   elapsed_seconds = end - link;
   std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
 }
-
-}  // namespace compile
-}  // namespace kush
+*/
+}  // namespace kush::compile
