@@ -103,7 +103,9 @@ void ProduceVisitor::Visit(HashJoin& hash_join) {}
 
 void ProduceVisitor::Produce(Operator& target) { target.Accept(*this); }
 
-void ConsumeVisitor::Visit(plan::Scan& scan) {}
+void ConsumeVisitor::Visit(plan::Scan& scan) {
+  throw std::runtime_error("Scan cannot consume tuples - leaf operator");
+}
 
 void ConsumeVisitor::Visit(plan::Select& select) {
   // TODO: generate code for select expression
