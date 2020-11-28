@@ -71,7 +71,7 @@ class Select final : public UnaryOperator {
 
 class Output final : public UnaryOperator {
  public:
-  Output(OperatorSchema schema, std::unique_ptr<Operator> c);
+  Output(std::unique_ptr<Operator> child);
   nlohmann::json ToJson() const override;
   void Accept(OperatorVisitor& visitor) override;
 };

@@ -59,7 +59,7 @@ class CompilationContext {
 class CppTranslator {
  public:
   CppTranslator(const catalog::Database& db);
-  CppProgram& Produce(plan::Operator& op);
+  Program& Translate(plan::Operator& op);
 
  private:
   ProduceVisitor producer_;

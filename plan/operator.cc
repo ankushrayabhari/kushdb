@@ -89,8 +89,8 @@ nlohmann::json Select::ToJson() const {
 
 void Select::Accept(OperatorVisitor& visitor) { return visitor.Visit(*this); }
 
-Output::Output(OperatorSchema schema, std::unique_ptr<Operator> child)
-    : UnaryOperator(std::move(schema), {std::move(child)}) {}
+Output::Output(std::unique_ptr<Operator> child)
+    : UnaryOperator(OperatorSchema(), {std::move(child)}) {}
 
 nlohmann::json Output::ToJson() const {
   nlohmann::json j;

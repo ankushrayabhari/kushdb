@@ -66,9 +66,9 @@ int main() {
     }
 
     auto x1 = std::make_unique<ColumnRefExpression>(
-        0, select_table->Schema().GetColumnIndex("x1"));
+        select_table->Schema().GetColumnIndex("x1"));
     auto x2 = std::make_unique<ColumnRefExpression>(
-        1, scan_table1->Schema().GetColumnIndex("x2"));
+        scan_table1->Schema().GetColumnIndex("x2"));
     table_join_table1 = std::make_unique<HashJoin>(
         std::move(schema), std::move(select_table), std::move(scan_table1),
         std::move(x1), std::move(x2));
@@ -95,16 +95,22 @@ int main() {
     }
 
     auto x2 = std::make_unique<ColumnRefExpression>(
-        0, table_join_table1->Schema().GetColumnIndex("x2"));
+        table_join_table1->Schema().GetColumnIndex("x2"));
     auto x3 = std::make_unique<ColumnRefExpression>(
-        1, scan_table2->Schema().GetColumnIndex("x3"));
+        scan_table2->Schema().GetColumnIndex("x3"));
     table_join_table1_join_table2 = std::make_unique<HashJoin>(
         std::move(schema), std::move(table_join_table1), std::move(scan_table2),
         std::move(x2), std::move(x3));
   }
 
-  std::cout << std::setw(2) << table_join_table1_join_table2->ToJson()
-            << std::endl;
+  std::unique_ptr<Operator> query =
+      std::make_unique<Output>(std::move(table_join_table1_join_table2));
 
+  std::cout << std::setw(2) << query->ToJson() << std::endl;
+
+  CppTranslator translator(db);
+  auto& op = translator.Translate(*query);
+  op.Compile();
+  op.Execute();
   return 0;
 }

@@ -3,6 +3,8 @@
 #include <fstream>
 #include <string>
 
+#include "compilation/program.h"
+
 namespace kush {
 namespace compile {
 
@@ -34,14 +36,14 @@ class For {
   CppProgram& program_;
 };
 
-class CppProgram {
+class CppProgram : public Program {
  public:
   CppProgram();
 
   void CodegenInitialize();
   void CodegenFinalize();
-  void Compile();
-  void Execute();
+  void Compile() override;
+  void Execute() override;
 
   If& GenerateIf();
   For& GenerateFor();

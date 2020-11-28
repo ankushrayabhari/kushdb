@@ -3,10 +3,17 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "program",
+    hdrs = ["program.h"],
+)
+
+cc_library(
     name = "cpp_program",
     srcs = ["cpp_program.cc"],
     hdrs = ["cpp_program.h"],
-    deps = [],
+    deps = [
+        ":program",
+    ],
 )
 
 cc_library(
