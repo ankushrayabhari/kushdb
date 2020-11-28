@@ -119,7 +119,27 @@ void ConsumeVisitor::Visit(plan::Select& select) {
   translator_.program_.fout << "}\n";
 }
 
-void ConsumeVisitor::Visit(plan::Output& output) {}
+void ConsumeVisitor::Visit(plan::Output& output) {
+  bool first = true;
+  const auto& variables =
+      translator_.context_.GetOutputVariables(output.Child());
+  if (variables.empty()) {
+    return;
+  }
+
+  translator_.program_.fout << "std::cout";
+
+  for (const auto& column_value_var : variables) {
+    if (first) {
+      translator_.program_.fout << " << " << column_value_var;
+      first = false;
+    } else {
+      translator_.program_.fout << " << \",\" << " << column_value_var;
+    }
+  }
+
+  translator_.program_.fout << ";\n";
+}
 
 void ConsumeVisitor::Visit(plan::HashJoin& hash_join) {}
 

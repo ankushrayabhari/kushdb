@@ -49,6 +49,7 @@ class CompilationContext {
  public:
   void SetOutputVariables(plan::Operator& op,
                           std::vector<std::string> column_variables);
+  const std::vector<std::string>& GetOutputVariables(plan::Operator& op);
 
  private:
   std::unordered_map<plan::Operator*, std::vector<std::string>>
