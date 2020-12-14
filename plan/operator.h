@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "compilation/translators/translator.h"
 #include "nlohmann/json.hpp"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/expression.h"

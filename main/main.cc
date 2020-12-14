@@ -106,8 +106,6 @@ int main() {
   std::unique_ptr<Operator> query =
       std::make_unique<Output>(std::move(table_join_table1_join_table2));
 
-  std::cout << std::setw(2) << query->ToJson() << std::endl;
-
   CppTranslator translator(db);
   auto& op = translator.Translate(*query);
   op.Compile();
