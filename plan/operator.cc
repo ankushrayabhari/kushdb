@@ -24,6 +24,14 @@ Operator::Operator(OperatorSchema schema,
   }
 }
 
+std::vector<std::reference_wrapper<Operator>> Operator::Children() {
+  std::vector<std::reference_wrapper<Operator>> children;
+  for (auto& child : children_) {
+    children.push_back(*child);
+  }
+  return children;
+}
+
 const OperatorSchema& Operator::Schema() const { return schema_; }
 
 std::optional<std::reference_wrapper<Operator>> Operator::Parent() {
@@ -69,7 +77,7 @@ nlohmann::json Scan::ToJson() const {
   return j;
 }
 
-void Scan::Accept(OperatorVisitor& visitor) { return visitor.Visit(*this); }
+void Scan::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
 
 Select::Select(OperatorSchema schema, std::unique_ptr<Operator> child,
                std::unique_ptr<Expression> e)
@@ -87,7 +95,7 @@ nlohmann::json Select::ToJson() const {
   return j;
 }
 
-void Select::Accept(OperatorVisitor& visitor) { return visitor.Visit(*this); }
+void Select::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
 
 Output::Output(std::unique_ptr<Operator> child)
     : UnaryOperator(OperatorSchema(), {std::move(child)}) {}
@@ -100,7 +108,7 @@ nlohmann::json Output::ToJson() const {
   return j;
 }
 
-void Output::Accept(OperatorVisitor& visitor) { return visitor.Visit(*this); }
+void Output::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
 
 HashJoin::HashJoin(OperatorSchema schema, std::unique_ptr<Operator> left,
                    std::unique_ptr<Operator> right,
@@ -125,6 +133,6 @@ nlohmann::json HashJoin::ToJson() const {
   return j;
 }
 
-void HashJoin::Accept(OperatorVisitor& visitor) { return visitor.Visit(*this); }
+void HashJoin::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
 
 }  // namespace kush::plan

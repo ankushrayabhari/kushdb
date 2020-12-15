@@ -1,14 +1,20 @@
 #pragma once
 
-#include "plan/operator.h"
+#include <memory>
+#include <vector>
 
 namespace kush::compile {
 
-template <typename T>
 class Translator {
  public:
-  virtual void Produce(T& op) = 0;
-  virtual void Consume(T& op, plan::Operator& src) = 0;
+  Translator(std::vector<std::unique_ptr<Translator>> children);
+  virtual void Produce() = 0;
+  virtual void Consume(Translator& src) = 0;
+  void SetParent(Translator& parent);
+
+ private:
+  Translator* parent_;
+  std::vector<std::unique_ptr<Translator>> children_;
 };
 
 }  // namespace kush::compile

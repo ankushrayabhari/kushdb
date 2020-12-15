@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "compilation/translators/translator.h"
 #include "nlohmann/json.hpp"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/expression.h"
@@ -24,6 +23,7 @@ class Operator {
   const OperatorSchema& Schema() const;
   std::optional<std::reference_wrapper<Operator>> Parent();
   void SetParent(Operator* parent);
+  std::vector<std::reference_wrapper<Operator>> Children();
 
  private:
   Operator* parent_;
