@@ -12,6 +12,7 @@ namespace kush::compile {
 class TranslatorFactory : public plan::OperatorVisitor {
  public:
   TranslatorFactory(CppTranslator& context);
+  virtual ~TranslatorFactory() = default;
 
   void Visit(plan::Scan& scan) override;
   void Visit(plan::Select& select) override;

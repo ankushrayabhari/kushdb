@@ -61,3 +61,13 @@ cc_library(
         ":select_translator",
     ],
 )
+
+cc_library(
+    name = "expression_translator",
+    srcs = ["expression_translator.cc"],
+    hdrs = ["expression_translator.h"],
+    deps = [
+        "//compilation:cpp_translator",
+        "//plan/expression:expression_visitor",
+    ],
+)
