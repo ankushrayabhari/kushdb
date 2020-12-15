@@ -11,23 +11,13 @@
 
 namespace kush::compile {
 
-class CompilationContext {
- public:
-  void SetOutputVariables(plan::Operator& op,
-                          std::vector<std::string> column_variables);
-  const std::vector<std::string>& GetOutputVariables(plan::Operator& op);
-
- private:
-  std::unordered_map<plan::Operator*, std::vector<std::string>>
-      operator_to_output_variables;
-};
-
 class CppTranslator {
  public:
   CppTranslator(const catalog::Database& db);
+  const catalog::Database& Catalog();
+  CppProgram& Program();
 
  private:
-  CompilationContext context_;
   const catalog::Database& db_;
   CppProgram program_;
 };

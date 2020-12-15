@@ -21,25 +21,6 @@ namespace kush::compile {
 using namespace plan;
 
 /*
-std::string GenerateVar() {
-  static std::string last = "a";
-  last.back()++;
-  if (last.back() > 'z') {
-    last.back() = 'z';
-    last.push_back('a');
-  }
-  return last;
-}
-
-std::string SqlTypeToRuntimeType(SqlType type) {
-  switch (type) {
-    case SqlType::INT:
-      return "int32_t";
-  }
-
-  throw new std::runtime_error("Unknown type");
-}
-
 ProduceVisitor::ProduceVisitor(CppTranslator& translator)
     : translator_(translator) {}
 
@@ -48,49 +29,7 @@ void ProduceVisitor::Visit(Scan& scan) {
     throw std::runtime_error("Unknown table: " + scan.relation);
   }
 
-  const auto& table = translator_.db_[scan.relation];
-  std::unordered_map<std::string, std::string> column_to_var;
-  std::string card;
 
-  for (const auto& column : scan.Schema().Columns()) {
-    std::string var = GenerateVar();
-    std::string type = SqlTypeToRuntimeType(column.Type());
-    std::string path = table[std::string(column.Name())].path;
-    column_to_var[std::string(column.Name())] = var;
-    translator_.program_.fout << "kush::ColumnData<" << type << "> " << var
-                              << "(\"" << path << "\");\n";
-
-    if (card.empty()) {
-      card = var + ".size()";
-    }
-  }
-
-  std::string loop_var = GenerateVar();
-  translator_.program_.fout << "for (uint32_t " << loop_var << " = 0; "
-                            << loop_var << " < " << card << "; " << loop_var
-                            << "++) {\n";
-
-  std::vector<std::string> column_variables;
-
-  for (const auto& column : scan.Schema().Columns()) {
-    std::string type = SqlTypeToRuntimeType(column.Type());
-    std::string column_var = column_to_var[std::string(column.Name())];
-    std::string value_var = GenerateVar();
-
-    column_variables.push_back(value_var);
-
-    translator_.program_.fout << type << " " << value_var << " = " << column_var
-                              << "[" << loop_var << "];\n";
-  }
-
-  translator_.context_.SetOutputVariables(scan, std::move(column_variables));
-
-  auto parent = scan.Parent();
-  if (parent.has_value()) {
-    translator_.consumer_.Consume(parent.value(), scan);
-  }
-
-  translator_.program_.fout << "}\n";
 }
 
 void ProduceVisitor::Visit(Select& select) {
@@ -235,16 +174,10 @@ void ConsumeVisitor::Consume(Operator& target, Operator& src) {
 
 Operator& ConsumeVisitor::GetSource() { return *src_.top(); } */
 
-void CompilationContext::SetOutputVariables(
-    plan::Operator& op, std::vector<std::string> column_variables) {
-  operator_to_output_variables.emplace(&op, std::move(column_variables));
-}
-
-const std::vector<std::string>& CompilationContext::GetOutputVariables(
-    plan::Operator& op) {
-  return operator_to_output_variables.at(&op);
-}
-
 CppTranslator::CppTranslator(const catalog::Database& db) : db_(db) {}
+
+const catalog::Database& CppTranslator::Catalog() { return db_; }
+
+CppProgram& CppTranslator::Program() { return program_; }
 
 }  // namespace kush::compile

@@ -7,11 +7,13 @@ namespace kush::compile {
 
 class SchemaValues {
  public:
-  SchemaValues(std::vector<std::string> values);
-  std::string Get(int idx);
+  SchemaValues() = default;
+  void AddVariable(std::string variable, std::string type);
+  std::string Variable(int idx) const;
+  std::string Type(int idx) const;
 
  private:
-  std::vector<std::string> values_;
+  std::vector<std::pair<std::string, std::string>> values_;
 };
 
 }  // namespace kush::compile

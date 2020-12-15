@@ -19,6 +19,7 @@ cc_library(
         ":operator_translator",
         "//compilation:cpp_translator",
         "//plan:operator",
+        "//plan:sql_type",
     ],
 )
 

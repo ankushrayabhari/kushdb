@@ -16,7 +16,7 @@ class ExpressionTranslator
   ExpressionTranslator(CppTranslator& context, OperatorTranslator& source);
   virtual ~ExpressionTranslator() = default;
 
-  void Produce(plan::Expression& expr);
+  std::string Produce(plan::Expression& expr);
   void Visit(plan::ColumnRefExpression& col_ref) override;
   void Visit(plan::ComparisonExpression& comp) override;
   void Visit(plan::LiteralExpression<int32_t>& literal) override;

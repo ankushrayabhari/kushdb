@@ -16,8 +16,9 @@ ExpressionTranslator::ExpressionTranslator(CppTranslator& context,
                                            OperatorTranslator& source)
     : context_(context), source_(source) {}
 
-void ExpressionTranslator::Produce(plan::Expression& expr) {
+std::string ExpressionTranslator::Produce(plan::Expression& expr) {
   expr.Accept(*this);
+  return GetResult();
 }
 
 void ExpressionTranslator::Visit(plan::ColumnRefExpression& col_ref) {

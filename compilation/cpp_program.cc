@@ -48,6 +48,24 @@ void CppProgram::CodegenFinalize() {
   fout.close();
 }
 
+std::string CppProgram::GenerateVariable() {
+  if (last_variable_.empty()) {
+    last_variable_ = "a";
+  } else {
+    last_variable_.back()++;
+    if (last_variable_.back() > 'z') {
+      last_variable_.back() = 'z';
+      last_variable_.push_back('a');
+    }
+  }
+
+  return last_variable_;
+}
+
+If CppProgram::GenerateIf() { return If(*this); }
+
+For CppProgram::GenerateFor() { return For(*this); }
+
 void CppProgram::Compile() {
   std::string command = "clang++ -O3 --std=c++17 -I. -shared -fpic " +
                         file_name_ + " catalog/catalog.cc -o " + dylib_;

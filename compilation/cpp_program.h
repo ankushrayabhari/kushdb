@@ -45,14 +45,16 @@ class CppProgram : public Program {
   void Compile() override;
   void Execute() override;
 
-  If& GenerateIf();
-  For& GenerateFor();
+  If GenerateIf();
+  For GenerateFor();
+  std::string GenerateVariable();
 
   std::ofstream fout;
 
  private:
   std::string file_name_;
   std::string dylib_;
+  std::string last_variable_;
 
   friend class If;
   friend class For;
