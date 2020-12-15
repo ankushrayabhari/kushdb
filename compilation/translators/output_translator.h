@@ -8,14 +8,14 @@ namespace kush::compile {
 
 class OutputTranslator : public OperatorTranslator {
  public:
-  OutputTranslator(plan::Output& output, CompliationContext& context,
+  OutputTranslator(plan::Output& output, CompilationContext& context,
                    std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~OutputTranslator() = default;
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
 
  private:
-  CompliationContext& context_;
+  CompilationContext& context_;
 };
 
 }  // namespace kush::compile

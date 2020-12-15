@@ -5,7 +5,8 @@ namespace kush::util {
 template <typename VisitorImplementation, typename Data>
 class Visitor : public VisitorImplementation {
  public:
-  Visitor();
+  Visitor() = default;
+  virtual ~Visitor() = default;
 
  protected:
   void Return(Data result) { result_ = std::move(result); }

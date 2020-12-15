@@ -11,16 +11,16 @@ namespace kush::compile {
 
 class ExpressionTranslator : public plan::ExpressionVisitor {
  public:
-  ExpressionTranslator(CompliationContext& context, OperatorTranslator& source);
+  ExpressionTranslator(CompilationContext& context, OperatorTranslator& source);
   virtual ~ExpressionTranslator() = default;
 
-  std::string Produce(plan::Expression& expr);
+  void Produce(plan::Expression& expr);
   void Visit(plan::ColumnRefExpression& col_ref) override;
   void Visit(plan::ComparisonExpression& comp) override;
   void Visit(plan::LiteralExpression<int32_t>& literal) override;
 
  private:
-  CompliationContext& context_;
+  CompilationContext& context_;
   OperatorTranslator& source_;
 };
 

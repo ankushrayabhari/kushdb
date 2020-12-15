@@ -14,7 +14,7 @@ class TranslatorFactory
     : public util::Visitor<plan::OperatorVisitor,
                            std::unique_ptr<OperatorTranslator>> {
  public:
-  TranslatorFactory(CompliationContext& context);
+  TranslatorFactory(CompilationContext& context);
   virtual ~TranslatorFactory() = default;
 
   void Visit(plan::Scan& scan) override;
@@ -22,12 +22,12 @@ class TranslatorFactory
   void Visit(plan::Output& output) override;
   void Visit(plan::HashJoin& hash_join) override;
 
-  void Produce(plan::Operator& target);
+  std::unique_ptr<OperatorTranslator> Produce(plan::Operator& target);
 
  private:
   std::vector<std::unique_ptr<OperatorTranslator>> GetChildTranslators(
       plan::Operator& current);
-  CompliationContext& context_;
+  CompilationContext& context_;
 };
 
 }  // namespace kush::compile

@@ -8,14 +8,14 @@ namespace kush::compile {
 
 class SelectTranslator : public OperatorTranslator {
  public:
-  SelectTranslator(plan::Select& scan, CompliationContext& context,
+  SelectTranslator(plan::Select& scan, CompilationContext& context,
                    std::vector<std::unique_ptr<OperatorTranslator>> children);
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
 
  private:
   plan::Select& select_;
-  CompliationContext& context_;
+  CompilationContext& context_;
 };
 
 }  // namespace kush::compile

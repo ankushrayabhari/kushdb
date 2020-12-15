@@ -11,6 +11,7 @@ cc_library(
     name = "cpp_program",
     srcs = ["cpp_program.cc"],
     hdrs = ["cpp_program.h"],
+    linkopts = ["-ldl"],
     deps = [
         ":program",
     ],
@@ -20,7 +21,6 @@ cc_library(
     name = "compilation_context",
     srcs = ["compilation_context.cc"],
     hdrs = ["compilation_context.h"],
-    linkopts = ["-ldl"],
     deps = [
         ":cpp_program",
         "//catalog",
@@ -33,4 +33,18 @@ cc_library(
     name = "schema_values",
     srcs = ["schema_values.cc"],
     hdrs = ["schema_values.h"],
+)
+
+cc_library(
+    name = "cpp_translator",
+    srcs = ["cpp_translator.cc"],
+    hdrs = ["cpp_translator.h"],
+    deps = [
+        ":compilation_context",
+        ":cpp_program",
+        ":program",
+        "//catalog",
+        "//compilation/translators:translator_factory",
+        "//plan:operator",
+    ],
 )

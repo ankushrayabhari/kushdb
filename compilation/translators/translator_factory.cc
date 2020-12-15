@@ -9,7 +9,7 @@
 
 namespace kush::compile {
 
-TranslatorFactory::TranslatorFactory(CompliationContext& context)
+TranslatorFactory::TranslatorFactory(CompilationContext& context)
     : context_(context) {}
 
 std::vector<std::unique_ptr<OperatorTranslator>>
@@ -40,6 +40,12 @@ void TranslatorFactory::Visit(plan::Output& output) {
 void TranslatorFactory::Visit(plan::HashJoin& hash_join) {
   Return(std::make_unique<HashJoinTranslator>(hash_join, context_,
                                               GetChildTranslators(hash_join)));
+}
+
+std::unique_ptr<OperatorTranslator> TranslatorFactory::Produce(
+    plan::Operator& target) {
+  target.Accept(*this);
+  return GetResult();
 }
 
 }  // namespace kush::compile

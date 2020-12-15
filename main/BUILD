@@ -5,6 +5,7 @@ cc_binary(
     srcs = ["main.cc"],
     deps = [
         "//catalog",
+        "//compilation:cpp_translator",
         "//plan:operator",
         "//plan/expression:column_ref_expression",
         "//plan/expression:comparison_expression",

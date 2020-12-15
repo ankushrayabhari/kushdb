@@ -118,6 +118,10 @@ HashJoin::HashJoin(OperatorSchema schema, std::unique_ptr<Operator> left,
       left_column_(std::move(left_column)),
       right_column_(std::move(right_column)) {}
 
+ColumnRefExpression& HashJoin::LeftColumn() { return *left_column_; }
+
+ColumnRefExpression& HashJoin::RightColumn() { return *right_column_; }
+
 nlohmann::json HashJoin::ToJson() const {
   nlohmann::json j;
   j["op"] = "HASH_JOIN";

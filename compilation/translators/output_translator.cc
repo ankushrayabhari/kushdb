@@ -7,7 +7,7 @@
 namespace kush::compile {
 
 OutputTranslator::OutputTranslator(
-    plan::Output& output, CompliationContext& context,
+    plan::Output& output, CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)), context_(context) {}
 

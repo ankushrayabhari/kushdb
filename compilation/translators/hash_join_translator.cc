@@ -8,7 +8,7 @@
 namespace kush::compile {
 
 HashJoinTranslator::HashJoinTranslator(
-    plan::HashJoin& hash_join, CompliationContext& context,
+    plan::HashJoin& hash_join, CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)),
       hash_join_(hash_join),

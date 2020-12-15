@@ -18,10 +18,10 @@
 
 namespace kush::compile {
 
-CompliationContext::CompliationContext(const catalog::Database& db) : db_(db) {}
+CompilationContext::CompilationContext(const catalog::Database& db) : db_(db) {}
 
-const catalog::Database& CompliationContext::Catalog() { return db_; }
+const catalog::Database& CompilationContext::Catalog() { return db_; }
 
-CppProgram& CompliationContext::Program() { return program_; }
+CppProgram& CompilationContext::Program() { return program_; }
 
 }  // namespace kush::compile

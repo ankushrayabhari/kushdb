@@ -11,9 +11,9 @@
 
 namespace kush::compile {
 
-class CompliationContext {
+class CompilationContext {
  public:
-  CompliationContext(const catalog::Database& db);
+  CompilationContext(const catalog::Database& db);
   const catalog::Database& Catalog();
   CppProgram& Program();
 

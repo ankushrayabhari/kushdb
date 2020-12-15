@@ -12,12 +12,16 @@
 
 namespace kush::compile {
 
-ExpressionTranslator::ExpressionTranslator(CompliationContext& context,
+ExpressionTranslator::ExpressionTranslator(CompilationContext& context,
                                            OperatorTranslator& source)
     : context_(context), source_(source) {}
 
+void ExpressionTranslator::Produce(plan::Expression& expr) {
+  expr.Accept(*this);
+}
+
 void ExpressionTranslator::Visit(plan::ColumnRefExpression& col_ref) {
-  auto& values = source_.Children()[col_ref.GetChildIdx()].get().GetValues();
+  auto& values = source_.GetValues();
   auto& program = context_.Program();
   program.fout << values.Variable(col_ref.GetColumnIdx());
 }

@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "compilation/cpp_program.h"
 #include "compilation/compilation_context.h"
+#include "compilation/cpp_program.h"
 #include "compilation/translators/operator_translator.h"
 #include "plan/operator.h"
 #include "plan/sql_type.h"
@@ -13,7 +13,7 @@
 namespace kush::compile {
 
 ScanTranslator::ScanTranslator(
-    plan::Scan& scan, CompliationContext& context,
+    plan::Scan& scan, CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)), scan_(scan), context_(context) {}
 
