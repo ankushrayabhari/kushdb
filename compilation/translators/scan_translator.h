@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compilation/cpp_translator.h"
+#include "compilation/compilation_context.h"
 #include "compilation/translators/operator_translator.h"
 #include "plan/operator.h"
 
@@ -8,7 +8,7 @@ namespace kush::compile {
 
 class ScanTranslator : public OperatorTranslator {
  public:
-  ScanTranslator(plan::Scan& scan, CppTranslator& context,
+  ScanTranslator(plan::Scan& scan, CompliationContext& context,
                  std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~ScanTranslator() = default;
   void Produce() override;
@@ -16,7 +16,7 @@ class ScanTranslator : public OperatorTranslator {
 
  private:
   plan::Scan& scan_;
-  CppTranslator& context_;
+  CompliationContext& context_;
 };
 
 }  // namespace kush::compile

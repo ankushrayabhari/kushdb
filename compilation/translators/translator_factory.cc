@@ -9,7 +9,7 @@
 
 namespace kush::compile {
 
-TranslatorFactory::TranslatorFactory(CppTranslator& context)
+TranslatorFactory::TranslatorFactory(CompliationContext& context)
     : context_(context) {}
 
 std::vector<std::unique_ptr<OperatorTranslator>>

@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "compilation/cpp_translator.h"
+#include "compilation/compilation_context.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/expression_visitor.h"
@@ -12,7 +12,7 @@
 
 namespace kush::compile {
 
-ExpressionTranslator::ExpressionTranslator(CppTranslator& context,
+ExpressionTranslator::ExpressionTranslator(CompliationContext& context,
                                            OperatorTranslator& source)
     : context_(context), source_(source) {}
 

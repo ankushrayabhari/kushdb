@@ -1,4 +1,4 @@
-#include "compilation/cpp_translator.h"
+#include "compilation/compilation_context.h"
 
 #include <dlfcn.h>
 
@@ -18,10 +18,10 @@
 
 namespace kush::compile {
 
-CppTranslator::CppTranslator(const catalog::Database& db) : db_(db) {}
+CompliationContext::CompliationContext(const catalog::Database& db) : db_(db) {}
 
-const catalog::Database& CppTranslator::Catalog() { return db_; }
+const catalog::Database& CompliationContext::Catalog() { return db_; }
 
-CppProgram& CppTranslator::Program() { return program_; }
+CppProgram& CompliationContext::Program() { return program_; }
 
 }  // namespace kush::compile

@@ -17,9 +17,9 @@ cc_library(
 )
 
 cc_library(
-    name = "cpp_translator",
-    srcs = ["cpp_translator.cc"],
-    hdrs = ["cpp_translator.h"],
+    name = "compilation_context",
+    srcs = ["compilation_context.cc"],
+    hdrs = ["compilation_context.h"],
     linkopts = ["-ldl"],
     deps = [
         ":cpp_program",

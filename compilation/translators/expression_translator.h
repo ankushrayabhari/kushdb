@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "compilation/cpp_translator.h"
+#include "compilation/compilation_context.h"
 #include "compilation/translators/operator_translator.h"
 #include "plan/expression/expression_visitor.h"
 
@@ -11,7 +11,7 @@ namespace kush::compile {
 
 class ExpressionTranslator : public plan::ExpressionVisitor {
  public:
-  ExpressionTranslator(CppTranslator& context, OperatorTranslator& source);
+  ExpressionTranslator(CompliationContext& context, OperatorTranslator& source);
   virtual ~ExpressionTranslator() = default;
 
   std::string Produce(plan::Expression& expr);
@@ -20,7 +20,7 @@ class ExpressionTranslator : public plan::ExpressionVisitor {
   void Visit(plan::LiteralExpression<int32_t>& literal) override;
 
  private:
-  CppTranslator& context_;
+  CompliationContext& context_;
   OperatorTranslator& source_;
 };
 
