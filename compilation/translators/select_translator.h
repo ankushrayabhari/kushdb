@@ -12,6 +12,10 @@ class SelectTranslator : public OperatorTranslator {
                    std::vector<std::unique_ptr<OperatorTranslator>> children);
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
+
+ private:
+  plan::Select& select_;
+  CppTranslator& context_;
 };
 
 }  // namespace kush::compile

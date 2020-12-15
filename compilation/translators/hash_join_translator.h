@@ -8,11 +8,15 @@ namespace kush::compile {
 
 class HashJoinTranslator : public OperatorTranslator {
  public:
-  HashJoinTranslator(plan::HashJoin& output, CppTranslator& context,
+  HashJoinTranslator(plan::HashJoin& hash_join, CppTranslator& context,
                      std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~HashJoinTranslator() = default;
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
+
+ private:
+  plan::HashJoin& hash_join_;
+  CppTranslator& context_;
 };
 
 }  // namespace kush::compile

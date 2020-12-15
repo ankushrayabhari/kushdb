@@ -13,6 +13,10 @@ class OutputTranslator : public OperatorTranslator {
   virtual ~OutputTranslator() = default;
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
+
+ private:
+  plan::Output& output_;
+  CppTranslator& context_;
 };
 
 }  // namespace kush::compile

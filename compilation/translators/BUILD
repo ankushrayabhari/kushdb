@@ -21,6 +21,7 @@ cc_library(
 
 cc_library(
     name = "output_translator",
+    srcs = ["output_translator.cc"],
     hdrs = ["output_translator.h"],
     deps = [
         ":operator_translator",
@@ -31,6 +32,7 @@ cc_library(
 
 cc_library(
     name = "select_translator",
+    srcs = ["select_translator.cc"],
     hdrs = ["select_translator.h"],
     deps = [
         ":operator_translator",
@@ -41,6 +43,7 @@ cc_library(
 
 cc_library(
     name = "hash_join_translator",
+    srcs = ["hash_join_translator.cc"],
     hdrs = ["hash_join_translator.h"],
     deps = [
         ":operator_translator",
