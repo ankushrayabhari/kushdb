@@ -16,45 +16,33 @@ ExpressionTranslator::ExpressionTranslator(CppTranslator& context,
                                            OperatorTranslator& source)
     : context_(context), source_(source) {}
 
-std::string ExpressionTranslator::Produce(plan::Expression& expr) {
-  expr.Accept(*this);
-  return GetResult();
-}
-
 void ExpressionTranslator::Visit(plan::ColumnRefExpression& col_ref) {
   auto& values = source_.Children()[col_ref.GetChildIdx()].get().GetValues();
-  auto var = values.Get(col_ref.GetColumnIdx());
-  Return(var);
+  auto& program = context_.Program();
+  program.fout << values.Variable(col_ref.GetColumnIdx());
 }
 
 void ExpressionTranslator::Visit(plan::ComparisonExpression& comp) {
-  comp.Left().Accept(*this);
-  auto l = GetResult();
-
-  comp.Right().Accept(*this);
-  auto r = GetResult();
-
   auto type = comp.Type();
 
   using CompType = plan::ComparisonType;
-  std::unordered_map<CompType, std::string> type_to_op{
+  const std::unordered_map<CompType, std::string> type_to_op{
       {CompType::EQ, "=="},  {CompType::NEQ, "!="}, {CompType::LT, "<"},
       {CompType::LEQ, "<="}, {CompType::GT, ">"},   {CompType::GEQ, ">="},
   };
 
-  std::string value;
-  value.append("(");
-  value.append(l);
-  value.append(")");
-  value.append(type_to_op.at(type));
-  value.append("(");
-  value.append(r);
-  value.append(")");
-  Return(std::move(value));
+  auto& program = context_.Program();
+
+  program.fout << "(";
+  comp.Left().Accept(*this);
+  program.fout << ")" << type_to_op.at(type) << "(";
+  comp.Right().Accept(*this);
+  program.fout << ")";
 }
 
 void ExpressionTranslator::Visit(plan::LiteralExpression<int32_t>& literal) {
-  Return(std::to_string(literal.GetValue()));
+  auto& program = context_.Program();
+  program.fout << literal.GetValue();
 }
 
 }  // namespace kush::compile

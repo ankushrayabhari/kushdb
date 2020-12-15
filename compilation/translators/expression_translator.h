@@ -6,12 +6,10 @@
 #include "compilation/cpp_translator.h"
 #include "compilation/translators/operator_translator.h"
 #include "plan/expression/expression_visitor.h"
-#include "util/visitor.h"
 
 namespace kush::compile {
 
-class ExpressionTranslator
-    : public util::Visitor<plan::ExpressionVisitor, std::string> {
+class ExpressionTranslator : public plan::ExpressionVisitor {
  public:
   ExpressionTranslator(CppTranslator& context, OperatorTranslator& source);
   virtual ~ExpressionTranslator() = default;

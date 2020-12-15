@@ -21,21 +21,6 @@ namespace kush::compile {
 using namespace plan;
 
 /*
-ProduceVisitor::ProduceVisitor(CppTranslator& translator)
-    : translator_(translator) {}
-
-void ProduceVisitor::Visit(Scan& scan) {
-  if (!translator_.db_.contains(scan.relation)) {
-    throw std::runtime_error("Unknown table: " + scan.relation);
-  }
-
-
-}
-
-void ProduceVisitor::Visit(Select& select) {
-  translator_.producer_.Produce(select.Child());
-}
-
 void ProduceVisitor::Visit(Output& output) {
   translator_.producer_.Produce(output.Child());
 }
@@ -59,21 +44,6 @@ ConsumeVisitor::ConsumeVisitor(CppTranslator& translator)
 
 void ConsumeVisitor::Visit(plan::Scan& scan) {
   throw std::runtime_error("Scan cannot consume tuples - leaf operator");
-}
-
-void ConsumeVisitor::Visit(plan::Select& select) {
-  // TODO: generate code for select expression
-  translator_.program_.fout << "if (true) {\n";
-
-  translator_.context_.SetOutputVariables(
-      select, translator_.context_.GetOutputVariables(select.Child()));
-
-  auto parent = select.Parent();
-  if (parent.has_value()) {
-    translator_.consumer_.Consume(parent.value(), select);
-  }
-
-  translator_.program_.fout << "}\n";
 }
 
 void ConsumeVisitor::Visit(plan::Output& output) {

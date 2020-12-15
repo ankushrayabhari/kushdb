@@ -39,6 +39,7 @@ cc_library(
     srcs = ["select_translator.cc"],
     hdrs = ["select_translator.h"],
     deps = [
+        ":expression_translator",
         ":operator_translator",
         "//compilation:cpp_translator",
         "//plan:operator",
@@ -81,6 +82,5 @@ cc_library(
         "//plan/expression:comparison_expression",
         "//plan/expression:expression_visitor",
         "//plan/expression:literal_expression",
-        "//util:visitor",
     ],
 )
