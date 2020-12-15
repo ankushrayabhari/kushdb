@@ -13,4 +13,9 @@ std::string SchemaValues::Variable(int idx) const { return values_[idx].first; }
 
 std::string SchemaValues::Type(int idx) const { return values_[idx].second; }
 
+const std::vector<std::pair<std::string, std::string>>& SchemaValues::Values()
+    const {
+  return values_;
+}
+
 }  // namespace kush::compile

@@ -9,12 +9,30 @@ namespace kush::compile {
 OutputTranslator::OutputTranslator(
     plan::Output& output, CppTranslator& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
-    : OperatorTranslator(std::move(children)),
-      output_(output),
-      context_(context) {}
+    : OperatorTranslator(std::move(children)), context_(context) {}
 
-void OutputTranslator::Produce() {}
+void OutputTranslator::Produce() { Child().Produce(); }
 
-void OutputTranslator::Consume(OperatorTranslator& src) {}
+void OutputTranslator::Consume(OperatorTranslator& src) {
+  auto& program = context_.Program();
+  const auto& values = Child().GetValues().Values();
+  if (values.empty()) {
+    return;
+  }
+
+  program.fout << "std::cout";
+
+  bool first = true;
+  for (const auto& [variable, type] : values) {
+    if (first) {
+      program.fout << " << " << variable;
+      first = false;
+    } else {
+      program.fout << " << \",\" << " << variable;
+    }
+  }
+
+  program.fout << " << \"\\n\";\n";
+}
 
 }  // namespace kush::compile

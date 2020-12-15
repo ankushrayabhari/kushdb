@@ -15,7 +15,6 @@ class OutputTranslator : public OperatorTranslator {
   void Consume(OperatorTranslator& src) override;
 
  private:
-  plan::Output& output_;
   CppTranslator& context_;
 };
 

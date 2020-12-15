@@ -21,10 +21,6 @@ namespace kush::compile {
 using namespace plan;
 
 /*
-void ProduceVisitor::Visit(Output& output) {
-  translator_.producer_.Produce(output.Child());
-}
-
 std::unordered_map<HashJoin*, std::string> hashjoin_buffer_var;
 
 void ProduceVisitor::Visit(HashJoin& hash_join) {
@@ -37,35 +33,8 @@ void ProduceVisitor::Visit(HashJoin& hash_join) {
   translator_.producer_.Produce(hash_join.RightChild());
 }
 
-void ProduceVisitor::Produce(Operator& target) { target.Accept(*this); }
-
-ConsumeVisitor::ConsumeVisitor(CppTranslator& translator)
-    : translator_(translator) {}
-
 void ConsumeVisitor::Visit(plan::Scan& scan) {
   throw std::runtime_error("Scan cannot consume tuples - leaf operator");
-}
-
-void ConsumeVisitor::Visit(plan::Output& output) {
-  bool first = true;
-  const auto& variables =
-      translator_.context_.GetOutputVariables(output.Child());
-  if (variables.empty()) {
-    return;
-  }
-
-  translator_.program_.fout << "std::cout";
-
-  for (const auto& column_value_var : variables) {
-    if (first) {
-      translator_.program_.fout << " << " << column_value_var;
-      first = false;
-    } else {
-      translator_.program_.fout << " << \",\" << " << column_value_var;
-    }
-  }
-
-  translator_.program_.fout << " << \"\\n\";\n";
 }
 
 void ConsumeVisitor::Visit(plan::HashJoin& hash_join) {
@@ -136,13 +105,7 @@ void ConsumeVisitor::Visit(plan::HashJoin& hash_join) {
   }
 }
 
-void ConsumeVisitor::Consume(Operator& target, Operator& src) {
-  src_.push(&src);
-  target.Accept(*this);
-  src_.pop();
-}
-
-Operator& ConsumeVisitor::GetSource() { return *src_.top(); } */
+*/
 
 CppTranslator::CppTranslator(const catalog::Database& db) : db_(db) {}
 
