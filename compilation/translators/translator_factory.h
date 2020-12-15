@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "compilation/cpp_translator.h"
-#include "compilation/translators/translator.h"
+#include "compilation/translators/operator_translator.h"
 #include "plan/operator_visitor.h"
 
 namespace kush::compile {
@@ -21,11 +21,11 @@ class TranslatorFactory : public plan::OperatorVisitor {
   void Produce(plan::Operator& target);
 
  private:
-  void Return(std::unique_ptr<Translator> result);
-  std::unique_ptr<Translator> GetResult();
-  std::vector<std::unique_ptr<Translator>> GetChildTranslators(
+  void Return(std::unique_ptr<OperatorTranslator> result);
+  std::unique_ptr<OperatorTranslator> GetResult();
+  std::vector<std::unique_ptr<OperatorTranslator>> GetChildTranslators(
       plan::Operator& current);
-  std::unique_ptr<Translator> result_;
+  std::unique_ptr<OperatorTranslator> result_;
   CppTranslator& context_;
 };
 

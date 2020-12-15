@@ -1,18 +1,18 @@
 #pragma once
 
 #include "compilation/cpp_translator.h"
-#include "compilation/translators/translator.h"
+#include "compilation/translators/operator_translator.h"
 #include "plan/operator.h"
 
 namespace kush::compile {
 
-class OutputTranslator : public Translator {
+class OutputTranslator : public OperatorTranslator {
  public:
-  OutputTranslator::OutputTranslator(
-      plan::Output& output, CppTranslator& context,
-      std::vector<std::unique_ptr<Translator>> children);
+  OutputTranslator(plan::Output& output, CppTranslator& context,
+                   std::vector<std::unique_ptr<OperatorTranslator>> children);
+  virtual ~OutputTranslator() = default;
   void Produce() override;
-  void Consume(Translator& src) override;
+  void Consume(OperatorTranslator& src) override;
 };
 
 }  // namespace kush::compile
