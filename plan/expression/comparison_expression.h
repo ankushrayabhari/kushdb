@@ -16,6 +16,9 @@ class ComparisonExpression : public Expression {
                        std::unique_ptr<Expression> right);
   nlohmann::json ToJson() const override;
   void Accept(ExpressionVisitor& visitor) override;
+  Expression& Left();
+  Expression& Right();
+  ComparisonType Type();
 
  private:
   ComparisonType type_;

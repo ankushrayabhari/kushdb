@@ -12,11 +12,11 @@ class LiteralExpression;
 
 class ExpressionVisitor {
  public:
-  virtual void Visit(ColumnRefExpression& scan) = 0;
-  virtual void Visit(ComparisonExpression& select) = 0;
+  virtual void Visit(ColumnRefExpression& col_ref) = 0;
+  virtual void Visit(ComparisonExpression& comp) = 0;
 
   // TODO: define this for all runtime types
-  virtual void Visit(LiteralExpression<int32_t>& output) = 0;
+  virtual void Visit(LiteralExpression<int32_t>& literal) = 0;
 };
 
 }  // namespace kush::plan

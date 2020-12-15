@@ -64,9 +64,9 @@ int main() {
     }
 
     auto x1 = std::make_unique<ColumnRefExpression>(
-        select_table->Schema().GetColumnIndex("x1"));
+        0, select_table->Schema().GetColumnIndex("x1"));
     auto x2 = std::make_unique<ColumnRefExpression>(
-        scan_table1->Schema().GetColumnIndex("x2"));
+        1, scan_table1->Schema().GetColumnIndex("x2"));
     table_join_table1 = std::make_unique<HashJoin>(
         std::move(schema), std::move(select_table), std::move(scan_table1),
         std::move(x1), std::move(x2));
@@ -93,9 +93,9 @@ int main() {
     }
 
     auto x2 = std::make_unique<ColumnRefExpression>(
-        table_join_table1->Schema().GetColumnIndex("x2"));
+        0, table_join_table1->Schema().GetColumnIndex("x2"));
     auto x3 = std::make_unique<ColumnRefExpression>(
-        scan_table2->Schema().GetColumnIndex("x3"));
+        1, scan_table2->Schema().GetColumnIndex("x3"));
     table_join_table1_join_table2 = std::make_unique<HashJoin>(
         std::move(schema), std::move(table_join_table1), std::move(scan_table2),
         std::move(x2), std::move(x3));

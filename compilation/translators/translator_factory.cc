@@ -12,16 +12,6 @@ namespace kush::compile {
 TranslatorFactory::TranslatorFactory(CppTranslator& context)
     : context_(context) {}
 
-void TranslatorFactory::Return(std::unique_ptr<OperatorTranslator> result) {
-  result_ = std::move(result);
-}
-
-std::unique_ptr<OperatorTranslator> TranslatorFactory::GetResult() {
-  auto result = std::move(result_);
-  result_ = nullptr;
-  return result;
-}
-
 std::vector<std::unique_ptr<OperatorTranslator>>
 TranslatorFactory::GetChildTranslators(plan::Operator& current) {
   std::vector<std::unique_ptr<OperatorTranslator>> translators;

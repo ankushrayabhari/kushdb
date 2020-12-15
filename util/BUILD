@@ -11,3 +11,8 @@ cc_library(
     name = "vector_util",
     hdrs = ["vector_util.h"],
 )
+
+cc_library(
+    name = "visitor",
+    hdrs = ["visitor.h"],
+)

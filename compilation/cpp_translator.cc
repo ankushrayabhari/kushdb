@@ -20,6 +20,7 @@ namespace kush::compile {
 
 using namespace plan;
 
+/*
 std::string GenerateVar() {
   static std::string last = "a";
   last.back()++;
@@ -232,7 +233,7 @@ void ConsumeVisitor::Consume(Operator& target, Operator& src) {
   src_.pop();
 }
 
-Operator& ConsumeVisitor::GetSource() { return *src_.top(); }
+Operator& ConsumeVisitor::GetSource() { return *src_.top(); } */
 
 void CompilationContext::SetOutputVariables(
     plan::Operator& op, std::vector<std::string> column_variables) {
@@ -244,36 +245,6 @@ const std::vector<std::string>& CompilationContext::GetOutputVariables(
   return operator_to_output_variables.at(&op);
 }
 
-CppTranslator::CppTranslator(const catalog::Database& db)
-    : producer_(*this), consumer_(*this), db_(db) {}
+CppTranslator::CppTranslator(const catalog::Database& db) : db_(db) {}
 
-Program& CppTranslator::Translate(plan::Operator& op) {
-  program_.CodegenInitialize();
-  producer_.Produce(op);
-  program_.CodegenFinalize();
-  return program_;
-}
-
-/*
-void ConsumeColumnRef(Context& ctx, plan::Expression& expr, std::ostream& out) {
-  ColumnRef& ref = static_cast<ColumnRef&>(expr);
-  out << ctx.col_to_var[ref.table + "_" + ref.column];
-}
-
-void ConsumeIntLiteral(Context& ctx, plan::Expression& expr,
-                       std::ostream& out) {
-  IntLiteral& literal = static_cast<IntLiteral&>(expr);
-  out << literal.value;
-}
-
-void ConsumeBinaryExpression(Context& ctx, plan::Expression& expr,
-                             std::ostream& out) {
-  BinaryExpression& binop = static_cast<BinaryExpression&>(expr);
-  out << "(";
-  ctx.registry.GetExprConsumer(binop.left->Id())(ctx, *binop.left, out);
-  out << op_to_cpp_op.at(binop.type);
-  ctx.registry.GetExprConsumer(binop.right->Id())(ctx, *binop.right, out);
-  out << ")";
-}
-*/
 }  // namespace kush::compile

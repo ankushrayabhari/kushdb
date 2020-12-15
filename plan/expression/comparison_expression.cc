@@ -1,3 +1,4 @@
+
 #include "plan/expression/comparison_expression.h"
 
 #include <memory>
@@ -25,5 +26,11 @@ nlohmann::json ComparisonExpression::ToJson() const {
 void ComparisonExpression::Accept(ExpressionVisitor& visitor) {
   return visitor.Visit(*this);
 }
+
+Expression& ComparisonExpression::Left() { return *left_; }
+
+Expression& ComparisonExpression::Right() { return *right_; }
+
+ComparisonType ComparisonExpression::Type() { return type_; }
 
 }  // namespace kush::plan

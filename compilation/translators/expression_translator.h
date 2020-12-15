@@ -4,21 +4,26 @@
 #include <vector>
 
 #include "compilation/cpp_translator.h"
+#include "compilation/translators/operator_translator.h"
 #include "plan/expression/expression_visitor.h"
+#include "util/visitor.h"
 
 namespace kush::compile {
 
-class ExpressionTranslator : public plan::ExpressionVisitor {
+class ExpressionTranslator
+    : public util::Visitor<plan::ExpressionVisitor, std::string> {
  public:
-  ExpressionTranslator(CppTranslator& context);
+  ExpressionTranslator(CppTranslator& context, OperatorTranslator& source);
   virtual ~ExpressionTranslator() = default;
 
-  void Visit(plan::ColumnRefExpression& scan) override;
-  void Visit(plan::ComparisonExpression& select) override;
-  void Visit(plan::LiteralExpression<int32_t>& output) override;
+  void Produce(plan::Expression& expr);
+  void Visit(plan::ColumnRefExpression& col_ref) override;
+  void Visit(plan::ComparisonExpression& comp) override;
+  void Visit(plan::LiteralExpression<int32_t>& literal) override;
 
  private:
   CppTranslator& context_;
+  OperatorTranslator& source_;
 };
 
 }  // namespace kush::compile

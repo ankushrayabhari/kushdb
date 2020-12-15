@@ -14,4 +14,15 @@ void OperatorTranslator::SetParent(OperatorTranslator& translator) {
   parent_ = &translator;
 }
 
+std::vector<std::reference_wrapper<OperatorTranslator>>
+OperatorTranslator::Children() {
+  std::vector<std::reference_wrapper<OperatorTranslator>> output;
+  for (auto& x : children_) {
+    output.push_back(*x);
+  }
+  return output;
+}
+
+SchemaValues& OperatorTranslator::GetValues() { return *values_; }
+
 }  // namespace kush::compile

@@ -6,10 +6,13 @@
 #include "compilation/cpp_translator.h"
 #include "compilation/translators/operator_translator.h"
 #include "plan/operator_visitor.h"
+#include "util/visitor.h"
 
 namespace kush::compile {
 
-class TranslatorFactory : public plan::OperatorVisitor {
+class TranslatorFactory
+    : public util::Visitor<plan::OperatorVisitor,
+                           std::unique_ptr<OperatorTranslator>> {
  public:
   TranslatorFactory(CppTranslator& context);
   virtual ~TranslatorFactory() = default;
@@ -22,11 +25,8 @@ class TranslatorFactory : public plan::OperatorVisitor {
   void Produce(plan::Operator& target);
 
  private:
-  void Return(std::unique_ptr<OperatorTranslator> result);
-  std::unique_ptr<OperatorTranslator> GetResult();
   std::vector<std::unique_ptr<OperatorTranslator>> GetChildTranslators(
       plan::Operator& current);
-  std::unique_ptr<OperatorTranslator> result_;
   CppTranslator& context_;
 };
 
