@@ -51,6 +51,7 @@ cc_library(
     srcs = ["hash_join_translator.cc"],
     hdrs = ["hash_join_translator.h"],
     deps = [
+        ":expression_translator",
         ":operator_translator",
         "//compilation:cpp_translator",
         "//plan:operator",

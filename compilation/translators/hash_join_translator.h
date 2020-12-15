@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "compilation/cpp_translator.h"
 #include "compilation/translators/operator_translator.h"
 #include "plan/operator.h"
@@ -15,6 +17,7 @@ class HashJoinTranslator : public OperatorTranslator {
   void Consume(OperatorTranslator& src) override;
 
  private:
+  std::string hash_table_var_;
   plan::HashJoin& hash_join_;
   CppTranslator& context_;
 };

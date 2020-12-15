@@ -34,6 +34,10 @@ OperatorTranslator::Children() {
 
 OperatorTranslator& OperatorTranslator::Child() { return *children_[0]; }
 
+OperatorTranslator& OperatorTranslator::LeftChild() { return *children_[0]; }
+
+OperatorTranslator& OperatorTranslator::RightChild() { return *children_[1]; }
+
 SchemaValues& OperatorTranslator::GetValues() { return values_; }
 
 void OperatorTranslator::SetSchemaValues(SchemaValues values) {

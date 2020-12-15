@@ -19,6 +19,8 @@ class OperatorTranslator {
   std::optional<std::reference_wrapper<OperatorTranslator>> Parent();
   std::vector<std::reference_wrapper<OperatorTranslator>> Children();
   OperatorTranslator& Child();
+  OperatorTranslator& LeftChild();
+  OperatorTranslator& RightChild();
   SchemaValues& GetValues();
 
  protected:
