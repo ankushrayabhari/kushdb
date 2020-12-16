@@ -5,19 +5,19 @@
 #include <unordered_map>
 #include <vector>
 
+#include "catalog/sql_type.h"
 #include "magic_enum.hpp"
-#include "plan/sql_type.h"
 
 namespace kush::plan {
 
-OperatorSchema::Column::Column(std::string_view name, SqlType type)
+OperatorSchema::Column::Column(std::string_view name, catalog::SqlType type)
     : name_(name), type_(type) {}
 
 std::string_view OperatorSchema::Column::Name() const { return name_; }
 
-SqlType OperatorSchema::Column::Type() const { return type_; }
+catalog::SqlType OperatorSchema::Column::Type() const { return type_; }
 
-void OperatorSchema::AddColumn(std::string_view name, SqlType type) {
+void OperatorSchema::AddColumn(std::string_view name, catalog::SqlType type) {
   column_name_to_idx_[std::string(name)] = columns_.size();
   columns_.emplace_back(name, type);
 }

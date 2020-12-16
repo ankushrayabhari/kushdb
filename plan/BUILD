@@ -9,17 +9,11 @@ cc_library(
 )
 
 cc_library(
-    name = "sql_type",
-    hdrs = ["sql_type.h"],
-    deps = [],
-)
-
-cc_library(
     name = "operator_schema",
     srcs = ["operator_schema.cc"],
     hdrs = ["operator_schema.h"],
     deps = [
-        ":sql_type",
+        "//catalog:sql_type",
         "@json",
         "@magic_enum",
     ],

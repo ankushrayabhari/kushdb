@@ -3,13 +3,13 @@
 #include <stdexcept>
 #include <string>
 
-#include "plan/sql_type.h"
+#include "catalog/sql_type.h"
 
 namespace kush::compile {
 
-std::string SqlTypeToRuntimeType(plan::SqlType type) {
+std::string SqlTypeToRuntimeType(catalog::SqlType type) {
   switch (type) {
-    case plan::SqlType::INT:
+    case catalog::SqlType::INT:
       return "int32_t";
   }
 

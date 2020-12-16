@@ -3,15 +3,17 @@
 #include <memory>
 #include <string>
 
+#include "catalog/sql_type.h"
+
 namespace kush {
 namespace catalog {
 
-Column::Column(const std::string& n, const std::string& t, const std::string& p)
+Column::Column(const std::string& n, SqlType t, const std::string& p)
     : name(n), type(t), path(p) {}
 
 Table::Table(const std::string& n) : name(n) {}
 
-Column& Table::insert(const std::string& attr, const std::string& type,
+Column& Table::insert(const std::string& attr, SqlType type,
                       const std::string& path) {
   name_to_col_.insert({attr, Column(attr, type, path)});
   return name_to_col_.at(attr);

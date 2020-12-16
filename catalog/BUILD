@@ -6,7 +6,9 @@ cc_library(
     name = "catalog",
     srcs = ["catalog.cc"],
     hdrs = ["catalog.h"],
-    deps = [],
+    deps = [
+        ":sql_type",
+    ],
 )
 
 cc_library(
@@ -16,4 +18,10 @@ cc_library(
     deps = [
         "@type_safe",
     ],
+)
+
+cc_library(
+    name = "sql_type",
+    hdrs = ["sql_type.h"],
+    deps = [],
 )

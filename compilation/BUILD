@@ -7,7 +7,7 @@ cc_library(
     srcs = ["types.cc"],
     hdrs = ["types.h"],
     deps = [
-        "//plan:sql_type",
+        "//catalog:sql_type",
     ],
 )
 

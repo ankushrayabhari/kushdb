@@ -4,6 +4,7 @@
 #include <string>
 
 #include "catalog/catalog.h"
+#include "catalog/sql_type.h"
 #include "compilation/cpp_translator.h"
 #include "nlohmann/json.hpp"
 #include "plan/expression/column_ref_expression.h"
@@ -11,7 +12,6 @@
 #include "plan/expression/literal_expression.h"
 #include "plan/operator.h"
 #include "plan/operator_schema.h"
-#include "plan/sql_type.h"
 
 using namespace kush;
 using namespace kush::plan;
@@ -20,10 +20,10 @@ using namespace kush::catalog;
 
 int main() {
   Database db;
-  db.insert("table").insert("x1", "int32_t", "test.skdbcol");
-  db.insert("table1").insert("x2", "int32_t", "test.skdbcol");
-  db.insert("table2").insert("x3", "int32_t", "test.skdbcol");
-  db.insert("table2").insert("x4", "int32_t", "test1.skdbcol");
+  db.insert("table").insert("x1", SqlType::INT, "test.skdbcol");
+  db.insert("table1").insert("x2", SqlType::INT, "test.skdbcol");
+  db.insert("table2").insert("x3", SqlType::INT, "test.skdbcol");
+  db.insert("table2").insert("x4", SqlType::INT, "test1.skdbcol");
 
   // Scan(table)
   std::unique_ptr<Operator> scan_table;

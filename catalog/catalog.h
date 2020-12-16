@@ -3,17 +3,16 @@
 #include <string>
 #include <unordered_map>
 
-#include "catalog/catalog.h"
+#include "catalog/sql_type.h"
 
-namespace kush {
-namespace catalog {
+namespace kush::catalog {
 
 class Column {
  public:
-  Column(const std::string& n, const std::string& t, const std::string& p);
+  Column(const std::string& n, SqlType t, const std::string& p);
 
   const std::string name;
-  const std::string type;
+  const SqlType type;
   const std::string path;
 };
 
@@ -24,7 +23,7 @@ class Table {
   Table(const std::string& n);
   const std::string name;
 
-  Column& insert(const std::string& attr, const std::string& type,
+  Column& insert(const std::string& attr, SqlType type,
                  const std::string& path);
   const Column& operator[](const std::string& attr) const;
   bool contains(const std::string& attr) const;
@@ -40,5 +39,4 @@ class Database {
   bool contains(const std::string& table) const;
 };
 
-}  // namespace catalog
-}  // namespace kush
+}  // namespace kush::catalog

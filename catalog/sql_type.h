@@ -1,6 +1,6 @@
 #pragma once
 
-namespace kush::plan {
+namespace kush::catalog {
 
 enum class SqlType { INT };
 
