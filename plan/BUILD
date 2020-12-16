@@ -14,6 +14,7 @@ cc_library(
     hdrs = ["operator_schema.h"],
     deps = [
         "//catalog:sql_type",
+        "//plan/expression",
         "@json",
         "@magic_enum",
     ],
