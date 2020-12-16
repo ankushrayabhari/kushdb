@@ -70,7 +70,7 @@ For CppProgram::GenerateFor() { return For(*this); }
 void CppProgram::Compile() {
   std::string command = "clang++ -O3 --std=c++17 -I. -shared -fpic " +
                         file_name_ + " catalog/catalog.cc -o " + dylib_;
-  if (system(command.c_str()) < 0) {
+  if (system(command.c_str()) != 0) {
     throw std::runtime_error("Failed to compile file.");
   }
 }

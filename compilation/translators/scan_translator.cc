@@ -31,11 +31,11 @@ void ScanTranslator::Produce() {
     column_vars.push_back(var);
 
     // declare the column
-    program.fout << "kush::ColumnData<" << type << "> " << var << "(\"" << path
-                 << "\");\n";
+    program.fout << "const kush::ColumnData<" << type << "> " << var << "(\""
+                 << path << "\");\n";
 
     if (card_var.empty()) {
-      card_var = var + ".size()";
+      card_var = var + ".Size()";
     }
   }
 
