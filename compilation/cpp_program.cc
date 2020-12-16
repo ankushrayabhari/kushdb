@@ -36,6 +36,7 @@ void CppProgram::CodegenInitialize() {
   fout.open(file_name_);
   fout << "#include \"catalog/catalog.h\"\n";
   fout << "#include \"data/column_data.h\"\n";
+  fout << "#include \"util/hash_util.h\"\n";
   fout << "#include <iostream>\n";
   fout << "#include <cstdint>\n";
   fout << "#include <vector>\n";

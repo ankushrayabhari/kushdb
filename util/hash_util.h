@@ -11,9 +11,3 @@ void HashCombine(std::size_t& seed, const T& v, const Rest&... rest) {
 }
 
 }  // namespace kush::util
-
-#define GENERATE_HASH_SPECIALIZATION(T)                           \
-  template <>                                                     \
-  struct std::hash<T> {                                           \
-    std::size_t operator()(const T& t) const { return t.Hash(); } \
-  };

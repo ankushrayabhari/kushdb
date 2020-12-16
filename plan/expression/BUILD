@@ -13,7 +13,6 @@ cc_library(
     hdrs = ["expression.h"],
     deps = [
         ":expression_visitor",
-        "//util:hash_util",
         "@json",
     ],
 )

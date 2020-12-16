@@ -31,7 +31,7 @@ void HashJoinTranslator::Produce() {
 
   // declare hash table
   hash_table_var_ = program.GenerateVariable();
-  program.fout << "std::unordered_map<int32_t, std::vector<"
+  program.fout << "std::unordered_map<std::size_t, std::vector<"
                << packed_struct_id_ << ">> " << hash_table_var_ << ";\n";
 
   LeftChild().Produce();
@@ -45,14 +45,18 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
 
   // Build side
   if (&src == &left_translator) {
-    // TODO: hash key
-    auto bucket_var = program.GenerateVariable();
-    program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "[";
+    // hash key
+    auto hash_var = program.GenerateVariable();
+    program.fout << "std::size_t " << hash_var << " = 0;";
+    program.fout << "kush::util::HashCombine(" << hash_var << ",";
     ExpressionTranslator key_translator(context_, left_translator);
     key_translator.Produce(hash_join_.LeftColumn());
-    program.fout << "];\n";
+    program.fout << ");\n";
+    auto bucket_var = program.GenerateVariable();
+    program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "["
+                 << hash_var << "];\n";
 
-    // pack tuple
+    // pack tuple into table
     program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{";
     bool first = true;
     for (const auto& [variable, type] : left_translator.GetValues().Values()) {
@@ -68,18 +72,23 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
   }
 
   // Probe Side
-  // TODO: hash key
-  auto bucket_var = program.GenerateVariable();
-  program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "[";
+  // hash tuple
+  auto hash_var = program.GenerateVariable();
+  program.fout << "std::size_t " << hash_var << " = 0;";
+  program.fout << "kush::util::HashCombine(" << hash_var << ",";
   ExpressionTranslator key_translator(context_, right_translator);
   key_translator.Produce(hash_join_.RightColumn());
-  program.fout << "];\n";
+  program.fout << ");\n";
+  auto bucket_var = program.GenerateVariable();
+  program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "["
+               << hash_var << "];\n";
 
+  // loop over bucket
   auto loop_var = program.GenerateVariable();
   program.fout << "for (int " << loop_var << " = 0; " << loop_var << " < "
                << bucket_var << ".size(); " << loop_var << "++){\n";
 
-  // unpack tuple
+  // unpack tuple - reuse variables from build side loop
   const auto& left_schema_values = left_translator.GetValues().Values();
   for (int i = 0; i < left_schema_values.size(); i++) {
     const auto& [variable, type] = left_schema_values[i];
@@ -88,6 +97,15 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
     program.fout << type << "& " << variable << " = " << bucket_var << "["
                  << loop_var << "]." << field_id << ";\n";
   }
+
+  // check if the key columns are actually equal
+  program.fout << "if (";
+  ExpressionTranslator left_key_translator(context_, left_translator);
+  left_key_translator.Produce(hash_join_.LeftColumn());
+  program.fout << " == ";
+  ExpressionTranslator right_key_translator(context_, right_translator);
+  right_key_translator.Produce(hash_join_.RightColumn());
+  program.fout << ") {";
 
   SchemaValues values;
   for (const auto& [variable, type] : left_schema_values) {
@@ -103,7 +121,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
     parent->get().Consume(*this);
   }
 
-  program.fout << "}\n";
+  program.fout << "}}\n";
 }
 
 }  // namespace kush::compile
