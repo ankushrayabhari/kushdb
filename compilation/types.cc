@@ -11,6 +11,8 @@ std::string SqlTypeToRuntimeType(catalog::SqlType type) {
   switch (type) {
     case catalog::SqlType::INT:
       return "int32_t";
+    case catalog::SqlType::BIGINT:
+      return "int64_t";
   }
 
   throw std::runtime_error("Unknown type");

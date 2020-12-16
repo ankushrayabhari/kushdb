@@ -20,16 +20,17 @@ using namespace kush::catalog;
 
 int main() {
   Database db;
-  db.insert("table").insert("x1", SqlType::INT, "test.skdbcol");
-  db.insert("table1").insert("x2", SqlType::INT, "test.skdbcol");
-  db.insert("table2").insert("x3", SqlType::INT, "test.skdbcol");
-  db.insert("table2").insert("x4", SqlType::INT, "test1.skdbcol");
+  db.insert("table").insert("i1", SqlType::INT, "sample/int1.skdbcol");
+  db.insert("table1").insert("i2", SqlType::INT, "sample/int2.skdbcol");
+  db.insert("table1").insert("bi1", SqlType::BIGINT, "sample/bigint1.skdbcol");
+  db.insert("table2").insert("i3", SqlType::INT, "sample/int3.skdbcol");
+  db.insert("table2").insert("i4", SqlType::INT, "sample/int4.skdbcol");
 
   // Scan(table)
   std::unique_ptr<Operator> scan_table;
   {
     OperatorSchema schema;
-    schema.AddColumn("x1", SqlType::INT);
+    schema.AddColumn("i1", SqlType::INT);
     scan_table = std::make_unique<Scan>(std::move(schema), "table");
   }
 
@@ -37,7 +38,7 @@ int main() {
   std::unique_ptr<Operator> select_table;
   {
     auto x1 = std::make_unique<ColumnRefExpression>(
-        scan_table->Schema().GetColumnIndex("x1"));
+        scan_table->Schema().GetColumnIndex("i1"));
     auto x1_lt_c = std::make_unique<ComparisonExpression>(
         ComparisonType::LT, std::move(x1),
         std::make_unique<LiteralExpression>(100000000));
@@ -50,7 +51,8 @@ int main() {
   std::unique_ptr<Operator> scan_table1;
   {
     OperatorSchema schema;
-    schema.AddColumn("x2", SqlType::INT);
+    schema.AddColumn("i2", SqlType::INT);
+    schema.AddColumn("bi1", SqlType::BIGINT);
     scan_table1 = std::make_unique<Scan>(std::move(schema), "table1");
   }
 
@@ -66,9 +68,9 @@ int main() {
     }
 
     auto x1 = std::make_unique<ColumnRefExpression>(
-        select_table->Schema().GetColumnIndex("x1"));
+        select_table->Schema().GetColumnIndex("i1"));
     auto x2 = std::make_unique<ColumnRefExpression>(
-        scan_table1->Schema().GetColumnIndex("x2"));
+        scan_table1->Schema().GetColumnIndex("i2"));
     table_join_table1 = std::make_unique<HashJoin>(
         std::move(schema), std::move(select_table), std::move(scan_table1),
         std::move(x1), std::move(x2));
@@ -78,8 +80,8 @@ int main() {
   std::unique_ptr<Operator> scan_table2;
   {
     OperatorSchema schema;
-    schema.AddColumn("x3", SqlType::INT);
-    schema.AddColumn("x4", SqlType::INT);
+    schema.AddColumn("i3", SqlType::INT);
+    schema.AddColumn("i4", SqlType::INT);
     scan_table2 = std::make_unique<Scan>(std::move(schema), "table2");
   }
 
@@ -95,9 +97,9 @@ int main() {
     }
 
     auto x2 = std::make_unique<ColumnRefExpression>(
-        table_join_table1->Schema().GetColumnIndex("x2"));
+        table_join_table1->Schema().GetColumnIndex("i2"));
     auto x3 = std::make_unique<ColumnRefExpression>(
-        scan_table2->Schema().GetColumnIndex("x3"));
+        scan_table2->Schema().GetColumnIndex("i3"));
     table_join_table1_join_table2 = std::make_unique<HashJoin>(
         std::move(schema), std::move(table_join_table1), std::move(scan_table2),
         std::move(x2), std::move(x3));

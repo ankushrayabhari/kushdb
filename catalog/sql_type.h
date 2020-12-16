@@ -2,6 +2,6 @@
 
 namespace kush::catalog {
 
-enum class SqlType { INT };
+enum class SqlType { INT, BIGINT };
 
 }
