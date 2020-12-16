@@ -2,13 +2,13 @@
 
 #include "compilation/compilation_context.h"
 #include "compilation/translators/operator_translator.h"
-#include "plan/operator.h"
+#include "plan/output_operator.h"
 
 namespace kush::compile {
 
 class OutputTranslator : public OperatorTranslator {
  public:
-  OutputTranslator(plan::Output& output, CompilationContext& context,
+  OutputTranslator(plan::OutputOperator& output, CompilationContext& context,
                    std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~OutputTranslator() = default;
   void Produce() override;

@@ -2,12 +2,12 @@
 
 #include "compilation/compilation_context.h"
 #include "compilation/translators/operator_translator.h"
-#include "plan/operator.h"
+#include "plan/output_operator.h"
 
 namespace kush::compile {
 
 OutputTranslator::OutputTranslator(
-    plan::Output& output, CompilationContext& context,
+    plan::OutputOperator& output, CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)), context_(context) {}
 

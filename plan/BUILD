@@ -33,3 +33,27 @@ cc_library(
         "@json",
     ],
 )
+
+cc_library(
+    name = "scan_operator",
+    srcs = ["scan_operator.cc"],
+    hdrs = ["scan_operator.h"],
+    deps = [
+        ":operator",
+        ":operator_schema",
+        ":operator_visitor",
+        "@json",
+    ],
+)
+
+cc_library(
+    name = "output_operator",
+    srcs = ["output_operator.cc"],
+    hdrs = ["output_operator.h"],
+    deps = [
+        ":operator",
+        ":operator_schema",
+        ":operator_visitor",
+        "@json",
+    ],
+)

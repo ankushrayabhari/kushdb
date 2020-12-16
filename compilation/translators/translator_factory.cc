@@ -22,7 +22,7 @@ TranslatorFactory::GetChildTranslators(plan::Operator& current) {
   return translators;
 }
 
-void TranslatorFactory::Visit(plan::Scan& scan) {
+void TranslatorFactory::Visit(plan::ScanOperator& scan) {
   Return(std::make_unique<ScanTranslator>(scan, context_,
                                           GetChildTranslators(scan)));
 }
@@ -32,7 +32,7 @@ void TranslatorFactory::Visit(plan::Select& select) {
                                             GetChildTranslators(select)));
 }
 
-void TranslatorFactory::Visit(plan::Output& output) {
+void TranslatorFactory::Visit(plan::OutputOperator& output) {
   Return(std::make_unique<OutputTranslator>(output, context_,
                                             GetChildTranslators(output)));
 }

@@ -8,12 +8,12 @@
 #include "compilation/cpp_program.h"
 #include "compilation/translators/operator_translator.h"
 #include "compilation/types.h"
-#include "plan/operator.h"
+#include "plan/scan_operator.h"
 
 namespace kush::compile {
 
 ScanTranslator::ScanTranslator(
-    plan::Scan& scan, CompilationContext& context,
+    plan::ScanOperator& scan, CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)), scan_(scan), context_(context) {}
 

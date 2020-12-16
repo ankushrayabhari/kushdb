@@ -19,7 +19,7 @@ cc_library(
         ":operator_translator",
         "//compilation:compilation_context",
         "//compilation:types",
-        "//plan:operator",
+        "//plan:scan_operator",
     ],
 )
 
@@ -30,7 +30,7 @@ cc_library(
     deps = [
         ":operator_translator",
         "//compilation:compilation_context",
-        "//plan:operator",
+        "//plan:output_operator",
     ],
 )
 

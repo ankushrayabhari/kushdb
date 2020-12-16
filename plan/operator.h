@@ -52,45 +52,4 @@ class BinaryOperator : public Operator {
   const Operator& RightChild() const;
 };
 
-class Scan final : public Operator {
- public:
-  const std::string relation;
-
-  Scan(OperatorSchema schema, const std::string& rel);
-  nlohmann::json ToJson() const override;
-  void Accept(OperatorVisitor& visitor) override;
-};
-
-class Select final : public UnaryOperator {
- public:
-  std::unique_ptr<Expression> expression;
-  Select(OperatorSchema schema, std::unique_ptr<Operator> child,
-         std::unique_ptr<Expression> e);
-  nlohmann::json ToJson() const override;
-  void Accept(OperatorVisitor& visitor) override;
-};
-
-class Output final : public UnaryOperator {
- public:
-  Output(std::unique_ptr<Operator> child);
-  nlohmann::json ToJson() const override;
-  void Accept(OperatorVisitor& visitor) override;
-};
-
-class HashJoin final : public BinaryOperator {
- public:
-  HashJoin(OperatorSchema schema, std::unique_ptr<Operator> left,
-           std::unique_ptr<Operator> right,
-           std::unique_ptr<ColumnRefExpression> left_column_,
-           std::unique_ptr<ColumnRefExpression> right_column_);
-  nlohmann::json ToJson() const override;
-  void Accept(OperatorVisitor& visitor) override;
-  ColumnRefExpression& LeftColumn();
-  ColumnRefExpression& RightColumn();
-
- private:
-  std::unique_ptr<ColumnRefExpression> left_column_;
-  std::unique_ptr<ColumnRefExpression> right_column_;
-};
-
 }  // namespace kush::plan

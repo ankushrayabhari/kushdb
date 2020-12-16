@@ -12,6 +12,8 @@
 #include "plan/expression/literal_expression.h"
 #include "plan/operator.h"
 #include "plan/operator_schema.h"
+#include "plan/output_operator.h"
+#include "plan/scan_operator.h"
 
 using namespace kush;
 using namespace kush::plan;
@@ -32,7 +34,7 @@ int main() {
   {
     OperatorSchema schema;
     schema.AddGeneratedColumn("i1", SqlType::INT);
-    scan_table = std::make_unique<Scan>(std::move(schema), "table");
+    scan_table = std::make_unique<ScanOperator>(std::move(schema), "table");
   }
 
   // Select(table_scan, x1 < 100000000)
@@ -62,7 +64,7 @@ int main() {
     OperatorSchema schema;
     schema.AddGeneratedColumn("i2", SqlType::INT);
     schema.AddGeneratedColumn("bi1", SqlType::BIGINT);
-    scan_table1 = std::make_unique<Scan>(std::move(schema), "table1");
+    scan_table1 = std::make_unique<ScanOperator>(std::move(schema), "table1");
   }
 
   // select(table) join table1 ON x1 = x2
@@ -98,7 +100,7 @@ int main() {
     schema.AddGeneratedColumn("i3", SqlType::INT);
     schema.AddGeneratedColumn("i4", SqlType::INT);
     schema.AddGeneratedColumn("t1", SqlType::TEXT);
-    scan_table2 = std::make_unique<Scan>(std::move(schema), "table2");
+    scan_table2 = std::make_unique<ScanOperator>(std::move(schema), "table2");
   }
 
   // (select(table) join table1 ON x1 = x2) join table2 ON x2 = x3
@@ -127,8 +129,8 @@ int main() {
         std::move(x2), std::move(x3));
   }
 
-  std::unique_ptr<Operator> query =
-      std::make_unique<Output>(std::move(table_join_table1_join_table2));
+  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(
+      std::move(table_join_table1_join_table2));
 
   CppTranslator translator(db, *query);
   translator.Translate();
