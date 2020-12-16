@@ -7,8 +7,8 @@
 #include "compilation/compilation_context.h"
 #include "compilation/cpp_program.h"
 #include "compilation/translators/operator_translator.h"
+#include "compilation/types.h"
 #include "plan/operator.h"
-#include "plan/sql_type.h"
 
 namespace kush::compile {
 
@@ -16,15 +16,6 @@ ScanTranslator::ScanTranslator(
     plan::Scan& scan, CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)), scan_(scan), context_(context) {}
-
-std::string SqlTypeToRuntimeType(plan::SqlType type) {
-  switch (type) {
-    case plan::SqlType::INT:
-      return "int32_t";
-  }
-
-  throw new std::runtime_error("Unknown type");
-}
 
 void ScanTranslator::Produce() {
   const auto& table = context_.Catalog()[scan_.relation];

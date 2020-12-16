@@ -18,8 +18,8 @@ cc_library(
     deps = [
         ":operator_translator",
         "//compilation:compilation_context",
+        "//compilation:types",
         "//plan:operator",
-        "//plan:sql_type",
     ],
 )
 
@@ -54,6 +54,7 @@ cc_library(
         ":expression_translator",
         ":operator_translator",
         "//compilation:compilation_context",
+        "//compilation:types",
         "//plan:operator",
     ],
 )

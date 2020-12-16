@@ -3,6 +3,7 @@
 #include "compilation/compilation_context.h"
 #include "compilation/translators/expression_translator.h"
 #include "compilation/translators/operator_translator.h"
+#include "compilation/types.h"
 #include "plan/operator.h"
 
 namespace kush::compile {
@@ -16,9 +17,22 @@ HashJoinTranslator::HashJoinTranslator(
 
 void HashJoinTranslator::Produce() {
   auto& program = context_.Program();
+
+  // declare packing struct
+  packed_struct_id_ = program.GenerateVariable();
+  program.fout << " struct " << packed_struct_id_ << " {\n";
+  for (const auto& column : hash_join_.LeftChild().Schema().Columns()) {
+    auto field = program.GenerateVariable();
+    auto type = SqlTypeToRuntimeType(column.Type());
+    packed_struct_field_ids_.emplace_back(field, type);
+    program.fout << type << " " << field << ";\n";
+  }
+  program.fout << "};\n";
+
+  // declare hash table
   hash_table_var_ = program.GenerateVariable();
-  program.fout << "std::unordered_map<int32_t, std::vector<int32_t>> "
-               << hash_table_var_ << ";\n";
+  program.fout << "std::unordered_map<int32_t, std::vector<"
+               << packed_struct_id_ << ">> " << hash_table_var_ << ";\n";
 
   LeftChild().Produce();
   RightChild().Produce();
@@ -38,35 +52,41 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
     key_translator.Produce(hash_join_.LeftColumn());
     program.fout << "];\n";
 
-    // TODO: pack tuple into HT
+    // pack tuple
+    program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{";
+    bool first = true;
     for (const auto& [variable, type] : left_translator.GetValues().Values()) {
-      program.fout << bucket_var << ".push_back(" << variable << ");\n";
+      if (first) {
+        first = false;
+      } else {
+        program.fout << ",";
+      }
+      program.fout << variable;
     }
-
+    program.fout << "});\n";
     return;
   }
 
   // Probe Side
+  // TODO: hash key
   auto bucket_var = program.GenerateVariable();
   program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "[";
   ExpressionTranslator key_translator(context_, right_translator);
   key_translator.Produce(hash_join_.RightColumn());
   program.fout << "];\n";
 
-  const auto& left_schema_values = left_translator.GetValues().Values();
-
   auto loop_var = program.GenerateVariable();
   program.fout << "for (int " << loop_var << " = 0; " << loop_var << " < "
-               << bucket_var << ".size(); " << loop_var
-               << "+= " << left_schema_values.size() << "){\n";
+               << bucket_var << ".size(); " << loop_var << "++){\n";
 
-  std::vector<std::string> column_variables;
+  // unpack tuple
+  const auto& left_schema_values = left_translator.GetValues().Values();
+  for (int i = 0; i < left_schema_values.size(); i++) {
+    const auto& [variable, type] = left_schema_values[i];
+    const auto& [field_id, _] = packed_struct_field_ids_[i];
 
-  // TODO: unpack tuples from hash table
-  int i = 0;
-  for (const auto& [variable, type] : left_schema_values) {
     program.fout << type << "& " << variable << " = " << bucket_var << "["
-                 << loop_var << "+ " << i++ << "];\n";
+                 << loop_var << "]." << field_id << ";\n";
   }
 
   SchemaValues values;

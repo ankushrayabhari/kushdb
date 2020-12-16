@@ -1,38 +1,11 @@
 #pragma once
 
-#include <cstdint>
-#include <variant>
+#include <string>
 
-#include "compilation/cpp_program.h"
+#include "plan/sql_type.h"
 
-namespace kush {
-namespace compile {
+namespace kush::compile {
 
-class Bool {
- public:
-  Bool(CppProgram& program, bool value);
-  Bool(CppProgram& program, std::string var_);
-  Bool operator&&(const Bool& rhs);
-  Bool operator||(const Bool& rhs);
-  Bool& operator=(const Int32& rhs);
+std::string SqlTypeToRuntimeType(plan::SqlType type);
 
- private:
-  std::variant<bool, std::string> value_;
-  CppProgram& program_;
-};
-
-class Int32 {
- public:
-  Int32(CppProgram& program, int32_t value);
-  Int32(CppProgram& program, std::string var_);
-  Int32 operator+(const Int32& rhs);
-  Int32 operator<(const Int32& rhs);
-  Int32& operator=(const Int32& rhs);
-
- private:
-  std::variant<int32_t, std::string> value_;
-  CppProgram& program_;
-};
-
-}  // namespace compile
-}  // namespace kush
+}  // namespace kush::compile
