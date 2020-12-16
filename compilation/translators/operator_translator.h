@@ -24,12 +24,11 @@ class OperatorTranslator {
   SchemaValues& GetValues();
 
  protected:
-  void SetSchemaValues(SchemaValues values);
+  SchemaValues values_;
 
  private:
   OperatorTranslator* parent_;
   std::vector<std::unique_ptr<OperatorTranslator>> children_;
-  SchemaValues values_;
 };
 
 }  // namespace kush::compile

@@ -1,19 +1,24 @@
 #include "plan/expression/column_ref_expression.h"
 
+#include <optional>
+
 #include "nlohmann/json.hpp"
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 
 namespace kush::plan {
 
-ColumnRefExpression::ColumnRefExpression(int column_idx)
-    : column_idx_(column_idx) {}
+ColumnRefExpression::ColumnRefExpression(int child_idx, int column_idx)
+    : child_idx_(child_idx), column_idx_(column_idx) {}
+
+int ColumnRefExpression::GetChildIdx() { return child_idx_; }
 
 int ColumnRefExpression::GetColumnIdx() { return column_idx_; }
 
 nlohmann::json ColumnRefExpression::ToJson() const {
   nlohmann::json j;
-  j["idx"] = column_idx_;
+  j["child_idx"] = child_idx_;
+  j["column_idx"] = column_idx_;
   return j;
 }
 

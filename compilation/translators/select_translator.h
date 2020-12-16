@@ -1,6 +1,7 @@
 #pragma once
 
 #include "compilation/compilation_context.h"
+#include "compilation/translators/expression_translator.h"
 #include "compilation/translators/operator_translator.h"
 #include "plan/operator.h"
 
@@ -16,6 +17,7 @@ class SelectTranslator : public OperatorTranslator {
  private:
   plan::Select& select_;
   CompilationContext& context_;
+  ExpressionTranslator expr_translator_;
 };
 
 }  // namespace kush::compile

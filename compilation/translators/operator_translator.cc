@@ -40,8 +40,4 @@ OperatorTranslator& OperatorTranslator::RightChild() { return *children_[1]; }
 
 SchemaValues& OperatorTranslator::GetValues() { return values_; }
 
-void OperatorTranslator::SetSchemaValues(SchemaValues values) {
-  values_ = std::move(values);
-}
-
 }  // namespace kush::compile

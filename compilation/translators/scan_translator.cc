@@ -43,7 +43,6 @@ void ScanTranslator::Produce() {
   program.fout << "for (uint32_t " << loop_var << " = 0; " << loop_var << " < "
                << card_var << "; " << loop_var << "++) {\n";
 
-  SchemaValues values;
   for (int i = 0; i < column_vars.size(); i++) {
     const auto& column = scan_.Schema().Columns()[i];
     std::string type = SqlTypeToRuntimeType(column.Type());
@@ -53,9 +52,8 @@ void ScanTranslator::Produce() {
     program.fout << type << " " << value_var << " = " << column_var << "["
                  << loop_var << "];\n";
 
-    values.AddVariable(value_var, type);
+    values_.AddVariable(value_var, type);
   }
-  SetSchemaValues(std::move(values));
 
   if (auto parent = Parent()) {
     parent->get().Consume(*this);

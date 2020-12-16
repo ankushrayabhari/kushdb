@@ -39,7 +39,7 @@ int main() {
   std::unique_ptr<Operator> select_table;
   {
     auto x1 = std::make_unique<ColumnRefExpression>(
-        scan_table->Schema().GetColumnIndex("i1"));
+        0, scan_table->Schema().GetColumnIndex("i1"));
     auto x1_lt_c = std::make_unique<ComparisonExpression>(
         ComparisonType::LT, std::move(x1),
         std::make_unique<LiteralExpression>(100000000));
@@ -49,7 +49,7 @@ int main() {
       schema.AddDerivedColumn(
           column.Name(), column.Type(),
           std::make_unique<ColumnRefExpression>(
-              scan_table->Schema().GetColumnIndex(column.Name())));
+              0, scan_table->Schema().GetColumnIndex(column.Name())));
     }
 
     select_table = std::make_unique<Select>(
@@ -73,19 +73,19 @@ int main() {
       schema.AddDerivedColumn(
           column.Name(), column.Type(),
           std::make_unique<ColumnRefExpression>(
-              select_table->Schema().GetColumnIndex(column.Name())));
+              0, select_table->Schema().GetColumnIndex(column.Name())));
     }
     for (const auto& column : scan_table1->Schema().Columns()) {
       schema.AddDerivedColumn(
           column.Name(), column.Type(),
           std::make_unique<ColumnRefExpression>(
-              scan_table1->Schema().GetColumnIndex(column.Name())));
+              1, scan_table1->Schema().GetColumnIndex(column.Name())));
     }
 
     auto x1 = std::make_unique<ColumnRefExpression>(
-        select_table->Schema().GetColumnIndex("i1"));
+        0, select_table->Schema().GetColumnIndex("i1"));
     auto x2 = std::make_unique<ColumnRefExpression>(
-        scan_table1->Schema().GetColumnIndex("i2"));
+        1, scan_table1->Schema().GetColumnIndex("i2"));
     table_join_table1 = std::make_unique<HashJoin>(
         std::move(schema), std::move(select_table), std::move(scan_table1),
         std::move(x1), std::move(x2));
@@ -109,19 +109,19 @@ int main() {
       schema.AddDerivedColumn(
           column.Name(), column.Type(),
           std::make_unique<ColumnRefExpression>(
-              table_join_table1->Schema().GetColumnIndex(column.Name())));
+              0, table_join_table1->Schema().GetColumnIndex(column.Name())));
     }
     for (const auto& column : scan_table2->Schema().Columns()) {
       schema.AddDerivedColumn(
           column.Name(), column.Type(),
           std::make_unique<ColumnRefExpression>(
-              scan_table2->Schema().GetColumnIndex(column.Name())));
+              1, scan_table2->Schema().GetColumnIndex(column.Name())));
     }
 
     auto x2 = std::make_unique<ColumnRefExpression>(
-        table_join_table1->Schema().GetColumnIndex("i2"));
+        0, table_join_table1->Schema().GetColumnIndex("i2"));
     auto x3 = std::make_unique<ColumnRefExpression>(
-        scan_table2->Schema().GetColumnIndex("i3"));
+        1, scan_table2->Schema().GetColumnIndex("i3"));
     table_join_table1_join_table2 = std::make_unique<HashJoin>(
         std::move(schema), std::move(table_join_table1), std::move(scan_table2),
         std::move(x2), std::move(x3));

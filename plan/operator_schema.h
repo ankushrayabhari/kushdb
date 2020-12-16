@@ -20,7 +20,7 @@ class OperatorSchema {
            std::unique_ptr<Expression> expr);
     std::string_view Name() const;
     catalog::SqlType Type() const;
-    const Expression& Expr() const;
+    Expression& Expr() const;
 
    private:
     std::string name_;

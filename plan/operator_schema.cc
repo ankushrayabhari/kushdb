@@ -22,7 +22,7 @@ std::string_view OperatorSchema::Column::Name() const { return name_; }
 
 catalog::SqlType OperatorSchema::Column::Type() const { return type_; }
 
-const Expression& OperatorSchema::Column::Expr() const {
+Expression& OperatorSchema::Column::Expr() const {
   if (expr_ == nullptr) {
     throw std::runtime_error("Generated column has no derived expression");
   }

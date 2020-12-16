@@ -13,7 +13,8 @@ HashJoinTranslator::HashJoinTranslator(
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)),
       hash_join_(hash_join),
-      context_(context) {}
+      context_(context),
+      expr_translator_(context, *this) {}
 
 void HashJoinTranslator::Produce() {
   auto& program = context_.Program();
@@ -41,7 +42,6 @@ void HashJoinTranslator::Produce() {
 void HashJoinTranslator::Consume(OperatorTranslator& src) {
   auto& program = context_.Program();
   auto& left_translator = LeftChild();
-  auto& right_translator = RightChild();
 
   // Build side
   if (&src == &left_translator) {
@@ -49,8 +49,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
     auto hash_var = program.GenerateVariable();
     program.fout << "std::size_t " << hash_var << " = 0;";
     program.fout << "kush::util::HashCombine(" << hash_var << ",";
-    ExpressionTranslator key_translator(context_, left_translator);
-    key_translator.Produce(hash_join_.LeftColumn());
+    expr_translator_.Produce(hash_join_.LeftColumn());
     program.fout << ");\n";
     auto bucket_var = program.GenerateVariable();
     program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "["
@@ -76,8 +75,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
   auto hash_var = program.GenerateVariable();
   program.fout << "std::size_t " << hash_var << " = 0;";
   program.fout << "kush::util::HashCombine(" << hash_var << ",";
-  ExpressionTranslator key_translator(context_, right_translator);
-  key_translator.Produce(hash_join_.RightColumn());
+  expr_translator_.Produce(hash_join_.RightColumn());
   program.fout << ");\n";
   auto bucket_var = program.GenerateVariable();
   program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "["
@@ -100,22 +98,21 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
 
   // check if the key columns are actually equal
   program.fout << "if (";
-  ExpressionTranslator left_key_translator(context_, left_translator);
-  left_key_translator.Produce(hash_join_.LeftColumn());
+  expr_translator_.Produce(hash_join_.LeftColumn());
   program.fout << " == ";
-  ExpressionTranslator right_key_translator(context_, right_translator);
-  right_key_translator.Produce(hash_join_.RightColumn());
+  expr_translator_.Produce(hash_join_.RightColumn());
   program.fout << ") {";
 
-  SchemaValues values;
-  for (const auto& [variable, type] : left_schema_values) {
-    values.AddVariable(variable, type);
+  for (const auto& column : hash_join_.Schema().Columns()) {
+    auto var = program.GenerateVariable();
+    auto type = SqlTypeToRuntimeType(column.Type());
+
+    program.fout << "auto& " << var << " = ";
+    expr_translator_.Produce(column.Expr());
+    program.fout << ";\n";
+
+    values_.AddVariable(var, type);
   }
-  const auto& right_schema_values = right_translator.GetValues().Values();
-  for (const auto& [variable, type] : right_schema_values) {
-    values.AddVariable(variable, type);
-  }
-  SetSchemaValues(std::move(values));
 
   if (auto parent = Parent()) {
     parent->get().Consume(*this);

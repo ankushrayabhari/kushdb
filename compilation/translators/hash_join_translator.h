@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "compilation/compilation_context.h"
+#include "compilation/translators/expression_translator.h"
 #include "compilation/translators/operator_translator.h"
 #include "plan/operator.h"
 
@@ -19,12 +20,13 @@ class HashJoinTranslator : public OperatorTranslator {
   void Consume(OperatorTranslator& src) override;
 
  private:
+  plan::HashJoin& hash_join_;
+  CompilationContext& context_;
+  ExpressionTranslator expr_translator_;
+
   std::string hash_table_var_;
   std::string packed_struct_id_;
   std::vector<std::pair<std::string, std::string>> packed_struct_field_ids_;
-
-  plan::HashJoin& hash_join_;
-  CompilationContext& context_;
 };
 
 }  // namespace kush::compile

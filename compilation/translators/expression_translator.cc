@@ -21,7 +21,7 @@ void ExpressionTranslator::Produce(plan::Expression& expr) {
 }
 
 void ExpressionTranslator::Visit(plan::ColumnRefExpression& col_ref) {
-  auto& values = source_.GetValues();
+  auto& values = source_.Children()[col_ref.GetChildIdx()].get().GetValues();
   auto& program = context_.Program();
   program.fout << values.Variable(col_ref.GetColumnIdx());
 }
