@@ -40,7 +40,7 @@ int main() {
         scan_table->Schema().GetColumnIndex("x1"));
     auto x1_lt_c = std::make_unique<ComparisonExpression>(
         ComparisonType::LT, std::move(x1),
-        std::make_unique<LiteralExpression<int32_t>>(100000000));
+        std::make_unique<LiteralExpression>(100000000));
     OperatorSchema schema = scan_table->Schema();
     select_table = std::make_unique<Select>(
         std::move(schema), std::move(scan_table), std::move(x1_lt_c));

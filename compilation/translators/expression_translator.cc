@@ -44,7 +44,7 @@ void ExpressionTranslator::Visit(plan::ComparisonExpression& comp) {
   program.fout << ")";
 }
 
-void ExpressionTranslator::Visit(plan::LiteralExpression<int32_t>& literal) {
+void ExpressionTranslator::Visit(plan::LiteralExpression& literal) {
   auto& program = context_.Program();
   program.fout << literal.GetValue();
 }

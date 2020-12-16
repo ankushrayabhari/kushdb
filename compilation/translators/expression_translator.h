@@ -17,7 +17,7 @@ class ExpressionTranslator : public plan::ExpressionVisitor {
   void Produce(plan::Expression& expr);
   void Visit(plan::ColumnRefExpression& col_ref) override;
   void Visit(plan::ComparisonExpression& comp) override;
-  void Visit(plan::LiteralExpression<int32_t>& literal) override;
+  void Visit(plan::LiteralExpression& literal) override;
 
  private:
   CompilationContext& context_;
