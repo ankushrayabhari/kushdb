@@ -12,11 +12,12 @@ std::string SqlTypeToRuntimeType(catalog::SqlType type) {
     case catalog::SqlType::SMALLINT:
       return "int16_t";
     case catalog::SqlType::INT:
+    case catalog::SqlType::DATE:
       return "int32_t";
     case catalog::SqlType::BIGINT:
       return "int64_t";
     case catalog::SqlType::REAL:
-      return "float";
+      return "double";
   }
 
   throw std::runtime_error("Unknown type");
