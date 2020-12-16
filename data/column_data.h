@@ -85,7 +85,6 @@ class ColumnData<std::string_view> {
   };
 
  public:
-  // File-backed, immutable column
   ColumnData(const std::string& path) {
     int fd = open(path.c_str(), O_RDONLY);
     assert(fd != -1);

@@ -10,14 +10,9 @@ using namespace kush;
 
 int main() {
   // random type for now
-  ColumnData<void*> data("sample/int4.skdbcol");
+  const ColumnData<std::string_view> data("out.skdbcol");
 
-  // We now consult the catalog have have determined its an int32 WOW
-  const ColumnData<int32_t>& type_data =
-      reinterpret_cast<ColumnData<int32_t>&>(data);
-
-  for (int i = 0; i < type_data.size(); i++) {
-    std::cout << type_data[i] << " ";
+  for (int i = 0; i < data.Size(); i++) {
+    std::cout << data[i] << std::endl;
   }
-  std::cout << std::endl;
 }

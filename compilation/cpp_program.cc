@@ -40,6 +40,8 @@ void CppProgram::CodegenInitialize() {
   fout << "#include <iostream>\n";
   fout << "#include <cstdint>\n";
   fout << "#include <vector>\n";
+  fout << "#include <string>\n";
+  fout << "#include <string_view>\n";
   fout << "#include <unordered_map>\n";
   fout << "extern \"C\" void compute() {\n";
 }

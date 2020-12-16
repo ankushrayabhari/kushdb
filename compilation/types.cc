@@ -18,9 +18,9 @@ std::string SqlTypeToRuntimeType(catalog::SqlType type) {
       return "int64_t";
     case catalog::SqlType::REAL:
       return "double";
+    case catalog::SqlType::TEXT:
+      return "std::string_view";
   }
-
-  throw std::runtime_error("Unknown type");
 }
 
 }  // namespace kush::compile

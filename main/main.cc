@@ -20,11 +20,12 @@ using namespace kush::catalog;
 
 int main() {
   Database db;
-  db.insert("table").insert("i1", SqlType::INT, "sample/int1.skdbcol");
-  db.insert("table1").insert("i2", SqlType::INT, "sample/int2.skdbcol");
-  db.insert("table1").insert("bi1", SqlType::BIGINT, "sample/bigint1.skdbcol");
-  db.insert("table2").insert("i3", SqlType::INT, "sample/int3.skdbcol");
-  db.insert("table2").insert("i4", SqlType::INT, "sample/int4.skdbcol");
+  db.insert("table").insert("i1", SqlType::INT, "sample/int1.kdb");
+  db.insert("table1").insert("i2", SqlType::INT, "sample/int2.kdb");
+  db.insert("table1").insert("bi1", SqlType::BIGINT, "sample/bigint1.kdb");
+  db.insert("table2").insert("i3", SqlType::INT, "sample/int3.kdb");
+  db.insert("table2").insert("i4", SqlType::INT, "sample/int4.kdb");
+  db.insert("table2").insert("t1", SqlType::TEXT, "sample/text1.kdb");
 
   // Scan(table)
   std::unique_ptr<Operator> scan_table;
@@ -82,6 +83,7 @@ int main() {
     OperatorSchema schema;
     schema.AddColumn("i3", SqlType::INT);
     schema.AddColumn("i4", SqlType::INT);
+    schema.AddColumn("t1", SqlType::TEXT);
     scan_table2 = std::make_unique<Scan>(std::move(schema), "table2");
   }
 
