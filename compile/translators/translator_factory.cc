@@ -1,5 +1,6 @@
 #include "compile/translators/translator_factory.h"
 
+#include "compile/translators/group_by_aggregate_translator.h"
 #include "compile/translators/hash_join_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/output_translator.h"
@@ -21,8 +22,7 @@ std::vector<std::unique_ptr<OperatorTranslator>>
 TranslatorFactory::GetChildTranslators(plan::Operator& current) {
   std::vector<std::unique_ptr<OperatorTranslator>> translators;
   for (auto& child : current.Children()) {
-    child.get().Accept(*this);
-    translators.push_back(GetResult());
+    translators.push_back(Produce(child.get()));
   }
   return translators;
 }
@@ -48,7 +48,8 @@ void TranslatorFactory::Visit(plan::HashJoinOperator& hash_join) {
 }
 
 void TranslatorFactory::Visit(plan::GroupByAggregateOperator& group_by_agg) {
-  Return(nullptr);
+  Return(std::make_unique<GroupByAggregateTranslator>(
+      group_by_agg, context_, GetChildTranslators(group_by_agg)));
 }
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::Produce(

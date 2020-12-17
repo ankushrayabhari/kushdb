@@ -1,0 +1,30 @@
+#pragma once
+
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "compile/compilation_context.h"
+#include "compile/translators/expression_translator.h"
+#include "compile/translators/operator_translator.h"
+#include "plan/group_by_aggregate_operator.h"
+
+namespace kush::compile {
+
+class GroupByAggregateTranslator : public OperatorTranslator {
+ public:
+  GroupByAggregateTranslator(
+      plan::GroupByAggregateOperator& group_by_agg, CompilationContext& context,
+      std::vector<std::unique_ptr<OperatorTranslator>> children);
+  virtual ~GroupByAggregateTranslator() = default;
+
+  void Produce() override;
+  void Consume(OperatorTranslator& src) override;
+
+ private:
+  plan::GroupByAggregateOperator& group_by_agg_;
+  CompilationContext& context_;
+  ExpressionTranslator expr_translator_;
+};
+
+}  // namespace kush::compile

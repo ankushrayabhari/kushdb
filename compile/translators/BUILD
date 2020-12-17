@@ -62,10 +62,24 @@ cc_library(
 )
 
 cc_library(
+    name = "group_by_aggregate_translator",
+    srcs = ["group_by_aggregate_translator.cc"],
+    hdrs = ["group_by_aggregate_translator.h"],
+    deps = [
+        ":expression_translator",
+        ":operator_translator",
+        "//compile:compilation_context",
+        "//compile:types",
+        "//plan:group_by_aggregate_operator",
+    ],
+)
+
+cc_library(
     name = "translator_factory",
     srcs = ["translator_factory.cc"],
     hdrs = ["translator_factory.h"],
     deps = [
+        ":group_by_aggregate_translator",
         ":hash_join_translator",
         ":operator_translator",
         ":output_translator",

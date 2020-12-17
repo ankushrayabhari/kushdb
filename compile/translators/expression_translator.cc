@@ -38,9 +38,9 @@ void ExpressionTranslator::Visit(plan::ComparisonExpression& comp) {
   auto& program = context_.Program();
 
   program.fout << "(";
-  comp.Left().Accept(*this);
+  Produce(comp.Left());
   program.fout << ")" << type_to_op.at(type) << "(";
-  comp.Right().Accept(*this);
+  Produce(comp.Right());
   program.fout << ")";
 }
 
