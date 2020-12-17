@@ -24,8 +24,8 @@ namespace kush::data {
 template <class T>
 class ColumnData {
  public:
-  ColumnData(const std::string& path) {
-    int fd = open(path.c_str(), O_RDONLY);
+  ColumnData(std::string_view path) {
+    int fd = open(std::string(path).c_str(), O_RDONLY);
     assert(fd != -1);
 
     struct stat sb;
@@ -47,9 +47,8 @@ class ColumnData {
     }
   }
 
-  static void Serialize(const std::string& path,
-                        const std::vector<T>& contents) {
-    int fd = open(path.c_str(), O_RDWR | O_CREAT,
+  static void Serialize(std::string_view path, const std::vector<T>& contents) {
+    int fd = open(std::string(path).c_str(), O_RDWR | O_CREAT,
                   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     assert(fd != -1);
 
@@ -85,8 +84,8 @@ class ColumnData<std::string_view> {
   };
 
  public:
-  ColumnData(const std::string& path) {
-    int fd = open(path.c_str(), O_RDONLY);
+  ColumnData(std::string_view path) {
+    int fd = open(std::string(path).c_str(), O_RDONLY);
     assert(fd != -1);
 
     struct stat sb;
@@ -108,9 +107,9 @@ class ColumnData<std::string_view> {
     }
   }
 
-  static void Serialize(const std::string& pathname,
+  static void Serialize(std::string_view path,
                         const std::vector<std::string>& contents) {
-    int fd = open(pathname.c_str(), O_RDWR | O_CREAT,
+    int fd = open(std::string(path).c_str(), O_RDWR | O_CREAT,
                   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     assert(fd != -1);
 
