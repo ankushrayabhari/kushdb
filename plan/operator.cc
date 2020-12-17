@@ -46,7 +46,7 @@ void Operator::SetParent(Operator* parent) { parent_ = parent; }
 
 UnaryOperator::UnaryOperator(OperatorSchema schema,
                              std::unique_ptr<Operator> child)
-    : Operator(std::move(schema), util::make_vector(std::move(child))) {}
+    : Operator(std::move(schema), util::MakeVector(std::move(child))) {}
 
 Operator& UnaryOperator::Child() { return *children_[0]; }
 
@@ -55,8 +55,8 @@ const Operator& UnaryOperator::Child() const { return *children_[0]; }
 BinaryOperator::BinaryOperator(OperatorSchema schema,
                                std::unique_ptr<Operator> left_child,
                                std::unique_ptr<Operator> right_child)
-    : Operator(std::move(schema), util::make_vector(std::move(left_child),
-                                                    std::move(right_child))) {}
+    : Operator(std::move(schema), util::MakeVector(std::move(left_child),
+                                                   std::move(right_child))) {}
 
 Operator& BinaryOperator::LeftChild() { return *children_[0]; }
 

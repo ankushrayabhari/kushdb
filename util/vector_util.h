@@ -30,7 +30,7 @@ using vector_t = std::vector<vector_T<T0, Ts...>>;
 
 // make a vector, non-empty arg case:
 template <class T0 = void, class... Ts, class R = vector_t<T0, Ts...>>
-R make_vector(Ts&&... ts) {
+R MakeVector(Ts&&... ts) {
   R retval;
   retval.reserve(sizeof...(Ts));  // we know how many elements
   // array unpacking trick:
@@ -40,7 +40,7 @@ R make_vector(Ts&&... ts) {
 }
 // the empty overload:
 template <class T>
-std::vector<T> make_vector() {
+std::vector<T> MakeVector() {
   return {};
 }
 
