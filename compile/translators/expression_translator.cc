@@ -1,10 +1,10 @@
-#include "compilation/translators/expression_translator.h"
+#include "compile/translators/expression_translator.h"
 
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
-#include "compilation/compilation_context.h"
+#include "compile/compilation_context.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/expression_visitor.h"

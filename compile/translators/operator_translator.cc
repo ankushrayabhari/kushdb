@@ -1,4 +1,4 @@
-#include "compilation/translators/operator_translator.h"
+#include "compile/translators/operator_translator.h"
 
 namespace kush::compile {
 

@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "catalog/catalog.h"
-#include "compilation/cpp_program.h"
+#include "compile/cpp_program.h"
 #include "plan/operator.h"
 #include "plan/operator_visitor.h"
 

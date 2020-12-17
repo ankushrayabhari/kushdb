@@ -1,4 +1,4 @@
-#include "compilation/compilation_context.h"
+#include "compile/compilation_context.h"
 
 #include <dlfcn.h>
 
@@ -11,7 +11,7 @@
 #include <type_traits>
 
 #include "catalog/catalog.h"
-#include "compilation/program.h"
+#include "compile/program.h"
 #include "plan/expression/expression.h"
 #include "plan/operator.h"
 #include "plan/operator_schema.h"

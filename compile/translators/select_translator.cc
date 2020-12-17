@@ -1,9 +1,9 @@
-#include "compilation/translators/select_translator.h"
+#include "compile/translators/select_translator.h"
 
-#include "compilation/compilation_context.h"
-#include "compilation/translators/expression_translator.h"
-#include "compilation/translators/operator_translator.h"
-#include "compilation/types.h"
+#include "compile/compilation_context.h"
+#include "compile/translators/expression_translator.h"
+#include "compile/translators/operator_translator.h"
+#include "compile/types.h"
 #include "plan/select_operator.h"
 
 namespace kush::compile {

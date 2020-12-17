@@ -1,8 +1,8 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "compilation/compilation_context.h"
-#include "compilation/program.h"
+#include "compile/compilation_context.h"
+#include "compile/program.h"
 #include "plan/operator.h"
 
 namespace kush::compile {

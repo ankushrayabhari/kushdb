@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+namespace kush::util {
+
 // Utility function to create a vector of unique_ptr
 // https://stackoverflow.com/a/29975225
 
@@ -41,3 +43,5 @@ template <class T>
 std::vector<T> make_vector() {
   return {};
 }
+
+}  // namespace kush::util

@@ -7,7 +7,7 @@ cc_library(
     srcs = ["operator_translator.cc"],
     hdrs = ["operator_translator.h"],
     deps = [
-        "//compilation:schema_values",
+        "//compile:schema_values",
     ],
 )
 
@@ -17,8 +17,8 @@ cc_library(
     hdrs = ["scan_translator.h"],
     deps = [
         ":operator_translator",
-        "//compilation:compilation_context",
-        "//compilation:types",
+        "//compile:compilation_context",
+        "//compile:types",
         "//plan:scan_operator",
     ],
 )
@@ -29,7 +29,7 @@ cc_library(
     hdrs = ["output_translator.h"],
     deps = [
         ":operator_translator",
-        "//compilation:compilation_context",
+        "//compile:compilation_context",
         "//plan:output_operator",
     ],
 )
@@ -41,8 +41,8 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compilation:compilation_context",
-        "//compilation:types",
+        "//compile:compilation_context",
+        "//compile:types",
         "//plan:select_operator",
     ],
 )
@@ -54,8 +54,8 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compilation:compilation_context",
-        "//compilation:types",
+        "//compile:compilation_context",
+        "//compile:types",
         "//plan:hash_join_operator",
     ],
 )
@@ -85,7 +85,7 @@ cc_library(
     hdrs = ["expression_translator.h"],
     deps = [
         ":operator_translator",
-        "//compilation:compilation_context",
+        "//compile:compilation_context",
         "//plan/expression:column_ref_expression",
         "//plan/expression:comparison_expression",
         "//plan/expression:expression_visitor",

@@ -7,8 +7,6 @@
 
 #include "data/column_data.h"
 
-using namespace kush;
-
 int main() {
   const std::string charset =
       "0123456789"
@@ -28,6 +26,6 @@ int main() {
     std::generate_n(data[i].begin(), len, randchar);
   }
 
-  kush::ColumnData<std::string_view>::Serialize("out.skdbcol", data);
+  kush::data::ColumnData<std::string_view>::Serialize("out.skdbcol", data);
   return 0;
 }

@@ -1,4 +1,4 @@
-#include "compilation/cpp_program.h"
+#include "compile/cpp_program.h"
 
 #include <dlfcn.h>
 
@@ -8,26 +8,6 @@
 
 namespace kush {
 namespace compile {
-
-If::If(CppProgram& program) : program_(program) {}
-
-void If::Begin() { program_.fout << "if ("; }
-
-void If::Body() { program_.fout << ") {"; }
-
-void If::End() { program_.fout << "}"; }
-
-For::For(CppProgram& program) : program_(program) {}
-
-void For::Begin() { program_.fout << "for ("; }
-
-void For::Condition() { program_.fout << "; "; }
-
-void For::Update() { program_.fout << "; "; }
-
-void For::Body() { program_.fout << ") {"; }
-
-void For::End() { program_.fout << "}"; }
 
 CppProgram::CppProgram()
     : file_name_("/tmp/query.cpp"), dylib_("/tmp/query.so") {}
@@ -64,10 +44,6 @@ std::string CppProgram::GenerateVariable() {
 
   return last_variable_;
 }
-
-If CppProgram::GenerateIf() { return If(*this); }
-
-For CppProgram::GenerateFor() { return For(*this); }
 
 void CppProgram::Compile() {
   std::string command = "clang++ -O3 --std=c++17 -I. -shared -fpic " +

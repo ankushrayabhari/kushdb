@@ -1,7 +1,7 @@
 #pragma once
 
-#include "compilation/compilation_context.h"
-#include "compilation/translators/operator_translator.h"
+#include "compile/compilation_context.h"
+#include "compile/translators/operator_translator.h"
 #include "plan/scan_operator.h"
 
 namespace kush::compile {

@@ -3,8 +3,8 @@
 #include <memory>
 #include <vector>
 
-#include "compilation/compilation_context.h"
-#include "compilation/translators/operator_translator.h"
+#include "compile/compilation_context.h"
+#include "compile/translators/operator_translator.h"
 #include "plan/operator_visitor.h"
 #include "util/visitor.h"
 

@@ -5,7 +5,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "compilation/cpp_translator.h"
+#include "compile/cpp_translator.h"
 #include "nlohmann/json.hpp"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"

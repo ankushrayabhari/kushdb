@@ -1,13 +1,13 @@
-#include "compilation/translators/scan_translator.h"
+#include "compile/translators/scan_translator.h"
 
 #include <exception>
 #include <string>
 #include <vector>
 
-#include "compilation/compilation_context.h"
-#include "compilation/cpp_program.h"
-#include "compilation/translators/operator_translator.h"
-#include "compilation/types.h"
+#include "compile/compilation_context.h"
+#include "compile/cpp_program.h"
+#include "compile/translators/operator_translator.h"
+#include "compile/types.h"
 #include "plan/scan_operator.h"
 
 namespace kush::compile {
@@ -31,8 +31,8 @@ void ScanTranslator::Produce() {
     column_vars.push_back(var);
 
     // declare the column
-    program.fout << "const kush::ColumnData<" << type << "> " << var << "(\""
-                 << path << "\");\n";
+    program.fout << "const kush::data::ColumnData<" << type << "> " << var
+                 << "(\"" << path << "\");\n";
 
     if (card_var.empty()) {
       card_var = var + ".Size()";

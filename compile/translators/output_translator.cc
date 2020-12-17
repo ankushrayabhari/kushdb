@@ -1,7 +1,7 @@
-#include "compilation/translators/output_translator.h"
+#include "compile/translators/output_translator.h"
 
-#include "compilation/compilation_context.h"
-#include "compilation/translators/operator_translator.h"
+#include "compile/compilation_context.h"
+#include "compile/translators/operator_translator.h"
 #include "plan/output_operator.h"
 
 namespace kush::compile {

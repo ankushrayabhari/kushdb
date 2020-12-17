@@ -53,7 +53,7 @@ cc_library(
         ":cpp_program",
         ":program",
         "//catalog",
-        "//compilation/translators:translator_factory",
+        "//compile/translators:translator_factory",
         "//plan:operator",
     ],
 )

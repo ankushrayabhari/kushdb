@@ -5,8 +5,7 @@
 
 #include "catalog/sql_type.h"
 
-namespace kush {
-namespace catalog {
+namespace kush::catalog {
 
 Column::Column(const std::string& n, SqlType t, const std::string& p)
     : name(n), type(t), path(p) {}
@@ -44,5 +43,4 @@ const std::unordered_map<std::string, Column>& Table::Columns() const {
   return name_to_col_;
 }
 
-}  // namespace catalog
-}  // namespace kush
+}  // namespace kush::catalog

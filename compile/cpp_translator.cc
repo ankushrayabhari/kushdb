@@ -1,9 +1,9 @@
-#include "compilation/cpp_translator.h"
+#include "compile/cpp_translator.h"
 
 #include "catalog/catalog.h"
-#include "compilation/compilation_context.h"
-#include "compilation/program.h"
-#include "compilation/translators/translator_factory.h"
+#include "compile/compilation_context.h"
+#include "compile/program.h"
+#include "compile/translators/translator_factory.h"
 #include "plan/operator.h"
 
 namespace kush::compile {

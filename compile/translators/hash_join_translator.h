@@ -4,9 +4,9 @@
 #include <utility>
 #include <vector>
 
-#include "compilation/compilation_context.h"
-#include "compilation/translators/expression_translator.h"
-#include "compilation/translators/operator_translator.h"
+#include "compile/compilation_context.h"
+#include "compile/translators/expression_translator.h"
+#include "compile/translators/operator_translator.h"
 #include "plan/hash_join_operator.h"
 
 namespace kush::compile {

@@ -15,7 +15,7 @@
 #include <string_view>
 #include <vector>
 
-namespace kush {
+namespace kush::data {
 
 /*
  * File-backed, immutable column based on
@@ -155,4 +155,4 @@ class ColumnData<std::string_view> {
   uint32_t file_length;
 };
 
-}  // namespace kush
+}  // namespace kush::data

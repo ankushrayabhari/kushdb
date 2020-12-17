@@ -6,11 +6,9 @@
 
 #include "data/column_data.h"
 
-using namespace kush;
-
 int main() {
   // random type for now
-  const ColumnData<std::string_view> data("out.skdbcol");
+  const kush::data::ColumnData<std::string_view> data("out.skdbcol");
 
   for (int i = 0; i < data.Size(); i++) {
     std::cout << data[i] << std::endl;
