@@ -50,3 +50,15 @@ cc_library(
         "@magic_enum",
     ],
 )
+
+cc_library(
+    name = "aggregate_expression",
+    srcs = ["aggregate_expression.cc"],
+    hdrs = ["aggregate_expression.h"],
+    deps = [
+        ":expression",
+        ":expression_visitor",
+        "@json",
+        "@magic_enum",
+    ],
+)
