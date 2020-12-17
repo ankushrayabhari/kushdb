@@ -44,4 +44,15 @@ std::vector<T> MakeVector() {
   return {};
 }
 
+template <class T>
+std::vector<std::reference_wrapper<T>> ReferenceVector(
+    std::vector<std::unique_ptr<T>>& vec) {
+  std::vector<std::reference_wrapper<T>> retval;
+  retval.reserve(vec.size());
+  for (auto& ptr : vec) {
+    retval.push_back(*ptr);
+  }
+  return retval;
+}
+
 }  // namespace kush::util

@@ -21,6 +21,7 @@ class TranslatorFactory
   void Visit(plan::SelectOperator& select) override;
   void Visit(plan::OutputOperator& output) override;
   void Visit(plan::HashJoinOperator& hash_join) override;
+  void Visit(plan::GroupByAggregateOperator& group_by_agg) override;
 
   std::unique_ptr<OperatorTranslator> Produce(plan::Operator& target);
 

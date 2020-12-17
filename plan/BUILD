@@ -83,3 +83,16 @@ cc_library(
         "@json",
     ],
 )
+
+cc_library(
+    name = "group_by_aggregate_operator",
+    srcs = ["group_by_aggregate_operator.cc"],
+    hdrs = ["group_by_aggregate_operator.h"],
+    deps = [
+        ":operator",
+        ":operator_schema",
+        ":operator_visitor",
+        "//plan/expression",
+        "@json",
+    ],
+)

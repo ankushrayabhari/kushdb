@@ -1,5 +1,7 @@
 #include "compile/translators/operator_translator.h"
 
+#include "util/vector_util.h"
+
 namespace kush::compile {
 
 OperatorTranslator::OperatorTranslator(
@@ -21,11 +23,7 @@ OperatorTranslator::Parent() {
 
 std::vector<std::reference_wrapper<OperatorTranslator>>
 OperatorTranslator::Children() {
-  std::vector<std::reference_wrapper<OperatorTranslator>> output;
-  for (auto& x : children_) {
-    output.push_back(*x);
-  }
-  return output;
+  return util::ReferenceVector(children_);
 }
 
 OperatorTranslator& OperatorTranslator::Child() { return *children_[0]; }

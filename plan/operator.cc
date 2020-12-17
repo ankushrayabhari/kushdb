@@ -25,11 +25,7 @@ Operator::Operator(OperatorSchema schema,
 }
 
 std::vector<std::reference_wrapper<Operator>> Operator::Children() {
-  std::vector<std::reference_wrapper<Operator>> children;
-  for (auto& child : children_) {
-    children.push_back(*child);
-  }
-  return children;
+  return util::ReferenceVector(children_);
 }
 
 const OperatorSchema& Operator::Schema() const { return schema_; }

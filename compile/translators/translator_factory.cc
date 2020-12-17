@@ -47,6 +47,10 @@ void TranslatorFactory::Visit(plan::HashJoinOperator& hash_join) {
                                               GetChildTranslators(hash_join)));
 }
 
+void TranslatorFactory::Visit(plan::GroupByAggregateOperator& group_by_agg) {
+  Return(nullptr);
+}
+
 std::unique_ptr<OperatorTranslator> TranslatorFactory::Produce(
     plan::Operator& target) {
   target.Accept(*this);

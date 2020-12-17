@@ -6,6 +6,7 @@ class ScanOperator;
 class SelectOperator;
 class OutputOperator;
 class HashJoinOperator;
+class GroupByAggregateOperator;
 
 class OperatorVisitor {
  public:
@@ -13,6 +14,7 @@ class OperatorVisitor {
   virtual void Visit(SelectOperator& select) = 0;
   virtual void Visit(OutputOperator& output) = 0;
   virtual void Visit(HashJoinOperator& hash_join) = 0;
+  virtual void Visit(GroupByAggregateOperator& group_by_agg) = 0;
 };
 
 }  // namespace kush::plan
