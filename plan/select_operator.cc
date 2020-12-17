@@ -13,21 +13,21 @@ namespace kush::plan {
 
 SelectOperator::SelectOperator(OperatorSchema schema,
                                std::unique_ptr<Operator> child,
-                               std::unique_ptr<Expression> e)
+                               std::unique_ptr<Expression> expression)
     : UnaryOperator(std::move(schema), {std::move(child)}),
-      expression(std::move(e)) {
-  children_[0]->SetParent(this);
-}
+      expression_(std::move(expression)) {}
 
 nlohmann::json SelectOperator::ToJson() const {
   nlohmann::json j;
   j["op"] = "SELECT";
-  j["relation"] = children_[0]->ToJson();
-  j["expression"] = expression->ToJson();
+  j["relation"] = Child().ToJson();
+  j["expression"] = expression_->ToJson();
   j["output"] = Schema().ToJson();
   return j;
 }
 
 void SelectOperator::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
+
+Expression& SelectOperator::Expr() { return *expression_; }
 
 }  // namespace kush::plan

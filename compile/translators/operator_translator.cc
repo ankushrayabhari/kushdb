@@ -6,12 +6,8 @@ OperatorTranslator::OperatorTranslator(
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : parent_(nullptr), children_(std::move(children)) {
   for (auto& child : children_) {
-    child->SetParent(*this);
+    child->parent_ = this;
   }
-}
-
-void OperatorTranslator::SetParent(OperatorTranslator& translator) {
-  parent_ = &translator;
 }
 
 std::optional<std::reference_wrapper<OperatorTranslator>>

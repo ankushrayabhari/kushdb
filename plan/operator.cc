@@ -20,7 +20,7 @@ Operator::Operator(OperatorSchema schema,
       schema_(std::move(schema)),
       children_(std::move(children)) {
   for (auto& child : children_) {
-    child->SetParent(this);
+    child->parent_ = this;
   }
 }
 
@@ -41,8 +41,6 @@ std::optional<std::reference_wrapper<Operator>> Operator::Parent() {
 
   return *parent_;
 }
-
-void Operator::SetParent(Operator* parent) { parent_ = parent; }
 
 UnaryOperator::UnaryOperator(OperatorSchema schema,
                              std::unique_ptr<Operator> child)

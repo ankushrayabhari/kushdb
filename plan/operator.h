@@ -22,7 +22,6 @@ class Operator {
   virtual void Accept(OperatorVisitor& visitor) = 0;
   const OperatorSchema& Schema() const;
   std::optional<std::reference_wrapper<Operator>> Parent();
-  void SetParent(Operator* parent);
   std::vector<std::reference_wrapper<Operator>> Children();
 
  private:

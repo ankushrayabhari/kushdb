@@ -13,11 +13,14 @@ namespace kush::plan {
 
 class SelectOperator final : public UnaryOperator {
  public:
-  std::unique_ptr<Expression> expression;
   SelectOperator(OperatorSchema schema, std::unique_ptr<Operator> child,
-                 std::unique_ptr<Expression> e);
+                 std::unique_ptr<Expression> expression);
   nlohmann::json ToJson() const override;
   void Accept(OperatorVisitor& visitor) override;
+  Expression& Expr();
+
+ private:
+  std::unique_ptr<Expression> expression_;
 };
 
 }  // namespace kush::plan

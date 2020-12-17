@@ -22,7 +22,7 @@ void SelectTranslator::Consume(OperatorTranslator& src) {
   auto& program = context_.Program();
 
   program.fout << "if (\n";
-  expr_translator_.Produce(*select_.expression);
+  expr_translator_.Produce(select_.Expr());
   program.fout << ") {\n";
 
   for (const auto& column : select_.Schema().Columns()) {
