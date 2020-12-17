@@ -12,15 +12,6 @@ cc_library(
 )
 
 cc_library(
-    name = "catalog_id",
-    srcs = ["catalog_id.cc"],
-    hdrs = ["catalog_id.h"],
-    deps = [
-        "@type_safe",
-    ],
-)
-
-cc_library(
     name = "sql_type",
     hdrs = ["sql_type.h"],
     deps = [],
