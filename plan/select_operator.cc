@@ -1,12 +1,25 @@
+#include "plan/select_operator.h"
 
-Select::Select(OperatorSchema schema, std::unique_ptr<Operator> child,
-               std::unique_ptr<Expression> e)
+#include <memory>
+#include <string>
+
+#include "nlohmann/json.hpp"
+#include "plan/expression/expression.h"
+#include "plan/operator.h"
+#include "plan/operator_schema.h"
+#include "plan/operator_visitor.h"
+
+namespace kush::plan {
+
+SelectOperator::SelectOperator(OperatorSchema schema,
+                               std::unique_ptr<Operator> child,
+                               std::unique_ptr<Expression> e)
     : UnaryOperator(std::move(schema), {std::move(child)}),
       expression(std::move(e)) {
   children_[0]->SetParent(this);
 }
 
-nlohmann::json Select::ToJson() const {
+nlohmann::json SelectOperator::ToJson() const {
   nlohmann::json j;
   j["op"] = "SELECT";
   j["relation"] = children_[0]->ToJson();
@@ -15,4 +28,6 @@ nlohmann::json Select::ToJson() const {
   return j;
 }
 
-void Select::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
+void SelectOperator::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
+
+}  // namespace kush::plan

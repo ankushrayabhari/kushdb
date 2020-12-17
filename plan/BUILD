@@ -57,3 +57,28 @@ cc_library(
         "@json",
     ],
 )
+
+cc_library(
+    name = "select_operator",
+    srcs = ["select_operator.cc"],
+    hdrs = ["select_operator.h"],
+    deps = [
+        ":operator",
+        ":operator_schema",
+        ":operator_visitor",
+        "@json",
+    ],
+)
+
+cc_library(
+    name = "hash_join_operator",
+    srcs = ["hash_join_operator.cc"],
+    hdrs = ["hash_join_operator.h"],
+    deps = [
+        ":operator",
+        ":operator_schema",
+        ":operator_visitor",
+        "//plan/expression:column_ref_expression",
+        "@json",
+    ],
+)

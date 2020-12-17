@@ -9,13 +9,13 @@ namespace kush::compile {
 
 class SelectTranslator : public OperatorTranslator {
  public:
-  SelectTranslator(plan::Select& scan, CompilationContext& context,
+  SelectTranslator(plan::SelectOperator& select, CompilationContext& context,
                    std::vector<std::unique_ptr<OperatorTranslator>> children);
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
 
  private:
-  plan::Select& select_;
+  plan::SelectOperator& select_;
   CompilationContext& context_;
   ExpressionTranslator expr_translator_;
 };

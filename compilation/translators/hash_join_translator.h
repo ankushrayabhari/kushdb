@@ -7,20 +7,21 @@
 #include "compilation/compilation_context.h"
 #include "compilation/translators/expression_translator.h"
 #include "compilation/translators/operator_translator.h"
-#include "plan/operator.h"
+#include "plan/hash_join_operator.h"
 
 namespace kush::compile {
 
 class HashJoinTranslator : public OperatorTranslator {
  public:
-  HashJoinTranslator(plan::HashJoin& hash_join, CompilationContext& context,
+  HashJoinTranslator(plan::HashJoinOperator& hash_join,
+                     CompilationContext& context,
                      std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~HashJoinTranslator() = default;
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
 
  private:
-  plan::HashJoin& hash_join_;
+  plan::HashJoinOperator& hash_join_;
   CompilationContext& context_;
   ExpressionTranslator expr_translator_;
 

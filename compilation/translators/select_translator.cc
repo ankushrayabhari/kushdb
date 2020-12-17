@@ -4,12 +4,12 @@
 #include "compilation/translators/expression_translator.h"
 #include "compilation/translators/operator_translator.h"
 #include "compilation/types.h"
-#include "plan/operator.h"
+#include "plan/select_operator.h"
 
 namespace kush::compile {
 
 SelectTranslator::SelectTranslator(
-    plan::Select& select, CompilationContext& context,
+    plan::SelectOperator& select, CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)),
       select_(select),

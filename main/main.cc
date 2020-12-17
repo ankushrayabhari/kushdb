@@ -10,10 +10,12 @@
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/literal_expression.h"
+#include "plan/hash_join_operator.h"
 #include "plan/operator.h"
 #include "plan/operator_schema.h"
 #include "plan/output_operator.h"
 #include "plan/scan_operator.h"
+#include "plan/select_operator.h"
 
 using namespace kush;
 using namespace kush::plan;
@@ -54,7 +56,7 @@ int main() {
               0, scan_table->Schema().GetColumnIndex(column.Name())));
     }
 
-    select_table = std::make_unique<Select>(
+    select_table = std::make_unique<SelectOperator>(
         std::move(schema), std::move(scan_table), std::move(x1_lt_c));
   }
 
@@ -88,7 +90,7 @@ int main() {
         0, select_table->Schema().GetColumnIndex("i1"));
     auto x2 = std::make_unique<ColumnRefExpression>(
         1, scan_table1->Schema().GetColumnIndex("i2"));
-    table_join_table1 = std::make_unique<HashJoin>(
+    table_join_table1 = std::make_unique<HashJoinOperator>(
         std::move(schema), std::move(select_table), std::move(scan_table1),
         std::move(x1), std::move(x2));
   }
@@ -124,7 +126,7 @@ int main() {
         0, table_join_table1->Schema().GetColumnIndex("i2"));
     auto x3 = std::make_unique<ColumnRefExpression>(
         1, scan_table2->Schema().GetColumnIndex("i3"));
-    table_join_table1_join_table2 = std::make_unique<HashJoin>(
+    table_join_table1_join_table2 = std::make_unique<HashJoinOperator>(
         std::move(schema), std::move(table_join_table1), std::move(scan_table2),
         std::move(x2), std::move(x3));
   }

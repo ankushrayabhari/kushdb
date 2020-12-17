@@ -1,11 +1,21 @@
+#pragma once
 
+#include <memory>
 
-class HashJoin final : public BinaryOperator {
+#include "nlohmann/json.hpp"
+#include "plan/expression/column_ref_expression.h"
+#include "plan/operator.h"
+#include "plan/operator_schema.h"
+#include "plan/operator_visitor.h"
+
+namespace kush::plan {
+
+class HashJoinOperator final : public BinaryOperator {
  public:
-  HashJoin(OperatorSchema schema, std::unique_ptr<Operator> left,
-           std::unique_ptr<Operator> right,
-           std::unique_ptr<ColumnRefExpression> left_column_,
-           std::unique_ptr<ColumnRefExpression> right_column_);
+  HashJoinOperator(OperatorSchema schema, std::unique_ptr<Operator> left,
+                   std::unique_ptr<Operator> right,
+                   std::unique_ptr<ColumnRefExpression> left_column_,
+                   std::unique_ptr<ColumnRefExpression> right_column_);
   nlohmann::json ToJson() const override;
   void Accept(OperatorVisitor& visitor) override;
   ColumnRefExpression& LeftColumn();
@@ -15,3 +25,5 @@ class HashJoin final : public BinaryOperator {
   std::unique_ptr<ColumnRefExpression> left_column_;
   std::unique_ptr<ColumnRefExpression> right_column_;
 };
+
+}  // namespace kush::plan

@@ -18,9 +18,9 @@ class TranslatorFactory
   virtual ~TranslatorFactory() = default;
 
   void Visit(plan::ScanOperator& scan) override;
-  void Visit(plan::Select& select) override;
+  void Visit(plan::SelectOperator& select) override;
   void Visit(plan::OutputOperator& output) override;
-  void Visit(plan::HashJoin& hash_join) override;
+  void Visit(plan::HashJoinOperator& hash_join) override;
 
   std::unique_ptr<OperatorTranslator> Produce(plan::Operator& target);
 

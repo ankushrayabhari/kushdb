@@ -4,12 +4,12 @@
 #include "compilation/translators/expression_translator.h"
 #include "compilation/translators/operator_translator.h"
 #include "compilation/types.h"
-#include "plan/operator.h"
+#include "plan/hash_join_operator.h"
 
 namespace kush::compile {
 
 HashJoinTranslator::HashJoinTranslator(
-    plan::HashJoin& hash_join, CompilationContext& context,
+    plan::HashJoinOperator& hash_join, CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)),
       hash_join_(hash_join),

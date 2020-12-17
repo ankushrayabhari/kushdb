@@ -6,7 +6,12 @@ cc_binary(
     deps = [
         "//catalog",
         "//compilation:cpp_translator",
+        "//plan:hash_join_operator",
         "//plan:operator",
+        "//plan:output_operator",
+        "//plan:scan_operator",
+        "//plan:select_operator",
+        "//plan/expression",
         "//plan/expression:column_ref_expression",
         "//plan/expression:comparison_expression",
         "//plan/expression:literal_expression",

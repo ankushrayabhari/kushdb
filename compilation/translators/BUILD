@@ -43,7 +43,7 @@ cc_library(
         ":operator_translator",
         "//compilation:compilation_context",
         "//compilation:types",
-        "//plan:operator",
+        "//plan:select_operator",
     ],
 )
 
@@ -56,7 +56,7 @@ cc_library(
         ":operator_translator",
         "//compilation:compilation_context",
         "//compilation:types",
-        "//plan:operator",
+        "//plan:hash_join_operator",
     ],
 )
 
@@ -70,6 +70,11 @@ cc_library(
         ":output_translator",
         ":scan_translator",
         ":select_translator",
+        "//plan:hash_join_operator",
+        "//plan:operator",
+        "//plan:output_operator",
+        "//plan:scan_operator",
+        "//plan:select_operator",
         "//util:visitor",
     ],
 )
