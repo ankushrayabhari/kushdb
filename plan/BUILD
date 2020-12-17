@@ -15,6 +15,7 @@ cc_library(
     deps = [
         "//catalog:sql_type",
         "//plan/expression",
+        "@absl//absl/container:flat_hash_map",
         "@json",
         "@magic_enum",
     ],

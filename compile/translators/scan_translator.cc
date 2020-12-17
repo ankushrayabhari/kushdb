@@ -27,7 +27,7 @@ void ScanTranslator::Produce() {
   for (const auto& column : scan_.Schema().Columns()) {
     auto var = program.GenerateVariable();
     auto type = SqlTypeToRuntimeType(column.Type());
-    auto path = table[std::string(column.Name())].Path();
+    auto path = table[column.Name()].Path();
     column_vars.push_back(var);
 
     // declare the column

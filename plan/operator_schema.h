@@ -3,9 +3,9 @@
 #include <memory>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "catalog/sql_type.h"
 #include "expression/expression.h"
 #include "nlohmann/json.hpp"
@@ -36,7 +36,7 @@ class OperatorSchema {
   void AddGeneratedColumn(std::string_view name, catalog::SqlType type);
 
  private:
-  std::unordered_map<std::string, int> column_name_to_idx_;
+  absl::flat_hash_map<std::string, int> column_name_to_idx_;
   std::vector<Column> columns_;
 };
 

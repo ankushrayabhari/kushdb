@@ -32,14 +32,14 @@ Expression& OperatorSchema::Column::Expr() const {
 void OperatorSchema::AddDerivedColumn(std::string_view name,
                                       catalog::SqlType type,
                                       std::unique_ptr<Expression> expr) {
-  column_name_to_idx_[std::string(name)] = columns_.size();
+  column_name_to_idx_[name] = columns_.size();
   columns_.emplace_back(name, type, std::move(expr));
 }
 
 void OperatorSchema::AddGeneratedColumn(std::string_view name,
                                         catalog::SqlType type) {
   int idx = columns_.size();
-  column_name_to_idx_[std::string(name)] = idx;
+  column_name_to_idx_[name] = idx;
   columns_.emplace_back(name, type, nullptr);
 }
 
@@ -48,7 +48,7 @@ const std::vector<OperatorSchema::Column>& OperatorSchema::Columns() const {
 }
 
 int OperatorSchema::GetColumnIndex(std::string_view name) const {
-  return column_name_to_idx_.at(std::string(name));
+  return column_name_to_idx_.at(name);
 }
 
 nlohmann::json OperatorSchema::ToJson() const {
