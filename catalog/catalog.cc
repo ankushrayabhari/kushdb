@@ -16,9 +16,9 @@ SqlType Column::Type() const { return type_; }
 
 std::string_view Column::Path() const { return path_; }
 
-Table::Table(std::string_view n) : name(n) {}
+Table::Table(std::string_view name) : name_(name) {}
 
-Column& Table::insert(std::string_view attr, SqlType type,
+Column& Table::Insert(std::string_view attr, SqlType type,
                       std::string_view path) {
   name_to_col_.insert({std::string(attr), Column(attr, type, path)});
   return name_to_col_.at(attr);
@@ -28,11 +28,11 @@ const Column& Table::operator[](std::string_view attr) const {
   return name_to_col_.at(attr);
 }
 
-bool Table::contains(std::string_view attr) const {
+bool Table::Contains(std::string_view attr) const {
   return name_to_col_.find(attr) != name_to_col_.end();
 }
 
-Table& Database::insert(std::string_view table) {
+Table& Database::Insert(std::string_view table) {
   name_to_table_.insert({std::string(table), Table(table)});
   return name_to_table_.at(table);
 }
@@ -41,7 +41,7 @@ const Table& Database::operator[](std::string_view table) const {
   return name_to_table_.at(table);
 }
 
-bool Database::contains(std::string_view table) const {
+bool Database::Contains(std::string_view table) const {
   return name_to_table_.find(table) != name_to_table_.end();
 }
 
