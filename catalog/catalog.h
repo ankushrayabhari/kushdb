@@ -1,42 +1,44 @@
 #pragma once
 #include <memory>
 #include <string>
-#include <unordered_map>
 
+#include "absl/container/flat_hash_map.h"
 #include "catalog/sql_type.h"
 
 namespace kush::catalog {
 
 class Column {
  public:
-  Column(const std::string& n, SqlType t, const std::string& p);
+  Column(std::string_view n, SqlType t, std::string_view p);
+  std::string_view Name() const;
+  SqlType Type() const;
+  std::string_view Path() const;
 
-  const std::string name;
-  const SqlType type;
-  const std::string path;
+ private:
+  const std::string name_;
+  const SqlType type_;
+  const std::string path_;
 };
 
 class Table {
-  std::unordered_map<std::string, Column> name_to_col_;
+  absl::flat_hash_map<std::string, Column> name_to_col_;
 
  public:
-  Table(const std::string& n);
+  Table(std::string_view n);
   const std::string name;
 
-  Column& insert(const std::string& attr, SqlType type,
-                 const std::string& path);
-  const Column& operator[](const std::string& attr) const;
-  bool contains(const std::string& attr) const;
-  const std::unordered_map<std::string, Column>& Columns() const;
+  Column& insert(std::string_view attr, SqlType type, std::string_view path);
+  const Column& operator[](std::string_view attr) const;
+  bool contains(std::string_view attr) const;
 };
 
 class Database {
-  std::unordered_map<std::string, Table> name_to_table_;
+  absl::flat_hash_map<std::string, Table> name_to_table_;
 
  public:
-  Table& insert(const std::string& table);
-  const Table& operator[](const std::string& table) const;
-  bool contains(const std::string& table) const;
+  Table& insert(std::string_view table);
+  const Table& operator[](std::string_view table) const;
+  bool contains(std::string_view table) const;
 };
 
 }  // namespace kush::catalog

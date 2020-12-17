@@ -18,7 +18,7 @@ ScanTranslator::ScanTranslator(
     : OperatorTranslator(std::move(children)), scan_(scan), context_(context) {}
 
 void ScanTranslator::Produce() {
-  const auto& table = context_.Catalog()[scan_.relation];
+  const auto& table = context_.Catalog()[scan_.Relation()];
   auto& program = context_.Program();
 
   std::vector<std::string> column_vars;
@@ -27,7 +27,7 @@ void ScanTranslator::Produce() {
   for (const auto& column : scan_.Schema().Columns()) {
     auto var = program.GenerateVariable();
     auto type = SqlTypeToRuntimeType(column.Type());
-    auto path = table[std::string(column.Name())].path;
+    auto path = table[std::string(column.Name())].Path();
     column_vars.push_back(var);
 
     // declare the column

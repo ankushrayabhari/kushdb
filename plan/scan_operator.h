@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 #include "nlohmann/json.hpp"
 #include "plan/operator.h"
@@ -11,11 +12,13 @@ namespace kush::plan {
 
 class ScanOperator final : public Operator {
  public:
-  const std::string relation;
-
-  ScanOperator(OperatorSchema schema, const std::string& rel);
+  ScanOperator(OperatorSchema schema, std::string_view relation);
   nlohmann::json ToJson() const override;
   void Accept(OperatorVisitor& visitor) override;
+  std::string_view Relation() const;
+
+ private:
+  std::string relation_;
 };
 
 }  // namespace kush::plan

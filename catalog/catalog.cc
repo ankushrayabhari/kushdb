@@ -7,40 +7,42 @@
 
 namespace kush::catalog {
 
-Column::Column(const std::string& n, SqlType t, const std::string& p)
-    : name(n), type(t), path(p) {}
+Column::Column(std::string_view n, SqlType t, std::string_view p)
+    : name_(n), type_(t), path_(p) {}
 
-Table::Table(const std::string& n) : name(n) {}
+std::string_view Column::Name() const { return name_; }
 
-Column& Table::insert(const std::string& attr, SqlType type,
-                      const std::string& path) {
-  name_to_col_.insert({attr, Column(attr, type, path)});
+SqlType Column::Type() const { return type_; }
+
+std::string_view Column::Path() const { return path_; }
+
+Table::Table(std::string_view n) : name(n) {}
+
+Column& Table::insert(std::string_view attr, SqlType type,
+                      std::string_view path) {
+  name_to_col_.insert({std::string(attr), Column(attr, type, path)});
   return name_to_col_.at(attr);
 }
 
-const Column& Table::operator[](const std::string& attr) const {
+const Column& Table::operator[](std::string_view attr) const {
   return name_to_col_.at(attr);
 }
 
-bool Table::contains(const std::string& attr) const {
+bool Table::contains(std::string_view attr) const {
   return name_to_col_.find(attr) != name_to_col_.end();
 }
 
-Table& Database::insert(const std::string& table) {
-  name_to_table_.insert({table, Table(table)});
+Table& Database::insert(std::string_view table) {
+  name_to_table_.insert({std::string(table), Table(table)});
   return name_to_table_.at(table);
 }
 
-const Table& Database::operator[](const std::string& table) const {
+const Table& Database::operator[](std::string_view table) const {
   return name_to_table_.at(table);
 }
 
-bool Database::contains(const std::string& table) const {
+bool Database::contains(std::string_view table) const {
   return name_to_table_.find(table) != name_to_table_.end();
-}
-
-const std::unordered_map<std::string, Column>& Table::Columns() const {
-  return name_to_col_;
 }
 
 }  // namespace kush::catalog

@@ -8,6 +8,7 @@ cc_library(
     hdrs = ["catalog.h"],
     deps = [
         ":sql_type",
+        "@absl//absl/container:flat_hash_map",
     ],
 )
 
