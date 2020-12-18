@@ -72,8 +72,7 @@ int main() {
         std::move(schema), std::move(scan_lineitem), std::move(leq));
   }
 
-  // Group By l_returnflag, l_linestatus -> Output
-  // Select (l_shipdate <= 1998-12-01)
+  // Group By l_returnflag, l_linestatus -> Aggregate
   std::unique_ptr<Operator> agg;
   {
     // Group by

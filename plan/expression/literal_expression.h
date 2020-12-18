@@ -19,6 +19,7 @@ class LiteralExpression : public Expression {
   LiteralExpression(double value);
   LiteralExpression(absl::CivilDay value);
   LiteralExpression(std::string_view value);
+  LiteralExpression(const char* value);
   LiteralExpression(bool value);
   ~LiteralExpression() = default;
 

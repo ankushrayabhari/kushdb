@@ -32,6 +32,9 @@ LiteralExpression::LiteralExpression(absl::CivilDay value)
   value_ = absl::ToUnixMillis(time);
 }
 
+LiteralExpression::LiteralExpression(const char* value)
+    : Expression(catalog::SqlType::TEXT, {}), value_(std::string(value)) {}
+
 LiteralExpression::LiteralExpression(std::string_view value)
     : Expression(catalog::SqlType::TEXT, {}), value_(std::string(value)) {}
 
