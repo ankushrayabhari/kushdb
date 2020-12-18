@@ -94,6 +94,7 @@ cc_library(
         ":operator_schema",
         ":operator_visitor",
         "//plan/expression",
+        "//plan/expression:aggregate_expression",
         "@json",
     ],
 )

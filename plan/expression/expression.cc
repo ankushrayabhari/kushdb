@@ -14,11 +14,7 @@ Expression::Expression(catalog::SqlType type,
     : type_(type), children_(std::move(children)) {}
 
 std::vector<std::reference_wrapper<Expression>> Expression::Children() {
-  std::vector<std::reference_wrapper<Expression>> output;
-  for (auto& x : children_) {
-    output.push_back(*x);
-  }
-  return output;
+  return util::ReferenceVector(children_);
 }
 
 catalog::SqlType Expression::Type() const { return type_; }

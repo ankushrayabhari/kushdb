@@ -14,9 +14,11 @@ namespace kush::plan {
 
 GroupByAggregateOperator::GroupByAggregateOperator(
     OperatorSchema schema, std::unique_ptr<Operator> child,
-    std::vector<std::unique_ptr<Expression>> group_by_exprs)
+    std::vector<std::unique_ptr<Expression>> group_by_exprs,
+    std::vector<std::unique_ptr<AggregateExpression>> aggregate_exprs)
     : UnaryOperator(std::move(schema), std::move(child)),
-      group_by_exprs_(std::move(group_by_exprs)) {}
+      group_by_exprs_(std::move(group_by_exprs)),
+      aggregate_exprs_(std::move(aggregate_exprs)) {}
 
 nlohmann::json GroupByAggregateOperator::ToJson() const {
   nlohmann::json j;
@@ -38,6 +40,11 @@ void GroupByAggregateOperator::Accept(OperatorVisitor& visitor) {
 std::vector<std::reference_wrapper<Expression>>
 GroupByAggregateOperator::GroupByExprs() {
   return util::ReferenceVector(group_by_exprs_);
+}
+
+std::vector<std::reference_wrapper<AggregateExpression>>
+GroupByAggregateOperator::AggExprs() {
+  return util::ReferenceVector(aggregate_exprs_);
 }
 
 }  // namespace kush::plan
