@@ -6,6 +6,7 @@
 #include <variant>
 
 #include "absl/time/civil_time.h"
+#include "absl/time/time.h"
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 
@@ -26,7 +27,9 @@ LiteralExpression::LiteralExpression(double value)
 LiteralExpression::LiteralExpression(absl::CivilDay value)
     : Expression(catalog::SqlType::DATE, {}) {
   // set value to converted timestamp
-  value_ = int32_t(0);
+  absl::TimeZone utc = absl::UTCTimeZone();
+  absl::Time time = absl::FromCivil(value, utc);
+  value_ = absl::ToUnixMillis(time);
 }
 
 LiteralExpression::LiteralExpression(std::string_view value)
@@ -51,8 +54,8 @@ double LiteralExpression::GetRealValue() const {
   return std::get<double>(value_);
 }
 
-int32_t LiteralExpression::GetDateValue() const {
-  return std::get<int32_t>(value_);
+int64_t LiteralExpression::GetDateValue() const {
+  return std::get<int64_t>(value_);
 }
 
 std::string_view LiteralExpression::GetTextValue() const {

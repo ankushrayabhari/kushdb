@@ -26,7 +26,7 @@ class LiteralExpression : public Expression {
   int32_t GetIntValue() const;
   int64_t GetBigintValue() const;
   double GetRealValue() const;
-  int32_t GetDateValue() const;
+  int64_t GetDateValue() const;
   std::string_view GetTextValue() const;
   bool GetBooleanValue() const;
   nlohmann::json ToJson() const override;
