@@ -2,14 +2,16 @@
 
 #include <optional>
 
+#include "catalog/sql_type.h"
 #include "nlohmann/json.hpp"
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 
 namespace kush::plan {
 
-ColumnRefExpression::ColumnRefExpression(int child_idx, int column_idx)
-    : child_idx_(child_idx), column_idx_(column_idx) {}
+ColumnRefExpression::ColumnRefExpression(catalog::SqlType type, int child_idx,
+                                         int column_idx)
+    : Expression(type, {}), child_idx_(child_idx), column_idx_(column_idx) {}
 
 int ColumnRefExpression::GetChildIdx() { return child_idx_; }
 

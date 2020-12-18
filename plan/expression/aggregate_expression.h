@@ -10,16 +10,14 @@ namespace kush::plan {
 
 enum class AggregateType { SUM, AVG };
 
-class AggregateExpression : public Expression {
+class AggregateExpression : public UnaryExpression {
  public:
   AggregateExpression(AggregateType type, std::unique_ptr<Expression> child);
   nlohmann::json ToJson() const override;
-  AggregateType Type();
-  Expression& Child();
+  AggregateType AggType();
   void Accept(ExpressionVisitor& visitor) override;
 
  private:
-  std::unique_ptr<Expression> child_;
   AggregateType type_;
 };
 

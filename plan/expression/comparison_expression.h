@@ -10,20 +10,16 @@ namespace kush::plan {
 
 enum class ComparisonType { EQ, NEQ, LT, LEQ, GT, GEQ };
 
-class ComparisonExpression : public Expression {
+class ComparisonExpression : public BinaryExpression {
  public:
   ComparisonExpression(ComparisonType type, std::unique_ptr<Expression> left,
                        std::unique_ptr<Expression> right);
   nlohmann::json ToJson() const override;
   void Accept(ExpressionVisitor& visitor) override;
-  Expression& Left();
-  Expression& Right();
-  ComparisonType Type();
+  ComparisonType CompType() const;
 
  private:
   ComparisonType type_;
-  std::unique_ptr<Expression> left_;
-  std::unique_ptr<Expression> right_;
 };
 
 }  // namespace kush::plan

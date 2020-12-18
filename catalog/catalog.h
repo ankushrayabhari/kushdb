@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iterator>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -29,7 +30,7 @@ class Table {
   std::string_view Name();
   Column& Insert(std::string_view attr, SqlType type, std::string_view path);
   const Column& operator[](std::string_view attr) const;
-  bool Contains(std::string_view attr) const;
+  std::vector<std::reference_wrapper<const Column>> Columns() const;
 
  private:
   const std::string name_;

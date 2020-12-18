@@ -16,22 +16,19 @@ class OperatorSchema {
  public:
   class Column {
    public:
-    Column(std::string_view name, catalog::SqlType type,
-           std::unique_ptr<Expression> expr);
+    Column(std::string_view name, std::unique_ptr<Expression> expr);
     std::string_view Name() const;
-    catalog::SqlType Type() const;
     Expression& Expr() const;
 
    private:
     std::string name_;
-    catalog::SqlType type_;
     std::unique_ptr<Expression> expr_;
   };
 
   const std::vector<Column>& Columns() const;
   int GetColumnIndex(std::string_view name) const;
   nlohmann::json ToJson() const;
-  void AddDerivedColumn(std::string_view name, catalog::SqlType type,
+  void AddDerivedColumn(std::string_view name,
                         std::unique_ptr<Expression> expr);
   void AddGeneratedColumn(std::string_view name, catalog::SqlType type);
 

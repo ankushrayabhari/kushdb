@@ -27,7 +27,7 @@ void SelectTranslator::Consume(OperatorTranslator& src) {
 
   for (const auto& column : select_.Schema().Columns()) {
     auto var = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(column.Type());
+    auto type = SqlTypeToRuntimeType(column.Expr().Type());
 
     program.fout << "auto& " << var << " = ";
     expr_translator_.Produce(column.Expr());

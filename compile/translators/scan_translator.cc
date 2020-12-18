@@ -26,7 +26,7 @@ void ScanTranslator::Produce() {
 
   for (const auto& column : scan_.Schema().Columns()) {
     auto var = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(column.Type());
+    auto type = SqlTypeToRuntimeType(column.Expr().Type());
     auto path = table[column.Name()].Path();
     column_vars.push_back(var);
 
@@ -45,7 +45,7 @@ void ScanTranslator::Produce() {
 
   for (int i = 0; i < column_vars.size(); i++) {
     const auto& column = scan_.Schema().Columns()[i];
-    std::string type = SqlTypeToRuntimeType(column.Type());
+    std::string type = SqlTypeToRuntimeType(column.Expr().Type());
     std::string column_var = column_vars[i];
     std::string value_var = program.GenerateVariable();
 

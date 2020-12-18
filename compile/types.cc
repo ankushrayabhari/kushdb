@@ -20,6 +20,8 @@ std::string SqlTypeToRuntimeType(catalog::SqlType type) {
       return "double";
     case catalog::SqlType::TEXT:
       return "std::string_view";
+    case catalog::SqlType::BOOLEAN:
+      return "bool";
   }
 }
 

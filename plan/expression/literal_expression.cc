@@ -1,19 +1,93 @@
 #include "plan/expression/literal_expression.h"
 
 #include <cstdint>
+#include <string>
+#include <string_view>
+#include <variant>
 
-#include "nlohmann/json.hpp"
+#include "absl/time/civil_time.h"
+#include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 
 namespace kush::plan {
 
-LiteralExpression::LiteralExpression(int32_t value) : value_(value) {}
+LiteralExpression::LiteralExpression(int16_t value)
+    : Expression(catalog::SqlType::SMALLINT, {}), value_(value) {}
 
-int32_t LiteralExpression::GetValue() { return value_; }
+LiteralExpression::LiteralExpression(int32_t value)
+    : Expression(catalog::SqlType::INT, {}), value_(value) {}
+
+LiteralExpression::LiteralExpression(int64_t value)
+    : Expression(catalog::SqlType::BIGINT, {}), value_(value) {}
+
+LiteralExpression::LiteralExpression(double value)
+    : Expression(catalog::SqlType::REAL, {}), value_(value) {}
+
+LiteralExpression::LiteralExpression(absl::CivilDay value)
+    : Expression(catalog::SqlType::DATE, {}) {
+  // set value to converted timestamp
+  value_ = int32_t(0);
+}
+
+LiteralExpression::LiteralExpression(std::string_view value)
+    : Expression(catalog::SqlType::TEXT, {}), value_(std::string(value)) {}
+
+LiteralExpression::LiteralExpression(bool value)
+    : Expression(catalog::SqlType::BOOLEAN, {}), value_(value) {}
+
+int16_t LiteralExpression::GetSmallintValue() const {
+  return std::get<int16_t>(value_);
+}
+
+int32_t LiteralExpression::GetIntValue() const {
+  return std::get<int32_t>(value_);
+}
+
+int64_t LiteralExpression::GetBigintValue() const {
+  return std::get<int64_t>(value_);
+}
+
+double LiteralExpression::GetRealValue() const {
+  return std::get<double>(value_);
+}
+
+int32_t LiteralExpression::GetDateValue() const {
+  return std::get<int32_t>(value_);
+}
+
+std::string_view LiteralExpression::GetTextValue() const {
+  return std::get<std::string>(value_);
+}
+
+bool LiteralExpression::GetBooleanValue() const {
+  return std::get<bool>(value_);
+}
 
 nlohmann::json LiteralExpression::ToJson() const {
   nlohmann::json j;
-  j["value"] = value_;
+  switch (Type()) {
+    case catalog::SqlType::SMALLINT:
+      j["value"] = GetSmallintValue();
+      break;
+    case catalog::SqlType::INT:
+      j["value"] = GetIntValue();
+      break;
+    case catalog::SqlType::BIGINT:
+      j["value"] = GetBigintValue();
+      break;
+    case catalog::SqlType::DATE:
+      j["value"] = GetDateValue();
+      break;
+    case catalog::SqlType::REAL:
+      j["value"] = GetRealValue();
+      break;
+    case catalog::SqlType::TEXT:
+      j["value"] = GetTextValue();
+      break;
+    case catalog::SqlType::BOOLEAN:
+      j["value"] = GetBooleanValue();
+      break;
+  }
   return j;
 }
 

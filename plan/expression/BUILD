@@ -10,9 +10,12 @@ cc_library(
 
 cc_library(
     name = "expression",
+    srcs = ["expression.cc"],
     hdrs = ["expression.h"],
     deps = [
         ":expression_visitor",
+        "//catalog:sql_type",
+        "//util:vector_util",
         "@json",
     ],
 )
@@ -24,6 +27,7 @@ cc_library(
     deps = [
         ":expression",
         ":expression_visitor",
+        "@absl//absl/time",
         "@json",
     ],
 )

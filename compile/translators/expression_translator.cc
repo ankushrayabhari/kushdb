@@ -1,10 +1,12 @@
 #include "compile/translators/expression_translator.h"
 
 #include <memory>
+#include <stdexcept>
 #include <unordered_map>
 #include <vector>
 
 #include "compile/compilation_context.h"
+#include "plan/expression/aggregate_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/expression_visitor.h"
@@ -20,6 +22,10 @@ void ExpressionTranslator::Produce(plan::Expression& expr) {
   expr.Accept(*this);
 }
 
+void ExpressionTranslator::Visit(plan::AggregateExpression& agg) {
+  throw std::runtime_error("Aggregate expression can't be derived");
+}
+
 void ExpressionTranslator::Visit(plan::ColumnRefExpression& col_ref) {
   auto& values = source_.Children()[col_ref.GetChildIdx()].get().GetValues();
   auto& program = context_.Program();
@@ -27,7 +33,7 @@ void ExpressionTranslator::Visit(plan::ColumnRefExpression& col_ref) {
 }
 
 void ExpressionTranslator::Visit(plan::ComparisonExpression& comp) {
-  auto type = comp.Type();
+  auto type = comp.CompType();
 
   using CompType = plan::ComparisonType;
   const std::unordered_map<CompType, std::string> type_to_op{
@@ -38,15 +44,37 @@ void ExpressionTranslator::Visit(plan::ComparisonExpression& comp) {
   auto& program = context_.Program();
 
   program.fout << "(";
-  Produce(comp.Left());
+  Produce(comp.LeftChild());
   program.fout << ")" << type_to_op.at(type) << "(";
-  Produce(comp.Right());
+  Produce(comp.RightChild());
   program.fout << ")";
 }
 
 void ExpressionTranslator::Visit(plan::LiteralExpression& literal) {
   auto& program = context_.Program();
-  program.fout << literal.GetValue();
+  switch (literal.Type()) {
+    case catalog::SqlType::SMALLINT:
+      program.fout << literal.GetSmallintValue();
+      break;
+    case catalog::SqlType::INT:
+      program.fout << literal.GetIntValue();
+      break;
+    case catalog::SqlType::BIGINT:
+      program.fout << literal.GetBigintValue();
+      break;
+    case catalog::SqlType::DATE:
+      program.fout << literal.GetDateValue();
+      break;
+    case catalog::SqlType::REAL:
+      program.fout << literal.GetRealValue();
+      break;
+    case catalog::SqlType::TEXT:
+      program.fout << literal.GetTextValue();
+      break;
+    case catalog::SqlType::BOOLEAN:
+      program.fout << literal.GetBooleanValue();
+      break;
+  }
 }
 
 }  // namespace kush::compile

@@ -35,7 +35,9 @@ int main() {
   std::unique_ptr<Operator> scan_table;
   {
     OperatorSchema schema;
-    schema.AddGeneratedColumn("i1", SqlType::INT);
+    for (const auto& col : db["table"].Columns()) {
+      schema.AddGeneratedColumn(col.get().Name(), col.get().Type());
+    }
     scan_table = std::make_unique<ScanOperator>(std::move(schema), "table");
   }
 
@@ -43,7 +45,7 @@ int main() {
   std::unique_ptr<Operator> select_table;
   {
     auto x1 = std::make_unique<ColumnRefExpression>(
-        0, scan_table->Schema().GetColumnIndex("i1"));
+        SqlType::INT, 0, scan_table->Schema().GetColumnIndex("i1"));
     auto x1_lt_c = std::make_unique<ComparisonExpression>(
         ComparisonType::LT, std::move(x1),
         std::make_unique<LiteralExpression>(100000000));
@@ -51,9 +53,10 @@ int main() {
     OperatorSchema schema;
     for (const auto& column : scan_table->Schema().Columns()) {
       schema.AddDerivedColumn(
-          column.Name(), column.Type(),
+          column.Name(),
           std::make_unique<ColumnRefExpression>(
-              0, scan_table->Schema().GetColumnIndex(column.Name())));
+              column.Expr().Type(), 0,
+              scan_table->Schema().GetColumnIndex(column.Name())));
     }
 
     select_table = std::make_unique<SelectOperator>(
@@ -64,8 +67,9 @@ int main() {
   std::unique_ptr<Operator> scan_table1;
   {
     OperatorSchema schema;
-    schema.AddGeneratedColumn("i2", SqlType::INT);
-    schema.AddGeneratedColumn("bi1", SqlType::BIGINT);
+    for (const auto& col : db["table1"].Columns()) {
+      schema.AddGeneratedColumn(col.get().Name(), col.get().Type());
+    }
     scan_table1 = std::make_unique<ScanOperator>(std::move(schema), "table1");
   }
 
@@ -75,21 +79,23 @@ int main() {
     OperatorSchema schema;
     for (const auto& column : select_table->Schema().Columns()) {
       schema.AddDerivedColumn(
-          column.Name(), column.Type(),
+          column.Name(),
           std::make_unique<ColumnRefExpression>(
-              0, select_table->Schema().GetColumnIndex(column.Name())));
+              column.Expr().Type(), 0,
+              select_table->Schema().GetColumnIndex(column.Name())));
     }
     for (const auto& column : scan_table1->Schema().Columns()) {
       schema.AddDerivedColumn(
-          column.Name(), column.Type(),
+          column.Name(),
           std::make_unique<ColumnRefExpression>(
-              1, scan_table1->Schema().GetColumnIndex(column.Name())));
+              column.Expr().Type(), 1,
+              scan_table1->Schema().GetColumnIndex(column.Name())));
     }
 
     auto x1 = std::make_unique<ColumnRefExpression>(
-        0, select_table->Schema().GetColumnIndex("i1"));
+        SqlType::INT, 0, select_table->Schema().GetColumnIndex("i1"));
     auto x2 = std::make_unique<ColumnRefExpression>(
-        1, scan_table1->Schema().GetColumnIndex("i2"));
+        SqlType::INT, 1, scan_table1->Schema().GetColumnIndex("i2"));
     table_join_table1 = std::make_unique<HashJoinOperator>(
         std::move(schema), std::move(select_table), std::move(scan_table1),
         std::move(x1), std::move(x2));
@@ -99,9 +105,9 @@ int main() {
   std::unique_ptr<Operator> scan_table2;
   {
     OperatorSchema schema;
-    schema.AddGeneratedColumn("i3", SqlType::INT);
-    schema.AddGeneratedColumn("i4", SqlType::INT);
-    schema.AddGeneratedColumn("t1", SqlType::TEXT);
+    for (const auto& col : db["table2"].Columns()) {
+      schema.AddGeneratedColumn(col.get().Name(), col.get().Type());
+    }
     scan_table2 = std::make_unique<ScanOperator>(std::move(schema), "table2");
   }
 
@@ -111,21 +117,23 @@ int main() {
     OperatorSchema schema;
     for (const auto& column : table_join_table1->Schema().Columns()) {
       schema.AddDerivedColumn(
-          column.Name(), column.Type(),
+          column.Name(),
           std::make_unique<ColumnRefExpression>(
-              0, table_join_table1->Schema().GetColumnIndex(column.Name())));
+              column.Expr().Type(), 0,
+              table_join_table1->Schema().GetColumnIndex(column.Name())));
     }
     for (const auto& column : scan_table2->Schema().Columns()) {
       schema.AddDerivedColumn(
-          column.Name(), column.Type(),
+          column.Name(),
           std::make_unique<ColumnRefExpression>(
-              1, scan_table2->Schema().GetColumnIndex(column.Name())));
+              column.Expr().Type(), 1,
+              scan_table2->Schema().GetColumnIndex(column.Name())));
     }
 
     auto x2 = std::make_unique<ColumnRefExpression>(
-        0, table_join_table1->Schema().GetColumnIndex("i2"));
+        SqlType::INT, 0, table_join_table1->Schema().GetColumnIndex("i2"));
     auto x3 = std::make_unique<ColumnRefExpression>(
-        1, scan_table2->Schema().GetColumnIndex("i3"));
+        SqlType::INT, 1, scan_table2->Schema().GetColumnIndex("i3"));
     table_join_table1_join_table2 = std::make_unique<HashJoinOperator>(
         std::move(schema), std::move(table_join_table1), std::move(scan_table2),
         std::move(x2), std::move(x3));

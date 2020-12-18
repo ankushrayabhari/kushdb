@@ -15,6 +15,7 @@ class ExpressionTranslator : public plan::ExpressionVisitor {
   virtual ~ExpressionTranslator() = default;
 
   void Produce(plan::Expression& expr);
+  void Visit(plan::AggregateExpression& agg) override;
   void Visit(plan::ColumnRefExpression& col_ref) override;
   void Visit(plan::ComparisonExpression& comp) override;
   void Visit(plan::LiteralExpression& literal) override;

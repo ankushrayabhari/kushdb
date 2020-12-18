@@ -101,6 +101,7 @@ cc_library(
     deps = [
         ":operator_translator",
         "//compile:compilation_context",
+        "//plan/expression:aggregate_expression",
         "//plan/expression:column_ref_expression",
         "//plan/expression:comparison_expression",
         "//plan/expression:expression_visitor",

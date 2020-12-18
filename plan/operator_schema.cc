@@ -8,19 +8,18 @@
 #include <vector>
 
 #include "catalog/sql_type.h"
+#include "expression/column_ref_expression.h"
 #include "expression/expression.h"
 #include "magic_enum.hpp"
 #include "nlohmann/json.hpp"
 
 namespace kush::plan {
 
-OperatorSchema::Column::Column(std::string_view name, catalog::SqlType type,
+OperatorSchema::Column::Column(std::string_view name,
                                std::unique_ptr<Expression> expr)
-    : name_(name), type_(type), expr_(std::move(expr)) {}
+    : name_(name), expr_(std::move(expr)) {}
 
 std::string_view OperatorSchema::Column::Name() const { return name_; }
-
-catalog::SqlType OperatorSchema::Column::Type() const { return type_; }
 
 Expression& OperatorSchema::Column::Expr() const {
   if (expr_ == nullptr) {
@@ -30,17 +29,18 @@ Expression& OperatorSchema::Column::Expr() const {
 }
 
 void OperatorSchema::AddDerivedColumn(std::string_view name,
-                                      catalog::SqlType type,
                                       std::unique_ptr<Expression> expr) {
   column_name_to_idx_[name] = columns_.size();
-  columns_.emplace_back(name, type, std::move(expr));
+  columns_.emplace_back(name, std::move(expr));
 }
 
 void OperatorSchema::AddGeneratedColumn(std::string_view name,
                                         catalog::SqlType type) {
   int idx = columns_.size();
   column_name_to_idx_[name] = idx;
-  columns_.emplace_back(name, type, nullptr);
+  // make a column ref expression to idx
+  columns_.emplace_back(name,
+                        std::make_unique<ColumnRefExpression>(type, 0, idx));
 }
 
 const std::vector<OperatorSchema::Column>& OperatorSchema::Columns() const {
@@ -57,7 +57,6 @@ nlohmann::json OperatorSchema::ToJson() const {
     nlohmann::json c_json;
     c_json["name"] = std::string(c.Name());
     c_json["value"] = c.Expr().ToJson();
-    c_json["type"] = magic_enum::enum_name(c.Type());
     j["columns"].push_back(c_json);
   }
   return j;

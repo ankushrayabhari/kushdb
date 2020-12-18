@@ -28,8 +28,12 @@ const Column& Table::operator[](std::string_view attr) const {
   return name_to_col_.at(attr);
 }
 
-bool Table::Contains(std::string_view attr) const {
-  return name_to_col_.find(attr) != name_to_col_.end();
+std::vector<std::reference_wrapper<const Column>> Table::Columns() const {
+  std::vector<std::reference_wrapper<const Column>> output;
+  for (const auto& [name, col] : name_to_col_) {
+    output.push_back(col);
+  }
+  return output;
 }
 
 Table& Database::Insert(std::string_view table) {

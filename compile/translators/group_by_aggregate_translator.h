@@ -25,6 +25,10 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   plan::GroupByAggregateOperator& group_by_agg_;
   CompilationContext& context_;
   ExpressionTranslator expr_translator_;
+  std::string hash_table_var_;
+  std::string packed_struct_id_;
+  std::vector<std::pair<std::string, std::string>> packed_group_by_field_type_;
+  std::vector<std::pair<std::string, std::string>> packed_agg_field_type_;
 };
 
 }  // namespace kush::compile

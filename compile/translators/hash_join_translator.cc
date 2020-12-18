@@ -24,7 +24,7 @@ void HashJoinTranslator::Produce() {
   program.fout << " struct " << packed_struct_id_ << " {\n";
   for (const auto& column : hash_join_.LeftChild().Schema().Columns()) {
     auto field = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(column.Type());
+    auto type = SqlTypeToRuntimeType(column.Expr().Type());
     packed_struct_field_ids_.emplace_back(field, type);
     program.fout << type << " " << field << ";\n";
   }
@@ -105,7 +105,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
 
   for (const auto& column : hash_join_.Schema().Columns()) {
     auto var = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(column.Type());
+    auto type = SqlTypeToRuntimeType(column.Expr().Type());
 
     program.fout << "auto& " << var << " = ";
     expr_translator_.Produce(column.Expr());
