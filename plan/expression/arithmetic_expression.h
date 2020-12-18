@@ -8,7 +8,12 @@
 
 namespace kush::plan {
 
-enum class ArithmeticOperatorType { ADD, SUB, MUL, DIV, AND, OR };
+enum class ArithmeticOperatorType {
+  ADD,
+  SUB,
+  MUL,
+  DIV,
+};
 
 class ArithmeticExpression : public BinaryExpression {
  public:

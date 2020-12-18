@@ -8,7 +8,7 @@
 
 namespace kush::plan {
 
-enum class ComparisonType { EQ, NEQ, LT, LEQ, GT, GEQ };
+enum class ComparisonType { EQ, NEQ, LT, LEQ, GT, GEQ, AND, OR };
 
 class ComparisonExpression : public BinaryExpression {
  public:

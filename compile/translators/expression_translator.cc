@@ -29,8 +29,10 @@ void ExpressionTranslator::Visit(plan::ArithmeticExpression& arith) {
 
   using OpType = plan::ArithmeticOperatorType;
   const std::unordered_map<OpType, std::string> type_to_op{
-      {OpType::ADD, "+"}, {OpType::SUB, "-"},  {OpType::MUL, "*"},
-      {OpType::DIV, "/"}, {OpType::AND, "&&"}, {OpType::OR, "||"},
+      {OpType::ADD, "+"},
+      {OpType::SUB, "-"},
+      {OpType::MUL, "*"},
+      {OpType::DIV, "/"},
   };
 
   auto& program = context_.Program();
@@ -65,7 +67,7 @@ void ExpressionTranslator::Visit(plan::ComparisonExpression& comp) {
   const std::unordered_map<CompType, std::string> type_to_op{
       {CompType::EQ, "=="},  {CompType::NEQ, "!="}, {CompType::LT, "<"},
       {CompType::LEQ, "<="}, {CompType::GT, ">"},   {CompType::GEQ, ">="},
-  };
+      {CompType::AND, "&&"}, {CompType::OR, "||"}};
 
   auto& program = context_.Program();
 

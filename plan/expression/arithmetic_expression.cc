@@ -13,11 +13,6 @@ namespace kush::plan {
 
 catalog::SqlType CalculateType(ArithmeticOperatorType type,
                                catalog::SqlType left, catalog::SqlType right) {
-  if (type == ArithmeticOperatorType::AND ||
-      type == ArithmeticOperatorType::OR) {
-    return catalog::SqlType::BOOLEAN;
-  }
-
   return left;
 }
 
