@@ -1,5 +1,5 @@
 select
-	l_shipmode,
+	l_shipmode
 from
 	lineitem
 where

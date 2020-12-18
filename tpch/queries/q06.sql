@@ -9,4 +9,4 @@ where
     and l_discount <= 0.09 
 	and l_quantity < 24
 group by 
-	1;
+	true;
