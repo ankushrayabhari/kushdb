@@ -32,6 +32,9 @@ SqlType CalculateSqlType(AggregateType type, const Expression& expr) {
         throw std::runtime_error("Invalid input type for sum aggregate");
       }
       break;
+
+    case AggregateType::COUNT:
+      return SqlType::BIGINT;
   }
 }
 

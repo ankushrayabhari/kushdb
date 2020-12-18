@@ -141,7 +141,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
 
   program.fout << ") {\n";
 
-  // TODO: Update aggregations
+  // Update aggregations
   for (int i = 0; i < packed_agg_field_type_.size(); i++) {
     const auto& [field, type] = packed_agg_field_type_[i];
     auto& agg = agg_exprs[i].get();
@@ -154,10 +154,24 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         program.fout << ";\n";
         break;
       case plan::AggregateType::AVG:
-        // TODO: asdf
+        // Use Knuth, The Art of Computer Programming Vol 2, section 4.2.2 to
+        // compute running average in a numerically stable way
+        program.fout << bucket_var << "[" << loop_var << "]." << field
+                     << " += (";
+        expr_translator_.Produce(agg.Child());
+        program.fout << " - " << bucket_var << "[" << loop_var << "]." << field
+                     << ") / " << bucket_var << "[" << loop_var << "]."
+                     << record_count_field_ << ";\n";
+        break;
+      case plan::AggregateType::COUNT:
+        program.fout << bucket_var << "[" << loop_var << "]." << field
+                     << "++;\n";
         break;
     }
   }
+  // increment agg counter field
+  program.fout << bucket_var << "[" << loop_var << "]." << record_count_field_
+               << "++;";
 
   program.fout << found_var << " = true;\n";
   program.fout << "break;\n";
@@ -165,20 +179,26 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
 
   // if not found insert new group
   program.fout << "if (!" << found_var << ") {\n";
-  program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{1";
+  program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{2";
   for (auto& group_by : group_by_exprs) {
     program.fout << ",";
     expr_translator_.Produce(group_by.get());
   }
   for (auto& agg : agg_exprs) {
     // initialize agg
-    program.fout << ",";
+    program.fout << ", static_cast<" << SqlTypeToRuntimeType(agg.get().Type())
+                 << ">(";
+
     switch (agg.get().AggType()) {
       case plan::AggregateType::SUM:
       case plan::AggregateType::AVG:
-        program.fout << "0";
+        expr_translator_.Produce(agg.get().Child());
+        break;
+      case plan::AggregateType::COUNT:
+        program.fout << "1";
         break;
     }
+    program.fout << ")";
   }
   program.fout << "});\n";
   program.fout << "}\n";

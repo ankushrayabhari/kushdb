@@ -8,7 +8,7 @@
 
 namespace kush::plan {
 
-enum class AggregateType { SUM, AVG };
+enum class AggregateType { SUM, AVG, COUNT };
 
 class AggregateExpression : public UnaryExpression {
  public:
