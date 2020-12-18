@@ -3,10 +3,12 @@
 #include <memory>
 #include <string>
 
+#include "absl/time/civil_time.h"
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "compile/cpp_translator.h"
 #include "plan/expression/aggregate_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/literal_expression.h"
@@ -29,54 +31,177 @@ using namespace kush::catalog;
 int main() {
   Database db = Schema();
 
-  // scan(table1)
-  std::unique_ptr<Operator> scan_table1;
+  // scan(lineitem)
+  std::unique_ptr<Operator> scan_lineitem;
   {
+    auto& table = db["lineitem"];
+    std::vector<std::string> columns{
+        "l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice",
+        "l_discount",   "l_tax",        "l_quantity", "l_shipdate"};
+
     OperatorSchema schema;
-    for (const auto& col : db["table1"].Columns()) {
-      schema.AddGeneratedColumn(col.get().Name(), col.get().Type());
+    for (const auto& col : columns) {
+      schema.AddGeneratedColumn(table[col].Name(), table[col].Type());
     }
-    scan_table1 = std::make_unique<ScanOperator>(std::move(schema), "table1");
+    scan_lineitem =
+        std::make_unique<ScanOperator>(std::move(schema), "lineitem");
   }
 
-  // Group By true -> AVG(i2)
-  std::unique_ptr<Operator> group_by_agg_table1;
+  // Select (l_shipdate <= 1998-12-01)
+  std::unique_ptr<Operator> select_lineitem;
   {
-    std::unique_ptr<Expression> expr =
-        std::make_unique<LiteralExpression>(true);
-    auto avg_i2 = std::make_unique<AggregateExpression>(
-        AggregateType::AVG,
+    auto l_shipdate = std::make_unique<ColumnRefExpression>(
+        SqlType::DATE, 0, scan_lineitem->Schema().GetColumnIndex("l_shipdate"));
+    auto literal =
+        std::make_unique<LiteralExpression>(absl::CivilDay(1998, 12, 1));
+    auto leq = std::make_unique<ComparisonExpression>(
+        ComparisonType::LEQ, std::move(l_shipdate), std::move(literal));
+
+    std::vector<std::string> columns{
+        "l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice",
+        "l_discount",   "l_tax",        "l_quantity"};
+    OperatorSchema schema;
+    for (const auto& col : columns) {
+      auto idx = scan_lineitem->Schema().GetColumnIndex(col);
+      auto type = scan_lineitem->Schema().Columns()[idx].Expr().Type();
+      schema.AddDerivedColumn(
+          col, std::make_unique<ColumnRefExpression>(type, 0, idx));
+    }
+
+    select_lineitem = std::make_unique<SelectOperator>(
+        std::move(schema), std::move(scan_lineitem), std::move(leq));
+  }
+
+  // Group By l_returnflag, l_linestatus -> Output
+  // Select (l_shipdate <= 1998-12-01)
+  std::unique_ptr<Operator> agg;
+  {
+    // Group by
+    std::unique_ptr<Expression> l_returnflag =
         std::make_unique<ColumnRefExpression>(
-            SqlType::INT, 0, scan_table1->Schema().GetColumnIndex("i2")));
-    auto count_bi1 = std::make_unique<AggregateExpression>(
-        AggregateType::COUNT,
+            SqlType::TEXT, 0,
+            select_lineitem->Schema().GetColumnIndex("l_returnflag"));
+    std::unique_ptr<Expression> l_linestatus =
         std::make_unique<ColumnRefExpression>(
-            SqlType::INT, 0, scan_table1->Schema().GetColumnIndex("bi1")));
-    auto sum_i2 = std::make_unique<AggregateExpression>(
+            SqlType::TEXT, 0,
+            select_lineitem->Schema().GetColumnIndex("l_linestatus"));
+
+    // aggregate
+    auto sum_qty = std::make_unique<AggregateExpression>(
         AggregateType::SUM,
         std::make_unique<ColumnRefExpression>(
-            SqlType::INT, 0, scan_table1->Schema().GetColumnIndex("i2")));
+            SqlType::REAL, 0,
+            select_lineitem->Schema().GetColumnIndex("l_quantity")));
 
+    auto sum_base_price = std::make_unique<AggregateExpression>(
+        AggregateType::SUM,
+        std::make_unique<ColumnRefExpression>(
+            SqlType::REAL, 0,
+            select_lineitem->Schema().GetColumnIndex("l_extendedprice")));
+
+    auto sum_disc_price = std::make_unique<AggregateExpression>(
+        AggregateType::SUM,
+        std::make_unique<ArithmeticExpression>(
+            ArithmeticOperatorType::MUL,
+            std::make_unique<ColumnRefExpression>(
+                SqlType::REAL, 0,
+                select_lineitem->Schema().GetColumnIndex("l_extendedprice")),
+            std::make_unique<ArithmeticExpression>(
+                ArithmeticOperatorType::SUB,
+                std::make_unique<LiteralExpression>(1),
+                std::make_unique<ColumnRefExpression>(
+                    SqlType::REAL, 0,
+                    select_lineitem->Schema().GetColumnIndex("l_discount")))));
+
+    auto sum_charge = std::make_unique<AggregateExpression>(
+        AggregateType::SUM,
+        std::make_unique<ArithmeticExpression>(
+            ArithmeticOperatorType::MUL,
+            std::make_unique<ArithmeticExpression>(
+                ArithmeticOperatorType::MUL,
+                std::make_unique<ColumnRefExpression>(
+                    SqlType::REAL, 0,
+                    select_lineitem->Schema().GetColumnIndex(
+                        "l_extendedprice")),
+                std::make_unique<ArithmeticExpression>(
+                    ArithmeticOperatorType::SUB,
+                    std::make_unique<LiteralExpression>(1),
+                    std::make_unique<ColumnRefExpression>(
+                        SqlType::REAL, 0,
+                        select_lineitem->Schema().GetColumnIndex(
+                            "l_discount")))),
+            std::make_unique<ArithmeticExpression>(
+                ArithmeticOperatorType::ADD,
+                std::make_unique<LiteralExpression>(1),
+                std::make_unique<ColumnRefExpression>(
+                    SqlType::REAL, 0,
+                    select_lineitem->Schema().GetColumnIndex("l_tax")))));
+
+    auto avg_qty = std::make_unique<AggregateExpression>(
+        AggregateType::AVG,
+        std::make_unique<ColumnRefExpression>(
+            SqlType::REAL, 0,
+            select_lineitem->Schema().GetColumnIndex("l_quantity")));
+
+    auto avg_price = std::make_unique<AggregateExpression>(
+        AggregateType::AVG,
+        std::make_unique<ColumnRefExpression>(
+            SqlType::REAL, 0,
+            select_lineitem->Schema().GetColumnIndex("l_extendedprice")));
+
+    auto avg_disc = std::make_unique<AggregateExpression>(
+        AggregateType::AVG,
+        std::make_unique<ColumnRefExpression>(
+            SqlType::REAL, 0,
+            select_lineitem->Schema().GetColumnIndex("l_discount")));
+
+    auto count_order = std::make_unique<AggregateExpression>(
+        AggregateType::COUNT, std::make_unique<LiteralExpression>(true));
+
+    // output
     OperatorSchema schema;
     schema.AddDerivedColumn(
-        "avg_i2",
-        std::make_unique<VirtualColumnRefExpression>(avg_i2->Type(), 0));
+        "l_returnflag",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::TEXT, 0));
     schema.AddDerivedColumn(
-        "count_bi1",
-        std::make_unique<VirtualColumnRefExpression>(count_bi1->Type(), 1));
+        "l_linestatus",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::TEXT, 1));
     schema.AddDerivedColumn(
-        "sum_i2",
-        std::make_unique<VirtualColumnRefExpression>(sum_i2->Type(), 2));
+        "sum_qty",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::REAL, 2));
+    schema.AddDerivedColumn(
+        "sum_base_price",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::REAL, 3));
+    schema.AddDerivedColumn(
+        "sum_disc_price",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::REAL, 4));
+    schema.AddDerivedColumn(
+        "sum_charge",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::REAL, 5));
+    schema.AddDerivedColumn(
+        "avg_qty",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::REAL, 6));
+    schema.AddDerivedColumn(
+        "avg_price",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::REAL, 7));
+    schema.AddDerivedColumn(
+        "avg_disc",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::REAL, 8));
+    schema.AddDerivedColumn(
+        "count_order",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::BIGINT, 9));
 
-    group_by_agg_table1 = std::make_unique<GroupByAggregateOperator>(
-        std::move(schema), std::move(scan_table1),
-        util::MakeVector(std::move(expr)),
-        util::MakeVector(std::move(avg_i2), std::move(count_bi1),
-                         std::move(sum_i2)));
+    agg = std::make_unique<GroupByAggregateOperator>(
+        std::move(schema), std::move(select_lineitem),
+        util::MakeVector(std::move(l_returnflag), std::move(l_linestatus)),
+        util::MakeVector(std::move(sum_qty), std::move(sum_base_price),
+                         std::move(sum_disc_price), std::move(sum_charge),
+                         std::move(avg_qty), std::move(avg_price),
+                         std::move(avg_disc), std::move(count_order)));
   }
 
   std::unique_ptr<Operator> query =
-      std::make_unique<OutputOperator>(std::move(group_by_agg_table1));
+      std::make_unique<OutputOperator>(std::move(agg));
 
   CppTranslator translator(db, *query);
   translator.Translate();

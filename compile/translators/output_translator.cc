@@ -20,19 +20,23 @@ void OutputTranslator::Consume(OperatorTranslator& src) {
     return;
   }
 
-  program.fout << "std::cout";
-
   bool first = true;
   for (const auto& [variable, type] : values) {
+    if (type == "double") {
+      program.fout << "std::cout << std::fixed;";
+      program.fout << "std::cout << std::setprecision(2);";
+    }
+    program.fout << "std::cout";
+
     if (first) {
-      program.fout << " << " << variable;
+      program.fout << " << " << variable << ";";
       first = false;
     } else {
-      program.fout << " << \",\" << " << variable;
+      program.fout << " << \",\" << " << variable << ";";
     }
   }
 
-  program.fout << " << \"\\n\";\n";
+  program.fout << "std::cout << \"\\n\";\n";
 }
 
 }  // namespace kush::compile

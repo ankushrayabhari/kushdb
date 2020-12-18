@@ -17,6 +17,7 @@ void CppProgram::CodegenInitialize() {
   fout << "#include \"data/column_data.h\"\n";
   fout << "#include \"util/hash_util.h\"\n";
   fout << "#include <iostream>\n";
+  fout << "#include <iomanip>\n";
   fout << "#include <cstdint>\n";
   fout << "#include <vector>\n";
   fout << "#include <string>\n";

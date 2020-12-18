@@ -17,7 +17,7 @@ SqlType CalculateSqlType(AggregateType type, const Expression& expr) {
   switch (type) {
     case AggregateType::SUM:
       if (child_type == SqlType::INT || child_type == SqlType::SMALLINT ||
-          child_type == SqlType::BIGINT) {
+          child_type == SqlType::BIGINT || child_type == SqlType::REAL) {
         return child_type;
       } else {
         throw std::runtime_error("Invalid input type for sum aggregate");
@@ -29,7 +29,7 @@ SqlType CalculateSqlType(AggregateType type, const Expression& expr) {
           child_type == SqlType::BIGINT || child_type == SqlType::REAL) {
         return SqlType::REAL;
       } else {
-        throw std::runtime_error("Invalid input type for sum aggregate");
+        throw std::runtime_error("Invalid input type for avg aggregate");
       }
       break;
 

@@ -69,6 +69,7 @@ void GroupByAggregateTranslator::Produce() {
   // unpack group by/aggregates
   for (const auto& [field, type] : packed_group_by_field_type_) {
     auto var = program.GenerateVariable();
+    virtual_values_.AddVariable(var, type);
     program.fout << type << "& " << var << " = " << bucket_var << "["
                  << loop_var << "]." << field << ";\n";
   }
