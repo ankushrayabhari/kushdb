@@ -95,7 +95,7 @@ void ExpressionTranslator::Visit(plan::LiteralExpression& literal) {
       program.fout << literal.GetRealValue();
       break;
     case catalog::SqlType::TEXT:
-      program.fout << literal.GetTextValue();
+      program.fout << "\"" << literal.GetTextValue() << "\"";
       break;
     case catalog::SqlType::BOOLEAN:
       program.fout << literal.GetBooleanValue();
