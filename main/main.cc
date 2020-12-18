@@ -7,15 +7,19 @@
 #include "catalog/sql_type.h"
 #include "compile/cpp_translator.h"
 #include "nlohmann/json.hpp"
+#include "plan/expression/aggregate_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/literal_expression.h"
+#include "plan/expression/virtual_column_ref_expression.h"
+#include "plan/group_by_aggregate_operator.h"
 #include "plan/hash_join_operator.h"
 #include "plan/operator.h"
 #include "plan/operator_schema.h"
 #include "plan/output_operator.h"
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
+#include "util/vector_util.h"
 
 using namespace kush;
 using namespace kush::plan;
@@ -31,38 +35,6 @@ int main() {
   db.Insert("table2").Insert("i4", SqlType::INT, "sample/int4.kdb");
   db.Insert("table2").Insert("t1", SqlType::TEXT, "sample/text1.kdb");
 
-  // Scan(table)
-  std::unique_ptr<Operator> scan_table;
-  {
-    OperatorSchema schema;
-    for (const auto& col : db["table"].Columns()) {
-      schema.AddGeneratedColumn(col.get().Name(), col.get().Type());
-    }
-    scan_table = std::make_unique<ScanOperator>(std::move(schema), "table");
-  }
-
-  // Select(table_scan, x1 < 100000000)
-  std::unique_ptr<Operator> select_table;
-  {
-    auto x1 = std::make_unique<ColumnRefExpression>(
-        SqlType::INT, 0, scan_table->Schema().GetColumnIndex("i1"));
-    auto x1_lt_c = std::make_unique<ComparisonExpression>(
-        ComparisonType::LT, std::move(x1),
-        std::make_unique<LiteralExpression>(100000000));
-
-    OperatorSchema schema;
-    for (const auto& column : scan_table->Schema().Columns()) {
-      schema.AddDerivedColumn(
-          column.Name(),
-          std::make_unique<ColumnRefExpression>(
-              column.Expr().Type(), 0,
-              scan_table->Schema().GetColumnIndex(column.Name())));
-    }
-
-    select_table = std::make_unique<SelectOperator>(
-        std::move(schema), std::move(scan_table), std::move(x1_lt_c));
-  }
-
   // scan(table1)
   std::unique_ptr<Operator> scan_table1;
   {
@@ -73,74 +45,32 @@ int main() {
     scan_table1 = std::make_unique<ScanOperator>(std::move(schema), "table1");
   }
 
-  // select(table) join table1 ON x1 = x2
-  std::unique_ptr<Operator> table_join_table1;
+  // Group By i2, bi1 -> AVG(i2)
+  std::unique_ptr<Operator> group_by_agg_table1;
   {
-    OperatorSchema schema;
-    for (const auto& column : select_table->Schema().Columns()) {
-      schema.AddDerivedColumn(
-          column.Name(),
-          std::make_unique<ColumnRefExpression>(
-              column.Expr().Type(), 0,
-              select_table->Schema().GetColumnIndex(column.Name())));
-    }
-    for (const auto& column : scan_table1->Schema().Columns()) {
-      schema.AddDerivedColumn(
-          column.Name(),
-          std::make_unique<ColumnRefExpression>(
-              column.Expr().Type(), 1,
-              scan_table1->Schema().GetColumnIndex(column.Name())));
-    }
+    std::unique_ptr<Expression> i2 = std::make_unique<ColumnRefExpression>(
+        SqlType::INT, 0, scan_table1->Schema().GetColumnIndex("i2"));
+    std::unique_ptr<Expression> bi1 = std::make_unique<ColumnRefExpression>(
+        SqlType::BIGINT, 0, scan_table1->Schema().GetColumnIndex("bi1"));
 
-    auto x1 = std::make_unique<ColumnRefExpression>(
-        SqlType::INT, 0, select_table->Schema().GetColumnIndex("i1"));
-    auto x2 = std::make_unique<ColumnRefExpression>(
-        SqlType::INT, 1, scan_table1->Schema().GetColumnIndex("i2"));
-    table_join_table1 = std::make_unique<HashJoinOperator>(
-        std::move(schema), std::move(select_table), std::move(scan_table1),
-        std::move(x1), std::move(x2));
+    auto avg_i2 = std::make_unique<AggregateExpression>(
+        AggregateType::AVG,
+        std::make_unique<ColumnRefExpression>(
+            SqlType::INT, 0, scan_table1->Schema().GetColumnIndex("i2")));
+
+    OperatorSchema schema;
+    schema.AddDerivedColumn(
+        "avg_i2",
+        std::make_unique<VirtualColumnRefExpression>(SqlType::REAL, 0));
+
+    group_by_agg_table1 = std::make_unique<GroupByAggregateOperator>(
+        std::move(schema), std::move(scan_table1),
+        util::MakeVector(std::move(i2), std::move(bi1)),
+        util::MakeVector(std::move(avg_i2)));
   }
 
-  // scan(table2)
-  std::unique_ptr<Operator> scan_table2;
-  {
-    OperatorSchema schema;
-    for (const auto& col : db["table2"].Columns()) {
-      schema.AddGeneratedColumn(col.get().Name(), col.get().Type());
-    }
-    scan_table2 = std::make_unique<ScanOperator>(std::move(schema), "table2");
-  }
-
-  // (select(table) join table1 ON x1 = x2) join table2 ON x2 = x3
-  std::unique_ptr<Operator> table_join_table1_join_table2;
-  {
-    OperatorSchema schema;
-    for (const auto& column : table_join_table1->Schema().Columns()) {
-      schema.AddDerivedColumn(
-          column.Name(),
-          std::make_unique<ColumnRefExpression>(
-              column.Expr().Type(), 0,
-              table_join_table1->Schema().GetColumnIndex(column.Name())));
-    }
-    for (const auto& column : scan_table2->Schema().Columns()) {
-      schema.AddDerivedColumn(
-          column.Name(),
-          std::make_unique<ColumnRefExpression>(
-              column.Expr().Type(), 1,
-              scan_table2->Schema().GetColumnIndex(column.Name())));
-    }
-
-    auto x2 = std::make_unique<ColumnRefExpression>(
-        SqlType::INT, 0, table_join_table1->Schema().GetColumnIndex("i2"));
-    auto x3 = std::make_unique<ColumnRefExpression>(
-        SqlType::INT, 1, scan_table2->Schema().GetColumnIndex("i3"));
-    table_join_table1_join_table2 = std::make_unique<HashJoinOperator>(
-        std::move(schema), std::move(table_join_table1), std::move(scan_table2),
-        std::move(x2), std::move(x3));
-  }
-
-  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(
-      std::move(table_join_table1_join_table2));
+  std::unique_ptr<Operator> query =
+      std::make_unique<OutputOperator>(std::move(group_by_agg_table1));
 
   CppTranslator translator(db, *query);
   translator.Translate();

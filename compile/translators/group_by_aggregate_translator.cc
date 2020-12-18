@@ -56,8 +56,8 @@ void GroupByAggregateTranslator::Produce() {
 
   // loop over elements of HT and output row
   auto bucket_var = program.GenerateVariable();
-  program.fout << "for (const auto& [_, " << bucket_var
-               << "] : " << hash_table_var_ << " {\n";
+  program.fout << "for (auto& [_, " << bucket_var << "] : " << hash_table_var_
+               << ") {\n";
 
   auto loop_var = program.GenerateVariable();
   program.fout << "for (int " << loop_var << " = 0; " << loop_var << " < "
@@ -66,11 +66,17 @@ void GroupByAggregateTranslator::Produce() {
   // unpack group by/aggregates
   for (const auto& [field, type] : packed_group_by_field_type_) {
     auto var = program.GenerateVariable();
+    program.fout << type << "& " << var << " = " << bucket_var << "["
+                 << loop_var << "]." << field << ";\n";
+  }
+  for (const auto& [field, type] : packed_agg_field_type_) {
+    auto var = program.GenerateVariable();
     virtual_values_.AddVariable(var, type);
     program.fout << type << "& " << var << " = " << bucket_var << "["
                  << loop_var << "]." << field << ";\n";
   }
 
+  // generate output variables
   for (const auto& column : group_by_agg_.Schema().Columns()) {
     auto var = program.GenerateVariable();
     auto type = SqlTypeToRuntimeType(column.Expr().Type());
@@ -90,7 +96,80 @@ void GroupByAggregateTranslator::Produce() {
 }
 
 void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
-  // store into HT
+  auto& program = context_.Program();
+  auto group_by_exprs = group_by_agg_.GroupByExprs();
+
+  auto hash_var = program.GenerateVariable();
+  program.fout << "std::size_t " << hash_var << " = 0;";
+  program.fout << "kush::util::HashCombine(" << hash_var;
+  for (auto& group_by : group_by_exprs) {
+    program.fout << ", ";
+    expr_translator_.Produce(group_by.get());
+  }
+  program.fout << ");\n";
+
+  auto bucket_var = program.GenerateVariable();
+  program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "["
+               << hash_var << "];\n";
+
+  auto found_var = program.GenerateVariable();
+  program.fout << "bool " << found_var << " = false;\n";
+
+  // loop over bucket and check equality of the group by columns
+  auto loop_var = program.GenerateVariable();
+  program.fout << "for (int " << loop_var << " = 0; " << loop_var << " < "
+               << bucket_var << ".size(); " << loop_var << "++){\n";
+  // check if the key columns are actually equal
+  program.fout << "if (";
+
+  for (int i = 0; i < group_by_exprs.size(); i++) {
+    if (i > 0) {
+      program.fout << "&&";
+    }
+
+    const auto& [field, type] = packed_group_by_field_type_[i];
+
+    program.fout << "(" << bucket_var << "[" << loop_var << "]." << field
+                 << " == ";
+    expr_translator_.Produce(group_by_exprs[i]);
+    program.fout << ")";
+  }
+
+  program.fout << ") {\n";
+  // TODO: if equal, update aggregations
+  program.fout << found_var << " = true;\n";
+  program.fout << "break;\n";
+  program.fout << "}}\n";
+
+  // if not found insert new group
+  program.fout << "if (!" << found_var << ") {\n";
+  program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{";
+  bool first = true;
+  for (auto& group_by : group_by_exprs) {
+    if (first) {
+      first = false;
+    } else {
+      program.fout << ",";
+    }
+    expr_translator_.Produce(group_by.get());
+  }
+  for (auto& agg : group_by_agg_.AggExprs()) {
+    // initialize agg
+    if (first) {
+      first = false;
+    } else {
+      program.fout << ",";
+    }
+
+    switch (agg.get().AggType()) {
+      case plan::AggregateType::SUM:
+      case plan::AggregateType::AVG:
+        program.fout << "0";
+        break;
+    }
+  }
+  program.fout << "});\n";
+  program.fout << "}\n";
 }
 
 }  // namespace kush::compile
