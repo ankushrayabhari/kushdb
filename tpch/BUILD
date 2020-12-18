@@ -1,4 +1,6 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
 
 cc_binary(
     name = "load",
@@ -9,7 +11,7 @@ cc_binary(
     ],
 )
 
-cc_binary(
+cc_library(
     name = "schema",
     hdrs = ["schema.h"],
     deps = [

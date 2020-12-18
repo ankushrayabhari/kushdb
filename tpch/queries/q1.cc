@@ -6,7 +6,6 @@
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "compile/cpp_translator.h"
-#include "nlohmann/json.hpp"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
@@ -19,6 +18,7 @@
 #include "plan/output_operator.h"
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
+#include "tpch/schema.h"
 #include "util/vector_util.h"
 
 using namespace kush;
@@ -27,13 +27,7 @@ using namespace kush::compile;
 using namespace kush::catalog;
 
 int main() {
-  Database db;
-  db.Insert("table").Insert("i1", SqlType::INT, "sample/int1.kdb");
-  db.Insert("table1").Insert("i2", SqlType::INT, "sample/int2.kdb");
-  db.Insert("table1").Insert("bi1", SqlType::BIGINT, "sample/bigint1.kdb");
-  db.Insert("table2").Insert("i3", SqlType::INT, "sample/int3.kdb");
-  db.Insert("table2").Insert("i4", SqlType::INT, "sample/int4.kdb");
-  db.Insert("table2").Insert("t1", SqlType::TEXT, "sample/text1.kdb");
+  Database db = Schema();
 
   // scan(table1)
   std::unique_ptr<Operator> scan_table1;

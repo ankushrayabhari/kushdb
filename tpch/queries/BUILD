@@ -17,7 +17,7 @@ cc_binary(
         "//plan/expression:comparison_expression",
         "//plan/expression:literal_expression",
         "//plan/expression:virtual_column_ref_expression",
+        "//tpch:schema",
         "//util:vector_util",
-        "@json",
     ],
 )
