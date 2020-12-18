@@ -7,8 +7,9 @@
 
 #include "data/column_data.h"
 
-int main() {
-  const std::string charset =
+/*
+
+const std::string charset =
       "0123456789"
       "abcdefghijklmnopqrstuvwxyz"
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -26,6 +27,15 @@ int main() {
     std::generate_n(data[i].begin(), len, randchar);
   }
 
-  kush::data::ColumnData<std::string_view>::Serialize("out.skdbcol", data);
+  kush::data::ColumnData<std::string_view>::Serialize("out.kdb", data);
+
+*/
+
+int main() {
+  std::vector<int32_t> data(100);
+  for (int i = 0; i < 100; i++) {
+    data[i] = i;
+  }
+  kush::data::ColumnData<int32_t>::Serialize("out.kdb", data);
   return 0;
 }

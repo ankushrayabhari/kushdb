@@ -45,16 +45,13 @@ int main() {
     scan_table1 = std::make_unique<ScanOperator>(std::move(schema), "table1");
   }
 
-  // Group By i2, bi1 -> AVG(i2)
+  // Group By asdf -> AVG(i2)
   std::unique_ptr<Operator> group_by_agg_table1;
   {
-    std::unique_ptr<Expression> i2 = std::make_unique<ColumnRefExpression>(
-        SqlType::INT, 0, scan_table1->Schema().GetColumnIndex("i2"));
-    std::unique_ptr<Expression> bi1 = std::make_unique<ColumnRefExpression>(
-        SqlType::BIGINT, 0, scan_table1->Schema().GetColumnIndex("bi1"));
-
+    std::unique_ptr<Expression> expr =
+        std::make_unique<LiteralExpression>(true);
     auto avg_i2 = std::make_unique<AggregateExpression>(
-        AggregateType::AVG,
+        AggregateType::SUM,
         std::make_unique<ColumnRefExpression>(
             SqlType::INT, 0, scan_table1->Schema().GetColumnIndex("i2")));
 
@@ -65,8 +62,7 @@ int main() {
 
     group_by_agg_table1 = std::make_unique<GroupByAggregateOperator>(
         std::move(schema), std::move(scan_table1),
-        util::MakeVector(std::move(i2), std::move(bi1)),
-        util::MakeVector(std::move(avg_i2)));
+        util::MakeVector(std::move(expr)), util::MakeVector(std::move(avg_i2)));
   }
 
   std::unique_ptr<Operator> query =

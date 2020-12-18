@@ -29,6 +29,7 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   std::string packed_struct_id_;
   std::vector<std::pair<std::string, std::string>> packed_group_by_field_type_;
   std::vector<std::pair<std::string, std::string>> packed_agg_field_type_;
+  std::string record_count_field_;
 };
 
 }  // namespace kush::compile

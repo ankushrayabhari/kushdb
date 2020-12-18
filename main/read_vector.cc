@@ -8,7 +8,7 @@
 
 int main() {
   // random type for now
-  const kush::data::ColumnData<std::string_view> data("out.skdbcol");
+  const kush::data::ColumnData<int32_t> data("sample/int2.kdb");
 
   for (int i = 0; i < data.Size(); i++) {
     std::cout << data[i] << std::endl;

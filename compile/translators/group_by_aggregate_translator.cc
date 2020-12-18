@@ -29,6 +29,9 @@ void GroupByAggregateTranslator::Produce() {
   packed_struct_id_ = program.GenerateVariable();
   program.fout << " struct " << packed_struct_id_ << " {\n";
 
+  record_count_field_ = program.GenerateVariable();
+  program.fout << "int64_t " << record_count_field_ << ";\n";
+
   // - include every group by column inside the struct
   for (const auto& group_by : group_by_agg_.GroupByExprs()) {
     auto field = program.GenerateVariable();
@@ -98,6 +101,7 @@ void GroupByAggregateTranslator::Produce() {
 void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
   auto& program = context_.Program();
   auto group_by_exprs = group_by_agg_.GroupByExprs();
+  auto agg_exprs = group_by_agg_.AggExprs();
 
   auto hash_var = program.GenerateVariable();
   program.fout << "std::size_t " << hash_var << " = 0;";
@@ -136,31 +140,39 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
   }
 
   program.fout << ") {\n";
-  // TODO: if equal, update aggregations
+
+  // TODO: Update aggregations
+  for (int i = 0; i < packed_agg_field_type_.size(); i++) {
+    const auto& [field, type] = packed_agg_field_type_[i];
+    auto& agg = agg_exprs[i].get();
+
+    switch (agg.AggType()) {
+      case plan::AggregateType::SUM:
+        program.fout << bucket_var << "[" << loop_var << "]." << field
+                     << " += ";
+        expr_translator_.Produce(agg.Child());
+        program.fout << ";\n";
+        break;
+      case plan::AggregateType::AVG:
+        // TODO: asdf
+        break;
+    }
+  }
+
   program.fout << found_var << " = true;\n";
   program.fout << "break;\n";
   program.fout << "}}\n";
 
   // if not found insert new group
   program.fout << "if (!" << found_var << ") {\n";
-  program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{";
-  bool first = true;
+  program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{1";
   for (auto& group_by : group_by_exprs) {
-    if (first) {
-      first = false;
-    } else {
-      program.fout << ",";
-    }
+    program.fout << ",";
     expr_translator_.Produce(group_by.get());
   }
-  for (auto& agg : group_by_agg_.AggExprs()) {
+  for (auto& agg : agg_exprs) {
     // initialize agg
-    if (first) {
-      first = false;
-    } else {
-      program.fout << ",";
-    }
-
+    program.fout << ",";
     switch (agg.get().AggType()) {
       case plan::AggregateType::SUM:
       case plan::AggregateType::AVG:
