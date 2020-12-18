@@ -67,6 +67,18 @@ cc_library(
 )
 
 cc_library(
+    name = "arithmetic_expression",
+    srcs = ["arithmetic_expression.cc"],
+    hdrs = ["arithmetic_expression.h"],
+    deps = [
+        ":expression",
+        ":expression_visitor",
+        "@json",
+        "@magic_enum",
+    ],
+)
+
+cc_library(
     name = "aggregate_expression",
     srcs = ["aggregate_expression.cc"],
     hdrs = ["aggregate_expression.h"],

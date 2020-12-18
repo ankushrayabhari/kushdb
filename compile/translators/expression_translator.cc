@@ -7,6 +7,7 @@
 
 #include "compile/compilation_context.h"
 #include "plan/expression/aggregate_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/expression_visitor.h"
@@ -21,6 +22,24 @@ ExpressionTranslator::ExpressionTranslator(CompilationContext& context,
 
 void ExpressionTranslator::Produce(plan::Expression& expr) {
   expr.Accept(*this);
+}
+
+void ExpressionTranslator::Visit(plan::ArithmeticExpression& arith) {
+  auto type = arith.OpType();
+
+  using OpType = plan::ArithmeticOperatorType;
+  const std::unordered_map<OpType, std::string> type_to_op{
+      {OpType::ADD, "+"}, {OpType::SUB, "-"},  {OpType::MUL, "*"},
+      {OpType::DIV, "/"}, {OpType::AND, "&&"}, {OpType::OR, "||"},
+  };
+
+  auto& program = context_.Program();
+
+  program.fout << "(";
+  Produce(arith.LeftChild());
+  program.fout << ")" << type_to_op.at(type) << "(";
+  Produce(arith.RightChild());
+  program.fout << ")";
 }
 
 void ExpressionTranslator::Visit(plan::AggregateExpression& agg) {

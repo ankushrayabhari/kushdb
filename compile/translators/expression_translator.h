@@ -20,6 +20,7 @@ class ExpressionTranslator : public plan::ExpressionVisitor {
   void Visit(plan::VirtualColumnRefExpression& virtual_col_ref) override;
   void Visit(plan::ComparisonExpression& comp) override;
   void Visit(plan::LiteralExpression& literal) override;
+  void Visit(plan::ArithmeticExpression& arith) override;
 
  private:
   CompilationContext& context_;
