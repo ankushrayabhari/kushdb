@@ -6,3 +6,6 @@
 
 # Misc
 /db
+
+# TPCH Data
+/tpch/data
