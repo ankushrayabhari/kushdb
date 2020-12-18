@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <fstream>
 #include <string>
 
@@ -26,8 +27,8 @@ class CppProgram : public Program {
   std::string dylib_;
   std::string last_variable_;
 
-  friend class If;
-  friend class For;
+  std::chrono::time_point<std::chrono::system_clock> start, gen, comp, link,
+      end;
 };
 
 }  // namespace compile
