@@ -34,4 +34,6 @@ OperatorTranslator& OperatorTranslator::RightChild() { return *children_[1]; }
 
 SchemaValues& OperatorTranslator::GetValues() { return values_; }
 
+SchemaValues& OperatorTranslator::GetVirtualValues() { return virtual_values_; }
+
 }  // namespace kush::compile

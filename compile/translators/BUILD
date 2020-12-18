@@ -106,5 +106,6 @@ cc_library(
         "//plan/expression:comparison_expression",
         "//plan/expression:expression_visitor",
         "//plan/expression:literal_expression",
+        "//plan/expression:virtual_column_ref_expression",
     ],
 )

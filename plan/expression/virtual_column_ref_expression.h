@@ -9,16 +9,14 @@
 
 namespace kush::plan {
 
-class ColumnRefExpression : public Expression {
+class VirtualColumnRefExpression : public Expression {
  public:
-  ColumnRefExpression(catalog::SqlType type, int child_idx, int column_idx);
+  VirtualColumnRefExpression(catalog::SqlType type, int column_idx);
   nlohmann::json ToJson() const override;
-  int GetChildIdx();
   int GetColumnIdx();
   void Accept(ExpressionVisitor& visitor) override;
 
  private:
-  int child_idx_;
   int column_idx_;
 };
 

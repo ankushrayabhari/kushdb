@@ -58,6 +58,19 @@ void GroupByAggregateTranslator::Produce() {
   auto bucket_var = program.GenerateVariable();
   program.fout << "for (const auto& [_, " << bucket_var
                << "] : " << hash_table_var_ << " {\n";
+
+  auto loop_var = program.GenerateVariable();
+  program.fout << "for (int " << loop_var << " = 0; " << loop_var << " < "
+               << bucket_var << ".size(); " << loop_var << "++){\n";
+
+  // unpack group by/aggregates
+  for (const auto& [field, type] : packed_group_by_field_type_) {
+    auto var = program.GenerateVariable();
+    virtual_values_.AddVariable(var, type);
+    program.fout << type << "& " << var << " = " << bucket_var << "["
+                 << loop_var << "]." << field << ";\n";
+  }
+
   for (const auto& column : group_by_agg_.Schema().Columns()) {
     auto var = program.GenerateVariable();
     auto type = SqlTypeToRuntimeType(column.Expr().Type());
@@ -73,7 +86,7 @@ void GroupByAggregateTranslator::Produce() {
     parent->get().Consume(*this);
   }
 
-  program.fout << "}\n";
+  program.fout << "}}\n";
 }
 
 void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {

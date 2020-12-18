@@ -21,9 +21,11 @@ class OperatorTranslator {
   OperatorTranslator& LeftChild();
   OperatorTranslator& RightChild();
   SchemaValues& GetValues();
+  SchemaValues& GetVirtualValues();
 
  protected:
   SchemaValues values_;
+  SchemaValues virtual_values_;
 
  private:
   OperatorTranslator* parent_;

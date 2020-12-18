@@ -44,6 +44,17 @@ cc_library(
 )
 
 cc_library(
+    name = "virtual_column_ref_expression",
+    srcs = ["virtual_column_ref_expression.cc"],
+    hdrs = ["virtual_column_ref_expression.h"],
+    deps = [
+        ":expression",
+        ":expression_visitor",
+        "@json",
+    ],
+)
+
+cc_library(
     name = "comparison_expression",
     srcs = ["comparison_expression.cc"],
     hdrs = ["comparison_expression.h"],

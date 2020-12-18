@@ -8,11 +8,13 @@ class AggregateExpression;
 class ColumnRefExpression;
 class ComparisonExpression;
 class LiteralExpression;
+class VirtualColumnRefExpression;
 
 class ExpressionVisitor {
  public:
   virtual void Visit(AggregateExpression& agg) = 0;
   virtual void Visit(ColumnRefExpression& col_ref) = 0;
+  virtual void Visit(VirtualColumnRefExpression& virtual_col_ref) = 0;
   virtual void Visit(ComparisonExpression& comp) = 0;
   virtual void Visit(LiteralExpression& literal) = 0;
 };

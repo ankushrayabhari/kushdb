@@ -11,6 +11,7 @@
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "plan/expression/literal_expression.h"
+#include "plan/expression/virtual_column_ref_expression.h"
 
 namespace kush::compile {
 
@@ -28,6 +29,12 @@ void ExpressionTranslator::Visit(plan::AggregateExpression& agg) {
 
 void ExpressionTranslator::Visit(plan::ColumnRefExpression& col_ref) {
   auto& values = source_.Children()[col_ref.GetChildIdx()].get().GetValues();
+  auto& program = context_.Program();
+  program.fout << values.Variable(col_ref.GetColumnIdx());
+}
+
+void ExpressionTranslator::Visit(plan::VirtualColumnRefExpression& col_ref) {
+  auto& values = source_.GetVirtualValues();
   auto& program = context_.Program();
   program.fout << values.Variable(col_ref.GetColumnIdx());
 }
