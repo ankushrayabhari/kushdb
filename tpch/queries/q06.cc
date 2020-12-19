@@ -120,12 +120,9 @@ int main() {
             std::make_unique<ColumnRefExpression>(
                 SqlType::REAL, 0,
                 select_lineitem->Schema().GetColumnIndex("l_extendedprice")),
-            std::make_unique<ArithmeticExpression>(
-                ArithmeticOperatorType::SUB,
-                std::make_unique<LiteralExpression>(1),
-                std::make_unique<ColumnRefExpression>(
-                    SqlType::REAL, 0,
-                    select_lineitem->Schema().GetColumnIndex("l_discount")))));
+            std::make_unique<ColumnRefExpression>(
+                SqlType::REAL, 0,
+                select_lineitem->Schema().GetColumnIndex("l_discount"))));
 
     OperatorSchema schema;
     schema.AddDerivedColumn(
