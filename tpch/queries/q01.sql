@@ -10,7 +10,7 @@ select
 	avg(l_discount) as avg_disc,
 	count(*) as count_order
 from
-	lineitem
+	lineitem_01
 where
 	l_shipdate <= date '1998-12-01'
 group by

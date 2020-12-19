@@ -1,7 +1,7 @@
 select
 	l_shipmode
 from
-	lineitem
+	lineitem_12
 where
 	(l_shipmode = 'FOB' or l_shipmode = 'SHIP') 
     and l_commitdate < l_receiptdate 

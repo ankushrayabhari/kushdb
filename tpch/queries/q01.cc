@@ -37,7 +37,7 @@ int main() {
     auto& table = db["lineitem"];
     std::vector<std::string> columns{
         "l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice",
-        "l_discount",   "l_tax",        "l_quantity", "l_shipdate"};
+        "l_discount",   "l_tax",        "l_shipdate"};
 
     OperatorSchema schema;
     for (const auto& col : columns) {
@@ -57,9 +57,9 @@ int main() {
     auto leq = std::make_unique<ComparisonExpression>(
         ComparisonType::LEQ, std::move(l_shipdate), std::move(literal));
 
-    std::vector<std::string> columns{
-        "l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice",
-        "l_discount",   "l_tax",        "l_quantity"};
+    std::vector<std::string> columns{"l_returnflag", "l_linestatus",
+                                     "l_quantity",   "l_extendedprice",
+                                     "l_discount",   "l_tax"};
     OperatorSchema schema;
     for (const auto& col : columns) {
       auto idx = scan_lineitem->Schema().GetColumnIndex(col);

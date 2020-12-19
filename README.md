@@ -15,3 +15,4 @@ Compilation-based execution engine for a database
 3. Move them to `tpch/raw/`.
 4. Run `tpch/schema.sql`.
 5. Run `tpch/postgres-load.sql`.
+6. Execute queries in `tpch/queries/`. Create materialized views of each table for only the columns you read.
