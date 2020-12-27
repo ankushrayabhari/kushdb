@@ -11,7 +11,8 @@
 namespace kush::compile {
 
 class TranslatorFactory
-    : public util::Visitor<plan::ImmutableOperatorVisitor,
+    : public util::Visitor<const plan::Operator&,
+                           plan::ImmutableOperatorVisitor,
                            std::unique_ptr<OperatorTranslator>> {
  public:
   TranslatorFactory(CompilationContext& context);
@@ -22,8 +23,6 @@ class TranslatorFactory
   void Visit(const plan::OutputOperator& output) override;
   void Visit(const plan::HashJoinOperator& hash_join) override;
   void Visit(const plan::GroupByAggregateOperator& group_by_agg) override;
-
-  std::unique_ptr<OperatorTranslator> Produce(const plan::Operator& target);
 
  private:
   std::vector<std::unique_ptr<OperatorTranslator>> GetChildTranslators(

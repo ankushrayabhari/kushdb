@@ -9,13 +9,15 @@ namespace kush::compile {
 
 class CppTranslator {
  public:
-  CppTranslator(const catalog::Database& db, plan::Operator& op);
+  CppTranslator(const catalog::Database& db, const plan::Operator& op);
+
   void Translate();
+
   Program& Program();
 
  private:
   CompilationContext context_;
-  plan::Operator& op_;
+  const plan::Operator& op_;
 };
 
 }  // namespace kush::compile

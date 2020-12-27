@@ -8,7 +8,8 @@
 
 namespace kush::compile {
 
-CppTranslator::CppTranslator(const catalog::Database& db, plan::Operator& op)
+CppTranslator::CppTranslator(const catalog::Database& db,
+                             const plan::Operator& op)
     : context_(db), op_(op) {}
 
 void CppTranslator::Translate() {
@@ -16,7 +17,7 @@ void CppTranslator::Translate() {
 
   // Generate code for operator
   TranslatorFactory factory(context_);
-  auto translator = factory.Produce(op_);
+  auto translator = factory.Compute(op_);
   translator->Produce();
 
   context_.Program().CodegenFinalize();

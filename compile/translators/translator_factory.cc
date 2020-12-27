@@ -22,7 +22,7 @@ std::vector<std::unique_ptr<OperatorTranslator>>
 TranslatorFactory::GetChildTranslators(const plan::Operator& current) {
   std::vector<std::unique_ptr<OperatorTranslator>> translators;
   for (auto& child : current.Children()) {
-    translators.push_back(Produce(child.get()));
+    translators.push_back(Compute(child.get()));
   }
   return translators;
 }
@@ -51,12 +51,6 @@ void TranslatorFactory::Visit(
     const plan::GroupByAggregateOperator& group_by_agg) {
   Return(std::make_unique<GroupByAggregateTranslator>(
       group_by_agg, context_, GetChildTranslators(group_by_agg)));
-}
-
-std::unique_ptr<OperatorTranslator> TranslatorFactory::Produce(
-    const plan::Operator& target) {
-  target.Accept(*this);
-  return GetResult();
 }
 
 }  // namespace kush::compile
