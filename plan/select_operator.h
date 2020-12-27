@@ -15,9 +15,13 @@ class SelectOperator final : public UnaryOperator {
  public:
   SelectOperator(OperatorSchema schema, std::unique_ptr<Operator> child,
                  std::unique_ptr<Expression> expression);
-  nlohmann::json ToJson() const override;
+
+  const Expression& Expr() const;
+
   void Accept(OperatorVisitor& visitor) override;
-  Expression& Expr();
+  void Accept(ImmutableOperatorVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
 
  private:
   std::unique_ptr<Expression> expression_;

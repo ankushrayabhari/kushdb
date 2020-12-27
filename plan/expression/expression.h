@@ -15,10 +15,14 @@ class Expression {
   Expression(catalog::SqlType type,
              std::vector<std::unique_ptr<Expression>> children);
   virtual ~Expression() = default;
-  virtual nlohmann::json ToJson() const = 0;
-  virtual void Accept(ExpressionVisitor& visitor) = 0;
-  std::vector<std::reference_wrapper<Expression>> Children();
+
+  std::vector<std::reference_wrapper<const Expression>> Children() const;
   catalog::SqlType Type() const;
+
+  virtual void Accept(ExpressionVisitor& visitor) = 0;
+  virtual void Accept(ImmutableExpressionVisitor& visitor) const = 0;
+
+  virtual nlohmann::json ToJson() const = 0;
 
  private:
   catalog::SqlType type_;
@@ -31,6 +35,7 @@ class UnaryExpression : public Expression {
  public:
   UnaryExpression(catalog::SqlType type, std::unique_ptr<Expression> child);
   virtual ~UnaryExpression() = default;
+
   Expression& Child();
   const Expression& Child() const;
 };
@@ -41,6 +46,7 @@ class BinaryExpression : public Expression {
                    std::unique_ptr<Expression> left_child,
                    std::unique_ptr<Expression> right_child);
   virtual ~BinaryExpression() = default;
+
   Expression& LeftChild();
   const Expression& LeftChild() const;
   Expression& RightChild();

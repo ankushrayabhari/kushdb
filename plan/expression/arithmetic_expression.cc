@@ -35,6 +35,10 @@ void ArithmeticExpression::Accept(ExpressionVisitor& visitor) {
   return visitor.Visit(*this);
 }
 
+void ArithmeticExpression::Accept(ImmutableExpressionVisitor& visitor) const {
+  return visitor.Visit(*this);
+}
+
 ArithmeticOperatorType ArithmeticExpression::OpType() const { return type_; }
 
 }  // namespace kush::plan

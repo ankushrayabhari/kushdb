@@ -20,9 +20,13 @@ class ArithmeticExpression : public BinaryExpression {
   ArithmeticExpression(ArithmeticOperatorType type,
                        std::unique_ptr<Expression> left,
                        std::unique_ptr<Expression> right);
-  nlohmann::json ToJson() const override;
-  void Accept(ExpressionVisitor& visitor) override;
+
   ArithmeticOperatorType OpType() const;
+
+  void Accept(ExpressionVisitor& visitor) override;
+  void Accept(ImmutableExpressionVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
 
  private:
   ArithmeticOperatorType type_;

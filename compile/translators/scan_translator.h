@@ -8,14 +8,14 @@ namespace kush::compile {
 
 class ScanTranslator : public OperatorTranslator {
  public:
-  ScanTranslator(plan::ScanOperator& scan, CompilationContext& context,
+  ScanTranslator(const plan::ScanOperator& scan, CompilationContext& context,
                  std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~ScanTranslator() = default;
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
 
  private:
-  plan::ScanOperator& scan_;
+  const plan::ScanOperator& scan_;
   CompilationContext& context_;
 };
 

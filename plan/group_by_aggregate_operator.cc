@@ -37,14 +37,18 @@ void GroupByAggregateOperator::Accept(OperatorVisitor& visitor) {
   return visitor.Visit(*this);
 }
 
-std::vector<std::reference_wrapper<Expression>>
-GroupByAggregateOperator::GroupByExprs() {
-  return util::ReferenceVector(group_by_exprs_);
+void GroupByAggregateOperator::Accept(ImmutableOperatorVisitor& visitor) const {
+  return visitor.Visit(*this);
 }
 
-std::vector<std::reference_wrapper<AggregateExpression>>
-GroupByAggregateOperator::AggExprs() {
-  return util::ReferenceVector(aggregate_exprs_);
+std::vector<std::reference_wrapper<const Expression>>
+GroupByAggregateOperator::GroupByExprs() const {
+  return util::ImmutableReferenceVector(group_by_exprs_);
+}
+
+std::vector<std::reference_wrapper<const AggregateExpression>>
+GroupByAggregateOperator::AggExprs() const {
+  return util::ImmutableReferenceVector(aggregate_exprs_);
 }
 
 }  // namespace kush::plan

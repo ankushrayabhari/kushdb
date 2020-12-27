@@ -19,9 +19,13 @@ HashJoinOperator::HashJoinOperator(
       left_column_(std::move(left_column)),
       right_column_(std::move(right_column)) {}
 
-ColumnRefExpression& HashJoinOperator::LeftColumn() { return *left_column_; }
+const ColumnRefExpression& HashJoinOperator::LeftColumn() const {
+  return *left_column_;
+}
 
-ColumnRefExpression& HashJoinOperator::RightColumn() { return *right_column_; }
+const ColumnRefExpression& HashJoinOperator::RightColumn() const {
+  return *right_column_;
+}
 
 nlohmann::json HashJoinOperator::ToJson() const {
   nlohmann::json j;
@@ -39,6 +43,10 @@ nlohmann::json HashJoinOperator::ToJson() const {
 }
 
 void HashJoinOperator::Accept(OperatorVisitor& visitor) {
+  visitor.Visit(*this);
+}
+
+void HashJoinOperator::Accept(ImmutableOperatorVisitor& visitor) const {
   visitor.Visit(*this);
 }
 

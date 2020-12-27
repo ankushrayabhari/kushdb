@@ -30,8 +30,11 @@ class LiteralExpression : public Expression {
   int64_t GetDateValue() const;
   std::string_view GetTextValue() const;
   bool GetBooleanValue() const;
-  nlohmann::json ToJson() const override;
+
   void Accept(ExpressionVisitor& visitor) override;
+  void Accept(ImmutableExpressionVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
 
  private:
   std::variant<int16_t, int32_t, int64_t, double, std::string, bool> value_;

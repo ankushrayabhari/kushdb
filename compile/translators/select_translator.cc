@@ -9,7 +9,7 @@
 namespace kush::compile {
 
 SelectTranslator::SelectTranslator(
-    plan::SelectOperator& select, CompilationContext& context,
+    const plan::SelectOperator& select, CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)),
       select_(select),

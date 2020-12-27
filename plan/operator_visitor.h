@@ -17,4 +17,13 @@ class OperatorVisitor {
   virtual void Visit(GroupByAggregateOperator& group_by_agg) = 0;
 };
 
+class ImmutableOperatorVisitor {
+ public:
+  virtual void Visit(const ScanOperator& scan) = 0;
+  virtual void Visit(const SelectOperator& select) = 0;
+  virtual void Visit(const OutputOperator& output) = 0;
+  virtual void Visit(const HashJoinOperator& hash_join) = 0;
+  virtual void Visit(const GroupByAggregateOperator& group_by_agg) = 0;
+};
+
 }  // namespace kush::plan

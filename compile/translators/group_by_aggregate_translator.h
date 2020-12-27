@@ -14,7 +14,8 @@ namespace kush::compile {
 class GroupByAggregateTranslator : public OperatorTranslator {
  public:
   GroupByAggregateTranslator(
-      plan::GroupByAggregateOperator& group_by_agg, CompilationContext& context,
+      const plan::GroupByAggregateOperator& group_by_agg,
+      CompilationContext& context,
       std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~GroupByAggregateTranslator() = default;
 
@@ -22,7 +23,7 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   void Consume(OperatorTranslator& src) override;
 
  private:
-  plan::GroupByAggregateOperator& group_by_agg_;
+  const plan::GroupByAggregateOperator& group_by_agg_;
   CompilationContext& context_;
   ExpressionTranslator expr_translator_;
   std::string hash_table_var_;

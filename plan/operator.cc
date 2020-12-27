@@ -28,6 +28,10 @@ std::vector<std::reference_wrapper<Operator>> Operator::Children() {
   return util::ReferenceVector(children_);
 }
 
+std::vector<std::reference_wrapper<const Operator>> Operator::Children() const {
+  return util::ImmutableReferenceVector(children_);
+}
+
 const OperatorSchema& Operator::Schema() const { return schema_; }
 
 std::optional<std::reference_wrapper<Operator>> Operator::Parent() {

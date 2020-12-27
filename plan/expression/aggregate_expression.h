@@ -13,9 +13,13 @@ enum class AggregateType { SUM, AVG, COUNT };
 class AggregateExpression : public UnaryExpression {
  public:
   AggregateExpression(AggregateType type, std::unique_ptr<Expression> child);
-  nlohmann::json ToJson() const override;
-  AggregateType AggType();
+
+  AggregateType AggType() const;
+
   void Accept(ExpressionVisitor& visitor) override;
+  void Accept(ImmutableExpressionVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
 
  private:
   AggregateType type_;

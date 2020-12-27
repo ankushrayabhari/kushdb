@@ -12,8 +12,11 @@ namespace kush::plan {
 class OutputOperator final : public UnaryOperator {
  public:
   OutputOperator(std::unique_ptr<Operator> child);
-  nlohmann::json ToJson() const override;
+
   void Accept(OperatorVisitor& visitor) override;
+  void Accept(ImmutableOperatorVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
 };
 
 }  // namespace kush::plan

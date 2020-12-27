@@ -18,10 +18,15 @@ class GroupByAggregateOperator final : public UnaryOperator {
       OperatorSchema schema, std::unique_ptr<Operator> child,
       std::vector<std::unique_ptr<Expression>> group_by_exprs,
       std::vector<std::unique_ptr<AggregateExpression>> aggregate_exprs);
-  nlohmann::json ToJson() const override;
+
+  std::vector<std::reference_wrapper<const Expression>> GroupByExprs() const;
+  std::vector<std::reference_wrapper<const AggregateExpression>> AggExprs()
+      const;
+
   void Accept(OperatorVisitor& visitor) override;
-  std::vector<std::reference_wrapper<Expression>> GroupByExprs();
-  std::vector<std::reference_wrapper<AggregateExpression>> AggExprs();
+  void Accept(ImmutableOperatorVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
 
  private:
   std::vector<std::unique_ptr<Expression>> group_by_exprs_;

@@ -13,9 +13,9 @@ ColumnRefExpression::ColumnRefExpression(catalog::SqlType type, int child_idx,
                                          int column_idx)
     : Expression(type, {}), child_idx_(child_idx), column_idx_(column_idx) {}
 
-int ColumnRefExpression::GetChildIdx() { return child_idx_; }
+int ColumnRefExpression::GetChildIdx() const { return child_idx_; }
 
-int ColumnRefExpression::GetColumnIdx() { return column_idx_; }
+int ColumnRefExpression::GetColumnIdx() const { return column_idx_; }
 
 nlohmann::json ColumnRefExpression::ToJson() const {
   nlohmann::json j;
@@ -25,6 +25,10 @@ nlohmann::json ColumnRefExpression::ToJson() const {
 }
 
 void ColumnRefExpression::Accept(ExpressionVisitor& visitor) {
+  return visitor.Visit(*this);
+}
+
+void ColumnRefExpression::Accept(ImmutableExpressionVisitor& visitor) const {
   return visitor.Visit(*this);
 }
 

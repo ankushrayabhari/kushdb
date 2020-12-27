@@ -20,11 +20,11 @@ ExpressionTranslator::ExpressionTranslator(CompilationContext& context,
                                            OperatorTranslator& source)
     : context_(context), source_(source) {}
 
-void ExpressionTranslator::Produce(plan::Expression& expr) {
+void ExpressionTranslator::Produce(const plan::Expression& expr) {
   expr.Accept(*this);
 }
 
-void ExpressionTranslator::Visit(plan::ArithmeticExpression& arith) {
+void ExpressionTranslator::Visit(const plan::ArithmeticExpression& arith) {
   auto type = arith.OpType();
 
   using OpType = plan::ArithmeticOperatorType;
@@ -44,23 +44,24 @@ void ExpressionTranslator::Visit(plan::ArithmeticExpression& arith) {
   program.fout << ")";
 }
 
-void ExpressionTranslator::Visit(plan::AggregateExpression& agg) {
+void ExpressionTranslator::Visit(const plan::AggregateExpression& agg) {
   throw std::runtime_error("Aggregate expression can't be derived");
 }
 
-void ExpressionTranslator::Visit(plan::ColumnRefExpression& col_ref) {
+void ExpressionTranslator::Visit(const plan::ColumnRefExpression& col_ref) {
   auto& values = source_.Children()[col_ref.GetChildIdx()].get().GetValues();
   auto& program = context_.Program();
   program.fout << values.Variable(col_ref.GetColumnIdx());
 }
 
-void ExpressionTranslator::Visit(plan::VirtualColumnRefExpression& col_ref) {
+void ExpressionTranslator::Visit(
+    const plan::VirtualColumnRefExpression& col_ref) {
   auto& values = source_.GetVirtualValues();
   auto& program = context_.Program();
   program.fout << values.Variable(col_ref.GetColumnIdx());
 }
 
-void ExpressionTranslator::Visit(plan::ComparisonExpression& comp) {
+void ExpressionTranslator::Visit(const plan::ComparisonExpression& comp) {
   auto type = comp.CompType();
 
   using CompType = plan::ComparisonType;
@@ -78,7 +79,7 @@ void ExpressionTranslator::Visit(plan::ComparisonExpression& comp) {
   program.fout << ")";
 }
 
-void ExpressionTranslator::Visit(plan::LiteralExpression& literal) {
+void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
   auto& program = context_.Program();
   switch (literal.Type()) {
     case catalog::SqlType::SMALLINT:

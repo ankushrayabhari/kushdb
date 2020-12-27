@@ -23,6 +23,10 @@ nlohmann::json ScanOperator::ToJson() const {
 
 void ScanOperator::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
 
+void ScanOperator::Accept(ImmutableOperatorVisitor& visitor) const {
+  visitor.Visit(*this);
+}
+
 std::string_view ScanOperator::Relation() const { return relation_; }
 
 }  // namespace kush::plan

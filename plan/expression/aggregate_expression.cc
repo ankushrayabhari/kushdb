@@ -54,6 +54,10 @@ void AggregateExpression::Accept(ExpressionVisitor& visitor) {
   return visitor.Visit(*this);
 }
 
-AggregateType AggregateExpression::AggType() { return type_; }
+void AggregateExpression::Accept(ImmutableExpressionVisitor& visitor) const {
+  return visitor.Visit(*this);
+}
+
+AggregateType AggregateExpression::AggType() const { return type_; }
 
 }  // namespace kush::plan

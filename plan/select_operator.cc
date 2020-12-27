@@ -28,6 +28,10 @@ nlohmann::json SelectOperator::ToJson() const {
 
 void SelectOperator::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
 
-Expression& SelectOperator::Expr() { return *expression_; }
+void SelectOperator::Accept(ImmutableOperatorVisitor& visitor) const {
+  visitor.Visit(*this);
+}
+
+const Expression& SelectOperator::Expr() const { return *expression_; }
 
 }  // namespace kush::plan

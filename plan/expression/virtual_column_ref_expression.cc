@@ -13,7 +13,7 @@ VirtualColumnRefExpression::VirtualColumnRefExpression(catalog::SqlType type,
                                                        int column_idx)
     : Expression(type, {}), column_idx_(column_idx) {}
 
-int VirtualColumnRefExpression::GetColumnIdx() { return column_idx_; }
+int VirtualColumnRefExpression::GetColumnIdx() const { return column_idx_; }
 
 nlohmann::json VirtualColumnRefExpression::ToJson() const {
   nlohmann::json j;
@@ -22,6 +22,11 @@ nlohmann::json VirtualColumnRefExpression::ToJson() const {
 }
 
 void VirtualColumnRefExpression::Accept(ExpressionVisitor& visitor) {
+  return visitor.Visit(*this);
+}
+
+void VirtualColumnRefExpression::Accept(
+    ImmutableExpressionVisitor& visitor) const {
   return visitor.Visit(*this);
 }
 

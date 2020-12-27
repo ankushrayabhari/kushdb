@@ -13,8 +13,9 @@ Expression::Expression(catalog::SqlType type,
                        std::vector<std::unique_ptr<Expression>> children)
     : type_(type), children_(std::move(children)) {}
 
-std::vector<std::reference_wrapper<Expression>> Expression::Children() {
-  return util::ReferenceVector(children_);
+std::vector<std::reference_wrapper<const Expression>> Expression::Children()
+    const {
+  return util::ImmutableReferenceVector(children_);
 }
 
 catalog::SqlType Expression::Type() const { return type_; }

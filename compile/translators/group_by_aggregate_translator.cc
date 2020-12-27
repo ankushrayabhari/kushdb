@@ -15,7 +15,8 @@
 namespace kush::compile {
 
 GroupByAggregateTranslator::GroupByAggregateTranslator(
-    plan::GroupByAggregateOperator& group_by_agg, CompilationContext& context,
+    const plan::GroupByAggregateOperator& group_by_agg,
+    CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)),
       group_by_agg_(group_by_agg),

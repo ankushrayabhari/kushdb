@@ -16,10 +16,14 @@ class HashJoinOperator final : public BinaryOperator {
                    std::unique_ptr<Operator> right,
                    std::unique_ptr<ColumnRefExpression> left_column_,
                    std::unique_ptr<ColumnRefExpression> right_column_);
-  nlohmann::json ToJson() const override;
+
+  const ColumnRefExpression& LeftColumn() const;
+  const ColumnRefExpression& RightColumn() const;
+
   void Accept(OperatorVisitor& visitor) override;
-  ColumnRefExpression& LeftColumn();
-  ColumnRefExpression& RightColumn();
+  void Accept(ImmutableOperatorVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
 
  private:
   std::unique_ptr<ColumnRefExpression> left_column_;

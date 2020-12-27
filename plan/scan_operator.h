@@ -13,9 +13,13 @@ namespace kush::plan {
 class ScanOperator final : public Operator {
  public:
   ScanOperator(OperatorSchema schema, std::string_view relation);
-  nlohmann::json ToJson() const override;
-  void Accept(OperatorVisitor& visitor) override;
+
   std::string_view Relation() const;
+
+  void Accept(OperatorVisitor& visitor) override;
+  void Accept(ImmutableOperatorVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
 
  private:
   std::string relation_;

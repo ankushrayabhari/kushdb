@@ -18,11 +18,17 @@ class Operator : public OperatorSchemaProvider {
            std::vector<std::unique_ptr<Operator>> children);
   virtual ~Operator() = default;
 
-  virtual nlohmann::json ToJson() const = 0;
-  virtual void Accept(OperatorVisitor& visitor) = 0;
   const OperatorSchema& Schema() const override;
+
+  virtual void Accept(OperatorVisitor& visitor) = 0;
+  virtual void Accept(ImmutableOperatorVisitor& visitor) const = 0;
+
   std::optional<std::reference_wrapper<Operator>> Parent();
+  std::optional<std::reference_wrapper<const Operator>> Parent() const;
   std::vector<std::reference_wrapper<Operator>> Children();
+  std::vector<std::reference_wrapper<const Operator>> Children() const;
+
+  virtual nlohmann::json ToJson() const = 0;
 
  private:
   Operator* parent_;
@@ -36,6 +42,7 @@ class UnaryOperator : public Operator {
  public:
   UnaryOperator(OperatorSchema schema, std::unique_ptr<Operator> child);
   virtual ~UnaryOperator() = default;
+
   Operator& Child();
   const Operator& Child() const;
 };
@@ -45,6 +52,7 @@ class BinaryOperator : public Operator {
   BinaryOperator(OperatorSchema schema, std::unique_ptr<Operator> left_child,
                  std::unique_ptr<Operator> right_child);
   virtual ~BinaryOperator() = default;
+
   Operator& LeftChild();
   const Operator& LeftChild() const;
   Operator& RightChild();

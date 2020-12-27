@@ -30,6 +30,10 @@ void ComparisonExpression::Accept(ExpressionVisitor& visitor) {
   return visitor.Visit(*this);
 }
 
+void ComparisonExpression::Accept(ImmutableExpressionVisitor& visitor) const {
+  return visitor.Visit(*this);
+}
+
 ComparisonType ComparisonExpression::CompType() const { return type_; }
 
 }  // namespace kush::plan

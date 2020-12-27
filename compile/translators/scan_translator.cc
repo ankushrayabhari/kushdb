@@ -13,7 +13,7 @@
 namespace kush::compile {
 
 ScanTranslator::ScanTranslator(
-    plan::ScanOperator& scan, CompilationContext& context,
+    const plan::ScanOperator& scan, CompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)), scan_(scan), context_(context) {}
 

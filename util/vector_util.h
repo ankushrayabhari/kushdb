@@ -55,4 +55,15 @@ std::vector<std::reference_wrapper<T>> ReferenceVector(
   return retval;
 }
 
+template <class T>
+std::vector<std::reference_wrapper<const T>> ImmutableReferenceVector(
+    const std::vector<std::unique_ptr<T>>& vec) {
+  std::vector<std::reference_wrapper<const T>> retval;
+  retval.reserve(vec.size());
+  for (auto& ptr : vec) {
+    retval.push_back(*ptr);
+  }
+  return retval;
+}
+
 }  // namespace kush::util

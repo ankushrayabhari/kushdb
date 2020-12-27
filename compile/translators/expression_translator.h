@@ -9,18 +9,18 @@
 
 namespace kush::compile {
 
-class ExpressionTranslator : public plan::ExpressionVisitor {
+class ExpressionTranslator : public plan::ImmutableExpressionVisitor {
  public:
   ExpressionTranslator(CompilationContext& context, OperatorTranslator& source);
   virtual ~ExpressionTranslator() = default;
 
-  void Produce(plan::Expression& expr);
-  void Visit(plan::AggregateExpression& agg) override;
-  void Visit(plan::ColumnRefExpression& col_ref) override;
-  void Visit(plan::VirtualColumnRefExpression& virtual_col_ref) override;
-  void Visit(plan::ComparisonExpression& comp) override;
-  void Visit(plan::LiteralExpression& literal) override;
-  void Visit(plan::ArithmeticExpression& arith) override;
+  void Produce(const plan::Expression& expr);
+  void Visit(const plan::AggregateExpression& agg) override;
+  void Visit(const plan::ColumnRefExpression& col_ref) override;
+  void Visit(const plan::VirtualColumnRefExpression& virtual_col_ref) override;
+  void Visit(const plan::ComparisonExpression& comp) override;
+  void Visit(const plan::LiteralExpression& literal) override;
+  void Visit(const plan::ArithmeticExpression& arith) override;
 
  private:
   CompilationContext& context_;

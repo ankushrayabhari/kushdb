@@ -14,9 +14,13 @@ class ComparisonExpression : public BinaryExpression {
  public:
   ComparisonExpression(ComparisonType type, std::unique_ptr<Expression> left,
                        std::unique_ptr<Expression> right);
-  nlohmann::json ToJson() const override;
-  void Accept(ExpressionVisitor& visitor) override;
+
   ComparisonType CompType() const;
+
+  void Accept(ExpressionVisitor& visitor) override;
+  void Accept(ImmutableExpressionVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
 
  private:
   ComparisonType type_;

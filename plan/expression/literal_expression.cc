@@ -101,4 +101,8 @@ void LiteralExpression::Accept(ExpressionVisitor& visitor) {
   return visitor.Visit(*this);
 }
 
+void LiteralExpression::Accept(ImmutableExpressionVisitor& visitor) const {
+  return visitor.Visit(*this);
+}
+
 }  // namespace kush::plan

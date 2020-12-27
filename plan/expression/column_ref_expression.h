@@ -12,10 +12,14 @@ namespace kush::plan {
 class ColumnRefExpression : public Expression {
  public:
   ColumnRefExpression(catalog::SqlType type, int child_idx, int column_idx);
-  nlohmann::json ToJson() const override;
-  int GetChildIdx();
-  int GetColumnIdx();
+
+  int GetChildIdx() const;
+  int GetColumnIdx() const;
+
   void Accept(ExpressionVisitor& visitor) override;
+  void Accept(ImmutableExpressionVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
 
  private:
   int child_idx_;

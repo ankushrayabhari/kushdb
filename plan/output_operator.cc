@@ -23,4 +23,8 @@ nlohmann::json OutputOperator::ToJson() const {
 
 void OutputOperator::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
 
+void OutputOperator::Accept(ImmutableOperatorVisitor& visitor) const {
+  visitor.Visit(*this);
+}
+
 }  // namespace kush::plan
