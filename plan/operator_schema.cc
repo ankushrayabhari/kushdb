@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "expression/column_ref_expression.h"
 #include "expression/expression.h"
@@ -34,13 +35,16 @@ void OperatorSchema::AddDerivedColumn(std::string_view name,
   columns_.emplace_back(name, std::move(expr));
 }
 
-void OperatorSchema::AddGeneratedColumn(std::string_view name,
-                                        catalog::SqlType type) {
-  int idx = columns_.size();
-  column_name_to_idx_[name] = idx;
-  // make a column ref expression to idx
-  columns_.emplace_back(name,
-                        std::make_unique<ColumnRefExpression>(type, 0, idx));
+void OperatorSchema::AddGeneratedColumns(
+    const kush::catalog::Table& table,
+    const std::vector<std::string>& columns) {
+  for (const auto& name : columns) {
+    auto type = table[name].Type();
+    int idx = columns_.size();
+    column_name_to_idx_[name] = idx;
+    columns_.emplace_back(name,
+                          std::make_unique<ColumnRefExpression>(type, 0, idx));
+  }
 }
 
 const std::vector<OperatorSchema::Column>& OperatorSchema::Columns() const {

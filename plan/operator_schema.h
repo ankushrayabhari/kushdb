@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "expression/expression.h"
 #include "nlohmann/json.hpp"
@@ -30,7 +31,8 @@ class OperatorSchema {
   nlohmann::json ToJson() const;
   void AddDerivedColumn(std::string_view name,
                         std::unique_ptr<Expression> expr);
-  void AddGeneratedColumn(std::string_view name, catalog::SqlType type);
+  void AddGeneratedColumns(const kush::catalog::Table& table,
+                           const std::vector<std::string>& columns);
 
  private:
   absl::flat_hash_map<std::string, int> column_name_to_idx_;

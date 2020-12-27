@@ -34,13 +34,8 @@ int main() {
   // Scan(nation)
   std::unique_ptr<Operator> scan_nation;
   {
-    auto& table = db["nation"];
-    std::vector<std::string> columns{"n_name", "n_nationkey"};
-
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      schema.AddGeneratedColumn(table[col].Name(), table[col].Type());
-    }
+    schema.AddGeneratedColumns(db["nation"], {"n_name", "n_nationkey"});
     scan_nation = std::make_unique<ScanOperator>(std::move(schema), "nation");
   }
 
@@ -68,13 +63,8 @@ int main() {
   // Scan(supplier)
   std::unique_ptr<Operator> scan_supplier;
   {
-    auto& table = db["supplier"];
-    std::vector<std::string> columns{"s_suppkey", "s_nationkey"};
-
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      schema.AddGeneratedColumn(table[col].Name(), table[col].Type());
-    }
+    schema.AddGeneratedColumns(db["supplier"], {"s_suppkey", "s_nationkey"});
     scan_supplier =
         std::make_unique<ScanOperator>(std::move(schema), "supplier");
   }
@@ -103,13 +93,9 @@ int main() {
   // Scan(partsupp)
   std::unique_ptr<Operator> scan_partsupp;
   {
-    auto& table = db["partsupp"];
-    std::vector<std::string> columns{"ps_partkey", "ps_supplycost",
-                                     "ps_availqty", "ps_suppkey"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      schema.AddGeneratedColumn(table[col].Name(), table[col].Type());
-    }
+    schema.AddGeneratedColumns(db["partsupp"], {"ps_partkey", "ps_supplycost",
+                                                "ps_availqty", "ps_suppkey"});
     scan_partsupp =
         std::make_unique<ScanOperator>(std::move(schema), "partsupp");
   }

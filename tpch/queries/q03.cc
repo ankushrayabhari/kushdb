@@ -34,13 +34,8 @@ int main() {
   // Scan(customer)
   std::unique_ptr<Operator> scan_customer;
   {
-    auto& table = db["customer"];
-    std::vector<std::string> columns{"c_mktsegment", "c_custkey"};
-
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      schema.AddGeneratedColumn(table[col].Name(), table[col].Type());
-    }
+    schema.AddGeneratedColumns(db["customer"], {"c_mktsegment", "c_custkey"});
     scan_customer =
         std::make_unique<ScanOperator>(std::move(schema), "customer");
   }
@@ -70,13 +65,9 @@ int main() {
   // Scan(orders)
   std::unique_ptr<Operator> scan_orders;
   {
-    auto& table = db["orders"];
-    std::vector<std::string> columns{"o_orderdate", "o_shippriority",
-                                     "o_custkey", "o_orderkey"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      schema.AddGeneratedColumn(table[col].Name(), table[col].Type());
-    }
+    schema.AddGeneratedColumns(db["orders"], {"o_orderdate", "o_shippriority",
+                                              "o_custkey", "o_orderkey"});
     scan_orders = std::make_unique<ScanOperator>(std::move(schema), "orders");
   }
 
@@ -128,13 +119,9 @@ int main() {
   // Scan(lineitem)
   std::unique_ptr<Operator> scan_lineitem;
   {
-    auto& table = db["lineitem"];
-    std::vector<std::string> columns{"l_orderkey", "l_extendedprice",
-                                     "l_shipdate", "l_discount"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      schema.AddGeneratedColumn(table[col].Name(), table[col].Type());
-    }
+    schema.AddGeneratedColumns(db["lineitem"], {"l_orderkey", "l_extendedprice",
+                                                "l_shipdate", "l_discount"});
     scan_lineitem =
         std::make_unique<ScanOperator>(std::move(schema), "lineitem");
   }

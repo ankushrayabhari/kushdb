@@ -13,6 +13,7 @@ cc_library(
     srcs = ["operator_schema.cc"],
     hdrs = ["operator_schema.h"],
     deps = [
+        "//catalog",
         "//catalog:sql_type",
         "//plan/expression",
         "//plan/expression:column_ref_expression",

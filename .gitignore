@@ -3,6 +3,7 @@
 
 # VS Code
 /.vscode/compile_commands.json
+/.vscode/settings.json
 
 # Misc
 /db

@@ -34,13 +34,9 @@ int main() {
   // Scan(lineitem)
   std::unique_ptr<Operator> scan_lineitem;
   {
-    auto& table = db["lineitem"];
-    std::vector<std::string> columns{"l_shipmode", "l_commitdate", "l_shipdate",
-                                     "l_receiptdate"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      schema.AddGeneratedColumn(table[col].Name(), table[col].Type());
-    }
+    schema.AddGeneratedColumns(db["lineitem"], {"l_shipmode", "l_commitdate",
+                                                "l_shipdate", "l_receiptdate"});
     scan_lineitem =
         std::make_unique<ScanOperator>(std::move(schema), "lineitem");
   }
