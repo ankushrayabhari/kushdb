@@ -1,4 +1,4 @@
-#include "compile/schema_values.h"
+#include "compile/cpp/translators/schema_values.h"
 
 #include <string>
 #include <vector>

@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 
-#include "compile/schema_values.h"
+#include "compile/cpp/translators/schema_values.h"
 
 namespace kush::compile {
 

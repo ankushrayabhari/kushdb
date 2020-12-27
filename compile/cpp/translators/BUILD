@@ -3,11 +3,17 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "schema_values",
+    srcs = ["schema_values.cc"],
+    hdrs = ["schema_values.h"],
+)
+
+cc_library(
     name = "operator_translator",
     srcs = ["operator_translator.cc"],
     hdrs = ["operator_translator.h"],
     deps = [
-        "//compile:schema_values",
+        ":schema_values",
         "//util:vector_util",
     ],
 )
@@ -18,8 +24,8 @@ cc_library(
     hdrs = ["scan_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile:compilation_context",
-        "//compile:types",
+        "//compile/cpp:cpp_compilation_context",
+        "//compile/cpp:types",
         "//plan:scan_operator",
     ],
 )
@@ -30,7 +36,7 @@ cc_library(
     hdrs = ["output_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile:compilation_context",
+        "//compile/cpp:cpp_compilation_context",
         "//plan:output_operator",
     ],
 )
@@ -42,8 +48,8 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile:compilation_context",
-        "//compile:types",
+        "//compile/cpp:cpp_compilation_context",
+        "//compile/cpp:types",
         "//plan:select_operator",
     ],
 )
@@ -55,8 +61,8 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile:compilation_context",
-        "//compile:types",
+        "//compile/cpp:cpp_compilation_context",
+        "//compile/cpp:types",
         "//plan:hash_join_operator",
     ],
 )
@@ -68,8 +74,8 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile:compilation_context",
-        "//compile:types",
+        "//compile/cpp:cpp_compilation_context",
+        "//compile/cpp:types",
         "//plan:group_by_aggregate_operator",
     ],
 )
@@ -100,7 +106,7 @@ cc_library(
     hdrs = ["expression_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile:compilation_context",
+        "//compile/cpp:cpp_compilation_context",
         "//plan/expression:aggregate_expression",
         "//plan/expression:arithmetic_expression",
         "//plan/expression:column_ref_expression",

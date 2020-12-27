@@ -6,7 +6,7 @@
 #include "absl/time/civil_time.h"
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "compile/cpp_translator.h"
+#include "compile/cpp/cpp_translator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"

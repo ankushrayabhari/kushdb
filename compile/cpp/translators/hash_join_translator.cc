@@ -1,15 +1,15 @@
-#include "compile/translators/hash_join_translator.h"
+#include "compile/cpp/translators/hash_join_translator.h"
 
-#include "compile/compilation_context.h"
-#include "compile/translators/expression_translator.h"
-#include "compile/translators/operator_translator.h"
-#include "compile/types.h"
+#include "compile/cpp/cpp_compilation_context.h"
+#include "compile/cpp/translators/expression_translator.h"
+#include "compile/cpp/translators/operator_translator.h"
+#include "compile/cpp/types.h"
 #include "plan/hash_join_operator.h"
 
 namespace kush::compile {
 
 HashJoinTranslator::HashJoinTranslator(
-    const plan::HashJoinOperator& hash_join, CompilationContext& context,
+    const plan::HashJoinOperator& hash_join, CppCompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)),
       hash_join_(hash_join),

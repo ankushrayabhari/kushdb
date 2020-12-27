@@ -1,4 +1,4 @@
-#include "compile/translators/operator_translator.h"
+#include "compile/cpp/translators/operator_translator.h"
 
 #include "util/vector_util.h"
 

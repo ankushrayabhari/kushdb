@@ -5,15 +5,15 @@
 #include <vector>
 
 #include "catalog/catalog.h"
-#include "compile/cpp_program.h"
+#include "compile/cpp/cpp_program.h"
 #include "plan/operator.h"
 #include "plan/operator_visitor.h"
 
 namespace kush::compile {
 
-class CompilationContext {
+class CppCompilationContext {
  public:
-  CompilationContext(const catalog::Database& db);
+  CppCompilationContext(const catalog::Database& db);
   const catalog::Database& Catalog();
   CppProgram& Program();
 

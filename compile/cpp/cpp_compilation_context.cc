@@ -1,4 +1,4 @@
-#include "compile/compilation_context.h"
+#include "compile/cpp/cpp_compilation_context.h"
 
 #include <dlfcn.h>
 
@@ -18,10 +18,11 @@
 
 namespace kush::compile {
 
-CompilationContext::CompilationContext(const catalog::Database& db) : db_(db) {}
+CppCompilationContext::CppCompilationContext(const catalog::Database& db)
+    : db_(db) {}
 
-const catalog::Database& CompilationContext::Catalog() { return db_; }
+const catalog::Database& CppCompilationContext::Catalog() { return db_; }
 
-CppProgram& CompilationContext::Program() { return program_; }
+CppProgram& CppCompilationContext::Program() { return program_; }
 
 }  // namespace kush::compile

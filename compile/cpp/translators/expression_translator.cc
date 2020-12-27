@@ -1,11 +1,11 @@
-#include "compile/translators/expression_translator.h"
+#include "compile/cpp/translators/expression_translator.h"
 
 #include <memory>
 #include <stdexcept>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "compile/compilation_context.h"
+#include "compile/cpp/cpp_compilation_context.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -16,7 +16,7 @@
 
 namespace kush::compile {
 
-ExpressionTranslator::ExpressionTranslator(CompilationContext& context,
+ExpressionTranslator::ExpressionTranslator(CppCompilationContext& context,
                                            OperatorTranslator& source)
     : context_(context), source_(source) {}
 

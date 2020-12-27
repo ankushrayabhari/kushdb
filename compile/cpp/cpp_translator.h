@@ -1,7 +1,7 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "compile/compilation_context.h"
+#include "compile/cpp/cpp_compilation_context.h"
 #include "compile/program.h"
 #include "plan/operator.h"
 
@@ -16,7 +16,7 @@ class CppTranslator {
   Program& Program();
 
  private:
-  CompilationContext context_;
+  CppCompilationContext context_;
   const plan::Operator& op_;
 };
 

@@ -5,7 +5,7 @@ cc_binary(
     srcs = ["q01.cc"],
     deps = [
         "//catalog",
-        "//compile:cpp_translator",
+        "//compile/cpp:cpp_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -27,7 +27,7 @@ cc_binary(
     srcs = ["q03.cc"],
     deps = [
         "//catalog",
-        "//compile:cpp_translator",
+        "//compile/cpp:cpp_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -49,7 +49,7 @@ cc_binary(
     srcs = ["q06.cc"],
     deps = [
         "//catalog",
-        "//compile:cpp_translator",
+        "//compile/cpp:cpp_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -71,7 +71,7 @@ cc_binary(
     srcs = ["q11.cc"],
     deps = [
         "//catalog",
-        "//compile:cpp_translator",
+        "//compile/cpp:cpp_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -93,7 +93,7 @@ cc_binary(
     srcs = ["q12.cc"],
     deps = [
         "//catalog",
-        "//compile:cpp_translator",
+        "//compile/cpp:cpp_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",

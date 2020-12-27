@@ -1,19 +1,19 @@
-#include "compile/translators/scan_translator.h"
+#include "compile/cpp/translators/scan_translator.h"
 
 #include <exception>
 #include <string>
 #include <vector>
 
-#include "compile/compilation_context.h"
-#include "compile/cpp_program.h"
-#include "compile/translators/operator_translator.h"
-#include "compile/types.h"
+#include "compile/cpp/cpp_compilation_context.h"
+#include "compile/cpp/cpp_program.h"
+#include "compile/cpp/translators/operator_translator.h"
+#include "compile/cpp/types.h"
 #include "plan/scan_operator.h"
 
 namespace kush::compile {
 
 ScanTranslator::ScanTranslator(
-    const plan::ScanOperator& scan, CompilationContext& context,
+    const plan::ScanOperator& scan, CppCompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)), scan_(scan), context_(context) {}
 

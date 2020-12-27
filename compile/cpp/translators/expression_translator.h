@@ -3,15 +3,16 @@
 #include <memory>
 #include <vector>
 
-#include "compile/compilation_context.h"
-#include "compile/translators/operator_translator.h"
+#include "compile/cpp/cpp_compilation_context.h"
+#include "compile/cpp/translators/operator_translator.h"
 #include "plan/expression/expression_visitor.h"
 
 namespace kush::compile {
 
 class ExpressionTranslator : public plan::ImmutableExpressionVisitor {
  public:
-  ExpressionTranslator(CompilationContext& context, OperatorTranslator& source);
+  ExpressionTranslator(CppCompilationContext& context,
+                       OperatorTranslator& source);
   virtual ~ExpressionTranslator() = default;
 
   void Produce(const plan::Expression& expr);
@@ -23,7 +24,7 @@ class ExpressionTranslator : public plan::ImmutableExpressionVisitor {
   void Visit(const plan::ArithmeticExpression& arith) override;
 
  private:
-  CompilationContext& context_;
+  CppCompilationContext& context_;
   OperatorTranslator& source_;
 };
 

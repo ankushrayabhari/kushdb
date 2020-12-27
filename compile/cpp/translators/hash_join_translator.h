@@ -4,9 +4,9 @@
 #include <utility>
 #include <vector>
 
-#include "compile/compilation_context.h"
-#include "compile/translators/expression_translator.h"
-#include "compile/translators/operator_translator.h"
+#include "compile/cpp/cpp_compilation_context.h"
+#include "compile/cpp/translators/expression_translator.h"
+#include "compile/cpp/translators/operator_translator.h"
 #include "plan/hash_join_operator.h"
 
 namespace kush::compile {
@@ -14,7 +14,7 @@ namespace kush::compile {
 class HashJoinTranslator : public OperatorTranslator {
  public:
   HashJoinTranslator(const plan::HashJoinOperator& hash_join,
-                     CompilationContext& context,
+                     CppCompilationContext& context,
                      std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~HashJoinTranslator() = default;
   void Produce() override;
@@ -22,7 +22,7 @@ class HashJoinTranslator : public OperatorTranslator {
 
  private:
   const plan::HashJoinOperator& hash_join_;
-  CompilationContext& context_;
+  CppCompilationContext& context_;
   ExpressionTranslator expr_translator_;
 
   std::string hash_table_var_;

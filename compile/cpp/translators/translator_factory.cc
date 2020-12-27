@@ -1,11 +1,11 @@
-#include "compile/translators/translator_factory.h"
+#include "compile/cpp/translators/translator_factory.h"
 
-#include "compile/translators/group_by_aggregate_translator.h"
-#include "compile/translators/hash_join_translator.h"
-#include "compile/translators/operator_translator.h"
-#include "compile/translators/output_translator.h"
-#include "compile/translators/scan_translator.h"
-#include "compile/translators/select_translator.h"
+#include "compile/cpp/translators/group_by_aggregate_translator.h"
+#include "compile/cpp/translators/hash_join_translator.h"
+#include "compile/cpp/translators/operator_translator.h"
+#include "compile/cpp/translators/output_translator.h"
+#include "compile/cpp/translators/scan_translator.h"
+#include "compile/cpp/translators/select_translator.h"
 #include "plan/hash_join_operator.h"
 #include "plan/operator.h"
 #include "plan/operator_visitor.h"
@@ -15,7 +15,7 @@
 
 namespace kush::compile {
 
-TranslatorFactory::TranslatorFactory(CompilationContext& context)
+TranslatorFactory::TranslatorFactory(CppCompilationContext& context)
     : context_(context) {}
 
 std::vector<std::unique_ptr<OperatorTranslator>>

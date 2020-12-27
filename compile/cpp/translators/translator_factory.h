@@ -3,8 +3,8 @@
 #include <memory>
 #include <vector>
 
-#include "compile/compilation_context.h"
-#include "compile/translators/operator_translator.h"
+#include "compile/cpp/cpp_compilation_context.h"
+#include "compile/cpp/translators/operator_translator.h"
 #include "plan/operator_visitor.h"
 #include "util/visitor.h"
 
@@ -15,7 +15,7 @@ class TranslatorFactory
                            plan::ImmutableOperatorVisitor,
                            std::unique_ptr<OperatorTranslator>> {
  public:
-  TranslatorFactory(CompilationContext& context);
+  TranslatorFactory(CppCompilationContext& context);
   virtual ~TranslatorFactory() = default;
 
   void Visit(const plan::ScanOperator& scan) override;
@@ -27,7 +27,7 @@ class TranslatorFactory
  private:
   std::vector<std::unique_ptr<OperatorTranslator>> GetChildTranslators(
       const plan::Operator& current);
-  CompilationContext& context_;
+  CppCompilationContext& context_;
 };
 
 }  // namespace kush::compile

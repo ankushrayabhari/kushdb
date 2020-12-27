@@ -1,4 +1,4 @@
-#include "compile/cpp_program.h"
+#include "compile/cpp/cpp_program.h"
 
 #include <dlfcn.h>
 

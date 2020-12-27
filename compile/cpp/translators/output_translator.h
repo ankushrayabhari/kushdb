@@ -1,7 +1,7 @@
 #pragma once
 
-#include "compile/compilation_context.h"
-#include "compile/translators/operator_translator.h"
+#include "compile/cpp/cpp_compilation_context.h"
+#include "compile/cpp/translators/operator_translator.h"
 #include "plan/output_operator.h"
 
 namespace kush::compile {
@@ -9,14 +9,14 @@ namespace kush::compile {
 class OutputTranslator : public OperatorTranslator {
  public:
   OutputTranslator(const plan::OutputOperator& output,
-                   CompilationContext& context,
+                   CppCompilationContext& context,
                    std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~OutputTranslator() = default;
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
 
  private:
-  CompilationContext& context_;
+  CppCompilationContext& context_;
 };
 
 }  // namespace kush::compile

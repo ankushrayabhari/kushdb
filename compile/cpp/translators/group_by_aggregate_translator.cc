@@ -1,14 +1,14 @@
-#include "compile/translators/group_by_aggregate_translator.h"
+#include "compile/cpp/translators/group_by_aggregate_translator.h"
 
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "compile/compilation_context.h"
-#include "compile/translators/expression_translator.h"
-#include "compile/translators/operator_translator.h"
-#include "compile/types.h"
+#include "compile/cpp/cpp_compilation_context.h"
+#include "compile/cpp/translators/expression_translator.h"
+#include "compile/cpp/translators/operator_translator.h"
+#include "compile/cpp/types.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/group_by_aggregate_operator.h"
 
@@ -16,7 +16,7 @@ namespace kush::compile {
 
 GroupByAggregateTranslator::GroupByAggregateTranslator(
     const plan::GroupByAggregateOperator& group_by_agg,
-    CompilationContext& context,
+    CppCompilationContext& context,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(std::move(children)),
       group_by_agg_(group_by_agg),
