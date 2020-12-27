@@ -48,14 +48,8 @@ int main() {
     auto eq = std::make_unique<ComparisonExpression>(
         ComparisonType::EQ, std::move(n_name), std::move(literal));
 
-    std::vector<std::string> columns{"n_nationkey"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      auto idx = scan_nation->Schema().GetColumnIndex(col);
-      auto type = scan_nation->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 0, idx));
-    }
+    schema.AddPassthroughColumns(*scan_nation, {"n_nationkey"});
     select_nation = std::make_unique<SelectOperator>(
         std::move(schema), std::move(scan_nation), std::move(eq));
   }
@@ -79,12 +73,7 @@ int main() {
 
     std::vector<std::string> columns;
     OperatorSchema schema;
-    for (const auto& col : {"s_suppkey"}) {
-      auto idx = scan_supplier->Schema().GetColumnIndex(col);
-      auto type = scan_supplier->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 1, idx));
-    }
+    schema.AddPassthroughColumns(*scan_supplier, {"s_suppkey"}, 1);
     nation_supplier = std::make_unique<HashJoinOperator>(
         std::move(schema), std::move(select_nation), std::move(scan_supplier),
         std::move(n_nationkey), std::move(s_nationkey));
@@ -110,12 +99,8 @@ int main() {
 
     std::vector<std::string> columns;
     OperatorSchema schema;
-    for (const auto& col : {"ps_partkey", "ps_supplycost", "ps_availqty"}) {
-      auto idx = scan_partsupp->Schema().GetColumnIndex(col);
-      auto type = scan_partsupp->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 1, idx));
-    }
+    schema.AddPassthroughColumns(
+        *scan_partsupp, {"ps_partkey", "ps_supplycost", "ps_availqty"}, 1);
     nation_supplier_partsupp = std::make_unique<HashJoinOperator>(
         std::move(schema), std::move(nation_supplier), std::move(scan_partsupp),
         std::move(s_suppkey), std::move(ps_suppkey));

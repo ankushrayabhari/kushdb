@@ -13,6 +13,8 @@
 
 namespace kush::plan {
 
+class OperatorSchemaProvider;
+
 class OperatorSchema {
  public:
   class Column {
@@ -31,12 +33,21 @@ class OperatorSchema {
   nlohmann::json ToJson() const;
   void AddDerivedColumn(std::string_view name,
                         std::unique_ptr<Expression> expr);
+
+  void AddPassthroughColumns(const OperatorSchemaProvider& op,
+                             const std::vector<std::string>& columns,
+                             int child_idx = 0);
   void AddGeneratedColumns(const kush::catalog::Table& table,
                            const std::vector<std::string>& columns);
 
  private:
   absl::flat_hash_map<std::string, int> column_name_to_idx_;
   std::vector<Column> columns_;
+};
+
+class OperatorSchemaProvider {
+ public:
+  virtual const OperatorSchema& Schema() const = 0;
 };
 
 }  // namespace kush::plan

@@ -47,6 +47,18 @@ void OperatorSchema::AddGeneratedColumns(
   }
 }
 
+void OperatorSchema::AddPassthroughColumns(
+    const OperatorSchemaProvider& op, const std::vector<std::string>& columns,
+    int child_idx) {
+  const OperatorSchema& schema = op.Schema();
+  for (const auto& name : columns) {
+    auto idx = schema.GetColumnIndex(name);
+    auto type = schema.Columns()[idx].Expr().Type();
+    AddDerivedColumn(
+        name, std::make_unique<ColumnRefExpression>(type, child_idx, idx));
+  }
+}
+
 const std::vector<OperatorSchema::Column>& OperatorSchema::Columns() const {
   return columns_;
 }

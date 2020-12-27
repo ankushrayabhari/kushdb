@@ -50,14 +50,8 @@ int main() {
     auto eq = std::make_unique<ComparisonExpression>(
         ComparisonType::EQ, std::move(c_mktsegment), std::move(literal));
 
-    std::vector<std::string> columns{"c_custkey"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      auto idx = scan_customer->Schema().GetColumnIndex(col);
-      auto type = scan_customer->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 0, idx));
-    }
+    schema.AddPassthroughColumns(*scan_customer, {"c_custkey"});
     select_customer = std::make_unique<SelectOperator>(
         std::move(schema), std::move(scan_customer), std::move(eq));
   }
@@ -81,15 +75,9 @@ int main() {
     auto lt = std::make_unique<ComparisonExpression>(
         ComparisonType::LT, std::move(o_orderdate), std::move(literal));
 
-    std::vector<std::string> columns{"o_orderdate", "o_shippriority",
-                                     "o_custkey", "o_orderkey"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      auto idx = scan_orders->Schema().GetColumnIndex(col);
-      auto type = scan_orders->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 0, idx));
-    }
+    schema.AddPassthroughColumns(*scan_orders, {"o_orderdate", "o_shippriority",
+                                                "o_custkey", "o_orderkey"});
     select_orders = std::make_unique<SelectOperator>(
         std::move(schema), std::move(scan_orders), std::move(lt));
   }
@@ -102,15 +90,9 @@ int main() {
     auto o_custkey = std::make_unique<ColumnRefExpression>(
         SqlType::INT, 1, select_orders->Schema().GetColumnIndex("o_custkey"));
 
-    std::vector<std::string> columns{"o_orderdate", "o_shippriority",
-                                     "o_orderkey"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      auto idx = select_orders->Schema().GetColumnIndex(col);
-      auto type = select_orders->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 1, idx));
-    }
+    schema.AddPassthroughColumns(
+        *select_orders, {"o_orderdate", "o_shippriority", "o_orderkey"}, 1);
     customer_orders = std::make_unique<HashJoinOperator>(
         std::move(schema), std::move(select_customer), std::move(select_orders),
         std::move(c_custkey), std::move(o_custkey));
@@ -136,15 +118,9 @@ int main() {
     auto gt = std::make_unique<ComparisonExpression>(
         ComparisonType::GT, std::move(l_shipdate), std::move(literal));
 
-    std::vector<std::string> columns{"l_orderkey", "l_extendedprice",
-                                     "l_discount"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      auto idx = scan_lineitem->Schema().GetColumnIndex(col);
-      auto type = scan_lineitem->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 0, idx));
-    }
+    schema.AddPassthroughColumns(
+        *scan_lineitem, {"l_orderkey", "l_extendedprice", "l_discount"});
     select_lineitem = std::make_unique<SelectOperator>(
         std::move(schema), std::move(scan_lineitem), std::move(gt));
   }
@@ -160,18 +136,10 @@ int main() {
         select_lineitem->Schema().GetColumnIndex("l_orderkey"));
 
     OperatorSchema schema;
-    for (const auto& col : {"o_orderdate", "o_shippriority"}) {
-      auto idx = customer_orders->Schema().GetColumnIndex(col);
-      auto type = customer_orders->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 0, idx));
-    }
-    for (const auto& col : {"l_orderkey", "l_extendedprice", "l_discount"}) {
-      auto idx = select_lineitem->Schema().GetColumnIndex(col);
-      auto type = select_lineitem->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 1, idx));
-    }
+    schema.AddPassthroughColumns(*customer_orders,
+                                 {"o_orderdate", "o_shippriority"}, 0);
+    schema.AddPassthroughColumns(
+        *select_lineitem, {"l_orderkey", "l_extendedprice", "l_discount"}, 1);
     customer_orders_lineitem = std::make_unique<HashJoinOperator>(
         std::move(schema), std::move(customer_orders),
         std::move(select_lineitem), std::move(o_orderkey),

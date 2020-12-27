@@ -106,14 +106,8 @@ int main() {
             std::move(p5)),
         std::move(p6));
 
-    std::vector<std::string> columns{"l_shipmode"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      auto idx = scan_lineitem->Schema().GetColumnIndex(col);
-      auto type = scan_lineitem->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 0, idx));
-    }
+    schema.AddPassthroughColumns(*scan_lineitem, {"l_shipmode"});
     select_lineitem = std::make_unique<SelectOperator>(
         std::move(schema), std::move(scan_lineitem), std::move(pred));
   }

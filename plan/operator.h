@@ -12,7 +12,7 @@
 
 namespace kush::plan {
 
-class Operator {
+class Operator : public OperatorSchemaProvider {
  public:
   Operator(OperatorSchema schema,
            std::vector<std::unique_ptr<Operator>> children);
@@ -20,7 +20,7 @@ class Operator {
 
   virtual nlohmann::json ToJson() const = 0;
   virtual void Accept(OperatorVisitor& visitor) = 0;
-  const OperatorSchema& Schema() const;
+  const OperatorSchema& Schema() const override;
   std::optional<std::reference_wrapper<Operator>> Parent();
   std::vector<std::reference_wrapper<Operator>> Children();
 

@@ -53,16 +53,10 @@ int main() {
     auto leq = std::make_unique<ComparisonExpression>(
         ComparisonType::LEQ, std::move(l_shipdate), std::move(literal));
 
-    std::vector<std::string> columns{"l_returnflag", "l_linestatus",
-                                     "l_quantity",   "l_extendedprice",
-                                     "l_discount",   "l_tax"};
     OperatorSchema schema;
-    for (const auto& col : columns) {
-      auto idx = scan_lineitem->Schema().GetColumnIndex(col);
-      auto type = scan_lineitem->Schema().Columns()[idx].Expr().Type();
-      schema.AddDerivedColumn(
-          col, std::make_unique<ColumnRefExpression>(type, 0, idx));
-    }
+    schema.AddPassthroughColumns(*scan_lineitem,
+                                 {"l_returnflag", "l_linestatus", "l_quantity",
+                                  "l_extendedprice", "l_discount", "l_tax"});
 
     select_lineitem = std::make_unique<SelectOperator>(
         std::move(schema), std::move(scan_lineitem), std::move(leq));
