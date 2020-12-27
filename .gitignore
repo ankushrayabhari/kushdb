@@ -2,8 +2,7 @@
 /bazel-*
 
 # VS Code
-/.vscode/compile_commands.json
-/.vscode/settings.json
+/.vscode
 
 # Misc
 /db
