@@ -2,9 +2,9 @@
 
 #include <memory>
 #include <stdexcept>
-#include <unordered_map>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "compile/compilation_context.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
@@ -28,7 +28,7 @@ void ExpressionTranslator::Visit(plan::ArithmeticExpression& arith) {
   auto type = arith.OpType();
 
   using OpType = plan::ArithmeticOperatorType;
-  const std::unordered_map<OpType, std::string> type_to_op{
+  const static absl::flat_hash_map<OpType, std::string> type_to_op{
       {OpType::ADD, "+"},
       {OpType::SUB, "-"},
       {OpType::MUL, "*"},
@@ -64,7 +64,7 @@ void ExpressionTranslator::Visit(plan::ComparisonExpression& comp) {
   auto type = comp.CompType();
 
   using CompType = plan::ComparisonType;
-  const std::unordered_map<CompType, std::string> type_to_op{
+  const static absl::flat_hash_map<CompType, std::string> type_to_op{
       {CompType::EQ, "=="},  {CompType::NEQ, "!="}, {CompType::LT, "<"},
       {CompType::LEQ, "<="}, {CompType::GT, ">"},   {CompType::GEQ, ">="},
       {CompType::AND, "&&"}, {CompType::OR, "||"}};
