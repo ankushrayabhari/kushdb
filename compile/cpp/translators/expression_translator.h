@@ -7,7 +7,7 @@
 #include "compile/cpp/translators/operator_translator.h"
 #include "plan/expression/expression_visitor.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class ExpressionTranslator : public plan::ImmutableExpressionVisitor {
  public:
@@ -28,4 +28,4 @@ class ExpressionTranslator : public plan::ImmutableExpressionVisitor {
   OperatorTranslator& source_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

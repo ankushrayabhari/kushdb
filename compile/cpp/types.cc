@@ -5,7 +5,7 @@
 
 #include "catalog/sql_type.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 std::string SqlTypeToRuntimeType(catalog::SqlType type) {
   switch (type) {
@@ -25,4 +25,4 @@ std::string SqlTypeToRuntimeType(catalog::SqlType type) {
   }
 }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

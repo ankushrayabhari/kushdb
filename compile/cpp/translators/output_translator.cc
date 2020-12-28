@@ -4,7 +4,7 @@
 #include "compile/cpp/translators/operator_translator.h"
 #include "plan/output_operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 OutputTranslator::OutputTranslator(
     const plan::OutputOperator& output, CppCompilationContext& context,
@@ -39,4 +39,4 @@ void OutputTranslator::Consume(OperatorTranslator& src) {
   program.fout << "std::cout << \"\\n\";\n";
 }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

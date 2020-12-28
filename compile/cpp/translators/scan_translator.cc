@@ -10,7 +10,7 @@
 #include "compile/cpp/types.h"
 #include "plan/scan_operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 ScanTranslator::ScanTranslator(
     const plan::ScanOperator& scan, CppCompilationContext& context,
@@ -66,4 +66,4 @@ void ScanTranslator::Consume(OperatorTranslator& src) {
   throw std::runtime_error("Scan cannot consume tuples - leaf operator");
 }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

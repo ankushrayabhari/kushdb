@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class SchemaValues {
  public:
@@ -17,4 +17,4 @@ class SchemaValues {
   std::vector<std::pair<std::string, std::string>> values_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

@@ -5,7 +5,7 @@
 #include "compile/cpp/translators/operator_translator.h"
 #include "plan/operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class SelectTranslator : public OperatorTranslator {
  public:
@@ -21,4 +21,4 @@ class SelectTranslator : public OperatorTranslator {
   ExpressionTranslator expr_translator_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

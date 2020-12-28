@@ -6,7 +6,7 @@
 #include "compile/program.h"
 #include "plan/operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 CppTranslator::CppTranslator(const catalog::Database& db,
                              const plan::Operator& op)
@@ -25,4 +25,4 @@ void CppTranslator::Translate() {
 
 Program& CppTranslator::Program() { return context_.Program(); }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

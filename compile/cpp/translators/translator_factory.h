@@ -8,7 +8,7 @@
 #include "plan/operator_visitor.h"
 #include "util/visitor.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class TranslatorFactory
     : public util::Visitor<const plan::Operator&,
@@ -30,4 +30,4 @@ class TranslatorFactory
   CppCompilationContext& context_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

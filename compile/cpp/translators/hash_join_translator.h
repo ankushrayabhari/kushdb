@@ -9,7 +9,7 @@
 #include "compile/cpp/translators/operator_translator.h"
 #include "plan/hash_join_operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class HashJoinTranslator : public OperatorTranslator {
  public:
@@ -30,4 +30,4 @@ class HashJoinTranslator : public OperatorTranslator {
   std::vector<std::pair<std::string, std::string>> packed_struct_field_ids_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

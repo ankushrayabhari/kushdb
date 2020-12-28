@@ -6,7 +6,7 @@
 
 #include "compile/cpp/translators/schema_values.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class OperatorTranslator {
  public:
@@ -32,4 +32,4 @@ class OperatorTranslator {
   std::vector<std::unique_ptr<OperatorTranslator>> children_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

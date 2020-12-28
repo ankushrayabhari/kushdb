@@ -9,7 +9,7 @@
 #include "plan/operator.h"
 #include "plan/operator_visitor.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class CppCompilationContext {
  public:
@@ -22,4 +22,4 @@ class CppCompilationContext {
   CppProgram program_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

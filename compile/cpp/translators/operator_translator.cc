@@ -2,7 +2,7 @@
 
 #include "util/vector_util.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 OperatorTranslator::OperatorTranslator(
     std::vector<std::unique_ptr<OperatorTranslator>> children)
@@ -36,4 +36,4 @@ SchemaValues& OperatorTranslator::GetValues() { return values_; }
 
 SchemaValues& OperatorTranslator::GetVirtualValues() { return virtual_values_; }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

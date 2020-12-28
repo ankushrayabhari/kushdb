@@ -4,7 +4,7 @@
 #include "compile/cpp/translators/operator_translator.h"
 #include "plan/output_operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class OutputTranslator : public OperatorTranslator {
  public:
@@ -19,4 +19,4 @@ class OutputTranslator : public OperatorTranslator {
   CppCompilationContext& context_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

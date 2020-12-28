@@ -6,7 +6,7 @@
 #include "compile/cpp/types.h"
 #include "plan/select_operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 SelectTranslator::SelectTranslator(
     const plan::SelectOperator& select, CppCompilationContext& context,
@@ -43,4 +43,4 @@ void SelectTranslator::Consume(OperatorTranslator& src) {
   program.fout << "}\n";
 }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

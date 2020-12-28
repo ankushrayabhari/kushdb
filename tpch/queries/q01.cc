@@ -25,7 +25,7 @@
 
 using namespace kush;
 using namespace kush::plan;
-using namespace kush::compile;
+using namespace kush::compile::cpp;
 using namespace kush::catalog;
 
 int main() {

@@ -6,7 +6,7 @@
 #include "compile/cpp/types.h"
 #include "plan/hash_join_operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 HashJoinTranslator::HashJoinTranslator(
     const plan::HashJoinOperator& hash_join, CppCompilationContext& context,
@@ -121,4 +121,4 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
   program.fout << "}}\n";
 }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 void SchemaValues::AddVariable(std::string variable, std::string type) {
   values_.emplace_back(std::move(variable), std::move(type));
@@ -18,4 +18,4 @@ const std::vector<std::pair<std::string, std::string>>& SchemaValues::Values()
   return values_;
 }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

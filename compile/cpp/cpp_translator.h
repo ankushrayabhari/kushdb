@@ -5,7 +5,7 @@
 #include "compile/program.h"
 #include "plan/operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class CppTranslator {
  public:
@@ -20,4 +20,4 @@ class CppTranslator {
   const plan::Operator& op_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

@@ -9,7 +9,7 @@
 #include "compile/cpp/translators/operator_translator.h"
 #include "plan/group_by_aggregate_operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class GroupByAggregateTranslator : public OperatorTranslator {
  public:
@@ -33,4 +33,4 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   std::string record_count_field_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

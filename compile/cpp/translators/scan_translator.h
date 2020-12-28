@@ -4,7 +4,7 @@
 #include "compile/cpp/translators/operator_translator.h"
 #include "plan/scan_operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 class ScanTranslator : public OperatorTranslator {
  public:
@@ -19,4 +19,4 @@ class ScanTranslator : public OperatorTranslator {
   CppCompilationContext& context_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

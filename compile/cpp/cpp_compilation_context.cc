@@ -16,7 +16,7 @@
 #include "plan/operator.h"
 #include "plan/operator_schema.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 CppCompilationContext::CppCompilationContext(const catalog::Database& db)
     : db_(db) {}
@@ -25,4 +25,4 @@ const catalog::Database& CppCompilationContext::Catalog() { return db_; }
 
 CppProgram& CppCompilationContext::Program() { return program_; }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

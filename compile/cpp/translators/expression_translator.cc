@@ -14,7 +14,7 @@
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 ExpressionTranslator::ExpressionTranslator(CppCompilationContext& context,
                                            OperatorTranslator& source)
@@ -106,4 +106,4 @@ void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
   }
 }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

@@ -12,7 +12,7 @@
 #include "plan/expression/aggregate_expression.h"
 #include "plan/group_by_aggregate_operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 GroupByAggregateTranslator::GroupByAggregateTranslator(
     const plan::GroupByAggregateOperator& group_by_agg,
@@ -206,4 +206,4 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
   program.fout << "}\n";
 }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp

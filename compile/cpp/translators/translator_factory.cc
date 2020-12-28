@@ -13,7 +13,7 @@
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
 
-namespace kush::compile {
+namespace kush::compile::cpp {
 
 TranslatorFactory::TranslatorFactory(CppCompilationContext& context)
     : context_(context) {}
@@ -53,4 +53,4 @@ void TranslatorFactory::Visit(
       group_by_agg, context_, GetChildTranslators(group_by_agg)));
 }
 
-}  // namespace kush::compile
+}  // namespace kush::compile::cpp
