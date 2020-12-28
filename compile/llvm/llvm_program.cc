@@ -8,12 +8,18 @@
 
 namespace kush::compile {
 
-void LLVMProgram::CodegenInitialize() {}
+void LLVMProgram::CodegenInitialize() {
+  llvm_context_ = std::make_unique<llvm::LLVMContext>();
+  module_ = std::make_unique<llvm::Module>("query", *llvm_context_);
+  builder_ = std::make_unique<llvm::IRBuilder<>>(*llvm_context_);
+}
 
 void LLVMProgram::CodegenFinalize() {}
 
 void LLVMProgram::Compile() {}
 
 void LLVMProgram::Execute() {}
+
+llvm::IRBuilder<>& LLVMProgram::Builder() { return *builder_; }
 
 }  // namespace kush::compile

@@ -16,6 +16,8 @@ class LLVMProgram : public Program {
   void Compile() override;
   void Execute() override;
 
+  llvm::IRBuilder<>& Builder();
+
  private:
   std::unique_ptr<llvm::LLVMContext> llvm_context_;
   std::unique_ptr<llvm::Module> module_;
