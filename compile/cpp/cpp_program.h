@@ -6,8 +6,7 @@
 
 #include "compile/program.h"
 
-namespace kush {
-namespace compile {
+namespace kush::compile::cpp {
 
 class CppProgram : public Program {
  public:
@@ -31,5 +30,4 @@ class CppProgram : public Program {
       end;
 };
 
-}  // namespace compile
-}  // namespace kush
+}  // namespace kush::compile::cpp

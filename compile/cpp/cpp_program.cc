@@ -8,8 +8,7 @@
 #include <iostream>
 #include <string>
 
-namespace kush {
-namespace compile {
+namespace kush::compile::cpp {
 
 CppProgram::CppProgram()
     : file_name_("/tmp/query.cpp"), dylib_("/tmp/query.so") {}
@@ -88,5 +87,4 @@ void CppProgram::Execute() {
   std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
 }
 
-}  // namespace compile
-}  // namespace kush
+}  // namespace kush::compile::cpp
