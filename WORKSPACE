@@ -43,3 +43,50 @@ http_archive(
     strip_prefix = "type_safe-0.2.1",
     urls = ["https://github.com/foonathan/type_safe/archive/v0.2.1.zip"],
 )
+
+LLVM_COMMIT = "fde3ae88ee4236d6ecb8178c6c893df5a5a04437"
+
+LLVM_BAZEL_TAG = "llvm-project-%s" % (LLVM_COMMIT,)
+
+LLVM_BAZEL_SHA256 = "04c82c13b102e27e8ba36b84b930694b99c1da75186654b9c78f8ec121af40ee"
+
+http_archive(
+    name = "llvm-bazel",
+    sha256 = LLVM_BAZEL_SHA256,
+    strip_prefix = "llvm-bazel-{tag}/llvm-bazel".format(tag = LLVM_BAZEL_TAG),
+    url = "https://github.com/google/llvm-bazel/archive/{tag}.tar.gz".format(tag = LLVM_BAZEL_TAG),
+)
+
+LLVM_SHA256 = "e62a037e88cd9eede4b3776ff265b3b9149018cbe6ea9d40f7fec38c0bc32512"
+
+LLVM_URLS = [
+    "https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT),
+]
+
+http_archive(
+    name = "llvm-project-raw",
+    build_file_content = "#empty",
+    sha256 = LLVM_SHA256,
+    strip_prefix = "llvm-project-" + LLVM_COMMIT,
+    urls = LLVM_URLS,
+)
+
+load("@llvm-bazel//:terminfo.bzl", "llvm_terminfo_disable")
+
+llvm_terminfo_disable(
+    name = "llvm_terminfo",
+)
+
+load("@llvm-bazel//:zlib.bzl", "llvm_zlib_disable")
+
+llvm_zlib_disable(
+    name = "llvm_zlib",
+)
+
+load("@llvm-bazel//:configure.bzl", "llvm_configure")
+
+llvm_configure(
+    name = "llvm-project",
+    src_path = ".",
+    src_workspace = "@llvm-project-raw//:WORKSPACE",
+)
