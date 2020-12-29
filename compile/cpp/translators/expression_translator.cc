@@ -12,6 +12,7 @@
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "plan/expression/literal_expression.h"
+#include "plan/expression/string_comparison_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
 
 namespace kush::compile::cpp {
@@ -77,6 +78,25 @@ void ExpressionTranslator::Visit(const plan::ComparisonExpression& comp) {
   program.fout << ")" << type_to_op.at(type) << "(";
   Produce(comp.RightChild());
   program.fout << ")";
+}
+
+void ExpressionTranslator::Visit(
+    const plan::StringComparisonExpression& str_comp) {
+  auto type = str_comp.CompType();
+
+  using CompType = plan::StringComparisonType;
+  const static absl::flat_hash_map<CompType, std::string> type_to_op{
+      {CompType::STARTS_WITH, ".starts_with"},
+      {CompType::ENDS_WITH, ".ends_with"},
+      {CompType::CONTAINS, ".contains"}};
+
+  auto& program = context_.Program();
+
+  program.fout << "((";
+  Produce(str_comp.LeftChild());
+  program.fout << ")" << type_to_op.at(type) << "(";
+  Produce(str_comp.RightChild());
+  program.fout << "))";
 }
 
 void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {

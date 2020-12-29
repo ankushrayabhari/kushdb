@@ -20,7 +20,7 @@ ComparisonExpression::ComparisonExpression(ComparisonType type,
 
 nlohmann::json ComparisonExpression::ToJson() const {
   nlohmann::json j;
-  j["op"] = magic_enum::enum_name(ComparisonType());
+  j["op"] = magic_enum::enum_name(type_);
   j["left"] = LeftChild().ToJson();
   j["right"] = RightChild().ToJson();
   return j;

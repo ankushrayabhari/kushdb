@@ -50,7 +50,7 @@ std::string CppProgram::GenerateVariable() {
 }
 
 void CppProgram::Compile() {
-  std::string command = "clang++ -w -O3 --std=c++17 -I. -shared -fpic " +
+  std::string command = "clang++ -w -O3 --std=c++20 -I. -shared -fpic " +
                         file_name_ + " -o " + dylib_;
   if (system(command.c_str()) != 0) {
     throw std::runtime_error("Failed to compile file.");

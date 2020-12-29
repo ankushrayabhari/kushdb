@@ -127,6 +127,7 @@ cc_library(
         "//plan/expression:comparison_expression",
         "//plan/expression:expression_visitor",
         "//plan/expression:literal_expression",
+        "//plan/expression:string_comparison_expression",
         "//plan/expression:virtual_column_ref_expression",
         "@absl//absl/container:flat_hash_map",
     ],

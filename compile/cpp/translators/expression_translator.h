@@ -22,6 +22,7 @@ class ExpressionTranslator : public plan::ImmutableExpressionVisitor {
   void Visit(const plan::ComparisonExpression& comp) override;
   void Visit(const plan::LiteralExpression& literal) override;
   void Visit(const plan::ArithmeticExpression& arith) override;
+  void Visit(const plan::StringComparisonExpression& str_comp) override;
 
  private:
   CppCompilationContext& context_;

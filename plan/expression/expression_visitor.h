@@ -7,6 +7,7 @@ namespace kush::plan {
 class AggregateExpression;
 class ColumnRefExpression;
 class ComparisonExpression;
+class StringComparisonExpression;
 class LiteralExpression;
 class VirtualColumnRefExpression;
 class ArithmeticExpression;
@@ -19,6 +20,7 @@ class ExpressionVisitor {
   virtual void Visit(VirtualColumnRefExpression& virtual_col_ref) = 0;
   virtual void Visit(ComparisonExpression& comp) = 0;
   virtual void Visit(LiteralExpression& literal) = 0;
+  virtual void Visit(StringComparisonExpression& str_comp) = 0;
 };
 
 class ImmutableExpressionVisitor {
@@ -29,6 +31,7 @@ class ImmutableExpressionVisitor {
   virtual void Visit(const VirtualColumnRefExpression& virtual_col_ref) = 0;
   virtual void Visit(const ComparisonExpression& comp) = 0;
   virtual void Visit(const LiteralExpression& literal) = 0;
+  virtual void Visit(const StringComparisonExpression& str_comp) = 0;
 };
 
 }  // namespace kush::plan
