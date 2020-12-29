@@ -105,6 +105,19 @@ void OrderByTranslator::Produce() {
 
 void OrderByTranslator::Consume(OperatorTranslator& src) {
   // append elements to array
+  auto& program = context_.Program();
+  const auto& child_vars = Child().GetValues().Values();
+  program.fout << buffer_var_ << ".push_back(" << packed_struct_id_ << "{";
+  bool first = true;
+  for (const auto& [variable, type] : child_vars) {
+    if (first) {
+      first = false;
+    } else {
+      program.fout << ",";
+    }
+    program.fout << variable;
+  }
+  program.fout << "});\n";
 }
 
 }  // namespace kush::compile::cpp
