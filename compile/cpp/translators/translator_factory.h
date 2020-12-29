@@ -23,6 +23,7 @@ class TranslatorFactory
   void Visit(const plan::OutputOperator& output) override;
   void Visit(const plan::HashJoinOperator& hash_join) override;
   void Visit(const plan::GroupByAggregateOperator& group_by_agg) override;
+  void Visit(const plan::OrderByOperator& order_by) override;
 
  private:
   std::vector<std::unique_ptr<OperatorTranslator>> GetChildTranslators(

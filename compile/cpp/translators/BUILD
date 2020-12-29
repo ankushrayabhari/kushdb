@@ -81,6 +81,19 @@ cc_library(
 )
 
 cc_library(
+    name = "order_by_translator",
+    srcs = ["order_by_translator.cc"],
+    hdrs = ["order_by_translator.h"],
+    deps = [
+        ":expression_translator",
+        ":operator_translator",
+        "//compile/cpp:cpp_compilation_context",
+        "//compile/cpp:types",
+        "//plan:order_by_operator",
+    ],
+)
+
+cc_library(
     name = "translator_factory",
     srcs = ["translator_factory.cc"],
     hdrs = ["translator_factory.h"],
@@ -88,6 +101,7 @@ cc_library(
         ":group_by_aggregate_translator",
         ":hash_join_translator",
         ":operator_translator",
+        ":order_by_translator",
         ":output_translator",
         ":scan_translator",
         ":select_translator",

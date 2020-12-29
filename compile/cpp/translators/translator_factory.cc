@@ -3,6 +3,7 @@
 #include "compile/cpp/translators/group_by_aggregate_translator.h"
 #include "compile/cpp/translators/hash_join_translator.h"
 #include "compile/cpp/translators/operator_translator.h"
+#include "compile/cpp/translators/order_by_translator.h"
 #include "compile/cpp/translators/output_translator.h"
 #include "compile/cpp/translators/scan_translator.h"
 #include "compile/cpp/translators/select_translator.h"
@@ -51,6 +52,11 @@ void TranslatorFactory::Visit(
     const plan::GroupByAggregateOperator& group_by_agg) {
   Return(std::make_unique<GroupByAggregateTranslator>(
       group_by_agg, context_, GetChildTranslators(group_by_agg)));
+}
+
+void TranslatorFactory::Visit(const plan::OrderByOperator& order_by) {
+  Return(std::make_unique<OrderByTranslator>(order_by, context_,
+                                             GetChildTranslators(order_by)));
 }
 
 }  // namespace kush::compile::cpp

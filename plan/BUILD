@@ -99,3 +99,16 @@ cc_library(
         "@json",
     ],
 )
+
+cc_library(
+    name = "order_by_operator",
+    srcs = ["order_by_operator.cc"],
+    hdrs = ["order_by_operator.h"],
+    deps = [
+        ":operator",
+        ":operator_schema",
+        ":operator_visitor",
+        "//plan/expression",
+        "@json",
+    ],
+)

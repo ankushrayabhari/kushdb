@@ -7,6 +7,7 @@ class SelectOperator;
 class OutputOperator;
 class HashJoinOperator;
 class GroupByAggregateOperator;
+class OrderByOperator;
 
 class OperatorVisitor {
  public:
@@ -15,6 +16,7 @@ class OperatorVisitor {
   virtual void Visit(OutputOperator& output) = 0;
   virtual void Visit(HashJoinOperator& hash_join) = 0;
   virtual void Visit(GroupByAggregateOperator& group_by_agg) = 0;
+  virtual void Visit(OrderByOperator& order_by) = 0;
 };
 
 class ImmutableOperatorVisitor {
@@ -24,6 +26,7 @@ class ImmutableOperatorVisitor {
   virtual void Visit(const OutputOperator& output) = 0;
   virtual void Visit(const HashJoinOperator& hash_join) = 0;
   virtual void Visit(const GroupByAggregateOperator& group_by_agg) = 0;
+  virtual void Visit(const OrderByOperator& order_by) = 0;
 };
 
 }  // namespace kush::plan
