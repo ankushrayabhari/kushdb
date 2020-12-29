@@ -20,8 +20,8 @@ class OperatorTranslator {
   OperatorTranslator& Child();
   OperatorTranslator& LeftChild();
   OperatorTranslator& RightChild();
-  SchemaValues& GetValues();
-  SchemaValues& GetVirtualValues();
+  const SchemaValues& GetValues() const;
+  const SchemaValues& GetVirtualValues() const;
 
  protected:
   SchemaValues values_;

@@ -25,6 +25,9 @@ class OrderByTranslator : public OperatorTranslator {
   const plan::OrderByOperator& order_by_;
   CppCompilationContext& context_;
   ExpressionTranslator expr_translator_;
+  std::string packed_struct_id_;
+  std::vector<std::pair<std::string, std::string>> packed_field_type_;
+  std::string buffer_var_;
 };
 
 }  // namespace kush::compile::cpp

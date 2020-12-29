@@ -32,8 +32,10 @@ OperatorTranslator& OperatorTranslator::LeftChild() { return *children_[0]; }
 
 OperatorTranslator& OperatorTranslator::RightChild() { return *children_[1]; }
 
-SchemaValues& OperatorTranslator::GetValues() { return values_; }
+const SchemaValues& OperatorTranslator::GetValues() const { return values_; }
 
-SchemaValues& OperatorTranslator::GetVirtualValues() { return virtual_values_; }
+const SchemaValues& OperatorTranslator::GetVirtualValues() const {
+  return virtual_values_;
+}
 
 }  // namespace kush::compile::cpp

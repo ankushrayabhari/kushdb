@@ -25,43 +25,82 @@ void OrderByTranslator::Produce() {
   auto& program = context_.Program();
 
   Child().Produce();
-  /*
 
   // declare packing struct of each input row
   packed_struct_id_ = program.GenerateVariable();
   program.fout << " struct " << packed_struct_id_ << " {\n";
 
-  record_count_field_ = program.GenerateVariable();
-  program.fout << "int64_t " << record_count_field_ << ";\n";
+  const auto& child_vars = Child().GetValues().Values();
+  auto sort_keys = order_by_.KeyExprs();
+  const auto& ascending = order_by_.Ascending();
 
-  // - include every group by column inside the struct
-  for (const auto& group_by : group_by_agg_.GroupByExprs()) {
+  // include every child column inside the struct
+  for (const auto& [var, type] : child_vars) {
     auto field = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(group_by.get().Type());
-    packed_group_by_field_type_.emplace_back(field, type);
+    packed_field_type_.emplace_back(field, type);
     program.fout << type << " " << field << ";\n";
   }
 
-  // - include every aggregate inside the struct
-  for (const auto& agg : group_by_agg_.AggExprs()) {
-    auto field = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(agg.get().Type());
-    packed_agg_field_type_.emplace_back(field, type);
-    program.fout << type << " " << field << ";\n";
+  program.fout << "};\n";
+
+  // generate sort function
+  auto comp_fn = program.GenerateVariable();
+  program.fout << " auto " << comp_fn << " = [](const " << packed_struct_id_
+               << "& p1, const " << packed_struct_id_ << "& p2){ -> bool\n";
+
+  for (int i = 0; i < sort_keys.size(); i++) {
+    int field_idx = sort_keys[i].get().GetColumnIdx();
+    const auto& [field, type] = packed_field_type_[field_idx];
+    auto asc = ascending[i];
+
+    program.fout << "return p1." << field << (asc ? "<" : ">") << " p2."
+                 << field << ";\n";
   }
   program.fout << "};\n";
 
-  // init hash table of group by columns
-  hash_table_var_ = program.GenerateVariable();
-  program.fout << "std::unordered_map<std::size_t, std::vector<"
-               << packed_struct_id_ << ">> " << hash_table_var_ << ";\n"; */
+  // init vector
+  buffer_var_ = program.GenerateVariable();
+  program.fout << "std::vector<" << packed_struct_id_ << "> " << buffer_var_
+               << ";\n";
 
   // populate vector
   Child().Produce();
 
   // sort
+  program.fout << "std::sort(" << buffer_var_ << ".begin(), " << buffer_var_
+               << ".end(), " << comp_fn << ");\n";
 
   // output
+  auto loop_var = program.GenerateVariable();
+  program.fout << "for (int " << loop_var << " = 0; " << loop_var << " < "
+               << buffer_var_ << ".size(); " << loop_var << "++){\n";
+
+  // unpack struct
+  for (int i = 0; i < packed_field_type_.size(); i++) {
+    const auto& [field, type] = packed_field_type_[i];
+    const auto& [variable, _] = child_vars[i];
+
+    program.fout << type << "& " << variable << " = " << buffer_var_ << "["
+                 << loop_var << "]." << field << ";\n";
+  }
+
+  // reuse child variables
+  for (const auto& column : order_by_.Schema().Columns()) {
+    auto var = program.GenerateVariable();
+    auto type = SqlTypeToRuntimeType(column.Expr().Type());
+
+    program.fout << "auto& " << var << " = ";
+    expr_translator_.Produce(column.Expr());
+    program.fout << ";\n";
+
+    values_.AddVariable(var, type);
+  }
+
+  if (auto parent = Parent()) {
+    parent->get().Consume(*this);
+  }
+
+  program.fout << "}\n";
 }
 
 void OrderByTranslator::Consume(OperatorTranslator& src) {

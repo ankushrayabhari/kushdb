@@ -14,22 +14,31 @@ namespace kush::plan {
 
 OrderByOperator::OrderByOperator(
     OperatorSchema schema, std::unique_ptr<Operator> child,
-    std::vector<std::unique_ptr<Expression>> key_exprs)
+    std::vector<std::unique_ptr<ColumnRefExpression>> key_exprs,
+    std::vector<bool> asc)
     : UnaryOperator(std::move(schema), std::move(child)),
-      key_exprs_(std::move(key_exprs)) {}
+      key_exprs_(std::move(key_exprs)),
+      asc_(std::move(asc)) {
+  assert(key_exprs_.size() == asc_.size());
+}
 
 nlohmann::json OrderByOperator::ToJson() const {
   nlohmann::json j;
   j["op"] = "ORDER_BY";
   j["child"] = Child().ToJson();
 
-  for (const auto& expr : key_exprs_) {
-    j["group_by"].push_back(expr->ToJson());
+  for (int i = 0; i < key_exprs_.size(); i++) {
+    nlohmann::json key;
+    key["expr"] = key_exprs_[i]->ToJson();
+    key["asc"] = asc_[i];
+    j["order_by"].push_back(key);
   }
 
   j["output"] = Schema().ToJson();
   return j;
 }
+
+const std::vector<bool>& OrderByOperator::Ascending() const { return asc_; }
 
 void OrderByOperator::Accept(OperatorVisitor& visitor) {
   return visitor.Visit(*this);
@@ -39,7 +48,7 @@ void OrderByOperator::Accept(ImmutableOperatorVisitor& visitor) const {
   return visitor.Visit(*this);
 }
 
-std::vector<std::reference_wrapper<const Expression>>
+std::vector<std::reference_wrapper<const ColumnRefExpression>>
 OrderByOperator::KeyExprs() const {
   return util::ImmutableReferenceVector(key_exprs_);
 }
