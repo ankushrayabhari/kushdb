@@ -11,6 +11,7 @@ class StringComparisonExpression;
 class LiteralExpression;
 class VirtualColumnRefExpression;
 class ArithmeticExpression;
+class CaseExpression;
 
 class ExpressionVisitor {
  public:
@@ -21,6 +22,7 @@ class ExpressionVisitor {
   virtual void Visit(ComparisonExpression& comp) = 0;
   virtual void Visit(LiteralExpression& literal) = 0;
   virtual void Visit(StringComparisonExpression& str_comp) = 0;
+  virtual void Visit(CaseExpression& case_expr) = 0;
 };
 
 class ImmutableExpressionVisitor {
@@ -32,6 +34,7 @@ class ImmutableExpressionVisitor {
   virtual void Visit(const ComparisonExpression& comp) = 0;
   virtual void Visit(const LiteralExpression& literal) = 0;
   virtual void Visit(const StringComparisonExpression& str_comp) = 0;
+  virtual void Visit(const CaseExpression& case_expr) = 0;
 };
 
 }  // namespace kush::plan

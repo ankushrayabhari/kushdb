@@ -8,6 +8,7 @@
 #include "compile/cpp/cpp_compilation_context.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
+#include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/expression_visitor.h"
@@ -124,6 +125,17 @@ void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
       program.fout << literal.GetBooleanValue();
       break;
   }
+}
+
+void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {
+  auto& program = context_.Program();
+  program.fout << "((";
+  Produce(case_expr.Cond());
+  program.fout << ") ? (";
+  Produce(case_expr.Then());
+  program.fout << ") : (";
+  Produce(case_expr.Else());
+  program.fout << "))";
 }
 
 }  // namespace kush::compile::cpp

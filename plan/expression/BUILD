@@ -67,6 +67,18 @@ cc_library(
 )
 
 cc_library(
+    name = "case_expression",
+    srcs = ["case_expression.cc"],
+    hdrs = ["case_expression.h"],
+    deps = [
+        ":expression",
+        ":expression_visitor",
+        "@json",
+        "@magic_enum",
+    ],
+)
+
+cc_library(
     name = "string_comparison_expression",
     srcs = ["string_comparison_expression.cc"],
     hdrs = ["string_comparison_expression.h"],
