@@ -33,7 +33,8 @@ class OperatorSchema {
   nlohmann::json ToJson() const;
   void AddDerivedColumn(std::string_view name,
                         std::unique_ptr<Expression> expr);
-
+  void AddPassthroughColumns(const OperatorSchemaProvider& op,
+                             int child_idx = 0);
   void AddPassthroughColumns(const OperatorSchemaProvider& op,
                              const std::vector<std::string>& columns,
                              int child_idx = 0);

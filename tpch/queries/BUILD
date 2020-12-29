@@ -9,6 +9,7 @@ cc_binary(
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
+        "//plan:order_by_operator",
         "//plan:output_operator",
         "//plan:scan_operator",
         "//plan:select_operator",

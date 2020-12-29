@@ -46,6 +46,17 @@ void OperatorSchema::AddGeneratedColumns(
   }
 }
 
+void OperatorSchema::AddPassthroughColumns(const OperatorSchemaProvider& op,
+                                           int child_idx) {
+  const OperatorSchema& schema = op.Schema();
+  for (int i = 0; i < schema.Columns().size(); i++) {
+    const auto& col = schema.Columns()[i];
+    auto type = col.Expr().Type();
+    AddDerivedColumn(col.Name(),
+                     std::make_unique<ColumnRefExpression>(type, child_idx, i));
+  }
+}
+
 void OperatorSchema::AddPassthroughColumns(
     const OperatorSchemaProvider& op, const std::vector<std::string>& columns,
     int child_idx) {
@@ -70,7 +81,7 @@ nlohmann::json OperatorSchema::ToJson() const {
   nlohmann::json j;
   for (const Column& c : columns_) {
     nlohmann::json c_json;
-    c_json["name"] = std::string(c.Name());
+    c_json["name"] = c.Name();
     c_json["value"] = c.Expr().ToJson();
     j["columns"].push_back(c_json);
   }

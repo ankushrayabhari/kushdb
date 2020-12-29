@@ -17,6 +17,7 @@
 #include "plan/hash_join_operator.h"
 #include "plan/operator.h"
 #include "plan/operator_schema.h"
+#include "plan/order_by_operator.h"
 #include "plan/output_operator.h"
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
@@ -189,8 +190,28 @@ int main() {
                          std::move(avg_disc), std::move(count_order)));
   }
 
+  // Order By l_returnflag, l_linestatus
+  std::unique_ptr<Operator> order;
+  {
+    std::unique_ptr<ColumnRefExpression> l_returnflag =
+        std::make_unique<ColumnRefExpression>(
+            SqlType::TEXT, 0, agg->Schema().GetColumnIndex("l_returnflag"));
+    std::unique_ptr<ColumnRefExpression> l_linestatus =
+        std::make_unique<ColumnRefExpression>(
+            SqlType::TEXT, 0, agg->Schema().GetColumnIndex("l_linestatus"));
+
+    // output
+    OperatorSchema schema;
+    schema.AddPassthroughColumns(*agg);
+
+    order = std::make_unique<OrderByOperator>(
+        std::move(schema), std::move(agg),
+        util::MakeVector(std::move(l_returnflag), std::move(l_linestatus)),
+        std::vector<bool>{true, true});
+  }
+
   std::unique_ptr<Operator> query =
-      std::make_unique<OutputOperator>(std::move(agg));
+      std::make_unique<OutputOperator>(std::move(order));
 
   CppTranslator translator(db, *query);
   translator.Translate();
