@@ -146,7 +146,17 @@ std::unique_ptr<AggregateExpression> Avg(std::unique_ptr<Expression> expr) {
                                                std::move(expr));
 }
 
+std::unique_ptr<AggregateExpression> Max(std::unique_ptr<Expression> expr) {
+  return std::make_unique<AggregateExpression>(AggregateType::MAX,
+                                               std::move(expr));
+}
+
+std::unique_ptr<AggregateExpression> Min(std::unique_ptr<Expression> expr) {
+  return std::make_unique<AggregateExpression>(AggregateType::MIN,
+                                               std::move(expr));
+}
+
 std::unique_ptr<AggregateExpression> Count() {
-  return std::make_unique<AggregateExpression>(AggregateType::AVG,
+  return std::make_unique<AggregateExpression>(AggregateType::COUNT,
                                                Literal(true));
 }

@@ -1,5 +1,6 @@
 #include "plan/expression/aggregate_expression.h"
 
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -29,12 +30,20 @@ SqlType CalculateSqlType(AggregateType type, const Expression& expr) {
           child_type == SqlType::BIGINT || child_type == SqlType::REAL) {
         return SqlType::REAL;
       } else {
+        std::cout << magic_enum::enum_name(child_type) << std::endl;
         throw std::runtime_error("Invalid input type for avg aggregate");
       }
       break;
-
     case AggregateType::COUNT:
       return SqlType::BIGINT;
+    case AggregateType::MIN:
+    case AggregateType::MAX:
+      if (child_type == SqlType::INT || child_type == SqlType::SMALLINT ||
+          child_type == SqlType::BIGINT || child_type == SqlType::REAL) {
+        return child_type;
+      } else {
+        throw std::runtime_error("Invalid input type for max/min aggregate");
+      }
   }
 }
 

@@ -52,6 +52,7 @@ cc_binary(
     name = "q2",
     srcs = ["q02.cc"],
     deps = [
+        ":builder",
         "//catalog",
         "//compile/cpp:cpp_translator",
         "//plan:group_by_aggregate_operator",

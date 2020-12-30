@@ -34,8 +34,8 @@ where
             s_suppkey = ps_suppkey and 
             s_nationkey = n_nationkey and 
             n_regionkey = r_regionkey and 
-            r_name = 'MIDDLE EAST' 
-    ) 
+            r_name = 'MIDDLE EAST'
+    )
 order by 
     s_acctbal desc, 
     n_name, 
