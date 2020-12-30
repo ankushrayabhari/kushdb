@@ -24,7 +24,6 @@ void OutputTranslator::Consume(OperatorTranslator& src) {
   for (const auto& [variable, type] : values) {
     if (type == "double") {
       program.fout << "std::cout << std::fixed;";
-      program.fout << "std::cout << std::setprecision(2);";
     }
     program.fout << "std::cout";
 
