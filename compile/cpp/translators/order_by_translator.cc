@@ -48,20 +48,23 @@ void OrderByTranslator::Produce() {
   program.fout << " auto " << comp_fn << " = [](const " << packed_struct_id_
                << "& p1, const " << packed_struct_id_ << "& p2) -> bool{\n";
 
-  program.fout << "return ";
   for (int i = 0; i < sort_keys.size(); i++) {
     int field_idx = sort_keys[i].get().GetColumnIdx();
     const auto& [field, _] = packed_field_type_[field_idx];
     auto asc = ascending[field_idx];
 
     if (i > 0) {
-      program.fout << " && ";
+      int last_field_idx = sort_keys[i - 1].get().GetColumnIdx();
+      const auto& [last_field, _] = packed_field_type_[last_field_idx];
+
+      program.fout << "if (p1." << last_field << (" != ") << "p2." << last_field
+                   << ") return false;\n";
     }
 
-    program.fout << "p1." << field << (asc ? " < " : " > ") << "p2." << field
-                 << "\n";
+    program.fout << "if (p1." << field << (asc ? " < " : " > ") << "p2."
+                 << field << ") return true;\n";
   }
-  program.fout << ";\n};\n";
+  program.fout << "return false;\n};\n";
 
   // init vector
   buffer_var_ = program.GenerateVariable();
