@@ -145,6 +145,12 @@ std::unique_ptr<ArithmeticExpression> Mul(std::unique_ptr<Expression> e1,
                                                 std::move(e1), std::move(e2));
 }
 
+std::unique_ptr<ArithmeticExpression> Div(std::unique_ptr<Expression> e1,
+                                          std::unique_ptr<Expression> e2) {
+  return std::make_unique<ArithmeticExpression>(ArithmeticOperatorType::DIV,
+                                                std::move(e1), std::move(e2));
+}
+
 std::unique_ptr<ArithmeticExpression> Sub(std::unique_ptr<Expression> e1,
                                           std::unique_ptr<Expression> e2) {
   return std::make_unique<ArithmeticExpression>(ArithmeticOperatorType::SUB,
