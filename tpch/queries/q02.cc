@@ -112,7 +112,7 @@ std::unique_ptr<Operator> ScanPart() {
   return std::make_unique<ScanOperator>(std::move(schema), "part");
 }
 
-// Select(p_size = 15 and p_type ENDS WITH 'TIN')
+// Select(p_size = 38 and p_type ENDS WITH 'TIN')
 std::unique_ptr<Operator> SelectPart() {
   auto part = ScanPart();
 
@@ -120,7 +120,7 @@ std::unique_ptr<Operator> SelectPart() {
   {
     std::unique_ptr<Expression> ends_with =
         EndsWith(ColRef(part, "p_type"), Literal("TIN"));
-    std::unique_ptr<Expression> eq = Eq(ColRef(part, "p_size"), Literal(15));
+    std::unique_ptr<Expression> eq = Eq(ColRef(part, "p_size"), Literal(38));
     cond = And(util::MakeVector(std::move(eq), std::move(ends_with)));
   }
 
