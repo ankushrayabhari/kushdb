@@ -11,6 +11,7 @@
 #include "compile/cpp/cpp_translator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
+#include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/comparison_expression.h"
 #include "plan/expression/literal_expression.h"
@@ -59,6 +60,12 @@ std::unique_ptr<LiteralExpression> Literal(T t) {
 std::unique_ptr<ComparisonExpression> Eq(std::unique_ptr<Expression> e1,
                                          std::unique_ptr<Expression> e2) {
   return std::make_unique<ComparisonExpression>(ComparisonType::EQ,
+                                                std::move(e1), std::move(e2));
+}
+
+std::unique_ptr<ComparisonExpression> Neq(std::unique_ptr<Expression> e1,
+                                          std::unique_ptr<Expression> e2) {
+  return std::make_unique<ComparisonExpression>(ComparisonType::NEQ,
                                                 std::move(e1), std::move(e2));
 }
 
@@ -118,6 +125,20 @@ std::unique_ptr<ComparisonExpression> And(
   return output;
 }
 
+std::unique_ptr<ComparisonExpression> Or(
+    std::vector<std::unique_ptr<Expression>> expr) {
+  std::unique_ptr<ComparisonExpression> output =
+      std::make_unique<ComparisonExpression>(
+          ComparisonType::OR, std::move(expr[0]), std::move(expr[1]));
+
+  for (int i = 2; i < expr.size(); i++) {
+    output = std::make_unique<ComparisonExpression>(
+        ComparisonType::OR, std::move(output), std::move(expr[i]));
+  }
+
+  return output;
+}
+
 std::unique_ptr<ArithmeticExpression> Mul(std::unique_ptr<Expression> e1,
                                           std::unique_ptr<Expression> e2) {
   return std::make_unique<ArithmeticExpression>(ArithmeticOperatorType::MUL,
@@ -159,4 +180,11 @@ std::unique_ptr<AggregateExpression> Min(std::unique_ptr<Expression> expr) {
 std::unique_ptr<AggregateExpression> Count() {
   return std::make_unique<AggregateExpression>(AggregateType::COUNT,
                                                Literal(true));
+}
+
+std::unique_ptr<CaseExpression> Case(std::unique_ptr<Expression> cond,
+                                     std::unique_ptr<Expression> left,
+                                     std::unique_ptr<Expression> right) {
+  return std::make_unique<CaseExpression>(std::move(cond), std::move(left),
+                                          std::move(right));
 }
