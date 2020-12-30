@@ -200,7 +200,6 @@ int main() {
         std::make_unique<ColumnRefExpression>(
             SqlType::TEXT, 0, agg->Schema().GetColumnIndex("l_linestatus"));
 
-    // output
     OperatorSchema schema;
     schema.AddPassthroughColumns(*agg);
 
