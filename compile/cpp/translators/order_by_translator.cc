@@ -51,7 +51,7 @@ void OrderByTranslator::Produce() {
   for (int i = 0; i < sort_keys.size(); i++) {
     int field_idx = sort_keys[i].get().GetColumnIdx();
     const auto& [field, _] = packed_field_type_[field_idx];
-    auto asc = ascending[field_idx];
+    auto asc = ascending[i];
 
     if (i > 0) {
       int last_field_idx = sort_keys[i - 1].get().GetColumnIdx();
