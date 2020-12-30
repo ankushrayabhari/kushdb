@@ -1,5 +1,5 @@
 Needed for TPC-H:
-- Dependent queries
+- Dependent joins (q17, q20)
 - Extract from date (q7-9)
 
 Update intermediate results:
