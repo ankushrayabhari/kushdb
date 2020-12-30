@@ -1,6 +1,6 @@
 Needed for TPC-H:
 - Dependent queries
-- Extract from date
+- Extract from date (q7-9)
 
 Update intermediate results:
 - Something better than unordered_map
