@@ -22,6 +22,7 @@
 #include "plan/output_operator.h"
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
+#include "tpch/queries/builder.h"
 #include "tpch/schema.h"
 #include "util/vector_util.h"
 
@@ -42,12 +43,7 @@ std::unique_ptr<Operator> ScanRegion() {
 // Select(r_name = 'MIDDLE EAST')
 std::unique_ptr<Operator> SelectRegion() {
   auto region = ScanRegion();
-
-  auto r_name = std::make_unique<ColumnRefExpression>(
-      SqlType::TEXT, 0, region->Schema().GetColumnIndex("r_name"));
-  auto literal = std::make_unique<LiteralExpression>("MIDDLE EAST");
-  auto eq = std::make_unique<ComparisonExpression>(
-      ComparisonType::EQ, std::move(r_name), std::move(literal));
+  auto eq = Eq(ColRef(region, "r_name"), Literal("MIDDLE EAST"));
 
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["region"], {"r_regionkey"});
@@ -68,10 +64,8 @@ std::unique_ptr<Operator> RegionNation() {
   auto region = SelectRegion();
   auto nation = ScanNation();
 
-  auto r_regionkey = std::make_unique<ColumnRefExpression>(
-      SqlType::INT, 0, region->Schema().GetColumnIndex("r_regionkey"));
-  auto n_regionkey = std::make_unique<ColumnRefExpression>(
-      SqlType::INT, 1, region->Schema().GetColumnIndex("n_regionkey"));
+  auto r_regionkey = ColRef(region, "r_regionkey", 0);
+  auto n_regionkey = ColRef(nation, "n_regionkey", 1);
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*nation, {"n_name", "n_nationkey"}, 1);
@@ -94,10 +88,8 @@ std::unique_ptr<Operator> RegionNationSupplier() {
   auto region_nation = RegionNation();
   auto supplier = ScanSupplier();
 
-  auto n_nationkey = std::make_unique<ColumnRefExpression>(
-      SqlType::INT, 0, region_nation->Schema().GetColumnIndex("n_nationkey"));
-  auto s_nationkey = std::make_unique<ColumnRefExpression>(
-      SqlType::INT, 1, supplier->Schema().GetColumnIndex("s_nationkey"));
+  auto n_nationkey = ColRef(region_nation, "n_nationkey", 0);
+  auto s_nationkey = ColRef(supplier, "s_nationkey", 1);
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*region_nation, {"n_name"}, 0);
@@ -122,49 +114,58 @@ std::unique_ptr<Operator> ScanPart() {
 std::unique_ptr<Operator> SelectPart() {
   auto part = ScanPart();
 
-  auto p_size = std::make_unique<ColumnRefExpression>(
-      SqlType::INT, 0, part->Schema().GetColumnIndex("p_size"));
-  auto literal1 = std::make_unique<LiteralExpression>(15);
-  auto eq1 = std::make_unique<ComparisonExpression>(
-      ComparisonType::EQ, std::move(p_size), std::move(literal1));
+  auto eq = And({Eq(ColRef(part, "p_size"), Literal(15)),
+                 EndsWith(ColRef(part, "p_type"), Literal("TIN"))});
 
-  auto p_type = std::make_unique<ColumnRefExpression>(
-      SqlType::TEXT, 0, part->Schema().GetColumnIndex("p_type"));
-  auto literal2 = std::make_unique<LiteralExpression>("TIN");
-  auto eq2 = std::make_unique<StringComparisonExpression>(
-      StringComparisonType::ENDS_WITH, std::move(p_type), std::move(literal2));
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(*part, {"p_partkey", "p_mfgr"});
 
-  auto conjunction = std::make_unique
-
-      OperatorSchema schema;
-  schema.AddGeneratedColumns(db["region"], {"r_regionkey"});
-  return std::make_unique<SelectOperator>(std::move(schema), std::move(region),
+  return std::make_unique<SelectOperator>(std::move(schema), std::move(part),
                                           std::move(eq));
 }
 
-// Scan(nation)
-std::unique_ptr<Operator> ScanNation() {
+// Scan(partsupp)
+std::unique_ptr<Operator> ScanPartsupp() {
   OperatorSchema schema;
-  schema.AddGeneratedColumns(db["nation"],
-                             {"n_name", "n_nationkey", "n_regionkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "nation");
+  schema.AddGeneratedColumns(db["partsupp"],
+                             {"ps_partkey", "ps_suppkey", "ps_supplycost"});
+  return std::make_unique<ScanOperator>(std::move(schema), "partsupp");
 }
 
-// region JOIN nation ON r_regionkey = n_regionkey
-std::unique_ptr<Operator> RegionNation() {
-  auto region = SelectRegion();
-  auto nation = ScanNation();
+// part JOIN partsupp ON p_partkey = ps_partkey
+std::unique_ptr<Operator> PartPartsupp() {
+  auto part = SelectPart();
+  auto partsupp = ScanPartsupp();
 
-  auto r_regionkey = std::make_unique<ColumnRefExpression>(
-      SqlType::INT, 0, region->Schema().GetColumnIndex("r_regionkey"));
-  auto n_regionkey = std::make_unique<ColumnRefExpression>(
-      SqlType::INT, 1, region->Schema().GetColumnIndex("n_regionkey"));
+  auto p_partkey = ColRef(part, "p_partkey", 0);
+  auto ps_partkey = ColRef(partsupp, "ps_partkey", 1);
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*nation, {"n_name", "n_nationkey"}, 1);
+  schema.AddPassthroughColumns(*part, {"p_partkey", "p_mfgr"}, 0);
+  schema.AddPassthroughColumns(*partsupp, {"ps_suppkey", "ps_supplycost"}, 1);
   return std::make_unique<HashJoinOperator>(
-      std::move(schema), std::move(region), std::move(nation),
-      std::move(r_regionkey), std::move(n_regionkey));
+      std::move(schema), std::move(part), std::move(partsupp),
+      std::move(p_partkey), std::move(ps_partkey));
+}
+
+// region_nation_supplier JOIN part_partsupp ON s_suppkey = ps_suppkey
+std::unique_ptr<Operator> RegionNationSupplierPartPartsupp() {
+  auto rns = RegionNationSupplier();
+  auto pps = PartPartsupp();
+
+  auto s_suppkey = ColRef(rns, "s_suppkey", 0);
+  auto ps_suppkey = ColRef(pps, "ps_suppkey", 1);
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(*rns,
+                               {"s_acctbal", "s_name", "n_name", "s_address",
+                                "s_phone", "s_comment", "s_suppkey"},
+                               0);
+  schema.AddPassthroughColumns(*pps, {"p_partkey", "p_mfgr", "ps_supplycost"},
+                               1);
+  return std::make_unique<HashJoinOperator>(
+      std::move(schema), std::move(rns), std::move(pps), std::move(s_suppkey),
+      std::move(ps_suppkey));
 }
 
 int main() {
