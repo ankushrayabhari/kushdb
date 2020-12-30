@@ -38,6 +38,18 @@ cc_library(
 )
 
 cc_library(
+    name = "cross_product_operator",
+    srcs = ["cross_product_operator.cc"],
+    hdrs = ["cross_product_operator.h"],
+    deps = [
+        ":operator",
+        ":operator_schema",
+        ":operator_visitor",
+        "@json",
+    ],
+)
+
+cc_library(
     name = "scan_operator",
     srcs = ["scan_operator.cc"],
     hdrs = ["scan_operator.h"],

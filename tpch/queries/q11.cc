@@ -7,6 +7,7 @@
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "compile/cpp/cpp_translator.h"
+#include "plan/cross_product_operator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -106,7 +107,7 @@ std::unique_ptr<Operator> SubqueryAgg() {
       Sum(Mul(ColRef(base, "ps_supplycost"), ColRef(base, "ps_availqty")));
 
   OperatorSchema schema;
-  schema.AddDerivedColumn("value", Mul(VirtColRef(value, 0), Literal(0.0001)));
+  schema.AddDerivedColumn("value1", Mul(VirtColRef(value, 0), Literal(0.0001)));
 
   return std::make_unique<GroupByAggregateOperator>(
       std::move(schema), std::move(base),
@@ -144,7 +145,7 @@ std::unique_ptr<Operator> GroupByAgg() {
   auto base = NationSupplierPartsupp();
 
   // group by
-  auto ps_partkey = ColRef(base, "ps_partkey");
+  auto ps_partkey = ColRefE(base, "ps_partkey");
 
   // aggregate
   auto value =
@@ -159,12 +160,32 @@ std::unique_ptr<Operator> GroupByAgg() {
       util::MakeVector(std::move(value)));
 }
 
-// TODO: join
+// subquery JOIN query
+std::unique_ptr<Operator> JoinQuerySubquery() {
+  auto subquery = SubqueryAgg();
+  auto query = GroupByAgg();
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(*subquery, 0);
+  schema.AddPassthroughColumns(*query, 1);
+  return std::make_unique<CrossProductOperator>(
+      std::move(schema), std::move(subquery), std::move(query));
+}
+
+// Select(subquery JOIN query ON value > value1)
+std::unique_ptr<Operator> SelectBase() {
+  auto base = JoinQuerySubquery();
+  auto gt = Gt(ColRef(base, "value"), ColRef(base, "value1"));
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(*base, {"ps_partkey", "value"});
+  return std::make_unique<SelectOperator>(std::move(schema), std::move(base),
+                                          std::move(gt));
+}
 
 // Order By revenue desc
 std::unique_ptr<Operator> OrderBy() {
-  // TODO: join
-  auto agg = GroupByAgg();
+  auto agg = SelectBase();
 
   auto value = ColRef(agg, "value");
 
@@ -177,8 +198,7 @@ std::unique_ptr<Operator> OrderBy() {
 }
 
 int main() {
-  std::unique_ptr<Operator> query =
-      std::make_unique<OutputOperator>(std::move(SubqueryAgg()));
+  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(OrderBy());
 
   CppTranslator translator(db, *query);
   translator.Translate();

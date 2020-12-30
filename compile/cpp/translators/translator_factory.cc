@@ -1,5 +1,6 @@
 #include "compile/cpp/translators/translator_factory.h"
 
+#include "compile/cpp/translators/cross_product_translator.h"
 #include "compile/cpp/translators/group_by_aggregate_translator.h"
 #include "compile/cpp/translators/hash_join_translator.h"
 #include "compile/cpp/translators/operator_translator.h"
@@ -57,6 +58,11 @@ void TranslatorFactory::Visit(
 void TranslatorFactory::Visit(const plan::OrderByOperator& order_by) {
   Return(std::make_unique<OrderByTranslator>(order_by, context_,
                                              GetChildTranslators(order_by)));
+}
+
+void TranslatorFactory::Visit(const plan::CrossProductOperator& cross_product) {
+  Return(std::make_unique<CrossProductTranslator>(
+      cross_product, context_, GetChildTranslators(cross_product)));
 }
 
 }  // namespace kush::compile::cpp

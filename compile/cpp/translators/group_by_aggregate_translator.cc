@@ -99,7 +99,7 @@ void GroupByAggregateTranslator::Produce() {
     auto var = program.GenerateVariable();
     auto type = SqlTypeToRuntimeType(column.Expr().Type());
 
-    program.fout << "auto& " << var << " = ";
+    program.fout << "auto " << var << " = ";
     expr_translator_.Produce(column.Expr());
     program.fout << ";\n";
 

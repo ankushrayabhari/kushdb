@@ -55,6 +55,19 @@ cc_library(
 )
 
 cc_library(
+    name = "cross_product_translator",
+    srcs = ["cross_product_translator.cc"],
+    hdrs = ["cross_product_translator.h"],
+    deps = [
+        ":expression_translator",
+        ":operator_translator",
+        "//compile/cpp:cpp_compilation_context",
+        "//compile/cpp:types",
+        "//plan:cross_product_operator",
+    ],
+)
+
+cc_library(
     name = "hash_join_translator",
     srcs = ["hash_join_translator.cc"],
     hdrs = ["hash_join_translator.h"],
@@ -98,6 +111,7 @@ cc_library(
     srcs = ["translator_factory.cc"],
     hdrs = ["translator_factory.h"],
     deps = [
+        ":cross_product_translator",
         ":group_by_aggregate_translator",
         ":hash_join_translator",
         ":operator_translator",
