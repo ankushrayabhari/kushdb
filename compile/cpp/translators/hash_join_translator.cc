@@ -42,14 +42,19 @@ void HashJoinTranslator::Produce() {
 void HashJoinTranslator::Consume(OperatorTranslator& src) {
   auto& program = context_.Program();
   auto& left_translator = LeftChild();
+  const auto left_columns = hash_join_.LeftColumns();
+  const auto right_columns = hash_join_.RightColumns();
 
   // Build side
   if (&src == &left_translator) {
     // hash key
     auto hash_var = program.GenerateVariable();
     program.fout << "std::size_t " << hash_var << " = 0;";
-    program.fout << "kush::util::HashCombine(" << hash_var << ",";
-    expr_translator_.Produce(hash_join_.LeftColumn());
+    program.fout << "kush::util::HashCombine(" << hash_var;
+    for (const auto& col : left_columns) {
+      program.fout << ",";
+      expr_translator_.Produce(col.get());
+    }
     program.fout << ");\n";
     auto bucket_var = program.GenerateVariable();
     program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "["
@@ -74,8 +79,11 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
   // hash tuple
   auto hash_var = program.GenerateVariable();
   program.fout << "std::size_t " << hash_var << " = 0;";
-  program.fout << "kush::util::HashCombine(" << hash_var << ",";
-  expr_translator_.Produce(hash_join_.RightColumn());
+  program.fout << "kush::util::HashCombine(" << hash_var;
+  for (const auto& col : right_columns) {
+    program.fout << ",";
+    expr_translator_.Produce(col.get());
+  }
   program.fout << ");\n";
   auto bucket_var = program.GenerateVariable();
   program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "["
@@ -98,9 +106,17 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
 
   // check if the key columns are actually equal
   program.fout << "if (";
-  expr_translator_.Produce(hash_join_.LeftColumn());
-  program.fout << " == ";
-  expr_translator_.Produce(hash_join_.RightColumn());
+  for (int i = 0; i < left_columns.size(); i++) {
+    if (i > 0) {
+      program.fout << " && ";
+    }
+
+    program.fout << "(";
+    expr_translator_.Produce(left_columns[i].get());
+    program.fout << " == ";
+    expr_translator_.Produce(right_columns[i].get());
+    program.fout << ")";
+  }
   program.fout << ") {";
 
   for (const auto& column : hash_join_.Schema().Columns()) {

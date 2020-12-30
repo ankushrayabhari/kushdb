@@ -7,24 +7,27 @@
 #include "plan/operator.h"
 #include "plan/operator_schema.h"
 #include "plan/operator_visitor.h"
+#include "util/vector_util.h"
 
 namespace kush::plan {
 
 HashJoinOperator::HashJoinOperator(
     OperatorSchema schema, std::unique_ptr<Operator> left,
     std::unique_ptr<Operator> right,
-    std::unique_ptr<ColumnRefExpression> left_column,
-    std::unique_ptr<ColumnRefExpression> right_column)
+    std::vector<std::unique_ptr<ColumnRefExpression>> left_columns,
+    std::vector<std::unique_ptr<ColumnRefExpression>> right_columns)
     : BinaryOperator(std::move(schema), std::move(left), std::move(right)),
-      left_column_(std::move(left_column)),
-      right_column_(std::move(right_column)) {}
+      left_columns_(std::move(left_columns)),
+      right_columns_(std::move(right_columns)) {}
 
-const ColumnRefExpression& HashJoinOperator::LeftColumn() const {
-  return *left_column_;
+std::vector<std::reference_wrapper<const ColumnRefExpression>>
+HashJoinOperator::LeftColumns() const {
+  return util::ImmutableReferenceVector(left_columns_);
 }
 
-const ColumnRefExpression& HashJoinOperator::RightColumn() const {
-  return *right_column_;
+std::vector<std::reference_wrapper<const ColumnRefExpression>>
+HashJoinOperator::RightColumns() const {
+  return util::ImmutableReferenceVector(right_columns_);
 }
 
 nlohmann::json HashJoinOperator::ToJson() const {
@@ -33,10 +36,12 @@ nlohmann::json HashJoinOperator::ToJson() const {
   j["left_relation"] = LeftChild().ToJson();
   j["right_relation"] = RightChild().ToJson();
 
-  nlohmann::json eq;
-  eq["left"] = left_column_->ToJson();
-  eq["right"] = right_column_->ToJson();
-  j["keys"].push_back(eq);
+  for (int i = 0; i < left_columns_.size(); i++) {
+    nlohmann::json eq;
+    eq["left"] = left_columns_[i]->ToJson();
+    eq["right"] = right_columns_[i]->ToJson();
+    j["keys"].push_back(eq);
+  }
 
   j["output"] = Schema().ToJson();
   return j;

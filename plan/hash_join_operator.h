@@ -12,13 +12,16 @@ namespace kush::plan {
 
 class HashJoinOperator final : public BinaryOperator {
  public:
-  HashJoinOperator(OperatorSchema schema, std::unique_ptr<Operator> left,
-                   std::unique_ptr<Operator> right,
-                   std::unique_ptr<ColumnRefExpression> left_column_,
-                   std::unique_ptr<ColumnRefExpression> right_column_);
+  HashJoinOperator(
+      OperatorSchema schema, std::unique_ptr<Operator> left,
+      std::unique_ptr<Operator> right,
+      std::vector<std::unique_ptr<ColumnRefExpression>> left_columns_,
+      std::vector<std::unique_ptr<ColumnRefExpression>> right_columns_);
 
-  const ColumnRefExpression& LeftColumn() const;
-  const ColumnRefExpression& RightColumn() const;
+  std::vector<std::reference_wrapper<const ColumnRefExpression>> LeftColumns()
+      const;
+  std::vector<std::reference_wrapper<const ColumnRefExpression>> RightColumns()
+      const;
 
   void Accept(OperatorVisitor& visitor) override;
   void Accept(ImmutableOperatorVisitor& visitor) const override;
@@ -26,8 +29,8 @@ class HashJoinOperator final : public BinaryOperator {
   nlohmann::json ToJson() const override;
 
  private:
-  std::unique_ptr<ColumnRefExpression> left_column_;
-  std::unique_ptr<ColumnRefExpression> right_column_;
+  std::vector<std::unique_ptr<ColumnRefExpression>> left_columns_;
+  std::vector<std::unique_ptr<ColumnRefExpression>> right_columns_;
 };
 
 }  // namespace kush::plan

@@ -71,7 +71,8 @@ std::unique_ptr<Operator> RegionNation() {
   schema.AddPassthroughColumns(*nation, {"n_name", "n_nationkey"}, 1);
   return std::make_unique<HashJoinOperator>(
       std::move(schema), std::move(region), std::move(nation),
-      std::move(r_regionkey), std::move(n_regionkey));
+      util::MakeVector(std::move(r_regionkey)),
+      util::MakeVector(std::move(n_regionkey)));
 }
 
 // Scan(supplier)
@@ -99,7 +100,8 @@ std::unique_ptr<Operator> RegionNationSupplier() {
       1);
   return std::make_unique<HashJoinOperator>(
       std::move(schema), std::move(region_nation), std::move(supplier),
-      std::move(n_nationkey), std::move(s_nationkey));
+      util::MakeVector(std::move(n_nationkey)),
+      util::MakeVector(std::move(s_nationkey)));
 }
 
 // Scan(part)
@@ -150,7 +152,8 @@ std::unique_ptr<Operator> PartPartsupp() {
   schema.AddPassthroughColumns(*partsupp, {"ps_suppkey", "ps_supplycost"}, 1);
   return std::make_unique<HashJoinOperator>(
       std::move(schema), std::move(part), std::move(partsupp),
-      std::move(p_partkey), std::move(ps_partkey));
+      util::MakeVector(std::move(p_partkey)),
+      util::MakeVector(std::move(ps_partkey)));
 }
 
 // region_nation_supplier JOIN part_partsupp ON s_suppkey = ps_suppkey
@@ -169,8 +172,9 @@ std::unique_ptr<Operator> RegionNationSupplierPartPartsupp() {
   schema.AddPassthroughColumns(*pps, {"p_partkey", "p_mfgr", "ps_supplycost"},
                                1);
   return std::make_unique<HashJoinOperator>(
-      std::move(schema), std::move(rns), std::move(pps), std::move(s_suppkey),
-      std::move(ps_suppkey));
+      std::move(schema), std::move(rns), std::move(pps),
+      util::MakeVector(std::move(s_suppkey)),
+      util::MakeVector(std::move(ps_suppkey)));
 }
 
 // Scan(nation)
@@ -192,7 +196,8 @@ std::unique_ptr<Operator> SubqueryRegionNation() {
   schema.AddPassthroughColumns(*nation, {"n_nationkey"}, 1);
   return std::make_unique<HashJoinOperator>(
       std::move(schema), std::move(region), std::move(nation),
-      std::move(r_regionkey), std::move(n_regionkey));
+      util::MakeVector(std::move(r_regionkey)),
+      util::MakeVector(std::move(n_regionkey)));
 }
 
 // Scan(supplier)
@@ -214,13 +219,15 @@ std::unique_ptr<Operator> SubqueryRegionNationSupplier() {
   schema.AddPassthroughColumns(*supplier, {"s_suppkey"}, 1);
   return std::make_unique<HashJoinOperator>(
       std::move(schema), std::move(region_nation), std::move(supplier),
-      std::move(n_nationkey), std::move(s_nationkey));
+      util::MakeVector(std::move(n_nationkey)),
+      util::MakeVector(std::move(s_nationkey)));
 }
 
 // Scan(partsupp)
 std::unique_ptr<Operator> SubqueryScanPartsupp() {
   OperatorSchema schema;
-  schema.AddGeneratedColumns(db["partsupp"], {"ps_suppkey", "ps_supplycost"});
+  schema.AddGeneratedColumns(db["partsupp"],
+                             {"ps_suppkey", "ps_supplycost", "ps_partkey"});
   return std::make_unique<ScanOperator>(std::move(schema), "partsupp");
 }
 
@@ -233,23 +240,26 @@ std::unique_ptr<Operator> SubqueryRegionNationSupplierPartsupp() {
   auto ps_suppkey = ColRef(partsupp, "ps_suppkey", 1);
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*partsupp, {"ps_supplycost"}, 1);
+  schema.AddPassthroughColumns(*partsupp, {"ps_supplycost", "ps_partkey"}, 1);
   return std::make_unique<HashJoinOperator>(
       std::move(schema), std::move(rns), std::move(partsupp),
-      std::move(s_suppkey), std::move(ps_suppkey));
+      util::MakeVector(std::move(s_suppkey)),
+      util::MakeVector(std::move(ps_suppkey)));
 }
 
 std::unique_ptr<Operator> Subquery() {
   auto rnsps = SubqueryRegionNationSupplierPartsupp();
+  auto ps_partkey = ColRefE(rnsps, "ps_partkey");
   auto min_supplycost = Min(ColRef(rnsps, "ps_supplycost"));
 
   // output
   OperatorSchema schema;
-  schema.AddDerivedColumn("min_ps_supplycost", VirtColRef(min_supplycost, 0));
+  schema.AddDerivedColumn("ps_partkey", VirtColRef(ps_partkey, 0));
+  schema.AddDerivedColumn("min_ps_supplycost", VirtColRef(min_supplycost, 1));
 
   return std::make_unique<GroupByAggregateOperator>(
       std::move(schema), std::move(rnsps),
-      std::vector<std::unique_ptr<Expression>>(),
+      util::MakeVector(std::move(ps_partkey)),
       util::MakeVector(std::move(min_supplycost)));
 }
 
@@ -258,7 +268,9 @@ std::unique_ptr<Operator> RNSPPSJoinSubquery() {
   auto rnspps = RegionNationSupplierPartPartsupp();
   auto subquery = Subquery();
 
+  auto p_partkey = ColRef(rnspps, "p_partkey", 0);
   auto ps_supplycost = ColRef(rnspps, "ps_supplycost", 0);
+  auto ps_partkey = ColRef(subquery, "ps_partkey", 1);
   auto min_ps_supplycost = ColRef(subquery, "min_ps_supplycost", 1);
 
   OperatorSchema schema;
@@ -268,7 +280,8 @@ std::unique_ptr<Operator> RNSPPSJoinSubquery() {
                                0);
   return std::make_unique<HashJoinOperator>(
       std::move(schema), std::move(rnspps), std::move(subquery),
-      std::move(ps_supplycost), std::move(min_ps_supplycost));
+      util::MakeVector(std::move(p_partkey), std::move(ps_supplycost)),
+      util::MakeVector(std::move(ps_partkey), std::move(min_ps_supplycost)));
 }
 
 // Order By s_acctbal desc, n_name, s_name, p_partkey

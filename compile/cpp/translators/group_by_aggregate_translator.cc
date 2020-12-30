@@ -121,7 +121,6 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
   auto& program = context_.Program();
   auto group_by_exprs = group_by_agg_.GroupByExprs();
   auto agg_exprs = group_by_agg_.AggExprs();
-
   std::string struct_var, bucket_var, found_var, loop_var;
   if (group_by_exprs.empty()) {
     // check if uninit and if so init
