@@ -1,5 +1,5 @@
-Add support for the following for TPC-H:
-- Single Join
+Update intermediate results:
 - Something better than unordered_map
+- Clear out intermediate buffers after use
 
-Broadly, generate LLVM instead of C++.
+Broadly, generate LLVM/MLIR instead of C++.
