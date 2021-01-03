@@ -8,6 +8,6 @@
 /db
 
 # TPCH Data
-/tpch/data
-/tpch/raw
+/tpch/data*
+/tpch/raw*
 /tpch/results

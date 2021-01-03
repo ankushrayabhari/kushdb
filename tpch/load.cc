@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <execution>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -454,20 +455,8 @@ void Supplier() {
 }
 
 int main() {
-  Supplier();
-  std::cout << "supplier" << std::endl;
-  Part();
-  std::cout << "part" << std::endl;
-  Partsupp();
-  std::cout << "partsupp" << std::endl;
-  Customer();
-  std::cout << "customer" << std::endl;
-  Orders();
-  std::cout << "orders" << std::endl;
-  Lineitem();
-  std::cout << "lineitem" << std::endl;
-  Nation();
-  std::cout << "nation" << std::endl;
-  Region();
-  std::cout << "region" << std::endl;
+  std::vector<std::function<void(void)>> loads{
+      Supplier, Part, Partsupp, Customer, Orders, Lineitem, Nation, Region};
+  std::for_each(std::execution::par_unseq, loads.begin(), loads.end(),
+                [](auto&& item) { item(); });
 }
