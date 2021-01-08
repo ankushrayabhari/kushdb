@@ -51,6 +51,60 @@ Int8 Int8::operator/(const Int8& rhs) {
   return Int8(program_, var);
 }
 
+Boolean Int8::operator==(const Int8& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " == ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int8::operator!=(const Int8& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " != ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int8::operator<(const Int8& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " < ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int8::operator<=(const Int8& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " <= ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int8::operator>(const Int8& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " > ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int8::operator>=(const Int8& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " >= ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
 //======================================================================
 
 Int16::Int16(CppProgram& program, int16_t value)
@@ -95,9 +149,63 @@ Int16 Int16::operator/(const Int16& rhs) {
   return Int16(program_, var);
 }
 
+Boolean Int16::operator==(const Int16& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " == ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int16::operator!=(const Int16& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " != ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int16::operator<(const Int16& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " < ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int16::operator<=(const Int16& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " <= ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int16::operator>(const Int16& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " > ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int16::operator>=(const Int16& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " >= ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
 //======================================================================
 
-Int32::Int32(CppProgram& program, int8_t value)
+Int32::Int32(CppProgram& program, int32_t value)
     : program_(program), value_(value) {}
 
 Int32::Int32(CppProgram& program, std::string_view variable)
@@ -139,9 +247,63 @@ Int32 Int32::operator/(const Int32& rhs) {
   return Int32(program_, var);
 }
 
+Boolean Int32::operator==(const Int32& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " == ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int32::operator!=(const Int32& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " != ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int32::operator<(const Int32& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " < ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int32::operator<=(const Int32& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " <= ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int32::operator>(const Int32& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " > ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int32::operator>=(const Int32& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " >= ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
 //======================================================================
 
-Int64::Int64(CppProgram& program, int8_t value)
+Int64::Int64(CppProgram& program, int64_t value)
     : program_(program), value_(value) {}
 
 Int64::Int64(CppProgram& program, std::string_view variable)
@@ -181,6 +343,60 @@ Int64 Int64::operator/(const Int64& rhs) {
   program_.fout << " / ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
   return Int64(program_, var);
+}
+
+Boolean Int64::operator==(const Int64& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " == ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int64::operator!=(const Int64& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " != ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int64::operator<(const Int64& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " < ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int64::operator<=(const Int64& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " <= ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int64::operator>(const Int64& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " > ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
+}
+
+Boolean Int64::operator>=(const Int64& rhs) {
+  auto var = program_.GenerateVariable();
+  program_.fout << "bool " << var << " = ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << " >= ";
+  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  return Boolean(program_, var);
 }
 
 }  // namespace kush::compile::cpp::proxy

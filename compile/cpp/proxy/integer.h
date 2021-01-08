@@ -6,6 +6,7 @@
 #include <variant>
 
 #include "compile/cpp/cpp_program.h"
+#include "compile/cpp/proxy/boolean.h"
 
 namespace kush::compile::cpp::proxy {
 
@@ -18,6 +19,12 @@ class Int8 {
   Int8 operator-(const Int8& rhs);
   Int8 operator*(const Int8& rhs);
   Int8 operator/(const Int8& rhs);
+  Boolean operator==(const Int8& rhs);
+  Boolean operator!=(const Int8& rhs);
+  Boolean operator<(const Int8& rhs);
+  Boolean operator<=(const Int8& rhs);
+  Boolean operator>(const Int8& rhs);
+  Boolean operator>=(const Int8& rhs);
 
  private:
   CppProgram& program_;
@@ -33,6 +40,12 @@ class Int16 {
   Int16 operator-(const Int16& rhs);
   Int16 operator*(const Int16& rhs);
   Int16 operator/(const Int16& rhs);
+  Boolean operator==(const Int16& rhs);
+  Boolean operator!=(const Int16& rhs);
+  Boolean operator<(const Int16& rhs);
+  Boolean operator<=(const Int16& rhs);
+  Boolean operator>(const Int16& rhs);
+  Boolean operator>=(const Int16& rhs);
 
  private:
   CppProgram& program_;
@@ -48,6 +61,12 @@ class Int32 {
   Int32 operator-(const Int32& rhs);
   Int32 operator*(const Int32& rhs);
   Int32 operator/(const Int32& rhs);
+  Boolean operator==(const Int32& rhs);
+  Boolean operator!=(const Int32& rhs);
+  Boolean operator<(const Int32& rhs);
+  Boolean operator<=(const Int32& rhs);
+  Boolean operator>(const Int32& rhs);
+  Boolean operator>=(const Int32& rhs);
 
  private:
   CppProgram& program_;
@@ -63,6 +82,12 @@ class Int64 {
   Int64 operator-(const Int64& rhs);
   Int64 operator*(const Int64& rhs);
   Int64 operator/(const Int64& rhs);
+  Boolean operator==(const Int64& rhs);
+  Boolean operator!=(const Int64& rhs);
+  Boolean operator<(const Int64& rhs);
+  Boolean operator<=(const Int64& rhs);
+  Boolean operator>(const Int64& rhs);
+  Boolean operator>=(const Int64& rhs);
 
  private:
   CppProgram& program_;
