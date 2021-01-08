@@ -30,6 +30,7 @@ using namespace kush;
 using namespace kush::plan;
 using namespace kush::compile::cpp;
 using namespace kush::catalog;
+using namespace std::literals;
 
 const Database db = Schema();
 
@@ -43,7 +44,7 @@ std::unique_ptr<Operator> ScanRegion() {
 // Select(r_name = 'MIDDLE EAST')
 std::unique_ptr<Operator> SelectRegion() {
   auto region = ScanRegion();
-  auto eq = Eq(ColRef(region, "r_name"), Literal("MIDDLE EAST"));
+  auto eq = Eq(ColRef(region, "r_name"), Literal("MIDDLE EAST"sv));
 
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["region"], {"r_regionkey"});
@@ -119,7 +120,7 @@ std::unique_ptr<Operator> SelectPart() {
   std::unique_ptr<Expression> cond;
   {
     std::unique_ptr<Expression> ends_with =
-        EndsWith(ColRef(part, "p_type"), Literal("TIN"));
+        EndsWith(ColRef(part, "p_type"), Literal("TIN"sv));
     std::unique_ptr<Expression> eq = Eq(ColRef(part, "p_size"), Literal(38));
     cond = And(util::MakeVector(std::move(eq), std::move(ends_with)));
   }

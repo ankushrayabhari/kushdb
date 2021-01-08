@@ -30,6 +30,7 @@ using namespace kush;
 using namespace kush::plan;
 using namespace kush::compile::cpp;
 using namespace kush::catalog;
+using namespace std::literals;
 
 const Database db = Schema();
 
@@ -43,7 +44,7 @@ std::unique_ptr<Operator> ScanNation() {
 // Select(n_name = 'ARGENTINA')
 std::unique_ptr<Operator> SelectNation() {
   auto nation = ScanNation();
-  auto eq = Eq(ColRef(nation, "n_name"), Literal("ARGENTINA"));
+  auto eq = Eq(ColRef(nation, "n_name"), Literal("ARGENTINA"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*nation, {"n_nationkey"});

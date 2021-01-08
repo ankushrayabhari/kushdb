@@ -29,6 +29,7 @@ using namespace kush;
 using namespace kush::plan;
 using namespace kush::compile::cpp;
 using namespace kush::catalog;
+using namespace std::literals;
 
 const Database db = Schema();
 
@@ -127,7 +128,7 @@ std::unique_ptr<Operator> ScanLineitem() {
 std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLineitem();
 
-  auto cond = Eq(ColRef(lineitem, "l_returnflag"), Literal("R"));
+  auto cond = Eq(ColRef(lineitem, "l_returnflag"), Literal("R"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*lineitem,

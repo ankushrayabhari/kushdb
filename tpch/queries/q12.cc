@@ -30,6 +30,7 @@ using namespace kush;
 using namespace kush::plan;
 using namespace kush::compile::cpp;
 using namespace kush::catalog;
+using namespace std::literals;
 
 const Database db = Schema();
 
@@ -49,9 +50,9 @@ std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLineitem();
 
   std::unique_ptr<Expression> p1 =
-      Eq(ColRef(lineitem, "l_shipmode"), Literal("FOB"));
+      Eq(ColRef(lineitem, "l_shipmode"), Literal("FOB"sv));
   std::unique_ptr<Expression> p2 =
-      Eq(ColRef(lineitem, "l_shipmode"), Literal("SHIP"));
+      Eq(ColRef(lineitem, "l_shipmode"), Literal("SHIP"sv));
   std::unique_ptr<Expression> or_expr =
       Or(util::MakeVector(std::move(p1), std::move(p2)));
 
@@ -107,13 +108,13 @@ std::unique_ptr<Operator> GroupByAgg() {
 
   // aggregate
   std::unique_ptr<Expression> p1 =
-      Eq(ColRef(base, "o_orderpriority"), Literal("1-URGENT"));
+      Eq(ColRef(base, "o_orderpriority"), Literal("1-URGENT"sv));
   std::unique_ptr<Expression> p2 =
-      Eq(ColRef(base, "o_orderpriority"), Literal("2-HIGH"));
+      Eq(ColRef(base, "o_orderpriority"), Literal("2-HIGH"sv));
   std::unique_ptr<Expression> p3 =
-      Neq(ColRef(base, "o_orderpriority"), Literal("1-URGENT"));
+      Neq(ColRef(base, "o_orderpriority"), Literal("1-URGENT"sv));
   std::unique_ptr<Expression> p4 =
-      Neq(ColRef(base, "o_orderpriority"), Literal("2-HIGH"));
+      Neq(ColRef(base, "o_orderpriority"), Literal("2-HIGH"sv));
 
   auto high_line_count =
       Sum(Case(Or(util::MakeVector(std::move(p1), std::move(p2))), Literal(1),

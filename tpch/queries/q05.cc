@@ -29,6 +29,7 @@ using namespace kush;
 using namespace kush::plan;
 using namespace kush::compile::cpp;
 using namespace kush::catalog;
+using namespace std::literals;
 
 const Database db = Schema();
 
@@ -43,7 +44,7 @@ std::unique_ptr<Operator> ScanRegion() {
 std::unique_ptr<Operator> SelectRegion() {
   auto region = ScanRegion();
 
-  auto eq = Eq(ColRef(region, "r_name"), Literal("MIDDLE EAST"));
+  auto eq = Eq(ColRef(region, "r_name"), Literal("MIDDLE EAST"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*region, {"r_regionkey"});

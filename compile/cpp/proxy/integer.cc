@@ -6,6 +6,7 @@
 #include <variant>
 
 #include "compile/cpp/cpp_program.h"
+#include "compile/cpp/proxy/boolean.h"
 
 namespace kush::compile::cpp::proxy {
 

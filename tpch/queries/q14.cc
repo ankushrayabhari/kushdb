@@ -30,6 +30,7 @@ using namespace kush;
 using namespace kush::plan;
 using namespace kush::compile::cpp;
 using namespace kush::catalog;
+using namespace std::literals;
 
 const Database db = Schema();
 
@@ -87,7 +88,7 @@ std::unique_ptr<Operator> Agg() {
   auto base = LineitemPart();
 
   // aggregate
-  auto agg1 = Sum(Case(StartsWith(ColRef(base, "p_type"), Literal("PROMO")),
+  auto agg1 = Sum(Case(StartsWith(ColRef(base, "p_type"), Literal("PROMO"sv)),
                        Mul(ColRef(base, "l_extendedprice"),
                            Sub(Literal(1), ColRef(base, "l_discount"))),
                        Literal(0.0)));

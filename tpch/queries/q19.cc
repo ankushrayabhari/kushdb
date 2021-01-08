@@ -30,6 +30,7 @@ using namespace kush;
 using namespace kush::plan;
 using namespace kush::compile::cpp;
 using namespace kush::catalog;
+using namespace std::literals;
 
 const Database db = Schema();
 
@@ -50,15 +51,15 @@ std::unique_ptr<Operator> SelectPart() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(part, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(part, "p_size"), Literal(5));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(part, "p_brand"), Literal("Brand#22"));
+        Eq(ColRef(part, "p_brand"), Literal("Brand#22"sv));
     std::unique_ptr<Expression> p4 =
-        Eq(ColRef(part, "p_container"), Literal("SM CASE"));
+        Eq(ColRef(part, "p_container"), Literal("SM CASE"sv));
     std::unique_ptr<Expression> p5 =
-        Eq(ColRef(part, "p_container"), Literal("SM BOX"));
+        Eq(ColRef(part, "p_container"), Literal("SM BOX"sv));
     std::unique_ptr<Expression> p6 =
-        Eq(ColRef(part, "p_container"), Literal("SM PACK"));
+        Eq(ColRef(part, "p_container"), Literal("SM PACK"sv));
     std::unique_ptr<Expression> p7 =
-        Eq(ColRef(part, "p_container"), Literal("SM PKG"));
+        Eq(ColRef(part, "p_container"), Literal("SM PKG"sv));
     or1 = And(
         util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                          Or(util::MakeVector(std::move(p4), std::move(p5),
@@ -70,15 +71,15 @@ std::unique_ptr<Operator> SelectPart() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(part, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(part, "p_size"), Literal(10));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(part, "p_brand"), Literal("Brand#23"));
+        Eq(ColRef(part, "p_brand"), Literal("Brand#23"sv));
     std::unique_ptr<Expression> p4 =
-        Eq(ColRef(part, "p_container"), Literal("MED BAG"));
+        Eq(ColRef(part, "p_container"), Literal("MED BAG"sv));
     std::unique_ptr<Expression> p5 =
-        Eq(ColRef(part, "p_container"), Literal("MED BOX"));
+        Eq(ColRef(part, "p_container"), Literal("MED BOX"sv));
     std::unique_ptr<Expression> p6 =
-        Eq(ColRef(part, "p_container"), Literal("MED PKG"));
+        Eq(ColRef(part, "p_container"), Literal("MED PKG"sv));
     std::unique_ptr<Expression> p7 =
-        Eq(ColRef(part, "p_container"), Literal("MED PACK"));
+        Eq(ColRef(part, "p_container"), Literal("MED PACK"sv));
     or2 = And(
         util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                          Or(util::MakeVector(std::move(p4), std::move(p5),
@@ -90,15 +91,15 @@ std::unique_ptr<Operator> SelectPart() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(part, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(part, "p_size"), Literal(15));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(part, "p_brand"), Literal("Brand#12"));
+        Eq(ColRef(part, "p_brand"), Literal("Brand#12"sv));
     std::unique_ptr<Expression> p4 =
-        Eq(ColRef(part, "p_container"), Literal("LG CASE"));
+        Eq(ColRef(part, "p_container"), Literal("LG CASE"sv));
     std::unique_ptr<Expression> p5 =
-        Eq(ColRef(part, "p_container"), Literal("LG BOX"));
+        Eq(ColRef(part, "p_container"), Literal("LG BOX"sv));
     std::unique_ptr<Expression> p6 =
-        Eq(ColRef(part, "p_container"), Literal("LG PACK"));
+        Eq(ColRef(part, "p_container"), Literal("LG PACK"sv));
     std::unique_ptr<Expression> p7 =
-        Eq(ColRef(part, "p_container"), Literal("LG PKG"));
+        Eq(ColRef(part, "p_container"), Literal("LG PKG"sv));
     or3 = And(
         util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                          Or(util::MakeVector(std::move(p4), std::move(p5),
@@ -129,14 +130,14 @@ std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLinetem();
 
   std::unique_ptr<Expression> and1 =
-      Eq(ColRef(lineitem, "l_shipinstruct"), Literal("DELIVER IN PERSON"));
+      Eq(ColRef(lineitem, "l_shipinstruct"), Literal("DELIVER IN PERSON"sv));
 
   std::unique_ptr<Expression> and2;
   {
     std::unique_ptr<Expression> p1 =
-        Eq(ColRef(lineitem, "l_shipmode"), Literal("AIR"));
+        Eq(ColRef(lineitem, "l_shipmode"), Literal("AIR"sv));
     std::unique_ptr<Expression> p2 =
-        Eq(ColRef(lineitem, "l_shipmode"), Literal("AIR REG"));
+        Eq(ColRef(lineitem, "l_shipmode"), Literal("AIR REG"sv));
     and2 = Or(util::MakeVector(std::move(p1), std::move(p2)));
   }
 
@@ -202,15 +203,15 @@ std::unique_ptr<Operator> SelectPartLineitem() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(base, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(base, "p_size"), Literal(5));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(base, "p_brand"), Literal("Brand#22"));
+        Eq(ColRef(base, "p_brand"), Literal("Brand#22"sv));
     std::unique_ptr<Expression> p4 =
-        Eq(ColRef(base, "p_container"), Literal("SM CASE"));
+        Eq(ColRef(base, "p_container"), Literal("SM CASE"sv));
     std::unique_ptr<Expression> p5 =
-        Eq(ColRef(base, "p_container"), Literal("SM BOX"));
+        Eq(ColRef(base, "p_container"), Literal("SM BOX"sv));
     std::unique_ptr<Expression> p6 =
-        Eq(ColRef(base, "p_container"), Literal("SM PACK"));
+        Eq(ColRef(base, "p_container"), Literal("SM PACK"sv));
     std::unique_ptr<Expression> p7 =
-        Eq(ColRef(base, "p_container"), Literal("SM PKG"));
+        Eq(ColRef(base, "p_container"), Literal("SM PKG"sv));
     std::unique_ptr<Expression> p8 =
         Geq(ColRef(base, "l_quantity"), Literal(8));
     std::unique_ptr<Expression> p9 =
@@ -227,15 +228,15 @@ std::unique_ptr<Operator> SelectPartLineitem() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(base, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(base, "p_size"), Literal(10));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(base, "p_brand"), Literal("Brand#23"));
+        Eq(ColRef(base, "p_brand"), Literal("Brand#23"sv));
     std::unique_ptr<Expression> p4 =
-        Eq(ColRef(base, "p_container"), Literal("MED BAG"));
+        Eq(ColRef(base, "p_container"), Literal("MED BAG"sv));
     std::unique_ptr<Expression> p5 =
-        Eq(ColRef(base, "p_container"), Literal("MED BOX"));
+        Eq(ColRef(base, "p_container"), Literal("MED BOX"sv));
     std::unique_ptr<Expression> p6 =
-        Eq(ColRef(base, "p_container"), Literal("MED PKG"));
+        Eq(ColRef(base, "p_container"), Literal("MED PKG"sv));
     std::unique_ptr<Expression> p7 =
-        Eq(ColRef(base, "p_container"), Literal("MED PACK"));
+        Eq(ColRef(base, "p_container"), Literal("MED PACK"sv));
     std::unique_ptr<Expression> p8 =
         Geq(ColRef(base, "l_quantity"), Literal(10));
     std::unique_ptr<Expression> p9 =
@@ -252,15 +253,15 @@ std::unique_ptr<Operator> SelectPartLineitem() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(base, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(base, "p_size"), Literal(15));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(base, "p_brand"), Literal("Brand#12"));
+        Eq(ColRef(base, "p_brand"), Literal("Brand#12"sv));
     std::unique_ptr<Expression> p4 =
-        Eq(ColRef(base, "p_container"), Literal("LG CASE"));
+        Eq(ColRef(base, "p_container"), Literal("LG CASE"sv));
     std::unique_ptr<Expression> p5 =
-        Eq(ColRef(base, "p_container"), Literal("LG BOX"));
+        Eq(ColRef(base, "p_container"), Literal("LG BOX"sv));
     std::unique_ptr<Expression> p6 =
-        Eq(ColRef(base, "p_container"), Literal("LG PACK"));
+        Eq(ColRef(base, "p_container"), Literal("LG PACK"sv));
     std::unique_ptr<Expression> p7 =
-        Eq(ColRef(base, "p_container"), Literal("LG PKG"));
+        Eq(ColRef(base, "p_container"), Literal("LG PKG"sv));
     std::unique_ptr<Expression> p8 =
         Geq(ColRef(base, "l_quantity"), Literal(24));
     std::unique_ptr<Expression> p9 =

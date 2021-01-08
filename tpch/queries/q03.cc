@@ -29,6 +29,7 @@ using namespace kush;
 using namespace kush::plan;
 using namespace kush::compile::cpp;
 using namespace kush::catalog;
+using namespace std::literals;
 
 const Database db = Schema();
 
@@ -43,7 +44,7 @@ std::unique_ptr<Operator> ScanCustomer() {
 std::unique_ptr<Operator> SelectCustomer() {
   auto scan_customer = ScanCustomer();
 
-  auto eq = Eq(ColRef(scan_customer, "c_mktsegment"), Literal("FURNITURE"));
+  auto eq = Eq(ColRef(scan_customer, "c_mktsegment"), Literal("FURNITURE"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*scan_customer, {"c_custkey"});
