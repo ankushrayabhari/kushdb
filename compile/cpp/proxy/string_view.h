@@ -15,11 +15,13 @@ class StringView {
   StringView(CppProgram& program, std::string_view value_or_variable,
              bool is_value);
 
-  Boolean Contains(const StringView& rhs);
-  Boolean StartsWith(const StringView& rhs);
-  Boolean EndsWith(const StringView& rhs);
-  Boolean operator==(const StringView& rhs);
-  Boolean operator!=(const StringView& rhs);
+  void Get();
+
+  Boolean Contains(StringView& rhs);
+  Boolean StartsWith(StringView& rhs);
+  Boolean EndsWith(StringView& rhs);
+  Boolean operator==(StringView& rhs);
+  Boolean operator!=(StringView& rhs);
 
  private:
   CppProgram& program_;

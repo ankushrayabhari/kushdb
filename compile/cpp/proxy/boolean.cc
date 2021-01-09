@@ -15,50 +15,54 @@ Boolean::Boolean(CppProgram& program, bool value)
 Boolean::Boolean(CppProgram& program, std::string_view variable)
     : program_(program), value_(std::string(variable)) {}
 
+void Boolean::Get() {
+  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+}
+
 Boolean Boolean::operator!() {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = !";
-  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  Get();
   program_.fout << ";";
   return Boolean(program_, var);
 }
 
-Boolean Boolean::operator&&(const Boolean& rhs) {
+Boolean Boolean::operator&&(Boolean& rhs) {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = ";
-  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  Get();
   program_.fout << " && ";
-  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  rhs.Get();
   program_.fout << ";";
   return Boolean(program_, var);
 }
 
-Boolean Boolean::operator||(const Boolean& rhs) {
+Boolean Boolean::operator||(Boolean& rhs) {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = ";
-  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  Get();
   program_.fout << " || ";
-  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  rhs.Get();
   program_.fout << ";";
   return Boolean(program_, var);
 }
 
-Boolean Boolean::operator==(const Boolean& rhs) {
+Boolean Boolean::operator==(Boolean& rhs) {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = ";
-  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  Get();
   program_.fout << " == ";
-  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  rhs.Get();
   program_.fout << ";";
   return Boolean(program_, var);
 }
 
-Boolean Boolean::operator!=(const Boolean& rhs) {
+Boolean Boolean::operator!=(Boolean& rhs) {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = ";
-  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  Get();
   program_.fout << " != ";
-  std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  rhs.Get();
   program_.fout << ";";
   return Boolean(program_, var);
 }

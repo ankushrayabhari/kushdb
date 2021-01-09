@@ -16,61 +16,60 @@ StringView::StringView(CppProgram& program, std::string_view value_or_variable,
       is_value_(is_value),
       value_or_variable_(std::string(value_or_variable)) {}
 
-void output(std::ofstream& out, bool is_value,
-            std::string_view value_or_variable) {
-  if (is_value) {
-    out << "\"" << value_or_variable << "\"";
+void StringView::Get() {
+  if (is_value_) {
+    program_.fout << "\"" << value_or_variable_ << "\"";
   } else {
-    out << value_or_variable;
+    program_.fout << value_or_variable_;
   }
 }
 
-Boolean StringView::Contains(const StringView& rhs) {
+Boolean StringView::Contains(StringView& rhs) {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = ";
-  output(program_.fout, is_value_, value_or_variable_);
+  Get();
   program_.fout << ".contains(";
-  output(program_.fout, rhs.is_value_, rhs.value_or_variable_);
+  rhs.Get();
   program_.fout << ");";
   return Boolean(program_, var);
 }
 
-Boolean StringView::StartsWith(const StringView& rhs) {
+Boolean StringView::StartsWith(StringView& rhs) {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = ";
-  output(program_.fout, is_value_, value_or_variable_);
+  Get();
   program_.fout << ".starts_with(";
-  output(program_.fout, rhs.is_value_, rhs.value_or_variable_);
+  rhs.Get();
   program_.fout << ");";
   return Boolean(program_, var);
 }
 
-Boolean StringView::EndsWith(const StringView& rhs) {
+Boolean StringView::EndsWith(StringView& rhs) {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = ";
-  output(program_.fout, is_value_, value_or_variable_);
+  Get();
   program_.fout << ".ends_with(";
-  output(program_.fout, rhs.is_value_, rhs.value_or_variable_);
+  rhs.Get();
   program_.fout << ");";
   return Boolean(program_, var);
 }
 
-Boolean StringView::operator==(const StringView& rhs) {
+Boolean StringView::operator==(StringView& rhs) {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = ";
-  output(program_.fout, is_value_, value_or_variable_);
+  Get();
   program_.fout << " == ";
-  output(program_.fout, rhs.is_value_, rhs.value_or_variable_);
+  rhs.Get();
   program_.fout << ";";
   return Boolean(program_, var);
 }
 
-Boolean StringView::operator!=(const StringView& rhs) {
+Boolean StringView::operator!=(StringView& rhs) {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = ";
-  output(program_.fout, is_value_, value_or_variable_);
+  Get();
   program_.fout << " != ";
-  output(program_.fout, rhs.is_value_, rhs.value_or_variable_);
+  rhs.Get();
   program_.fout << ";";
   return Boolean(program_, var);
 }

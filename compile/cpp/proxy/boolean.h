@@ -14,11 +14,13 @@ class Boolean {
   Boolean(CppProgram& program, bool value);
   Boolean(CppProgram& program, std::string_view variable);
 
+  void Get();
+
   Boolean operator!();
-  Boolean operator&&(const Boolean& rhs);
-  Boolean operator||(const Boolean& rhs);
-  Boolean operator==(const Boolean& rhs);
-  Boolean operator!=(const Boolean& rhs);
+  Boolean operator&&(Boolean& rhs);
+  Boolean operator||(Boolean& rhs);
+  Boolean operator==(Boolean& rhs);
+  Boolean operator!=(Boolean& rhs);
 
  private:
   CppProgram& program_;
