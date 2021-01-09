@@ -24,7 +24,7 @@ namespace kush::data {
 template <class T>
 class ColumnData {
  public:
-  ColumnData(std::string_view path) {
+  explicit ColumnData(std::string_view path) {
     int fd = open(std::string(path).c_str(), O_RDONLY);
     assert(fd != -1);
 
@@ -84,7 +84,7 @@ class ColumnData<std::string_view> {
   };
 
  public:
-  ColumnData(std::string_view path) {
+  explicit ColumnData(std::string_view path) {
     int fd = open(std::string(path).c_str(), O_RDONLY);
     assert(fd != -1);
 

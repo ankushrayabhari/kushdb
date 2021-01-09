@@ -11,7 +11,7 @@ namespace kush::plan {
 
 class OutputOperator final : public UnaryOperator {
  public:
-  OutputOperator(std::unique_ptr<Operator> child);
+  explicit OutputOperator(std::unique_ptr<Operator> child);
 
   void Accept(OperatorVisitor& visitor) override;
   void Accept(ImmutableOperatorVisitor& visitor) const override;

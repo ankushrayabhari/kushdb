@@ -13,14 +13,14 @@ namespace kush::plan {
 
 class LiteralExpression : public Expression {
  public:
-  LiteralExpression(int16_t value);
-  LiteralExpression(int32_t value);
-  LiteralExpression(int64_t value);
-  LiteralExpression(double value);
-  LiteralExpression(absl::CivilDay value);
-  LiteralExpression(std::string_view value);
-  LiteralExpression(const char* value);
-  LiteralExpression(bool value);
+  explicit LiteralExpression(int16_t value);
+  explicit LiteralExpression(int32_t value);
+  explicit LiteralExpression(int64_t value);
+  explicit LiteralExpression(double value);
+  explicit LiteralExpression(absl::CivilDay value);
+  explicit LiteralExpression(std::string_view value);
+  explicit LiteralExpression(const char* value);
+  explicit LiteralExpression(bool value);
   ~LiteralExpression() = default;
 
   int16_t GetSmallintValue() const;
