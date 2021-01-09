@@ -25,7 +25,7 @@ class Column {
 
 class Table {
  public:
-  Table(std::string_view name);
+  explicit Table(std::string_view name);
 
   std::string_view Name();
   Column& Insert(std::string_view attr, SqlType type, std::string_view path);
