@@ -18,6 +18,8 @@ class StringView {
   Boolean Contains(const StringView& rhs);
   Boolean StartsWith(const StringView& rhs);
   Boolean EndsWith(const StringView& rhs);
+  Boolean operator==(const StringView& rhs);
+  Boolean operator!=(const StringView& rhs);
 
  private:
   CppProgram& program_;

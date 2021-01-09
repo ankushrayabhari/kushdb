@@ -22,6 +22,7 @@ Int8 Int8::operator+(const Int8& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " + ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int8(program_, var);
 }
 
@@ -31,6 +32,7 @@ Int8 Int8::operator-(const Int8& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " - ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int8(program_, var);
 }
 
@@ -40,6 +42,7 @@ Int8 Int8::operator*(const Int8& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " * ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int8(program_, var);
 }
 
@@ -49,6 +52,7 @@ Int8 Int8::operator/(const Int8& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " / ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int8(program_, var);
 }
 
@@ -58,6 +62,7 @@ Boolean Int8::operator==(const Int8& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " == ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -67,6 +72,7 @@ Boolean Int8::operator!=(const Int8& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " != ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -76,6 +82,7 @@ Boolean Int8::operator<(const Int8& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " < ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -85,6 +92,7 @@ Boolean Int8::operator<=(const Int8& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " <= ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -94,6 +102,7 @@ Boolean Int8::operator>(const Int8& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " > ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -103,6 +112,7 @@ Boolean Int8::operator>=(const Int8& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " >= ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -120,6 +130,7 @@ Int16 Int16::operator+(const Int16& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " + ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int16(program_, var);
 }
 
@@ -129,6 +140,7 @@ Int16 Int16::operator-(const Int16& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " - ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int16(program_, var);
 }
 
@@ -138,6 +150,7 @@ Int16 Int16::operator*(const Int16& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " * ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int16(program_, var);
 }
 
@@ -147,6 +160,7 @@ Int16 Int16::operator/(const Int16& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " / ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int16(program_, var);
 }
 
@@ -156,6 +170,7 @@ Boolean Int16::operator==(const Int16& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " == ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -165,6 +180,7 @@ Boolean Int16::operator!=(const Int16& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " != ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -174,6 +190,7 @@ Boolean Int16::operator<(const Int16& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " < ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -183,6 +200,7 @@ Boolean Int16::operator<=(const Int16& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " <= ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -192,6 +210,7 @@ Boolean Int16::operator>(const Int16& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " > ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -201,6 +220,7 @@ Boolean Int16::operator>=(const Int16& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " >= ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -218,6 +238,7 @@ Int32 Int32::operator+(const Int32& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " + ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int32(program_, var);
 }
 
@@ -227,6 +248,7 @@ Int32 Int32::operator-(const Int32& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " - ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int32(program_, var);
 }
 
@@ -236,6 +258,7 @@ Int32 Int32::operator*(const Int32& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " * ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int32(program_, var);
 }
 
@@ -245,6 +268,7 @@ Int32 Int32::operator/(const Int32& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " / ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int32(program_, var);
 }
 
@@ -254,6 +278,7 @@ Boolean Int32::operator==(const Int32& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " == ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -263,6 +288,7 @@ Boolean Int32::operator!=(const Int32& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " != ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -272,6 +298,7 @@ Boolean Int32::operator<(const Int32& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " < ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -281,6 +308,7 @@ Boolean Int32::operator<=(const Int32& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " <= ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -290,6 +318,7 @@ Boolean Int32::operator>(const Int32& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " > ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -299,6 +328,7 @@ Boolean Int32::operator>=(const Int32& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " >= ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -316,6 +346,7 @@ Int64 Int64::operator+(const Int64& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " + ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int64(program_, var);
 }
 
@@ -325,6 +356,7 @@ Int64 Int64::operator-(const Int64& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " - ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int64(program_, var);
 }
 
@@ -334,6 +366,7 @@ Int64 Int64::operator*(const Int64& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " * ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int64(program_, var);
 }
 
@@ -343,6 +376,7 @@ Int64 Int64::operator/(const Int64& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " / ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Int64(program_, var);
 }
 
@@ -352,6 +386,7 @@ Boolean Int64::operator==(const Int64& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " == ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -361,6 +396,7 @@ Boolean Int64::operator!=(const Int64& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " != ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -370,6 +406,7 @@ Boolean Int64::operator<(const Int64& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " < ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -379,6 +416,7 @@ Boolean Int64::operator<=(const Int64& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " <= ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -388,6 +426,7 @@ Boolean Int64::operator>(const Int64& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " > ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -397,6 +436,7 @@ Boolean Int64::operator>=(const Int64& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " >= ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 

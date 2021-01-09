@@ -20,3 +20,13 @@ cc_library(
         "//compile/cpp:cpp_program",
     ],
 )
+
+cc_library(
+    name = "string_view",
+    srcs = ["string_view.cc"],
+    hdrs = ["string_view.h"],
+    deps = [
+        ":boolean",
+        "//compile/cpp:cpp_program",
+    ],
+)

@@ -19,6 +19,7 @@ Boolean Boolean::operator!() {
   auto var = program_.GenerateVariable();
   program_.fout << "bool " << var << " = !";
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -28,6 +29,7 @@ Boolean Boolean::operator&&(const Boolean& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " && ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -37,6 +39,7 @@ Boolean Boolean::operator||(const Boolean& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " || ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -46,6 +49,7 @@ Boolean Boolean::operator==(const Boolean& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " == ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
@@ -55,6 +59,7 @@ Boolean Boolean::operator!=(const Boolean& rhs) {
   std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
   program_.fout << " != ";
   std::visit([this](auto&& arg) { program_.fout << arg; }, rhs.value_);
+  program_.fout << ";";
   return Boolean(program_, var);
 }
 
