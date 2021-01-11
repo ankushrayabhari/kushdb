@@ -79,101 +79,52 @@ void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
   }
 }
 
+template <typename T>
+std::unique_ptr<proxy::Value> Ternary(CppProgram& program,
+                                      ExpressionTranslator& translator,
+                                      const plan::CaseExpression& case_expr) {
+  auto result = std::make_unique<T>(program);
+  auto cond = translator.Compute(case_expr.Cond());
+  codegen::If(
+      program, dynamic_cast<proxy::Boolean&>(*cond),
+      [&]() {
+        auto th = translator.Compute(case_expr.Then());
+        *result = dynamic_cast<T&>(*th);
+      },
+      [&]() {
+        auto el = translator.Compute(case_expr.Else());
+        *result = dynamic_cast<T&>(*el);
+      });
+  return std::move(result);
+}
+
 void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {
   auto& program = context_.Program();
 
-  auto cond = Compute(case_expr.Cond());
-
   switch (case_expr.Type()) {
     case catalog::SqlType::SMALLINT: {
-      auto result = std::make_unique<proxy::Int16>(program);
-      codegen::If ternary(
-          program, dynamic_cast<proxy::Boolean&>(*cond),
-          [&]() {
-            auto th = Compute(case_expr.Then());
-            *result = dynamic_cast<proxy::Int16&>(*th);
-          },
-          [&]() {
-            auto el = Compute(case_expr.Else());
-            *result = dynamic_cast<proxy::Int16&>(*el);
-          });
-      Return(std::move(result));
+      Return(Ternary<proxy::Int16>(program, *this, case_expr));
       break;
     }
     case catalog::SqlType::INT: {
-      auto result = std::make_unique<proxy::Int32>(program);
-      codegen::If ternary(
-          program, dynamic_cast<proxy::Boolean&>(*cond),
-          [&]() {
-            auto th = Compute(case_expr.Then());
-            *result = dynamic_cast<proxy::Int32&>(*th);
-          },
-          [&]() {
-            auto el = Compute(case_expr.Else());
-            *result = dynamic_cast<proxy::Int32&>(*el);
-          });
-      Return(std::move(result));
+      Return(Ternary<proxy::Int32>(program, *this, case_expr));
       break;
     }
     case catalog::SqlType::BIGINT:
     case catalog::SqlType::DATE: {
-      auto result = std::make_unique<proxy::Int64>(program);
-      codegen::If ternary(
-          program, dynamic_cast<proxy::Boolean&>(*cond),
-          [&]() {
-            auto th = Compute(case_expr.Then());
-            *result = dynamic_cast<proxy::Int64&>(*th);
-          },
-          [&]() {
-            auto el = Compute(case_expr.Else());
-            *result = dynamic_cast<proxy::Int64&>(*el);
-          });
-      Return(std::move(result));
+      Return(Ternary<proxy::Int64>(program, *this, case_expr));
       break;
     }
     case catalog::SqlType::REAL: {
-      auto result = std::make_unique<proxy::Double>(program);
-      codegen::If ternary(
-          program, dynamic_cast<proxy::Boolean&>(*cond),
-          [&]() {
-            auto th = Compute(case_expr.Then());
-            *result = dynamic_cast<proxy::Double&>(*th);
-          },
-          [&]() {
-            auto el = Compute(case_expr.Else());
-            *result = dynamic_cast<proxy::Double&>(*el);
-          });
-      Return(std::move(result));
+      Return(Ternary<proxy::Double>(program, *this, case_expr));
       break;
     }
     case catalog::SqlType::TEXT: {
-      auto result = std::make_unique<proxy::StringView>(program);
-      codegen::If ternary(
-          program, dynamic_cast<proxy::Boolean&>(*cond),
-          [&]() {
-            auto th = Compute(case_expr.Then());
-            *result = dynamic_cast<proxy::StringView&>(*th);
-          },
-          [&]() {
-            auto el = Compute(case_expr.Else());
-            *result = dynamic_cast<proxy::StringView&>(*el);
-          });
-      Return(std::move(result));
+      Return(Ternary<proxy::StringView>(program, *this, case_expr));
       break;
     }
     case catalog::SqlType::BOOLEAN: {
-      auto result = std::make_unique<proxy::Boolean>(program);
-      codegen::If ternary(
-          program, dynamic_cast<proxy::Boolean&>(*cond),
-          [&]() {
-            auto th = Compute(case_expr.Then());
-            *result = dynamic_cast<proxy::Boolean&>(*th);
-          },
-          [&]() {
-            auto el = Compute(case_expr.Else());
-            *result = dynamic_cast<proxy::Boolean&>(*el);
-          });
-      Return(std::move(result));
+      Return(Ternary<proxy::Boolean>(program, *this, case_expr));
       break;
     }
   }
