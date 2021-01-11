@@ -7,24 +7,23 @@
 
 namespace kush::compile::cpp::codegen {
 
-If::If(CppProgram& program, proxy::Boolean boolean,
-       std::function<void(CppProgram&)> then_fn) {
+If::If(CppProgram& program, proxy::Boolean& boolean,
+       std::function<void()> then_fn) {
   program.fout << "if (";
   boolean.Get();
   program.fout << ") {";
-  then_fn(program);
+  then_fn();
   program.fout << "}";
 }
 
-If::If(CppProgram& program, proxy::Boolean boolean,
-       std::function<void(CppProgram&)> then_fn,
-       std::function<void(CppProgram&)> else_fn) {
+If::If(CppProgram& program, proxy::Boolean& boolean,
+       std::function<void()> then_fn, std::function<void()> else_fn) {
   program.fout << "if (";
   boolean.Get();
   program.fout << ") {";
-  then_fn(program);
+  then_fn();
   program.fout << "} else {";
-  else_fn(program);
+  else_fn();
   program.fout << "}";
 }
 
