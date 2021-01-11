@@ -12,10 +12,10 @@ namespace kush::compile::cpp::proxy {
 
 class StringView {
  public:
-  StringView(CppProgram& program, std::string_view value_or_variable,
-             bool is_value);
+  StringView(CppProgram& program);
+  StringView(CppProgram& program, std::string_view value);
 
-  void Get();
+  std::string_view Get();
 
   Boolean Contains(StringView& rhs);
   Boolean StartsWith(StringView& rhs);
@@ -25,8 +25,7 @@ class StringView {
 
  private:
   CppProgram& program_;
-  bool is_value_;
-  std::string value_or_variable_;
+  std::string variable_;
 };
 
 }  // namespace kush::compile::cpp::proxy

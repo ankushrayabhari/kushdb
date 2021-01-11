@@ -10,67 +10,49 @@
 
 namespace kush::compile::cpp::proxy {
 
-StringView::StringView(CppProgram& program, std::string_view value_or_variable,
-                       bool is_value)
-    : program_(program),
-      is_value_(is_value),
-      value_or_variable_(std::string(value_or_variable)) {}
-
-void StringView::Get() {
-  if (is_value_) {
-    program_.fout << "\"" << value_or_variable_ << "\"";
-  } else {
-    program_.fout << value_or_variable_;
-  }
+StringView::StringView(CppProgram& program)
+    : program_(program), variable_(program.GenerateVariable()) {
+  program_.fout << "std::string_view " << variable_ << ";";
 }
+
+StringView::StringView(CppProgram& program, std::string_view value)
+    : program_(program), variable_(program.GenerateVariable()) {
+  program_.fout << "std::string_view " << variable_ << "(\"" << value
+                << "\"sv);";
+}
+
+std::string_view StringView::Get() { return variable_; }
 
 Boolean StringView::Contains(StringView& rhs) {
   Boolean result(program_);
-  program_.fout << "bool " << result.Get() << " = ";
-  Get();
-  program_.fout << ".contains(";
-  rhs.Get();
-  program_.fout << ");";
+  program_.fout << result.Get() << " = " << Get() << ".contains(" << rhs.Get()
+                << ");";
   return result;
 }
 
 Boolean StringView::StartsWith(StringView& rhs) {
   Boolean result(program_);
-  program_.fout << "bool " << result.Get() << " = ";
-  Get();
-  program_.fout << ".starts_with(";
-  rhs.Get();
-  program_.fout << ");";
+  program_.fout << result.Get() << " = " << Get() << ".starts_with("
+                << rhs.Get() << ");";
   return result;
 }
 
 Boolean StringView::EndsWith(StringView& rhs) {
   Boolean result(program_);
-  program_.fout << "bool " << result.Get() << " = ";
-  Get();
-  program_.fout << ".ends_with(";
-  rhs.Get();
-  program_.fout << ");";
+  program_.fout << result.Get() << " = " << Get() << ".ends_with(" << rhs.Get()
+                << ");";
   return result;
 }
 
 Boolean StringView::operator==(StringView& rhs) {
   Boolean result(program_);
-  program_.fout << "bool " << result.Get() << " = ";
-  Get();
-  program_.fout << " == ";
-  rhs.Get();
-  program_.fout << ";";
+  program_.fout << result.Get() << " = " << Get() << " == " << rhs.Get() << ";";
   return result;
 }
 
 Boolean StringView::operator!=(StringView& rhs) {
   Boolean result(program_);
-  program_.fout << "bool " << result.Get() << " = ";
-  Get();
-  program_.fout << " != ";
-  rhs.Get();
-  program_.fout << ";";
+  program_.fout << result.Get() << " = " << Get() << " != " << rhs.Get() << ";";
   return result;
 }
 
