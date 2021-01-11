@@ -31,9 +31,8 @@ void CrossProductTranslator::Consume(OperatorTranslator& src) {
       auto var = program.GenerateVariable();
       auto type = SqlTypeToRuntimeType(column.Expr().Type());
 
-      program.fout << "auto " << var << " = ";
-      expr_translator_.Produce(column.Expr());
-      program.fout << ";\n";
+      program.fout << "auto " << var << " = "
+                   << expr_translator_.Compute(column.Expr())->Get() << ";\n";
 
       values_.AddVariable(var, type);
     }

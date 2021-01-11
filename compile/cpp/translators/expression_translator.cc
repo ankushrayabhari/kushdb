@@ -5,15 +5,18 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "compile/cpp/codegen/if.h"
 #include "compile/cpp/cpp_compilation_context.h"
+#include "compile/cpp/proxy/boolean.h"
+#include "compile/cpp/proxy/double.h"
+#include "compile/cpp/proxy/integer.h"
+#include "compile/cpp/proxy/string_view.h"
 #include "plan/expression/aggregate_expression.h"
-#include "plan/expression/arithmetic_expression.h"
+#include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
-#include "plan/expression/comparison_expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "plan/expression/literal_expression.h"
-#include "plan/expression/string_comparison_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
 
 namespace kush::compile::cpp {
@@ -22,28 +25,11 @@ ExpressionTranslator::ExpressionTranslator(CppCompilationContext& context,
                                            OperatorTranslator& source)
     : context_(context), source_(source) {}
 
-void ExpressionTranslator::Produce(const plan::Expression& expr) {
-  expr.Accept(*this);
-}
-
-void ExpressionTranslator::Visit(const plan::ArithmeticExpression& arith) {
-  auto type = arith.OpType();
-
-  using OpType = plan::ArithmeticOperatorType;
-  const static absl::flat_hash_map<OpType, std::string> type_to_op{
-      {OpType::ADD, "+"},
-      {OpType::SUB, "-"},
-      {OpType::MUL, "*"},
-      {OpType::DIV, "/"},
-  };
-
-  auto& program = context_.Program();
-
-  program.fout << "(";
-  Produce(arith.LeftChild());
-  program.fout << ")" << type_to_op.at(type) << "(";
-  Produce(arith.RightChild());
-  program.fout << ")";
+void ExpressionTranslator::Visit(
+    const plan::BinaryArithmeticExpression& arith) {
+  auto left_value = Compute(arith.LeftChild());
+  auto right_value = Compute(arith.RightChild());
+  Return(left_value->EvaluateBinary(arith.OpType(), *right_value));
 }
 
 void ExpressionTranslator::Visit(const plan::AggregateExpression& agg) {
@@ -63,79 +49,134 @@ void ExpressionTranslator::Visit(
   program.fout << values.Variable(col_ref.GetColumnIdx());
 }
 
-void ExpressionTranslator::Visit(const plan::ComparisonExpression& comp) {
-  auto type = comp.CompType();
-
-  using CompType = plan::ComparisonType;
-  const static absl::flat_hash_map<CompType, std::string> type_to_op{
-      {CompType::EQ, "=="},  {CompType::NEQ, "!="}, {CompType::LT, "<"},
-      {CompType::LEQ, "<="}, {CompType::GT, ">"},   {CompType::GEQ, ">="},
-      {CompType::AND, "&&"}, {CompType::OR, "||"}};
-
-  auto& program = context_.Program();
-
-  program.fout << "(";
-  Produce(comp.LeftChild());
-  program.fout << ")" << type_to_op.at(type) << "(";
-  Produce(comp.RightChild());
-  program.fout << ")";
-}
-
-void ExpressionTranslator::Visit(
-    const plan::StringComparisonExpression& str_comp) {
-  auto type = str_comp.CompType();
-
-  using CompType = plan::StringComparisonType;
-  const static absl::flat_hash_map<CompType, std::string> type_to_op{
-      {CompType::STARTS_WITH, ".starts_with"},
-      {CompType::ENDS_WITH, ".ends_with"},
-      {CompType::CONTAINS, ".contains"}};
-
-  auto& program = context_.Program();
-
-  program.fout << "((";
-  Produce(str_comp.LeftChild());
-  program.fout << ")" << type_to_op.at(type) << "(";
-  Produce(str_comp.RightChild());
-  program.fout << "))";
-}
-
 void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
   auto& program = context_.Program();
   switch (literal.Type()) {
     case catalog::SqlType::SMALLINT:
-      program.fout << literal.GetSmallintValue();
+      Return(
+          std::make_unique<proxy::Int16>(program, literal.GetSmallintValue()));
       break;
     case catalog::SqlType::INT:
-      program.fout << literal.GetIntValue();
+      Return(std::make_unique<proxy::Int32>(program, literal.GetIntValue()));
       break;
     case catalog::SqlType::BIGINT:
-      program.fout << literal.GetBigintValue();
+      Return(std::make_unique<proxy::Int64>(program, literal.GetBigintValue()));
       break;
     case catalog::SqlType::DATE:
-      program.fout << literal.GetDateValue();
+      Return(std::make_unique<proxy::Int64>(program, literal.GetDateValue()));
       break;
     case catalog::SqlType::REAL:
-      program.fout << literal.GetRealValue();
+      Return(std::make_unique<proxy::Double>(program, literal.GetRealValue()));
       break;
     case catalog::SqlType::TEXT:
-      program.fout << "\"" << literal.GetTextValue() << "\"";
+      Return(
+          std::make_unique<proxy::StringView>(program, literal.GetTextValue()));
       break;
     case catalog::SqlType::BOOLEAN:
-      program.fout << literal.GetBooleanValue();
+      Return(
+          std::make_unique<proxy::Boolean>(program, literal.GetBooleanValue()));
       break;
   }
 }
 
 void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {
   auto& program = context_.Program();
-  program.fout << "((";
-  Produce(case_expr.Cond());
-  program.fout << ") ? (";
-  Produce(case_expr.Then());
-  program.fout << ") : (";
-  Produce(case_expr.Else());
-  program.fout << "))";
+
+  auto cond = Compute(case_expr.Cond());
+
+  switch (case_expr.Type()) {
+    case catalog::SqlType::SMALLINT: {
+      auto result = std::make_unique<proxy::Int16>(program);
+      codegen::If ternary(
+          program, dynamic_cast<proxy::Boolean&>(*cond),
+          [&]() {
+            auto th = Compute(case_expr.Then());
+            *result = dynamic_cast<proxy::Int16&>(*th);
+          },
+          [&]() {
+            auto el = Compute(case_expr.Else());
+            *result = dynamic_cast<proxy::Int16&>(*el);
+          });
+      Return(std::move(result));
+      break;
+    }
+    case catalog::SqlType::INT: {
+      auto result = std::make_unique<proxy::Int32>(program);
+      codegen::If ternary(
+          program, dynamic_cast<proxy::Boolean&>(*cond),
+          [&]() {
+            auto th = Compute(case_expr.Then());
+            *result = dynamic_cast<proxy::Int32&>(*th);
+          },
+          [&]() {
+            auto el = Compute(case_expr.Else());
+            *result = dynamic_cast<proxy::Int32&>(*el);
+          });
+      Return(std::move(result));
+      break;
+    }
+    case catalog::SqlType::BIGINT:
+    case catalog::SqlType::DATE: {
+      auto result = std::make_unique<proxy::Int64>(program);
+      codegen::If ternary(
+          program, dynamic_cast<proxy::Boolean&>(*cond),
+          [&]() {
+            auto th = Compute(case_expr.Then());
+            *result = dynamic_cast<proxy::Int64&>(*th);
+          },
+          [&]() {
+            auto el = Compute(case_expr.Else());
+            *result = dynamic_cast<proxy::Int64&>(*el);
+          });
+      Return(std::move(result));
+      break;
+    }
+    case catalog::SqlType::REAL: {
+      auto result = std::make_unique<proxy::Double>(program);
+      codegen::If ternary(
+          program, dynamic_cast<proxy::Boolean&>(*cond),
+          [&]() {
+            auto th = Compute(case_expr.Then());
+            *result = dynamic_cast<proxy::Double&>(*th);
+          },
+          [&]() {
+            auto el = Compute(case_expr.Else());
+            *result = dynamic_cast<proxy::Double&>(*el);
+          });
+      Return(std::move(result));
+      break;
+    }
+    case catalog::SqlType::TEXT: {
+      auto result = std::make_unique<proxy::StringView>(program);
+      codegen::If ternary(
+          program, dynamic_cast<proxy::Boolean&>(*cond),
+          [&]() {
+            auto th = Compute(case_expr.Then());
+            *result = dynamic_cast<proxy::StringView&>(*th);
+          },
+          [&]() {
+            auto el = Compute(case_expr.Else());
+            *result = dynamic_cast<proxy::StringView&>(*el);
+          });
+      Return(std::move(result));
+      break;
+    }
+    case catalog::SqlType::BOOLEAN: {
+      auto result = std::make_unique<proxy::Boolean>(program);
+      codegen::If ternary(
+          program, dynamic_cast<proxy::Boolean&>(*cond),
+          [&]() {
+            auto th = Compute(case_expr.Then());
+            *result = dynamic_cast<proxy::Boolean&>(*th);
+          },
+          [&]() {
+            auto el = Compute(case_expr.Else());
+            *result = dynamic_cast<proxy::Boolean&>(*el);
+          });
+      Return(std::move(result));
+      break;
+    }
+  }
 }
 
 }  // namespace kush::compile::cpp

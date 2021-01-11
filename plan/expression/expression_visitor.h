@@ -6,34 +6,30 @@ namespace kush::plan {
 
 class AggregateExpression;
 class ColumnRefExpression;
-class ComparisonExpression;
-class StringComparisonExpression;
 class LiteralExpression;
 class VirtualColumnRefExpression;
-class ArithmeticExpression;
+class BinaryArithmeticExpression;
 class CaseExpression;
 
 class ExpressionVisitor {
  public:
-  virtual void Visit(ArithmeticExpression& arith) = 0;
+  virtual ~ExpressionVisitor() = default;
+  virtual void Visit(BinaryArithmeticExpression& arith) = 0;
   virtual void Visit(AggregateExpression& agg) = 0;
   virtual void Visit(ColumnRefExpression& col_ref) = 0;
   virtual void Visit(VirtualColumnRefExpression& virtual_col_ref) = 0;
-  virtual void Visit(ComparisonExpression& comp) = 0;
   virtual void Visit(LiteralExpression& literal) = 0;
-  virtual void Visit(StringComparisonExpression& str_comp) = 0;
   virtual void Visit(CaseExpression& case_expr) = 0;
 };
 
 class ImmutableExpressionVisitor {
  public:
-  virtual void Visit(const ArithmeticExpression& arith) = 0;
+  virtual ~ImmutableExpressionVisitor() = default;
+  virtual void Visit(const BinaryArithmeticExpression& arith) = 0;
   virtual void Visit(const AggregateExpression& agg) = 0;
   virtual void Visit(const ColumnRefExpression& col_ref) = 0;
   virtual void Visit(const VirtualColumnRefExpression& virtual_col_ref) = 0;
-  virtual void Visit(const ComparisonExpression& comp) = 0;
   virtual void Visit(const LiteralExpression& literal) = 0;
-  virtual void Visit(const StringComparisonExpression& str_comp) = 0;
   virtual void Visit(const CaseExpression& case_expr) = 0;
 };
 

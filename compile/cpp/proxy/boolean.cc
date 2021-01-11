@@ -21,33 +21,41 @@ Boolean::Boolean(CppProgram& program, bool value)
 
 std::string_view Boolean::Get() { return variable_; }
 
-Boolean Boolean::operator!() {
-  Boolean result(program_);
-  program_.fout << result.Get() << " = !" << Get() << ";";
+void Boolean::operator=(Boolean& rhs) {
+  program_.fout << Get() << " = " << rhs.Get() << ";";
+}
+
+std::unique_ptr<Boolean> Boolean::operator!() {
+  auto result = std::make_unique<Boolean>(program_);
+  program_.fout << result->Get() << " = !" << Get() << ";";
   return result;
 }
 
-Boolean Boolean::operator&&(Boolean& rhs) {
-  Boolean result(program_);
-  program_.fout << result.Get() << " = " << Get() << " && " << rhs.Get() << ";";
+std::unique_ptr<Boolean> Boolean::operator&&(Boolean& rhs) {
+  auto result = std::make_unique<Boolean>(program_);
+  program_.fout << result->Get() << " = " << Get() << " && " << rhs.Get()
+                << ";";
   return result;
 }
 
-Boolean Boolean::operator||(Boolean& rhs) {
-  Boolean result(program_);
-  program_.fout << result.Get() << " = " << Get() << " || " << rhs.Get() << ";";
+std::unique_ptr<Boolean> Boolean::operator||(Boolean& rhs) {
+  auto result = std::make_unique<Boolean>(program_);
+  program_.fout << result->Get() << " = " << Get() << " || " << rhs.Get()
+                << ";";
   return result;
 }
 
-Boolean Boolean::operator==(Boolean& rhs) {
-  Boolean result(program_);
-  program_.fout << result.Get() << " = " << Get() << " == " << rhs.Get() << ";";
+std::unique_ptr<Boolean> Boolean::operator==(Boolean& rhs) {
+  auto result = std::make_unique<Boolean>(program_);
+  program_.fout << result->Get() << " = " << Get() << " == " << rhs.Get()
+                << ";";
   return result;
 }
 
-Boolean Boolean::operator!=(Boolean& rhs) {
-  Boolean result(program_);
-  program_.fout << result.Get() << " = " << Get() << " != " << rhs.Get() << ";";
+std::unique_ptr<Boolean> Boolean::operator!=(Boolean& rhs) {
+  auto result = std::make_unique<Boolean>(program_);
+  program_.fout << result->Get() << " = " << Get() << " != " << rhs.Get()
+                << ";";
   return result;
 }
 

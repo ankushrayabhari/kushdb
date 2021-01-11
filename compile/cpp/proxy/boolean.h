@@ -4,21 +4,23 @@
 #include <string_view>
 
 #include "compile/cpp/cpp_program.h"
+#include "compile/cpp/proxy/value.h"
 
 namespace kush::compile::cpp::proxy {
 
-class Boolean {
+class Boolean : public Value {
  public:
-  Boolean(CppProgram& program);
+  explicit Boolean(CppProgram& program);
   Boolean(CppProgram& program, bool value);
 
-  std::string_view Get();
+  std::string_view Get() override;
 
-  Boolean operator!();
-  Boolean operator&&(Boolean& rhs);
-  Boolean operator||(Boolean& rhs);
-  Boolean operator==(Boolean& rhs);
-  Boolean operator!=(Boolean& rhs);
+  void operator=(Boolean& rhs);
+  std::unique_ptr<Boolean> operator!();
+  std::unique_ptr<Boolean> operator&&(Boolean& rhs);
+  std::unique_ptr<Boolean> operator||(Boolean& rhs);
+  std::unique_ptr<Boolean> operator==(Boolean& rhs);
+  std::unique_ptr<Boolean> operator!=(Boolean& rhs);
 
  private:
   CppProgram& program_;

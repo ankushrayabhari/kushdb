@@ -21,16 +21,15 @@ void SelectTranslator::Produce() { Child().Produce(); }
 void SelectTranslator::Consume(OperatorTranslator& src) {
   auto& program = context_.Program();
 
-  program.fout << "if (\n";
-  expr_translator_.Produce(select_.Expr());
-  program.fout << ") {\n";
+  program.fout << "if (\n"
+               << expr_translator_.Compute(select_.Expr())->Get() << ") {\n";
 
   for (const auto& column : select_.Schema().Columns()) {
     auto var = program.GenerateVariable();
     auto type = SqlTypeToRuntimeType(column.Expr().Type());
 
-    program.fout << "auto " << var << " = ";
-    expr_translator_.Produce(column.Expr());
+    program.fout << "auto " << var << " = "
+                 << expr_translator_.Compute(column.Expr())->Get();
     program.fout << ";\n";
 
     values_.AddVariable(var, type);

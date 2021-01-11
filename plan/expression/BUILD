@@ -55,18 +55,6 @@ cc_library(
 )
 
 cc_library(
-    name = "comparison_expression",
-    srcs = ["comparison_expression.cc"],
-    hdrs = ["comparison_expression.h"],
-    deps = [
-        ":expression",
-        ":expression_visitor",
-        "@json",
-        "@magic_enum",
-    ],
-)
-
-cc_library(
     name = "case_expression",
     srcs = ["case_expression.cc"],
     hdrs = ["case_expression.h"],
@@ -79,21 +67,9 @@ cc_library(
 )
 
 cc_library(
-    name = "string_comparison_expression",
-    srcs = ["string_comparison_expression.cc"],
-    hdrs = ["string_comparison_expression.h"],
-    deps = [
-        ":expression",
-        ":expression_visitor",
-        "@json",
-        "@magic_enum",
-    ],
-)
-
-cc_library(
-    name = "arithmetic_expression",
-    srcs = ["arithmetic_expression.cc"],
-    hdrs = ["arithmetic_expression.h"],
+    name = "binary_arithmetic_expression",
+    srcs = ["binary_arithmetic_expression.cc"],
+    hdrs = ["binary_arithmetic_expression.h"],
     deps = [
         ":expression",
         ":expression_visitor",

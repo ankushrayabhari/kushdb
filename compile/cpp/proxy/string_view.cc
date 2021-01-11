@@ -23,36 +23,42 @@ StringView::StringView(CppProgram& program, std::string_view value)
 
 std::string_view StringView::Get() { return variable_; }
 
-Boolean StringView::Contains(StringView& rhs) {
-  Boolean result(program_);
-  program_.fout << result.Get() << " = " << Get() << ".contains(" << rhs.Get()
+void StringView::operator=(StringView& rhs) {
+  program_.fout << Get() << " = " << rhs.Get() << ";";
+}
+
+std::unique_ptr<Boolean> StringView::Contains(StringView& rhs) {
+  auto result = std::make_unique<Boolean>(program_);
+  program_.fout << result->Get() << " = " << Get() << ".contains(" << rhs.Get()
                 << ");";
   return result;
 }
 
-Boolean StringView::StartsWith(StringView& rhs) {
-  Boolean result(program_);
-  program_.fout << result.Get() << " = " << Get() << ".starts_with("
+std::unique_ptr<Boolean> StringView::StartsWith(StringView& rhs) {
+  auto result = std::make_unique<Boolean>(program_);
+  program_.fout << result->Get() << " = " << Get() << ".starts_with("
                 << rhs.Get() << ");";
   return result;
 }
 
-Boolean StringView::EndsWith(StringView& rhs) {
-  Boolean result(program_);
-  program_.fout << result.Get() << " = " << Get() << ".ends_with(" << rhs.Get()
+std::unique_ptr<Boolean> StringView::EndsWith(StringView& rhs) {
+  auto result = std::make_unique<Boolean>(program_);
+  program_.fout << result->Get() << " = " << Get() << ".ends_with(" << rhs.Get()
                 << ");";
   return result;
 }
 
-Boolean StringView::operator==(StringView& rhs) {
-  Boolean result(program_);
-  program_.fout << result.Get() << " = " << Get() << " == " << rhs.Get() << ";";
+std::unique_ptr<Boolean> StringView::operator==(StringView& rhs) {
+  auto result = std::make_unique<Boolean>(program_);
+  program_.fout << result->Get() << " = " << Get() << " == " << rhs.Get()
+                << ";";
   return result;
 }
 
-Boolean StringView::operator!=(StringView& rhs) {
-  Boolean result(program_);
-  program_.fout << result.Get() << " = " << Get() << " != " << rhs.Get() << ";";
+std::unique_ptr<Boolean> StringView::operator!=(StringView& rhs) {
+  auto result = std::make_unique<Boolean>(program_);
+  program_.fout << result->Get() << " = " << Get() << " != " << rhs.Get()
+                << ";";
   return result;
 }
 

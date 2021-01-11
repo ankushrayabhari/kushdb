@@ -12,6 +12,7 @@ class CrossProductOperator;
 
 class OperatorVisitor {
  public:
+  virtual ~OperatorVisitor() = default;
   virtual void Visit(ScanOperator& scan) = 0;
   virtual void Visit(SelectOperator& select) = 0;
   virtual void Visit(OutputOperator& output) = 0;
@@ -23,6 +24,7 @@ class OperatorVisitor {
 
 class ImmutableOperatorVisitor {
  public:
+  virtual ~ImmutableOperatorVisitor() = default;
   virtual void Visit(const ScanOperator& scan) = 0;
   virtual void Visit(const SelectOperator& select) = 0;
   virtual void Visit(const OutputOperator& output) = 0;

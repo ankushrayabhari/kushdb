@@ -1,5 +1,5 @@
 
-#include "plan/expression/arithmetic_expression.h"
+#include "plan/expression/binary_arithmetic_expression.h"
 
 #include <memory>
 
@@ -11,19 +11,20 @@
 
 namespace kush::plan {
 
-catalog::SqlType CalculateType(ArithmeticOperatorType type,
+catalog::SqlType CalculateType(BinaryArithmeticOperatorType type,
                                catalog::SqlType left, catalog::SqlType right) {
+  // TODO: calculate type
   return left;
 }
 
-ArithmeticExpression::ArithmeticExpression(ArithmeticOperatorType type,
-                                           std::unique_ptr<Expression> left,
-                                           std::unique_ptr<Expression> right)
+BinaryArithmeticExpression::BinaryArithmeticExpression(
+    BinaryArithmeticOperatorType type, std::unique_ptr<Expression> left,
+    std::unique_ptr<Expression> right)
     : BinaryExpression(CalculateType(type, left->Type(), right->Type()),
                        std::move(left), std::move(right)),
       type_(type) {}
 
-nlohmann::json ArithmeticExpression::ToJson() const {
+nlohmann::json BinaryArithmeticExpression::ToJson() const {
   nlohmann::json j;
   j["op"] = magic_enum::enum_name(OpType());
   j["left"] = LeftChild().ToJson();
@@ -31,14 +32,17 @@ nlohmann::json ArithmeticExpression::ToJson() const {
   return j;
 }
 
-void ArithmeticExpression::Accept(ExpressionVisitor& visitor) {
+void BinaryArithmeticExpression::Accept(ExpressionVisitor& visitor) {
   return visitor.Visit(*this);
 }
 
-void ArithmeticExpression::Accept(ImmutableExpressionVisitor& visitor) const {
+void BinaryArithmeticExpression::Accept(
+    ImmutableExpressionVisitor& visitor) const {
   return visitor.Visit(*this);
 }
 
-ArithmeticOperatorType ArithmeticExpression::OpType() const { return type_; }
+BinaryArithmeticOperatorType BinaryArithmeticExpression::OpType() const {
+  return type_;
+}
 
 }  // namespace kush::plan

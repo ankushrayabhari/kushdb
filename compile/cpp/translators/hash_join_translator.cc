@@ -52,8 +52,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
     program.fout << "std::size_t " << hash_var << " = 0;";
     program.fout << "kush::util::HashCombine(" << hash_var;
     for (const auto& col : left_columns) {
-      program.fout << ",";
-      expr_translator_.Produce(col.get());
+      program.fout << "," << expr_translator_.Compute(col.get())->Get();
     }
     program.fout << ");\n";
     auto bucket_var = program.GenerateVariable();
@@ -81,8 +80,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
   program.fout << "std::size_t " << hash_var << " = 0;";
   program.fout << "kush::util::HashCombine(" << hash_var;
   for (const auto& col : right_columns) {
-    program.fout << ",";
-    expr_translator_.Produce(col.get());
+    program.fout << "," << expr_translator_.Compute(col.get())->Get();
   }
   program.fout << ");\n";
   auto bucket_var = program.GenerateVariable();
@@ -111,11 +109,11 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
       program.fout << " && ";
     }
 
-    program.fout << "(";
-    expr_translator_.Produce(left_columns[i].get());
-    program.fout << " == ";
-    expr_translator_.Produce(right_columns[i].get());
-    program.fout << ")";
+    program.fout << "("
+                 << expr_translator_.Compute(left_columns[i].get())->Get()
+                 << " == "
+                 << expr_translator_.Compute(right_columns[i].get())->Get()
+                 << ")";
   }
   program.fout << ") {";
 
@@ -123,9 +121,8 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
     auto var = program.GenerateVariable();
     auto type = SqlTypeToRuntimeType(column.Expr().Type());
 
-    program.fout << "auto " << var << " = ";
-    expr_translator_.Produce(column.Expr());
-    program.fout << ";\n";
+    program.fout << "auto " << var << " = "
+                 << expr_translator_.Compute(column.Expr())->Get() << ";\n";
 
     values_.AddVariable(var, type);
   }

@@ -6,95 +6,100 @@
 
 #include "compile/cpp/cpp_program.h"
 #include "compile/cpp/proxy/boolean.h"
+#include "compile/cpp/proxy/value.h"
 
 namespace kush::compile::cpp::proxy {
 
-class Int8 {
+class Int8 : public Value {
  public:
-  Int8(CppProgram& program);
+  explicit Int8(CppProgram& program);
   Int8(CppProgram& program, int8_t value);
 
-  std::string_view Get();
+  std::string_view Get() override;
 
-  Int8 operator+(Int8& rhs);
-  Int8 operator-(Int8& rhs);
-  Int8 operator*(Int8& rhs);
-  Int8 operator/(Int8& rhs);
-  Boolean operator==(Int8& rhs);
-  Boolean operator!=(Int8& rhs);
-  Boolean operator<(Int8& rhs);
-  Boolean operator<=(Int8& rhs);
-  Boolean operator>(Int8& rhs);
-  Boolean operator>=(Int8& rhs);
+  void operator=(Int8& rhs);
+  std::unique_ptr<Int8> operator+(Int8& rhs);
+  std::unique_ptr<Int8> operator-(Int8& rhs);
+  std::unique_ptr<Int8> operator*(Int8& rhs);
+  std::unique_ptr<Int8> operator/(Int8& rhs);
+  std::unique_ptr<Boolean> operator==(Int8& rhs);
+  std::unique_ptr<Boolean> operator!=(Int8& rhs);
+  std::unique_ptr<Boolean> operator<(Int8& rhs);
+  std::unique_ptr<Boolean> operator<=(Int8& rhs);
+  std::unique_ptr<Boolean> operator>(Int8& rhs);
+  std::unique_ptr<Boolean> operator>=(Int8& rhs);
 
  private:
   CppProgram& program_;
   std::string value_;
 };
 
-class Int16 {
+class Int16 : public Value {
  public:
-  Int16(CppProgram& program);
+  explicit Int16(CppProgram& program);
   Int16(CppProgram& program, int16_t value);
 
-  std::string_view Get();
+  std::string_view Get() override;
 
-  Int16 operator+(Int16& rhs);
-  Int16 operator-(Int16& rhs);
-  Int16 operator*(Int16& rhs);
-  Int16 operator/(Int16& rhs);
-  Boolean operator==(Int16& rhs);
-  Boolean operator!=(Int16& rhs);
-  Boolean operator<(Int16& rhs);
-  Boolean operator<=(Int16& rhs);
-  Boolean operator>(Int16& rhs);
-  Boolean operator>=(Int16& rhs);
+  void operator=(Int16& rhs);
+  std::unique_ptr<Int16> operator+(Int16& rhs);
+  std::unique_ptr<Int16> operator-(Int16& rhs);
+  std::unique_ptr<Int16> operator*(Int16& rhs);
+  std::unique_ptr<Int16> operator/(Int16& rhs);
+  std::unique_ptr<Boolean> operator==(Int16& rhs);
+  std::unique_ptr<Boolean> operator!=(Int16& rhs);
+  std::unique_ptr<Boolean> operator<(Int16& rhs);
+  std::unique_ptr<Boolean> operator<=(Int16& rhs);
+  std::unique_ptr<Boolean> operator>(Int16& rhs);
+  std::unique_ptr<Boolean> operator>=(Int16& rhs);
 
  private:
   CppProgram& program_;
   std::string value_;
 };
 
-class Int32 {
+class Int32 : public Value {
  public:
-  Int32(CppProgram& program);
+  explicit Int32(CppProgram& program);
   Int32(CppProgram& program, int32_t value);
 
-  std::string_view Get();
+  std::string_view Get() override;
 
-  Int32 operator+(Int32& rhs);
-  Int32 operator-(Int32& rhs);
-  Int32 operator*(Int32& rhs);
-  Int32 operator/(Int32& rhs);
-  Boolean operator==(Int32& rhs);
-  Boolean operator!=(Int32& rhs);
-  Boolean operator<(Int32& rhs);
-  Boolean operator<=(Int32& rhs);
-  Boolean operator>(Int32& rhs);
-  Boolean operator>=(Int32& rhs);
+  void operator=(Int32& rhs);
+  std::unique_ptr<Int32> operator+(Int32& rhs);
+  std::unique_ptr<Int32> operator-(Int32& rhs);
+  std::unique_ptr<Int32> operator*(Int32& rhs);
+  std::unique_ptr<Int32> operator/(Int32& rhs);
+  std::unique_ptr<Boolean> operator==(Int32& rhs);
+  std::unique_ptr<Boolean> operator!=(Int32& rhs);
+  std::unique_ptr<Boolean> operator<(Int32& rhs);
+  std::unique_ptr<Boolean> operator<=(Int32& rhs);
+  std::unique_ptr<Boolean> operator>(Int32& rhs);
+  std::unique_ptr<Boolean> operator>=(Int32& rhs);
 
  private:
   CppProgram& program_;
   std::string value_;
 };
 
-class Int64 {
+class Int64 : public Value {
  public:
-  Int64(CppProgram& program);
+  explicit Int64(CppProgram& program);
   Int64(CppProgram& program, int64_t value);
 
-  std::string_view Get();
+  std::string_view Get() override;
 
-  Int64 operator+(Int64& rhs);
-  Int64 operator-(Int64& rhs);
-  Int64 operator*(Int64& rhs);
-  Int64 operator/(Int64& rhs);
-  Boolean operator==(Int64& rhs);
-  Boolean operator!=(Int64& rhs);
-  Boolean operator<(Int64& rhs);
-  Boolean operator<=(Int64& rhs);
-  Boolean operator>(Int64& rhs);
-  Boolean operator>=(Int64& rhs);
+  void operator=(Int64& rhs);
+  std::unique_ptr<Int64> operator+(Int64& rhs);
+  std::unique_ptr<Int64> operator-(Int64& rhs);
+  std::unique_ptr<Int64> operator*(Int64& rhs);
+  std::unique_ptr<Int64> operator/(Int64& rhs);
+  std::unique_ptr<Boolean> operator==(Int64& rhs);
+  std::unique_ptr<Boolean> operator!=(Int64& rhs);
+  std::unique_ptr<Boolean> operator<(Int64& rhs);
+  std::unique_ptr<Boolean> operator<=(Int64& rhs);
+  std::unique_ptr<Boolean> operator>(Int64& rhs);
+  std::unique_ptr<Boolean> operator>=(Int64& rhs);
 
  private:
   CppProgram& program_;

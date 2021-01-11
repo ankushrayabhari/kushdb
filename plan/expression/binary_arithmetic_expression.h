@@ -8,15 +8,31 @@
 
 namespace kush::plan {
 
-enum class StringComparisonType { STARTS_WITH, ENDS_WITH, CONTAINS };
+enum class BinaryArithmeticOperatorType {
+  ADD,
+  SUB,
+  MUL,
+  DIV,
+  EQ,
+  NEQ,
+  LT,
+  LEQ,
+  GT,
+  GEQ,
+  AND,
+  OR,
+  STARTS_WITH,
+  ENDS_WITH,
+  CONTAINS
+};
 
-class StringComparisonExpression : public BinaryExpression {
+class BinaryArithmeticExpression : public BinaryExpression {
  public:
-  StringComparisonExpression(StringComparisonType type,
+  BinaryArithmeticExpression(BinaryArithmeticOperatorType type,
                              std::unique_ptr<Expression> left,
                              std::unique_ptr<Expression> right);
 
-  StringComparisonType CompType() const;
+  BinaryArithmeticOperatorType OpType() const;
 
   void Accept(ExpressionVisitor& visitor) override;
   void Accept(ImmutableExpressionVisitor& visitor) const override;
@@ -24,7 +40,7 @@ class StringComparisonExpression : public BinaryExpression {
   nlohmann::json ToJson() const override;
 
  private:
-  StringComparisonType type_;
+  BinaryArithmeticOperatorType type_;
 };
 
 }  // namespace kush::plan

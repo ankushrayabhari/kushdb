@@ -99,8 +99,8 @@ void GroupByAggregateTranslator::Produce() {
     auto var = program.GenerateVariable();
     auto type = SqlTypeToRuntimeType(column.Expr().Type());
 
-    program.fout << "auto " << var << " = ";
-    expr_translator_.Produce(column.Expr());
+    program.fout << "auto " << var << " = "
+                 << expr_translator_.Compute(column.Expr())->Get();
     program.fout << ";\n";
 
     values_.AddVariable(var, type);
@@ -138,7 +138,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         case plan::AggregateType::AVG:
         case plan::AggregateType::MAX:
         case plan::AggregateType::MIN:
-          expr_translator_.Produce(agg.get().Child());
+          program.fout << expr_translator_.Compute(agg.get().Child())->Get();
           break;
         case plan::AggregateType::COUNT:
           program.fout << "1";
@@ -152,8 +152,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
     program.fout << "std::size_t " << hash_var << " = 0;";
     program.fout << "kush::util::HashCombine(" << hash_var;
     for (auto& group_by : group_by_exprs) {
-      program.fout << ", ";
-      expr_translator_.Produce(group_by.get());
+      program.fout << ", " << expr_translator_.Compute(group_by.get())->Get();
     }
     program.fout << ");\n";
 
@@ -179,8 +178,8 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
       const auto& [field, type] = packed_group_by_field_type_[i];
 
       program.fout << "(" << bucket_var << "[" << loop_var << "]." << field
-                   << " == ";
-      expr_translator_.Produce(group_by_exprs[i]);
+                   << " == "
+                   << expr_translator_.Compute(group_by_exprs[i])->Get();
       program.fout << ")";
     }
 
@@ -195,25 +194,25 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
 
     switch (agg.AggType()) {
       case plan::AggregateType::SUM:
-        program.fout << struct_var << field << " += ";
-        expr_translator_.Produce(agg.Child());
+        program.fout << struct_var << field
+                     << " += " << expr_translator_.Compute(agg.Child())->Get();
         program.fout << ";\n";
         break;
       case plan::AggregateType::MIN:
-        program.fout << struct_var << field << " = std::min(";
-        expr_translator_.Produce(agg.Child());
+        program.fout << struct_var << field << " = std::min("
+                     << expr_translator_.Compute(agg.Child())->Get();
         program.fout << "," << struct_var << field << ");\n";
         break;
       case plan::AggregateType::MAX:
-        program.fout << struct_var << field << " = std::max(";
-        expr_translator_.Produce(agg.Child());
+        program.fout << struct_var << field << " = std::max("
+                     << expr_translator_.Compute(agg.Child())->Get();
         program.fout << "," << struct_var << field << ");\n";
         break;
       case plan::AggregateType::AVG:
         // Use Knuth, The Art of Computer Programming Vol 2, section 4.2.2 to
         // compute running average in a numerically stable way
-        program.fout << struct_var << field << " += (";
-        expr_translator_.Produce(agg.Child());
+        program.fout << struct_var << field << " += ("
+                     << expr_translator_.Compute(agg.Child())->Get();
         program.fout << " - " << struct_var << field << ") / " << struct_var
                      << record_count_field_ << ";\n";
         break;
@@ -236,8 +235,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
     program.fout << "if (!" << found_var << ") {\n";
     program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{2";
     for (auto& group_by : group_by_exprs) {
-      program.fout << ",";
-      expr_translator_.Produce(group_by.get());
+      program.fout << "," << expr_translator_.Compute(group_by.get())->Get();
     }
     for (auto& agg : agg_exprs) {
       // initialize agg
@@ -249,7 +247,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         case plan::AggregateType::AVG:
         case plan::AggregateType::MAX:
         case plan::AggregateType::MIN:
-          expr_translator_.Produce(agg.get().Child());
+          program.fout << expr_translator_.Compute(agg.get().Child())->Get();
           break;
         case plan::AggregateType::COUNT:
           program.fout << "1";

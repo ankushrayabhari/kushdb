@@ -8,9 +8,8 @@
 #include "catalog/sql_type.h"
 #include "compile/cpp/cpp_translator.h"
 #include "plan/expression/aggregate_expression.h"
-#include "plan/expression/arithmetic_expression.h"
+#include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
-#include "plan/expression/comparison_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
 #include "plan/group_by_aggregate_operator.h"
@@ -45,8 +44,8 @@ std::unique_ptr<Operator> ScanLineitem() {
 std::unique_ptr<Operator> SelectLineitem() {
   auto scan_lineitem = ScanLineitem();
 
-  auto leq = std::make_unique<ComparisonExpression>(
-      ComparisonType::LEQ, ColRef(scan_lineitem, "l_shipdate"),
+  auto leq = std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::LEQ, ColRef(scan_lineitem, "l_shipdate"),
       Literal(absl::CivilDay(1998, 12, 1)));
 
   OperatorSchema schema;

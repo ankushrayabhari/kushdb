@@ -10,12 +10,10 @@
 #include "catalog/sql_type.h"
 #include "compile/cpp/cpp_translator.h"
 #include "plan/expression/aggregate_expression.h"
-#include "plan/expression/arithmetic_expression.h"
+#include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
-#include "plan/expression/comparison_expression.h"
 #include "plan/expression/literal_expression.h"
-#include "plan/expression/string_comparison_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
 #include "plan/group_by_aggregate_operator.h"
 #include "plan/hash_join_operator.h"
@@ -57,110 +55,114 @@ std::unique_ptr<LiteralExpression> Literal(T t) {
   return std::make_unique<LiteralExpression>(t);
 }
 
-std::unique_ptr<ComparisonExpression> Eq(std::unique_ptr<Expression> e1,
-                                         std::unique_ptr<Expression> e2) {
-  return std::make_unique<ComparisonExpression>(ComparisonType::EQ,
-                                                std::move(e1), std::move(e2));
+std::unique_ptr<BinaryArithmeticExpression> Eq(std::unique_ptr<Expression> e1,
+                                               std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::EQ, std::move(e1), std::move(e2));
 }
 
-std::unique_ptr<ComparisonExpression> Neq(std::unique_ptr<Expression> e1,
-                                          std::unique_ptr<Expression> e2) {
-  return std::make_unique<ComparisonExpression>(ComparisonType::NEQ,
-                                                std::move(e1), std::move(e2));
-}
-
-std::unique_ptr<ComparisonExpression> Lt(std::unique_ptr<Expression> e1,
-                                         std::unique_ptr<Expression> e2) {
-  return std::make_unique<ComparisonExpression>(ComparisonType::LT,
-                                                std::move(e1), std::move(e2));
-}
-
-std::unique_ptr<ComparisonExpression> Leq(std::unique_ptr<Expression> e1,
-                                          std::unique_ptr<Expression> e2) {
-  return std::make_unique<ComparisonExpression>(ComparisonType::LEQ,
-                                                std::move(e1), std::move(e2));
-}
-
-std::unique_ptr<ComparisonExpression> Gt(std::unique_ptr<Expression> e1,
-                                         std::unique_ptr<Expression> e2) {
-  return std::make_unique<ComparisonExpression>(ComparisonType::GT,
-                                                std::move(e1), std::move(e2));
-}
-
-std::unique_ptr<ComparisonExpression> Geq(std::unique_ptr<Expression> e1,
-                                          std::unique_ptr<Expression> e2) {
-  return std::make_unique<ComparisonExpression>(ComparisonType::GEQ,
-                                                std::move(e1), std::move(e2));
-}
-
-std::unique_ptr<StringComparisonExpression> EndsWith(
+std::unique_ptr<BinaryArithmeticExpression> Neq(
     std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
-  return std::make_unique<StringComparisonExpression>(
-      StringComparisonType::ENDS_WITH, std::move(e1), std::move(e2));
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::NEQ, std::move(e1), std::move(e2));
 }
 
-std::unique_ptr<StringComparisonExpression> StartsWith(
+std::unique_ptr<BinaryArithmeticExpression> Lt(std::unique_ptr<Expression> e1,
+                                               std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::LT, std::move(e1), std::move(e2));
+}
+
+std::unique_ptr<BinaryArithmeticExpression> Leq(
     std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
-  return std::make_unique<StringComparisonExpression>(
-      StringComparisonType::STARTS_WITH, std::move(e1), std::move(e2));
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::LEQ, std::move(e1), std::move(e2));
 }
 
-std::unique_ptr<StringComparisonExpression> Contains(
+std::unique_ptr<BinaryArithmeticExpression> Gt(std::unique_ptr<Expression> e1,
+                                               std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::GT, std::move(e1), std::move(e2));
+}
+
+std::unique_ptr<BinaryArithmeticExpression> Geq(
     std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
-  return std::make_unique<StringComparisonExpression>(
-      StringComparisonType::CONTAINS, std::move(e1), std::move(e2));
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::GEQ, std::move(e1), std::move(e2));
 }
 
-std::unique_ptr<ComparisonExpression> And(
+std::unique_ptr<BinaryArithmeticExpression> EndsWith(
+    std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::ENDS_WITH, std::move(e1), std::move(e2));
+}
+
+std::unique_ptr<BinaryArithmeticExpression> StartsWith(
+    std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::STARTS_WITH, std::move(e1), std::move(e2));
+}
+
+std::unique_ptr<BinaryArithmeticExpression> Contains(
+    std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::CONTAINS, std::move(e1), std::move(e2));
+}
+
+std::unique_ptr<BinaryArithmeticExpression> And(
     std::vector<std::unique_ptr<Expression>> expr) {
-  std::unique_ptr<ComparisonExpression> output =
-      std::make_unique<ComparisonExpression>(
-          ComparisonType::AND, std::move(expr[0]), std::move(expr[1]));
+  std::unique_ptr<BinaryArithmeticExpression> output =
+      std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticOperatorType::AND, std::move(expr[0]),
+          std::move(expr[1]));
 
   for (int i = 2; i < expr.size(); i++) {
-    output = std::make_unique<ComparisonExpression>(
-        ComparisonType::AND, std::move(output), std::move(expr[i]));
+    output = std::make_unique<BinaryArithmeticExpression>(
+        BinaryArithmeticOperatorType::AND, std::move(output),
+        std::move(expr[i]));
   }
 
   return output;
 }
 
-std::unique_ptr<ComparisonExpression> Or(
+std::unique_ptr<BinaryArithmeticExpression> Or(
     std::vector<std::unique_ptr<Expression>> expr) {
-  std::unique_ptr<ComparisonExpression> output =
-      std::make_unique<ComparisonExpression>(
-          ComparisonType::OR, std::move(expr[0]), std::move(expr[1]));
+  std::unique_ptr<BinaryArithmeticExpression> output =
+      std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticOperatorType::OR, std::move(expr[0]),
+          std::move(expr[1]));
 
   for (int i = 2; i < expr.size(); i++) {
-    output = std::make_unique<ComparisonExpression>(
-        ComparisonType::OR, std::move(output), std::move(expr[i]));
+    output = std::make_unique<BinaryArithmeticExpression>(
+        BinaryArithmeticOperatorType::OR, std::move(output),
+        std::move(expr[i]));
   }
 
   return output;
 }
 
-std::unique_ptr<ArithmeticExpression> Mul(std::unique_ptr<Expression> e1,
-                                          std::unique_ptr<Expression> e2) {
-  return std::make_unique<ArithmeticExpression>(ArithmeticOperatorType::MUL,
-                                                std::move(e1), std::move(e2));
+std::unique_ptr<BinaryArithmeticExpression> Mul(
+    std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::MUL, std::move(e1), std::move(e2));
 }
 
-std::unique_ptr<ArithmeticExpression> Div(std::unique_ptr<Expression> e1,
-                                          std::unique_ptr<Expression> e2) {
-  return std::make_unique<ArithmeticExpression>(ArithmeticOperatorType::DIV,
-                                                std::move(e1), std::move(e2));
+std::unique_ptr<BinaryArithmeticExpression> Div(
+    std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::DIV, std::move(e1), std::move(e2));
 }
 
-std::unique_ptr<ArithmeticExpression> Sub(std::unique_ptr<Expression> e1,
-                                          std::unique_ptr<Expression> e2) {
-  return std::make_unique<ArithmeticExpression>(ArithmeticOperatorType::SUB,
-                                                std::move(e1), std::move(e2));
+std::unique_ptr<BinaryArithmeticExpression> Sub(
+    std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::SUB, std::move(e1), std::move(e2));
 }
 
-std::unique_ptr<ArithmeticExpression> Add(std::unique_ptr<Expression> e1,
-                                          std::unique_ptr<Expression> e2) {
-  return std::make_unique<ArithmeticExpression>(ArithmeticOperatorType::ADD,
-                                                std::move(e1), std::move(e2));
+std::unique_ptr<BinaryArithmeticExpression> Add(
+    std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::ADD, std::move(e1), std::move(e2));
 }
 
 std::unique_ptr<AggregateExpression> Sum(std::unique_ptr<Expression> expr) {

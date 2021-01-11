@@ -98,8 +98,8 @@ void OrderByTranslator::Produce() {
     auto var = program.GenerateVariable();
     auto type = SqlTypeToRuntimeType(column.Expr().Type());
 
-    program.fout << "auto " << var << " = ";
-    expr_translator_.Produce(column.Expr());
+    program.fout << "auto " << var << " = "
+                 << expr_translator_.Compute(column.Expr())->Get();
     program.fout << ";\n";
 
     values_.AddVariable(var, type);
