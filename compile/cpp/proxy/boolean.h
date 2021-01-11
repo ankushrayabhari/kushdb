@@ -13,9 +13,9 @@ class Boolean : public Value {
   explicit Boolean(CppProgram& program);
   Boolean(CppProgram& program, bool value);
 
-  std::string_view Get() override;
+  std::string_view Get() const override;
 
-  void operator=(Boolean& rhs);
+  void Assign(Boolean& rhs);
   std::unique_ptr<Boolean> operator!();
   std::unique_ptr<Boolean> operator&&(Boolean& rhs);
   std::unique_ptr<Boolean> operator||(Boolean& rhs);

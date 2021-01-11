@@ -14,9 +14,9 @@ class Double : public Value {
   explicit Double(CppProgram& program);
   Double(CppProgram& program, double value);
 
-  std::string_view Get() override;
+  std::string_view Get() const override;
 
-  void operator=(Double& rhs);
+  void Assign(Double& rhs);
   std::unique_ptr<Double> operator+(Double& rhs);
   std::unique_ptr<Double> operator-(Double& rhs);
   std::unique_ptr<Double> operator*(Double& rhs);

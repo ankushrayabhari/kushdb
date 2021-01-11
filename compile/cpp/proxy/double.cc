@@ -20,9 +20,9 @@ Double::Double(CppProgram& program, double value)
   program_.fout << "double " << value_ << "(" << value << ");";
 }
 
-std::string_view Double::Get() { return value_; }
+std::string_view Double::Get() const { return value_; }
 
-void Double::operator=(Double& rhs) {
+void Double::Assign(Double& rhs) {
   program_.fout << Get() << " = " << rhs.Get() << ";";
 }
 

@@ -3,19 +3,20 @@
 #include <string>
 #include <vector>
 
+#include "compile/cpp/proxy/value.h"
+#include "util/vector_util.h"
+
 namespace kush::compile::cpp {
 
-void SchemaValues::AddVariable(std::string variable, std::string type) {
-  values_.emplace_back(std::move(variable), std::move(type));
+void SchemaValues::AddVariable(std::unique_ptr<proxy::Value> value) {
+  values_.push_back(std::move(value));
 }
 
-std::string SchemaValues::Variable(int idx) const { return values_[idx].first; }
+const proxy::Value& SchemaValues::Value(int idx) const { return *values_[idx]; }
 
-std::string SchemaValues::Type(int idx) const { return values_[idx].second; }
-
-const std::vector<std::pair<std::string, std::string>>& SchemaValues::Values()
+std::vector<std::reference_wrapper<const proxy::Value>> SchemaValues::Values()
     const {
-  return values_;
+  return util::ImmutableReferenceVector(values_);
 }
 
 }  // namespace kush::compile::cpp

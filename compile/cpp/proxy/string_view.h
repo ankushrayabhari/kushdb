@@ -16,9 +16,9 @@ class StringView : public Value {
   explicit StringView(CppProgram& program);
   StringView(CppProgram& program, std::string_view value);
 
-  std::string_view Get() override;
+  std::string_view Get() const override;
 
-  void operator=(StringView& rhs);
+  void Assign(StringView& rhs);
   std::unique_ptr<Boolean> Contains(StringView& rhs);
   std::unique_ptr<Boolean> StartsWith(StringView& rhs);
   std::unique_ptr<Boolean> EndsWith(StringView& rhs);

@@ -21,9 +21,9 @@ StringView::StringView(CppProgram& program, std::string_view value)
                 << "\"sv);";
 }
 
-std::string_view StringView::Get() { return variable_; }
+std::string_view StringView::Get() const { return variable_; }
 
-void StringView::operator=(StringView& rhs) {
+void StringView::Assign(StringView& rhs) {
   program_.fout << Get() << " = " << rhs.Get() << ";";
 }
 

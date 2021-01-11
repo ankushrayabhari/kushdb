@@ -39,14 +39,67 @@ void ExpressionTranslator::Visit(const plan::AggregateExpression& agg) {
 void ExpressionTranslator::Visit(const plan::ColumnRefExpression& col_ref) {
   auto& values = source_.Children()[col_ref.GetChildIdx()].get().GetValues();
   auto& program = context_.Program();
-  program.fout << values.Variable(col_ref.GetColumnIdx());
+
+  switch (col_ref.Type()) {
+    case catalog::SqlType::SMALLINT:
+      Return(
+          std::make_unique<proxy::Int16>(values.Value(col_ref.GetColumnIdx())));
+      break;
+    case catalog::SqlType::INT:
+      Return(
+          std::make_unique<proxy::Int32>(values.Value(col_ref.GetColumnIdx())));
+      break;
+    case catalog::SqlType::BIGINT:
+    case catalog::SqlType::DATE:
+      Return(
+          std::make_unique<proxy::Int64>(values.Value(col_ref.GetColumnIdx())));
+      break;
+    case catalog::SqlType::REAL:
+      Return(std::make_unique<proxy::Double>(
+          values.Value(col_ref.GetColumnIdx())));
+      break;
+    case catalog::SqlType::TEXT:
+      Return(std::make_unique<proxy::StringView>(
+          values.Value(col_ref.GetColumnIdx())));
+      break;
+    case catalog::SqlType::BOOLEAN:
+      Return(std::make_unique<proxy::Boolean>(
+          values.Value(col_ref.GetColumnIdx())));
+      break;
+  }
 }
 
 void ExpressionTranslator::Visit(
     const plan::VirtualColumnRefExpression& col_ref) {
   auto& values = source_.GetVirtualValues();
   auto& program = context_.Program();
-  program.fout << values.Variable(col_ref.GetColumnIdx());
+  switch (col_ref.Type()) {
+    case catalog::SqlType::SMALLINT:
+      Return(
+          std::make_unique<proxy::Int16>(values.Value(col_ref.GetColumnIdx())));
+      break;
+    case catalog::SqlType::INT:
+      Return(
+          std::make_unique<proxy::Int32>(values.Value(col_ref.GetColumnIdx())));
+      break;
+    case catalog::SqlType::BIGINT:
+    case catalog::SqlType::DATE:
+      Return(
+          std::make_unique<proxy::Int64>(values.Value(col_ref.GetColumnIdx())));
+      break;
+    case catalog::SqlType::REAL:
+      Return(std::make_unique<proxy::Double>(
+          values.Value(col_ref.GetColumnIdx())));
+      break;
+    case catalog::SqlType::TEXT:
+      Return(std::make_unique<proxy::StringView>(
+          values.Value(col_ref.GetColumnIdx())));
+      break;
+    case catalog::SqlType::BOOLEAN:
+      Return(std::make_unique<proxy::Boolean>(
+          values.Value(col_ref.GetColumnIdx())));
+      break;
+  }
 }
 
 void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
@@ -89,11 +142,11 @@ std::unique_ptr<proxy::Value> Ternary(CppProgram& program,
       program, dynamic_cast<proxy::Boolean&>(*cond),
       [&]() {
         auto th = translator.Compute(case_expr.Then());
-        *result = dynamic_cast<T&>(*th);
+        result->Assign(dynamic_cast<T&>(*th));
       },
       [&]() {
         auto el = translator.Compute(case_expr.Else());
-        *result = dynamic_cast<T&>(*el);
+        result->Assign(dynamic_cast<T&>(*el));
       });
   return std::move(result);
 }

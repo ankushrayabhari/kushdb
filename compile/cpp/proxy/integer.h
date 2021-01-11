@@ -15,9 +15,9 @@ class Int8 : public Value {
   explicit Int8(CppProgram& program);
   Int8(CppProgram& program, int8_t value);
 
-  std::string_view Get() override;
+  std::string_view Get() const override;
 
-  void operator=(Int8& rhs);
+  void Assign(Int8& rhs);
   std::unique_ptr<Int8> operator+(Int8& rhs);
   std::unique_ptr<Int8> operator-(Int8& rhs);
   std::unique_ptr<Int8> operator*(Int8& rhs);
@@ -39,9 +39,9 @@ class Int16 : public Value {
   explicit Int16(CppProgram& program);
   Int16(CppProgram& program, int16_t value);
 
-  std::string_view Get() override;
+  std::string_view Get() const override;
 
-  void operator=(Int16& rhs);
+  void Assign(Int16& rhs);
   std::unique_ptr<Int16> operator+(Int16& rhs);
   std::unique_ptr<Int16> operator-(Int16& rhs);
   std::unique_ptr<Int16> operator*(Int16& rhs);
@@ -63,9 +63,9 @@ class Int32 : public Value {
   explicit Int32(CppProgram& program);
   Int32(CppProgram& program, int32_t value);
 
-  std::string_view Get() override;
+  std::string_view Get() const override;
 
-  void operator=(Int32& rhs);
+  void Assign(Int32& rhs);
   std::unique_ptr<Int32> operator+(Int32& rhs);
   std::unique_ptr<Int32> operator-(Int32& rhs);
   std::unique_ptr<Int32> operator*(Int32& rhs);
@@ -87,9 +87,9 @@ class Int64 : public Value {
   explicit Int64(CppProgram& program);
   Int64(CppProgram& program, int64_t value);
 
-  std::string_view Get() override;
+  std::string_view Get() const override;
 
-  void operator=(Int64& rhs);
+  void Assign(Int64& rhs);
   std::unique_ptr<Int64> operator+(Int64& rhs);
   std::unique_ptr<Int64> operator-(Int64& rhs);
   std::unique_ptr<Int64> operator*(Int64& rhs);

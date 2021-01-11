@@ -19,9 +19,9 @@ Boolean::Boolean(CppProgram& program, bool value)
   program_.fout << "bool " << variable_ << "(" << value << ");";
 }
 
-std::string_view Boolean::Get() { return variable_; }
+std::string_view Boolean::Get() const { return variable_; }
 
-void Boolean::operator=(Boolean& rhs) {
+void Boolean::Assign(Boolean& rhs) {
   program_.fout << Get() << " = " << rhs.Get() << ";";
 }
 

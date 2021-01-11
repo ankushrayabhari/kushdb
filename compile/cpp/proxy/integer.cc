@@ -20,9 +20,9 @@ Int8::Int8(CppProgram& program, int8_t value)
   program_.fout << "int8_t " << value_ << "(" << value << ");";
 }
 
-std::string_view Int8::Get() { return value_; }
+std::string_view Int8::Get() const { return value_; }
 
-void Int8::operator=(Int8& rhs) {
+void Int8::Assign(Int8& rhs) {
   program_.fout << Get() << " = " << rhs.Get() << ";";
 }
 
@@ -102,9 +102,9 @@ Int16::Int16(CppProgram& program, int16_t value)
   program_.fout << "int16_t " << value_ << "(" << value << ");";
 }
 
-std::string_view Int16::Get() { return value_; }
+std::string_view Int16::Get() const { return value_; }
 
-void Int16::operator=(Int16& rhs) {
+void Int16::Assign(Int16& rhs) {
   program_.fout << Get() << " = " << rhs.Get() << ";";
 }
 
@@ -184,9 +184,9 @@ Int32::Int32(CppProgram& program, int32_t value)
   program_.fout << "int32_t " << value_ << "(" << value << ");";
 }
 
-std::string_view Int32::Get() { return value_; }
+std::string_view Int32::Get() const { return value_; }
 
-void Int32::operator=(Int32& rhs) {
+void Int32::Assign(Int32& rhs) {
   program_.fout << Get() << " = " << rhs.Get() << ";";
 }
 
@@ -266,9 +266,9 @@ Int64::Int64(CppProgram& program, int64_t value)
   program_.fout << "int64_t " << value_ << "(" << value << ");";
 }
 
-std::string_view Int64::Get() { return value_; }
+std::string_view Int64::Get() const { return value_; }
 
-void Int64::operator=(Int64& rhs) {
+void Int64::Assign(Int64& rhs) {
   program_.fout << Get() << " = " << rhs.Get() << ";";
 }
 
