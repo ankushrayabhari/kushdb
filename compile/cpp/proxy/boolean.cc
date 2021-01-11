@@ -10,61 +10,47 @@
 namespace kush::compile::cpp::proxy {
 
 Boolean::Boolean(CppProgram& program, bool value)
-    : program_(program), value_(value) {}
-
-Boolean::Boolean(CppProgram& program, std::string_view variable)
-    : program_(program), value_(std::string(variable)) {}
-
-void Boolean::Get() {
-  std::visit([this](auto&& arg) { program_.fout << arg; }, value_);
+    : program_(program), variable_(program.GenerateVariable()) {
+  program_.fout << "bool " << variable_ << "(" << value << ");";
 }
 
+Boolean::Boolean(CppProgram& program)
+    : program_(program), variable_(program.GenerateVariable()) {}
+
+std::string_view Boolean::Get() { return variable_; }
+
 Boolean Boolean::operator!() {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = !";
-  Get();
-  program_.fout << ";";
-  return Boolean(program_, var);
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = !" << Get() << ";";
+  return result;
 }
 
 Boolean Boolean::operator&&(Boolean& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
-  Get();
-  program_.fout << " && ";
-  rhs.Get();
-  program_.fout << ";";
-  return Boolean(program_, var);
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = " << Get() << " && "
+                << rhs.Get() << ";";
+  return result;
 }
 
 Boolean Boolean::operator||(Boolean& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
-  Get();
-  program_.fout << " || ";
-  rhs.Get();
-  program_.fout << ";";
-  return Boolean(program_, var);
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = " << Get() << " || "
+                << rhs.Get() << ";";
+  return result;
 }
 
 Boolean Boolean::operator==(Boolean& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
-  Get();
-  program_.fout << " == ";
-  rhs.Get();
-  program_.fout << ";";
-  return Boolean(program_, var);
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = " << Get()
+                << " == " << rhs.Get() << ";";
+  return result;
 }
 
 Boolean Boolean::operator!=(Boolean& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
-  Get();
-  program_.fout << " != ";
-  rhs.Get();
-  program_.fout << ";";
-  return Boolean(program_, var);
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = " << Get()
+                << " != " << rhs.Get() << ";";
+  return result;
 }
 
 }  // namespace kush::compile::cpp::proxy

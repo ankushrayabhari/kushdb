@@ -61,63 +61,63 @@ Int8 Int8::operator/(Int8& rhs) {
 }
 
 Boolean Int8::operator==(Int8& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " == ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int8::operator!=(Int8& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " != ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int8::operator<(Int8& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " < ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int8::operator<=(Int8& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " <= ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int8::operator>(Int8& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " > ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int8::operator>=(Int8& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " >= ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 //======================================================================
@@ -173,63 +173,63 @@ Int16 Int16::operator/(Int16& rhs) {
 }
 
 Boolean Int16::operator==(Int16& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " == ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int16::operator!=(Int16& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " != ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int16::operator<(Int16& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " < ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int16::operator<=(Int16& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " <= ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int16::operator>(Int16& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " > ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int16::operator>=(Int16& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " >= ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 //======================================================================
@@ -285,63 +285,63 @@ Int32 Int32::operator/(Int32& rhs) {
 }
 
 Boolean Int32::operator==(Int32& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " == ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int32::operator!=(Int32& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " != ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int32::operator<(Int32& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " < ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int32::operator<=(Int32& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " <= ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int32::operator>(Int32& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " > ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int32::operator>=(Int32& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " >= ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 //======================================================================
@@ -397,63 +397,63 @@ Int64 Int64::operator/(Int64& rhs) {
 }
 
 Boolean Int64::operator==(Int64& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " == ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int64::operator!=(Int64& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " != ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int64::operator<(Int64& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " < ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int64::operator<=(Int64& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " <= ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int64::operator>(Int64& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " > ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean Int64::operator>=(Int64& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " >= ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 }  // namespace kush::compile::cpp::proxy

@@ -25,53 +25,53 @@ void StringView::Get() {
 }
 
 Boolean StringView::Contains(StringView& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << ".contains(";
   rhs.Get();
   program_.fout << ");";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean StringView::StartsWith(StringView& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << ".starts_with(";
   rhs.Get();
   program_.fout << ");";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean StringView::EndsWith(StringView& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << ".ends_with(";
   rhs.Get();
   program_.fout << ");";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean StringView::operator==(StringView& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " == ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 Boolean StringView::operator!=(StringView& rhs) {
-  auto var = program_.GenerateVariable();
-  program_.fout << "bool " << var << " = ";
+  Boolean result(program_);
+  program_.fout << "bool " << result.Get() << " = ";
   Get();
   program_.fout << " != ";
   rhs.Get();
   program_.fout << ";";
-  return Boolean(program_, var);
+  return result;
 }
 
 }  // namespace kush::compile::cpp::proxy
