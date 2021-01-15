@@ -9,6 +9,12 @@ cc_library(
 )
 
 cc_library(
+    name = "program_builder",
+    hdrs = ["program_builder.h"],
+    deps = [],
+)
+
+cc_library(
     name = "query_translator",
     srcs = ["query_translator.cc"],
     hdrs = ["query_translator.h"],

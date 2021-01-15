@@ -4,10 +4,18 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "if",
-    srcs = ["if.cc"],
     hdrs = ["if.h"],
     deps = [
-        "//compile/llvm:llvm_program",
+        "//compile:program",
+        "//compile/proxy:boolean",
+    ],
+)
+
+cc_library(
+    name = "loop",
+    hdrs = ["loop.h"],
+    deps = [
+        "//compile:program",
         "//compile/proxy:boolean",
     ],
 )

@@ -3,28 +3,28 @@
 #include <string>
 #include <string_view>
 
-#include "compile/llvm/llvm_program.h"
+#include "compile/program_builder.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile::proxy {
 
+template <typename T>
 class Boolean : public Value {
  public:
-  explicit Boolean(CppProgram& program);
-  Boolean(CppProgram& program, bool value);
+  Boolean(ProgramBuilder<T>& program, ProgramBuilder<T>::Value& value);
+  Boolean(ProgramBuilder<T>& program, bool value);
 
-  std::string_view Get() const override;
+  ProgramBuilder<T>::Value& Get() const override { return value_; }
 
-  void Assign(Boolean& rhs);
-  std::unique_ptr<Boolean> operator!();
-  std::unique_ptr<Boolean> operator&&(Boolean& rhs);
-  std::unique_ptr<Boolean> operator||(Boolean& rhs);
-  std::unique_ptr<Boolean> operator==(Boolean& rhs);
-  std::unique_ptr<Boolean> operator!=(Boolean& rhs);
+  Boolean operator!();
+  Boolean operator&&(const Boolean& rhs);
+  Boolean operator||(const Boolean& rhs);
+  Boolean operator==(const Boolean& rhs);
+  Boolean operator!=(const Boolean& rhs);
 
  private:
-  CppProgram& program_;
-  std::string variable_;
+  ProgramBuilder<T>& program_;
+  ProgramBuilder<T>::Value& value_;
 };
 
 }  // namespace kush::compile::proxy

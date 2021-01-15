@@ -1,3 +1,7 @@
+#include "compile/query_translator.h"
+
+#include <memory>
+
 #include "catalog/catalog.h"
 #include "compile/llvm/llvm_program.h"
 #include "compile/program.h"
@@ -6,19 +10,19 @@
 
 namespace kush::compile {
 
-CppTranslator::CppTranslator(const catalog::Database& db,
-                             const plan::Operator& op)
+QueryTranslator::QueryTranslator(const catalog::Database& db,
+                                 const plan::Operator& op)
     : db_(db), op_(op) {}
 
-Program CppTranslator::Translate() {
-  context_.Program().CodegenInitialize();
+std::unique_ptr<Program> QueryTranslator::Translate() {
+  auto program = std::make_unique<LLVMProgram>();
 
   // Generate code for operator
-  TranslatorFactory factory(context_);
+  TranslatorFactory factory(*program);
   auto translator = factory.Compute(op_);
   translator->Produce();
 
-  context_.Program().CodegenFinalize();
+  return std::move(program);
 }
 
 }  // namespace kush::compile

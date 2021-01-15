@@ -9,10 +9,13 @@ namespace kush::compile::codegen {
 
 class If {
  public:
-  If(CppProgram& program, proxy::Boolean& boolean,
-     std::function<void()> then_fn);
-  If(CppProgram& program, proxy::Boolean& boolean,
-     std::function<void()> then_fn, std::function<void()> else_fn);
+  template <typename T>
+  If(ProgramBuilder<T>& program, proxy::Boolean& boolean,
+     std::function<void()> then_fn) {}
+
+  template <typename T>
+  If(ProgramBuilder<T>& program, proxy::Boolean& boolean,
+     std::function<void()> then_fn, std::function<void()> else_fn) {}
 };
 
 }  // namespace kush::compile::codegen

@@ -8,6 +8,7 @@ cc_library(
     hdrs = ["llvm_program.h"],
     deps = [
         "//compile:program",
+        "//compile:program_builder",
         "@llvm-project//llvm:BitWriter",
         "@llvm-project//llvm:Core",
         "@llvm-project//llvm:Support",

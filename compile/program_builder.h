@@ -1,0 +1,65 @@
+#pragma once
+
+namespace kush::compile {
+
+template <typename ImplTraits>
+class ProgramBuilder {
+ public:
+  virtual ~ProgramBuilder() = default;
+
+  using BasicBlock = typename ImplTraits::BasicBlock;
+  using Value = typename ImplTraits::Value;
+  using CompType = typename ImplTraits::CompType;
+
+  // Control Flow
+  virtual BasicBlock& GenerateBlock() = 0;
+  virtual void SetCurrentBlock(BasicBlock& b) = 0;
+  virtual void Branch(BasicBlock& b) = 0;
+  virtual void Branch(BasicBlock& b, Value& cond) = 0;
+
+  // I8
+  virtual Value& AddI8(Value& v1, Value& v2) = 0;
+  virtual Value& MulI8(Value& v1, Value& v2) = 0;
+  virtual Value& DivI8(Value& v1, Value& v2) = 0;
+  virtual Value& SubI8(Value& v1, Value& v2) = 0;
+  virtual Value& CmpI8(CompType cmp, Value& v1, Value& v2) = 0;
+  virtual Value& NotI8(Value& v) = 0;
+  virtual Value& Constant(int8_t v) = 0;
+
+  // I16
+  virtual Value& AddI16(Value& v1, Value& v2) = 0;
+  virtual Value& MulI16(Value& v1, Value& v2) = 0;
+  virtual Value& DivI16(Value& v1, Value& v2) = 0;
+  virtual Value& SubI16(Value& v1, Value& v2) = 0;
+  virtual Value& CmpI16(CompType cmp, Value& v1, Value& v2) = 0;
+  virtual Value& NotI16(Value& v) = 0;
+  virtual Value& Constant(int16_t v) = 0;
+
+  // I32
+  virtual Value& AddI32(Value& v1, Value& v2) = 0;
+  virtual Value& MulI32(Value& v1, Value& v2) = 0;
+  virtual Value& DivI32(Value& v1, Value& v2) = 0;
+  virtual Value& SubI32(Value& v1, Value& v2) = 0;
+  virtual Value& CmpI32(CompType cmp, Value& v1, Value& v2) = 0;
+  virtual Value& NotI32(Value& v) = 0;
+  virtual Value& Constant(int32_t v) = 0;
+
+  // I64
+  virtual Value& AddI64(Value& v1, Value& v2) = 0;
+  virtual Value& MulI64(Value& v1, Value& v2) = 0;
+  virtual Value& DivI64(Value& v1, Value& v2) = 0;
+  virtual Value& SubI64(Value& v1, Value& v2) = 0;
+  virtual Value& CmpI64(CompType cmp, Value& v1, Value& v2) = 0;
+  virtual Value& NotI64(Value& v) = 0;
+  virtual Value& Constant(int64_t v) = 0;
+
+  // F64
+  virtual Value& AddF64(Value& v1, Value& v2) = 0;
+  virtual Value& MulF64(Value& v1, Value& v2) = 0;
+  virtual Value& DivF64(Value& v1, Value& v2) = 0;
+  virtual Value& SubF64(Value& v1, Value& v2) = 0;
+  virtual Value& CmpF64(CompType cmp, Value& v1, Value& v2) = 0;
+  virtual Value& Constant(double v) = 0;
+};
+
+}  // namespace kush::compile

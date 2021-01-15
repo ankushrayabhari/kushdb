@@ -133,7 +133,7 @@ void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
 }
 
 template <typename T>
-std::unique_ptr<proxy::Value> Ternary(CppProgram& program,
+std::unique_ptr<proxy::Value> Ternary(ProgramBuilder& program,
                                       ExpressionTranslator& translator,
                                       const plan::CaseExpression& case_expr) {
   auto result = std::make_unique<T>(program);
