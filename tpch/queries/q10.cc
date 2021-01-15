@@ -6,7 +6,7 @@
 #include "absl/time/civil_time.h"
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "compile/cpp/cpp_translator.h"
+#include "compile/query_translator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -26,7 +26,7 @@
 
 using namespace kush;
 using namespace kush::plan;
-using namespace kush::compile::cpp;
+using namespace kush::compile;
 using namespace kush::catalog;
 using namespace std::literals;
 

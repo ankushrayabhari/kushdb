@@ -5,7 +5,7 @@ cc_library(
     hdrs = ["builder.h"],
     deps = [
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -30,7 +30,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -54,7 +54,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -78,7 +78,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -102,7 +102,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -126,7 +126,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -150,7 +150,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -174,7 +174,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -198,7 +198,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -222,7 +222,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -246,7 +246,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
@@ -270,7 +270,7 @@ cc_binary(
     deps = [
         ":builder",
         "//catalog",
-        "//compile/cpp:cpp_translator",
+        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",
