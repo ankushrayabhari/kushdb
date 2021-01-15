@@ -107,9 +107,8 @@ std::unique_ptr<Operator> Agg() {
 int main() {
   std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(Agg());
 
-  CppTranslator translator(db, *query);
-  translator.Translate();
-  auto& prog = translator.Program();
+  QueryTranslator translator(db, *query);
+  auto prog = translator.Translate();
   prog.Compile();
   prog.Execute();
   return 0;

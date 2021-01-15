@@ -16,7 +16,7 @@ class LLVMImplTraits {
   using CompType = llvm::CmpInst::Predicate;
 };
 
-class LLVMProgram : public Program<LLVMImplTraits> {
+class LLVMProgram : public Program, ProgramBuilder<LLVMImplTraits> {
  public:
   LLVMProgram();
   ~LLVMProgram() = default;
@@ -36,19 +36,24 @@ class LLVMProgram : public Program<LLVMImplTraits> {
   Value* MulI32(Value* v1, Value* v2) override;
   Value* DivI32(Value* v1, Value* v2) override;
   Value* SubI32(Value* v1, Value* v2) override;
+  Value* Constant(int32_t v) override;
 
   // I64
   Value* AddI64(Value* v1, Value* v2) override;
   Value* MulI64(Value* v1, Value* v2) override;
   Value* DivI64(Value* v1, Value* v2) override;
   Value* SubI64(Value* v1, Value* v2) override;
-  Value* CmpI(CompType cmp, Value* v1, Value* v2) override;
+  Value* Constant(int64_t v) override;
 
   // F
   Value* AddF(Value* v1, Value* v2) override;
   Value* MulF(Value* v1, Value* v2) override;
   Value* DivF(Value* v1, Value* v2) override;
   Value* SubF(Value* v1, Value* v2) override;
+  Value* Constant(double v) override;
+
+  // Comparison
+  Value* CmpI(CompType cmp, Value* v1, Value* v2) override;
   Value* CmpF(CompType cmp, Value* v1, Value* v2) override;
 
  private:
