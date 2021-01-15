@@ -9,35 +9,47 @@
 
 namespace kush::compile {
 
-class LLVMProgram : public Program {
+class LLVMImplTraits {
+ public:
+  using BasicBlock = llvm::BasicBlock;
+  using Value = llvm::Value;
+  using CompType = llvm::CmpInst::Predicate;
+};
+
+class LLVMProgram : public Program<LLVMImplTraits> {
  public:
   LLVMProgram();
+  ~LLVMProgram() = default;
 
-  // Execution methods
+  // Compile
   void Compile() const override;
   void Execute() const override;
 
-  // Builder Methods
-  llvm::BasicBlock* GenerateBlock();
-  void SetCurrentBlock(llvm::BasicBlock* b);
-  llvm::Value* AddI32(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* MulI32(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* DivI32(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* SubI32(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* AddI64(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* MulI64(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* DivI64(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* SubI64(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* CmpI(llvm::CmpInst::Predicate ped, llvm::Value* v1,
-                    llvm::Value* v2);
-  llvm::Value* AddF(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* MulF(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* DivF(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* SubF(llvm::Value* v1, llvm::Value* v2);
-  llvm::Value* CmpF(llvm::CmpInst::Predicate ped, llvm::Value* v1,
-                    llvm::Value* v2);
-  void Branch(llvm::BasicBlock* b);
-  void Branch(llvm::BasicBlock* b, llvm::Value* cond);
+  // Control Flow
+  BasicBlock* GenerateBlock() override;
+  void SetCurrentBlock(BasicBlock* b) override;
+  void Branch(BasicBlock* b) override;
+  void Branch(BasicBlock* b, Value* cond) override;
+
+  // I32
+  Value* AddI32(Value* v1, Value* v2) override;
+  Value* MulI32(Value* v1, Value* v2) override;
+  Value* DivI32(Value* v1, Value* v2) override;
+  Value* SubI32(Value* v1, Value* v2) override;
+
+  // I64
+  Value* AddI64(Value* v1, Value* v2) override;
+  Value* MulI64(Value* v1, Value* v2) override;
+  Value* DivI64(Value* v1, Value* v2) override;
+  Value* SubI64(Value* v1, Value* v2) override;
+  Value* CmpI(CompType cmp, Value* v1, Value* v2) override;
+
+  // F
+  Value* AddF(Value* v1, Value* v2) override;
+  Value* MulF(Value* v1, Value* v2) override;
+  Value* DivF(Value* v1, Value* v2) override;
+  Value* SubF(Value* v1, Value* v2) override;
+  Value* CmpF(CompType cmp, Value* v1, Value* v2) override;
 
  private:
   std::unique_ptr<llvm::LLVMContext> context_;
