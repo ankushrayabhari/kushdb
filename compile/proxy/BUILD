@@ -25,7 +25,7 @@ cc_library(
     deps = [
         ":boolean",
         ":value",
-        "//compile/llvm:llvm_program",
+        "//compile:program_builder",
     ],
 )
 
@@ -35,7 +35,7 @@ cc_library(
     deps = [
         ":boolean",
         ":value",
-        "//compile/llvm:llvm_program",
+        "//compile:program_builder",
     ],
 )
 
@@ -44,7 +44,7 @@ cc_library(
     hdrs = ["if.h"],
     deps = [
         ":boolean",
-        "//compile:program",
+        "//compile:program_builder",
     ],
 )
 
@@ -53,6 +53,7 @@ cc_library(
     hdrs = ["loop.h"],
     deps = [
         ":boolean",
-        "//compile:program",
+        ":if",
+        "//compile:program_builder",
     ],
 )

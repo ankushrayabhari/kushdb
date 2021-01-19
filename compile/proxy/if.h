@@ -6,7 +6,7 @@
 #include "compile/program_builder.h"
 #include "compile/proxy/boolean.h"
 
-namespace kush::compile::codegen {
+namespace kush::compile::proxy {
 
 template <typename T>
 class If {
@@ -55,7 +55,10 @@ class If {
   If& operator=(If&&) = delete;
 
   Value& Phi(Value& v1, Value& v2) {
-    return program_.Phi(v1, b1.get(), v2, b2.get());
+    auto& phi = program_.Phi(v1, b1.get(), v2, b2.get());
+    program_.AddToPhi(phi, v1, b1.get());
+    program_.AddToPhi(phi, v2, b2.get());
+    return phi;
   }
 
  private:
@@ -64,4 +67,4 @@ class If {
   std::reference_wrapper<typename ProgramBuilder<T>::BasicBlock> b2;
 };
 
-}  // namespace kush::compile::codegen
+}  // namespace kush::compile::proxy
