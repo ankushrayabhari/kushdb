@@ -4,8 +4,10 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "schema_values",
+    srcs = ["schema_values.cc"],
     hdrs = ["schema_values.h"],
     deps = [
+        "//compile:program_registry",
         "//compile/proxy:value",
     ],
 )
@@ -134,7 +136,7 @@ cc_library(
         "//compile/proxy:bool",
         "//compile/proxy:float",
         "//compile/proxy:if",
-        "//compile/proxy:integer",
+        "//compile/proxy:int",
         "//compile/proxy:value",
         "//plan/expression:aggregate_expression",
         "//plan/expression:binary_arithmetic_expression",

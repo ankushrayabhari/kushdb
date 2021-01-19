@@ -13,17 +13,13 @@ class SchemaValues {
  public:
   SchemaValues() = default;
 
-  void AddVariable(const proxy::Value<T>& value) { values_.push_back(value); }
-
-  const proxy::Value<T>& Value(int idx) const { return values_[idx]; }
-
+  void AddVariable(const proxy::Value<T>& value);
+  const proxy::Value<T>& Value(int idx) const;
   const std::vector<std::reference_wrapper<const proxy::Value<T>>>& Values()
-      const {
-    return values_;
-  }
+      const;
 
  private:
-  std::vector<std::reference_wrapper<proxy::Value<T>>> values_;
+  std::vector<std::reference_wrapper<const proxy::Value<T>>> values_;
 };
 
 }  // namespace kush::compile
