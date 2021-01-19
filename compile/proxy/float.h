@@ -18,16 +18,16 @@ class Float64 : public Value<T> {
   Float64<T> operator-(const Float64<T>& rhs);
   Float64<T> operator*(const Float64<T>& rhs);
   Float64<T> operator/(const Float64<T>& rhs);
-  Boolean<T> operator==(const Float64<T>& rhs);
-  Boolean<T> operator!=(const Float64<T>& rhs);
-  Boolean<T> operator<(const Float64<T>& rhs);
-  Boolean<T> operator<=(const Float64<T>& rhs);
-  Boolean<T> operator>(const Float64<T>& rhs);
-  Boolean<T> operator>=(const Float64<T>& rhs);
+  Bool<T> operator==(const Float64<T>& rhs);
+  Bool<T> operator!=(const Float64<T>& rhs);
+  Bool<T> operator<(const Float64<T>& rhs);
+  Bool<T> operator<=(const Float64<T>& rhs);
+  Bool<T> operator>(const Float64<T>& rhs);
+  Bool<T> operator>=(const Float64<T>& rhs);
 
  private:
   ProgramBuilder<T>& program_;
-  ProgramBuilder<T>::Value& value_;
+  typename ProgramBuilder<T>::Value& value_;
 };
 
 }  // namespace kush::compile::proxy

@@ -33,6 +33,7 @@ cc_library(
 
 cc_library(
     name = "float",
+    srcs = ["float.cc"],
     hdrs = ["float.h"],
     deps = [
         ":bool",
@@ -43,6 +44,7 @@ cc_library(
 
 cc_library(
     name = "if",
+    srcs = ["if.cc"],
     hdrs = ["if.h"],
     deps = [
         ":bool",

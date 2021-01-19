@@ -42,39 +42,39 @@ Float64<T> Float64<T>::operator/(const Float64<T>& rhs) {
 }
 
 template <typename T>
-Boolean<T> Float64<T>::operator==(const Float64<T>& rhs) {
-  return Boolean(program_,
-                 program_.CmpF64(T::CompType::FCMP_OEQ, value_, rhs.value_));
+Bool<T> Float64<T>::operator==(const Float64<T>& rhs) {
+  return Bool(program_,
+              program_.CmpF64(T::CompType::FCMP_OEQ, value_, rhs.value_));
 }
 
 template <typename T>
-Boolean<T> Float64<T>::operator!=(const Float64<T>& rhs) {
-  return Boolean(program_,
-                 program_.CmpF64(T::CompType::FCMP_ONE, value_, rhs.value_));
+Bool<T> Float64<T>::operator!=(const Float64<T>& rhs) {
+  return Bool(program_,
+              program_.CmpF64(T::CompType::FCMP_ONE, value_, rhs.value_));
 }
 
 template <typename T>
-Boolean<T> Float64<T>::operator<(const Float64<T>& rhs) {
-  return Boolean(program_,
-                 program_.CmpF64(T::CompType::FCMP_OLT, value_, rhs.value_));
+Bool<T> Float64<T>::operator<(const Float64<T>& rhs) {
+  return Bool(program_,
+              program_.CmpF64(T::CompType::FCMP_OLT, value_, rhs.value_));
 }
 
 template <typename T>
-Boolean<T> Float64<T>::operator<=(const Float64<T>& rhs) {
-  return Boolean(program_,
-                 program_.CmpF64(T::CompType::FCMP_OLE, value_, rhs.value_));
+Bool<T> Float64<T>::operator<=(const Float64<T>& rhs) {
+  return Bool(program_,
+              program_.CmpF64(T::CompType::FCMP_OLE, value_, rhs.value_));
 }
 
 template <typename T>
-Boolean<T> Float64<T>::operator>(const Float64<T>& rhs) {
-  return Boolean(program_,
-                 program_.CmpF64(T::CompType::FCMP_OGT, value_, rhs.value_));
+Bool<T> Float64<T>::operator>(const Float64<T>& rhs) {
+  return Bool(program_,
+              program_.CmpF64(T::CompType::FCMP_OGT, value_, rhs.value_));
 }
 
 template <typename T>
-Boolean<T> Float64<T>::operator>=(const Float64<T>& rhs) {
-  return Boolean(program_,
-                 program_.CmpF64(T::CompType::FCMP_OGE, value_, rhs.value_));
+Bool<T> Float64<T>::operator>=(const Float64<T>& rhs) {
+  return Bool(program_,
+              program_.CmpF64(T::CompType::FCMP_OGE, value_, rhs.value_));
 }
 
 INSTANTIATE_ON_BACKENDS(Float64);
