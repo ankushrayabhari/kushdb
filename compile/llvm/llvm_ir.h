@@ -8,9 +8,9 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
-namespace kush::compile {
+namespace kush::compile::ir {
 
-class LLVMImpl {
+class LLVMIrTypes {
  public:
   using BasicBlock = llvm::BasicBlock;
   using Value = llvm::Value;
@@ -18,10 +18,10 @@ class LLVMImpl {
   using Constant = llvm::Constant;
 };
 
-class LLVMProgram : public Program, ProgramBuilder<LLVMImpl> {
+class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
  public:
-  LLVMProgram();
-  ~LLVMProgram() = default;
+  LLVMIr();
+  ~LLVMIr() = default;
 
   // Compile
   void Compile() const override;
@@ -83,4 +83,4 @@ class LLVMProgram : public Program, ProgramBuilder<LLVMImpl> {
   std::unique_ptr<llvm::IRBuilder<>> builder_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::compile::ir

@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/llvm/llvm_program.h"
+#include "compile/llvm/llvm_ir.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/order_by_operator.h"

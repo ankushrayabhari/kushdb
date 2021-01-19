@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
+#include "compile/ir_registry.h"
 #include "compile/program_builder.h"
-#include "compile/program_registry.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/value.h"
 
@@ -79,7 +79,7 @@ Bool<T> Int8<T>::operator>=(const Int8<T>& rhs) {
                  program_.CmpI8(T::CompType::ICMP_SGE, value_, rhs.value_));
 }
 
-INSTANTIATE_ON_BACKENDS(Int8);
+INSTANTIATE_IR(Int8);
 
 template <typename T>
 Int16<T>::Int16(ProgramBuilder<T>& program,
@@ -151,7 +151,7 @@ Bool<T> Int16<T>::operator>=(const Int16<T>& rhs) {
                  program_.CmpI16(T::CompType::ICMP_SGE, value_, rhs.value_));
 }
 
-INSTANTIATE_ON_BACKENDS(Int16);
+INSTANTIATE_IR(Int16);
 
 template <typename T>
 Int32<T>::Int32(ProgramBuilder<T>& program,
@@ -223,7 +223,7 @@ Bool<T> Int32<T>::operator>=(const Int32<T>& rhs) {
                  program_.CmpI32(T::CompType::ICMP_SGE, value_, rhs.value_));
 }
 
-INSTANTIATE_ON_BACKENDS(Int32);
+INSTANTIATE_IR(Int32);
 
 template <typename T>
 Int64<T>::Int64(ProgramBuilder<T>& program,
@@ -295,6 +295,6 @@ Bool<T> Int64<T>::operator>=(const Int64<T>& rhs) {
                  program_.CmpI64(T::CompType::ICMP_SGE, value_, rhs.value_));
 }
 
-INSTANTIATE_ON_BACKENDS(Int64);
+INSTANTIATE_IR(Int64);
 
 }  // namespace kush::compile::proxy

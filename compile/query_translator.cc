@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "catalog/catalog.h"
-#include "compile/llvm/llvm_program.h"
+#include "compile/llvm/llvm_ir.h"
 #include "compile/program.h"
 #include "compile/translators/translator_factory.h"
 #include "plan/operator.h"
@@ -15,7 +15,7 @@ QueryTranslator::QueryTranslator(const catalog::Database& db,
     : db_(db), op_(op) {}
 
 std::unique_ptr<Program> QueryTranslator::Translate() {
-  auto program = std::make_unique<LLVMProgram>();
+  auto program = std::make_unique<LLVMIr>();
 
   // Generate code for operator
   TranslatorFactory factory(*program);

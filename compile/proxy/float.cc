@@ -1,7 +1,7 @@
 #include "compile/proxy/float.h"
 
+#include "compile/ir_registry.h"
 #include "compile/program_builder.h"
-#include "compile/program_registry.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/value.h"
 
@@ -77,6 +77,6 @@ Bool<T> Float64<T>::operator>=(const Float64<T>& rhs) {
               program_.CmpF64(T::CompType::FCMP_OGE, value_, rhs.value_));
 }
 
-INSTANTIATE_ON_BACKENDS(Float64);
+INSTANTIATE_IR(Float64);
 
 }  // namespace kush::compile::proxy

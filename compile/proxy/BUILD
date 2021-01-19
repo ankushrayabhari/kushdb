@@ -16,8 +16,8 @@ cc_library(
     hdrs = ["bool.h"],
     deps = [
         ":value",
+        "//compile:ir_registry",
         "//compile:program_builder",
-        "//compile:program_registry",
     ],
 )
 
@@ -28,8 +28,8 @@ cc_library(
     deps = [
         ":bool",
         ":value",
+        "//compile:ir_registry",
         "//compile:program_builder",
-        "//compile:program_registry",
     ],
 )
 
@@ -39,8 +39,8 @@ cc_library(
     hdrs = ["if.h"],
     deps = [
         ":bool",
+        "//compile:ir_registry",
         "//compile:program_builder",
-        "//compile:program_registry",
     ],
 )
 
@@ -51,8 +51,8 @@ cc_library(
     deps = [
         ":bool",
         ":value",
+        "//compile:ir_registry",
         "//compile:program_builder",
-        "//compile:program_registry",
     ],
 )
 
@@ -63,7 +63,7 @@ cc_library(
     deps = [
         ":bool",
         ":if",
+        "//compile:ir_registry",
         "//compile:program_builder",
-        "//compile:program_registry",
     ],
 )

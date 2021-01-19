@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "compile/ir_registry.h"
 #include "compile/program_builder.h"
-#include "compile/program_registry.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/if.h"
 
@@ -49,6 +49,6 @@ typename ProgramBuilder<T>::Value& Loop<T>::LoopVariable(int i) {
   return loop_vars_[i];
 }
 
-INSTANTIATE_ON_BACKENDS(Loop);
+INSTANTIATE_IR(Loop);
 
 }  // namespace kush::compile::proxy

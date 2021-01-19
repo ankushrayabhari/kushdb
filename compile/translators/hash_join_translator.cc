@@ -1,6 +1,6 @@
 #include "compile/translators/hash_join_translator.h"
 
-#include "compile/llvm/llvm_program.h"
+#include "compile/llvm/llvm_ir.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "compile/types.h"

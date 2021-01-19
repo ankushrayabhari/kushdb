@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 
-#include "compile/program_registry.h"
+#include "compile/ir_registry.h"
 #include "compile/translators/schema_values.h"
 #include "util/vector_util.h"
 
@@ -60,6 +60,6 @@ const SchemaValues<T>& OperatorTranslator<T>::GetVirtualValues() const {
   return virtual_values_;
 }
 
-INSTANTIATE_ON_BACKENDS(OperatorTranslator);
+INSTANTIATE_IR(OperatorTranslator);
 
 }  // namespace kush::compile

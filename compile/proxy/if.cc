@@ -3,8 +3,8 @@
 #include <functional>
 #include <utility>
 
+#include "compile/ir_registry.h"
 #include "compile/program_builder.h"
-#include "compile/program_registry.h"
 #include "compile/proxy/bool.h"
 
 namespace kush::compile::proxy {
@@ -49,6 +49,6 @@ If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
   program.SetCurrentBlock(dest_block);
 }
 
-INSTANTIATE_ON_BACKENDS(If);
+INSTANTIATE_IR(If);
 
 }  // namespace kush::compile::proxy

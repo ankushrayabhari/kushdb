@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "compile/program_registry.h"
+#include "compile/ir_registry.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile {
@@ -25,6 +25,6 @@ SchemaValues<T>::Values() const {
   return values_;
 }
 
-INSTANTIATE_ON_BACKENDS(SchemaValues);
+INSTANTIATE_IR(SchemaValues);
 
 }  // namespace kush::compile

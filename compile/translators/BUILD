@@ -7,7 +7,7 @@ cc_library(
     srcs = ["schema_values.cc"],
     hdrs = ["schema_values.h"],
     deps = [
-        "//compile:program_registry",
+        "//compile:ir_registry",
         "//compile/proxy:value",
     ],
 )
@@ -18,7 +18,7 @@ cc_library(
     hdrs = ["operator_translator.h"],
     deps = [
         ":schema_values",
-        "//compile:program_registry",
+        "//compile:ir_registry",
         "//util:vector_util",
     ],
 )
@@ -29,7 +29,7 @@ cc_library(
     hdrs = ["scan_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile/llvm:llvm_program",
+        "//compile/llvm:llvm_ir",
         "//plan:scan_operator",
     ],
 )
@@ -40,7 +40,7 @@ cc_library(
     hdrs = ["output_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile/llvm:llvm_program",
+        "//compile/llvm:llvm_ir",
         "//plan:output_operator",
     ],
 )
@@ -52,7 +52,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/llvm:llvm_program",
+        "//compile/llvm:llvm_ir",
         "//plan:select_operator",
     ],
 )
@@ -64,7 +64,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/llvm:llvm_program",
+        "//compile/llvm:llvm_ir",
         "//plan:cross_product_operator",
     ],
 )
@@ -76,7 +76,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/llvm:llvm_program",
+        "//compile/llvm:llvm_ir",
         "//plan:hash_join_operator",
     ],
 )
@@ -88,7 +88,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/llvm:llvm_program",
+        "//compile/llvm:llvm_ir",
         "//plan:group_by_aggregate_operator",
     ],
 )
@@ -100,7 +100,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/llvm:llvm_program",
+        "//compile/llvm:llvm_ir",
         "//plan:order_by_operator",
     ],
 )
@@ -133,7 +133,7 @@ cc_library(
     hdrs = ["expression_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile/llvm:llvm_program",
+        "//compile/llvm:llvm_ir",
         "//compile/proxy:bool",
         "//compile/proxy:float",
         "//compile/proxy:if",

@@ -1,7 +1,7 @@
 #include "compile/proxy/bool.h"
 
+#include "compile/ir_registry.h"
 #include "compile/program_builder.h"
-#include "compile/program_registry.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile::proxy {
@@ -38,6 +38,6 @@ Bool<T> Bool<T>::operator!=(const Bool<T>& rhs) {
               program_.CmpI8(T::CompType::ICMP_NE, value_, rhs.value_));
 }
 
-INSTANTIATE_ON_BACKENDS(Bool);
+INSTANTIATE_IR(Bool);
 
 }  // namespace kush::compile::proxy

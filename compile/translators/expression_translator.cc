@@ -6,7 +6,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "compile/codegen/if.h"
-#include "compile/llvm/llvm_program.h"
+#include "compile/llvm/llvm_ir.h"
 #include "compile/proxy/boolean.h"
 #include "compile/proxy/double.h"
 #include "compile/proxy/integer.h"
