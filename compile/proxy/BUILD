@@ -30,8 +30,8 @@ cc_library(
 )
 
 cc_library(
-    name = "double",
-    hdrs = ["double.h"],
+    name = "float",
+    hdrs = ["float.h"],
     deps = [
         ":boolean",
         ":value",
