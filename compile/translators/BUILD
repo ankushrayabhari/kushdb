@@ -18,6 +18,7 @@ cc_library(
     hdrs = ["operator_translator.h"],
     deps = [
         ":schema_values",
+        "//compile:program_registry",
         "//util:vector_util",
     ],
 )

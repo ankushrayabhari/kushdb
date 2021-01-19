@@ -23,15 +23,15 @@ class OperatorTranslator {
   OperatorTranslator<T>& Child();
   OperatorTranslator<T>& LeftChild();
   OperatorTranslator<T>& RightChild();
-  const SchemaValues& GetValues() const;
-  const SchemaValues& GetVirtualValues() const;
+  const SchemaValues<T>& GetValues() const;
+  const SchemaValues<T>& GetVirtualValues() const;
 
  protected:
   SchemaValues<T> values_;
   SchemaValues<T> virtual_values_;
 
  private:
-  OperatorTranslator* parent_;
+  OperatorTranslator<T>* parent_;
   std::vector<std::unique_ptr<OperatorTranslator<T>>> children_;
 };
 
