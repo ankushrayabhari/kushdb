@@ -58,10 +58,12 @@ cc_library(
 
 cc_library(
     name = "loop",
+    srcs = ["loop.cc"],
     hdrs = ["loop.h"],
     deps = [
         ":bool",
         ":if",
         "//compile:program_builder",
+        "//compile:program_registry",
     ],
 )
