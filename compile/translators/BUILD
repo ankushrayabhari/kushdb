@@ -131,7 +131,7 @@ cc_library(
     deps = [
         ":operator_translator",
         "//compile/llvm:llvm_program",
-        "//compile/proxy:boolean",
+        "//compile/proxy:bool",
         "//compile/proxy:float",
         "//compile/proxy:if",
         "//compile/proxy:integer",

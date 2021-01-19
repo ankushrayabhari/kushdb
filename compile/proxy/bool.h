@@ -5,21 +5,20 @@
 
 namespace kush::compile::proxy {
 
-template <typename Impl>
-class Bool : public Value<Impl> {
+template <typename T>
+class Bool : public Value<T> {
  public:
-  Bool(ProgramBuilder<Impl>& program,
-       typename ProgramBuilder<Impl>::Value& value);
-  Bool(ProgramBuilder<Impl>& program, bool value);
+  Bool(ProgramBuilder<T>& program, typename ProgramBuilder<T>::Value& value);
+  Bool(ProgramBuilder<T>& program, bool value);
 
-  typename ProgramBuilder<Impl>::Value& Get() const override;
+  typename ProgramBuilder<T>::Value& Get() const override;
   Bool operator!();
   Bool operator==(const Bool& rhs);
   Bool operator!=(const Bool& rhs);
 
  private:
-  ProgramBuilder<Impl>& program_;
-  typename ProgramBuilder<Impl>::Value& value_;
+  ProgramBuilder<T>& program_;
+  typename ProgramBuilder<T>::Value& value_;
 };
 
 }  // namespace kush::compile::proxy
