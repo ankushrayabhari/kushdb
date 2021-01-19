@@ -49,6 +49,11 @@ class If {
     program.SetCurrentBlock(dest_block);
   }
 
+  If(const If&) = delete;
+  If& operator=(const If&) = delete;
+  If(If&&) = delete;
+  If& operator=(If&&) = delete;
+
   Value& Phi(Value& v1, Value& v2) {
     return program_.Phi(v1, b1.get(), v2, b2.get());
   }
