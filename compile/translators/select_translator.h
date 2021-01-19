@@ -7,18 +7,19 @@
 
 namespace kush::compile {
 
+template <typename T>
 class SelectTranslator : public OperatorTranslator {
  public:
   SelectTranslator(const plan::SelectOperator& select,
-                   CppCompilationContext& context,
+                   ProgramBuilder<T>& program,
                    std::vector<std::unique_ptr<OperatorTranslator>> children);
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
 
  private:
   const plan::SelectOperator& select_;
-  CppCompilationContext& context_;
-  ExpressionTranslator expr_translator_;
+  ProgramBuilder<T>& program_;
+  ExpressionTranslator<T> expr_translator_;
 };
 
 }  // namespace kush::compile

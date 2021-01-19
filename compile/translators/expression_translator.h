@@ -14,7 +14,7 @@ namespace kush::compile {
 class ExpressionTranslator
     : public util::Visitor<const plan::Expression&,
                            plan::ImmutableExpressionVisitor,
-                           std::unique_ptr<proxy::Value>> {
+                           std::reference_wrapper<proxy::Value>> {
  public:
   ExpressionTranslator(CppCompilationContext& context,
                        OperatorTranslator& source);

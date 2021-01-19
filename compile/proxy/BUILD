@@ -12,10 +12,12 @@ cc_library(
 
 cc_library(
     name = "boolean",
+    srcs = ["boolean.cc"],
     hdrs = ["boolean.h"],
     deps = [
         ":value",
         "//compile:program_builder",
+        "//compile:program_registry",
     ],
 )
 

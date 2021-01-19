@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace kush::compile {
 
 template <typename Impl>

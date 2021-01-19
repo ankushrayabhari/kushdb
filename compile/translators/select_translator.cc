@@ -1,9 +1,9 @@
 #include "compile/translators/select_translator.h"
 
-#include "compile/llvm/llvm_program.h"
+#include "compile/program_builder.h"
+#include "compile/proxy/if.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
-#include "compile/types.h"
 #include "plan/select_operator.h"
 
 namespace kush::compile {
@@ -21,25 +21,18 @@ void SelectTranslator::Produce() { Child().Produce(); }
 void SelectTranslator::Consume(OperatorTranslator& src) {
   auto& program = context_.Program();
 
-  program.fout << "if (\n"
-               << expr_translator_.Compute(select_.Expr())->Get() << ") {\n";
+  auto& value = expr_translator_.Compute(select_.Expr()).get();
 
-  for (const auto& column : select_.Schema().Columns()) {
-    auto var = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(column.Expr().Type());
+  proxy::If(program, value, [&]() {
+    for (const auto& column : select_.Schema().Columns()) {
+      auto& value = expr_translator_.Compute(column.Expr()).get();
+      values_.AddVariable(value);
+    }
 
-    program.fout << "auto " << var << " = "
-                 << expr_translator_.Compute(column.Expr())->Get();
-    program.fout << ";\n";
-
-    values_.AddVariable(var, type);
-  }
-
-  if (auto parent = Parent()) {
-    parent->get().Consume(*this);
-  }
-
-  program.fout << "}\n";
+    if (auto parent = Parent()) {
+      parent->get().Consume(*this);
+    }
+  });
 }
 
 }  // namespace kush::compile

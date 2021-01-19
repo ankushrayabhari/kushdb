@@ -32,7 +32,7 @@ class Loop {
 
     // check the condition
     auto cond_var = cond(*this);
-    If check(program, cond_var.get(), [&]() {
+    If(program, cond_var.get(), [&]() {
       auto updated_loop_vars = body(*this);
       auto& body_block = program.CurrentBlock();
       for (int i = 0; i < updated_loop_vars.size(); i++) {

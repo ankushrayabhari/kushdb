@@ -9,6 +9,14 @@ cc_library(
 )
 
 cc_library(
+    name = "program_registry",
+    hdrs = ["program_registry.h"],
+    deps = [
+        "//compile/llvm:llvm_program",
+    ],
+)
+
+cc_library(
     name = "program_builder",
     hdrs = ["program_builder.h"],
     deps = [],

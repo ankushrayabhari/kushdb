@@ -4,11 +4,9 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "schema_values",
-    srcs = ["schema_values.cc"],
     hdrs = ["schema_values.h"],
     deps = [
         "//compile/proxy:value",
-        "//util:vector_util",
     ],
 )
 
