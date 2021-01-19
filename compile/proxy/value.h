@@ -9,7 +9,7 @@ class Value {
  public:
   virtual ~Value() = default;
 
-  virtual typename ProgramBuilder<T>::Value* Get() const = 0;
+  virtual typename ProgramBuilder<T>::Value& Get() const = 0;
 };
 
 }  // namespace kush::compile::proxy

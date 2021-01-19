@@ -38,13 +38,3 @@ cc_library(
         "//compile/llvm:llvm_program",
     ],
 )
-
-cc_library(
-    name = "string_view",
-    hdrs = ["string_view.h"],
-    deps = [
-        ":boolean",
-        ":value",
-        "//compile/llvm:llvm_program",
-    ],
-)
