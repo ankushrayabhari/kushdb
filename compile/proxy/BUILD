@@ -22,16 +22,6 @@ cc_library(
 )
 
 cc_library(
-    name = "integer",
-    hdrs = ["integer.h"],
-    deps = [
-        ":bool",
-        ":value",
-        "//compile:program_builder",
-    ],
-)
-
-cc_library(
     name = "float",
     srcs = ["float.cc"],
     hdrs = ["float.h"],
@@ -39,6 +29,7 @@ cc_library(
         ":bool",
         ":value",
         "//compile:program_builder",
+        "//compile:program_registry",
     ],
 )
 
@@ -49,6 +40,19 @@ cc_library(
     deps = [
         ":bool",
         "//compile:program_builder",
+        "//compile:program_registry",
+    ],
+)
+
+cc_library(
+    name = "int",
+    srcs = ["int.cc"],
+    hdrs = ["int.h"],
+    deps = [
+        ":bool",
+        ":value",
+        "//compile:program_builder",
+        "//compile:program_registry",
     ],
 )
 
