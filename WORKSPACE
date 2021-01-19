@@ -48,7 +48,7 @@ LLVM_COMMIT = "fde3ae88ee4236d6ecb8178c6c893df5a5a04437"
 
 LLVM_BAZEL_TAG = "llvm-project-%s" % (LLVM_COMMIT,)
 
-LLVM_BAZEL_SHA256 = "04c82c13b102e27e8ba36b84b930694b99c1da75186654b9c78f8ec121af40ee"
+LLVM_BAZEL_SHA256 = "fb68b0fed34f23114713c9549742fbc4f7cc85d528ac13032d41e8aed7613008"
 
 http_archive(
     name = "llvm-bazel",

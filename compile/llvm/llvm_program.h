@@ -3,20 +3,21 @@
 #include <memory>
 
 #include "compile/program.h"
+#include "compile/program_builder.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
 namespace kush::compile {
 
-class LLVMImplTraits {
+class LLVMImpl {
  public:
   using BasicBlock = llvm::BasicBlock;
   using Value = llvm::Value;
   using CompType = llvm::CmpInst::Predicate;
 };
 
-class LLVMProgram : public Program, ProgramBuilder<LLVMImplTraits> {
+class LLVMProgram : public Program, ProgramBuilder<LLVMImpl> {
  public:
   LLVMProgram();
   ~LLVMProgram() = default;
@@ -26,35 +27,51 @@ class LLVMProgram : public Program, ProgramBuilder<LLVMImplTraits> {
   void Execute() const override;
 
   // Control Flow
-  BasicBlock* GenerateBlock() override;
-  void SetCurrentBlock(BasicBlock* b) override;
-  void Branch(BasicBlock* b) override;
-  void Branch(BasicBlock* b, Value* cond) override;
+  BasicBlock& GenerateBlock() override;
+  void SetCurrentBlock(BasicBlock& b) override;
+  void Branch(BasicBlock& b) override;
+  void Branch(BasicBlock& b, Value& cond) override;
+
+  // I8
+  Value& AddI8(Value& v1, Value& v2) override;
+  Value& MulI8(Value& v1, Value& v2) override;
+  Value& DivI8(Value& v1, Value& v2) override;
+  Value& SubI8(Value& v1, Value& v2) override;
+  Value& CmpI8(CompType cmp, Value& v1, Value& v2) override;
+  Value& LNotI8(Value& v) override;
+  Value& ConstI8(int8_t v) override;
+
+  // I16
+  Value& AddI16(Value& v1, Value& v2) override;
+  Value& MulI16(Value& v1, Value& v2) override;
+  Value& DivI16(Value& v1, Value& v2) override;
+  Value& SubI16(Value& v1, Value& v2) override;
+  Value& CmpI16(CompType cmp, Value& v1, Value& v2) override;
+  Value& ConstI16(int16_t v) override;
 
   // I32
-  Value* AddI32(Value* v1, Value* v2) override;
-  Value* MulI32(Value* v1, Value* v2) override;
-  Value* DivI32(Value* v1, Value* v2) override;
-  Value* SubI32(Value* v1, Value* v2) override;
-  Value* Constant(int32_t v) override;
+  Value& AddI32(Value& v1, Value& v2) override;
+  Value& MulI32(Value& v1, Value& v2) override;
+  Value& DivI32(Value& v1, Value& v2) override;
+  Value& SubI32(Value& v1, Value& v2) override;
+  Value& CmpI32(CompType cmp, Value& v1, Value& v2) override;
+  Value& ConstI32(int32_t v) override;
 
   // I64
-  Value* AddI64(Value* v1, Value* v2) override;
-  Value* MulI64(Value* v1, Value* v2) override;
-  Value* DivI64(Value* v1, Value* v2) override;
-  Value* SubI64(Value* v1, Value* v2) override;
-  Value* Constant(int64_t v) override;
+  Value& AddI64(Value& v1, Value& v2) override;
+  Value& MulI64(Value& v1, Value& v2) override;
+  Value& DivI64(Value& v1, Value& v2) override;
+  Value& SubI64(Value& v1, Value& v2) override;
+  Value& CmpI64(CompType cmp, Value& v1, Value& v2) override;
+  Value& ConstI64(int64_t v) override;
 
-  // F
-  Value* AddF(Value* v1, Value* v2) override;
-  Value* MulF(Value* v1, Value* v2) override;
-  Value* DivF(Value* v1, Value* v2) override;
-  Value* SubF(Value* v1, Value* v2) override;
-  Value* Constant(double v) override;
-
-  // Comparison
-  Value* CmpI(CompType cmp, Value* v1, Value* v2) override;
-  Value* CmpF(CompType cmp, Value* v1, Value* v2) override;
+  // F64
+  Value& AddF64(Value& v1, Value& v2) override;
+  Value& MulF64(Value& v1, Value& v2) override;
+  Value& DivF64(Value& v1, Value& v2) override;
+  Value& SubF64(Value& v1, Value& v2) override;
+  Value& CmpF64(CompType cmp, Value& v1, Value& v2) override;
+  Value& ConstF64(double v) override;
 
  private:
   std::unique_ptr<llvm::LLVMContext> context_;

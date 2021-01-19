@@ -10,100 +10,252 @@
 
 namespace kush::compile::proxy {
 
+template <typename Impl>
 class Int8 : public Value {
  public:
-  explicit Int8(CppProgram& program);
-  Int8(CppProgram& program, int8_t value);
+  Int8(ProgramBuilder<Impl>& program, ProgramBuilder<T>::Value& value)
+      : program_(program), value_(value) {}
 
-  std::string_view Get() const override;
+  Int8(ProgramBuilder<Impl>& program, int8_t value)
+      : program_(program), value_(program.ConstI8(value)) {}
 
-  void Assign(Int8& rhs);
-  std::unique_ptr<Int8> operator+(Int8& rhs);
-  std::unique_ptr<Int8> operator-(Int8& rhs);
-  std::unique_ptr<Int8> operator*(Int8& rhs);
-  std::unique_ptr<Int8> operator/(Int8& rhs);
-  std::unique_ptr<Boolean> operator==(Int8& rhs);
-  std::unique_ptr<Boolean> operator!=(Int8& rhs);
-  std::unique_ptr<Boolean> operator<(Int8& rhs);
-  std::unique_ptr<Boolean> operator<=(Int8& rhs);
-  std::unique_ptr<Boolean> operator>(Int8& rhs);
-  std::unique_ptr<Boolean> operator>=(Int8& rhs);
+  ProgramBuilder<Impl>::Value& Get() const override { return value_; }
+
+  Int8 operator+(const Int8& rhs) {
+    return Int8(program_, program_.AddI8(value_, rhs.value_));
+  }
+
+  Int8 operator-(const Int8& rhs) {
+    return Int8(program_, program_.SubI8(value_, rhs.value_));
+  }
+
+  Int8 operator*(const Int8& rhs) {
+    return Int8(program_, program_.MulI8(value_, rhs.value_));
+  }
+
+  Int8 operator/(const Int8& rhs) {
+    return Int8(program_, program_.DivI8(value_, rhs.value_));
+  }
+
+  Boolean operator==(const Int8& rhs) {
+    return Boolean(program_,
+                   program_.CmpI8(Impl::CompType::ICMP_EQ, value_, rhs.value_));
+  }
+
+  Boolean operator!=(const Int8& rhs) {
+    return Boolean(
+        program_, program_.CmpI8(Impl::CompType::ICMP_NEQ, value_, rhs.value_));
+  }
+
+  Boolean operator<(const Int8& rhs) {
+    return Boolean(
+        program_, program_.CmpI8(Impl::CompType::ICMP_SLT, value_, rhs.value_));
+  }
+
+  Boolean operator<=(const Int8& rhs) {
+    return Boolean(
+        program_, program_.CmpI8(Impl::CompType::ICMP_SLE, value_, rhs.value_));
+  }
+
+  Boolean operator>(const Int8& rhs) {
+    return Boolean(
+        program_, program_.CmpI8(Impl::CompType::ICMP_SGT, value_, rhs.value_));
+  }
+
+  Boolean operator>=(const Int8& rhs) {
+    return Boolean(
+        program_, program_.CmpI8(Impl::CompType::ICMP_SGE, value_, rhs.value_));
+  }
 
  private:
-  CppProgram& program_;
-  std::string value_;
+  ProgramBuilder<T>& program_;
+  ProgramBuilder<T>::Value& value_;
 };
 
+template <typename Impl>
 class Int16 : public Value {
  public:
-  explicit Int16(CppProgram& program);
-  Int16(CppProgram& program, int16_t value);
+  Int16(ProgramBuilder<Impl>& program, ProgramBuilder<T>::Value& value)
+      : program_(program), value_(value) {}
 
-  std::string_view Get() const override;
+  Int16(ProgramBuilder<Impl>& program, int16_t value)
+      : program_(program), value_(program.ConstI16(value)) {}
 
-  void Assign(Int16& rhs);
-  std::unique_ptr<Int16> operator+(Int16& rhs);
-  std::unique_ptr<Int16> operator-(Int16& rhs);
-  std::unique_ptr<Int16> operator*(Int16& rhs);
-  std::unique_ptr<Int16> operator/(Int16& rhs);
-  std::unique_ptr<Boolean> operator==(Int16& rhs);
-  std::unique_ptr<Boolean> operator!=(Int16& rhs);
-  std::unique_ptr<Boolean> operator<(Int16& rhs);
-  std::unique_ptr<Boolean> operator<=(Int16& rhs);
-  std::unique_ptr<Boolean> operator>(Int16& rhs);
-  std::unique_ptr<Boolean> operator>=(Int16& rhs);
+  ProgramBuilder<Impl>::Value& Get() const override { return value_; }
+
+  Int16 operator+(const Int16& rhs) {
+    return Int16(program_, program_.AddI16(value_, rhs.value_));
+  }
+
+  Int16 operator-(const Int16& rhs) {
+    return Int16(program_, program_.SubI16(value_, rhs.value_));
+  }
+
+  Int16 operator*(const Int16& rhs) {
+    return Int16(program_, program_.MulI16(value_, rhs.value_));
+  }
+
+  Int16 operator/(const Int16& rhs) {
+    return Int16(program_, program_.DivI16(value_, rhs.value_));
+  }
+
+  Boolean operator==(const Int16& rhs) {
+    return Boolean(
+        program_, program_.CmpI16(Impl::CompType::ICMP_EQ, value_, rhs.value_));
+  }
+
+  Boolean operator!=(const Int16& rhs) {
+    return Boolean(program_, program_.CmpI16(Impl::CompType::ICMP_NEQ, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator<(const Int16& rhs) {
+    return Boolean(program_, program_.CmpI16(Impl::CompType::ICMP_SLT, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator<=(const Int16& rhs) {
+    return Boolean(program_, program_.CmpI16(Impl::CompType::ICMP_SLE, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator>(const Int16& rhs) {
+    return Boolean(program_, program_.CmpI16(Impl::CompType::ICMP_SGT, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator>=(const Int16& rhs) {
+    return Boolean(program_, program_.CmpI16(Impl::CompType::ICMP_SGE, value_,
+                                             rhs.value_));
+  }
 
  private:
-  CppProgram& program_;
-  std::string value_;
+  ProgramBuilder<T>& program_;
+  ProgramBuilder<T>::Value& value_;
 };
 
+template <typename Impl>
 class Int32 : public Value {
  public:
-  explicit Int32(CppProgram& program);
-  Int32(CppProgram& program, int32_t value);
+  Int32(ProgramBuilder<Impl>& program, ProgramBuilder<T>::Value& value)
+      : program_(program), value_(value) {}
 
-  std::string_view Get() const override;
+  Int32(ProgramBuilder<Impl>& program, int32_t value)
+      : program_(program), value_(program.ConstI32(value)) {}
 
-  void Assign(Int32& rhs);
-  std::unique_ptr<Int32> operator+(Int32& rhs);
-  std::unique_ptr<Int32> operator-(Int32& rhs);
-  std::unique_ptr<Int32> operator*(Int32& rhs);
-  std::unique_ptr<Int32> operator/(Int32& rhs);
-  std::unique_ptr<Boolean> operator==(Int32& rhs);
-  std::unique_ptr<Boolean> operator!=(Int32& rhs);
-  std::unique_ptr<Boolean> operator<(Int32& rhs);
-  std::unique_ptr<Boolean> operator<=(Int32& rhs);
-  std::unique_ptr<Boolean> operator>(Int32& rhs);
-  std::unique_ptr<Boolean> operator>=(Int32& rhs);
+  ProgramBuilder<Impl>::Value& Get() const override { return value_; }
+
+  Int32 operator+(const Int32& rhs) {
+    return Int32(program_, program_.AddI32(value_, rhs.value_));
+  }
+
+  Int32 operator-(const Int32& rhs) {
+    return Int32(program_, program_.SubI32(value_, rhs.value_));
+  }
+
+  Int32 operator*(const Int32& rhs) {
+    return Int32(program_, program_.MulI32(value_, rhs.value_));
+  }
+
+  Int32 operator/(const Int32& rhs) {
+    return Int32(program_, program_.DivI32(value_, rhs.value_));
+  }
+
+  Boolean operator==(const Int32& rhs) {
+    return Boolean(
+        program_, program_.CmpI32(Impl::CompType::ICMP_EQ, value_, rhs.value_));
+  }
+
+  Boolean operator!=(const Int32& rhs) {
+    return Boolean(program_, program_.CmpI32(Impl::CompType::ICMP_NEQ, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator<(const Int32& rhs) {
+    return Boolean(program_, program_.CmpI32(Impl::CompType::ICMP_SLT, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator<=(const Int32& rhs) {
+    return Boolean(program_, program_.CmpI32(Impl::CompType::ICMP_SLE, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator>(const Int32& rhs) {
+    return Boolean(program_, program_.CmpI32(Impl::CompType::ICMP_SGT, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator>=(const Int32& rhs) {
+    return Boolean(program_, program_.CmpI32(Impl::CompType::ICMP_SGE, value_,
+                                             rhs.value_));
+  }
 
  private:
-  CppProgram& program_;
-  std::string value_;
+  ProgramBuilder<T>& program_;
+  ProgramBuilder<T>::Value& value_;
 };
 
+template <typename Impl>
 class Int64 : public Value {
  public:
-  explicit Int64(CppProgram& program);
-  Int64(CppProgram& program, int64_t value);
+  Int64(ProgramBuilder<Impl>& program, ProgramBuilder<T>::Value& value)
+      : program_(program), value_(value) {}
 
-  std::string_view Get() const override;
+  Int64(ProgramBuilder<Impl>& program, int64_t value)
+      : program_(program), value_(program.ConstI64(value)) {}
 
-  void Assign(Int64& rhs);
-  std::unique_ptr<Int64> operator+(Int64& rhs);
-  std::unique_ptr<Int64> operator-(Int64& rhs);
-  std::unique_ptr<Int64> operator*(Int64& rhs);
-  std::unique_ptr<Int64> operator/(Int64& rhs);
-  std::unique_ptr<Boolean> operator==(Int64& rhs);
-  std::unique_ptr<Boolean> operator!=(Int64& rhs);
-  std::unique_ptr<Boolean> operator<(Int64& rhs);
-  std::unique_ptr<Boolean> operator<=(Int64& rhs);
-  std::unique_ptr<Boolean> operator>(Int64& rhs);
-  std::unique_ptr<Boolean> operator>=(Int64& rhs);
+  ProgramBuilder<Impl>::Value& Get() const override { return value_; }
+
+  Int64 operator+(const Int64& rhs) {
+    return Int64(program_, program_.AddI64(value_, rhs.value_));
+  }
+
+  Int64 operator-(const Int64& rhs) {
+    return Int64(program_, program_.SubI64(value_, rhs.value_));
+  }
+
+  Int64 operator*(const Int64& rhs) {
+    return Int64(program_, program_.MulI64(value_, rhs.value_));
+  }
+
+  Int64 operator/(const Int64& rhs) {
+    return Int64(program_, program_.DivI64(value_, rhs.value_));
+  }
+
+  Boolean operator==(const Int64& rhs) {
+    return Boolean(
+        program_, program_.CmpI64(Impl::CompType::ICMP_EQ, value_, rhs.value_));
+  }
+
+  Boolean operator!=(const Int64& rhs) {
+    return Boolean(program_, program_.CmpI64(Impl::CompType::ICMP_NEQ, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator<(const Int64& rhs) {
+    return Boolean(program_, program_.CmpI64(Impl::CompType::ICMP_SLT, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator<=(const Int64& rhs) {
+    return Boolean(program_, program_.CmpI64(Impl::CompType::ICMP_SLE, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator>(const Int64& rhs) {
+    return Boolean(program_, program_.CmpI64(Impl::CompType::ICMP_SGT, value_,
+                                             rhs.value_));
+  }
+
+  Boolean operator>=(const Int64& rhs) {
+    return Boolean(program_, program_.CmpI64(Impl::CompType::ICMP_SGE, value_,
+                                             rhs.value_));
+  }
 
  private:
-  CppProgram& program_;
-  std::string value_;
+  ProgramBuilder<T>& program_;
+  ProgramBuilder<T>::Value& value_;
 };
 
 }  // namespace kush::compile::proxy
