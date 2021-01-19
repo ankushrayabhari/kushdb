@@ -10,6 +10,7 @@ class ProgramBuilder {
   using BasicBlock = typename Impl::BasicBlock;
   using Value = typename Impl::Value;
   using CompType = typename Impl::CompType;
+  using Constant = typename Impl::Constant;
 
   // Control Flow
   virtual BasicBlock& GenerateBlock() = 0;

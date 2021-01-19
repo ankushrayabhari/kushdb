@@ -15,6 +15,7 @@ class LLVMImpl {
   using BasicBlock = llvm::BasicBlock;
   using Value = llvm::Value;
   using CompType = llvm::CmpInst::Predicate;
+  using Constant = llvm::Constant;
 };
 
 class LLVMProgram : public Program, ProgramBuilder<LLVMImpl> {

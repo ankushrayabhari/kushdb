@@ -135,7 +135,7 @@ cc_library(
         "//compile/codegen:if",
         "//compile/llvm:llvm_program",
         "//compile/proxy:boolean",
-        "//compile/proxy:double",
+        "//compile/proxy:float",
         "//compile/proxy:integer",
         "//compile/proxy:string_view",
         "//compile/proxy:value",

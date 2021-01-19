@@ -88,7 +88,7 @@ void ExpressionTranslator::Visit(
           std::make_unique<proxy::Int64>(values.Value(col_ref.GetColumnIdx())));
       break;
     case catalog::SqlType::REAL:
-      Return(std::make_unique<proxy::Double>(
+      Return(std::make_unique<proxy::Float64>(
           values.Value(col_ref.GetColumnIdx())));
       break;
     case catalog::SqlType::TEXT:
