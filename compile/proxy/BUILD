@@ -38,3 +38,21 @@ cc_library(
         "//compile/llvm:llvm_program",
     ],
 )
+
+cc_library(
+    name = "if",
+    hdrs = ["if.h"],
+    deps = [
+        ":boolean",
+        "//compile:program",
+    ],
+)
+
+cc_library(
+    name = "loop",
+    hdrs = ["loop.h"],
+    deps = [
+        ":boolean",
+        "//compile:program",
+    ],
+)

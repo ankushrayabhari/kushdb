@@ -14,9 +14,11 @@ class ProgramBuilder {
 
   // Control Flow
   virtual BasicBlock& GenerateBlock() = 0;
+  virtual BasicBlock& CurrentBlock() = 0;
   virtual void SetCurrentBlock(BasicBlock& b) = 0;
   virtual void Branch(BasicBlock& b) = 0;
-  virtual void Branch(BasicBlock& b, Value& cond) = 0;
+  virtual void Branch(Value& cond, BasicBlock& b1, BasicBlock& b2) = 0;
+  virtual Value& Phi(Value& v1, BasicBlock& b1, Value& v2, BasicBlock& b2) = 0;
 
   // I8
   virtual Value& AddI8(Value& v1, Value& v2) = 0;

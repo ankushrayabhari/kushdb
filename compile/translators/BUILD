@@ -132,12 +132,11 @@ cc_library(
     hdrs = ["expression_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile/codegen:if",
         "//compile/llvm:llvm_program",
         "//compile/proxy:boolean",
         "//compile/proxy:float",
+        "//compile/proxy:if",
         "//compile/proxy:integer",
-        "//compile/proxy:string_view",
         "//compile/proxy:value",
         "//plan/expression:aggregate_expression",
         "//plan/expression:binary_arithmetic_expression",

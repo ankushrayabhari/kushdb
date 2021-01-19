@@ -29,9 +29,11 @@ class LLVMProgram : public Program, ProgramBuilder<LLVMImpl> {
 
   // Control Flow
   BasicBlock& GenerateBlock() override;
+  BasicBlock& CurrentBlock() override;
   void SetCurrentBlock(BasicBlock& b) override;
   void Branch(BasicBlock& b) override;
-  void Branch(BasicBlock& b, Value& cond) override;
+  void Branch(Value& cond, BasicBlock& b1, BasicBlock& b2) override;
+  Value& Phi(Value& v1, BasicBlock& b1, Value& v2, BasicBlock& b2) override;
 
   // I8
   Value& AddI8(Value& v1, Value& v2) override;

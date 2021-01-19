@@ -7,9 +7,9 @@
 
 namespace kush::compile::codegen {
 
+template <typename T>
 class Loop {
  public:
-  template <typename T>
   Loop(ProgramBuilder<T>& program, std::function<void()> init,
        std::function<proxy::Boolean()> cond, std::function<void()> body) {}
 };
