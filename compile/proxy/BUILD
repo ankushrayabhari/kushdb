@@ -11,9 +11,9 @@ cc_library(
 )
 
 cc_library(
-    name = "boolean",
-    srcs = ["boolean.cc"],
-    hdrs = ["boolean.h"],
+    name = "bool",
+    srcs = ["bool.cc"],
+    hdrs = ["bool.h"],
     deps = [
         ":value",
         "//compile:program_builder",
@@ -25,7 +25,7 @@ cc_library(
     name = "integer",
     hdrs = ["integer.h"],
     deps = [
-        ":boolean",
+        ":bool",
         ":value",
         "//compile:program_builder",
     ],
@@ -35,7 +35,7 @@ cc_library(
     name = "float",
     hdrs = ["float.h"],
     deps = [
-        ":boolean",
+        ":bool",
         ":value",
         "//compile:program_builder",
     ],
@@ -45,7 +45,7 @@ cc_library(
     name = "if",
     hdrs = ["if.h"],
     deps = [
-        ":boolean",
+        ":bool",
         "//compile:program_builder",
     ],
 )
@@ -54,7 +54,7 @@ cc_library(
     name = "loop",
     hdrs = ["loop.h"],
     deps = [
-        ":boolean",
+        ":bool",
         ":if",
         "//compile:program_builder",
     ],
