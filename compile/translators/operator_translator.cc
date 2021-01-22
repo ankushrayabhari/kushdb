@@ -60,6 +60,6 @@ const SchemaValues<T>& OperatorTranslator<T>::GetVirtualValues() const {
   return virtual_values_;
 }
 
-INSTANTIATE_IR(OperatorTranslator);
+INSTANTIATE_ON_IR(OperatorTranslator);
 
 }  // namespace kush::compile

@@ -25,6 +25,6 @@ SchemaValues<T>::Values() const {
   return values_;
 }
 
-INSTANTIATE_IR(SchemaValues);
+INSTANTIATE_ON_IR(SchemaValues);
 
 }  // namespace kush::compile

@@ -49,6 +49,6 @@ If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
   program.SetCurrentBlock(dest_block);
 }
 
-INSTANTIATE_IR(If);
+INSTANTIATE_ON_IR(If);
 
 }  // namespace kush::compile::proxy

@@ -49,6 +49,6 @@ typename ProgramBuilder<T>::Value& Loop<T>::LoopVariable(int i) {
   return loop_vars_[i];
 }
 
-INSTANTIATE_IR(Loop);
+INSTANTIATE_ON_IR(Loop);
 
 }  // namespace kush::compile::proxy

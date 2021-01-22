@@ -77,6 +77,6 @@ Bool<T> Float64<T>::operator>=(const Float64<T>& rhs) {
               program_.CmpF64(T::CompType::FCMP_OGE, value_, rhs.value_));
 }
 
-INSTANTIATE_IR(Float64);
+INSTANTIATE_ON_IR(Float64);
 
 }  // namespace kush::compile::proxy

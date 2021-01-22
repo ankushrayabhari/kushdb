@@ -38,6 +38,6 @@ Bool<T> Bool<T>::operator!=(const Bool<T>& rhs) {
               program_.CmpI8(T::CompType::ICMP_NE, value_, rhs.value_));
 }
 
-INSTANTIATE_IR(Bool);
+INSTANTIATE_ON_IR(Bool);
 
 }  // namespace kush::compile::proxy
