@@ -123,7 +123,6 @@ cc_library(
         "//plan:output_operator",
         "//plan:scan_operator",
         "//plan:select_operator",
-        "//util:visitor",
     ],
 )
 
@@ -133,12 +132,14 @@ cc_library(
     hdrs = ["expression_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile/llvm:llvm_ir",
+        "//compile:ir_registry",
+        "//compile:program_builder",
         "//compile/proxy:bool",
         "//compile/proxy:float",
         "//compile/proxy:if",
         "//compile/proxy:int",
         "//compile/proxy:value",
+        "//plan/expression",
         "//plan/expression:aggregate_expression",
         "//plan/expression:binary_arithmetic_expression",
         "//plan/expression:case_expression",
@@ -147,6 +148,5 @@ cc_library(
         "//plan/expression:literal_expression",
         "//plan/expression:virtual_column_ref_expression",
         "//util:visitor",
-        "@absl//absl/container:flat_hash_map",
     ],
 )

@@ -3,21 +3,22 @@
 #include <memory>
 #include <vector>
 
-#include "compile/llvm/llvm_ir.h"
+#include "compile/program_builder.h"
 #include "compile/proxy/value.h"
 #include "compile/translators/operator_translator.h"
+#include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "util/visitor.h"
 
 namespace kush::compile {
 
+template <typename T>
 class ExpressionTranslator
-    : public util::Visitor<const plan::Expression&,
-                           plan::ImmutableExpressionVisitor,
-                           std::reference_wrapper<proxy::Value>> {
+    : public util::Visitor<plan::ImmutableExpressionVisitor,
+                           const plan::Expression&, proxy::Value<T>> {
  public:
-  ExpressionTranslator(CppCompilationContext& context,
-                       OperatorTranslator& source);
+  ExpressionTranslator(ProgramBuilder<T>& program_,
+                       OperatorTranslator<T>& source);
   virtual ~ExpressionTranslator() = default;
 
   void Visit(const plan::AggregateExpression& agg) override;
@@ -28,8 +29,8 @@ class ExpressionTranslator
   void Visit(const plan::CaseExpression& case_expr) override;
 
  private:
-  CppCompilationContext& context_;
-  OperatorTranslator& source_;
+  ProgramBuilder<T>& program_;
+  OperatorTranslator<T>& source_;
 };
 
 }  // namespace kush::compile

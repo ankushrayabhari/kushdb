@@ -4,25 +4,25 @@
 
 namespace kush::util {
 
-template <typename Target, typename VisitorImplementation, typename Data>
+template <typename VisitorImplementation, typename Target, typename Data>
 class Visitor : public VisitorImplementation {
  public:
   Visitor() = default;
   virtual ~Visitor() = default;
 
-  Data Compute(Target target) {
+  std::unique_ptr<Data> Compute(Target target) {
     target.Accept(*this);
-    assert(result_.has_value());
-    auto value = std::move(result_.value());
+    assert(result_ != nullptr);
+    auto value = std::move(result_);
     result_.reset();
     return std::move(value);
   }
 
  protected:
-  void Return(Data result) { result_ = std::move(result); }
+  void Return(std::unique_ptr<Data> result) { result_ = std::move(result); }
 
  private:
-  std::optional<Data> result_;
+  std::unique_ptr<Data> result_;
 };
 
 }  // namespace kush::util

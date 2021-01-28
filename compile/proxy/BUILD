@@ -7,6 +7,16 @@ cc_library(
     hdrs = ["value.h"],
     deps = [
         "//compile:program_builder",
+        "//plan/expression:binary_arithmetic_expression",
+    ],
+)
+
+cc_library(
+    name = "numeric",
+    hdrs = ["numeric.h"],
+    deps = [
+        ":value",
+        "//plan/expression:binary_arithmetic_expression",
     ],
 )
 
@@ -18,6 +28,7 @@ cc_library(
         ":value",
         "//compile:ir_registry",
         "//compile:program_builder",
+        "//plan/expression:binary_arithmetic_expression",
     ],
 )
 
@@ -27,6 +38,7 @@ cc_library(
     hdrs = ["float.h"],
     deps = [
         ":bool",
+        ":numeric",
         ":value",
         "//compile:ir_registry",
         "//compile:program_builder",
@@ -50,6 +62,7 @@ cc_library(
     hdrs = ["int.h"],
     deps = [
         ":bool",
+        ":numeric",
         ":value",
         "//compile:ir_registry",
         "//compile:program_builder",

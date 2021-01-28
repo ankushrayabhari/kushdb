@@ -21,6 +21,14 @@ class If {
   If(If<T>&&) = delete;
   If<T>& operator=(If<T>&&) = delete;
 
+  template <typename U>
+  typename ProgramBuilder<T>::Value& Phi(U& v1, U& v2) {
+    auto& phi = program_.Phi();
+    program_.AddToPhi(phi, v1.Get(), b1.get());
+    program_.AddToPhi(phi, v2.Get(), b2.get());
+    return phi;
+  }
+
  private:
   ProgramBuilder<T>& program_;
   std::reference_wrapper<typename ProgramBuilder<T>::BasicBlock> b1;

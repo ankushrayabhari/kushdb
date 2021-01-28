@@ -1,8 +1,11 @@
 #pragma once
 
+#include <memory>
+
 #include "compile/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/value.h"
+#include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
@@ -14,16 +17,20 @@ class Float64 : public Value<T> {
 
   typename ProgramBuilder<T>::Value& Get() const override;
 
-  Float64<T> operator+(const Float64<T>& rhs);
-  Float64<T> operator-(const Float64<T>& rhs);
-  Float64<T> operator*(const Float64<T>& rhs);
-  Float64<T> operator/(const Float64<T>& rhs);
-  Bool<T> operator==(const Float64<T>& rhs);
-  Bool<T> operator!=(const Float64<T>& rhs);
-  Bool<T> operator<(const Float64<T>& rhs);
-  Bool<T> operator<=(const Float64<T>& rhs);
-  Bool<T> operator>(const Float64<T>& rhs);
-  Bool<T> operator>=(const Float64<T>& rhs);
+  std::unique_ptr<Float64<T>> operator+(const Float64<T>& rhs);
+  std::unique_ptr<Float64<T>> operator-(const Float64<T>& rhs);
+  std::unique_ptr<Float64<T>> operator*(const Float64<T>& rhs);
+  std::unique_ptr<Float64<T>> operator/(const Float64<T>& rhs);
+  std::unique_ptr<Bool<T>> operator==(const Float64<T>& rhs);
+  std::unique_ptr<Bool<T>> operator!=(const Float64<T>& rhs);
+  std::unique_ptr<Bool<T>> operator<(const Float64<T>& rhs);
+  std::unique_ptr<Bool<T>> operator<=(const Float64<T>& rhs);
+  std::unique_ptr<Bool<T>> operator>(const Float64<T>& rhs);
+  std::unique_ptr<Bool<T>> operator>=(const Float64<T>& rhs);
+
+  std::unique_ptr<Value<T>> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type,
+      Value<T>& right_value) override;
 
  private:
   ProgramBuilder<T>& program_;

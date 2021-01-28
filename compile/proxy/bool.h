@@ -1,7 +1,10 @@
 #pragma once
 
+#include <memory>
+
 #include "compile/program_builder.h"
 #include "compile/proxy/value.h"
+#include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
@@ -12,9 +15,12 @@ class Bool : public Value<T> {
   Bool(ProgramBuilder<T>& program, bool value);
 
   typename ProgramBuilder<T>::Value& Get() const override;
-  Bool operator!();
-  Bool operator==(const Bool& rhs);
-  Bool operator!=(const Bool& rhs);
+  std::unique_ptr<Bool<T>> operator!();
+  std::unique_ptr<Bool<T>> operator==(const Bool<T>& rhs);
+  std::unique_ptr<Bool<T>> operator!=(const Bool<T>& rhs);
+
+  std::unique_ptr<Value<T>> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) override;
 
  private:
   ProgramBuilder<T>& program_;

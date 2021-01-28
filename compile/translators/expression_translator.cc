@@ -4,13 +4,12 @@
 #include <stdexcept>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "compile/codegen/if.h"
-#include "compile/llvm/llvm_ir.h"
-#include "compile/proxy/boolean.h"
-#include "compile/proxy/double.h"
-#include "compile/proxy/integer.h"
-#include "compile/proxy/string_view.h"
+#include "compile/ir_registry.h"
+#include "compile/program_builder.h"
+#include "compile/proxy/bool.h"
+#include "compile/proxy/float.h"
+#include "compile/proxy/if.h"
+#include "compile/proxy/int.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/case_expression.h"
@@ -21,166 +20,189 @@
 
 namespace kush::compile {
 
-ExpressionTranslator::ExpressionTranslator(CppCompilationContext& context,
-                                           OperatorTranslator& source)
-    : context_(context), source_(source) {}
+template <typename T>
+ExpressionTranslator<T>::ExpressionTranslator(ProgramBuilder<T>& program,
+                                              OperatorTranslator<T>& source)
+    : program_(program), source_(source) {}
 
-void ExpressionTranslator::Visit(
+template <typename T>
+void ExpressionTranslator<T>::Visit(
     const plan::BinaryArithmeticExpression& arith) {
-  auto left_value = Compute(arith.LeftChild());
-  auto right_value = Compute(arith.RightChild());
-  Return(left_value->EvaluateBinary(arith.OpType(), *right_value));
-}
+  using OpType = plan::BinaryArithmeticOperatorType;
+  switch (arith.OpType()) {
+    // Special handling for AND/OR for short circuiting
+    case OpType::AND: {
+      std::unique_ptr<proxy::Value<T>> th, el;
+      auto left_value = this->Compute(arith.LeftChild());
+      proxy::If branch(
+          program_, dynamic_cast<proxy::Bool<T>&>(*left_value),
+          [&]() { th = this->Compute(arith.RightChild()); },
+          [&]() { el = std::make_unique<proxy::Bool<T>>(program_, false); });
 
-void ExpressionTranslator::Visit(const plan::AggregateExpression& agg) {
-  throw std::runtime_error("Aggregate expression can't be derived");
-}
+      proxy::Bool<T>& th_ref = dynamic_cast<proxy::Bool<T>&>(*th);
+      proxy::Bool<T>& el_ref = dynamic_cast<proxy::Bool<T>&>(*el);
 
-void ExpressionTranslator::Visit(const plan::ColumnRefExpression& col_ref) {
-  auto& values = source_.Children()[col_ref.GetChildIdx()].get().GetValues();
-  auto& program = context_.Program();
+      this->Return(std::make_unique<proxy::Bool<T>>(
+          program_, branch.Phi(th_ref, el_ref)));
+      break;
+    }
 
-  switch (col_ref.Type()) {
-    case catalog::SqlType::SMALLINT:
-      Return(
-          std::make_unique<proxy::Int16>(values.Value(col_ref.GetColumnIdx())));
-      break;
-    case catalog::SqlType::INT:
-      Return(
-          std::make_unique<proxy::Int32>(values.Value(col_ref.GetColumnIdx())));
-      break;
-    case catalog::SqlType::BIGINT:
-    case catalog::SqlType::DATE:
-      Return(
-          std::make_unique<proxy::Int64>(values.Value(col_ref.GetColumnIdx())));
-      break;
-    case catalog::SqlType::REAL:
-      Return(std::make_unique<proxy::Double>(
-          values.Value(col_ref.GetColumnIdx())));
-      break;
-    case catalog::SqlType::TEXT:
-      Return(std::make_unique<proxy::StringView>(
-          values.Value(col_ref.GetColumnIdx())));
-      break;
-    case catalog::SqlType::BOOLEAN:
-      Return(std::make_unique<proxy::Boolean>(
-          values.Value(col_ref.GetColumnIdx())));
-      break;
-  }
-}
+    case OpType::OR: {
+      std::unique_ptr<proxy::Value<T>> th, el;
+      auto left_value = this->Compute(arith.LeftChild());
+      proxy::If branch(
+          program_, dynamic_cast<proxy::Bool<T>&>(*left_value),
+          [&]() { th = std::make_unique<proxy::Bool<T>>(program_, true); },
+          [&]() { el = this->Compute(arith.RightChild()); });
 
-void ExpressionTranslator::Visit(
-    const plan::VirtualColumnRefExpression& col_ref) {
-  auto& values = source_.GetVirtualValues();
-  auto& program = context_.Program();
-  switch (col_ref.Type()) {
-    case catalog::SqlType::SMALLINT:
-      Return(
-          std::make_unique<proxy::Int16>(values.Value(col_ref.GetColumnIdx())));
-      break;
-    case catalog::SqlType::INT:
-      Return(
-          std::make_unique<proxy::Int32>(values.Value(col_ref.GetColumnIdx())));
-      break;
-    case catalog::SqlType::BIGINT:
-    case catalog::SqlType::DATE:
-      Return(
-          std::make_unique<proxy::Int64>(values.Value(col_ref.GetColumnIdx())));
-      break;
-    case catalog::SqlType::REAL:
-      Return(std::make_unique<proxy::Float64>(
-          values.Value(col_ref.GetColumnIdx())));
-      break;
-    case catalog::SqlType::TEXT:
-      Return(std::make_unique<proxy::StringView>(
-          values.Value(col_ref.GetColumnIdx())));
-      break;
-    case catalog::SqlType::BOOLEAN:
-      Return(std::make_unique<proxy::Boolean>(
-          values.Value(col_ref.GetColumnIdx())));
-      break;
-  }
-}
+      proxy::Bool<T>& th_ref = dynamic_cast<proxy::Bool<T>&>(*th);
+      proxy::Bool<T>& el_ref = dynamic_cast<proxy::Bool<T>&>(*el);
 
-void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
-  auto& program = context_.Program();
-  switch (literal.Type()) {
-    case catalog::SqlType::SMALLINT:
-      Return(
-          std::make_unique<proxy::Int16>(program, literal.GetSmallintValue()));
+      this->Return(std::make_unique<proxy::Bool<T>>(
+          program_, branch.Phi(th_ref, el_ref)));
       break;
-    case catalog::SqlType::INT:
-      Return(std::make_unique<proxy::Int32>(program, literal.GetIntValue()));
-      break;
-    case catalog::SqlType::BIGINT:
-      Return(std::make_unique<proxy::Int64>(program, literal.GetBigintValue()));
-      break;
-    case catalog::SqlType::DATE:
-      Return(std::make_unique<proxy::Int64>(program, literal.GetDateValue()));
-      break;
-    case catalog::SqlType::REAL:
-      Return(std::make_unique<proxy::Double>(program, literal.GetRealValue()));
-      break;
-    case catalog::SqlType::TEXT:
-      Return(
-          std::make_unique<proxy::StringView>(program, literal.GetTextValue()));
-      break;
-    case catalog::SqlType::BOOLEAN:
-      Return(
-          std::make_unique<proxy::Boolean>(program, literal.GetBooleanValue()));
+    }
+
+    default:
+      auto left_value = this->Compute(arith.LeftChild());
+      auto right_value = this->Compute(arith.RightChild());
+      this->Return(left_value->EvaluateBinary(arith.OpType(), *right_value));
       break;
   }
 }
 
 template <typename T>
-std::unique_ptr<proxy::Value> Ternary(ProgramBuilder& program,
-                                      ExpressionTranslator& translator,
-                                      const plan::CaseExpression& case_expr) {
-  auto result = std::make_unique<T>(program);
-  auto cond = translator.Compute(case_expr.Cond());
-  codegen::If(
-      program, dynamic_cast<proxy::Boolean&>(*cond),
-      [&]() {
-        auto th = translator.Compute(case_expr.Then());
-        result->Assign(dynamic_cast<T&>(*th));
-      },
-      [&]() {
-        auto el = translator.Compute(case_expr.Else());
-        result->Assign(dynamic_cast<T&>(*el));
-      });
-  return std::move(result);
+void ExpressionTranslator<T>::Visit(const plan::AggregateExpression& agg) {
+  throw std::runtime_error("Aggregate expression can't be derived");
 }
 
-void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {
-  auto& program = context_.Program();
+template <typename T>
+void ExpressionTranslator<T>::Visit(const plan::LiteralExpression& literal) {
+  switch (literal.Type()) {
+    case catalog::SqlType::SMALLINT:
+      this->Return(std::make_unique<proxy::Int16<T>>(
+          program_, literal.GetSmallintValue()));
+      break;
+    case catalog::SqlType::INT:
+      this->Return(
+          std::make_unique<proxy::Int32<T>>(program_, literal.GetIntValue()));
+      break;
+    case catalog::SqlType::BIGINT:
+      this->Return(std::make_unique<proxy::Int64<T>>(program_,
+                                                     literal.GetBigintValue()));
+      break;
+    case catalog::SqlType::DATE:
+      this->Return(
+          std::make_unique<proxy::Int64<T>>(program_, literal.GetDateValue()));
+      break;
+    case catalog::SqlType::REAL:
+      this->Return(std::make_unique<proxy::Float64<T>>(program_,
+                                                       literal.GetRealValue()));
+      break;
+    case catalog::SqlType::TEXT:
+      throw std::runtime_error("String unsupported at the moment.");
+      break;
+    case catalog::SqlType::BOOLEAN:
+      this->Return(std::make_unique<proxy::Bool<T>>(program_,
+                                                    literal.GetBooleanValue()));
+      break;
+  }
+}
 
+template <typename T>
+std::unique_ptr<proxy::Value<T>> CopyProxyValue(
+    ProgramBuilder<T>& program, catalog::SqlType type,
+    typename ProgramBuilder<T>::Value& value) {
+  switch (type) {
+    case catalog::SqlType::SMALLINT:
+      return std::make_unique<proxy::Int16<T>>(program, value);
+      break;
+    case catalog::SqlType::INT:
+      return std::make_unique<proxy::Int32<T>>(program, value);
+      break;
+    case catalog::SqlType::BIGINT:
+      return std::make_unique<proxy::Int64<T>>(program, value);
+      break;
+    case catalog::SqlType::DATE:
+      return std::make_unique<proxy::Int64<T>>(program, value);
+      break;
+    case catalog::SqlType::REAL:
+      return std::make_unique<proxy::Float64<T>>(program, value);
+      break;
+    case catalog::SqlType::TEXT:
+      throw std::runtime_error("String unsupported at the moment.");
+      break;
+    case catalog::SqlType::BOOLEAN:
+      return std::make_unique<proxy::Bool<T>>(program, value);
+      break;
+  }
+}
+
+template <typename T>
+void ExpressionTranslator<T>::Visit(const plan::ColumnRefExpression& col_ref) {
+  auto& values = source_.Children()[col_ref.GetChildIdx()].get().GetValues();
+  auto type = col_ref.Type();
+  auto& value = values.Value(col_ref.GetColumnIdx());
+  this->Return(CopyProxyValue(program_, type, value.Get()));
+}
+
+template <typename T>
+void ExpressionTranslator<T>::Visit(
+    const plan::VirtualColumnRefExpression& col_ref) {
+  auto& values = source_.GetVirtualValues();
+  auto type = col_ref.Type();
+  auto& value = values.Value(col_ref.GetColumnIdx());
+  this->Return(CopyProxyValue(program_, type, value.Get()));
+}
+
+template <typename S, typename T>
+std::unique_ptr<S> Ternary(ProgramBuilder<T>& program,
+                           ExpressionTranslator<T>& translator,
+                           const plan::CaseExpression& case_expr) {
+  std::unique_ptr<proxy::Value<T>> th, el;
+  auto cond = translator.Compute(case_expr.Cond());
+  proxy::If branch(
+      program, dynamic_cast<proxy::Bool<T>&>(*cond),
+      [&]() { th = translator.Compute(case_expr.Then()); },
+      [&]() { el = translator.Compute(case_expr.Else()); });
+
+  S& th_ref = dynamic_cast<S&>(*th);
+  S& el_ref = dynamic_cast<S&>(*el);
+
+  return std::make_unique<S>(program, branch.Phi(th_ref, el_ref));
+}
+
+template <typename T>
+void ExpressionTranslator<T>::Visit(const plan::CaseExpression& case_expr) {
   switch (case_expr.Type()) {
     case catalog::SqlType::SMALLINT: {
-      Return(Ternary<proxy::Int16>(program, *this, case_expr));
+      this->Return(Ternary<proxy::Int16<T>, T>(program_, *this, case_expr));
       break;
     }
     case catalog::SqlType::INT: {
-      Return(Ternary<proxy::Int32>(program, *this, case_expr));
+      this->Return(Ternary<proxy::Int32<T>, T>(program_, *this, case_expr));
       break;
     }
     case catalog::SqlType::BIGINT:
     case catalog::SqlType::DATE: {
-      Return(Ternary<proxy::Int64>(program, *this, case_expr));
+      this->Return(Ternary<proxy::Int64<T>, T>(program_, *this, case_expr));
       break;
     }
     case catalog::SqlType::REAL: {
-      Return(Ternary<proxy::Double>(program, *this, case_expr));
+      this->Return(Ternary<proxy::Float64<T>, T>(program_, *this, case_expr));
       break;
     }
     case catalog::SqlType::TEXT: {
-      Return(Ternary<proxy::StringView>(program, *this, case_expr));
+      throw std::runtime_error("String unsupported at the moment.");
       break;
     }
     case catalog::SqlType::BOOLEAN: {
-      Return(Ternary<proxy::Boolean>(program, *this, case_expr));
+      this->Return(Ternary<proxy::Bool<T>, T>(program_, *this, case_expr));
       break;
     }
   }
 }
+
+INSTANTIATE_ON_IR(ExpressionTranslator);
 
 }  // namespace kush::compile
