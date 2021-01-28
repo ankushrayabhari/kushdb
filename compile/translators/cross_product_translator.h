@@ -11,24 +11,22 @@
 
 namespace kush::compile {
 
-class CrossProductTranslator : public OperatorTranslator {
+template <typename T>
+class CrossProductTranslator : public OperatorTranslator<T> {
  public:
   CrossProductTranslator(
       const plan::CrossProductOperator& cross_product,
-      CppCompilationContext& context,
-      std::vector<std::unique_ptr<OperatorTranslator>> children);
+      ProgramBuilder<T>& program,
+      std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
   virtual ~CrossProductTranslator() = default;
+
   void Produce() override;
-  void Consume(OperatorTranslator& src) override;
+  void Consume(OperatorTranslator<T>& src) override;
 
  private:
   const plan::CrossProductOperator& cross_product_;
-  CppCompilationContext& context_;
-  ExpressionTranslator expr_translator_;
-
-  std::string hash_table_var_;
-  std::string packed_struct_id_;
-  std::vector<std::pair<std::string, std::string>> packed_struct_field_ids_;
+  ProgramBuilder<T>& program_;
+  ExpressionTranslator<T> expr_translator_;
 };
 
 }  // namespace kush::compile

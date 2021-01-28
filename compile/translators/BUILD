@@ -52,7 +52,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/llvm:llvm_ir",
+        "//compile:ir_registry",
         "//plan:select_operator",
     ],
 )
@@ -64,7 +64,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/llvm:llvm_ir",
+        "//compile:ir_registry",
         "//plan:cross_product_operator",
     ],
 )
