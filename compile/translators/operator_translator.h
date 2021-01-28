@@ -16,7 +16,7 @@ class OperatorTranslator {
   virtual ~OperatorTranslator() = default;
 
   virtual void Produce() = 0;
-  virtual void Consume(OperatorTranslator& src) = 0;
+  virtual void Consume(OperatorTranslator<T>& src) = 0;
 
   std::optional<std::reference_wrapper<OperatorTranslator<T>>> Parent();
   std::vector<std::reference_wrapper<OperatorTranslator<T>>> Children();

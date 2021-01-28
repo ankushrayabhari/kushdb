@@ -8,13 +8,13 @@
 namespace kush::compile {
 
 template <typename T>
-class SelectTranslator : public OperatorTranslator {
+class SelectTranslator : public OperatorTranslator<T> {
  public:
-  SelectTranslator(const plan::SelectOperator& select,
-                   ProgramBuilder<T>& program,
-                   std::vector<std::unique_ptr<OperatorTranslator>> children);
+  SelectTranslator(
+      const plan::SelectOperator& select, ProgramBuilder<T>& program,
+      std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
   void Produce() override;
-  void Consume(OperatorTranslator& src) override;
+  void Consume(OperatorTranslator<T>& src) override;
 
  private:
   const plan::SelectOperator& select_;

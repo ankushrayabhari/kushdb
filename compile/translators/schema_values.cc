@@ -6,23 +6,24 @@
 
 #include "compile/ir_registry.h"
 #include "compile/proxy/value.h"
+#include "util/vector_util.h"
 
 namespace kush::compile {
 
 template <typename T>
-void SchemaValues<T>::AddVariable(const proxy::Value<T>& value) {
-  values_.push_back(value);
+void SchemaValues<T>::AddVariable(std::unique_ptr<proxy::Value<T>> value) {
+  values_.push_back(std::move(value));
 }
 
 template <typename T>
 const proxy::Value<T>& SchemaValues<T>::Value(int idx) const {
-  return values_[idx];
+  return *values_[idx];
 }
 
 template <typename T>
-const std::vector<std::reference_wrapper<const proxy::Value<T>>>&
+std::vector<std::reference_wrapper<const proxy::Value<T>>>
 SchemaValues<T>::Values() const {
-  return values_;
+  return util::ImmutableReferenceVector(values_);
 }
 
 INSTANTIATE_ON_IR(SchemaValues);

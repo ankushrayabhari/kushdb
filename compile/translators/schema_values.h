@@ -13,13 +13,12 @@ class SchemaValues {
  public:
   SchemaValues() = default;
 
-  void AddVariable(const proxy::Value<T>& value);
+  void AddVariable(std::unique_ptr<proxy::Value<T>> value);
   const proxy::Value<T>& Value(int idx) const;
-  const std::vector<std::reference_wrapper<const proxy::Value<T>>>& Values()
-      const;
+  std::vector<std::reference_wrapper<const proxy::Value<T>>> Values() const;
 
  private:
-  std::vector<std::reference_wrapper<const proxy::Value<T>>> values_;
+  std::vector<std::unique_ptr<proxy::Value<T>>> values_;
 };
 
 }  // namespace kush::compile

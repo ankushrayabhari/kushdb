@@ -1,5 +1,6 @@
 #include "compile/translators/select_translator.h"
 
+#include "compile/ir_registry.h"
 #include "compile/program_builder.h"
 #include "compile/proxy/if.h"
 #include "compile/translators/expression_translator.h"
@@ -8,31 +9,35 @@
 
 namespace kush::compile {
 
-SelectTranslator::SelectTranslator(
-    const plan::SelectOperator& select, CppCompilationContext& context,
-    std::vector<std::unique_ptr<OperatorTranslator>> children)
-    : OperatorTranslator(std::move(children)),
+template <typename T>
+SelectTranslator<T>::SelectTranslator(
+    const plan::SelectOperator& select, ProgramBuilder<T>& program,
+    std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
+    : OperatorTranslator<T>(std::move(children)),
       select_(select),
-      context_(context),
-      expr_translator_(context, *this) {}
+      program_(program),
+      expr_translator_(program, *this) {}
 
-void SelectTranslator::Produce() { Child().Produce(); }
+template <typename T>
+void SelectTranslator<T>::Produce() {
+  this->Child().Produce();
+}
 
-void SelectTranslator::Consume(OperatorTranslator& src) {
-  auto& program = context_.Program();
+template <typename T>
+void SelectTranslator<T>::Consume(OperatorTranslator<T>& src) {
+  auto value = expr_translator_.Compute(select_.Expr());
 
-  auto& value = expr_translator_.Compute(select_.Expr()).get();
-
-  proxy::If(program, value, [&]() {
+  proxy::If(program_, dynamic_cast<proxy::Bool<T>&>(*value), [&]() {
     for (const auto& column : select_.Schema().Columns()) {
-      auto& value = expr_translator_.Compute(column.Expr()).get();
-      values_.AddVariable(value);
+      this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
     }
 
-    if (auto parent = Parent()) {
+    if (auto parent = this->Parent()) {
       parent->get().Consume(*this);
     }
   });
 }
+
+INSTANTIATE_ON_IR(SelectTranslator);
 
 }  // namespace kush::compile
