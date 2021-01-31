@@ -48,6 +48,12 @@ class ProgramBuilder {
   virtual Value& CmpI32(CompType cmp, Value& v1, Value& v2) = 0;
   virtual Value& ConstI32(int32_t v) = 0;
 
+  // UI32
+  virtual Value& AddUI32(Value& v1, Value& v2) = 0;
+  virtual Value& SubUI32(Value& v1, Value& v2) = 0;
+  virtual Value& CmpUI32(CompType cmp, Value& v1, Value& v2) = 0;
+  virtual Value& ConstUI32(uint32_t v) = 0;
+
   // I64
   virtual Value& AddI64(Value& v1, Value& v2) = 0;
   virtual Value& MulI64(Value& v1, Value& v2) = 0;

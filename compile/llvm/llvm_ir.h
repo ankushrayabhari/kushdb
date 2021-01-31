@@ -61,6 +61,12 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   Value& CmpI32(CompType cmp, Value& v1, Value& v2) override;
   Value& ConstI32(int32_t v) override;
 
+  // UI32
+  Value& AddUI32(Value& v1, Value& v2) override;
+  Value& SubUI32(Value& v1, Value& v2) override;
+  Value& CmpUI32(CompType cmp, Value& v1, Value& v2) override;
+  Value& ConstUI32(uint32_t v) override;
+
   // I64
   Value& AddI64(Value& v1, Value& v2) override;
   Value& MulI64(Value& v1, Value& v2) override;

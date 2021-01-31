@@ -259,6 +259,106 @@ std::unique_ptr<Value<T>> Int32<T>::EvaluateBinary(
 INSTANTIATE_ON_IR(Int32);
 
 template <typename T>
+UInt32<T>::UInt32(ProgramBuilder<T>& program,
+                  typename ProgramBuilder<T>::Value& value)
+    : program_(program), value_(value) {}
+
+template <typename T>
+UInt32<T>::UInt32(ProgramBuilder<T>& program, uint32_t value)
+    : program_(program), value_(program.ConstUI32(value)) {}
+
+template <typename T>
+typename ProgramBuilder<T>::Value& UInt32<T>::Get() const {
+  return value_;
+}
+
+template <typename T>
+std::unique_ptr<UInt32<T>> UInt32<T>::operator+(const UInt32<T>& rhs) {
+  return std::make_unique<UInt32<T>>(program_,
+                                     program_.AddUI32(value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<UInt32<T>> UInt32<T>::operator-(const UInt32<T>& rhs) {
+  return std::make_unique<UInt32<T>>(program_,
+                                     program_.SubUI32(value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Bool<T>> UInt32<T>::operator==(const UInt32<T>& rhs) {
+  return std::make_unique<Bool<T>>(
+      program_, program_.CmpUI32(T::CompType::ICMP_EQ, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Bool<T>> UInt32<T>::operator!=(const UInt32<T>& rhs) {
+  return std::make_unique<Bool<T>>(
+      program_, program_.CmpUI32(T::CompType::ICMP_NE, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Bool<T>> UInt32<T>::operator<(const UInt32<T>& rhs) {
+  return std::make_unique<Bool<T>>(
+      program_, program_.CmpUI32(T::CompType::ICMP_ULT, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Bool<T>> UInt32<T>::operator<=(const UInt32<T>& rhs) {
+  return std::make_unique<Bool<T>>(
+      program_, program_.CmpUI32(T::CompType::ICMP_ULE, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Bool<T>> UInt32<T>::operator>(const UInt32<T>& rhs) {
+  return std::make_unique<Bool<T>>(
+      program_, program_.CmpUI32(T::CompType::ICMP_UGT, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Bool<T>> UInt32<T>::operator>=(const UInt32<T>& rhs) {
+  return std::make_unique<Bool<T>>(
+      program_, program_.CmpUI32(T::CompType::ICMP_UGE, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Value<T>> UInt32<T>::EvaluateBinary(
+    plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs_generic) {
+  UInt32<T>& lhs = *this;
+  UInt32<T>& rhs = dynamic_cast<UInt32<T>&>(rhs_generic);
+
+  switch (op_type) {
+    case plan::BinaryArithmeticOperatorType::ADD:
+      return lhs.operator+(rhs);
+
+    case plan::BinaryArithmeticOperatorType::SUB:
+      return lhs.operator-(rhs);
+
+    case plan::BinaryArithmeticOperatorType::EQ:
+      return lhs.operator==(rhs);
+
+    case plan::BinaryArithmeticOperatorType::NEQ:
+      return lhs.operator!=(rhs);
+
+    case plan::BinaryArithmeticOperatorType::LT:
+      return lhs.operator<(rhs);
+
+    case plan::BinaryArithmeticOperatorType::LEQ:
+      return lhs.operator<=(rhs);
+
+    case plan::BinaryArithmeticOperatorType::GT:
+      return lhs.operator>(rhs);
+
+    case plan::BinaryArithmeticOperatorType::GEQ:
+      return lhs.operator>=(rhs);
+
+    default:
+      throw std::runtime_error("Invalid operator on numeric");
+  }
+}
+
+INSTANTIATE_ON_IR(UInt32);
+
+template <typename T>
 Int64<T>::Int64(ProgramBuilder<T>& program,
                 typename ProgramBuilder<T>::Value& value)
     : program_(program), value_(value) {}
