@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compile/llvm/llvm_ir.h"
+#include "compile/program_builder.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/operator.h"
