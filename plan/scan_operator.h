@@ -3,6 +3,7 @@
 #include <string>
 #include <string_view>
 
+#include "catalog/catalog.h"
 #include "nlohmann/json.hpp"
 #include "plan/operator.h"
 #include "plan/operator_schema.h"
@@ -12,9 +13,9 @@ namespace kush::plan {
 
 class ScanOperator final : public Operator {
  public:
-  ScanOperator(OperatorSchema schema, std::string_view relation);
+  ScanOperator(OperatorSchema schema, catalog::Table& relation);
 
-  std::string_view Relation() const;
+  const catalog::Table& Relation() const;
 
   void Accept(OperatorVisitor& visitor) override;
   void Accept(ImmutableOperatorVisitor& visitor) const override;
@@ -22,7 +23,7 @@ class ScanOperator final : public Operator {
   nlohmann::json ToJson() const override;
 
  private:
-  std::string relation_;
+  catalog::Table& relation_;
 };
 
 }  // namespace kush::plan

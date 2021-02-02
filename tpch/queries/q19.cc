@@ -38,7 +38,7 @@ std::unique_ptr<Operator> ScanPart() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["part"],
                              {"p_partkey", "p_brand", "p_container", "p_size"});
-  return std::make_unique<ScanOperator>(std::move(schema), "part");
+  return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
 }
 
 // Select(part)
@@ -121,7 +121,7 @@ std::unique_ptr<Operator> ScanLinetem() {
   schema.AddGeneratedColumns(db["lineitem"],
                              {"l_extendedprice", "l_discount", "l_quantity",
                               "l_shipmode", "l_shipinstruct", "l_partkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "lineitem");
+  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
 // Select(lineitem)

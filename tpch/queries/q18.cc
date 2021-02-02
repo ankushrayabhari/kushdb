@@ -36,7 +36,7 @@ const Database db = Schema();
 std::unique_ptr<Operator> SubqueryScanLineitem() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["lineitem"], {"l_orderkey", "l_quantity"});
-  return std::make_unique<ScanOperator>(std::move(schema), "lineitem");
+  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
 // Group By l_orderkey -> sum(l_quantity)
@@ -74,7 +74,7 @@ std::unique_ptr<Operator> ScanOrders() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(
       db["orders"], {"o_orderkey", "o_orderdate", "o_totalprice", "o_custkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "orders");
+  return std::make_unique<ScanOperator>(std::move(schema), db["orders"]);
 }
 
 // lineitem JOIN orders ON l_orderkey = o_orderkey
@@ -98,7 +98,7 @@ std::unique_ptr<Operator> SubqueryOrders() {
 std::unique_ptr<Operator> ScanCustomer() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["customer"], {"c_name", "c_custkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "customer");
+  return std::make_unique<ScanOperator>(std::move(schema), db["customer"]);
 }
 
 // subquery_orders JOIN customer ON o_custkey = c_custkey
@@ -123,7 +123,7 @@ std::unique_ptr<Operator> SubqueryOrdersCustomer() {
 std::unique_ptr<Operator> ScanLinetem() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["lineitem"], {"l_orderkey", "l_quantity"});
-  return std::make_unique<ScanOperator>(std::move(schema), "lineitem");
+  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
 // subquery_orders_customer JOIN lineitem ON o_orderkey = l_orderkey

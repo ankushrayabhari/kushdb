@@ -10,13 +10,13 @@
 
 namespace kush::plan {
 
-ScanOperator::ScanOperator(OperatorSchema schema, std::string_view relation)
+ScanOperator::ScanOperator(OperatorSchema schema, catalog::Table& relation)
     : Operator(std::move(schema), {}), relation_(relation) {}
 
 nlohmann::json ScanOperator::ToJson() const {
   nlohmann::json j;
   j["op"] = "SCAN";
-  j["relation"] = relation_;
+  j["relation"] = relation_.Name();
   j["output"] = Schema().ToJson();
   return j;
 }
@@ -27,6 +27,6 @@ void ScanOperator::Accept(ImmutableOperatorVisitor& visitor) const {
   visitor.Visit(*this);
 }
 
-std::string_view ScanOperator::Relation() const { return relation_; }
+const catalog::Table& ScanOperator::Relation() const { return relation_; }
 
 }  // namespace kush::plan

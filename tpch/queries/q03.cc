@@ -36,7 +36,7 @@ const Database db = Schema();
 std::unique_ptr<Operator> ScanCustomer() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["customer"], {"c_mktsegment", "c_custkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "customer");
+  return std::make_unique<ScanOperator>(std::move(schema), db["customer"]);
 }
 
 // Select(c_mktsegment = 'FURNITURE')
@@ -56,7 +56,7 @@ std::unique_ptr<Operator> ScanOrders() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["orders"], {"o_orderdate", "o_shippriority",
                                             "o_custkey", "o_orderkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "orders");
+  return std::make_unique<ScanOperator>(std::move(schema), db["orders"]);
 }
 
 // Select(o_orderdate < '1995-03-29')
@@ -94,7 +94,7 @@ std::unique_ptr<Operator> ScanLineitem() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["lineitem"], {"l_orderkey", "l_extendedprice",
                                               "l_shipdate", "l_discount"});
-  return std::make_unique<ScanOperator>(std::move(schema), "lineitem");
+  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
 // Select(l_shipdate > '1995-03-29')

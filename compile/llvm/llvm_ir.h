@@ -16,6 +16,8 @@ class LLVMIrTypes {
   using Value = llvm::Value;
   using CompType = llvm::CmpInst::Predicate;
   using Constant = llvm::Constant;
+  using Function = llvm::Function;
+  using Type = llvm::Type;
 };
 
 class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
@@ -33,8 +35,14 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   void SetCurrentBlock(BasicBlock& b) override;
   void Branch(BasicBlock& b) override;
   void Branch(Value& cond, BasicBlock& b1, BasicBlock& b2) override;
-  Value& Phi() override;
-  void AddToPhi(Value& phi, Value& v, BasicBlock& b) override;
+
+  // Function
+  Function& GetFunction(std::string_view name) override;
+  Function& DeclareFunction(
+      std::string_view name, Type& result_type,
+      std::vector<std::reference_wrapper<Type>> arg_types) override;
+  Value& Call(std::string_view name,
+              std::vector<std::reference_wrapper<Value>> arguments) override;
 
   // I8
   Value& AddI8(Value& v1, Value& v2) override;

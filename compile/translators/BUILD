@@ -29,7 +29,11 @@ cc_library(
     hdrs = ["scan_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile/llvm:llvm_ir",
+        "//catalog:sql_type",
+        "//compile:ir_registry",
+        "//compile:program_builder",
+        "//compile/proxy:column_data",
+        "//compile/proxy:loop",
         "//plan:scan_operator",
     ],
 )

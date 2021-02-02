@@ -38,7 +38,7 @@ std::unique_ptr<Operator> ScanLineitem() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["lineitem"], {"l_shipdate", "l_extendedprice",
                                               "l_discount", "l_partkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "lineitem");
+  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
 // Select(l_shipdate >= '1994-03-01' and l_receiptdate < '1994-04-01')
@@ -62,7 +62,7 @@ std::unique_ptr<Operator> SelectLineitem() {
 std::unique_ptr<Operator> ScanPart() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["part"], {"p_type", "p_partkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "part");
+  return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
 }
 
 // lineitem JOIN part ON l_orderkey = o_orderkey

@@ -36,7 +36,7 @@ const Database db = Schema();
 std::unique_ptr<Operator> ScanRegion() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["region"], {"r_name", "r_regionkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "region");
+  return std::make_unique<ScanOperator>(std::move(schema), db["region"]);
 }
 
 // Select(r_name = 'MIDDLE EAST')
@@ -56,7 +56,7 @@ std::unique_ptr<Operator> ScanNation() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["nation"],
                              {"n_nationkey", "n_regionkey", "n_name"});
-  return std::make_unique<ScanOperator>(std::move(schema), "nation");
+  return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
 // region JOIN nation ON r_regionkey = n_regionkey
@@ -79,7 +79,7 @@ std::unique_ptr<Operator> RegionNation() {
 std::unique_ptr<Operator> ScanCustomer() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["customer"], {"c_custkey", "c_nationkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "customer");
+  return std::make_unique<ScanOperator>(std::move(schema), db["customer"]);
 }
 
 // region_nation JOIN customer ON n_nationkey = c_nationkey
@@ -104,7 +104,7 @@ std::unique_ptr<Operator> ScanOrders() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["orders"],
                              {"o_custkey", "o_orderkey", "o_orderdate"});
-  return std::make_unique<ScanOperator>(std::move(schema), "orders");
+  return std::make_unique<ScanOperator>(std::move(schema), db["orders"]);
 }
 
 // Select(o_orderdate >= date '1994-01-01' and o_orderdate < date '1995-01-01')
@@ -150,7 +150,7 @@ std::unique_ptr<Operator> ScanLineitem() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["lineitem"], {"l_extendedprice", "l_discount",
                                               "l_orderkey", "l_suppkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "lineitem");
+  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
 // region_nation_customer_orders JOIN lineitem ON o_orderkey = l_orderkey
@@ -175,7 +175,7 @@ std::unique_ptr<Operator> RegionNationCustomerOrdersLineitem() {
 std::unique_ptr<Operator> ScanSupplier() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["supplier"], {"s_suppkey", "s_nationkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "supplier");
+  return std::make_unique<ScanOperator>(std::move(schema), db["supplier"]);
 }
 
 // supplier JOIN rncol ON s_nationkey = n_nationkey and s_suppkey = l_suppkey

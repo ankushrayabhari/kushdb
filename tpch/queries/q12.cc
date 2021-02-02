@@ -39,7 +39,7 @@ std::unique_ptr<Operator> ScanLineitem() {
   schema.AddGeneratedColumns(db["lineitem"],
                              {"l_shipmode", "l_commitdate", "l_shipdate",
                               "l_receiptdate", "l_orderkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "lineitem");
+  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
 // Select((l_shipmode = 'FOB' OR l_shipmode = 'SHIP') AND l_commitdate <
@@ -78,7 +78,7 @@ std::unique_ptr<Operator> SelectLineitem() {
 std::unique_ptr<Operator> ScanOrders() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["orders"], {"o_orderkey", "o_orderpriority"});
-  return std::make_unique<ScanOperator>(std::move(schema), "orders");
+  return std::make_unique<ScanOperator>(std::move(schema), db["orders"]);
 }
 
 // lineitem JOIN orders ON l_orderkey = o_orderkey

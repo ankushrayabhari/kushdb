@@ -37,7 +37,7 @@ std::unique_ptr<Operator> ScanLineitem() {
   schema.AddGeneratedColumns(
       db["lineitem"], {"l_returnflag", "l_linestatus", "l_quantity",
                        "l_extendedprice", "l_discount", "l_tax", "l_shipdate"});
-  return std::make_unique<ScanOperator>(std::move(schema), "lineitem");
+  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
 // Select (l_shipdate <= 1998-12-01)

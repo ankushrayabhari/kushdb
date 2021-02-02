@@ -37,7 +37,7 @@ std::unique_ptr<Operator> ScanOrders() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["orders"],
                              {"o_custkey", "o_orderkey", "o_orderdate"});
-  return std::make_unique<ScanOperator>(std::move(schema), "orders");
+  return std::make_unique<ScanOperator>(std::move(schema), db["orders"]);
 }
 
 // Select(o_orderdate >= '1994-01-01' and o_orderdate < '1994-04-01')
@@ -65,7 +65,7 @@ std::unique_ptr<Operator> ScanCustomer() {
   schema.AddGeneratedColumns(db["customer"],
                              {"c_custkey", "c_name", "c_acctbal", "c_address",
                               "c_phone", "c_comment", "c_nationkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "customer");
+  return std::make_unique<ScanOperator>(std::move(schema), db["customer"]);
 }
 
 // orders JOIN customer ON o_custkey = c_custkey
@@ -92,7 +92,7 @@ std::unique_ptr<Operator> OrdersCustomer() {
 std::unique_ptr<Operator> ScanNation() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["nation"], {"n_nationkey", "n_name"});
-  return std::make_unique<ScanOperator>(std::move(schema), "nation");
+  return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
 // nation JOIN orders_customer ON n_nationkey = c_nationkey
@@ -120,7 +120,7 @@ std::unique_ptr<Operator> ScanLineitem() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["lineitem"], {"l_orderkey", "l_returnflag",
                                               "l_extendedprice", "l_discount"});
-  return std::make_unique<ScanOperator>(std::move(schema), "lineitem");
+  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
 // Select(l_returnflag = 'R')

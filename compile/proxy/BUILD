@@ -12,6 +12,30 @@ cc_library(
 )
 
 cc_library(
+    name = "ptr",
+    hdrs = ["ptr.h"],
+    deps = [
+        ":value",
+        "//compile:program_builder",
+        "//plan/expression:binary_arithmetic_expression",
+    ],
+)
+
+cc_library(
+    name = "column_data",
+    hdrs = ["column_data.h"],
+    deps = [
+        ":bool",
+        ":float",
+        ":int",
+        ":ptr",
+        ":value",
+        "//catalog:sql_type",
+        "//compile:program_builder",
+    ],
+)
+
+cc_library(
     name = "numeric",
     hdrs = ["numeric.h"],
     deps = [

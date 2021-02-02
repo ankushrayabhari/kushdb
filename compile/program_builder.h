@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
+#include <vector>
 
 namespace kush::compile {
 
@@ -13,6 +15,17 @@ class ProgramBuilder {
   using Value = typename Impl::Value;
   using CompType = typename Impl::CompType;
   using Constant = typename Impl::Constant;
+  using Function = typename Impl::Function;
+  using Type = typename Impl::Type;
+
+  // Function
+  virtual Function& GetFunction(std::string_view name) = 0;
+  virtual Function& DeclareFunction(
+      std::string_view name, Type& result_type,
+      std::vector<std::reference_wrapper<Type>> arg_types) = 0;
+  virtual Value& Call(
+      std::string_view name,
+      std::vector<std::reference_wrapper<Value>> arguments = {}) = 0;
 
   // Control Flow
   virtual BasicBlock& GenerateBlock() = 0;

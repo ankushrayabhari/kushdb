@@ -4,65 +4,139 @@
 #include <string>
 #include <vector>
 
-#include "compile/llvm/llvm_ir.h"
+#include "catalog/sql_type.h"
+#include "compile/ir_registry.h"
+#include "compile/program_builder.h"
+#include "compile/proxy/column_data.h"
+#include "compile/proxy/loop.h"
 #include "compile/translators/operator_translator.h"
-#include "compile/types.h"
 #include "plan/scan_operator.h"
+#include "util/vector_util.h"
 
 namespace kush::compile {
 
-ScanTranslator::ScanTranslator(
-    const plan::ScanOperator& scan, CppCompilationContext& context,
-    std::vector<std::unique_ptr<OperatorTranslator>> children)
-    : OperatorTranslator(std::move(children)), scan_(scan), context_(context) {}
+template <typename T>
+ScanTranslator<T>::ScanTranslator(
+    const plan::ScanOperator& scan, ProgramBuilder<T>& program,
+    std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
+    : OperatorTranslator<T>(std::move(children)),
+      scan_(scan),
+      program_(program) {}
 
-void ScanTranslator::Produce() {
-  const auto& table = context_.Catalog()[scan_.Relation()];
-  auto& program = context_.Program();
+template <typename T>
+void ScanTranslator<T>::Produce() {
+  const auto& table = scan_.Relation();
 
-  std::vector<std::string> column_vars;
-  std::string card_var;
+  std::vector<std::unique_ptr<proxy::Iterable<T>>> column_data_vars;
+  std::unique_ptr<proxy::UInt32<T>> card_var;
 
+  column_data_vars.reserve(scan_.Schema().Columns().size());
   for (const auto& column : scan_.Schema().Columns()) {
-    auto var = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(column.Expr().Type());
     auto path = table[column.Name()].Path();
-    column_vars.push_back(var);
+    switch (column.Expr().Type()) {
+      case catalog::SqlType::SMALLINT: {
+        auto var =
+            std::make_unique<proxy::ColumnData<T, catalog::SqlType::SMALLINT>>(
+                program_, path);
+        if (card_var == nullptr) {
+          card_var = var->Size();
+        }
+        column_data_vars.push_back(std::move(var));
+        break;
+      }
 
-    // declare the column
-    program.fout << "const kush::data::ColumnData<" << type << "> " << var
-                 << "(\"" << path << "\");\n";
+      case catalog::SqlType::INT: {
+        auto var =
+            std::make_unique<proxy::ColumnData<T, catalog::SqlType::INT>>(
+                program_, path);
+        if (card_var == nullptr) {
+          card_var = var->Size();
+        }
+        column_data_vars.push_back(std::move(var));
+        break;
+      }
 
-    if (card_var.empty()) {
-      card_var = var + ".Size()";
+      case catalog::SqlType::BIGINT: {
+        auto var =
+            std::make_unique<proxy::ColumnData<T, catalog::SqlType::BIGINT>>(
+                program_, path);
+        if (card_var == nullptr) {
+          card_var = var->Size();
+        }
+        column_data_vars.push_back(std::move(var));
+        break;
+      }
+
+      case catalog::SqlType::REAL: {
+        auto var =
+            std::make_unique<proxy::ColumnData<T, catalog::SqlType::REAL>>(
+                program_, path);
+        if (card_var == nullptr) {
+          card_var = var->Size();
+        }
+        column_data_vars.push_back(std::move(var));
+        break;
+      }
+
+      case catalog::SqlType::DATE: {
+        auto var =
+            std::make_unique<proxy::ColumnData<T, catalog::SqlType::DATE>>(
+                program_, path);
+        if (card_var == nullptr) {
+          card_var = var->Size();
+        }
+        column_data_vars.push_back(std::move(var));
+        break;
+      }
+
+      case catalog::SqlType::TEXT:
+        throw std::runtime_error("Text type unsupported at the moment.");
+        break;
+
+      case catalog::SqlType::BOOLEAN: {
+        auto var =
+            std::make_unique<proxy::ColumnData<T, catalog::SqlType::BOOLEAN>>(
+                program_, path);
+        if (card_var == nullptr) {
+          card_var = var->Size();
+        }
+        column_data_vars.push_back(std::move(var));
+        break;
+      }
     }
   }
 
-  std::string loop_var = program.GenerateVariable();
-  program.fout << "for (uint32_t " << loop_var << " = 0; " << loop_var << " < "
-               << card_var << "; " << loop_var << "++) {\n";
+  proxy::Loop<T>(
+      program_,
+      [&]() {
+        return util::MakeVector<std::unique_ptr<proxy::Value<T>>>(
+            std::make_unique<proxy::UInt32<T>>(program_, 0));
+      },
+      [&](proxy::Loop<T>& loop) {
+        auto idx = loop.template LoopVariable<proxy::UInt32<T>>(0);
+        return *idx < *card_var;
+      },
+      [&](proxy::Loop<T>& loop) {
+        auto idx = loop.template LoopVariable<proxy::UInt32<T>>(0);
 
-  for (int i = 0; i < column_vars.size(); i++) {
-    const auto& column = scan_.Schema().Columns()[i];
-    std::string type = SqlTypeToRuntimeType(column.Expr().Type());
-    std::string column_var = column_vars[i];
-    std::string value_var = program.GenerateVariable();
+        for (auto& col_var : column_data_vars) {
+          this->values_.AddVariable((*col_var)[*idx]);
+        }
 
-    program.fout << type << " " << value_var << " = " << column_var << "["
-                 << loop_var << "];\n";
+        if (auto parent = this->Parent()) {
+          parent->get().Consume(*this);
+        }
 
-    values_.AddVariable(value_var, type);
-  }
-
-  if (auto parent = Parent()) {
-    parent->get().Consume(*this);
-  }
-
-  program.fout << "}\n";
+        return util::MakeVector<std::unique_ptr<proxy::Value<T>>>(
+            *idx + *std::make_unique<proxy::UInt32<T>>(program_, 1));
+      });
 }
 
-void ScanTranslator::Consume(OperatorTranslator& src) {
+template <typename T>
+void ScanTranslator<T>::Consume(OperatorTranslator<T>& src) {
   throw std::runtime_error("Scan cannot consume tuples - leaf operator");
 }
+
+INSTANTIATE_ON_IR(ScanTranslator);
 
 }  // namespace kush::compile

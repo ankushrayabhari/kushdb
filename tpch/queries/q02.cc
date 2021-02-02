@@ -36,7 +36,7 @@ const Database db = Schema();
 std::unique_ptr<Operator> ScanRegion() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["region"], {"r_regionkey", "r_name"});
-  return std::make_unique<ScanOperator>(std::move(schema), "region");
+  return std::make_unique<ScanOperator>(std::move(schema), db["region"]);
 }
 
 // Select(r_name = 'MIDDLE EAST')
@@ -55,7 +55,7 @@ std::unique_ptr<Operator> ScanNation() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["nation"],
                              {"n_name", "n_nationkey", "n_regionkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "nation");
+  return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
 // region JOIN nation ON r_regionkey = n_regionkey
@@ -80,7 +80,7 @@ std::unique_ptr<Operator> ScanSupplier() {
   schema.AddGeneratedColumns(db["supplier"],
                              {"s_acctbal", "s_name", "s_address", "s_phone",
                               "s_comment", "s_suppkey", "s_nationkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "supplier");
+  return std::make_unique<ScanOperator>(std::move(schema), db["supplier"]);
 }
 
 // region_nation JOIN supplier ON n_nationkey = s_nationkey
@@ -108,7 +108,7 @@ std::unique_ptr<Operator> ScanPart() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["part"],
                              {"p_partkey", "p_mfgr", "p_size", "p_type"});
-  return std::make_unique<ScanOperator>(std::move(schema), "part");
+  return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
 }
 
 // Select(p_size = 38 and p_type ENDS WITH 'TIN')
@@ -135,7 +135,7 @@ std::unique_ptr<Operator> ScanPartsupp() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["partsupp"],
                              {"ps_partkey", "ps_suppkey", "ps_supplycost"});
-  return std::make_unique<ScanOperator>(std::move(schema), "partsupp");
+  return std::make_unique<ScanOperator>(std::move(schema), db["partsupp"]);
 }
 
 // part JOIN partsupp ON p_partkey = ps_partkey
@@ -180,7 +180,7 @@ std::unique_ptr<Operator> RegionNationSupplierPartPartsupp() {
 std::unique_ptr<Operator> SubqueryScanNation() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["nation"], {"n_nationkey", "n_regionkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "nation");
+  return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
 // region JOIN nation ON r_regionkey = n_regionkey
@@ -203,7 +203,7 @@ std::unique_ptr<Operator> SubqueryRegionNation() {
 std::unique_ptr<Operator> SubqueryScanSupplier() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["supplier"], {"s_suppkey", "s_nationkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "supplier");
+  return std::make_unique<ScanOperator>(std::move(schema), db["supplier"]);
 }
 
 // region_nation JOIN supplier ON n_nationkey = s_nationkey
@@ -227,7 +227,7 @@ std::unique_ptr<Operator> SubqueryScanPartsupp() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["partsupp"],
                              {"ps_suppkey", "ps_supplycost", "ps_partkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), "partsupp");
+  return std::make_unique<ScanOperator>(std::move(schema), db["partsupp"]);
 }
 
 // region_nation_supplier JOIN partsupp ON s_suppkey = ps_suppkey
