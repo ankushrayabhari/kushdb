@@ -18,6 +18,27 @@ class ProgramBuilder {
   using Function = typename Impl::Function;
   using Type = typename Impl::Type;
 
+  // Types
+  virtual Type& I8Type() = 0;
+  virtual Type& I16Type() = 0;
+  virtual Type& I32Type() = 0;
+  virtual Type& I64Type() = 0;
+  virtual Type& UI32Type() = 0;
+  virtual Type& F64Type() = 0;
+  virtual Type& StructType(std::vector<std::reference_wrapper<Type>> types);
+  virtual Type& PointerType(Type& type);
+  virtual Type& ArrayType(Type& type);
+
+  // Memory
+  virtual Value& Malloc(Value& size) = 0;
+  virtual void Free(Value& ptr) = 0;
+  virtual Value& NullPtr() = 0;
+  virtual Value& GetElementPtr(
+      Type& t, Value& ptr, std::vector<std::reference_wrapper<Value>> idx) = 0;
+  virtual Value& PointerCast(Value& v, Type& t) = 0;
+  virtual void Store(Value& ptr, Value& v) = 0;
+  virtual Value& Load(Value& ptr) = 0;
+
   // Function
   virtual Function& GetFunction(std::string_view name) = 0;
   virtual Function& DeclareFunction(
