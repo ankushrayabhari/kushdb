@@ -27,63 +27,64 @@ typename ProgramBuilder<T>::Value& Int8<T>::Get() const {
 }
 
 template <typename T>
-std::unique_ptr<Int8<T>> Int8<T>::operator+(const Int8<T>& rhs) {
-  return std::make_unique<Int8<T>>(program_,
-                                   program_.AddI8(value_, rhs.value_));
+Int8<T> Int8<T>::operator+(const Int8<T>& rhs) {
+  return Int8<T>(program_, program_.AddI8(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int8<T>> Int8<T>::operator-(const Int8<T>& rhs) {
-  return std::make_unique<Int8<T>>(program_,
-                                   program_.SubI8(value_, rhs.value_));
+Int8<T> Int8<T>::operator-(const Int8<T>& rhs) {
+  return Int8<T>(program_, program_.SubI8(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int8<T>> Int8<T>::operator*(const Int8<T>& rhs) {
-  return std::make_unique<Int8<T>>(program_,
-                                   program_.MulI8(value_, rhs.value_));
+Int8<T> Int8<T>::operator*(const Int8<T>& rhs) {
+  return Int8<T>(program_, program_.MulI8(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int8<T>> Int8<T>::operator/(const Int8<T>& rhs) {
-  return std::make_unique<Int8<T>>(program_,
-                                   program_.DivI8(value_, rhs.value_));
+Int8<T> Int8<T>::operator/(const Int8<T>& rhs) {
+  return Int8<T>(program_, program_.DivI8(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int8<T>::operator==(const Int8<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI8(T::CompType::ICMP_EQ, value_, rhs.value_));
+Bool<T> Int8<T>::operator==(const Int8<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI8(T::CompType::ICMP_EQ, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int8<T>::operator!=(const Int8<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI8(T::CompType::ICMP_NE, value_, rhs.value_));
+Bool<T> Int8<T>::operator!=(const Int8<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI8(T::CompType::ICMP_NE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int8<T>::operator<(const Int8<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI8(T::CompType::ICMP_SLT, value_, rhs.value_));
+Bool<T> Int8<T>::operator<(const Int8<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI8(T::CompType::ICMP_SLT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int8<T>::operator<=(const Int8<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI8(T::CompType::ICMP_SLE, value_, rhs.value_));
+Bool<T> Int8<T>::operator<=(const Int8<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI8(T::CompType::ICMP_SLE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int8<T>::operator>(const Int8<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI8(T::CompType::ICMP_SGT, value_, rhs.value_));
+Bool<T> Int8<T>::operator>(const Int8<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI8(T::CompType::ICMP_SGT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int8<T>::operator>=(const Int8<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI8(T::CompType::ICMP_SGE, value_, rhs.value_));
+Bool<T> Int8<T>::operator>=(const Int8<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI8(T::CompType::ICMP_SGE, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Int8<T>> Int8<T>::ToPointer() {
+  return std::make_unique<Int8<T>>(program_, value_);
 }
 
 template <typename T>
@@ -109,63 +110,64 @@ typename ProgramBuilder<T>::Value& Int16<T>::Get() const {
 }
 
 template <typename T>
-std::unique_ptr<Int16<T>> Int16<T>::operator+(const Int16<T>& rhs) {
-  return std::make_unique<Int16<T>>(program_,
-                                    program_.AddI16(value_, rhs.value_));
+Int16<T> Int16<T>::operator+(const Int16<T>& rhs) {
+  return Int16<T>(program_, program_.AddI16(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int16<T>> Int16<T>::operator-(const Int16<T>& rhs) {
-  return std::make_unique<Int16<T>>(program_,
-                                    program_.SubI16(value_, rhs.value_));
+Int16<T> Int16<T>::operator-(const Int16<T>& rhs) {
+  return Int16<T>(program_, program_.SubI16(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int16<T>> Int16<T>::operator*(const Int16<T>& rhs) {
-  return std::make_unique<Int16<T>>(program_,
-                                    program_.MulI16(value_, rhs.value_));
+Int16<T> Int16<T>::operator*(const Int16<T>& rhs) {
+  return Int16<T>(program_, program_.MulI16(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int16<T>> Int16<T>::operator/(const Int16<T>& rhs) {
-  return std::make_unique<Int16<T>>(program_,
-                                    program_.DivI16(value_, rhs.value_));
+Int16<T> Int16<T>::operator/(const Int16<T>& rhs) {
+  return Int16<T>(program_, program_.DivI16(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int16<T>::operator==(const Int16<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI16(T::CompType::ICMP_EQ, value_, rhs.value_));
+Bool<T> Int16<T>::operator==(const Int16<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI16(T::CompType::ICMP_EQ, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int16<T>::operator!=(const Int16<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI16(T::CompType::ICMP_NE, value_, rhs.value_));
+Bool<T> Int16<T>::operator!=(const Int16<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI16(T::CompType::ICMP_NE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int16<T>::operator<(const Int16<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI16(T::CompType::ICMP_SLT, value_, rhs.value_));
+Bool<T> Int16<T>::operator<(const Int16<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI16(T::CompType::ICMP_SLT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int16<T>::operator<=(const Int16<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI16(T::CompType::ICMP_SLE, value_, rhs.value_));
+Bool<T> Int16<T>::operator<=(const Int16<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI16(T::CompType::ICMP_SLE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int16<T>::operator>(const Int16<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI16(T::CompType::ICMP_SGT, value_, rhs.value_));
+Bool<T> Int16<T>::operator>(const Int16<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI16(T::CompType::ICMP_SGT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int16<T>::operator>=(const Int16<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI16(T::CompType::ICMP_SGE, value_, rhs.value_));
+Bool<T> Int16<T>::operator>=(const Int16<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI16(T::CompType::ICMP_SGE, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Int16<T>> Int16<T>::ToPointer() {
+  return std::make_unique<Int16<T>>(program_, value_);
 }
 
 template <typename T>
@@ -191,63 +193,64 @@ typename ProgramBuilder<T>::Value& Int32<T>::Get() const {
 }
 
 template <typename T>
-std::unique_ptr<Int32<T>> Int32<T>::operator+(const Int32<T>& rhs) {
-  return std::make_unique<Int32<T>>(program_,
-                                    program_.AddI32(value_, rhs.value_));
+Int32<T> Int32<T>::operator+(const Int32<T>& rhs) {
+  return Int32<T>(program_, program_.AddI32(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int32<T>> Int32<T>::operator-(const Int32<T>& rhs) {
-  return std::make_unique<Int32<T>>(program_,
-                                    program_.SubI32(value_, rhs.value_));
+Int32<T> Int32<T>::operator-(const Int32<T>& rhs) {
+  return Int32<T>(program_, program_.SubI32(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int32<T>> Int32<T>::operator*(const Int32<T>& rhs) {
-  return std::make_unique<Int32<T>>(program_,
-                                    program_.MulI32(value_, rhs.value_));
+Int32<T> Int32<T>::operator*(const Int32<T>& rhs) {
+  return Int32<T>(program_, program_.MulI32(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int32<T>> Int32<T>::operator/(const Int32<T>& rhs) {
-  return std::make_unique<Int32<T>>(program_,
-                                    program_.DivI32(value_, rhs.value_));
+Int32<T> Int32<T>::operator/(const Int32<T>& rhs) {
+  return Int32<T>(program_, program_.DivI32(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int32<T>::operator==(const Int32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI32(T::CompType::ICMP_EQ, value_, rhs.value_));
+Bool<T> Int32<T>::operator==(const Int32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI32(T::CompType::ICMP_EQ, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int32<T>::operator!=(const Int32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI32(T::CompType::ICMP_NE, value_, rhs.value_));
+Bool<T> Int32<T>::operator!=(const Int32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI32(T::CompType::ICMP_NE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int32<T>::operator<(const Int32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI32(T::CompType::ICMP_SLT, value_, rhs.value_));
+Bool<T> Int32<T>::operator<(const Int32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI32(T::CompType::ICMP_SLT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int32<T>::operator<=(const Int32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI32(T::CompType::ICMP_SLE, value_, rhs.value_));
+Bool<T> Int32<T>::operator<=(const Int32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI32(T::CompType::ICMP_SLE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int32<T>::operator>(const Int32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI32(T::CompType::ICMP_SGT, value_, rhs.value_));
+Bool<T> Int32<T>::operator>(const Int32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI32(T::CompType::ICMP_SGT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int32<T>::operator>=(const Int32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI32(T::CompType::ICMP_SGE, value_, rhs.value_));
+Bool<T> Int32<T>::operator>=(const Int32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI32(T::CompType::ICMP_SGE, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Int32<T>> Int32<T>::ToPointer() {
+  return std::make_unique<Int32<T>>(program_, value_);
 }
 
 template <typename T>
@@ -273,87 +276,70 @@ typename ProgramBuilder<T>::Value& UInt32<T>::Get() const {
 }
 
 template <typename T>
-std::unique_ptr<UInt32<T>> UInt32<T>::operator+(const UInt32<T>& rhs) {
-  return std::make_unique<UInt32<T>>(program_,
-                                     program_.AddUI32(value_, rhs.value_));
+UInt32<T> UInt32<T>::operator+(const UInt32<T>& rhs) {
+  return UInt32<T>(program_, program_.AddUI32(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<UInt32<T>> UInt32<T>::operator-(const UInt32<T>& rhs) {
-  return std::make_unique<UInt32<T>>(program_,
-                                     program_.SubUI32(value_, rhs.value_));
+UInt32<T> UInt32<T>::operator-(const UInt32<T>& rhs) {
+  return UInt32<T>(program_, program_.SubUI32(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> UInt32<T>::operator==(const UInt32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpUI32(T::CompType::ICMP_EQ, value_, rhs.value_));
+UInt32<T> UInt32<T>::operator*(const UInt32<T>& rhs) {
+  return UInt32<T>(program_, program_.MulUI32(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> UInt32<T>::operator!=(const UInt32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpUI32(T::CompType::ICMP_NE, value_, rhs.value_));
+UInt32<T> UInt32<T>::operator/(const UInt32<T>& rhs) {
+  return UInt32<T>(program_, program_.DivUI32(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> UInt32<T>::operator<(const UInt32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpUI32(T::CompType::ICMP_ULT, value_, rhs.value_));
+Bool<T> UInt32<T>::operator==(const UInt32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpUI32(T::CompType::ICMP_EQ, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> UInt32<T>::operator<=(const UInt32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpUI32(T::CompType::ICMP_ULE, value_, rhs.value_));
+Bool<T> UInt32<T>::operator!=(const UInt32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpUI32(T::CompType::ICMP_NE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> UInt32<T>::operator>(const UInt32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpUI32(T::CompType::ICMP_UGT, value_, rhs.value_));
+Bool<T> UInt32<T>::operator<(const UInt32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpUI32(T::CompType::ICMP_ULT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> UInt32<T>::operator>=(const UInt32<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpUI32(T::CompType::ICMP_UGE, value_, rhs.value_));
+Bool<T> UInt32<T>::operator<=(const UInt32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpUI32(T::CompType::ICMP_ULE, value_, rhs.value_));
+}
+
+template <typename T>
+Bool<T> UInt32<T>::operator>(const UInt32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpUI32(T::CompType::ICMP_UGT, value_, rhs.value_));
+}
+
+template <typename T>
+Bool<T> UInt32<T>::operator>=(const UInt32<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpUI32(T::CompType::ICMP_UGE, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<UInt32<T>> UInt32<T>::ToPointer() {
+  return std::make_unique<UInt32<T>>(program_, value_);
 }
 
 template <typename T>
 std::unique_ptr<Value<T>> UInt32<T>::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs_generic) {
-  UInt32<T>& lhs = *this;
-  UInt32<T>& rhs = dynamic_cast<UInt32<T>&>(rhs_generic);
-
-  switch (op_type) {
-    case plan::BinaryArithmeticOperatorType::ADD:
-      return lhs.operator+(rhs);
-
-    case plan::BinaryArithmeticOperatorType::SUB:
-      return lhs.operator-(rhs);
-
-    case plan::BinaryArithmeticOperatorType::EQ:
-      return lhs.operator==(rhs);
-
-    case plan::BinaryArithmeticOperatorType::NEQ:
-      return lhs.operator!=(rhs);
-
-    case plan::BinaryArithmeticOperatorType::LT:
-      return lhs.operator<(rhs);
-
-    case plan::BinaryArithmeticOperatorType::LEQ:
-      return lhs.operator<=(rhs);
-
-    case plan::BinaryArithmeticOperatorType::GT:
-      return lhs.operator>(rhs);
-
-    case plan::BinaryArithmeticOperatorType::GEQ:
-      return lhs.operator>=(rhs);
-
-    default:
-      throw std::runtime_error("Invalid operator on numeric");
-  }
+    plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) {
+  return EvaluateBinaryNumeric<UInt32<T>, T>(op_type, *this, rhs);
 }
 
 INSTANTIATE_ON_IR(UInt32);
@@ -373,63 +359,64 @@ typename ProgramBuilder<T>::Value& Int64<T>::Get() const {
 }
 
 template <typename T>
-std::unique_ptr<Int64<T>> Int64<T>::operator+(const Int64<T>& rhs) {
-  return std::make_unique<Int64<T>>(program_,
-                                    program_.AddI64(value_, rhs.value_));
+Int64<T> Int64<T>::operator+(const Int64<T>& rhs) {
+  return Int64<T>(program_, program_.AddI64(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int64<T>> Int64<T>::operator-(const Int64<T>& rhs) {
-  return std::make_unique<Int64<T>>(program_,
-                                    program_.SubI64(value_, rhs.value_));
+Int64<T> Int64<T>::operator-(const Int64<T>& rhs) {
+  return Int64<T>(program_, program_.SubI64(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int64<T>> Int64<T>::operator*(const Int64<T>& rhs) {
-  return std::make_unique<Int64<T>>(program_,
-                                    program_.MulI64(value_, rhs.value_));
+Int64<T> Int64<T>::operator*(const Int64<T>& rhs) {
+  return Int64<T>(program_, program_.MulI64(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Int64<T>> Int64<T>::operator/(const Int64<T>& rhs) {
-  return std::make_unique<Int64<T>>(program_,
-                                    program_.DivI64(value_, rhs.value_));
+Int64<T> Int64<T>::operator/(const Int64<T>& rhs) {
+  return Int64<T>(program_, program_.DivI64(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int64<T>::operator==(const Int64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI64(T::CompType::ICMP_EQ, value_, rhs.value_));
+Bool<T> Int64<T>::operator==(const Int64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI64(T::CompType::ICMP_EQ, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int64<T>::operator!=(const Int64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI64(T::CompType::ICMP_NE, value_, rhs.value_));
+Bool<T> Int64<T>::operator!=(const Int64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI64(T::CompType::ICMP_NE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int64<T>::operator<(const Int64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI64(T::CompType::ICMP_SLT, value_, rhs.value_));
+Bool<T> Int64<T>::operator<(const Int64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI64(T::CompType::ICMP_SLT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int64<T>::operator<=(const Int64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI64(T::CompType::ICMP_SLE, value_, rhs.value_));
+Bool<T> Int64<T>::operator<=(const Int64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI64(T::CompType::ICMP_SLE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int64<T>::operator>(const Int64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI64(T::CompType::ICMP_SGT, value_, rhs.value_));
+Bool<T> Int64<T>::operator>(const Int64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI64(T::CompType::ICMP_SGT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Int64<T>::operator>=(const Int64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI64(T::CompType::ICMP_SGE, value_, rhs.value_));
+Bool<T> Int64<T>::operator>=(const Int64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI64(T::CompType::ICMP_SGE, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Int64<T>> Int64<T>::ToPointer() {
+  return std::make_unique<Int64<T>>(program_, value_);
 }
 
 template <typename T>

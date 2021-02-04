@@ -25,20 +25,25 @@ typename ProgramBuilder<T>::Value& Bool<T>::Get() const {
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Bool<T>::operator!() {
-  return std::make_unique<Bool<T>>(program_, program_.LNotI8(value_));
+Bool<T> Bool<T>::operator!() {
+  return Bool<T>(program_, program_.LNotI8(value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Bool<T>::operator==(const Bool<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI8(T::CompType::ICMP_EQ, value_, rhs.value_));
+Bool<T> Bool<T>::operator==(const Bool<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI8(T::CompType::ICMP_EQ, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Bool<T>::operator!=(const Bool<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpI8(T::CompType::ICMP_NE, value_, rhs.value_));
+Bool<T> Bool<T>::operator!=(const Bool<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpI8(T::CompType::ICMP_NE, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Bool<T>> Bool<T>::ToPointer() {
+  return std::make_unique<Bool<T>>(program_, value_);
 }
 
 template <typename T>
@@ -48,10 +53,10 @@ std::unique_ptr<Value<T>> Bool<T>::EvaluateBinary(
 
   switch (op_type) {
     case plan::BinaryArithmeticOperatorType::EQ:
-      return this->operator==(rhs_bool);
+      return (*this == rhs_bool).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::NEQ:
-      return this->operator!=(rhs_bool);
+      return (*this != rhs_bool).ToPointer();
 
     default:
       throw std::runtime_error("Invalid operator on Bool");

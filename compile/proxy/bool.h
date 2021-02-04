@@ -15,10 +15,12 @@ class Bool : public Value<T> {
   Bool(ProgramBuilder<T>& program, bool value);
 
   typename ProgramBuilder<T>::Value& Get() const override;
-  std::unique_ptr<Bool<T>> operator!();
-  std::unique_ptr<Bool<T>> operator==(const Bool<T>& rhs);
-  std::unique_ptr<Bool<T>> operator!=(const Bool<T>& rhs);
 
+  Bool<T> operator!();
+  Bool<T> operator==(const Bool<T>& rhs);
+  Bool<T> operator!=(const Bool<T>& rhs);
+
+  std::unique_ptr<Bool<T>> ToPointer();
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) override;
 

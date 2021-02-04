@@ -24,63 +24,64 @@ typename ProgramBuilder<T>::Value& Float64<T>::Get() const {
 }
 
 template <typename T>
-std::unique_ptr<Float64<T>> Float64<T>::operator+(const Float64<T>& rhs) {
-  return std::make_unique<Float64<T>>(program_,
-                                      program_.AddF64(value_, rhs.value_));
+Float64<T> Float64<T>::operator+(const Float64<T>& rhs) {
+  return Float64<T>(program_, program_.AddF64(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Float64<T>> Float64<T>::operator-(const Float64<T>& rhs) {
-  return std::make_unique<Float64<T>>(program_,
-                                      program_.SubF64(value_, rhs.value_));
+Float64<T> Float64<T>::operator-(const Float64<T>& rhs) {
+  return Float64<T>(program_, program_.SubF64(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Float64<T>> Float64<T>::operator*(const Float64<T>& rhs) {
-  return std::make_unique<Float64<T>>(program_,
-                                      program_.MulF64(value_, rhs.value_));
+Float64<T> Float64<T>::operator*(const Float64<T>& rhs) {
+  return Float64<T>(program_, program_.MulF64(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Float64<T>> Float64<T>::operator/(const Float64<T>& rhs) {
-  return std::make_unique<Float64<T>>(program_,
-                                      program_.DivF64(value_, rhs.value_));
+Float64<T> Float64<T>::operator/(const Float64<T>& rhs) {
+  return Float64<T>(program_, program_.DivF64(value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Float64<T>::operator==(const Float64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpF64(T::CompType::FCMP_OEQ, value_, rhs.value_));
+Bool<T> Float64<T>::operator==(const Float64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpF64(T::CompType::FCMP_OEQ, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Float64<T>::operator!=(const Float64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpF64(T::CompType::FCMP_ONE, value_, rhs.value_));
+Bool<T> Float64<T>::operator!=(const Float64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpF64(T::CompType::FCMP_ONE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Float64<T>::operator<(const Float64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpF64(T::CompType::FCMP_OLT, value_, rhs.value_));
+Bool<T> Float64<T>::operator<(const Float64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpF64(T::CompType::FCMP_OLT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Float64<T>::operator<=(const Float64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpF64(T::CompType::FCMP_OLE, value_, rhs.value_));
+Bool<T> Float64<T>::operator<=(const Float64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpF64(T::CompType::FCMP_OLE, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Float64<T>::operator>(const Float64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpF64(T::CompType::FCMP_OGT, value_, rhs.value_));
+Bool<T> Float64<T>::operator>(const Float64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpF64(T::CompType::FCMP_OGT, value_, rhs.value_));
 }
 
 template <typename T>
-std::unique_ptr<Bool<T>> Float64<T>::operator>=(const Float64<T>& rhs) {
-  return std::make_unique<Bool<T>>(
-      program_, program_.CmpF64(T::CompType::FCMP_OGE, value_, rhs.value_));
+Bool<T> Float64<T>::operator>=(const Float64<T>& rhs) {
+  return Bool<T>(program_,
+                 program_.CmpF64(T::CompType::FCMP_OGE, value_, rhs.value_));
+}
+
+template <typename T>
+std::unique_ptr<Float64<T>> Float64<T>::ToPointer() {
+  return std::make_unique<Float64<T>>(program_, value_);
 }
 
 template <typename T>

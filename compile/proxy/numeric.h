@@ -14,34 +14,34 @@ std::unique_ptr<Value<T>> EvaluateBinaryNumeric(
 
   switch (op_type) {
     case plan::BinaryArithmeticOperatorType::ADD:
-      return lhs.operator+(rhs);
+      return (lhs + rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::SUB:
-      return lhs.operator-(rhs);
+      return (lhs - rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::MUL:
-      return lhs.operator*(rhs);
+      return (lhs * rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::DIV:
-      return lhs.operator/(rhs);
+      return (lhs / rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::EQ:
-      return lhs.operator==(rhs);
+      return (lhs == rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::NEQ:
-      return lhs.operator!=(rhs);
+      return (lhs != rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::LT:
-      return lhs.operator<(rhs);
+      return (lhs < rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::LEQ:
-      return lhs.operator<=(rhs);
+      return (lhs <= rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::GT:
-      return lhs.operator>(rhs);
+      return (lhs > rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::GEQ:
-      return lhs.operator>=(rhs);
+      return (lhs >= rhs).ToPointer();
 
     default:
       throw std::runtime_error("Invalid operator on numeric");

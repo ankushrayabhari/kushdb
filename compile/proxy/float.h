@@ -17,17 +17,18 @@ class Float64 : public Value<T> {
 
   typename ProgramBuilder<T>::Value& Get() const override;
 
-  std::unique_ptr<Float64<T>> operator+(const Float64<T>& rhs);
-  std::unique_ptr<Float64<T>> operator-(const Float64<T>& rhs);
-  std::unique_ptr<Float64<T>> operator*(const Float64<T>& rhs);
-  std::unique_ptr<Float64<T>> operator/(const Float64<T>& rhs);
-  std::unique_ptr<Bool<T>> operator==(const Float64<T>& rhs);
-  std::unique_ptr<Bool<T>> operator!=(const Float64<T>& rhs);
-  std::unique_ptr<Bool<T>> operator<(const Float64<T>& rhs);
-  std::unique_ptr<Bool<T>> operator<=(const Float64<T>& rhs);
-  std::unique_ptr<Bool<T>> operator>(const Float64<T>& rhs);
-  std::unique_ptr<Bool<T>> operator>=(const Float64<T>& rhs);
+  Float64<T> operator+(const Float64<T>& rhs);
+  Float64<T> operator-(const Float64<T>& rhs);
+  Float64<T> operator*(const Float64<T>& rhs);
+  Float64<T> operator/(const Float64<T>& rhs);
+  Bool<T> operator==(const Float64<T>& rhs);
+  Bool<T> operator!=(const Float64<T>& rhs);
+  Bool<T> operator<(const Float64<T>& rhs);
+  Bool<T> operator<=(const Float64<T>& rhs);
+  Bool<T> operator>(const Float64<T>& rhs);
+  Bool<T> operator>=(const Float64<T>& rhs);
 
+  std::unique_ptr<Float64<T>> ToPointer();
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;

@@ -84,6 +84,8 @@ class ProgramBuilder {
 
   // UI32
   virtual Value& AddUI32(Value& v1, Value& v2) = 0;
+  virtual Value& MulUI32(Value& v1, Value& v2) = 0;
+  virtual Value& DivUI32(Value& v1, Value& v2) = 0;
   virtual Value& SubUI32(Value& v1, Value& v2) = 0;
   virtual Value& CmpUI32(CompType cmp, Value& v1, Value& v2) = 0;
   virtual Value& ConstUI32(uint32_t v) = 0;
