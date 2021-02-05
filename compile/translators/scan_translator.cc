@@ -106,29 +106,19 @@ void ScanTranslator<T>::Produce() {
     }
   }
 
-  proxy::Loop<T>(
-      program_,
-      [&]() {
-        return util::MakeVector<std::unique_ptr<proxy::Value<T>>>(
-            std::make_unique<proxy::UInt32<T>>(program_, 0));
-      },
-      [&](proxy::Loop<T>& loop) {
-        auto idx = loop.template LoopVariable<proxy::UInt32<T>>(0);
-        return *idx < *card_var;
-      },
-      [&](proxy::Loop<T>& loop) {
-        auto idx = loop.template LoopVariable<proxy::UInt32<T>>(0);
-
+  proxy::IndexLoop<T>(
+      program_, [&]() { return proxy::UInt32<T>(program_, 0); },
+      [&](proxy::UInt32<T>& i) { return i < *card_var; },
+      [&](proxy::UInt32<T>& i) {
         for (auto& col_var : column_data_vars) {
-          this->values_.AddVariable((*col_var)[*idx]);
+          this->values_.AddVariable((*col_var)[i]);
         }
 
         if (auto parent = this->Parent()) {
           parent->get().Consume(*this);
         }
 
-        return util::MakeVector<std::unique_ptr<proxy::Value<T>>>(
-            *idx + *std::make_unique<proxy::UInt32<T>>(program_, 1));
+        return i + proxy::UInt32<T>(program_, 1);
       });
 }
 

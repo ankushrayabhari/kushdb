@@ -100,6 +100,7 @@ cc_library(
     deps = [
         ":bool",
         ":if",
+        ":int",
         "//compile:ir_registry",
         "//compile:program_builder",
     ],

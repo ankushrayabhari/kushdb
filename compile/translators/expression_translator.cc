@@ -183,7 +183,10 @@ void ExpressionTranslator<T>::Visit(const plan::CaseExpression& case_expr) {
       this->Return(Ternary<proxy::Int32<T>, T>(program_, *this, case_expr));
       break;
     }
-    case catalog::SqlType::BIGINT:
+    case catalog::SqlType::BIGINT: {
+      this->Return(Ternary<proxy::Int64<T>, T>(program_, *this, case_expr));
+      break;
+    }
     case catalog::SqlType::DATE: {
       this->Return(Ternary<proxy::Int64<T>, T>(program_, *this, case_expr));
       break;

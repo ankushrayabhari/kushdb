@@ -6,23 +6,17 @@
 
 #include "compile/program_builder.h"
 #include "compile/proxy/bool.h"
-#include "compile/proxy/if.h"
+#include "compile/proxy/int.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile::proxy {
 
 template <typename T>
-class Loop {
+class IndexLoop {
  public:
-  Loop(ProgramBuilder<T>& program,
-       std::function<std::vector<std::unique_ptr<Value<T>>>()> init,
-       std::function<std::unique_ptr<Bool<T>>(Loop<T>&)> cond,
-       std::function<std::vector<std::unique_ptr<Value<T>>>(Loop<T>&)> body);
-
-  template <typename S>
-  std::unique_ptr<S> LoopVariable(int i) {
-    return std::make_unique<S>(program_, loop_vars_[i].get());
-  }
+  IndexLoop(ProgramBuilder<T>& program, std::function<UInt32<T>()> init,
+            std::function<Bool<T>(UInt32<T>&)> cond,
+            std::function<UInt32<T>(UInt32<T>&)> body);
 
  private:
   ProgramBuilder<T>& program_;

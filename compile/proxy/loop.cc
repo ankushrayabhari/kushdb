@@ -8,40 +8,32 @@
 #include "compile/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/if.h"
+#include "compile/proxy/int.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile::proxy {
 
 template <typename T>
-Loop<T>::Loop(
-    ProgramBuilder<T>& program,
-    std::function<std::vector<std::unique_ptr<Value<T>>>()> init,
-    std::function<std::unique_ptr<Bool<T>>(Loop<T>&)> cond,
-    std::function<std::vector<std::unique_ptr<Value<T>>>(Loop<T>&)> body)
+IndexLoop<T>::IndexLoop(ProgramBuilder<T>& program,
+                        std::function<UInt32<T>()> init,
+                        std::function<Bool<T>(UInt32<T>&)> cond,
+                        std::function<UInt32<T>(UInt32<T>&)> body)
     : program_(program) {
-  auto initial_values = init();
   auto& init_block = program.CurrentBlock();
 
   // create the loop variable
-  loop_vars_.reserve(initial_values.size());
-  for (auto& value : initial_values) {
-    auto& phi = program.Phi();
-    program.AddToPhi(phi, value->Get(), init_block);
-    loop_vars_.push_back(phi);
-  }
+  auto& phi = program.Phi();
+  program.AddToPhi(phi, init().Get(), init_block);
+  auto loop_var = UInt32<T>(program, phi);
 
   // check the condition
-  auto cond_var = cond(*this);
-  If<T>(program, *cond_var, [&]() {
-    auto updated_loop_vars = body(*this);
+  If<T>(program, cond(loop_var), [&]() {
     auto& body_block = program.CurrentBlock();
-    for (int i = 0; i < updated_loop_vars.size(); i++) {
-      auto& phi = loop_vars_[i].get();
-      program.AddToPhi(phi, updated_loop_vars[i]->Get(), body_block);
-    }
+    auto updated_value = body(loop_var);
+    program.AddToPhi(phi, updated_value.Get(), body_block);
   });
 }
 
-INSTANTIATE_ON_IR(Loop);
+INSTANTIATE_ON_IR(IndexLoop);
 
 }  // namespace kush::compile::proxy
