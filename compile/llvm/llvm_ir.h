@@ -14,6 +14,7 @@ class LLVMIrTypes {
  public:
   using BasicBlock = llvm::BasicBlock;
   using Value = llvm::Value;
+  using PhiValue = llvm::PHINode;
   using CompType = llvm::CmpInst::Predicate;
   using Constant = llvm::Constant;
   using Function = llvm::Function;
@@ -29,20 +30,45 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   void Compile() const override;
   void Execute() const override;
 
-  // Control Flow
-  BasicBlock& GenerateBlock() override;
-  BasicBlock& CurrentBlock() override;
-  void SetCurrentBlock(BasicBlock& b) override;
-  void Branch(BasicBlock& b) override;
-  void Branch(Value& cond, BasicBlock& b1, BasicBlock& b2) override;
+  // Types
+  Type& I8Type() override;
+  Type& I16Type() override;
+  Type& I32Type() override;
+  Type& I64Type() override;
+  Type& UI32Type() override;
+  Type& F64Type() override;
+  Type& StructType(std::vector<std::reference_wrapper<Type>> types) override;
+  Type& PointerType(Type& type) override;
+  Type& ArrayType(Type& type) override;
+
+  // Memory
+  Value& Malloc(Value& size) override;
+  void Free(Value& ptr) override;
+  Value& NullPtr() override;
+  Value& GetElementPtr(Type& t, Value& ptr,
+                       std::vector<std::reference_wrapper<Value>> idx) override;
+  Value& PointerCast(Value& v, Type& t) override;
+  void Store(Value& ptr, Value& v) override;
+  Value& Load(Value& ptr) override;
+  void Memcpy(Value& dest, Value& src, Value& length) override;
 
   // Function
   Function& GetFunction(std::string_view name) override;
   Function& DeclareFunction(
       std::string_view name, Type& result_type,
       std::vector<std::reference_wrapper<Type>> arg_types) override;
-  Value& Call(std::string_view name,
-              std::vector<std::reference_wrapper<Value>> arguments) override;
+  Value& Call(
+      std::string_view name,
+      std::vector<std::reference_wrapper<Value>> arguments = {}) override;
+
+  // Control Flow
+  BasicBlock& GenerateBlock() override;
+  BasicBlock& CurrentBlock() override;
+  void SetCurrentBlock(BasicBlock& b) override;
+  void Branch(BasicBlock& b) override;
+  void Branch(Value& cond, BasicBlock& b1, BasicBlock& b2) override;
+  PhiValue& Phi(Type& type) override;
+  void AddToPhi(PhiValue& phi, Value& v, BasicBlock& b) override;
 
   // I8
   Value& AddI8(Value& v1, Value& v2) override;
@@ -71,6 +97,8 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
 
   // UI32
   Value& AddUI32(Value& v1, Value& v2) override;
+  Value& MulUI32(Value& v1, Value& v2) override;
+  Value& DivUI32(Value& v1, Value& v2) override;
   Value& SubUI32(Value& v1, Value& v2) override;
   Value& CmpUI32(CompType cmp, Value& v1, Value& v2) override;
   Value& ConstUI32(uint32_t v) override;

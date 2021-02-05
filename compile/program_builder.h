@@ -13,6 +13,7 @@ class ProgramBuilder {
 
   using BasicBlock = typename Impl::BasicBlock;
   using Value = typename Impl::Value;
+  using PhiValue = typename Impl::PhiValue;
   using CompType = typename Impl::CompType;
   using Constant = typename Impl::Constant;
   using Function = typename Impl::Function;
@@ -25,9 +26,9 @@ class ProgramBuilder {
   virtual Type& I64Type() = 0;
   virtual Type& UI32Type() = 0;
   virtual Type& F64Type() = 0;
-  virtual Type& StructType(std::vector<std::reference_wrapper<Type>> types);
-  virtual Type& PointerType(Type& type);
-  virtual Type& ArrayType(Type& type);
+  virtual Type& StructType(std::vector<std::reference_wrapper<Type>> types) = 0;
+  virtual Type& PointerType(Type& type) = 0;
+  virtual Type& ArrayType(Type& type) = 0;
 
   // Memory
   virtual Value& Malloc(Value& size) = 0;
@@ -55,8 +56,8 @@ class ProgramBuilder {
   virtual void SetCurrentBlock(BasicBlock& b) = 0;
   virtual void Branch(BasicBlock& b) = 0;
   virtual void Branch(Value& cond, BasicBlock& b1, BasicBlock& b2) = 0;
-  virtual Value& Phi() = 0;
-  virtual void AddToPhi(Value& phi, Value& v, BasicBlock& b) = 0;
+  virtual PhiValue& Phi(Type& type) = 0;
+  virtual void AddToPhi(PhiValue& phi, Value& v, BasicBlock& b) = 0;
 
   // I8
   virtual Value& AddI8(Value& v1, Value& v2) = 0;

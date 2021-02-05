@@ -11,7 +11,228 @@ namespace kush::compile::ir {
 LLVMIr::LLVMIr()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("query", *context_)),
-      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {}
+      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {
+  // declare all important functions
+}
+
+using BasicBlock = LLVMIrTypes::BasicBlock;
+using Value = LLVMIrTypes::Value;
+using PhiValue = LLVMIrTypes::PhiValue;
+using CompType = LLVMIrTypes::CompType;
+using Constant = LLVMIrTypes::Constant;
+using Function = LLVMIrTypes::Function;
+using Type = LLVMIrTypes::Type;
+
+template <typename T>
+std::vector<T*> VectorRefToVectorPtr(
+    std::vector<std::reference_wrapper<T>>& vec) {
+  std::vector<T*> result;
+  result.reserve(vec.size());
+  for (auto& x : vec) {
+    result.push_back(&x.get());
+  }
+  return result;
+}
+
+// Types
+Type& LLVMIr::I8Type() { return *builder_->getInt8Ty(); }
+
+Type& LLVMIr::I16Type() { return *builder_->getInt16Ty(); }
+
+Type& LLVMIr::I32Type() { return *builder_->getInt32Ty(); }
+
+Type& LLVMIr::I64Type() { return *builder_->getInt64Ty(); }
+
+Type& LLVMIr::UI32Type() { return *builder_->getInt32Ty(); }
+
+Type& LLVMIr::F64Type() { return *builder_->getDoubleTy(); }
+
+Type& LLVMIr::StructType(std::vector<std::reference_wrapper<Type>> types) {
+  return *llvm::StructType::create(*context_, VectorRefToVectorPtr(types));
+}
+
+Type& LLVMIr::PointerType(Type& type) {
+  return *llvm::PointerType::get(&type, 0);
+}
+
+Type& LLVMIr::ArrayType(Type& type) { return *llvm::ArrayType::get(&type, 0); }
+
+/* TODO:
+// Memory
+Value& LLVMIr::Malloc(Value& size);
+void LLVMIr::Free(Value& ptr);
+Value& LLVMIr::NullPtr();
+Value& LLVMIr::GetElementPtr(Type& t, Value& ptr,
+                             std::vector<std::reference_wrapper<Value>> idx);
+Value& LLVMIr::PointerCast(Value& v, Type& t);
+void LLVMIr::Store(Value& ptr, Value& v);
+Value& LLVMIr::Load(Value& ptr);
+void LLVMIr::Memcpy(Value& dest, Value& src, Value& length);
+
+// Function
+Function& LLVMIr::GetFunction(std::string_view name);
+Function& LLVMIr::DeclareFunction(
+    std::string_view name, Type& result_type,
+    std::vector<std::reference_wrapper<Type>> arg_types);
+Value& LLVMIr::Call(std::string_view name,
+                    std::vector<std::reference_wrapper<Value>> arguments = {});
+
+// Control Flow
+BasicBlock& LLVMIr::GenerateBlock();
+BasicBlock& LLVMIr::CurrentBlock();
+void LLVMIr::SetCurrentBlock(BasicBlock& b);
+void LLVMIr::Branch(BasicBlock& b);
+void LLVMIr::Branch(Value& cond, BasicBlock& b1, BasicBlock& b2); */
+
+PhiValue& LLVMIr::Phi(Type& type) { return *builder_->CreatePHI(&type, 2); }
+
+void LLVMIr::AddToPhi(PhiValue& phi, Value& v, BasicBlock& b) {
+  phi.addIncoming(&v, &b);
+}
+
+// I8
+Value& LLVMIr::AddI8(Value& v1, Value& v2) {
+  return *builder_->CreateAdd(&v1, &v2);
+}
+
+Value& LLVMIr::MulI8(Value& v1, Value& v2) {
+  return *builder_->CreateMul(&v1, &v2);
+}
+
+Value& LLVMIr::DivI8(Value& v1, Value& v2) {
+  return *builder_->CreateSDiv(&v1, &v2);
+}
+
+Value& LLVMIr::SubI8(Value& v1, Value& v2) {
+  return *builder_->CreateSub(&v1, &v2);
+}
+
+Value& LLVMIr::CmpI8(CompType cmp, Value& v1, Value& v2) {
+  return *builder_->CreateCmp(cmp, &v1, &v2);
+}
+
+Value& LLVMIr::LNotI8(Value& v) {
+  return *builder_->CreateXor(&v, builder_->getInt8(0));
+}
+
+Value& LLVMIr::ConstI8(int8_t v) { return *builder_->getInt8(v); }
+
+// I16
+Value& LLVMIr::AddI16(Value& v1, Value& v2) {
+  return *builder_->CreateAdd(&v1, &v2);
+}
+
+Value& LLVMIr::MulI16(Value& v1, Value& v2) {
+  return *builder_->CreateMul(&v1, &v2);
+}
+
+Value& LLVMIr::DivI16(Value& v1, Value& v2) {
+  return *builder_->CreateSDiv(&v1, &v2);
+}
+
+Value& LLVMIr::SubI16(Value& v1, Value& v2) {
+  return *builder_->CreateSub(&v1, &v2);
+}
+
+Value& LLVMIr::CmpI16(CompType cmp, Value& v1, Value& v2) {
+  return *builder_->CreateCmp(cmp, &v1, &v2);
+}
+
+Value& LLVMIr::ConstI16(int16_t v) { return *builder_->getInt16(v); }
+
+// I32
+Value& LLVMIr::AddI32(Value& v1, Value& v2) {
+  return *builder_->CreateAdd(&v1, &v2);
+}
+
+Value& LLVMIr::MulI32(Value& v1, Value& v2) {
+  return *builder_->CreateMul(&v1, &v2);
+}
+
+Value& LLVMIr::DivI32(Value& v1, Value& v2) {
+  return *builder_->CreateSDiv(&v1, &v2);
+}
+
+Value& LLVMIr::SubI32(Value& v1, Value& v2) {
+  return *builder_->CreateSub(&v1, &v2);
+}
+
+Value& LLVMIr::CmpI32(CompType cmp, Value& v1, Value& v2) {
+  return *builder_->CreateCmp(cmp, &v1, &v2);
+}
+
+Value& LLVMIr::ConstI32(int32_t v) { return *builder_->getInt32(v); }
+
+// UI32
+Value& LLVMIr::AddUI32(Value& v1, Value& v2) {
+  return *builder_->CreateAdd(&v1, &v2);
+}
+
+Value& LLVMIr::MulUI32(Value& v1, Value& v2) {
+  return *builder_->CreateMul(&v1, &v2);
+}
+
+Value& LLVMIr::DivUI32(Value& v1, Value& v2) {
+  return *builder_->CreateUDiv(&v1, &v2);
+}
+
+Value& LLVMIr::SubUI32(Value& v1, Value& v2) {
+  return *builder_->CreateSub(&v1, &v2);
+}
+
+Value& LLVMIr::CmpUI32(CompType cmp, Value& v1, Value& v2) {
+  return *builder_->CreateCmp(cmp, &v1, &v2);
+}
+
+Value& LLVMIr::ConstUI32(uint32_t v) { return *builder_->getInt32(v); }
+
+// I64
+Value& LLVMIr::AddI64(Value& v1, Value& v2) {
+  return *builder_->CreateAdd(&v1, &v2);
+}
+
+Value& LLVMIr::MulI64(Value& v1, Value& v2) {
+  return *builder_->CreateMul(&v1, &v2);
+}
+
+Value& LLVMIr::DivI64(Value& v1, Value& v2) {
+  return *builder_->CreateSDiv(&v1, &v2);
+}
+
+Value& LLVMIr::SubI64(Value& v1, Value& v2) {
+  return *builder_->CreateSub(&v1, &v2);
+}
+
+Value& LLVMIr::CmpI64(CompType cmp, Value& v1, Value& v2) {
+  return *builder_->CreateCmp(cmp, &v1, &v2);
+}
+
+Value& LLVMIr::ConstI64(int64_t v) { return *builder_->getInt64(v); }
+
+// F64
+Value& LLVMIr::AddF64(Value& v1, Value& v2) {
+  return *builder_->CreateFAdd(&v1, &v2);
+}
+
+Value& LLVMIr::MulF64(Value& v1, Value& v2) {
+  return *builder_->CreateFMul(&v1, &v2);
+}
+
+Value& LLVMIr::DivF64(Value& v1, Value& v2) {
+  return *builder_->CreateFDiv(&v1, &v2);
+}
+
+Value& LLVMIr::SubF64(Value& v1, Value& v2) {
+  return *builder_->CreateFSub(&v1, &v2);
+}
+
+Value& LLVMIr::CmpF64(CompType cmp, Value& v1, Value& v2) {
+  return *builder_->CreateFCmp(cmp, &v1, &v2);
+}
+
+Value& LLVMIr::ConstF64(double v) {
+  return *llvm::ConstantFP::get(builder_->getDoubleTy(), v);
+}
 
 void LLVMIr::Compile() const {
   // Write the module to a file
