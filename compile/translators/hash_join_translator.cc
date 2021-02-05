@@ -62,7 +62,8 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
     // pack tuple into table
     program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{";
     bool first = true;
-    for (const auto& [variable, type] : left_translator.GetValues().Values()) {
+    for (const auto& [variable, type] :
+         left_translator.SchemaValues().Values()) {
       if (first) {
         first = false;
       } else {
@@ -93,7 +94,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
                << bucket_var << ".size(); " << loop_var << "++){\n";
 
   // unpack tuple - reuse variables from build side loop
-  const auto& left_schema_values = left_translator.GetValues().Values();
+  const auto& left_schema_values = left_translator.SchemaValues().Values();
   for (int i = 0; i < left_schema_values.size(); i++) {
     const auto& [variable, type] = left_schema_values[i];
     const auto& [field_id, _] = packed_struct_field_ids_[i];

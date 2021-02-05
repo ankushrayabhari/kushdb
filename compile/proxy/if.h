@@ -29,6 +29,16 @@ class If {
     return phi;
   }
 
+  template <>
+  typename ProgramBuilder<T>::Value& Phi(
+      typename ProgramBuilder<T>::Value& v1,
+      typename ProgramBuilder<T>::Value& v2) {
+    auto& phi = program_.Phi();
+    program_.AddToPhi(phi, v1, b1.get());
+    program_.AddToPhi(phi, v2, b2.get());
+    return phi;
+  }
+
  private:
   ProgramBuilder<T>& program_;
   std::reference_wrapper<typename ProgramBuilder<T>::BasicBlock> b1;

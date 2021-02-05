@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/llvm/llvm_ir.h"
+#include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/order_by_operator.h"
@@ -12,7 +12,7 @@
 namespace kush::compile {
 
 template <typename T>
-class OrderByTranslator : public OperatorTranslator {
+class OrderByTranslator : public OperatorTranslator<T> {
  public:
   OrderByTranslator(
       const plan::OrderByOperator& order_by, ProgramBuilder<T>& program,
@@ -26,6 +26,7 @@ class OrderByTranslator : public OperatorTranslator {
   const plan::OrderByOperator& order_by_;
   ProgramBuilder<T>& program_;
   ExpressionTranslator<T> expr_translator_;
+  std::unique_ptr<proxy::Vector<T>> buffer_;
 };
 
 }  // namespace kush::compile

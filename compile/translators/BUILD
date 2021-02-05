@@ -104,7 +104,13 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/llvm:llvm_ir",
+        "//compile:ir_registry",
+        "//compile/proxy:bool",
+        "//compile/proxy:float",
+        "//compile/proxy:int",
+        "//compile/proxy:loop",
+        "//compile/proxy:type",
+        "//compile/proxy:vector",
         "//plan:order_by_operator",
     ],
 )

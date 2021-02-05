@@ -7,6 +7,11 @@
 
 #include "catalog/sql_type.h"
 #include "compile/ir_registry.h"
+#include "compile/proxy/bool.h"
+#include "compile/proxy/float.h"
+#include "compile/proxy/int.h"
+#include "compile/proxy/loop.h"
+#include "compile/proxy/type.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
@@ -18,7 +23,7 @@ template <typename T>
 OrderByTranslator<T>::OrderByTranslator(
     const plan::OrderByOperator& order_by, ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator(std::move(children)),
+    : OperatorTranslator<T>(std::move(children)),
       order_by_(order_by),
       program_(program),
       expr_translator_(program, *this) {}
@@ -26,34 +31,33 @@ OrderByTranslator<T>::OrderByTranslator(
 template <typename T>
 void OrderByTranslator<T>::Produce() {
   // include every child column inside the struct
-  std::vector<std::reference_wrapper<ProgramBuilder<T>::Type>> field_types;
+  proxy::StructBuilder<T> packed(program_);
   const auto& child_schema = order_by_.Child().Schema().Columns();
   for (const auto& col : child_schema) {
     switch (col.Expr().Type()) {
       case catalog::SqlType::SMALLINT:
-        field_types.push_back(program_.I16Type());
+        packed.Add(proxy::Int16<T>::Type);
         break;
       case catalog::SqlType::INT:
-        field_types.push_back(program_.I32Type());
+        packed.Add(proxy::Int32<T>::Type);
         break;
       case catalog::SqlType::BIGINT:
-        field_types.push_back(program_.I64Type());
+        packed.Add(proxy::Int64<T>::Type);
         break;
       case catalog::SqlType::REAL:
-        field_types.push_back(program_.F64Type());
+        packed.Add(proxy::Float64<T>::Type);
         break;
       case catalog::SqlType::DATE:
-        field_types.push_back(program_.I64Type());
+        packed.Add(proxy::Int64<T>::Type);
         break;
       case catalog::SqlType::TEXT:
         throw std::runtime_error("Text not supported at the moment.");
         break;
       case catalog::SqlType::BOOLEAN:
-        field_types.push_back(program_.I8Type());
+        packed.Add(proxy::Bool<T>::Type);
         break;
     }
   }
-  auto& packed_type = program_.StructType(field_types);
 
   /*
     // generate sort function
@@ -84,90 +88,42 @@ void OrderByTranslator<T>::Produce() {
   */
 
   // init vector
-  proxy::Vector<T> buffer(program_, packed_type);
+  buffer_ = std::make_unique<proxy::Vector<T>>(program_, packed);
 
   // populate vector
-  Child().Produce();
+  this->Child().Produce();
 
   // sort
-  buffer.Sort();
+  buffer_->Sort();
 
-  // output
-  proxy::Loop<T>(
-      program_,
-      [&]() {
-        return util::MakeVector<std::unique_ptr<proxy::Value<T>>>(
-            std::make_unique<proxy::UInt32<T>>(program_, 0));
-      },
-      [&](proxy::Loop<T>& loop) {
-        auto idx = loop.template LoopVariable<proxy::UInt32<T>>(0);
-        return *idx < *card_var;
-      },
-      [&](proxy::Loop<T>& loop) {
-        auto idx = loop.template LoopVariable<proxy::UInt32<T>>(0);
+  proxy::IndexLoop<T>(
+      program_, [&]() { return proxy::UInt32<T>(program_, 0); },
+      [&](proxy::UInt32<T>& i) { return i < buffer_->Size(); },
+      [&](proxy::UInt32<T>& i) {
+        auto values = buffer_->Get(i).Unpack();
 
-        for (auto& col_var : column_data_vars) {
-          this->values_.AddVariable((*col_var)[*idx]);
+        // set the child variables
+        this->Child().SchemaValues().Values();
+
+        for (const auto& column : order_by_.Schema().Columns()) {
+          this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
         }
 
         if (auto parent = this->Parent()) {
           parent->get().Consume(*this);
         }
 
-        return util::MakeVector<std::unique_ptr<proxy::Value<T>>>(
-            *idx + *std::make_unique<proxy::UInt32<T>>(program_, 1));
+        return i + proxy::UInt32<T>(program_, 1);
       });
 
-  // unpack struct
-  auto child_vars = Child().GetValues().Values();
-  for (int i = 0; i < packed_field_type_.size(); i++) {
-    const auto& [field, type] = packed_field_type_[i];
-    const auto& [variable, _] = child_vars[i];
-
-    program.fout << type << "& " << variable << " = " << buffer_var_ << "["
-                 << loop_var << "]." << field << ";\n";
-  }
-
-  // reuse child variables
-  for (const auto& column : order_by_.Schema().Columns()) {
-    auto var = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(column.Expr().Type());
-
-    program.fout << "auto " << var << " = "
-                 << expr_translator_.Compute(column.Expr())->Get();
-    program.fout << ";\n";
-
-    values_.AddVariable(var, type);
-  }
-
-  if (auto parent = Parent()) {
-    parent->get().Consume(*this);
-  }
+  buffer_.reset();
 }
 
 template <typename T>
 void OrderByTranslator<T>::Consume(OperatorTranslator<T>& src) {
-  /*
-  // append elements to array
-  auto& program = context_.Program();
-  program.fout << buffer_var_ << ".push_back(" << packed_struct_id_ << "{";
-  bool first = true;
-  for (const auto& [variable, type] : child_vars) {
-    if (first) {
-      first = false;
-    } else {
-      program.fout << ",";
-    }
-    program.fout << variable;
-  }
-  program.fout << "});\n";
-  */
-  auto& ptr = buffer.Append();
-  const auto& child_vars = Child().GetValues().Values();
-  for (int i = 0; i < child_vars.size(); i++) {
-    auto& data_ptr = program_.GetElementPtr(
-        struct_ptr_type, ptr, {program_.ConstI32(0), program_.ConstI32(i)})
-  }
+  buffer_->Append().Pack(this->Child().SchemaValues().Values());
 }
+
+INSTANTIATE_ON_IR(OrderByTranslator);
 
 }  // namespace kush::compile

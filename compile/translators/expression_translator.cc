@@ -140,7 +140,7 @@ std::unique_ptr<proxy::Value<T>> CopyProxyValue(
 
 template <typename T>
 void ExpressionTranslator<T>::Visit(const plan::ColumnRefExpression& col_ref) {
-  auto& values = source_.Children()[col_ref.GetChildIdx()].get().GetValues();
+  auto& values = source_.Children()[col_ref.GetChildIdx()].get().SchemaValues();
   auto type = col_ref.Type();
   auto& value = values.Value(col_ref.GetColumnIdx());
   this->Return(CopyProxyValue(program_, type, value.Get()));
@@ -149,7 +149,7 @@ void ExpressionTranslator<T>::Visit(const plan::ColumnRefExpression& col_ref) {
 template <typename T>
 void ExpressionTranslator<T>::Visit(
     const plan::VirtualColumnRefExpression& col_ref) {
-  auto& values = source_.GetVirtualValues();
+  auto& values = source_.VirtualSchemaValues();
   auto type = col_ref.Type();
   auto& value = values.Value(col_ref.GetColumnIdx());
   this->Return(CopyProxyValue(program_, type, value.Get()));

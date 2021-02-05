@@ -21,7 +21,7 @@ class Ptr : public Value<T> {
     throw std::runtime_error("No binary operators on ptr");
   }
 
-  void Store(S& data) { program_.Store(value_, data.Get()); }
+  void Store(const S& data) { program_.Store(value_, data.Get()); }
 
   S Load() { return S(program_, program_.Load(value_)); }
 

@@ -5,6 +5,7 @@
 
 #include "compile/program_builder.h"
 #include "compile/proxy/bool.h"
+#include "compile/proxy/type.h"
 #include "compile/proxy/value.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
@@ -33,6 +34,8 @@ class Int8 : public Value<T> {
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
+
+  const static TypeID Type = TypeID::INT8;
 
  private:
   ProgramBuilder<T>& program_;
@@ -63,6 +66,8 @@ class Int16 : public Value<T> {
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
 
+  const static TypeID Type = TypeID::INT16;
+
  private:
   ProgramBuilder<T>& program_;
   typename ProgramBuilder<T>::Value& value_;
@@ -91,6 +96,8 @@ class Int32 : public Value<T> {
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
+
+  const static TypeID Type = TypeID::INT32;
 
  private:
   ProgramBuilder<T>& program_;
@@ -121,6 +128,8 @@ class UInt32 : public Value<T> {
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
 
+  const static TypeID Type = TypeID::UINT32;
+
  private:
   ProgramBuilder<T>& program_;
   typename ProgramBuilder<T>::Value& value_;
@@ -149,6 +158,8 @@ class Int64 : public Value<T> {
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
+
+  const static TypeID Type = TypeID::INT64;
 
  private:
   ProgramBuilder<T>& program_;

@@ -15,7 +15,7 @@ void OutputTranslator::Produce() { Child().Produce(); }
 
 void OutputTranslator::Consume(OperatorTranslator& src) {
   auto& program = context_.Program();
-  const auto& values = Child().GetValues().Values();
+  const auto& values = Child().SchemaValues().Values();
   if (values.empty()) {
     return;
   }

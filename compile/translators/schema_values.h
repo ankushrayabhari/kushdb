@@ -14,8 +14,11 @@ class SchemaValues {
   SchemaValues() = default;
 
   void AddVariable(std::unique_ptr<proxy::Value<T>> value);
+
   const proxy::Value<T>& Value(int idx) const;
   std::vector<std::reference_wrapper<const proxy::Value<T>>> Values() const;
+
+  void SetValues(std::vector<std::unique_ptr<proxy::Value<T>>> values);
 
  private:
   std::vector<std::unique_ptr<proxy::Value<T>>> values_;

@@ -3,11 +3,27 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "type",
+    hdrs = ["type.h"],
+)
+
+cc_library(
     name = "value",
     hdrs = ["value.h"],
     deps = [
         "//compile:program_builder",
         "//plan/expression:binary_arithmetic_expression",
+    ],
+)
+
+cc_library(
+    name = "vector",
+    hdrs = ["vector.h"],
+    deps = [
+        ":int",
+        ":ptr",
+        "//catalog:sql_type",
+        "//compile:program_builder",
     ],
 )
 
@@ -49,6 +65,7 @@ cc_library(
     srcs = ["bool.cc"],
     hdrs = ["bool.h"],
     deps = [
+        ":type",
         ":value",
         "//compile:ir_registry",
         "//compile:program_builder",
@@ -63,6 +80,7 @@ cc_library(
     deps = [
         ":bool",
         ":numeric",
+        ":type",
         ":value",
         "//compile:ir_registry",
         "//compile:program_builder",
@@ -87,6 +105,7 @@ cc_library(
     deps = [
         ":bool",
         ":numeric",
+        ":type",
         ":value",
         "//compile:ir_registry",
         "//compile:program_builder",

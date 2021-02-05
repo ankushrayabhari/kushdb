@@ -51,12 +51,12 @@ OperatorTranslator<T>& OperatorTranslator<T>::RightChild() {
 }
 
 template <typename T>
-const SchemaValues<T>& OperatorTranslator<T>::GetValues() const {
+const SchemaValues<T>& OperatorTranslator<T>::SchemaValues() const {
   return values_;
 }
 
 template <typename T>
-const SchemaValues<T>& OperatorTranslator<T>::GetVirtualValues() const {
+const SchemaValues<T>& OperatorTranslator<T>::VirtualSchemaValues() const {
   return virtual_values_;
 }
 

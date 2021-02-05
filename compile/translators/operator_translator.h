@@ -23,12 +23,12 @@ class OperatorTranslator {
   OperatorTranslator<T>& Child();
   OperatorTranslator<T>& LeftChild();
   OperatorTranslator<T>& RightChild();
-  const SchemaValues<T>& GetValues() const;
-  const SchemaValues<T>& GetVirtualValues() const;
+  const kush::compile::SchemaValues<T>& SchemaValues() const;
+  const kush::compile::SchemaValues<T>& VirtualSchemaValues() const;
 
  protected:
-  SchemaValues<T> values_;
-  SchemaValues<T> virtual_values_;
+  kush::compile::SchemaValues<T> values_;
+  kush::compile::SchemaValues<T> virtual_values_;
 
  private:
   OperatorTranslator<T>* parent_;
