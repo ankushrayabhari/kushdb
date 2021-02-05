@@ -109,7 +109,6 @@ cc_library(
         "//compile/proxy:float",
         "//compile/proxy:int",
         "//compile/proxy:loop",
-        "//compile/proxy:type",
         "//compile/proxy:vector",
         "//plan:order_by_operator",
     ],

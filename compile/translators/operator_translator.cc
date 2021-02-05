@@ -51,6 +51,11 @@ OperatorTranslator<T>& OperatorTranslator<T>::RightChild() {
 }
 
 template <typename T>
+SchemaValues<T>& OperatorTranslator<T>::SchemaValues() {
+  return values_;
+}
+
+template <typename T>
 const SchemaValues<T>& OperatorTranslator<T>::SchemaValues() const {
   return values_;
 }

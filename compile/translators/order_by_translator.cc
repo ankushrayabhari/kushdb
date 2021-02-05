@@ -11,7 +11,6 @@
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/loop.h"
-#include "compile/proxy/type.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
@@ -34,31 +33,16 @@ void OrderByTranslator<T>::Produce() {
   proxy::StructBuilder<T> packed(program_);
   const auto& child_schema = order_by_.Child().Schema().Columns();
   for (const auto& col : child_schema) {
-    switch (col.Expr().Type()) {
-      case catalog::SqlType::SMALLINT:
-        packed.Add(proxy::Int16<T>::Type);
-        break;
-      case catalog::SqlType::INT:
-        packed.Add(proxy::Int32<T>::Type);
-        break;
-      case catalog::SqlType::BIGINT:
-        packed.Add(proxy::Int64<T>::Type);
-        break;
-      case catalog::SqlType::REAL:
-        packed.Add(proxy::Float64<T>::Type);
-        break;
-      case catalog::SqlType::DATE:
-        packed.Add(proxy::Int64<T>::Type);
-        break;
-      case catalog::SqlType::TEXT:
-        throw std::runtime_error("Text not supported at the moment.");
-        break;
-      case catalog::SqlType::BOOLEAN:
-        packed.Add(proxy::Bool<T>::Type);
-        break;
-    }
+    packed.Add(col.Expr().Type());
   }
 
+  // init vector
+  buffer_ = std::make_unique<proxy::Vector<T>>(program_, packed);
+
+  // populate vector
+  this->Child().Produce();
+
+  // sort
   /*
     // generate sort function
     auto comp_fn = program.GenerateVariable();
@@ -86,24 +70,13 @@ void OrderByTranslator<T>::Produce() {
     }
     program.fout << "return false;\n};\n";
   */
-
-  // init vector
-  buffer_ = std::make_unique<proxy::Vector<T>>(program_, packed);
-
-  // populate vector
-  this->Child().Produce();
-
-  // sort
   buffer_->Sort();
 
   proxy::IndexLoop<T>(
       program_, [&]() { return proxy::UInt32<T>(program_, 0); },
       [&](proxy::UInt32<T>& i) { return i < buffer_->Size(); },
       [&](proxy::UInt32<T>& i) {
-        auto values = buffer_->Get(i).Unpack();
-
-        // set the child variables
-        this->Child().SchemaValues().Values();
+        this->Child().SchemaValues().SetValues(buffer_->Get(i).Unpack());
 
         for (const auto& column : order_by_.Schema().Columns()) {
           this->values_.AddVariable(expr_translator_.Compute(column.Expr()));

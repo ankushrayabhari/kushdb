@@ -26,6 +26,12 @@ SchemaValues<T>::Values() const {
   return util::ImmutableReferenceVector(values_);
 }
 
+template <typename T>
+void SchemaValues<T>::SetValues(
+    std::vector<std::unique_ptr<proxy::Value<T>>> values) {
+  values_ = std::move(values);
+}
+
 INSTANTIATE_ON_IR(SchemaValues);
 
 }  // namespace kush::compile
