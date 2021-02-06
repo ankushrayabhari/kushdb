@@ -57,32 +57,59 @@ Type& LLVMIr::PointerType(Type& type) {
 
 Type& LLVMIr::ArrayType(Type& type) { return *llvm::ArrayType::get(&type, 0); }
 
-/* TODO:
 // Memory
-Value& LLVMIr::Malloc(Value& size);
-void LLVMIr::Free(Value& ptr);
-Value& LLVMIr::NullPtr();
+
+// TODO:
+// Value& LLVMIr::Malloc(Value& size);
+
+// TODO:
+// void LLVMIr::Free(Value& ptr);
+
+Value& LLVMIr::NullPtr() {
+  return *llvm::ConstantPointerNull::get(builder_->getInt8PtrTy());
+}
+
 Value& LLVMIr::GetElementPtr(Type& t, Value& ptr,
-                             std::vector<std::reference_wrapper<Value>> idx);
-Value& LLVMIr::PointerCast(Value& v, Type& t);
-void LLVMIr::Store(Value& ptr, Value& v);
-Value& LLVMIr::Load(Value& ptr);
-void LLVMIr::Memcpy(Value& dest, Value& src, Value& length);
+                             std::vector<std::reference_wrapper<Value>> idx) {
+  return *builder_->CreateGEP(&t, &ptr, VectorRefToVectorPtr(idx));
+}
+
+Value& LLVMIr::PointerCast(Value& v, Type& t) {
+  return *builder_->CreatePointerCast(&v, &t);
+}
+
+void LLVMIr::Store(Value& ptr, Value& v) { builder_->CreateStore(&v, &ptr); }
+
+Value& LLVMIr::Load(Value& ptr) { return *builder_->CreateLoad(&ptr); }
+
+// TODO:
+// void LLVMIr::Memcpy(Value& dest, Value& src, Value& length);
 
 // Function
+/*
+Function& LLVMIr::CurrentFunction() {}
 Function& LLVMIr::GetFunction(std::string_view name);
 Function& LLVMIr::DeclareFunction(
     std::string_view name, Type& result_type,
     std::vector<std::reference_wrapper<Type>> arg_types);
 Value& LLVMIr::Call(std::string_view name,
                     std::vector<std::reference_wrapper<Value>> arguments = {});
+*/
 
 // Control Flow
-BasicBlock& LLVMIr::GenerateBlock();
-BasicBlock& LLVMIr::CurrentBlock();
-void LLVMIr::SetCurrentBlock(BasicBlock& b);
-void LLVMIr::Branch(BasicBlock& b);
-void LLVMIr::Branch(Value& cond, BasicBlock& b1, BasicBlock& b2); */
+BasicBlock& LLVMIr::GenerateBlock() {
+  return *llvm::BasicBlock::Create(*context_, "", &CurrentFunction());
+}
+
+BasicBlock& LLVMIr::CurrentBlock() { return *builder_->GetInsertBlock(); }
+
+void LLVMIr::SetCurrentBlock(BasicBlock& b) { builder_->SetInsertPoint(&b); }
+
+void LLVMIr::Branch(BasicBlock& b) { builder_->CreateBr(&b); }
+
+void LLVMIr::Branch(Value& cond, BasicBlock& b1, BasicBlock& b2) {
+  builder_->CreateCondBr(&cond, &b1, &b2);
+}
 
 PhiValue& LLVMIr::Phi(Type& type) { return *builder_->CreatePHI(&type, 2); }
 

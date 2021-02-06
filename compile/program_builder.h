@@ -42,6 +42,7 @@ class ProgramBuilder {
   virtual void Memcpy(Value& dest, Value& src, Value& length) = 0;
 
   // Function
+  virtual Function& CurrentFunction() = 0;
   virtual Function& GetFunction(std::string_view name) = 0;
   virtual Function& DeclareFunction(
       std::string_view name, Type& result_type,

@@ -53,6 +53,7 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   void Memcpy(Value& dest, Value& src, Value& length) override;
 
   // Function
+  Function& CurrentFunction() override;
   Function& GetFunction(std::string_view name) override;
   Function& DeclareFunction(
       std::string_view name, Type& result_type,
