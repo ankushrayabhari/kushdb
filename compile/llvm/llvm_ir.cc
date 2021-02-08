@@ -82,8 +82,10 @@ void LLVMIr::Store(Value& ptr, Value& v) { builder_->CreateStore(&v, &ptr); }
 
 Value& LLVMIr::Load(Value& ptr) { return *builder_->CreateLoad(&ptr); }
 
-// TODO:
-// void LLVMIr::Memcpy(Value& dest, Value& src, Value& length);
+void LLVMIr::Memcpy(Value& dest, Value& src, Value& length) {
+  auto align = llvm::MaybeAlign(1);
+  builder_->CreateMemCpyInline(&dest, align, &src, align, &length);
+}
 
 // Function
 /*
