@@ -57,6 +57,8 @@ Type& LLVMIr::PointerType(Type& type) {
 
 Type& LLVMIr::ArrayType(Type& type) { return *llvm::ArrayType::get(&type, 0); }
 
+Type& LLVMIr::TypeOf(Value& value) { return *value.getType(); }
+
 // Memory
 
 // TODO:
@@ -88,19 +90,51 @@ void LLVMIr::Memcpy(Value& dest, Value& src, Value& length) {
 }
 
 // Function
-/*
-Function& LLVMIr::CurrentFunction() {}
-Function& LLVMIr::GetFunction(std::string_view name);
-Function& LLVMIr::DeclareFunction(
-    std::string_view name, Type& result_type,
-    std::vector<std::reference_wrapper<Type>> arg_types);
-Value& LLVMIr::Call(std::string_view name,
-                    std::vector<std::reference_wrapper<Value>> arguments = {});
-*/
+Function& LLVMIr::CreateFunction(
+    Type& result_type, std::vector<std::reference_wrapper<Type>> arg_types) {
+  static int i = 0;
+  std::string name = "func" + std::to_string(i++);
+
+  auto func_type = llvm::FunctionType::get(
+      &result_type, VectorRefToVectorPtr(arg_types), false);
+
+  auto func = llvm::Function::Create(
+      func_type, llvm::GlobalValue::LinkageTypes::InternalLinkage, name.c_str(),
+      module_.get());
+  auto bb = llvm::BasicBlock::Create(*context_, "", func);
+  builder_->SetInsertPoint(bb);
+  return *func;
+}
+
+std::vector<std::reference_wrapper<Value>> GetFunctionArguments(
+    Function& func) {
+  std::vector<std::reference_wrapper<Value>> result;
+  for (auto& arg : func.args()) {
+    result.push_back(arg);
+  }
+  return result;
+}
+
+void LLVMIr::Return(Value& v) { builder_->CreateRet(&v); }
+
+std::optional<std::reference_wrapper<Function>> LLVMIr::GetFunction(
+    std::string_view name) {
+  auto fn = module_->getFunction(name);
+  if (fn == nullptr) {
+    return std::nullopt;
+  }
+  return *fn;
+}
+
+Value& LLVMIr::Call(Function& func,
+                    std::vector<std::reference_wrapper<Value>> arguments) {
+  return *builder_->CreateCall(&func, VectorRefToVectorPtr(arguments));
+}
 
 // Control Flow
 BasicBlock& LLVMIr::GenerateBlock() {
-  return *llvm::BasicBlock::Create(*context_, "", &CurrentFunction());
+  return *llvm::BasicBlock::Create(*context_, "",
+                                   builder_->GetInsertBlock()->getParent());
 }
 
 BasicBlock& LLVMIr::CurrentBlock() { return *builder_->GetInsertBlock(); }

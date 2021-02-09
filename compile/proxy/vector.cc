@@ -60,7 +60,7 @@ Struct<T> Vector<T>::Append() {
 }
 
 template <typename T>
-void Vector<T>::Sort() {}
+void Vector<T>::Sort(typename ProgramBuilder<T>::Function& comp) {}
 
 template <typename T>
 UInt32<T> Vector<T>::Size() {

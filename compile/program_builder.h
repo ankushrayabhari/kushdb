@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -29,6 +30,7 @@ class ProgramBuilder {
   virtual Type& StructType(std::vector<std::reference_wrapper<Type>> types) = 0;
   virtual Type& PointerType(Type& type) = 0;
   virtual Type& ArrayType(Type& type) = 0;
+  virtual Type& TypeOf(Value& value) = 0;
 
   // Memory
   virtual Value& Malloc(Value& size) = 0;
@@ -42,13 +44,16 @@ class ProgramBuilder {
   virtual void Memcpy(Value& dest, Value& src, Value& length) = 0;
 
   // Function
-  virtual Function& CurrentFunction() = 0;
-  virtual Function& GetFunction(std::string_view name) = 0;
-  virtual Function& DeclareFunction(
-      std::string_view name, Type& result_type,
+  virtual std::optional<std::reference_wrapper<Function>> GetFunction(
+      std::string_view name) = 0;
+  virtual Function& CreateFunction(
+      Type& result_type,
       std::vector<std::reference_wrapper<Type>> arg_types) = 0;
+  virtual std::vector<std::reference_wrapper<Value>> GetFunctionArguments(
+      Function& func) = 0;
+  virtual void Return(Value& v) = 0;
   virtual Value& Call(
-      std::string_view name,
+      Function& func,
       std::vector<std::reference_wrapper<Value>> arguments = {}) = 0;
 
   // Control Flow

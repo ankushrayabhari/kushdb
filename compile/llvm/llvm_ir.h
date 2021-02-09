@@ -40,6 +40,7 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   Type& StructType(std::vector<std::reference_wrapper<Type>> types) override;
   Type& PointerType(Type& type) override;
   Type& ArrayType(Type& type) override;
+  Type& TypeOf(Value& value) override;
 
   // Memory
   Value& Malloc(Value& size) override;
@@ -53,14 +54,16 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   void Memcpy(Value& dest, Value& src, Value& length) override;
 
   // Function
-  Function& CurrentFunction() override;
-  Function& GetFunction(std::string_view name) override;
-  Function& DeclareFunction(
-      std::string_view name, Type& result_type,
+  Function& CreateFunction(
+      Type& result_type,
       std::vector<std::reference_wrapper<Type>> arg_types) override;
-  Value& Call(
-      std::string_view name,
-      std::vector<std::reference_wrapper<Value>> arguments = {}) override;
+  std::vector<std::reference_wrapper<Value>> GetFunctionArguments(
+      Function& func) override;
+  void Return(Value& v) override;
+  std::optional<std::reference_wrapper<Function>> GetFunction(
+      std::string_view name) override;
+  Value& Call(Function& name,
+              std::vector<std::reference_wrapper<Value>> arguments) override;
 
   // Control Flow
   BasicBlock& GenerateBlock() override;

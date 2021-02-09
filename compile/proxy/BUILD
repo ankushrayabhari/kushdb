@@ -39,6 +39,18 @@ cc_library(
 )
 
 cc_library(
+    name = "function",
+    srcs = ["function.cc"],
+    hdrs = ["function.h"],
+    deps = [
+        ":bool",
+        ":struct",
+        "//compile:ir_registry",
+        "//compile:program_builder",
+    ],
+)
+
+cc_library(
     name = "ptr",
     hdrs = ["ptr.h"],
     deps = [

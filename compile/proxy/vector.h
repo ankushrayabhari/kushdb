@@ -15,7 +15,7 @@ class Vector {
   ~Vector();
 
   Struct<T> Append();
-  void Sort();
+  void Sort(typename ProgramBuilder<T>::Function& comp);
   UInt32<T> Size();
   Struct<T> Get(const proxy::UInt32<T>& idx);
 

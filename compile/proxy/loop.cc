@@ -22,7 +22,7 @@ IndexLoop<T>::IndexLoop(ProgramBuilder<T>& program,
   auto& init_block = program.CurrentBlock();
 
   // create the loop variable
-  auto& phi = program.Phi();
+  auto& phi = program.Phi(program.I32Type());
   program.AddToPhi(phi, init().Get(), init_block);
   auto loop_var = UInt32<T>(program, phi);
 

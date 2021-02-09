@@ -9,6 +9,7 @@
 #include "compile/ir_registry.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
+#include "compile/proxy/function.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/vector.h"
@@ -43,34 +44,49 @@ void OrderByTranslator<T>::Produce() {
   this->Child().Produce();
 
   // sort
-  /*
-    // generate sort function
-    auto comp_fn = program.GenerateVariable();
-    program.fout << " auto " << comp_fn << " = [](const " << packed_struct_id_
-                 << "& p1, const " << packed_struct_id_ << "& p2) -> bool{\n";
+  proxy::ComparisonFunction<T> comp_fn(
+      program_, packed,
+      [&](proxy::Struct<T>& s1, proxy::Struct<T>& s2,
+          std::function<void(proxy::Bool<T>)> Return) {
+        auto s1_fields = s1.Unpack();
+        auto s2_fields = s2.Unpack();
 
-    const auto sort_keys = order_by_.KeyExprs();
-    const auto& ascending = order_by_.Ascending();
-    for (int i = 0; i < sort_keys.size(); i++) {
-      int field_idx = sort_keys[i].get().GetColumnIdx();
-      const auto& [field, _] = packed_field_type_[field_idx];
-      auto asc = ascending[i];
+        const auto sort_keys = order_by_.KeyExprs();
+        const auto& ascending = order_by_.Ascending();
+        for (int i = 0; i < sort_keys.size(); i++) {
+          int field_idx = sort_keys[i].get().GetColumnIdx();
 
-      if (i > 0) {
-        int last_field_idx = sort_keys[i - 1].get().GetColumnIdx();
-        const auto& [last_field, _] = packed_field_type_[last_field_idx];
+          auto& s1_field = *s1_fields[field_idx];
+          auto& s2_field = *s2_fields[field_idx];
+          auto asc = ascending[i];
 
-        program.fout << "if (p1." << last_field << (" != ") << "p2." <<
-    last_field
-                     << ") return false;\n";
-      }
+          if (asc) {
+            auto v1 = s1_field.EvaluateBinary(
+                plan::BinaryArithmeticOperatorType::LT, s2_field);
+            proxy::If(program_, static_cast<proxy::Bool<T>&>(*v1),
+                      [&]() { Return(proxy::Bool<T>(program_, true)); });
 
-      program.fout << "if (p1." << field << (asc ? " < " : " > ") << "p2."
-                   << field << ") return true;\n";
-    }
-    program.fout << "return false;\n};\n";
-  */
-  buffer_->Sort();
+            auto v2 = s1_field.EvaluateBinary(
+                plan::BinaryArithmeticOperatorType::GT, s2_field);
+            proxy::If(program_, static_cast<proxy::Bool<T>&>(*v2),
+                      [&]() { Return(proxy::Bool<T>(program_, false)); });
+          } else {
+            auto v1 = s1_field.EvaluateBinary(
+                plan::BinaryArithmeticOperatorType::LT, s2_field);
+            proxy::If(program_, static_cast<proxy::Bool<T>&>(*v1),
+                      [&]() { Return(proxy::Bool<T>(program_, false)); });
+
+            auto v2 = s1_field.EvaluateBinary(
+                plan::BinaryArithmeticOperatorType::GT, s2_field);
+            proxy::If(program_, static_cast<proxy::Bool<T>&>(*v2),
+                      [&]() { Return(proxy::Bool<T>(program_, true)); });
+          }
+        }
+
+        Return(proxy::Bool<T>(program_, false));
+      });
+
+  buffer_->Sort(comp_fn.Get());
 
   proxy::IndexLoop<T>(
       program_, [&]() { return proxy::UInt32<T>(program_, 0); },

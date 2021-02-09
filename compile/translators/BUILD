@@ -107,6 +107,7 @@ cc_library(
         "//compile:ir_registry",
         "//compile/proxy:bool",
         "//compile/proxy:float",
+        "//compile/proxy:function",
         "//compile/proxy:int",
         "//compile/proxy:loop",
         "//compile/proxy:vector",
