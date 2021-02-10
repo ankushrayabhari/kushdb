@@ -12,7 +12,17 @@ LLVMIr::LLVMIr()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("query", *context_)),
       builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {
-  // declare all important functions
+  auto malloc_type = llvm::FunctionType::get(builder_->getInt8PtrTy(),
+                                             builder_->getInt64Ty(), false);
+  malloc = llvm::Function::Create(
+      malloc_type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "malloc",
+      module_.get());
+
+  auto free_type = llvm::FunctionType::get(builder_->getVoidTy(),
+                                           builder_->getInt8PtrTy(), false);
+  free = llvm::Function::Create(
+      free_type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "free",
+      module_.get());
 }
 
 using BasicBlock = LLVMIrTypes::BasicBlock;
@@ -60,12 +70,9 @@ Type& LLVMIr::ArrayType(Type& type) { return *llvm::ArrayType::get(&type, 0); }
 Type& LLVMIr::TypeOf(Value& value) { return *value.getType(); }
 
 // Memory
+Value& LLVMIr::Malloc(Value& size) { return Call(*malloc, {size}); }
 
-// TODO:
-// Value& LLVMIr::Malloc(Value& size);
-
-// TODO:
-// void LLVMIr::Free(Value& ptr);
+void LLVMIr::Free(Value& ptr) { Call(*free, {ptr}); }
 
 Value& LLVMIr::NullPtr() {
   return *llvm::ConstantPointerNull::get(builder_->getInt8PtrTy());

@@ -127,6 +127,7 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> module_;
   std::unique_ptr<llvm::IRBuilder<>> builder_;
+  Function *malloc, *free;
 };
 
 }  // namespace kush::compile::ir
