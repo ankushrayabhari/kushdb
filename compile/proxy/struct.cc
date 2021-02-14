@@ -18,25 +18,25 @@ template <typename T>
 void StructBuilder<T>::Add(catalog::SqlType type) {
   switch (type) {
     case catalog::SqlType::SMALLINT:
-      fields_.Add(program_.I16Type());
+      fields_.push_back(program_.I16Type());
       break;
     case catalog::SqlType::INT:
-      fields_.Add(program_.I32Type());
+      fields_.push_back(program_.I32Type());
       break;
     case catalog::SqlType::BIGINT:
-      fields_.Add(program_.I64Type());
+      fields_.push_back(program_.I64Type());
       break;
     case catalog::SqlType::REAL:
-      fields_.Add(program_.F64Type());
+      fields_.push_back(program_.F64Type());
       break;
     case catalog::SqlType::DATE:
-      fields_.Add(program_.I64Type());
+      fields_.push_back(program_.I64Type());
       break;
     case catalog::SqlType::TEXT:
       throw std::runtime_error("Text not supported at the moment.");
       break;
     case catalog::SqlType::BOOLEAN:
-      fields_.Add(program_.I8Type());
+      fields_.push_back(program_.I8Type());
       break;
   }
 }
@@ -51,6 +51,8 @@ std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Type>>
 StructBuilder<T>::Fields() {
   return fields_;
 }
+
+INSTANTIATE_ON_IR(StructBuilder);
 
 template <typename T>
 Struct<T>::Struct(ProgramBuilder<T>& program, StructBuilder<T>& fields,

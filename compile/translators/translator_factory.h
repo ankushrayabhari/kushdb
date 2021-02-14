@@ -3,19 +3,26 @@
 #include <memory>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "compile/llvm/llvm_ir.h"
+#include "compile/proxy/column_data.h"
 #include "compile/translators/operator_translator.h"
+#include "plan/operator.h"
 #include "plan/operator_visitor.h"
 #include "util/visitor.h"
 
 namespace kush::compile {
 
+template <typename T>
 class TranslatorFactory
-    : public util::Visitor<const plan::Operator&,
-                           plan::ImmutableOperatorVisitor,
-                           std::unique_ptr<OperatorTranslator>> {
+    : public util::Visitor<plan::ImmutableOperatorVisitor,
+                           const plan::Operator&, OperatorTranslator<T>> {
  public:
-  TranslatorFactory(CppCompilationContext& context);
+  TranslatorFactory(
+      ProgramBuilder<T>& program,
+      absl::flat_hash_map<catalog::SqlType,
+                          proxy::ForwardDeclaredColumnDataFunctions<T>>&
+          functions);
   virtual ~TranslatorFactory() = default;
 
   void Visit(const plan::ScanOperator& scan) override;
@@ -27,9 +34,11 @@ class TranslatorFactory
   void Visit(const plan::OrderByOperator& order_by) override;
 
  private:
-  std::vector<std::unique_ptr<OperatorTranslator>> GetChildTranslators(
+  std::vector<std::unique_ptr<OperatorTranslator<T>>> GetChildTranslators(
       const plan::Operator& current);
-  CppCompilationContext& context_;
+  ProgramBuilder<T>& program_;
+  absl::flat_hash_map<catalog::SqlType,
+                      proxy::ForwardDeclaredColumnDataFunctions<T>>& functions_;
 };
 
 }  // namespace kush::compile

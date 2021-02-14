@@ -27,7 +27,7 @@ class Table {
  public:
   explicit Table(std::string_view name);
 
-  std::string_view Name();
+  std::string_view Name() const;
   Column& Insert(std::string_view attr, SqlType type, std::string_view path);
   const Column& operator[](std::string_view attr) const;
   std::vector<std::reference_wrapper<const Column>> Columns() const;

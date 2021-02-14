@@ -45,6 +45,8 @@ std::vector<T*> VectorRefToVectorPtr(
 }
 
 // Types
+Type& LLVMIr::VoidType() { return *builder_->getVoidTy(); }
+
 Type& LLVMIr::I8Type() { return *builder_->getInt8Ty(); }
 
 Type& LLVMIr::I16Type() { return *builder_->getInt16Ty(); }
@@ -69,13 +71,20 @@ Type& LLVMIr::ArrayType(Type& type) { return *llvm::ArrayType::get(&type, 0); }
 
 Type& LLVMIr::TypeOf(Value& value) { return *value.getType(); }
 
+Value& LLVMIr::SizeOf(Type& type) {
+  auto& pointer_type = PointerType(type);
+  auto& null = NullPtr(pointer_type);
+  auto& size_ptr = GetElementPtr(type, null, {ConstI32(1)});
+  return PointerCast(size_ptr, I64Type());
+}
+
 // Memory
 Value& LLVMIr::Malloc(Value& size) { return Call(*malloc, {size}); }
 
 void LLVMIr::Free(Value& ptr) { Call(*free, {ptr}); }
 
-Value& LLVMIr::NullPtr() {
-  return *llvm::ConstantPointerNull::get(builder_->getInt8PtrTy());
+Value& LLVMIr::NullPtr(Type& t) {
+  return *llvm::ConstantPointerNull::get(llvm::dyn_cast<llvm::PointerType>(&t));
 }
 
 Value& LLVMIr::GetElementPtr(Type& t, Value& ptr,
@@ -101,19 +110,36 @@ Function& LLVMIr::CreateFunction(
     Type& result_type, std::vector<std::reference_wrapper<Type>> arg_types) {
   static int i = 0;
   std::string name = "func" + std::to_string(i++);
+  return CreateFunction(result_type, std::move(arg_types), name);
+}
 
+Function& LLVMIr::CreateFunction(
+    Type& result_type, std::vector<std::reference_wrapper<Type>> arg_types,
+    std::string_view name) {
+  std::string fn_name(name);
   auto func_type = llvm::FunctionType::get(
       &result_type, VectorRefToVectorPtr(arg_types), false);
-
   auto func = llvm::Function::Create(
-      func_type, llvm::GlobalValue::LinkageTypes::InternalLinkage, name.c_str(),
-      module_.get());
+      func_type, llvm::GlobalValue::LinkageTypes::InternalLinkage,
+      fn_name.c_str(), module_.get());
   auto bb = llvm::BasicBlock::Create(*context_, "", func);
   builder_->SetInsertPoint(bb);
   return *func;
 }
 
-std::vector<std::reference_wrapper<Value>> GetFunctionArguments(
+Function& LLVMIr::DeclareExternalFunction(
+    std::string_view name, Type& result_type,
+    std::vector<std::reference_wrapper<Type>> arg_types) {
+  std::string name_to_create(name);
+  auto func_type = llvm::FunctionType::get(
+      &result_type, VectorRefToVectorPtr(arg_types), false);
+  auto func = llvm::Function::Create(
+      func_type, llvm::GlobalValue::LinkageTypes::ExternalLinkage,
+      name_to_create.c_str(), module_.get());
+  return *func;
+}
+
+std::vector<std::reference_wrapper<Value>> LLVMIr::GetFunctionArguments(
     Function& func) {
   std::vector<std::reference_wrapper<Value>> result;
   for (auto& arg : func.args()) {
@@ -123,15 +149,6 @@ std::vector<std::reference_wrapper<Value>> GetFunctionArguments(
 }
 
 void LLVMIr::Return(Value& v) { builder_->CreateRet(&v); }
-
-std::optional<std::reference_wrapper<Function>> LLVMIr::GetFunction(
-    std::string_view name) {
-  auto fn = module_->getFunction(name);
-  if (fn == nullptr) {
-    return std::nullopt;
-  }
-  return *fn;
-}
 
 Value& LLVMIr::Call(Function& func,
                     std::vector<std::reference_wrapper<Value>> arguments) {
@@ -302,6 +319,11 @@ Value& LLVMIr::CmpF64(CompType cmp, Value& v1, Value& v2) {
 
 Value& LLVMIr::ConstF64(double v) {
   return *llvm::ConstantFP::get(builder_->getDoubleTy(), v);
+}
+
+// Globals
+Value& LLVMIr::CreateGlobal(std::string_view s) {
+  return *builder_->CreateGlobalStringPtr(s);
 }
 
 void LLVMIr::Compile() const {

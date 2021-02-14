@@ -13,7 +13,7 @@ namespace kush::plan {
 
 class ScanOperator final : public Operator {
  public:
-  ScanOperator(OperatorSchema schema, catalog::Table& relation);
+  ScanOperator(OperatorSchema schema, const catalog::Table& relation);
 
   const catalog::Table& Relation() const;
 
@@ -23,7 +23,7 @@ class ScanOperator final : public Operator {
   nlohmann::json ToJson() const override;
 
  private:
-  catalog::Table& relation_;
+  const catalog::Table& relation_;
 };
 
 }  // namespace kush::plan

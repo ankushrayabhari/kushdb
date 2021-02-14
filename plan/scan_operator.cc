@@ -10,7 +10,8 @@
 
 namespace kush::plan {
 
-ScanOperator::ScanOperator(OperatorSchema schema, catalog::Table& relation)
+ScanOperator::ScanOperator(OperatorSchema schema,
+                           const catalog::Table& relation)
     : Operator(std::move(schema), {}), relation_(relation) {}
 
 nlohmann::json ScanOperator::ToJson() const {

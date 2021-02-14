@@ -62,6 +62,7 @@ cc_library(
 
 cc_library(
     name = "column_data",
+    srcs = ["column_data.cc"],
     hdrs = ["column_data.h"],
     deps = [
         ":bool",

@@ -21,6 +21,7 @@ class ProgramBuilder {
   using Type = typename Impl::Type;
 
   // Types
+  virtual Type& VoidType() = 0;
   virtual Type& I8Type() = 0;
   virtual Type& I16Type() = 0;
   virtual Type& I32Type() = 0;
@@ -31,11 +32,12 @@ class ProgramBuilder {
   virtual Type& PointerType(Type& type) = 0;
   virtual Type& ArrayType(Type& type) = 0;
   virtual Type& TypeOf(Value& value) = 0;
+  virtual Value& SizeOf(Type& type) = 0;
 
   // Memory
   virtual Value& Malloc(Value& size) = 0;
   virtual void Free(Value& ptr) = 0;
-  virtual Value& NullPtr() = 0;
+  virtual Value& NullPtr(Type& t) = 0;
   virtual Value& GetElementPtr(
       Type& t, Value& ptr, std::vector<std::reference_wrapper<Value>> idx) = 0;
   virtual Value& PointerCast(Value& v, Type& t) = 0;
@@ -44,10 +46,14 @@ class ProgramBuilder {
   virtual void Memcpy(Value& dest, Value& src, Value& length) = 0;
 
   // Function
-  virtual std::optional<std::reference_wrapper<Function>> GetFunction(
-      std::string_view name) = 0;
   virtual Function& CreateFunction(
       Type& result_type,
+      std::vector<std::reference_wrapper<Type>> arg_types) = 0;
+  virtual Function& CreateFunction(
+      Type& result_type, std::vector<std::reference_wrapper<Type>> arg_types,
+      std::string_view name) = 0;
+  virtual Function& DeclareExternalFunction(
+      std::string_view name, Type& result_type,
       std::vector<std::reference_wrapper<Type>> arg_types) = 0;
   virtual std::vector<std::reference_wrapper<Value>> GetFunctionArguments(
       Function& func) = 0;
@@ -113,6 +119,9 @@ class ProgramBuilder {
   virtual Value& SubF64(Value& v1, Value& v2) = 0;
   virtual Value& CmpF64(CompType cmp, Value& v1, Value& v2) = 0;
   virtual Value& ConstF64(double v) = 0;
+
+  // Globals
+  virtual Value& CreateGlobal(std::string_view s) = 0;
 };
 
 }  // namespace kush::compile

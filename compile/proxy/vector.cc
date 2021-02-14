@@ -70,7 +70,7 @@ UInt32<T> Vector<T>::Size() {
 template <typename T>
 Struct<T> Vector<T>::Get(const proxy::UInt32<T>& idx) {
   return Struct<T>(program_, content_,
-                   program_.GetElementPtr(*struct_ptr_type, *data,
+                   program_.GetElementPtr(*struct_type, *data,
                                           {program_.ConstI32(0),
                                            program_.ConstI32(2), idx.Get()}));
 }
@@ -79,7 +79,7 @@ template <typename T>
 typename ProgramBuilder<T>::Value& Vector<T>::Create(
     const proxy::UInt32<T>& new_capacity) {
   auto& size_ptr = program_.GetElementPtr(
-      *struct_ptr_type, program_.NullPtr(),
+      *struct_type, program_.NullPtr(*struct_ptr_type),
       {program_.ConstI32(0), program_.ConstI32(2), new_capacity.Get()});
   auto& size = program_.PointerCast(size_ptr, program_.UI32Type());
   auto& ptr = program_.Malloc(size);
@@ -91,13 +91,13 @@ void Vector<T>::Copy(typename ProgramBuilder<T>::Value* source,
                      typename ProgramBuilder<T>::Value* dest,
                      const proxy::UInt32<T>& size) {
   auto& old_data_ptr = program_.GetElementPtr(
-      *struct_ptr_type, *source, {program_.ConstI32(0), program_.ConstI32(2)});
+      *struct_type, *source, {program_.ConstI32(0), program_.ConstI32(2)});
   auto& length_ptr = program_.GetElementPtr(
-      *struct_ptr_type, program_.NullPtr(),
+      *struct_type, program_.NullPtr(*struct_ptr_type),
       {program_.ConstI32(0), program_.ConstI32(2), size.Get()});
   auto& length = program_.PointerCast(length_ptr, program_.UI32Type());
   auto& new_data_ptr = program_.GetElementPtr(
-      *struct_ptr_type, *dest, {program_.ConstI32(0), program_.ConstI32(2)});
+      *struct_type, *dest, {program_.ConstI32(0), program_.ConstI32(2)});
   program_.Memcpy(program_.PointerCast(new_data_ptr, program_.I8Type()),
                   program_.PointerCast(old_data_ptr, program_.I8Type()),
                   length);
@@ -108,7 +108,7 @@ Ptr<T, UInt32<T>> Vector<T>::CapacityPtr(
     typename ProgramBuilder<T>::Value* target) {
   return Ptr<T, UInt32<T>>(
       program_,
-      program_.GetElementPtr(*struct_ptr_type, *target,
+      program_.GetElementPtr(*struct_type, *target,
                              {program_.ConstI32(0), program_.ConstI32(0)}));
 }
 
@@ -117,7 +117,7 @@ Ptr<T, UInt32<T>> Vector<T>::SizePtr(
     typename ProgramBuilder<T>::Value* target) {
   return Ptr<T, UInt32<T>>(
       program_,
-      program_.GetElementPtr(*struct_ptr_type, *target,
+      program_.GetElementPtr(*struct_type, *target,
                              {program_.ConstI32(0), program_.ConstI32(1)}));
 }
 

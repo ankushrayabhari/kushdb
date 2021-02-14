@@ -24,6 +24,8 @@ Column& Table::Insert(std::string_view attr, SqlType type,
   return name_to_col_.at(attr);
 }
 
+std::string_view Table::Name() const { return name_; }
+
 const Column& Table::operator[](std::string_view attr) const {
   return name_to_col_.at(attr);
 }

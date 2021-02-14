@@ -121,11 +121,8 @@ cc_library(
     hdrs = ["translator_factory.h"],
     deps = [
         ":cross_product_translator",
-        ":group_by_aggregate_translator",
-        ":hash_join_translator",
         ":operator_translator",
         ":order_by_translator",
-        ":output_translator",
         ":scan_translator",
         ":select_translator",
         "//plan:hash_join_operator",

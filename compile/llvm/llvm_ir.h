@@ -21,7 +21,7 @@ class LLVMIrTypes {
   using Type = llvm::Type;
 };
 
-class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
+class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
  public:
   LLVMIr();
   ~LLVMIr() = default;
@@ -31,6 +31,7 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   void Execute() const override;
 
   // Types
+  Type& VoidType() override;
   Type& I8Type() override;
   Type& I16Type() override;
   Type& I32Type() override;
@@ -41,11 +42,12 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   Type& PointerType(Type& type) override;
   Type& ArrayType(Type& type) override;
   Type& TypeOf(Value& value) override;
+  Value& SizeOf(Type& type) override;
 
   // Memory
   Value& Malloc(Value& size) override;
   void Free(Value& ptr) override;
-  Value& NullPtr() override;
+  Value& NullPtr(Type& t) override;
   Value& GetElementPtr(Type& t, Value& ptr,
                        std::vector<std::reference_wrapper<Value>> idx) override;
   Value& PointerCast(Value& v, Type& t) override;
@@ -57,11 +59,15 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   Function& CreateFunction(
       Type& result_type,
       std::vector<std::reference_wrapper<Type>> arg_types) override;
+  Function& CreateFunction(Type& result_type,
+                           std::vector<std::reference_wrapper<Type>> arg_types,
+                           std::string_view name) override;
+  Function& DeclareExternalFunction(
+      std::string_view name, Type& result_type,
+      std::vector<std::reference_wrapper<Type>> arg_types) override;
   std::vector<std::reference_wrapper<Value>> GetFunctionArguments(
       Function& func) override;
   void Return(Value& v) override;
-  std::optional<std::reference_wrapper<Function>> GetFunction(
-      std::string_view name) override;
   Value& Call(Function& name,
               std::vector<std::reference_wrapper<Value>> arguments) override;
 
@@ -122,6 +128,9 @@ class LLVMIr : public Program, ProgramBuilder<LLVMIrTypes> {
   Value& SubF64(Value& v1, Value& v2) override;
   Value& CmpF64(CompType cmp, Value& v1, Value& v2) override;
   Value& ConstF64(double v) override;
+
+  // Globals
+  Value& CreateGlobal(std::string_view s) override;
 
  private:
   std::unique_ptr<llvm::LLVMContext> context_;
