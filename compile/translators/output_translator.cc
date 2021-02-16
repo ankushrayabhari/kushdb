@@ -1,41 +1,37 @@
 #include "compile/translators/output_translator.h"
 
-#include "compile/llvm/llvm_ir.h"
+#include "compile/ir_registry.h"
+#include "compile/proxy/printer.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/output_operator.h"
 
 namespace kush::compile {
 
-OutputTranslator::OutputTranslator(
-    const plan::OutputOperator& output, CppCompilationContext& context,
-    std::vector<std::unique_ptr<OperatorTranslator>> children)
-    : OperatorTranslator(std::move(children)), context_(context) {}
+template <typename T>
+OutputTranslator<T>::OutputTranslator(
+    const plan::OutputOperator& output, ProgramBuilder<T>& program,
+    proxy::ForwardDeclaredPrintFunctions<T>& print_funcs,
+    std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
+    : OperatorTranslator<T>(std::move(children)),
+      program_(program),
+      print_funcs_(print_funcs) {}
 
-void OutputTranslator::Produce() { Child().Produce(); }
-
-void OutputTranslator::Consume(OperatorTranslator& src) {
-  auto& program = context_.Program();
-  const auto& values = Child().SchemaValues().Values();
-  if (values.empty()) {
-    return;
-  }
-
-  bool first = true;
-  for (const auto& [variable, type] : values) {
-    if (type == "double") {
-      program.fout << "std::cout << std::fixed;";
-    }
-    program.fout << "std::cout";
-
-    if (first) {
-      program.fout << " << " << variable << ";";
-      first = false;
-    } else {
-      program.fout << " << \",\" << " << variable << ";";
-    }
-  }
-
-  program.fout << "std::cout << \"\\n\";\n";
+template <typename T>
+void OutputTranslator<T>::Produce() {
+  this->Child().Produce();
 }
+
+template <typename T>
+void OutputTranslator<T>::Consume(OperatorTranslator<T>& src) {
+  auto values = this->Child().SchemaValues().Values();
+
+  proxy::Printer printer(program_, print_funcs_);
+  for (auto& value : values) {
+    value.get().Print(printer);
+  }
+  printer.PrintNewline();
+}
+
+INSTANTIATE_ON_IR(OutputTranslator);
 
 }  // namespace kush::compile

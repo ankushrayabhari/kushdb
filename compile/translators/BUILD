@@ -44,7 +44,8 @@ cc_library(
     hdrs = ["output_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile/llvm:llvm_ir",
+        "//compile:ir_registry",
+        "//compile/proxy:printer_impl",
         "//plan:output_operator",
     ],
 )
@@ -123,6 +124,7 @@ cc_library(
         ":cross_product_translator",
         ":operator_translator",
         ":order_by_translator",
+        ":output_translator",
         ":scan_translator",
         ":select_translator",
         "//plan:hash_join_operator",

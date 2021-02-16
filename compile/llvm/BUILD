@@ -6,9 +6,12 @@ cc_library(
     name = "llvm_ir",
     srcs = ["llvm_ir.cc"],
     hdrs = ["llvm_ir.h"],
+    linkopts = ["-ldl"],
     deps = [
         "//compile:program",
         "//compile:program_builder",
+        "//data:column_data",
+        "//util:print_util",
         "@llvm-project//llvm:BitWriter",
         "@llvm-project//llvm:Core",
         "@llvm-project//llvm:Support",

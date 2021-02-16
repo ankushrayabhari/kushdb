@@ -9,17 +9,12 @@
 namespace kush::compile::proxy {
 
 template <typename T, typename S>
-class Ptr : public Value<T> {
+class Ptr {
  public:
   Ptr(ProgramBuilder<T>& program, typename ProgramBuilder<T>::Value& value)
       : program_(program), value_(value) {}
 
-  typename ProgramBuilder<T>::Value& Get() const override { return value_; }
-
-  std::unique_ptr<Value<T>> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) override {
-    throw std::runtime_error("No binary operators on ptr");
-  }
+  typename ProgramBuilder<T>::Value& Get() const { return value_; }
 
   void Store(const S& data) { program_.Store(value_, data.Get()); }
 

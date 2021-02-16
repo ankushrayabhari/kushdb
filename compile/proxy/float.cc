@@ -90,6 +90,11 @@ std::unique_ptr<Value<T>> Float64<T>::EvaluateBinary(
   return EvaluateBinaryNumeric<Float64<T>, T>(op_type, *this, rhs);
 }
 
+template <typename T>
+void Float64<T>::Print(proxy::Printer<T>& printer) {
+  printer.Print(*this);
+}
+
 INSTANTIATE_ON_IR(Float64);
 
 }  // namespace kush::compile::proxy

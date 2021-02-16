@@ -61,10 +61,13 @@ Struct<T>::Struct(ProgramBuilder<T>& program, StructBuilder<T>& fields,
 
 template <typename T>
 void Struct<T>::Pack(
-    std::vector<std::reference_wrapper<const proxy::Value<T>>> value) {}
+    std::vector<std::reference_wrapper<proxy::Value<T>>> value) {
+  // TODO:
+}
 
 template <typename T>
 std::vector<std::unique_ptr<Value<T>>> Struct<T>::Unpack() {
+  // TODO:
   return {};
 }
 

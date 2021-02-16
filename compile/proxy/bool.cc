@@ -63,6 +63,11 @@ std::unique_ptr<Value<T>> Bool<T>::EvaluateBinary(
   }
 }
 
+template <typename T>
+void Bool<T>::Print(proxy::Printer<T>& printer) {
+  printer.Print(*this);
+}
+
 INSTANTIATE_ON_IR(Bool);
 
 }  // namespace kush::compile::proxy

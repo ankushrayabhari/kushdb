@@ -6,8 +6,31 @@ cc_library(
     name = "value",
     hdrs = ["value.h"],
     deps = [
+        ":printer_h",
         "//compile:program_builder",
         "//plan/expression:binary_arithmetic_expression",
+    ],
+)
+
+cc_library(
+    name = "printer_h",
+    hdrs = ["printer.h"],
+    deps = [
+        "//compile:ir_registry",
+        "//compile:program_builder",
+    ],
+)
+
+cc_library(
+    name = "printer_impl",
+    srcs = ["printer.cc"],
+    deps = [
+        ":bool",
+        ":float",
+        ":int",
+        ":printer_h",
+        "//compile:ir_registry",
+        "//compile:program_builder",
     ],
 )
 
@@ -89,6 +112,7 @@ cc_library(
     srcs = ["bool.cc"],
     hdrs = ["bool.h"],
     deps = [
+        ":printer_h",
         ":value",
         "//compile:ir_registry",
         "//compile:program_builder",
@@ -103,6 +127,7 @@ cc_library(
     deps = [
         ":bool",
         ":numeric",
+        ":printer_h",
         ":value",
         "//compile:ir_registry",
         "//compile:program_builder",
@@ -127,6 +152,7 @@ cc_library(
     deps = [
         ":bool",
         ":numeric",
+        ":printer_h",
         ":value",
         "//compile:ir_registry",
         "//compile:program_builder",
@@ -139,7 +165,6 @@ cc_library(
     hdrs = ["loop.h"],
     deps = [
         ":bool",
-        ":if",
         ":int",
         "//compile:ir_registry",
         "//compile:program_builder",

@@ -6,6 +6,7 @@
 #include "absl/time/civil_time.h"
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
+#include "compile/llvm/llvm_ir.h"
 #include "compile/query_translator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
@@ -39,10 +40,12 @@ std::unique_ptr<Operator> ScanLineitem() {
 }
 
 int main() {
-  auto query = ScanLineitem();
+  auto query = std::make_unique<OutputOperator>(ScanLineitem());
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();
   prog->Compile();
+  prog->Execute();
+
   return 0;
 }

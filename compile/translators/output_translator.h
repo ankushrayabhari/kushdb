@@ -1,22 +1,26 @@
 #pragma once
 
-#include "compile/llvm/llvm_ir.h"
+#include "compile/proxy/printer.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/output_operator.h"
 
 namespace kush::compile {
 
-class OutputTranslator : public OperatorTranslator {
+template <typename T>
+class OutputTranslator : public OperatorTranslator<T> {
  public:
-  OutputTranslator(const plan::OutputOperator& output,
-                   CppCompilationContext& context,
-                   std::vector<std::unique_ptr<OperatorTranslator>> children);
+  OutputTranslator(
+      const plan::OutputOperator& output, ProgramBuilder<T>& program,
+      proxy::ForwardDeclaredPrintFunctions<T>& print_funcs,
+      std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
   virtual ~OutputTranslator() = default;
+
   void Produce() override;
-  void Consume(OperatorTranslator& src) override;
+  void Consume(OperatorTranslator<T>& src) override;
 
  private:
-  CppCompilationContext& context_;
+  ProgramBuilder<T>& program_;
+  proxy::ForwardDeclaredPrintFunctions<T>& print_funcs_;
 };
 
 }  // namespace kush::compile

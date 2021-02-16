@@ -93,6 +93,11 @@ std::unique_ptr<Value<T>> Int8<T>::EvaluateBinary(
   return EvaluateBinaryNumeric<Int8<T>, T>(op_type, *this, rhs);
 }
 
+template <typename T>
+void Int8<T>::Print(proxy::Printer<T>& printer) {
+  printer.Print(*this);
+}
+
 INSTANTIATE_ON_IR(Int8);
 
 template <typename T>
@@ -174,6 +179,11 @@ template <typename T>
 std::unique_ptr<Value<T>> Int16<T>::EvaluateBinary(
     plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) {
   return EvaluateBinaryNumeric<Int16<T>, T>(op_type, *this, rhs);
+}
+
+template <typename T>
+void Int16<T>::Print(proxy::Printer<T>& printer) {
+  printer.Print(*this);
 }
 
 INSTANTIATE_ON_IR(Int16);
@@ -259,6 +269,11 @@ std::unique_ptr<Value<T>> Int32<T>::EvaluateBinary(
   return EvaluateBinaryNumeric<Int32<T>, T>(op_type, *this, rhs);
 }
 
+template <typename T>
+void Int32<T>::Print(proxy::Printer<T>& printer) {
+  printer.Print(*this);
+}
+
 INSTANTIATE_ON_IR(Int32);
 
 template <typename T>
@@ -342,6 +357,11 @@ std::unique_ptr<Value<T>> UInt32<T>::EvaluateBinary(
   return EvaluateBinaryNumeric<UInt32<T>, T>(op_type, *this, rhs);
 }
 
+template <typename T>
+void UInt32<T>::Print(proxy::Printer<T>& printer) {
+  throw std::runtime_error("No support for print UInt32.");
+}
+
 INSTANTIATE_ON_IR(UInt32);
 
 template <typename T>
@@ -423,6 +443,11 @@ template <typename T>
 std::unique_ptr<Value<T>> Int64<T>::EvaluateBinary(
     plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) {
   return EvaluateBinaryNumeric<Int64<T>, T>(op_type, *this, rhs);
+}
+
+template <typename T>
+void Int64<T>::Print(proxy::Printer<T>& printer) {
+  printer.Print(*this);
 }
 
 INSTANTIATE_ON_IR(Int64);

@@ -4,6 +4,7 @@
 
 #include "compile/program_builder.h"
 #include "compile/proxy/bool.h"
+#include "compile/proxy/printer.h"
 #include "compile/proxy/value.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
@@ -32,6 +33,7 @@ class Float64 : public Value<T> {
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
+  void Print(proxy::Printer<T>& printer) override;
 
  private:
   ProgramBuilder<T>& program_;

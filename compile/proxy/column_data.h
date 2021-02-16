@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "catalog/sql_type.h"
-#include "compile/ir_registry.h"
 #include "compile/program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"

@@ -30,7 +30,7 @@ class Struct {
   Struct(ProgramBuilder<T>& program, StructBuilder<T>& fields,
          typename ProgramBuilder<T>::Value& value);
 
-  void Pack(std::vector<std::reference_wrapper<const proxy::Value<T>>> value);
+  void Pack(std::vector<std::reference_wrapper<proxy::Value<T>>> value);
 
   std::vector<std::unique_ptr<Value<T>>> Unpack();
 

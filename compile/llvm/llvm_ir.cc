@@ -1,5 +1,7 @@
 #include "compile/llvm/llvm_ir.h"
 
+#include <dlfcn.h>
+
 #include <system_error>
 
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -106,25 +108,37 @@ void LLVMIr::Memcpy(Value& dest, Value& src, Value& length) {
 }
 
 // Function
-Function& LLVMIr::CreateFunction(
-    Type& result_type, std::vector<std::reference_wrapper<Type>> arg_types) {
-  static int i = 0;
-  std::string name = "func" + std::to_string(i++);
-  return CreateFunction(result_type, std::move(arg_types), name);
-}
-
-Function& LLVMIr::CreateFunction(
-    Type& result_type, std::vector<std::reference_wrapper<Type>> arg_types,
-    std::string_view name) {
+Function& CreateFunctionImpl(
+    llvm::Module& module, llvm::LLVMContext& context,
+    llvm::IRBuilder<>& builder, Type& result_type,
+    std::vector<std::reference_wrapper<Type>> arg_types, std::string_view name,
+    bool external) {
   std::string fn_name(name);
   auto func_type = llvm::FunctionType::get(
       &result_type, VectorRefToVectorPtr(arg_types), false);
   auto func = llvm::Function::Create(
-      func_type, llvm::GlobalValue::LinkageTypes::InternalLinkage,
-      fn_name.c_str(), module_.get());
-  auto bb = llvm::BasicBlock::Create(*context_, "", func);
-  builder_->SetInsertPoint(bb);
+      func_type,
+      external ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
+               : llvm::GlobalValue::LinkageTypes::InternalLinkage,
+      fn_name.c_str(), module);
+  auto bb = llvm::BasicBlock::Create(context, "", func);
+  builder.SetInsertPoint(bb);
   return *func;
+}
+
+Function& LLVMIr::CreateFunction(
+    Type& result_type, std::vector<std::reference_wrapper<Type>> arg_types) {
+  static int i = 0;
+  std::string name = "func" + std::to_string(i++);
+  return CreateFunctionImpl(*module_, *context_, *builder_, result_type,
+                            std::move(arg_types), name, false);
+}
+
+Function& LLVMIr::CreateExternalFunction(
+    Type& result_type, std::vector<std::reference_wrapper<Type>> arg_types,
+    std::string_view name) {
+  return CreateFunctionImpl(*module_, *context_, *builder_, result_type,
+                            std::move(arg_types), name, true);
 }
 
 Function& LLVMIr::DeclareExternalFunction(
@@ -149,6 +163,8 @@ std::vector<std::reference_wrapper<Value>> LLVMIr::GetFunctionArguments(
 }
 
 void LLVMIr::Return(Value& v) { builder_->CreateRet(&v); }
+
+void LLVMIr::Return() { builder_->CreateRetVoid(); }
 
 Value& LLVMIr::Call(Function& func,
                     std::vector<std::reference_wrapper<Value>> arguments) {
@@ -331,8 +347,36 @@ void LLVMIr::Compile() const {
   std::error_code ec;
   llvm::raw_fd_ostream out("/tmp/query.bc", ec);
   llvm::WriteBitcodeToFile(*module_, out);
+  out.close();
+
+  if (system("llc -relocation-model=pic -filetype=obj /tmp/query.bc -o "
+             "/tmp/query.o")) {
+    throw std::runtime_error("Failed to compile file.");
+  }
+
+  if (system(
+          "clang++ -shared -fpic bazel-bin/util/libprint_util.so "
+          "bazel-bin/data/libcolumn_data.so /tmp/query.o -o /tmp/query.so")) {
+    throw std::runtime_error("Failed to link file.");
+  }
 }
 
-void LLVMIr::Execute() const {}
+void LLVMIr::Execute() const {
+  void* handle = dlopen("/tmp/query.so", RTLD_LAZY);
+
+  if (!handle) {
+    throw std::runtime_error("Failed to open shared.");
+  }
+
+  using compute_fn = std::add_pointer<void()>::type;
+  auto process_query = (compute_fn)(dlsym(handle, "compute"));
+  if (!process_query) {
+    dlclose(handle);
+    throw std::runtime_error("Failed to get compute fn.");
+  }
+
+  process_query();
+  dlclose(handle);
+}
 
 }  // namespace kush::compile::ir

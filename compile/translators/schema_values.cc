@@ -27,6 +27,11 @@ SchemaValues<T>::Values() const {
 }
 
 template <typename T>
+std::vector<std::reference_wrapper<proxy::Value<T>>> SchemaValues<T>::Values() {
+  return util::ReferenceVector(values_);
+}
+
+template <typename T>
 void SchemaValues<T>::SetValues(
     std::vector<std::unique_ptr<proxy::Value<T>>> values) {
   values_ = std::move(values);

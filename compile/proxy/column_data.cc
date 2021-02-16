@@ -131,7 +131,6 @@ ForwardDeclaredColumnDataFunctions<T> ColumnData<T, S>::ForwardDeclare(
     size_name = "_ZN4kush4data4SizeEPNS0_17Float64ColumnDataE";
     elem_type = &program.F64Type();
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    // TODO:
     open_name = "_ZN4kush4data4OpenEPNS0_14Int8ColumnDataEPKc";
     close_name = "_ZN4kush4data5CloseEPNS0_14Int8ColumnDataE";
     get_name = "_ZN4kush4data3GetEPNS0_14Int8ColumnDataEj";
@@ -149,7 +148,7 @@ ForwardDeclaredColumnDataFunctions<T> ColumnData<T, S>::ForwardDeclare(
   auto& close_fn = program.DeclareExternalFunction(
       close_name, program.VoidType(), {struct_ptr});
   auto& get_fn = program.DeclareExternalFunction(
-      get_name, program.I16Type(), {struct_ptr, program.I32Type()});
+      get_name, *elem_type, {struct_ptr, program.I32Type()});
   auto& size_fn = program.DeclareExternalFunction(size_name, program.I32Type(),
                                                   {struct_ptr});
 

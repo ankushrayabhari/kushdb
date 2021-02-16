@@ -49,7 +49,7 @@ class ProgramBuilder {
   virtual Function& CreateFunction(
       Type& result_type,
       std::vector<std::reference_wrapper<Type>> arg_types) = 0;
-  virtual Function& CreateFunction(
+  virtual Function& CreateExternalFunction(
       Type& result_type, std::vector<std::reference_wrapper<Type>> arg_types,
       std::string_view name) = 0;
   virtual Function& DeclareExternalFunction(
@@ -58,6 +58,7 @@ class ProgramBuilder {
   virtual std::vector<std::reference_wrapper<Value>> GetFunctionArguments(
       Function& func) = 0;
   virtual void Return(Value& v) = 0;
+  virtual void Return() = 0;
   virtual Value& Call(
       Function& func,
       std::vector<std::reference_wrapper<Value>> arguments = {}) = 0;

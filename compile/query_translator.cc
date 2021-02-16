@@ -8,6 +8,7 @@
 #include "compile/llvm/llvm_ir.h"
 #include "compile/program.h"
 #include "compile/proxy/column_data.h"
+#include "compile/proxy/printer.h"
 #include "compile/translators/translator_factory.h"
 #include "plan/operator.h"
 
@@ -18,47 +19,48 @@ QueryTranslator::QueryTranslator(const plan::Operator& op) : op_(op) {}
 std::unique_ptr<Program> QueryTranslator::Translate() {
   auto program = std::make_unique<ir::LLVMIr>();
 
+  using T = ir::LLVMIrTypes;
+
+  // Forward declare print function
+  auto print_funcs = proxy::Printer<T>::ForwardDeclare(*program);
+
   // Forward declare the column data implementations.
-  absl::flat_hash_map<
-      catalog::SqlType,
-      proxy::ForwardDeclaredColumnDataFunctions<ir::LLVMIrTypes>>
-      functions;
-  functions.try_emplace(
+  absl::flat_hash_map<catalog::SqlType,
+                      proxy::ForwardDeclaredColumnDataFunctions<T>>
+      col_data_funcs;
+  col_data_funcs.try_emplace(
       catalog::SqlType::SMALLINT,
-      proxy::ColumnData<ir::LLVMIrTypes,
-                        catalog::SqlType::SMALLINT>::ForwardDeclare(*program));
-  functions.try_emplace(
-      catalog::SqlType::INT,
-      proxy::ColumnData<ir::LLVMIrTypes, catalog::SqlType::INT>::ForwardDeclare(
+      proxy::ColumnData<T, catalog::SqlType::SMALLINT>::ForwardDeclare(
           *program));
-  functions.try_emplace(
+  col_data_funcs.try_emplace(
+      catalog::SqlType::INT,
+      proxy::ColumnData<T, catalog::SqlType::INT>::ForwardDeclare(*program));
+  col_data_funcs.try_emplace(
       catalog::SqlType::BIGINT,
-      proxy::ColumnData<ir::LLVMIrTypes,
-                        catalog::SqlType::BIGINT>::ForwardDeclare(*program));
-  functions.try_emplace(
+      proxy::ColumnData<T, catalog::SqlType::BIGINT>::ForwardDeclare(*program));
+  col_data_funcs.try_emplace(
       catalog::SqlType::REAL,
-      proxy::ColumnData<ir::LLVMIrTypes,
-                        catalog::SqlType::REAL>::ForwardDeclare(*program));
-  functions.try_emplace(
+      proxy::ColumnData<T, catalog::SqlType::REAL>::ForwardDeclare(*program));
+  col_data_funcs.try_emplace(
       catalog::SqlType::DATE,
-      proxy::ColumnData<ir::LLVMIrTypes,
-                        catalog::SqlType::REAL>::ForwardDeclare(*program));
-  functions.try_emplace(
+      proxy::ColumnData<T, catalog::SqlType::REAL>::ForwardDeclare(*program));
+  col_data_funcs.try_emplace(
       catalog::SqlType::TEXT,
-      proxy::ColumnData<ir::LLVMIrTypes,
-                        catalog::SqlType::REAL>::ForwardDeclare(*program));
-  functions.try_emplace(
+      proxy::ColumnData<T, catalog::SqlType::REAL>::ForwardDeclare(*program));
+  col_data_funcs.try_emplace(
       catalog::SqlType::BOOLEAN,
-      proxy::ColumnData<ir::LLVMIrTypes,
-                        catalog::SqlType::REAL>::ForwardDeclare(*program));
+      proxy::ColumnData<T, catalog::SqlType::REAL>::ForwardDeclare(*program));
 
   // Create the compute function
-  program->CreateFunction(program->VoidType(), {}, "compute");
+  program->CreateExternalFunction(program->VoidType(), {}, "compute");
 
   // Generate code for operator
-  TranslatorFactory<ir::LLVMIrTypes> factory(*program, functions);
+  TranslatorFactory<T> factory(*program, col_data_funcs, print_funcs);
   auto translator = factory.Compute(op_);
   translator->Produce();
+
+  // terminate last basic block
+  program->Return();
 
   return std::move(program);
 }

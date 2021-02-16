@@ -4,6 +4,7 @@
 #include "compile/translators/cross_product_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/order_by_translator.h"
+#include "compile/translators/output_translator.h"
 #include "compile/translators/scan_translator.h"
 #include "compile/translators/select_translator.h"
 #include "plan/hash_join_operator.h"
@@ -20,8 +21,11 @@ TranslatorFactory<T>::TranslatorFactory(
     ProgramBuilder<T>& program,
     absl::flat_hash_map<catalog::SqlType,
                         proxy::ForwardDeclaredColumnDataFunctions<T>>&
-        functions)
-    : program_(program), functions_(functions) {}
+        col_data_funcs,
+    proxy::ForwardDeclaredPrintFunctions<T>& print_funcs)
+    : program_(program),
+      col_data_funcs_(col_data_funcs),
+      print_funcs_(print_funcs) {}
 
 template <typename T>
 std::vector<std::unique_ptr<OperatorTranslator<T>>>
@@ -35,8 +39,8 @@ TranslatorFactory<T>::GetChildTranslators(const plan::Operator& current) {
 
 template <typename T>
 void TranslatorFactory<T>::Visit(const plan::ScanOperator& scan) {
-  this->Return(std::make_unique<ScanTranslator<T>>(scan, program_, functions_,
-                                                   GetChildTranslators(scan)));
+  this->Return(std::make_unique<ScanTranslator<T>>(
+      scan, program_, col_data_funcs_, GetChildTranslators(scan)));
 }
 
 template <typename T>
@@ -47,8 +51,8 @@ void TranslatorFactory<T>::Visit(const plan::SelectOperator& select) {
 
 template <typename T>
 void TranslatorFactory<T>::Visit(const plan::OutputOperator& output) {
-  // this->Return(std::make_unique<OutputTranslator<T>>(
-  //    output, program_, GetChildTranslators(output)));
+  this->Return(std::make_unique<OutputTranslator<T>>(
+      output, program_, print_funcs_, GetChildTranslators(output)));
 }
 
 template <typename T>

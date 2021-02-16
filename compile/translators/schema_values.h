@@ -17,6 +17,7 @@ class SchemaValues {
 
   const proxy::Value<T>& Value(int idx) const;
   std::vector<std::reference_wrapper<const proxy::Value<T>>> Values() const;
+  std::vector<std::reference_wrapper<proxy::Value<T>>> Values();
 
   void SetValues(std::vector<std::unique_ptr<proxy::Value<T>>> values);
 

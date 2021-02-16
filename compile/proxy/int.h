@@ -5,6 +5,7 @@
 
 #include "compile/program_builder.h"
 #include "compile/proxy/bool.h"
+#include "compile/proxy/printer.h"
 #include "compile/proxy/value.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
@@ -33,6 +34,7 @@ class Int8 : public Value<T> {
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
+  void Print(proxy::Printer<T>& printer) override;
 
  private:
   ProgramBuilder<T>& program_;
@@ -62,6 +64,7 @@ class Int16 : public Value<T> {
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
+  void Print(proxy::Printer<T>& printer) override;
 
  private:
   ProgramBuilder<T>& program_;
@@ -91,6 +94,7 @@ class Int32 : public Value<T> {
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
+  void Print(proxy::Printer<T>& printer) override;
 
  private:
   ProgramBuilder<T>& program_;
@@ -115,6 +119,7 @@ class UInt32 : public Value<T> {
   Bool<T> operator<=(const UInt32<T>& rhs);
   Bool<T> operator>(const UInt32<T>& rhs);
   Bool<T> operator>=(const UInt32<T>& rhs);
+  void Print(proxy::Printer<T>& printer) override;
 
   std::unique_ptr<UInt32<T>> ToPointer();
   std::unique_ptr<Value<T>> EvaluateBinary(
@@ -144,6 +149,7 @@ class Int64 : public Value<T> {
   Bool<T> operator<=(const Int64<T>& rhs);
   Bool<T> operator>(const Int64<T>& rhs);
   Bool<T> operator>=(const Int64<T>& rhs);
+  void Print(proxy::Printer<T>& printer) override;
 
   std::unique_ptr<Int64<T>> ToPointer();
   std::unique_ptr<Value<T>> EvaluateBinary(
