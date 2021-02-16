@@ -11,29 +11,10 @@ namespace kush::compile::proxy {
 
 template <typename T>
 Vector<T>::Vector(ProgramBuilder<T>& program, StructBuilder<T>& content)
-    : program_(program), content_(content) {
-  content_type = &content_.GenerateType();
-  struct_type = &program_.StructType({
-      program_.UI32Type(),               // capacity
-      program_.UI32Type(),               // size
-      program_.ArrayType(*content_type)  // data
-  });
-  struct_ptr_type = &program_.PointerType(*struct_type);
-
-  auto two = proxy::UInt32<T>(program_, 2);
-
-  // create the struct of initial capacity 2
-  data = &Create(two);
-
-  // capacity = 2, size = 0
-  CapacityPtr(data).Store(proxy::UInt32<T>(program_, 2));
-  SizePtr(data).Store(proxy::UInt32<T>(program_, 0));
-}
+    : program_(program), content_(content) {}
 
 template <typename T>
-Vector<T>::~Vector() {
-  program_.Free(*data);
-}
+Vector<T>::~Vector() {}
 
 template <typename T>
 Struct<T> Vector<T>::Append() {
@@ -60,7 +41,9 @@ Struct<T> Vector<T>::Append() {
 }
 
 template <typename T>
-void Vector<T>::Sort(typename ProgramBuilder<T>::Function& comp) {}
+void Vector<T>::Sort(typename ProgramBuilder<T>::Function& comp) {
+  // TODO
+}
 
 template <typename T>
 UInt32<T> Vector<T>::Size() {
@@ -82,8 +65,8 @@ typename ProgramBuilder<T>::Value& Vector<T>::Create(
       *struct_type, program_.NullPtr(*struct_ptr_type),
       {program_.ConstI32(0), program_.ConstI32(2), new_capacity.Get()});
   auto& size = program_.PointerCast(size_ptr, program_.UI32Type());
-  auto& ptr = program_.Malloc(size);
-  return program_.PointerCast(ptr, *struct_ptr_type);
+  // auto& ptr = program_.Alloca(size);
+  return program_.PointerCast(size, *struct_ptr_type);
 }
 
 template <typename T>

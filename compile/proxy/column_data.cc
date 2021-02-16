@@ -63,9 +63,7 @@ ColumnData<T, S>::ColumnData(ProgramBuilder<T>& program,
                              std::string_view path)
     : program_(program), funcs_(funcs) {
   auto& path_value = program_.CreateGlobal(path);
-  auto& size = program_.SizeOf(funcs_.StructType());
-  value_ = &program.PointerCast(program_.Malloc(size),
-                                program_.PointerType(funcs_.StructType()));
+  value_ = &program_.Alloca(funcs_.StructType());
   program_.Call(funcs_.Open(), {*value_, path_value});
 }
 

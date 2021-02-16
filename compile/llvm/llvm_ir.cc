@@ -13,19 +13,7 @@ namespace kush::compile::ir {
 LLVMIr::LLVMIr()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("query", *context_)),
-      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {
-  auto malloc_type = llvm::FunctionType::get(builder_->getInt8PtrTy(),
-                                             builder_->getInt64Ty(), false);
-  malloc = llvm::Function::Create(
-      malloc_type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "malloc",
-      module_.get());
-
-  auto free_type = llvm::FunctionType::get(builder_->getVoidTy(),
-                                           builder_->getInt8PtrTy(), false);
-  free = llvm::Function::Create(
-      free_type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "free",
-      module_.get());
-}
+      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {}
 
 using BasicBlock = LLVMIrTypes::BasicBlock;
 using Value = LLVMIrTypes::Value;
@@ -81,9 +69,7 @@ Value& LLVMIr::SizeOf(Type& type) {
 }
 
 // Memory
-Value& LLVMIr::Malloc(Value& size) { return Call(*malloc, {size}); }
-
-void LLVMIr::Free(Value& ptr) { Call(*free, {ptr}); }
+Value& LLVMIr::Alloca(Type& t) { return *builder_->CreateAlloca(&t); }
 
 Value& LLVMIr::NullPtr(Type& t) {
   return *llvm::ConstantPointerNull::get(llvm::dyn_cast<llvm::PointerType>(&t));

@@ -35,8 +35,7 @@ class ProgramBuilder {
   virtual Value& SizeOf(Type& type) = 0;
 
   // Memory
-  virtual Value& Malloc(Value& size) = 0;
-  virtual void Free(Value& ptr) = 0;
+  virtual Value& Alloca(Type& size) = 0;
   virtual Value& NullPtr(Type& t) = 0;
   virtual Value& GetElementPtr(
       Type& t, Value& ptr, std::vector<std::reference_wrapper<Value>> idx) = 0;

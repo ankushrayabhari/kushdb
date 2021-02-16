@@ -45,8 +45,7 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Value& SizeOf(Type& type) override;
 
   // Memory
-  Value& Malloc(Value& size) override;
-  void Free(Value& ptr) override;
+  Value& Alloca(Type& t) override;
   Value& NullPtr(Type& t) override;
   Value& GetElementPtr(Type& t, Value& ptr,
                        std::vector<std::reference_wrapper<Value>> idx) override;
@@ -137,7 +136,6 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> module_;
   std::unique_ptr<llvm::IRBuilder<>> builder_;
-  Function *malloc, *free;
 };
 
 }  // namespace kush::compile::ir
