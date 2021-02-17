@@ -17,7 +17,8 @@ class ForwardDeclaredVectorFunctions {
       typename ProgramBuilder<T>::Function& push_back_func,
       typename ProgramBuilder<T>::Function& get_func,
       typename ProgramBuilder<T>::Function& size_func,
-      typename ProgramBuilder<T>::Function& free_func);
+      typename ProgramBuilder<T>::Function& free_func,
+      typename ProgramBuilder<T>::Function& sort_func);
 
   typename ProgramBuilder<T>::Type& VectorType();
   typename ProgramBuilder<T>::Function& Create();
@@ -25,6 +26,7 @@ class ForwardDeclaredVectorFunctions {
   typename ProgramBuilder<T>::Function& Get();
   typename ProgramBuilder<T>::Function& Size();
   typename ProgramBuilder<T>::Function& Free();
+  typename ProgramBuilder<T>::Function& Sort();
 
  private:
   typename ProgramBuilder<T>::Type& vector_type_;
@@ -33,6 +35,7 @@ class ForwardDeclaredVectorFunctions {
   typename ProgramBuilder<T>::Function& get_func_;
   typename ProgramBuilder<T>::Function& size_func_;
   typename ProgramBuilder<T>::Function& free_func_;
+  typename ProgramBuilder<T>::Function& sort_func_;
 };
 
 template <typename T>

@@ -31,6 +31,8 @@ class ProgramBuilder {
   virtual Type& StructType(std::vector<std::reference_wrapper<Type>> types) = 0;
   virtual Type& PointerType(Type& type) = 0;
   virtual Type& ArrayType(Type& type) = 0;
+  virtual Type& FunctionType(
+      Type& result, std::vector<std::reference_wrapper<Type>> args) = 0;
   virtual Type& TypeOf(Value& value) = 0;
   virtual Value& SizeOf(Type& type) = 0;
 

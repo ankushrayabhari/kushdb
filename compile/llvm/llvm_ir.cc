@@ -3,6 +3,7 @@
 #include <dlfcn.h>
 
 #include <system_error>
+#include <type_traits>
 
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
@@ -58,6 +59,11 @@ Type& LLVMIr::PointerType(Type& type) {
 }
 
 Type& LLVMIr::ArrayType(Type& type) { return *llvm::ArrayType::get(&type, 0); }
+
+Type& LLVMIr::FunctionType(Type& result,
+                           std::vector<std::reference_wrapper<Type>> args) {
+  return *llvm::FunctionType::get(&result, VectorRefToVectorPtr(args), false);
+}
 
 Type& LLVMIr::TypeOf(Value& value) { return *value.getType(); }
 
@@ -333,8 +339,6 @@ Value& LLVMIr::CreateGlobal(std::string_view s) {
 }
 
 void LLVMIr::Compile() const {
-  module_->print(llvm::errs(), nullptr);
-
   // Write the module to a file
   std::error_code ec;
   llvm::raw_fd_ostream out("/tmp/query.bc", ec);

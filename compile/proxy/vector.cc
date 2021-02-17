@@ -16,13 +16,15 @@ ForwardDeclaredVectorFunctions<T>::ForwardDeclaredVectorFunctions(
     typename ProgramBuilder<T>::Function& push_back_func,
     typename ProgramBuilder<T>::Function& get_func,
     typename ProgramBuilder<T>::Function& size_func,
-    typename ProgramBuilder<T>::Function& free_func)
+    typename ProgramBuilder<T>::Function& free_func,
+    typename ProgramBuilder<T>::Function& sort_func)
     : vector_type_(vector_type),
       create_func_(create_func),
       push_back_func_(push_back_func),
       get_func_(get_func),
       size_func_(size_func),
-      free_func_(free_func) {}
+      free_func_(free_func),
+      sort_func_(sort_func) {}
 
 template <typename T>
 typename ProgramBuilder<T>::Type&
@@ -57,6 +59,12 @@ template <typename T>
 typename ProgramBuilder<T>::Function&
 ForwardDeclaredVectorFunctions<T>::Free() {
   return free_func_;
+}
+
+template <typename T>
+typename ProgramBuilder<T>::Function&
+ForwardDeclaredVectorFunctions<T>::Sort() {
+  return sort_func_;
 }
 
 INSTANTIATE_ON_IR(ForwardDeclaredVectorFunctions);
@@ -97,7 +105,7 @@ Struct<T> Vector<T>::PushBack() {
 
 template <typename T>
 void Vector<T>::Sort(typename ProgramBuilder<T>::Function& comp) {
-  // TODO
+  program_.Call(vector_funcs_.Sort(), {value_, comp});
 }
 
 template <typename T>
@@ -134,8 +142,15 @@ ForwardDeclaredVectorFunctions<T> Vector<T>::ForwardDeclare(
   auto& free_fn = program.DeclareExternalFunction(
       "_ZN4kush4data4FreeEPNS0_6VectorE", program.VoidType(), {struct_ptr});
 
+  auto& sort_fn = program.DeclareExternalFunction(
+      "_ZN4kush4data4SortEPNS0_6VectorEPFaPaS3_E", program.VoidType(),
+      {struct_ptr,
+       program.PointerType(program.FunctionType(
+           program.I8Type(), {program.PointerType(program.I8Type()),
+                              program.PointerType(program.I8Type())}))});
+
   return ForwardDeclaredVectorFunctions<T>(struct_type, create_fn, push_back_fn,
-                                           get_fn, size_fn, free_fn);
+                                           get_fn, size_fn, free_fn, sort_fn);
 }
 
 INSTANTIATE_ON_IR(Vector);

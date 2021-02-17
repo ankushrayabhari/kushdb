@@ -7,6 +7,7 @@ cc_binary(
     srcs = ["column_data_printer.cc"],
     deps = [
         ":column_data",
+        ":vector",
     ],
 )
 

@@ -25,7 +25,7 @@ ComparisonFunction<T>::ComparisonFunction(
   auto args = program.GetFunctionArguments(*func);
 
   auto& s1_ptr = program.PointerCast(args[0], type);
-  auto& s2_ptr = program.PointerCast(args[0], type);
+  auto& s2_ptr = program.PointerCast(args[1], type);
 
   Struct<T> s1(program, element, s1_ptr);
   Struct<T> s2(program, element, s2_ptr);

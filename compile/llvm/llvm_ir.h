@@ -41,6 +41,8 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Type& StructType(std::vector<std::reference_wrapper<Type>> types) override;
   Type& PointerType(Type& type) override;
   Type& ArrayType(Type& type) override;
+  Type& FunctionType(Type& result,
+                     std::vector<std::reference_wrapper<Type>> args) override;
   Type& TypeOf(Value& value) override;
   Value& SizeOf(Type& type) override;
 
