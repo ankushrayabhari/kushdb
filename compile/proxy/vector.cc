@@ -68,7 +68,7 @@ Vector<T>::Vector(ProgramBuilder<T>& program,
     : program_(program),
       vector_funcs_(vector_funcs),
       content_(content),
-      content_type_(content_.GenerateType()),
+      content_type_(content_.Type()),
       value_(program_.Alloca(vector_funcs_.VectorType())) {
   auto& element_size = program_.SizeOf(content_type_);
   auto& initial_capacity = program_.ConstUI32(2);
@@ -84,13 +84,15 @@ Vector<T>::~Vector() {
 template <typename T>
 Struct<T> Vector<T>::operator[](const proxy::UInt32<T>& idx) {
   auto& ptr = program_.Call(vector_funcs_.Get(), {value_, idx.Get()});
-  return Struct<T>(program_, content_, ptr);
+  auto& ptr_type = program_.PointerType(content_type_);
+  return Struct<T>(program_, content_, program_.PointerCast(ptr, ptr_type));
 }
 
 template <typename T>
 Struct<T> Vector<T>::PushBack() {
   auto& ptr = program_.Call(vector_funcs_.PushBack(), {value_});
-  return Struct<T>(program_, content_, ptr);
+  auto& ptr_type = program_.PointerType(content_type_);
+  return Struct<T>(program_, content_, program_.PointerCast(ptr, ptr_type));
 }
 
 template <typename T>
@@ -115,7 +117,7 @@ ForwardDeclaredVectorFunctions<T> Vector<T>::ForwardDeclare(
   auto& struct_ptr = program.PointerType(struct_type);
 
   auto& create_fn = program.DeclareExternalFunction(
-      "_ZN4kush4data6CreateEPNS0_6VectorEjj", program.VoidType(),
+      "_ZN4kush4data6CreateEPNS0_6VectorEmj", program.VoidType(),
       {struct_ptr, program.I64Type(), program.I32Type()});
 
   auto& push_back_fn = program.DeclareExternalFunction(

@@ -14,14 +14,15 @@ class StructBuilder {
  public:
   StructBuilder(ProgramBuilder<T>& program);
   void Add(catalog::SqlType type);
-  typename ProgramBuilder<T>::Type& GenerateType();
-
-  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Type>>
-  Fields();
+  void Build();
+  typename ProgramBuilder<T>::Type& Type();
+  std::vector<catalog::SqlType> Types();
 
  private:
   ProgramBuilder<T>& program_;
   std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Type>> fields_;
+  std::vector<catalog::SqlType> types_;
+  typename ProgramBuilder<T>::Type* struct_type_;
 };
 
 template <typename T>

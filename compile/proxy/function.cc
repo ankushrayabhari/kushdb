@@ -18,7 +18,7 @@ ComparisonFunction<T>::ComparisonFunction(
         body) {
   auto& current_block = program.CurrentBlock();
 
-  auto& type = program.PointerType(element.GenerateType());
+  auto& type = program.PointerType(element.Type());
   func = &program.CreateFunction(program.I8Type(), {type, type});
   auto args = program.GetFunctionArguments(*func);
 

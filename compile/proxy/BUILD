@@ -39,6 +39,9 @@ cc_library(
     srcs = ["struct.cc"],
     hdrs = ["struct.h"],
     deps = [
+        ":bool",
+        ":float",
+        ":int",
         ":value",
         "//catalog:sql_type",
         "//compile:ir_registry",

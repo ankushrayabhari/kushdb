@@ -38,6 +38,7 @@ void OrderByTranslator<T>::Produce() {
   for (const auto& col : child_schema) {
     packed.Add(col.Expr().Type());
   }
+  packed.Build();
 
   // init vector
   buffer_ = std::make_unique<proxy::Vector<T>>(program_, vector_funcs_, packed);
