@@ -5,21 +5,19 @@
 namespace kush::data {
 
 struct Vector {
-  uint32_t element_size;
+  uint64_t element_size;
   uint32_t size;
   uint32_t capacity;
-  char* data;
+  int8_t* data;
 };
 
-void Create(Vector* vec, uint32_t element_size, uint32_t initial_capacity);
+void Create(Vector* vec, uint64_t element_size, uint32_t initial_capacity);
 
-void* PushBack(Vector* vec);
+int8_t* PushBack(Vector* vec);
 
-void* Get(Vector* vec, uint32_t idx);
+int8_t* Get(Vector* vec, uint32_t idx);
 
 uint32_t Size(Vector* vec);
-
-void* Begin(Vector* vec);
 
 void Free(Vector* vec);
 

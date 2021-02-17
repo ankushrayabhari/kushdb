@@ -39,8 +39,21 @@ std::unique_ptr<Operator> ScanLineitem() {
   return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
+std::unique_ptr<Operator> OrderBy() {
+  auto scan = ScanLineitem();
+
+  auto l_quantity = ColRef(scan, "l_quantity");
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(*scan);
+
+  return std::make_unique<OrderByOperator>(
+      std::move(schema), std::move(scan),
+      util::MakeVector(std::move(l_quantity)), std::vector<bool>{true});
+}
+
 int main() {
-  auto query = std::make_unique<OutputOperator>(ScanLineitem());
+  auto query = std::make_unique<OutputOperator>(OrderBy());
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();

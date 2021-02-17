@@ -22,11 +22,13 @@ namespace kush::compile {
 template <typename T>
 OrderByTranslator<T>::OrderByTranslator(
     const plan::OrderByOperator& order_by, ProgramBuilder<T>& program,
+    proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
     : OperatorTranslator<T>(std::move(children)),
       order_by_(order_by),
       program_(program),
-      expr_translator_(program, *this) {}
+      expr_translator_(program, *this),
+      vector_funcs_(vector_funcs) {}
 
 template <typename T>
 void OrderByTranslator<T>::Produce() {
@@ -38,11 +40,12 @@ void OrderByTranslator<T>::Produce() {
   }
 
   // init vector
-  buffer_ = std::make_unique<proxy::Vector<T>>(program_, packed);
+  buffer_ = std::make_unique<proxy::Vector<T>>(program_, vector_funcs_, packed);
 
   // populate vector
   this->Child().Produce();
 
+  /*
   // sort
   proxy::ComparisonFunction<T> comp_fn(
       program_, packed,
@@ -87,12 +90,13 @@ void OrderByTranslator<T>::Produce() {
       });
 
   buffer_->Sort(comp_fn.Get());
+  */
 
   proxy::IndexLoop<T>(
       program_, [&]() { return proxy::UInt32<T>(program_, 0); },
       [&](proxy::UInt32<T>& i) { return i < buffer_->Size(); },
       [&](proxy::UInt32<T>& i) {
-        this->Child().SchemaValues().SetValues(buffer_->Get(i).Unpack());
+        this->Child().SchemaValues().SetValues((*buffer_)[i].Unpack());
 
         for (const auto& column : order_by_.Schema().Columns()) {
           this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
@@ -110,7 +114,7 @@ void OrderByTranslator<T>::Produce() {
 
 template <typename T>
 void OrderByTranslator<T>::Consume(OperatorTranslator<T>& src) {
-  buffer_->Append().Pack(this->Child().SchemaValues().Values());
+  buffer_->PushBack().Pack(this->Child().SchemaValues().Values());
 }
 
 INSTANTIATE_ON_IR(OrderByTranslator);

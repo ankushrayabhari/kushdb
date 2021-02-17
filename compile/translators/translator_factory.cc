@@ -22,10 +22,12 @@ TranslatorFactory<T>::TranslatorFactory(
     absl::flat_hash_map<catalog::SqlType,
                         proxy::ForwardDeclaredColumnDataFunctions<T>>&
         col_data_funcs,
-    proxy::ForwardDeclaredPrintFunctions<T>& print_funcs)
+    proxy::ForwardDeclaredPrintFunctions<T>& print_funcs,
+    proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs)
     : program_(program),
       col_data_funcs_(col_data_funcs),
-      print_funcs_(print_funcs) {}
+      print_funcs_(print_funcs),
+      vector_funcs_(vector_funcs) {}
 
 template <typename T>
 std::vector<std::unique_ptr<OperatorTranslator<T>>>
@@ -71,7 +73,7 @@ void TranslatorFactory<T>::Visit(
 template <typename T>
 void TranslatorFactory<T>::Visit(const plan::OrderByOperator& order_by) {
   this->Return(std::make_unique<OrderByTranslator<T>>(
-      order_by, program_, GetChildTranslators(order_by)));
+      order_by, program_, vector_funcs_, GetChildTranslators(order_by)));
 }
 
 template <typename T>

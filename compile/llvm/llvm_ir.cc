@@ -340,9 +340,9 @@ void LLVMIr::Compile() const {
     throw std::runtime_error("Failed to compile file.");
   }
 
-  if (system(
-          "clang++ -shared -fpic bazel-bin/util/libprint_util.so "
-          "bazel-bin/data/libcolumn_data.so /tmp/query.o -o /tmp/query.so")) {
+  if (system("clang++ -shared -fpic bazel-bin/util/libprint_util.so "
+             "bazel-bin/data/libcolumn_data.so bazel-bin/data/libvector.so "
+             "/tmp/query.o -o /tmp/query.so")) {
     throw std::runtime_error("Failed to link file.");
   }
 }

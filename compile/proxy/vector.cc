@@ -10,34 +10,87 @@
 namespace kush::compile::proxy {
 
 template <typename T>
-Vector<T>::Vector(ProgramBuilder<T>& program, StructBuilder<T>& content)
-    : program_(program), content_(content) {}
+ForwardDeclaredVectorFunctions<T>::ForwardDeclaredVectorFunctions(
+    typename ProgramBuilder<T>::Type& vector_type,
+    typename ProgramBuilder<T>::Function& create_func,
+    typename ProgramBuilder<T>::Function& push_back_func,
+    typename ProgramBuilder<T>::Function& get_func,
+    typename ProgramBuilder<T>::Function& size_func,
+    typename ProgramBuilder<T>::Function& free_func)
+    : vector_type_(vector_type),
+      create_func_(create_func),
+      push_back_func_(push_back_func),
+      get_func_(get_func),
+      size_func_(size_func),
+      free_func_(free_func) {}
 
 template <typename T>
-Vector<T>::~Vector() {}
+typename ProgramBuilder<T>::Type&
+ForwardDeclaredVectorFunctions<T>::VectorType() {
+  return vector_type_;
+}
 
 template <typename T>
-Struct<T> Vector<T>::Append() {
-  auto capacity = CapacityPtr(data).Load();
-  auto size = SizePtr(data).Load();
+typename ProgramBuilder<T>::Function&
+ForwardDeclaredVectorFunctions<T>::Create() {
+  return create_func_;
+}
 
-  // Double when at capacity
-  typename ProgramBuilder<T>::Value* new_data;
-  proxy::If<T> check(program_, capacity >= size, [&]() {
-    auto new_capacity = capacity * proxy::UInt32<T>(program_, 2);
-    new_data = &Create(new_capacity);
+template <typename T>
+typename ProgramBuilder<T>::Function&
+ForwardDeclaredVectorFunctions<T>::PushBack() {
+  return push_back_func_;
+}
 
-    CapacityPtr(new_data).Store(new_capacity);
-    SizePtr(new_data).Store(size);
+template <typename T>
+typename ProgramBuilder<T>::Function& ForwardDeclaredVectorFunctions<T>::Get() {
+  return get_func_;
+}
 
-    Copy(data, new_data, size);
-  });
+template <typename T>
+typename ProgramBuilder<T>::Function&
+ForwardDeclaredVectorFunctions<T>::Size() {
+  return size_func_;
+}
 
-  data = &check.Phi(*data, *new_data);
+template <typename T>
+typename ProgramBuilder<T>::Function&
+ForwardDeclaredVectorFunctions<T>::Free() {
+  return free_func_;
+}
 
-  auto next = Get(size);
-  SizePtr(data).Store(size + proxy::UInt32<T>(program_, 1));
-  return std::move(next);
+INSTANTIATE_ON_IR(ForwardDeclaredVectorFunctions);
+
+template <typename T>
+Vector<T>::Vector(ProgramBuilder<T>& program,
+                  ForwardDeclaredVectorFunctions<T>& vector_funcs,
+                  StructBuilder<T>& content)
+    : program_(program),
+      vector_funcs_(vector_funcs),
+      content_(content),
+      content_type_(content_.GenerateType()),
+      value_(program_.Alloca(vector_funcs_.VectorType())) {
+  auto& element_size = program_.SizeOf(content_type_);
+  auto& initial_capacity = program_.ConstUI32(2);
+  program_.Call(vector_funcs_.Create(),
+                {value_, element_size, initial_capacity});
+}
+
+template <typename T>
+Vector<T>::~Vector() {
+  program_.Call(vector_funcs_.Free(), {value_});
+}
+
+template <typename T>
+Struct<T> Vector<T>::operator[](const proxy::UInt32<T>& idx) {
+  auto& ptr = program_.Call(vector_funcs_.Get(), {value_, idx.Get()});
+  return Struct<T>(program_, content_, ptr);
+}
+
+template <typename T>
+Struct<T> Vector<T>::PushBack() {
+  auto& ptr = program_.Call(vector_funcs_.PushBack(), {value_});
+  return Struct<T>(program_, content_, ptr);
 }
 
 template <typename T>
@@ -47,61 +100,40 @@ void Vector<T>::Sort(typename ProgramBuilder<T>::Function& comp) {
 
 template <typename T>
 UInt32<T> Vector<T>::Size() {
-  return SizePtr(data).Load();
+  return UInt32<T>(program_, program_.Call(vector_funcs_.Size(), {value_}));
 }
 
 template <typename T>
-Struct<T> Vector<T>::Get(const proxy::UInt32<T>& idx) {
-  return Struct<T>(program_, content_,
-                   program_.GetElementPtr(*struct_type, *data,
-                                          {program_.ConstI32(0),
-                                           program_.ConstI32(2), idx.Get()}));
-}
+ForwardDeclaredVectorFunctions<T> Vector<T>::ForwardDeclare(
+    ProgramBuilder<T>& program) {
+  auto& struct_type = program.StructType({
+      program.I64Type(),
+      program.I32Type(),
+      program.I32Type(),
+      program.PointerType(program.I8Type()),
+  });
+  auto& struct_ptr = program.PointerType(struct_type);
 
-template <typename T>
-typename ProgramBuilder<T>::Value& Vector<T>::Create(
-    const proxy::UInt32<T>& new_capacity) {
-  auto& size_ptr = program_.GetElementPtr(
-      *struct_type, program_.NullPtr(*struct_ptr_type),
-      {program_.ConstI32(0), program_.ConstI32(2), new_capacity.Get()});
-  auto& size = program_.PointerCast(size_ptr, program_.UI32Type());
-  // auto& ptr = program_.Alloca(size);
-  return program_.PointerCast(size, *struct_ptr_type);
-}
+  auto& create_fn = program.DeclareExternalFunction(
+      "_ZN4kush4data6CreateEPNS0_6VectorEjj", program.VoidType(),
+      {struct_ptr, program.I64Type(), program.I32Type()});
 
-template <typename T>
-void Vector<T>::Copy(typename ProgramBuilder<T>::Value* source,
-                     typename ProgramBuilder<T>::Value* dest,
-                     const proxy::UInt32<T>& size) {
-  auto& old_data_ptr = program_.GetElementPtr(
-      *struct_type, *source, {program_.ConstI32(0), program_.ConstI32(2)});
-  auto& length_ptr = program_.GetElementPtr(
-      *struct_type, program_.NullPtr(*struct_ptr_type),
-      {program_.ConstI32(0), program_.ConstI32(2), size.Get()});
-  auto& length = program_.PointerCast(length_ptr, program_.UI32Type());
-  auto& new_data_ptr = program_.GetElementPtr(
-      *struct_type, *dest, {program_.ConstI32(0), program_.ConstI32(2)});
-  program_.Memcpy(program_.PointerCast(new_data_ptr, program_.I8Type()),
-                  program_.PointerCast(old_data_ptr, program_.I8Type()),
-                  length);
-}
+  auto& push_back_fn = program.DeclareExternalFunction(
+      "_ZN4kush4data8PushBackEPNS0_6VectorE",
+      program.PointerType(program.I8Type()), {struct_ptr});
 
-template <typename T>
-Ptr<T, UInt32<T>> Vector<T>::CapacityPtr(
-    typename ProgramBuilder<T>::Value* target) {
-  return Ptr<T, UInt32<T>>(
-      program_,
-      program_.GetElementPtr(*struct_type, *target,
-                             {program_.ConstI32(0), program_.ConstI32(0)}));
-}
+  auto& get_fn = program.DeclareExternalFunction(
+      "_ZN4kush4data3GetEPNS0_6VectorEj", program.PointerType(program.I8Type()),
+      {struct_ptr, program.I32Type()});
 
-template <typename T>
-Ptr<T, UInt32<T>> Vector<T>::SizePtr(
-    typename ProgramBuilder<T>::Value* target) {
-  return Ptr<T, UInt32<T>>(
-      program_,
-      program_.GetElementPtr(*struct_type, *target,
-                             {program_.ConstI32(0), program_.ConstI32(1)}));
+  auto& size_fn = program.DeclareExternalFunction(
+      "_ZN4kush4data4SizeEPNS0_6VectorE", program.I32Type(), {struct_ptr});
+
+  auto& free_fn = program.DeclareExternalFunction(
+      "_ZN4kush4data4FreeEPNS0_6VectorE", program.VoidType(), {struct_ptr});
+
+  return ForwardDeclaredVectorFunctions<T>(struct_type, create_fn, push_back_fn,
+                                           get_fn, size_fn, free_fn);
 }
 
 INSTANTIATE_ON_IR(Vector);

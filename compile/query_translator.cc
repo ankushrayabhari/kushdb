@@ -9,6 +9,7 @@
 #include "compile/program.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/printer.h"
+#include "compile/proxy/vector.h"
 #include "compile/translators/translator_factory.h"
 #include "plan/operator.h"
 
@@ -20,6 +21,9 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   auto program = std::make_unique<ir::LLVMIr>();
 
   using T = ir::LLVMIrTypes;
+
+  // Forward declare vector functions
+  auto vector_funcs = proxy::Vector<T>::ForwardDeclare(*program);
 
   // Forward declare print function
   auto print_funcs = proxy::Printer<T>::ForwardDeclare(*program);
@@ -55,7 +59,8 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   program->CreateExternalFunction(program->VoidType(), {}, "compute");
 
   // Generate code for operator
-  TranslatorFactory<T> factory(*program, col_data_funcs, print_funcs);
+  TranslatorFactory<T> factory(*program, col_data_funcs, print_funcs,
+                               vector_funcs);
   auto translator = factory.Compute(op_);
   translator->Produce();
 
