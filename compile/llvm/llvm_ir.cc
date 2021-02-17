@@ -165,6 +165,10 @@ BasicBlock& LLVMIr::GenerateBlock() {
 
 BasicBlock& LLVMIr::CurrentBlock() { return *builder_->GetInsertBlock(); }
 
+bool LLVMIr::IsTerminated(BasicBlock& b) {
+  return b.getTerminator() != nullptr;
+}
+
 void LLVMIr::SetCurrentBlock(BasicBlock& b) { builder_->SetInsertPoint(&b); }
 
 void LLVMIr::Branch(BasicBlock& b) { builder_->CreateBr(&b); }
@@ -329,6 +333,8 @@ Value& LLVMIr::CreateGlobal(std::string_view s) {
 }
 
 void LLVMIr::Compile() const {
+  module_->print(llvm::errs(), nullptr);
+
   // Write the module to a file
   std::error_code ec;
   llvm::raw_fd_ostream out("/tmp/query.bc", ec);

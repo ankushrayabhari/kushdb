@@ -19,11 +19,16 @@ ComparisonFunction<T>::ComparisonFunction(
   auto& current_block = program.CurrentBlock();
 
   auto& type = program.PointerType(element.Type());
-  func = &program.CreateFunction(program.I8Type(), {type, type});
+  auto& arg_ptr_type = program.PointerType(program.I8Type());
+  func =
+      &program.CreateFunction(program.I8Type(), {arg_ptr_type, arg_ptr_type});
   auto args = program.GetFunctionArguments(*func);
 
-  Struct<T> s1(program, element, args[0]);
-  Struct<T> s2(program, element, args[1]);
+  auto& s1_ptr = program.PointerCast(args[0], type);
+  auto& s2_ptr = program.PointerCast(args[0], type);
+
+  Struct<T> s1(program, element, s1_ptr);
+  Struct<T> s2(program, element, s2_ptr);
   auto return_func = [&](Bool<T> arg) { program.Return(arg.Get()); };
   body(s1, s2, return_func);
 

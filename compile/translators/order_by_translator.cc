@@ -46,7 +46,6 @@ void OrderByTranslator<T>::Produce() {
   // populate vector
   this->Child().Produce();
 
-  /*
   // sort
   proxy::ComparisonFunction<T> comp_fn(
       program_, packed,
@@ -70,8 +69,8 @@ void OrderByTranslator<T>::Produce() {
             proxy::If(program_, static_cast<proxy::Bool<T>&>(*v1),
                       [&]() { Return(proxy::Bool<T>(program_, true)); });
 
-            auto v2 = s1_field.EvaluateBinary(
-                plan::BinaryArithmeticOperatorType::GT, s2_field);
+            auto v2 = s2_field.EvaluateBinary(
+                plan::BinaryArithmeticOperatorType::LT, s1_field);
             proxy::If(program_, static_cast<proxy::Bool<T>&>(*v2),
                       [&]() { Return(proxy::Bool<T>(program_, false)); });
           } else {
@@ -80,8 +79,8 @@ void OrderByTranslator<T>::Produce() {
             proxy::If(program_, static_cast<proxy::Bool<T>&>(*v1),
                       [&]() { Return(proxy::Bool<T>(program_, false)); });
 
-            auto v2 = s1_field.EvaluateBinary(
-                plan::BinaryArithmeticOperatorType::GT, s2_field);
+            auto v2 = s2_field.EvaluateBinary(
+                plan::BinaryArithmeticOperatorType::LT, s1_field);
             proxy::If(program_, static_cast<proxy::Bool<T>&>(*v2),
                       [&]() { Return(proxy::Bool<T>(program_, true)); });
           }
@@ -91,7 +90,6 @@ void OrderByTranslator<T>::Produce() {
       });
 
   buffer_->Sort(comp_fn.Get());
-  */
 
   proxy::IndexLoop<T>(
       program_, [&]() { return proxy::UInt32<T>(program_, 0); },

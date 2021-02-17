@@ -74,6 +74,7 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   // Control Flow
   BasicBlock& GenerateBlock() override;
   BasicBlock& CurrentBlock() override;
+  bool IsTerminated(BasicBlock& b) override;
   void SetCurrentBlock(BasicBlock& b) override;
   void Branch(BasicBlock& b) override;
   void Branch(Value& cond, BasicBlock& b1, BasicBlock& b2) override;

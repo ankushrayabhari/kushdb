@@ -65,6 +65,7 @@ class ProgramBuilder {
   // Control Flow
   virtual BasicBlock& GenerateBlock() = 0;
   virtual BasicBlock& CurrentBlock() = 0;
+  virtual bool IsTerminated(BasicBlock& b) = 0;
   virtual void SetCurrentBlock(BasicBlock& b) = 0;
   virtual void Branch(BasicBlock& b) = 0;
   virtual void Branch(Value& cond, BasicBlock& b1, BasicBlock& b2) = 0;

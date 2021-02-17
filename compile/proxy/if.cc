@@ -17,12 +17,13 @@ If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
       b2(program.GenerateBlock()) {
   auto& dest_block = program.GenerateBlock();
 
-  // TODO: constant folding
   program.Branch(cond.Get(), b2.get(), dest_block);
 
   program.SetCurrentBlock(b2.get());
   then_fn();
-  program.Branch(dest_block);
+  if (!program_.IsTerminated(program_.CurrentBlock())) {
+    program.Branch(dest_block);
+  }
 
   program.SetCurrentBlock(dest_block);
 }
@@ -33,20 +34,33 @@ If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
     : program_(program),
       b1(program.GenerateBlock()),
       b2(program.GenerateBlock()) {
-  auto& dest_block = program.GenerateBlock();
+  typename ProgramBuilder<T>::BasicBlock* dest_block = nullptr;
 
-  // TODO: constant folding
   program.Branch(cond.Get(), b1.get(), b2.get());
 
   program.SetCurrentBlock(b1.get());
   then_fn();
-  program.Branch(dest_block);
+  if (!program_.IsTerminated(program_.CurrentBlock())) {
+    if (dest_block == nullptr) {
+      dest_block = &program.GenerateBlock();
+    }
+
+    program.Branch(*dest_block);
+  }
 
   program.SetCurrentBlock(b2.get());
   else_fn();
-  program.Branch(dest_block);
+  if (!program_.IsTerminated(program_.CurrentBlock())) {
+    if (dest_block == nullptr) {
+      dest_block = &program.GenerateBlock();
+    }
 
-  program.SetCurrentBlock(dest_block);
+    program.Branch(*dest_block);
+  }
+
+  if (dest_block != nullptr) {
+    program.SetCurrentBlock(*dest_block);
+  }
 }
 
 INSTANTIATE_ON_IR(If);
