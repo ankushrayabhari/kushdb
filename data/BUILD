@@ -26,6 +26,15 @@ cc_library(
 )
 
 cc_library(
+    name = "hash_table",
+    srcs = ["hash_table.cc"],
+    hdrs = ["hash_table.h"],
+    deps = [
+        "@absl//absl/container:flat_hash_map",
+    ],
+)
+
+cc_library(
     name = "column_data_builder",
     hdrs = ["column_data_builder.h"],
     deps = [

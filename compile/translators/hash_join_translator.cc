@@ -6,6 +6,7 @@
 
 #include "compile/ir_registry.h"
 #include "compile/proxy/hash_table.h"
+#include "compile/proxy/if.h"
 #include "compile/proxy/value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
@@ -68,13 +69,36 @@ void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
       util::ReferenceVector(key_columns), [&](proxy::Struct<T>& left_tuple) {
         left_translator.SchemaValues().SetValues(left_tuple.Unpack());
 
-        for (const auto& column : hash_join_.Schema().Columns()) {
-          this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
-        }
+        // construct boolean expression that compares each left column to right
+        // column
+        std::unique_ptr<plan::Expression> conj;
+        for (int i = 0; i < left_keys.size(); i++) {
+          const auto& left_key = left_keys[i].get();
+          const auto& right_key = right_keys[i].get();
 
-        if (auto parent = this->Parent()) {
-          parent->get().Consume(*this);
+          auto eq = std::make_unique<plan::BinaryArithmeticExpression>(
+              plan::BinaryArithmeticOperatorType::EQ,
+              std::make_unique<plan::ColumnRefExpression>(left_key),
+              std::make_unique<plan::ColumnRefExpression>(right_key));
+
+          if (conj == nullptr) {
+            conj = std::move(eq);
+          } else {
+            conj = std::make_unique<plan::BinaryArithmeticExpression>(
+                plan::BinaryArithmeticOperatorType::AND, std::move(conj),
+                std::move(eq));
+          }
         }
+        auto cond = expr_translator_.Compute(*conj);
+        proxy::If(program_, dynamic_cast<proxy::Bool<T>&>(*cond), [&]() {
+          for (const auto& column : hash_join_.Schema().Columns()) {
+            this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+          }
+
+          if (auto parent = this->Parent()) {
+            parent->get().Consume(*this);
+          }
+        });
       });
 }
 

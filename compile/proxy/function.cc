@@ -42,4 +42,30 @@ typename ProgramBuilder<T>::Function& ComparisonFunction<T>::Get() {
 
 INSTANTIATE_ON_IR(ComparisonFunction);
 
+template <typename T>
+CallbackFunction<T>::CallbackFunction(ProgramBuilder<T>& program,
+                                      StructBuilder<T> element,
+                                      std::function<void(Struct<T>&)> body) {
+  auto& current_block = program.CurrentBlock();
+
+  auto& type = program.PointerType(element.Type());
+  auto& arg_ptr_type = program.PointerType(program.I8Type());
+  func = &program.CreateFunction(program.VoidType(), {arg_ptr_type});
+  auto args = program.GetFunctionArguments(*func);
+
+  auto& s_ptr = program.PointerCast(args[0], type);
+
+  Struct<T> s1(program, element, s_ptr);
+  body(s1);
+
+  program.SetCurrentBlock(current_block);
+}
+
+template <typename T>
+typename ProgramBuilder<T>::Function& CallbackFunction<T>::Get() {
+  return *func;
+}
+
+INSTANTIATE_ON_IR(CallbackFunction);
+
 }  // namespace kush::compile::proxy

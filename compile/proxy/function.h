@@ -23,4 +23,15 @@ class ComparisonFunction {
   typename ProgramBuilder<T>::Function* func;
 };
 
+template <typename T>
+class CallbackFunction {
+ public:
+  CallbackFunction(ProgramBuilder<T>& program, StructBuilder<T> element,
+                   std::function<void(Struct<T>&)> body);
+  typename ProgramBuilder<T>::Function& Get();
+
+ private:
+  typename ProgramBuilder<T>::Function* func;
+};
+
 }  // namespace kush::compile::proxy
