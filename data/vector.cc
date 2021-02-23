@@ -33,7 +33,12 @@ int8_t* Get(Vector* vec, uint32_t idx) {
   return vec->data + (idx * vec->element_size);
 }
 
-uint32_t Size(Vector* vec) { return vec->size; }
+uint32_t Size(Vector* vec) {
+  if (vec == nullptr) {
+    return 0;
+  }
+  return vec->size;
+}
 
 void Free(Vector* vec) { free(vec->data); }
 

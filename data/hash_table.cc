@@ -35,6 +35,17 @@ Vector* GetBucket(HashTable* ht, uint32_t hash) {
   return &bucket;
 }
 
+void GetAllBuckets(HashTable* ht, BucketList* list) {
+  map_type& bucket_map = *ht->data_;
+  list->num_buckets = bucket_map.size();
+  list->buckets = new Vector*[list->num_buckets];
+
+  int i = 0;
+  for (auto& [k, v] : bucket_map) {
+    list->buckets[i++] = &v;
+  }
+}
+
 void Free(HashTable* ht) {
   for (auto& [k, v_list] : (*ht->data_)) {
     Free(&v_list);
@@ -42,6 +53,8 @@ void Free(HashTable* ht) {
 
   delete ht->data_;
 }
+
+void Free(BucketList* ht) { delete[] ht->buckets; }
 
 void HashCombine(uint32_t* hash, int64_t v) {
   *hash ^= v + 0x9e3779b9 + (*hash << 6) + (*hash >> 2);

@@ -96,8 +96,12 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/llvm:llvm_ir",
+        "//compile:ir_registry",
+        "//compile/proxy:hash_table",
+        "//compile/proxy:value",
         "//plan:group_by_aggregate_operator",
+        "//plan:hash_join_operator",
+        "//util:vector_util",
     ],
 )
 

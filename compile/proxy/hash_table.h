@@ -48,6 +48,7 @@ class HashTable {
   Struct<T> Insert(std::vector<std::reference_wrapper<proxy::Value<T>>> keys);
   void Get(std::vector<std::reference_wrapper<proxy::Value<T>>> keys,
            std::function<void(Struct<T>&)> handler);
+  void ForEach(std::function<void(Struct<T>&)> handler);
 
   static ForwardDeclaredHashTableFunctions<T> ForwardDeclare(
       ProgramBuilder<T>& program,

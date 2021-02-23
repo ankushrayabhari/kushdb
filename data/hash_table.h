@@ -14,11 +14,18 @@ struct HashTable {
   std::unordered_map<uint32_t, Vector>* data_;
 };
 
+struct BucketList {
+  uint32_t num_buckets;
+  Vector** buckets;
+};
+
 void Create(HashTable* ht, uint64_t element_size);
 
 int8_t* Insert(HashTable* ht, uint32_t hash);
 
 Vector* GetBucket(HashTable* ht, uint32_t hash);
+
+BucketList* GetAllBuckets(HashTable* ht);
 
 void Free(HashTable* ht);
 

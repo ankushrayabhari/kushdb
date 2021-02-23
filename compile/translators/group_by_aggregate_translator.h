@@ -4,33 +4,34 @@
 #include <utility>
 #include <vector>
 
-#include "compile/llvm/llvm_ir.h"
+#include "compile/proxy/hash_table.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/group_by_aggregate_operator.h"
 
 namespace kush::compile {
 
-class GroupByAggregateTranslator : public OperatorTranslator {
+template <typename T>
+class GroupByAggregateTranslator : public OperatorTranslator<T> {
  public:
   GroupByAggregateTranslator(
       const plan::GroupByAggregateOperator& group_by_agg,
-      CppCompilationContext& context,
-      std::vector<std::unique_ptr<OperatorTranslator>> children);
+      proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
+      proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs,
+      ProgramBuilder<T>& program,
+      std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
   virtual ~GroupByAggregateTranslator() = default;
 
   void Produce() override;
-  void Consume(OperatorTranslator& src) override;
+  void Consume(OperatorTranslator<T>& src) override;
 
  private:
   const plan::GroupByAggregateOperator& group_by_agg_;
-  CppCompilationContext& context_;
-  ExpressionTranslator expr_translator_;
-  std::string hash_table_var_;
-  std::string packed_struct_id_;
-  std::vector<std::pair<std::string, std::string>> packed_group_by_field_type_;
-  std::vector<std::pair<std::string, std::string>> packed_agg_field_type_;
-  std::string record_count_field_;
+  ProgramBuilder<T>& program_;
+  proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs_;
+  proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs_;
+  ExpressionTranslator<T> expr_translator_;
+  std::unique_ptr<proxy::HashTable<T>> buffer_;
 };
 
 }  // namespace kush::compile
