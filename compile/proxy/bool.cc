@@ -68,6 +68,11 @@ void Bool<T>::Print(proxy::Printer<T>& printer) {
   printer.Print(*this);
 }
 
+template <typename T>
+typename ProgramBuilder<T>::Value& Bool<T>::Hash() {
+  return program_.ZextI64(value_);
+}
+
 INSTANTIATE_ON_IR(Bool);
 
 }  // namespace kush::compile::proxy

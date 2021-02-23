@@ -114,6 +114,8 @@ class ProgramBuilder {
   virtual Value& SubI64(Value& v1, Value& v2) = 0;
   virtual Value& CmpI64(CompType cmp, Value& v1, Value& v2) = 0;
   virtual Value& ConstI64(int64_t v) = 0;
+  virtual Value& ZextI64(Value& v) = 0;
+  virtual Value& F64ConversionI64(Value& v) = 0;
 
   // F64
   virtual Value& AddF64(Value& v1, Value& v2) = 0;

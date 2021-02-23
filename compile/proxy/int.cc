@@ -98,6 +98,11 @@ void Int8<T>::Print(proxy::Printer<T>& printer) {
   printer.Print(*this);
 }
 
+template <typename T>
+typename ProgramBuilder<T>::Value& Int8<T>::Hash() {
+  return program_.ZextI64(value_);
+}
+
 INSTANTIATE_ON_IR(Int8);
 
 template <typename T>
@@ -184,6 +189,11 @@ std::unique_ptr<Value<T>> Int16<T>::EvaluateBinary(
 template <typename T>
 void Int16<T>::Print(proxy::Printer<T>& printer) {
   printer.Print(*this);
+}
+
+template <typename T>
+typename ProgramBuilder<T>::Value& Int16<T>::Hash() {
+  return program_.ZextI64(value_);
 }
 
 INSTANTIATE_ON_IR(Int16);
@@ -274,6 +284,11 @@ void Int32<T>::Print(proxy::Printer<T>& printer) {
   printer.Print(*this);
 }
 
+template <typename T>
+typename ProgramBuilder<T>::Value& Int32<T>::Hash() {
+  return program_.ZextI64(value_);
+}
+
 INSTANTIATE_ON_IR(Int32);
 
 template <typename T>
@@ -362,6 +377,11 @@ void UInt32<T>::Print(proxy::Printer<T>& printer) {
   throw std::runtime_error("No support for print UInt32.");
 }
 
+template <typename T>
+typename ProgramBuilder<T>::Value& UInt32<T>::Hash() {
+  return program_.ZextI64(value_);
+}
+
 INSTANTIATE_ON_IR(UInt32);
 
 template <typename T>
@@ -448,6 +468,11 @@ std::unique_ptr<Value<T>> Int64<T>::EvaluateBinary(
 template <typename T>
 void Int64<T>::Print(proxy::Printer<T>& printer) {
   printer.Print(*this);
+}
+
+template <typename T>
+typename ProgramBuilder<T>::Value& Int64<T>::Hash() {
+  return program_.ZextI64(value_);
 }
 
 INSTANTIATE_ON_IR(Int64);

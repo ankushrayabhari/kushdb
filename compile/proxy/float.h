@@ -34,6 +34,7 @@ class Float64 : public Value<T> {
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
   void Print(proxy::Printer<T>& printer) override;
+  typename ProgramBuilder<T>::Value& Hash() override;
 
  private:
   ProgramBuilder<T>& program_;

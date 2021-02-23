@@ -95,6 +95,11 @@ void Float64<T>::Print(proxy::Printer<T>& printer) {
   printer.Print(*this);
 }
 
+template <typename T>
+typename ProgramBuilder<T>::Value& Float64<T>::Hash() {
+  return program_.F64ConversionI64(value_);
+}
+
 INSTANTIATE_ON_IR(Float64);
 
 }  // namespace kush::compile::proxy

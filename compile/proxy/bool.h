@@ -25,6 +25,7 @@ class Bool : public Value<T> {
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) override;
   void Print(proxy::Printer<T>& printer) override;
+  typename ProgramBuilder<T>::Value& Hash() override;
 
  private:
   ProgramBuilder<T>& program_;
