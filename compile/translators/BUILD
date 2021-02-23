@@ -81,7 +81,8 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/llvm:llvm_ir",
+        "//compile:ir_registry",
+        "//compile/proxy:hash_table",
         "//plan:hash_join_operator",
     ],
 )

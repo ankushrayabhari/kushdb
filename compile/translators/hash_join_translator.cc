@@ -1,24 +1,30 @@
 #include "compile/translators/hash_join_translator.h"
 
-#include "compile/llvm/llvm_ir.h"
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "compile/ir_registry.h"
+#include "compile/proxy/hash_table.h"
+#include "compile/proxy/value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
-#include "compile/types.h"
 #include "plan/hash_join_operator.h"
 
 namespace kush::compile {
 
-HashJoinTranslator::HashJoinTranslator(
-    const plan::HashJoinOperator& hash_join, CppCompilationContext& context,
-    std::vector<std::unique_ptr<OperatorTranslator>> children)
-    : OperatorTranslator(std::move(children)),
+template <typename T>
+HashJoinTranslator<T>::HashJoinTranslator(
+    const plan::HashJoinOperator& hash_join, ProgramBuilder<T>& program,
+    std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
+    : OperatorTranslator<T>(std::move(children)),
       hash_join_(hash_join),
-      context_(context),
-      expr_translator_(context, *this) {}
+      program_(program),
+      expr_translator_(program_, *this) {}
 
-void HashJoinTranslator::Produce() {
-  auto& program = context_.Program();
-
+template <typename T>
+void HashJoinTranslator<T>::Produce() {
+  /*
   // declare packing struct
   packed_struct_id_ = program.GenerateVariable();
   program.fout << " struct " << packed_struct_id_ << " {\n";
@@ -35,30 +41,28 @@ void HashJoinTranslator::Produce() {
   program.fout << "std::unordered_map<std::size_t, std::vector<"
                << packed_struct_id_ << ">> " << hash_table_var_ << ";\n";
 
-  LeftChild().Produce();
-  RightChild().Produce();
+               */
+
+  this->LeftChild().Produce();
+  this->RightChild().Produce();
 }
 
-void HashJoinTranslator::Consume(OperatorTranslator& src) {
-  auto& program = context_.Program();
-  auto& left_translator = LeftChild();
+template <typename T>
+void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
+  auto& left_translator = this->LeftChild();
   const auto left_columns = hash_join_.LeftColumns();
   const auto right_columns = hash_join_.RightColumns();
 
   // Build side
   if (&src == &left_translator) {
     // hash key
-    auto hash_var = program.GenerateVariable();
-    program.fout << "std::size_t " << hash_var << " = 0;";
-    program.fout << "kush::util::HashCombine(" << hash_var;
-    for (const auto& col : left_columns) {
-      program.fout << "," << expr_translator_.Compute(col.get())->Get();
+    std::vector<std::unique_ptr<proxy::Value<T>>> key_columns;
+    for (const auto& left_key : left_columns) {
+      key_columns.push_back(expr_translator_.Compute(left_key.get()));
     }
-    program.fout << ");\n";
-    auto bucket_var = program.GenerateVariable();
-    program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "["
-                 << hash_var << "];\n";
-
+    auto entry = buffer_->Insert();
+  }
+  /*
     // pack tuple into table
     program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{";
     bool first = true;
@@ -133,6 +137,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
   }
 
   program.fout << "}}\n";
+  */
 }
 
 }  // namespace kush::compile

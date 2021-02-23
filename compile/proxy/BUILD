@@ -50,6 +50,17 @@ cc_library(
 )
 
 cc_library(
+    name = "hash_table",
+    srcs = ["hash_table.cc"],
+    hdrs = ["hash_table.h"],
+    deps = [
+        ":struct",
+        "//compile:ir_registry",
+        "//compile:program_builder",
+    ],
+)
+
+cc_library(
     name = "vector",
     srcs = ["vector.cc"],
     hdrs = ["vector.h"],
