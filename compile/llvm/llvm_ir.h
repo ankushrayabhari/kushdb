@@ -133,6 +133,7 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Value& SubF64(Value& v1, Value& v2) override;
   Value& CmpF64(CompType cmp, Value& v1, Value& v2) override;
   Value& ConstF64(double v) override;
+  Value& CastSignedIntToF64(Value& v) override;
 
   // Globals
   Value& CreateGlobal(std::string_view s) override;

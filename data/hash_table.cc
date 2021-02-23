@@ -46,6 +46,10 @@ void GetAllBuckets(HashTable* ht, BucketList* list) {
   }
 }
 
+Vector* GetBucketIdx(BucketList* l, uint32_t i) { return l->buckets[i]; }
+
+uint32_t Size(BucketList* l) { return l->num_buckets; }
+
 void Free(HashTable* ht) {
   for (auto& [k, v_list] : (*ht->data_)) {
     Free(&v_list);

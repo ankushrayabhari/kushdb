@@ -341,6 +341,11 @@ Value& LLVMIr::ConstF64(double v) {
   return *llvm::ConstantFP::get(builder_->getDoubleTy(), v);
 }
 
+Value& LLVMIr::CastSignedIntToF64(Value& v) {
+  return *builder_->CreateCast(llvm::Instruction::SIToFP, &v,
+                               builder_->getDoubleTy());
+}
+
 // Globals
 Value& LLVMIr::CreateGlobal(std::string_view s) {
   return *builder_->CreateGlobalStringPtr(s);

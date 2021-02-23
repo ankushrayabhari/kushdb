@@ -2,6 +2,7 @@
 
 #include "compile/ir_registry.h"
 #include "compile/translators/cross_product_translator.h"
+#include "compile/translators/group_by_aggregate_translator.h"
 #include "compile/translators/hash_join_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/order_by_translator.h"
@@ -70,8 +71,9 @@ void TranslatorFactory<T>::Visit(const plan::HashJoinOperator& hash_join) {
 template <typename T>
 void TranslatorFactory<T>::Visit(
     const plan::GroupByAggregateOperator& group_by_agg) {
-  // this->Return(std::make_unique<GroupByAggregateTranslator<T>>(
-  //    group_by_agg, program_, GetChildTranslators(group_by_agg)));
+  this->Return(std::make_unique<GroupByAggregateTranslator<T>>(
+      group_by_agg, vector_funcs_, hash_funcs_, program_,
+      GetChildTranslators(group_by_agg)));
 }
 
 template <typename T>

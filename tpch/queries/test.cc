@@ -68,8 +68,27 @@ std::unique_ptr<Operator> Join() {
       util::MakeVector(std::move(l_quantity_2)));
 }
 
+// Avg n_nationkey
+std::unique_ptr<Operator> GroupByAgg() {
+  auto base = ScanLineitem();
+
+  // Group by
+  std::unique_ptr<Expression> t = Literal(true);
+
+  // aggregate
+  auto n_nationkey = Min(ColRef(base, "n_nationkey"));
+
+  // output
+  OperatorSchema schema;
+  schema.AddDerivedColumn("avg_n_nationkey", VirtColRef(n_nationkey, 1));
+
+  return std::make_unique<GroupByAggregateOperator>(
+      std::move(schema), std::move(base), util::MakeVector(std::move(t)),
+      util::MakeVector(std::move(n_nationkey)));
+}
+
 int main() {
-  auto query = std::make_unique<OutputOperator>(Join());
+  auto query = std::make_unique<OutputOperator>(GroupByAgg());
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();

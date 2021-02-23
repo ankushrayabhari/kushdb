@@ -25,7 +25,11 @@ int8_t* Insert(HashTable* ht, uint32_t hash);
 
 Vector* GetBucket(HashTable* ht, uint32_t hash);
 
-BucketList* GetAllBuckets(HashTable* ht);
+void GetAllBuckets(HashTable* ht, BucketList* l);
+
+Vector* GetBucketIdx(BucketList* l, uint32_t i);
+
+uint32_t Size(BucketList* l);
 
 void Free(HashTable* ht);
 

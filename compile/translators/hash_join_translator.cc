@@ -7,6 +7,7 @@
 #include "compile/ir_registry.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/if.h"
+#include "compile/proxy/loop.h"
 #include "compile/proxy/value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
@@ -70,8 +71,14 @@ void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
   for (const auto& right_key : right_keys) {
     key_columns.push_back(expr_translator_.Compute(right_key.get()));
   }
-  buffer_->Get(
-      util::ReferenceVector(key_columns), [&](proxy::Struct<T>& left_tuple) {
+
+  auto bucket = buffer_->Get(util::ReferenceVector(key_columns));
+  proxy::IndexLoop<T>(
+      program_, [&]() { return proxy::UInt32<T>(program_, 0); },
+      [&](proxy::UInt32<T>& i) { return i < bucket.Size(); },
+      [&](proxy::UInt32<T>& i) {
+        proxy::Struct<T> left_tuple = bucket.Get(i);
+
         left_translator.SchemaValues().SetValues(left_tuple.Unpack());
 
         // construct boolean expression that compares each left column to right
@@ -109,6 +116,8 @@ void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
             parent->get().Consume(*this);
           }
         });
+
+        return i + proxy::UInt32<T>(program_, 1);
       });
 }
 

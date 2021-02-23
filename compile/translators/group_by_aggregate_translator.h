@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "compile/proxy/hash_table.h"
+#include "compile/proxy/ptr.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/group_by_aggregate_operator.h"
@@ -32,6 +33,7 @@ class GroupByAggregateTranslator : public OperatorTranslator<T> {
   proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs_;
   ExpressionTranslator<T> expr_translator_;
   std::unique_ptr<proxy::HashTable<T>> buffer_;
+  std::unique_ptr<proxy::Ptr<T, proxy::Bool<T>>> found_;
 };
 
 }  // namespace kush::compile

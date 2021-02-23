@@ -124,9 +124,18 @@ std::vector<std::unique_ptr<Value<T>>> Struct<T>::Unpack() {
 }
 
 template <typename T>
-std::unique_ptr<Value<T>> CopyProxyValue(
-    ProgramBuilder<T>& program, catalog::SqlType type,
-    typename ProgramBuilder<T>::Value& value) {}
+void Struct<T>::Update(proxy::Value<T>& v, int field) {
+  auto types = fields_.Types();
+
+  auto& ptr = program_.GetElementPtr(
+      fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(field)});
+
+  if (types[field] == catalog::SqlType::TEXT) {
+    throw std::runtime_error("Text not supported at the moment.");
+  }
+
+  program_.Store(ptr, v.Get());
+}
 
 INSTANTIATE_ON_IR(Struct);
 

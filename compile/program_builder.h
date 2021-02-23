@@ -124,6 +124,7 @@ class ProgramBuilder {
   virtual Value& SubF64(Value& v1, Value& v2) = 0;
   virtual Value& CmpF64(CompType cmp, Value& v1, Value& v2) = 0;
   virtual Value& ConstF64(double v) = 0;
+  virtual Value& CastSignedIntToF64(Value& v) = 0;
 
   // Globals
   virtual Value& CreateGlobal(std::string_view s) = 0;
