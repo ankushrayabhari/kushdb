@@ -12,8 +12,9 @@
 #include <exception>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <vector>
+
+#include "data/string.h"
 
 namespace kush::data {
 
@@ -83,6 +84,6 @@ int16_t Get(Int16ColumnData* col, uint32_t idx);
 int32_t Get(Int32ColumnData* col, uint32_t idx);
 int64_t Get(Int64ColumnData* col, uint32_t idx);
 double Get(Float64ColumnData* col, uint32_t idx);
-std::string_view Get(TextColumnData* col, uint32_t idx);
+void Get(TextColumnData* col, uint32_t idx, String* dest);
 
 }  // namespace kush::data

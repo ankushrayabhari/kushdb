@@ -15,6 +15,15 @@ cc_library(
     name = "column_data",
     srcs = ["column_data.cc"],
     hdrs = ["column_data.h"],
+    deps = [
+        ":string",
+    ],
+)
+
+cc_library(
+    name = "string",
+    srcs = ["string.cc"],
+    hdrs = ["string.h"],
     deps = [],
 )
 

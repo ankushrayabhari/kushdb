@@ -115,10 +115,10 @@ int64_t Get(Int64ColumnData* col, uint32_t idx) { return col->data[idx]; }
 
 double Get(Float64ColumnData* col, uint32_t idx) { return col->data[idx]; }
 
-std::string_view Get(TextColumnData* col, uint32_t idx) {
+void Get(TextColumnData* col, uint32_t idx, String* dest) {
   const auto& slot = col->data->slot[idx];
-  return std::string_view(
-      reinterpret_cast<const char*>(col->data) + slot.offset, slot.length);
+  return Create(dest, reinterpret_cast<const char*>(col->data) + slot.offset,
+                slot.length);
 }
 
 }  // namespace kush::data
