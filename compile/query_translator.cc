@@ -8,6 +8,7 @@
 #include "compile/llvm/llvm_ir.h"
 #include "compile/program.h"
 #include "compile/proxy/column_data.h"
+#include "compile/proxy/hash_table.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/translator_factory.h"
@@ -24,6 +25,9 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
 
   // Forward declare vector functions
   auto vector_funcs = proxy::Vector<T>::ForwardDeclare(*program);
+
+  // Forward declare hash functions
+  auto hash_funcs = proxy::HashTable<T>::ForwardDeclare(*program, vector_funcs);
 
   // Forward declare print function
   auto print_funcs = proxy::Printer<T>::ForwardDeclare(*program);
@@ -60,7 +64,7 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
 
   // Generate code for operator
   TranslatorFactory<T> factory(*program, col_data_funcs, print_funcs,
-                               vector_funcs);
+                               vector_funcs, hash_funcs);
   auto translator = factory.Compute(op_);
   translator->Produce();
 

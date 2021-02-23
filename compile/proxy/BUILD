@@ -54,8 +54,9 @@ cc_library(
     srcs = ["hash_table.cc"],
     hdrs = ["hash_table.h"],
     deps = [
-        ":function",
+        ":loop",
         ":struct",
+        ":vector",
         "//compile:ir_registry",
         "//compile:program_builder",
     ],

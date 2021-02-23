@@ -308,6 +308,14 @@ Value& LLVMIr::CmpI64(CompType cmp, Value& v1, Value& v2) {
 
 Value& LLVMIr::ConstI64(int64_t v) { return *builder_->getInt64(v); }
 
+Value& LLVMIr::ZextI64(Value& v) {
+  return *builder_->CreateZExt(&v, builder_->getInt64Ty());
+}
+
+Value& LLVMIr::F64ConversionI64(Value& v) {
+  return *builder_->CreateFPToUI(&v, builder_->getInt64Ty());
+}
+
 // F64
 Value& LLVMIr::AddF64(Value& v1, Value& v2) {
   return *builder_->CreateFAdd(&v1, &v2);
@@ -352,6 +360,7 @@ void LLVMIr::Compile() const {
 
   if (system("clang++ -shared -fpic bazel-bin/util/libprint_util.so "
              "bazel-bin/data/libcolumn_data.so bazel-bin/data/libvector.so "
+             "bazel-bin/data/libhash_table.so "
              "/tmp/query.o -o /tmp/query.so")) {
     throw std::runtime_error("Failed to link file.");
   }

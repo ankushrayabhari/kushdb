@@ -6,6 +6,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "compile/llvm/llvm_ir.h"
 #include "compile/proxy/column_data.h"
+#include "compile/proxy/hash_table.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/operator_translator.h"
@@ -26,7 +27,8 @@ class TranslatorFactory
                           proxy::ForwardDeclaredColumnDataFunctions<T>>&
           col_data_funcs,
       proxy::ForwardDeclaredPrintFunctions<T>& print_funcs,
-      proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs);
+      proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
+      proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs);
   virtual ~TranslatorFactory() = default;
 
   void Visit(const plan::ScanOperator& scan) override;
@@ -46,6 +48,7 @@ class TranslatorFactory
       col_data_funcs_;
   proxy::ForwardDeclaredPrintFunctions<T>& print_funcs_;
   proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs_;
+  proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs_;
 };
 
 }  // namespace kush::compile

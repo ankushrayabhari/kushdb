@@ -18,10 +18,14 @@ namespace kush::compile {
 template <typename T>
 HashJoinTranslator<T>::HashJoinTranslator(
     const plan::HashJoinOperator& hash_join, ProgramBuilder<T>& program,
+    proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
+    proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
     : OperatorTranslator<T>(std::move(children)),
       hash_join_(hash_join),
       program_(program),
+      vector_funcs_(vector_funcs),
+      hash_funcs_(hash_funcs),
       expr_translator_(program_, *this) {}
 
 template <typename T>
@@ -34,7 +38,8 @@ void HashJoinTranslator<T>::Produce() {
   }
   packed.Build();
 
-  buffer_ = std::make_unique<proxy::HashTable<T>>(program_, packed);
+  buffer_ = std::make_unique<proxy::HashTable<T>>(program_, vector_funcs_,
+                                                  hash_funcs_, packed);
 
   this->LeftChild().Produce();
   this->RightChild().Produce();
@@ -78,8 +83,12 @@ void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
 
           auto eq = std::make_unique<plan::BinaryArithmeticExpression>(
               plan::BinaryArithmeticOperatorType::EQ,
-              std::make_unique<plan::ColumnRefExpression>(left_key),
-              std::make_unique<plan::ColumnRefExpression>(right_key));
+              std::make_unique<plan::ColumnRefExpression>(
+                  left_key.Type(), left_key.GetChildIdx(),
+                  left_key.GetColumnIdx()),
+              std::make_unique<plan::ColumnRefExpression>(
+                  right_key.Type(), right_key.GetChildIdx(),
+                  right_key.GetColumnIdx()));
 
           if (conj == nullptr) {
             conj = std::move(eq);
@@ -89,6 +98,7 @@ void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
                 std::move(eq));
           }
         }
+
         auto cond = expr_translator_.Compute(*conj);
         proxy::If(program_, dynamic_cast<proxy::Bool<T>&>(*cond), [&]() {
           for (const auto& column : hash_join_.Schema().Columns()) {

@@ -35,14 +35,14 @@ const Database db = Schema();
 // Scan(lineitem)
 std::unique_ptr<Operator> ScanLineitem() {
   OperatorSchema schema;
-  schema.AddGeneratedColumns(db["lineitem"], {"l_quantity"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
+  schema.AddGeneratedColumns(db["nation"], {"n_nationkey"});
+  return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
 std::unique_ptr<Operator> OrderBy() {
   auto scan = ScanLineitem();
 
-  auto l_quantity = ColRef(scan, "l_quantity");
+  auto l_quantity = ColRef(scan, "n_nationkey");
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*scan);
@@ -52,8 +52,24 @@ std::unique_ptr<Operator> OrderBy() {
       util::MakeVector(std::move(l_quantity)), std::vector<bool>{true});
 }
 
+std::unique_ptr<Operator> Join() {
+  auto o1 = ScanLineitem();
+  auto o2 = ScanLineitem();
+
+  auto l_quantity_1 = ColRef(o1, "n_nationkey", 0);
+  auto l_quantity_2 = ColRef(o2, "n_nationkey", 1);
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(*o1, {"n_nationkey"}, 0);
+  schema.AddPassthroughColumns(*o2, {"n_nationkey"}, 1);
+  return std::make_unique<HashJoinOperator>(
+      std::move(schema), std::move(o1), std::move(o2),
+      util::MakeVector(std::move(l_quantity_1)),
+      util::MakeVector(std::move(l_quantity_2)));
+}
+
 int main() {
-  auto query = std::make_unique<OutputOperator>(OrderBy());
+  auto query = std::make_unique<OutputOperator>(Join());
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();

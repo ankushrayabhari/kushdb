@@ -30,6 +30,7 @@ cc_library(
     srcs = ["hash_table.cc"],
     hdrs = ["hash_table.h"],
     deps = [
+        ":vector",
         "@absl//absl/container:flat_hash_map",
     ],
 )

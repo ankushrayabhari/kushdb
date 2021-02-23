@@ -2,6 +2,7 @@
 
 #include "compile/ir_registry.h"
 #include "compile/translators/cross_product_translator.h"
+#include "compile/translators/hash_join_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/order_by_translator.h"
 #include "compile/translators/output_translator.h"
@@ -23,11 +24,13 @@ TranslatorFactory<T>::TranslatorFactory(
                         proxy::ForwardDeclaredColumnDataFunctions<T>>&
         col_data_funcs,
     proxy::ForwardDeclaredPrintFunctions<T>& print_funcs,
-    proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs)
+    proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
+    proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs)
     : program_(program),
       col_data_funcs_(col_data_funcs),
       print_funcs_(print_funcs),
-      vector_funcs_(vector_funcs) {}
+      vector_funcs_(vector_funcs),
+      hash_funcs_(hash_funcs) {}
 
 template <typename T>
 std::vector<std::unique_ptr<OperatorTranslator<T>>>
@@ -59,8 +62,9 @@ void TranslatorFactory<T>::Visit(const plan::OutputOperator& output) {
 
 template <typename T>
 void TranslatorFactory<T>::Visit(const plan::HashJoinOperator& hash_join) {
-  // this->Return(std::make_unique<HashJoinTranslator<T>>(
-  //    hash_join, program_, GetChildTranslators(hash_join)));
+  this->Return(std::make_unique<HashJoinTranslator<T>>(
+      hash_join, program_, vector_funcs_, hash_funcs_,
+      GetChildTranslators(hash_join)));
 }
 
 template <typename T>

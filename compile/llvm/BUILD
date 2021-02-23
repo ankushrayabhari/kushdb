@@ -11,6 +11,8 @@ cc_library(
         "//compile:program",
         "//compile:program_builder",
         "//data:column_data",
+        "//data:hash_table",
+        "//data:vector",
         "//util:print_util",
         "@llvm-project//llvm:BitWriter",
         "@llvm-project//llvm:Core",

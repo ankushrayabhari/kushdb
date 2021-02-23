@@ -29,6 +29,8 @@ cc_library(
     deps = [
         "//catalog",
         "//compile:program",
+        "//compile/proxy:hash_table",
+        "//compile/proxy:vector",
         "//compile/translators:translator_factory",
     ],
 )

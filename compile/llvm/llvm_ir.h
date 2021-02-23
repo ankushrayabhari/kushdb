@@ -123,6 +123,8 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Value& SubI64(Value& v1, Value& v2) override;
   Value& CmpI64(CompType cmp, Value& v1, Value& v2) override;
   Value& ConstI64(int64_t v) override;
+  Value& ZextI64(Value& v) override;
+  Value& F64ConversionI64(Value& v) override;
 
   // F64
   Value& AddF64(Value& v1, Value& v2) override;
