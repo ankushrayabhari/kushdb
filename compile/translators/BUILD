@@ -83,7 +83,9 @@ cc_library(
         ":operator_translator",
         "//compile:ir_registry",
         "//compile/proxy:hash_table",
+        "//compile/proxy:value",
         "//plan:hash_join_operator",
+        "//util:vector_util",
     ],
 )
 

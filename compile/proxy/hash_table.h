@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <vector>
+
 #include "compile/program_builder.h"
 #include "compile/proxy/struct.h"
 
@@ -12,6 +15,8 @@ class HashTable {
   ~HashTable();
 
   Struct<T> Insert(std::vector<std::reference_wrapper<proxy::Value<T>>> keys);
+  void Get(std::vector<std::reference_wrapper<proxy::Value<T>>> keys,
+           std::function<void(Struct<T>&)> handler);
 
  private:
   ProgramBuilder<T>& program_;

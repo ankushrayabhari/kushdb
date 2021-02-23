@@ -10,6 +10,7 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/hash_join_operator.h"
+#include "util/vector_util.h"
 
 namespace kush::compile {
 
@@ -24,120 +25,59 @@ HashJoinTranslator<T>::HashJoinTranslator(
 
 template <typename T>
 void HashJoinTranslator<T>::Produce() {
-  /*
-  // declare packing struct
-  packed_struct_id_ = program.GenerateVariable();
-  program.fout << " struct " << packed_struct_id_ << " {\n";
-  for (const auto& column : hash_join_.LeftChild().Schema().Columns()) {
-    auto field = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(column.Expr().Type());
-    packed_struct_field_ids_.emplace_back(field, type);
-    program.fout << type << " " << field << ";\n";
+  // Struct for all columns in the left tuple
+  proxy::StructBuilder<T> packed(program_);
+  const auto& child_schema = hash_join_.LeftChild().Schema().Columns();
+  for (const auto& col : child_schema) {
+    packed.Add(col.Expr().Type());
   }
-  program.fout << "};\n";
+  packed.Build();
 
-  // declare hash table
-  hash_table_var_ = program.GenerateVariable();
-  program.fout << "std::unordered_map<std::size_t, std::vector<"
-               << packed_struct_id_ << ">> " << hash_table_var_ << ";\n";
-
-               */
+  buffer_ = std::make_unique<proxy::HashTable<T>>(program_, packed);
 
   this->LeftChild().Produce();
   this->RightChild().Produce();
+
+  buffer_.reset();
 }
 
 template <typename T>
 void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
   auto& left_translator = this->LeftChild();
-  const auto left_columns = hash_join_.LeftColumns();
-  const auto right_columns = hash_join_.RightColumns();
+  const auto left_keys = hash_join_.LeftColumns();
+  const auto right_keys = hash_join_.RightColumns();
 
   // Build side
   if (&src == &left_translator) {
-    // hash key
     std::vector<std::unique_ptr<proxy::Value<T>>> key_columns;
-    for (const auto& left_key : left_columns) {
+    for (const auto& left_key : left_keys) {
       key_columns.push_back(expr_translator_.Compute(left_key.get()));
     }
-    auto entry = buffer_->Insert();
-  }
-  /*
-    // pack tuple into table
-    program.fout << bucket_var << ".push_back(" << packed_struct_id_ << "{";
-    bool first = true;
-    for (const auto& [variable, type] :
-         left_translator.SchemaValues().Values()) {
-      if (first) {
-        first = false;
-      } else {
-        program.fout << ",";
-      }
-      program.fout << variable;
-    }
-    program.fout << "});\n";
+
+    auto entry = buffer_->Insert(util::ReferenceVector(key_columns));
+    entry.Pack(left_translator.SchemaValues().Values());
     return;
   }
 
   // Probe Side
-  // hash tuple
-  auto hash_var = program.GenerateVariable();
-  program.fout << "std::size_t " << hash_var << " = 0;";
-  program.fout << "kush::util::HashCombine(" << hash_var;
-  for (const auto& col : right_columns) {
-    program.fout << "," << expr_translator_.Compute(col.get())->Get();
+  std::vector<std::unique_ptr<proxy::Value<T>>> key_columns;
+  for (const auto& right_key : right_keys) {
+    key_columns.push_back(expr_translator_.Compute(right_key.get()));
   }
-  program.fout << ");\n";
-  auto bucket_var = program.GenerateVariable();
-  program.fout << "auto& " << bucket_var << " = " << hash_table_var_ << "["
-               << hash_var << "];\n";
+  buffer_->Get(
+      util::ReferenceVector(key_columns), [&](proxy::Struct<T>& left_tuple) {
+        left_translator.SchemaValues().SetValues(left_tuple.Unpack());
 
-  // loop over bucket
-  auto loop_var = program.GenerateVariable();
-  program.fout << "for (int " << loop_var << " = 0; " << loop_var << " < "
-               << bucket_var << ".size(); " << loop_var << "++){\n";
+        for (const auto& column : hash_join_.Schema().Columns()) {
+          this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+        }
 
-  // unpack tuple - reuse variables from build side loop
-  const auto& left_schema_values = left_translator.SchemaValues().Values();
-  for (int i = 0; i < left_schema_values.size(); i++) {
-    const auto& [variable, type] = left_schema_values[i];
-    const auto& [field_id, _] = packed_struct_field_ids_[i];
-
-    program.fout << type << "& " << variable << " = " << bucket_var << "["
-                 << loop_var << "]." << field_id << ";\n";
-  }
-
-  // check if the key columns are actually equal
-  program.fout << "if (";
-  for (int i = 0; i < left_columns.size(); i++) {
-    if (i > 0) {
-      program.fout << " && ";
-    }
-
-    program.fout << "("
-                 << expr_translator_.Compute(left_columns[i].get())->Get()
-                 << " == "
-                 << expr_translator_.Compute(right_columns[i].get())->Get()
-                 << ")";
-  }
-  program.fout << ") {";
-
-  for (const auto& column : hash_join_.Schema().Columns()) {
-    auto var = program.GenerateVariable();
-    auto type = SqlTypeToRuntimeType(column.Expr().Type());
-
-    program.fout << "auto " << var << " = "
-                 << expr_translator_.Compute(column.Expr())->Get() << ";\n";
-
-    values_.AddVariable(var, type);
-  }
-
-  if (auto parent = Parent()) {
-    parent->get().Consume(*this);
-  }
-
-  program.fout << "}}\n";
-  */
+        if (auto parent = this->Parent()) {
+          parent->get().Consume(*this);
+        }
+      });
 }
+
+INSTANTIATE_ON_IR(HashJoinTranslator);
 
 }  // namespace kush::compile
