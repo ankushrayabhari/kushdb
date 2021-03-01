@@ -56,6 +56,7 @@ class ProgramBuilder {
   virtual Function& DeclareExternalFunction(
       std::string_view name, Type& result_type,
       std::vector<std::reference_wrapper<Type>> arg_types) = 0;
+  virtual Function& GetFunction(std::string_view name) = 0;
   virtual std::vector<std::reference_wrapper<Value>> GetFunctionArguments(
       Function& func) = 0;
   virtual void Return(Value& v) = 0;

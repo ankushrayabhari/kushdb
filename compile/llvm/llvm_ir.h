@@ -66,6 +66,7 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Function& DeclareExternalFunction(
       std::string_view name, Type& result_type,
       std::vector<std::reference_wrapper<Type>> arg_types) override;
+  Function& GetFunction(std::string_view name) override;
   std::vector<std::reference_wrapper<Value>> GetFunctionArguments(
       Function& func) override;
   void Return(Value& v) override;

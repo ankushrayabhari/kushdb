@@ -145,6 +145,10 @@ Function& LLVMIr::DeclareExternalFunction(
   return *func;
 }
 
+Function& LLVMIr::GetFunction(std::string_view name) {
+  return *module_->getFunction(name);
+}
+
 std::vector<std::reference_wrapper<Value>> LLVMIr::GetFunctionArguments(
     Function& func) {
   std::vector<std::reference_wrapper<Value>> result;
