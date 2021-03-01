@@ -60,7 +60,7 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Function& CreateFunction(
       Type& result_type,
       std::vector<std::reference_wrapper<Type>> arg_types) override;
-  Function& CreateExternalFunction(
+  Function& CreatePublicFunction(
       Type& result_type, std::vector<std::reference_wrapper<Type>> arg_types,
       std::string_view name) override;
   Function& DeclareExternalFunction(

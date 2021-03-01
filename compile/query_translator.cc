@@ -60,7 +60,7 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
       proxy::ColumnData<T, catalog::SqlType::REAL>::ForwardDeclare(*program));
 
   // Create the compute function
-  program->CreateExternalFunction(program->VoidType(), {}, "compute");
+  program->CreatePublicFunction(program->VoidType(), {}, "compute");
 
   // Generate code for operator
   TranslatorFactory<T> factory(*program, col_data_funcs, print_funcs,
