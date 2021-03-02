@@ -172,8 +172,8 @@ void ColumnData<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
     elem_type = &program.I1Type();
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    elem_type = &program.PointerType(
-        program.GetStructType(String<T>::StringStructName));
+    elem_type = &program.ArrayType(
+        program.StructType({program.I32Type(), program.I32Type()}));
   }
 
   auto& string_type = program.PointerType(program.I8Type());
@@ -189,9 +189,10 @@ void ColumnData<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
                                   {struct_ptr});
 
   if constexpr (catalog::SqlType::TEXT == S) {
-    program.DeclareExternalFunction(
-        GetFnName<S>(), program.VoidType(),
-        {struct_ptr, program.I32Type(), *elem_type});
+    program.DeclareExternalFunction(GetFnName<S>(), program.VoidType(),
+                                    {struct_ptr, program.I32Type(),
+                                     program.PointerType(program.GetStructType(
+                                         String<T>::StringStructName))});
   } else {
     program.DeclareExternalFunction(GetFnName<S>(), *elem_type,
                                     {struct_ptr, program.I32Type()});

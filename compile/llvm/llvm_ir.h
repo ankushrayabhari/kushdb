@@ -151,6 +151,8 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> module_;
   std::unique_ptr<llvm::IRBuilder<>> builder_;
+  mutable std::chrono::time_point<std::chrono::system_clock> start, gen, comp,
+      link, end;
 };
 
 }  // namespace kush::compile::ir

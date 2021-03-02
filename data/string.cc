@@ -21,7 +21,7 @@ void Free(String* src) { free((void*)src->data); }
 bool Contains(String* s1, String* s2) {
   auto sv1 = std::string_view(s1->data, s1->length);
   auto sv2 = std::string_view(s2->data, s2->length);
-  return sv1.find(sv2) != -1;
+  return sv1.find(sv2) != std::string_view::npos;
 }
 
 bool EndsWith(String* s1, String* s2) {

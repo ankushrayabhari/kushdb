@@ -2,6 +2,7 @@
 
 #include <dlfcn.h>
 
+#include <iostream>
 #include <system_error>
 #include <type_traits>
 
@@ -14,7 +15,9 @@ namespace kush::compile::ir {
 LLVMIr::LLVMIr()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("query", *context_)),
-      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {}
+      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {
+  start = std::chrono::system_clock::now();
+}
 
 using BasicBlock = LLVMIrTypes::BasicBlock;
 using Value = LLVMIrTypes::Value;
@@ -394,23 +397,31 @@ Value& LLVMIr::ConstStruct(Type& t,
 }
 
 void LLVMIr::Compile() const {
+  gen = std::chrono::system_clock::now();
+
   // Write the module to a file
   std::error_code ec;
   llvm::raw_fd_ostream out("/tmp/query.bc", ec);
   llvm::WriteBitcodeToFile(*module_, out);
   out.close();
 
-  if (system("llc -relocation-model=pic -filetype=obj /tmp/query.bc -o "
+  if (system("opt -O3 < /tmp/query.bc > /tmp/query_opt.bc")) {
+    throw std::runtime_error("Failed to optimize module.");
+  }
+
+  if (system("llc -relocation-model=pic -filetype=obj /tmp/query_opt.bc -o "
              "/tmp/query.o")) {
     throw std::runtime_error("Failed to compile file.");
   }
 
-  if (system("clang++ -shared -fpic bazel-bin/util/libprint_util.so "
+  if (system("clang++ -flto=thin -shared -fpic bazel-bin/util/libprint_util.so "
              "bazel-bin/data/libstring.so bazel-bin/data/libcolumn_data.so "
              "bazel-bin/data/libvector.so bazel-bin/data/libhash_table.so "
              "/tmp/query.o -o /tmp/query.so")) {
     throw std::runtime_error("Failed to link file.");
   }
+
+  comp = std::chrono::system_clock::now();
 }
 
 void LLVMIr::Execute() const {
@@ -426,9 +437,21 @@ void LLVMIr::Execute() const {
     dlclose(handle);
     throw std::runtime_error("Failed to get compute fn.");
   }
+  link = std::chrono::system_clock::now();
 
   process_query();
   dlclose(handle);
+
+  end = std::chrono::system_clock::now();
+  std::cerr << "Performance stats (ms):" << std::endl;
+  std::chrono::duration<double, std::milli> elapsed_seconds = gen - start;
+  std::cerr << "Code generation: " << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = comp - gen;
+  std::cerr << "Compilation: " << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = link - comp;
+  std::cerr << "Linking: " << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = end - link;
+  std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
 }
 
 }  // namespace kush::compile::ir
