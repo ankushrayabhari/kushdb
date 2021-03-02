@@ -11,12 +11,8 @@ namespace kush::compile {
 template <typename T>
 class ScanTranslator : public OperatorTranslator<T> {
  public:
-  ScanTranslator(
-      const plan::ScanOperator& scan, ProgramBuilder<T>& program,
-      absl::flat_hash_map<catalog::SqlType,
-                          proxy::ForwardDeclaredColumnDataFunctions<T>>&
-          functions,
-      std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
+  ScanTranslator(const plan::ScanOperator& scan, ProgramBuilder<T>& program,
+                 std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
   virtual ~ScanTranslator() = default;
 
   void Produce() override;
@@ -25,8 +21,6 @@ class ScanTranslator : public OperatorTranslator<T> {
  private:
   const plan::ScanOperator& scan_;
   ProgramBuilder<T>& program_;
-  absl::flat_hash_map<catalog::SqlType,
-                      proxy::ForwardDeclaredColumnDataFunctions<T>>& functions_;
 };
 
 }  // namespace kush::compile

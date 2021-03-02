@@ -12,74 +12,110 @@
 
 namespace kush::compile::proxy {
 
-template <typename T>
-ForwardDeclaredColumnDataFunctions<T>::ForwardDeclaredColumnDataFunctions(
-    typename ProgramBuilder<T>::Type& struct_type,
-    typename ProgramBuilder<T>::Function& open,
-    typename ProgramBuilder<T>::Function& close,
-    typename ProgramBuilder<T>::Function& get,
-    typename ProgramBuilder<T>::Function& size)
-    : struct_type_(struct_type),
-      open_(open),
-      close_(close),
-      get_(get),
-      size_(size) {}
-
-template <typename T>
-typename ProgramBuilder<T>::Type&
-ForwardDeclaredColumnDataFunctions<T>::StructType() {
-  return struct_type_;
+template <catalog::SqlType S>
+std::string_view OpenFnName() {
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    return "_ZN4kush4data4OpenEPNS0_15Int16ColumnDataEPKc";
+  } else if constexpr (catalog::SqlType::INT == S) {
+    return "_ZN4kush4data4OpenEPNS0_15Int32ColumnDataEPKc";
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    return "_ZN4kush4data4OpenEPNS0_15Int64ColumnDataEPKc";
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    return "_ZN4kush4data4OpenEPNS0_17Float64ColumnDataEPKc";
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    return "_ZN4kush4data4OpenEPNS0_14Int8ColumnDataEPKc";
+  }
 }
 
-template <typename T>
-typename ProgramBuilder<T>::Function&
-ForwardDeclaredColumnDataFunctions<T>::Open() {
-  return open_;
+template <catalog::SqlType S>
+std::string_view CloseFnName() {
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    return "_ZN4kush4data5CloseEPNS0_15Int16ColumnDataE";
+  } else if constexpr (catalog::SqlType::INT == S) {
+    return "_ZN4kush4data5CloseEPNS0_15Int32ColumnDataE";
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    return "_ZN4kush4data5CloseEPNS0_15Int64ColumnDataE";
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    return "_ZN4kush4data5CloseEPNS0_17Float64ColumnDataE";
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    return "_ZN4kush4data5CloseEPNS0_14Int8ColumnDataE";
+  }
 }
 
-template <typename T>
-typename ProgramBuilder<T>::Function&
-ForwardDeclaredColumnDataFunctions<T>::Close() {
-  return close_;
+template <catalog::SqlType S>
+std::string_view GetFnName() {
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    return "_ZN4kush4data3GetEPNS0_15Int16ColumnDataEj";
+  } else if constexpr (catalog::SqlType::INT == S) {
+    return "_ZN4kush4data3GetEPNS0_15Int32ColumnDataEj";
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    return "_ZN4kush4data3GetEPNS0_15Int64ColumnDataEj";
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    return "_ZN4kush4data3GetEPNS0_17Float64ColumnDataEj";
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    return "_ZN4kush4data3GetEPNS0_14Int8ColumnDataEj";
+  }
 }
 
-template <typename T>
-typename ProgramBuilder<T>::Function&
-ForwardDeclaredColumnDataFunctions<T>::Get() {
-  return get_;
+template <catalog::SqlType S>
+std::string_view SizeFnName() {
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    return "_ZN4kush4data4SizeEPNS0_15Int16ColumnDataE";
+  } else if constexpr (catalog::SqlType::INT == S) {
+    return "_ZN4kush4data4SizeEPNS0_15Int32ColumnDataE";
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    return "_ZN4kush4data4SizeEPNS0_15Int64ColumnDataE";
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    return "_ZN4kush4data4SizeEPNS0_17Float64ColumnDataE";
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    return "_ZN4kush4data4SizeEPNS0_14Int8ColumnDataE";
+  }
 }
 
-template <typename T>
-typename ProgramBuilder<T>::Function&
-ForwardDeclaredColumnDataFunctions<T>::Size() {
-  return size_;
+template <catalog::SqlType S>
+std::string_view StructName() {
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    return "kush::data::Int16ColumnData";
+  } else if constexpr (catalog::SqlType::INT == S) {
+    return "kush::data::Int32ColumnData";
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    return "kush::data::Int64ColumnData";
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    return "kush::data::Flaot64ColumnData";
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    return "kush::data::Int8ColumnData";
+  }
 }
-
-INSTANTIATE_ON_IR(ForwardDeclaredColumnDataFunctions);
 
 template <typename T, catalog::SqlType S>
-ColumnData<T, S>::ColumnData(ProgramBuilder<T>& program,
-                             ForwardDeclaredColumnDataFunctions<T>& funcs,
-                             std::string_view path)
-    : program_(program), funcs_(funcs) {
+ColumnData<T, S>::ColumnData(ProgramBuilder<T>& program, std::string_view path)
+    : program_(program) {
   auto& path_value = program_.CreateGlobal(path);
-  value_ = &program_.Alloca(funcs_.StructType());
-  program_.Call(funcs_.Open(), {*value_, path_value});
+  value_ = &program_.Alloca(program.GetStructType(StructName<S>()));
+  program_.Call(program_.GetFunction(OpenFnName<S>()), {*value_, path_value});
 }
 
 template <typename T, catalog::SqlType S>
 ColumnData<T, S>::~ColumnData() {
-  program_.Call(funcs_.Close(), {*value_});
+  program_.Call(program_.GetFunction(CloseFnName<S>()), {*value_});
 }
 
 template <typename T, catalog::SqlType S>
 UInt32<T> ColumnData<T, S>::Size() {
-  return UInt32<T>(program_, program_.Call(funcs_.Size(), {*value_}));
+  return UInt32<T>(
+      program_,
+      program_.Call(program_.GetFunction(SizeFnName<S>()), {*value_}));
 }
 
 template <typename T, catalog::SqlType S>
 std::unique_ptr<Value<T>> ColumnData<T, S>::operator[](UInt32<T>& idx) {
-  auto& elem = program_.Call(funcs_.Get(), {*value_, idx.Get()});
+  auto& elem =
+      program_.Call(program_.GetFunction(GetFnName<S>()), {*value_, idx.Get()});
 
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return std::make_unique<Int16<T>>(program_, elem);
@@ -97,61 +133,36 @@ std::unique_ptr<Value<T>> ColumnData<T, S>::operator[](UInt32<T>& idx) {
 }
 
 template <typename T, catalog::SqlType S>
-ForwardDeclaredColumnDataFunctions<T> ColumnData<T, S>::ForwardDeclare(
-    ProgramBuilder<T>& program) {
-  std::string_view open_name, close_name, get_name, size_name;
+void ColumnData<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
   typename ProgramBuilder<T>::Type* elem_type;
 
   // Initialize all the mangled names and the corresponding data type
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    open_name = "_ZN4kush4data4OpenEPNS0_15Int16ColumnDataEPKc";
-    close_name = "_ZN4kush4data5CloseEPNS0_15Int16ColumnDataE";
-    get_name = "_ZN4kush4data3GetEPNS0_15Int16ColumnDataEj";
-    size_name = "_ZN4kush4data4SizeEPNS0_15Int16ColumnDataE";
     elem_type = &program.I16Type();
   } else if constexpr (catalog::SqlType::INT == S) {
-    open_name = "_ZN4kush4data4OpenEPNS0_15Int32ColumnDataEPKc";
-    close_name = "_ZN4kush4data5CloseEPNS0_15Int32ColumnDataE";
-    get_name = "_ZN4kush4data3GetEPNS0_15Int32ColumnDataEj";
-    size_name = "_ZN4kush4data4SizeEPNS0_15Int32ColumnDataE";
     elem_type = &program.I32Type();
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    open_name = "_ZN4kush4data4OpenEPNS0_15Int64ColumnDataEPKc";
-    close_name = "_ZN4kush4data5CloseEPNS0_15Int64ColumnDataE";
-    get_name = "_ZN4kush4data3GetEPNS0_15Int64ColumnDataEj";
-    size_name = "_ZN4kush4data4SizeEPNS0_15Int64ColumnDataE";
     elem_type = &program.I64Type();
   } else if constexpr (catalog::SqlType::REAL == S) {
-    open_name = "_ZN4kush4data4OpenEPNS0_17Float64ColumnDataEPKc";
-    close_name = "_ZN4kush4data5CloseEPNS0_17Float64ColumnDataE";
-    get_name = "_ZN4kush4data3GetEPNS0_17Float64ColumnDataEj";
-    size_name = "_ZN4kush4data4SizeEPNS0_17Float64ColumnDataE";
     elem_type = &program.F64Type();
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    open_name = "_ZN4kush4data4OpenEPNS0_14Int8ColumnDataEPKc";
-    close_name = "_ZN4kush4data5CloseEPNS0_14Int8ColumnDataE";
-    get_name = "_ZN4kush4data3GetEPNS0_14Int8ColumnDataEj";
-    size_name = "_ZN4kush4data4SizeEPNS0_14Int8ColumnDataE";
     elem_type = &program.I8Type();
   }
 
   auto& string_type = program.PointerType(program.I8Type());
-  auto& struct_type =
-      program.StructType({program.PointerType(*elem_type), program.I32Type()});
+  auto& struct_type = program.StructType(
+      {program.PointerType(*elem_type), program.I32Type()}, StructName<S>());
   auto& struct_ptr = program.PointerType(struct_type);
 
-  auto& open_fn = program.DeclareExternalFunction(open_name, program.VoidType(),
-                                                  {struct_ptr, string_type});
-  auto& close_fn = program.DeclareExternalFunction(
-      close_name, program.VoidType(), {struct_ptr});
-  auto& get_fn = program.DeclareExternalFunction(
-      get_name, *elem_type, {struct_ptr, program.I32Type()});
-  auto& size_fn = program.DeclareExternalFunction(size_name, program.I32Type(),
-                                                  {struct_ptr});
-
-  return ForwardDeclaredColumnDataFunctions<T>(struct_type, open_fn, close_fn,
-                                               get_fn, size_fn);
+  program.DeclareExternalFunction(OpenFnName<S>(), program.VoidType(),
+                                  {struct_ptr, string_type});
+  program.DeclareExternalFunction(CloseFnName<S>(), program.VoidType(),
+                                  {struct_ptr});
+  program.DeclareExternalFunction(GetFnName<S>(), *elem_type,
+                                  {struct_ptr, program.I32Type()});
+  program.DeclareExternalFunction(SizeFnName<S>(), program.I32Type(),
+                                  {struct_ptr});
 }
 
 INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::SMALLINT);

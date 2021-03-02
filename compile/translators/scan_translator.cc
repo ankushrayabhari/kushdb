@@ -19,14 +19,10 @@ namespace kush::compile {
 template <typename T>
 ScanTranslator<T>::ScanTranslator(
     const plan::ScanOperator& scan, ProgramBuilder<T>& program,
-    absl::flat_hash_map<catalog::SqlType,
-                        proxy::ForwardDeclaredColumnDataFunctions<T>>&
-        functions,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
     : OperatorTranslator<T>(std::move(children)),
       scan_(scan),
-      program_(program),
-      functions_(functions) {}
+      program_(program) {}
 
 template <typename T>
 void ScanTranslator<T>::Produce() {
@@ -40,40 +36,39 @@ void ScanTranslator<T>::Produce() {
     auto type = column.Expr().Type();
 
     auto path = table[column.Name()].Path();
-    auto& function = functions_.at(type);
     switch (type) {
       case SqlType::SMALLINT: {
         column_data_vars.push_back(
-            std::make_unique<proxy::ColumnData<T, SqlType::SMALLINT>>(
-                program_, function, path));
+            std::make_unique<proxy::ColumnData<T, SqlType::SMALLINT>>(program_,
+                                                                      path));
         break;
       }
 
       case SqlType::INT: {
         column_data_vars.push_back(
-            std::make_unique<proxy::ColumnData<T, SqlType::INT>>(
-                program_, function, path));
+            std::make_unique<proxy::ColumnData<T, SqlType::INT>>(program_,
+                                                                 path));
         break;
       }
 
       case SqlType::BIGINT: {
         column_data_vars.push_back(
-            std::make_unique<proxy::ColumnData<T, SqlType::BIGINT>>(
-                program_, function, path));
+            std::make_unique<proxy::ColumnData<T, SqlType::BIGINT>>(program_,
+                                                                    path));
         break;
       }
 
       case SqlType::REAL: {
         column_data_vars.push_back(
-            std::make_unique<proxy::ColumnData<T, SqlType::REAL>>(
-                program_, function, path));
+            std::make_unique<proxy::ColumnData<T, SqlType::REAL>>(program_,
+                                                                  path));
         break;
       }
 
       case SqlType::DATE: {
         column_data_vars.push_back(
-            std::make_unique<proxy::ColumnData<T, SqlType::DATE>>(
-                program_, function, path));
+            std::make_unique<proxy::ColumnData<T, SqlType::DATE>>(program_,
+                                                                  path));
         break;
       }
 
@@ -83,8 +78,8 @@ void ScanTranslator<T>::Produce() {
 
       case SqlType::BOOLEAN: {
         column_data_vars.push_back(
-            std::make_unique<proxy::ColumnData<T, SqlType::BOOLEAN>>(
-                program_, function, path));
+            std::make_unique<proxy::ColumnData<T, SqlType::BOOLEAN>>(program_,
+                                                                     path));
         break;
       }
     }

@@ -19,19 +19,8 @@
 namespace kush::compile {
 
 template <typename T>
-TranslatorFactory<T>::TranslatorFactory(
-    ProgramBuilder<T>& program,
-    absl::flat_hash_map<catalog::SqlType,
-                        proxy::ForwardDeclaredColumnDataFunctions<T>>&
-        col_data_funcs,
-    proxy::ForwardDeclaredPrintFunctions<T>& print_funcs,
-    proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
-    proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs)
-    : program_(program),
-      col_data_funcs_(col_data_funcs),
-      print_funcs_(print_funcs),
-      vector_funcs_(vector_funcs),
-      hash_funcs_(hash_funcs) {}
+TranslatorFactory<T>::TranslatorFactory(ProgramBuilder<T>& program)
+    : program_(program) {}
 
 template <typename T>
 std::vector<std::unique_ptr<OperatorTranslator<T>>>
@@ -45,8 +34,8 @@ TranslatorFactory<T>::GetChildTranslators(const plan::Operator& current) {
 
 template <typename T>
 void TranslatorFactory<T>::Visit(const plan::ScanOperator& scan) {
-  this->Return(std::make_unique<ScanTranslator<T>>(
-      scan, program_, col_data_funcs_, GetChildTranslators(scan)));
+  this->Return(std::make_unique<ScanTranslator<T>>(scan, program_,
+                                                   GetChildTranslators(scan)));
 }
 
 template <typename T>
@@ -58,28 +47,26 @@ void TranslatorFactory<T>::Visit(const plan::SelectOperator& select) {
 template <typename T>
 void TranslatorFactory<T>::Visit(const plan::OutputOperator& output) {
   this->Return(std::make_unique<OutputTranslator<T>>(
-      output, program_, print_funcs_, GetChildTranslators(output)));
+      output, program_, GetChildTranslators(output)));
 }
 
 template <typename T>
 void TranslatorFactory<T>::Visit(const plan::HashJoinOperator& hash_join) {
   this->Return(std::make_unique<HashJoinTranslator<T>>(
-      hash_join, program_, vector_funcs_, hash_funcs_,
-      GetChildTranslators(hash_join)));
+      hash_join, program_, GetChildTranslators(hash_join)));
 }
 
 template <typename T>
 void TranslatorFactory<T>::Visit(
     const plan::GroupByAggregateOperator& group_by_agg) {
   this->Return(std::make_unique<GroupByAggregateTranslator<T>>(
-      group_by_agg, vector_funcs_, hash_funcs_, program_,
-      GetChildTranslators(group_by_agg)));
+      group_by_agg, program_, GetChildTranslators(group_by_agg)));
 }
 
 template <typename T>
 void TranslatorFactory<T>::Visit(const plan::OrderByOperator& order_by) {
   this->Return(std::make_unique<OrderByTranslator<T>>(
-      order_by, program_, vector_funcs_, GetChildTranslators(order_by)));
+      order_by, program_, GetChildTranslators(order_by)));
 }
 
 template <typename T>

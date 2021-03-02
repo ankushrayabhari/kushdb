@@ -21,15 +21,11 @@ namespace kush::compile {
 template <typename T>
 GroupByAggregateTranslator<T>::GroupByAggregateTranslator(
     const plan::GroupByAggregateOperator& group_by_agg,
-    proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
-    proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs,
     ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
     : OperatorTranslator<T>(std::move(children)),
       group_by_agg_(group_by_agg),
       program_(program),
-      vector_funcs_(vector_funcs),
-      hash_funcs_(hash_funcs),
       expr_translator_(program, *this) {}
 
 template <typename T>
@@ -56,8 +52,7 @@ void GroupByAggregateTranslator<T>::Produce() {
   packed.Build();
 
   // Declare the hash table from group by keys -> struct list
-  buffer_ = std::make_unique<proxy::HashTable<T>>(program_, vector_funcs_,
-                                                  hash_funcs_, packed);
+  buffer_ = std::make_unique<proxy::HashTable<T>>(program_, packed);
 
   // Declare the found variable
   found_ = std::make_unique<proxy::Ptr<T, proxy::Bool<T>>>(
@@ -131,7 +126,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
       program_, [&]() { return proxy::UInt32<T>(program_, 0); },
       [&](proxy::UInt32<T>& i) { return i < size; },
       [&](proxy::UInt32<T>& i) {
-        auto packed = bucket.Get(i);
+        auto packed = bucket[i];
         auto values = packed.Unpack();
 
         // TODO: if the key columns are not equal, set i = i + 1

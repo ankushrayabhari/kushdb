@@ -88,7 +88,7 @@ std::unique_ptr<Operator> GroupByAgg() {
 }
 
 int main() {
-  auto query = std::make_unique<OutputOperator>(GroupByAgg());
+  auto query = std::make_unique<OutputOperator>(Join());
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();

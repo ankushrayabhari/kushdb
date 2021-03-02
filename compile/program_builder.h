@@ -28,7 +28,9 @@ class ProgramBuilder {
   virtual Type& I64Type() = 0;
   virtual Type& UI32Type() = 0;
   virtual Type& F64Type() = 0;
-  virtual Type& StructType(std::vector<std::reference_wrapper<Type>> types) = 0;
+  virtual Type& StructType(std::vector<std::reference_wrapper<Type>> types,
+                           std::string_view name = "") = 0;
+  virtual Type& GetStructType(std::string_view name) = 0;
   virtual Type& PointerType(Type& type) = 0;
   virtual Type& ArrayType(Type& type) = 0;
   virtual Type& FunctionType(

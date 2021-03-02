@@ -50,8 +50,20 @@ Type& LLVMIr::UI32Type() { return *builder_->getInt32Ty(); }
 
 Type& LLVMIr::F64Type() { return *builder_->getDoubleTy(); }
 
-Type& LLVMIr::StructType(std::vector<std::reference_wrapper<Type>> types) {
-  return *llvm::StructType::create(*context_, VectorRefToVectorPtr(types));
+Type& LLVMIr::StructType(std::vector<std::reference_wrapper<Type>> types,
+                         std::string_view name) {
+  auto& ty = *llvm::StructType::create(*context_, VectorRefToVectorPtr(types));
+  ty.setName(name);
+  return ty;
+}
+
+Type& LLVMIr::GetStructType(std::string_view name) {
+  for (auto* S : module_->getIdentifiedStructTypes()) {
+    if (S->getName().equals(name)) {
+      return *S;
+    }
+  }
+  throw std::runtime_error("Unknown struct");
 }
 
 Type& LLVMIr::PointerType(Type& type) {
@@ -368,8 +380,8 @@ void LLVMIr::Compile() const {
   }
 
   if (system("clang++ -shared -fpic bazel-bin/util/libprint_util.so "
-             "bazel-bin/data/libcolumn_data.so bazel-bin/data/libvector.so "
-             "bazel-bin/data/libhash_table.so "
+             "bazel-bin/data/libstring.so bazel-bin/data/libcolumn_data.so "
+             "bazel-bin/data/libvector.so bazel-bin/data/libhash_table.so "
              "/tmp/query.o -o /tmp/query.so")) {
     throw std::runtime_error("Failed to link file.");
   }
@@ -379,7 +391,7 @@ void LLVMIr::Execute() const {
   void* handle = dlopen("/tmp/query.so", RTLD_LAZY);
 
   if (!handle) {
-    throw std::runtime_error("Failed to open shared.");
+    throw std::runtime_error(dlerror());
   }
 
   using compute_fn = std::add_pointer<void()>::type;

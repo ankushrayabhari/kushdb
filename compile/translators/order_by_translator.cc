@@ -22,13 +22,11 @@ namespace kush::compile {
 template <typename T>
 OrderByTranslator<T>::OrderByTranslator(
     const plan::OrderByOperator& order_by, ProgramBuilder<T>& program,
-    proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
     : OperatorTranslator<T>(std::move(children)),
       order_by_(order_by),
       program_(program),
-      expr_translator_(program, *this),
-      vector_funcs_(vector_funcs) {}
+      expr_translator_(program, *this) {}
 
 template <typename T>
 void OrderByTranslator<T>::Produce() {
@@ -41,7 +39,7 @@ void OrderByTranslator<T>::Produce() {
   packed.Build();
 
   // init vector
-  buffer_ = std::make_unique<proxy::Vector<T>>(program_, vector_funcs_, packed);
+  buffer_ = std::make_unique<proxy::Vector<T>>(program_, packed);
 
   // populate vector
   this->Child().Produce();
@@ -108,7 +106,7 @@ void OrderByTranslator<T>::Produce() {
         return i + proxy::UInt32<T>(program_, 1);
       });
 
-  buffer_.reset();
+  buffer_->Reset();
 }
 
 template <typename T>

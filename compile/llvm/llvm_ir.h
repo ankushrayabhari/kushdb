@@ -38,7 +38,9 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Type& I64Type() override;
   Type& UI32Type() override;
   Type& F64Type() override;
-  Type& StructType(std::vector<std::reference_wrapper<Type>> types) override;
+  Type& StructType(std::vector<std::reference_wrapper<Type>> types,
+                   std::string_view name) override;
+  Type& GetStructType(std::string_view name) override;
   Type& PointerType(Type& type) override;
   Type& ArrayType(Type& type) override;
   Type& FunctionType(Type& result,

@@ -9,57 +9,59 @@
 namespace kush::compile::proxy {
 
 template <typename T>
-class ForwardDeclaredVectorFunctions {
- public:
-  ForwardDeclaredVectorFunctions(
-      typename ProgramBuilder<T>::Type& vector_type,
-      typename ProgramBuilder<T>::Function& create_func,
-      typename ProgramBuilder<T>::Function& push_back_func,
-      typename ProgramBuilder<T>::Function& get_func,
-      typename ProgramBuilder<T>::Function& size_func,
-      typename ProgramBuilder<T>::Function& free_func,
-      typename ProgramBuilder<T>::Function& sort_func);
-
-  typename ProgramBuilder<T>::Type& VectorType();
-  typename ProgramBuilder<T>::Function& Create();
-  typename ProgramBuilder<T>::Function& PushBack();
-  typename ProgramBuilder<T>::Function& Get();
-  typename ProgramBuilder<T>::Function& Size();
-  typename ProgramBuilder<T>::Function& Free();
-  typename ProgramBuilder<T>::Function& Sort();
-
- private:
-  typename ProgramBuilder<T>::Type& vector_type_;
-  typename ProgramBuilder<T>::Function& create_func_;
-  typename ProgramBuilder<T>::Function& push_back_func_;
-  typename ProgramBuilder<T>::Function& get_func_;
-  typename ProgramBuilder<T>::Function& size_func_;
-  typename ProgramBuilder<T>::Function& free_func_;
-  typename ProgramBuilder<T>::Function& sort_func_;
-};
-
-template <typename T>
 class Vector {
  public:
-  Vector(ProgramBuilder<T>& program,
-         ForwardDeclaredVectorFunctions<T>& vector_funcs,
-         StructBuilder<T>& content);
-  ~Vector();
+  Vector(ProgramBuilder<T>& program, StructBuilder<T>& content);
+  Vector(ProgramBuilder<T>& program, StructBuilder<T>& content,
+         typename ProgramBuilder<T>::Value& value);
 
   Struct<T> operator[](const proxy::UInt32<T>& idx);
   Struct<T> PushBack();
   UInt32<T> Size();
+  void Reset();
   void Sort(typename ProgramBuilder<T>::Function& comp);
 
-  static ForwardDeclaredVectorFunctions<T> ForwardDeclare(
-      ProgramBuilder<T>& program);
+  static void ForwardDeclare(ProgramBuilder<T>& program);
+
+  static const std::string_view VectorStructName;
+  static const std::string_view CreateFnName;
+  static const std::string_view PushBackFnName;
+  static const std::string_view GetFnName;
+  static const std::string_view SizeFnName;
+  static const std::string_view FreeFnName;
+  static const std::string_view SortFnName;
 
  private:
   ProgramBuilder<T>& program_;
-  ForwardDeclaredVectorFunctions<T> vector_funcs_;
   StructBuilder<T>& content_;
   typename ProgramBuilder<T>::Type& content_type_;
   typename ProgramBuilder<T>::Value& value_;
 };
+
+template <typename T>
+const std::string_view Vector<T>::VectorStructName("kush::data::Vector");
+
+template <typename T>
+const std::string_view Vector<T>::CreateFnName(
+    "_ZN4kush4data6CreateEPNS0_6VectorEmj");
+
+template <typename T>
+const std::string_view Vector<T>::PushBackFnName(
+    "_ZN4kush4data8PushBackEPNS0_6VectorE");
+
+template <typename T>
+const std::string_view Vector<T>::GetFnName("_ZN4kush4data3GetEPNS0_6VectorEj");
+
+template <typename T>
+const std::string_view Vector<T>::SizeFnName(
+    "_ZN4kush4data4SizeEPNS0_6VectorE");
+
+template <typename T>
+const std::string_view Vector<T>::FreeFnName(
+    "_ZN4kush4data4FreeEPNS0_6VectorE");
+
+template <typename T>
+const std::string_view Vector<T>::SortFnName(
+    "_ZN4kush4data4SortEPNS0_6VectorEPFaPaS3_E");
 
 }  // namespace kush::compile::proxy

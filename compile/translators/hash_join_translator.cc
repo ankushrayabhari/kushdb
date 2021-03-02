@@ -19,14 +19,10 @@ namespace kush::compile {
 template <typename T>
 HashJoinTranslator<T>::HashJoinTranslator(
     const plan::HashJoinOperator& hash_join, ProgramBuilder<T>& program,
-    proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
-    proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
     : OperatorTranslator<T>(std::move(children)),
       hash_join_(hash_join),
       program_(program),
-      vector_funcs_(vector_funcs),
-      hash_funcs_(hash_funcs),
       expr_translator_(program_, *this) {}
 
 template <typename T>
@@ -39,8 +35,7 @@ void HashJoinTranslator<T>::Produce() {
   }
   packed.Build();
 
-  buffer_ = std::make_unique<proxy::HashTable<T>>(program_, vector_funcs_,
-                                                  hash_funcs_, packed);
+  buffer_ = std::make_unique<proxy::HashTable<T>>(program_, packed);
 
   this->LeftChild().Produce();
   this->RightChild().Produce();
@@ -77,7 +72,7 @@ void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
       program_, [&]() { return proxy::UInt32<T>(program_, 0); },
       [&](proxy::UInt32<T>& i) { return i < bucket.Size(); },
       [&](proxy::UInt32<T>& i) {
-        proxy::Struct<T> left_tuple = bucket.Get(i);
+        auto left_tuple = bucket[i];
 
         left_translator.SchemaValues().SetValues(left_tuple.Unpack());
 

@@ -11,7 +11,6 @@ class OutputTranslator : public OperatorTranslator<T> {
  public:
   OutputTranslator(
       const plan::OutputOperator& output, ProgramBuilder<T>& program,
-      proxy::ForwardDeclaredPrintFunctions<T>& print_funcs,
       std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
   virtual ~OutputTranslator() = default;
 
@@ -20,7 +19,6 @@ class OutputTranslator : public OperatorTranslator<T> {
 
  private:
   ProgramBuilder<T>& program_;
-  proxy::ForwardDeclaredPrintFunctions<T>& print_funcs_;
 };
 
 }  // namespace kush::compile

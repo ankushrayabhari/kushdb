@@ -10,11 +10,8 @@ namespace kush::compile {
 template <typename T>
 OutputTranslator<T>::OutputTranslator(
     const plan::OutputOperator& output, ProgramBuilder<T>& program,
-    proxy::ForwardDeclaredPrintFunctions<T>& print_funcs,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(std::move(children)),
-      program_(program),
-      print_funcs_(print_funcs) {}
+    : OperatorTranslator<T>(std::move(children)), program_(program) {}
 
 template <typename T>
 void OutputTranslator<T>::Produce() {
@@ -25,7 +22,7 @@ template <typename T>
 void OutputTranslator<T>::Consume(OperatorTranslator<T>& src) {
   auto values = this->Child().SchemaValues().Values();
 
-  proxy::Printer printer(program_, print_funcs_);
+  proxy::Printer printer(program_);
   for (auto& value : values) {
     value.get().Print(printer);
   }

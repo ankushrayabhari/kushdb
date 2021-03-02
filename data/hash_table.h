@@ -27,11 +27,13 @@ Vector* GetBucket(HashTable* ht, uint32_t hash);
 
 void GetAllBuckets(HashTable* ht, BucketList* l);
 
+void Free(HashTable* ht);
+
 Vector* GetBucketIdx(BucketList* l, uint32_t i);
 
 uint32_t Size(BucketList* l);
 
-void Free(HashTable* ht);
+void Free(BucketList* bl);
 
 void HashCombine(uint32_t* hash, int64_t v);
 

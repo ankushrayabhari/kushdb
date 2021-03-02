@@ -16,7 +16,6 @@ class OrderByTranslator : public OperatorTranslator<T> {
  public:
   OrderByTranslator(
       const plan::OrderByOperator& order_by, ProgramBuilder<T>& program,
-      proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
       std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
   virtual ~OrderByTranslator() = default;
 
@@ -27,7 +26,6 @@ class OrderByTranslator : public OperatorTranslator<T> {
   const plan::OrderByOperator& order_by_;
   ProgramBuilder<T>& program_;
   ExpressionTranslator<T> expr_translator_;
-  proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs_;
   std::unique_ptr<proxy::Vector<T>> buffer_;
 };
 

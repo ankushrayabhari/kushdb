@@ -21,14 +21,7 @@ class TranslatorFactory
     : public util::Visitor<plan::ImmutableOperatorVisitor,
                            const plan::Operator&, OperatorTranslator<T>> {
  public:
-  TranslatorFactory(
-      ProgramBuilder<T>& program,
-      absl::flat_hash_map<catalog::SqlType,
-                          proxy::ForwardDeclaredColumnDataFunctions<T>>&
-          col_data_funcs,
-      proxy::ForwardDeclaredPrintFunctions<T>& print_funcs,
-      proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
-      proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs);
+  TranslatorFactory(ProgramBuilder<T>& program);
   virtual ~TranslatorFactory() = default;
 
   void Visit(const plan::ScanOperator& scan) override;
@@ -43,12 +36,6 @@ class TranslatorFactory
   std::vector<std::unique_ptr<OperatorTranslator<T>>> GetChildTranslators(
       const plan::Operator& current);
   ProgramBuilder<T>& program_;
-  absl::flat_hash_map<catalog::SqlType,
-                      proxy::ForwardDeclaredColumnDataFunctions<T>>&
-      col_data_funcs_;
-  proxy::ForwardDeclaredPrintFunctions<T>& print_funcs_;
-  proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs_;
-  proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs_;
 };
 
 }  // namespace kush::compile

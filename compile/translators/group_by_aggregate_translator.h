@@ -17,8 +17,6 @@ class GroupByAggregateTranslator : public OperatorTranslator<T> {
  public:
   GroupByAggregateTranslator(
       const plan::GroupByAggregateOperator& group_by_agg,
-      proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs,
-      proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs,
       ProgramBuilder<T>& program,
       std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
   virtual ~GroupByAggregateTranslator() = default;
@@ -29,8 +27,6 @@ class GroupByAggregateTranslator : public OperatorTranslator<T> {
  private:
   const plan::GroupByAggregateOperator& group_by_agg_;
   ProgramBuilder<T>& program_;
-  proxy::ForwardDeclaredVectorFunctions<T>& vector_funcs_;
-  proxy::ForwardDeclaredHashTableFunctions<T>& hash_funcs_;
   ExpressionTranslator<T> expr_translator_;
   std::unique_ptr<proxy::HashTable<T>> buffer_;
   std::unique_ptr<proxy::Ptr<T, proxy::Bool<T>>> found_;
