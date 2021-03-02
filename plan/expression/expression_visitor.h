@@ -10,6 +10,7 @@ class LiteralExpression;
 class VirtualColumnRefExpression;
 class BinaryArithmeticExpression;
 class CaseExpression;
+class IntToFloatConversionExpression;
 
 class ExpressionVisitor {
  public:
@@ -20,6 +21,7 @@ class ExpressionVisitor {
   virtual void Visit(VirtualColumnRefExpression& virtual_col_ref) = 0;
   virtual void Visit(LiteralExpression& literal) = 0;
   virtual void Visit(CaseExpression& case_expr) = 0;
+  virtual void Visit(IntToFloatConversionExpression& conv) = 0;
 };
 
 class ImmutableExpressionVisitor {
@@ -31,6 +33,7 @@ class ImmutableExpressionVisitor {
   virtual void Visit(const VirtualColumnRefExpression& virtual_col_ref) = 0;
   virtual void Visit(const LiteralExpression& literal) = 0;
   virtual void Visit(const CaseExpression& case_expr) = 0;
+  virtual void Visit(const IntToFloatConversionExpression& conv) = 0;
 };
 
 }  // namespace kush::plan

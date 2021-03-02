@@ -103,8 +103,8 @@ std::unique_ptr<Operator> SubqueryAgg() {
   auto base = SubqueryNationSupplierPartsupp();
 
   // aggregate
-  auto value =
-      Sum(Mul(ColRef(base, "ps_supplycost"), ColRef(base, "ps_availqty")));
+  auto value = Sum(
+      Mul(ColRef(base, "ps_supplycost"), Float(ColRef(base, "ps_availqty"))));
 
   OperatorSchema schema;
   schema.AddDerivedColumn("value1", Mul(VirtColRef(value, 0), Literal(0.0001)));
@@ -148,8 +148,8 @@ std::unique_ptr<Operator> GroupByAgg() {
   auto ps_partkey = ColRefE(base, "ps_partkey");
 
   // aggregate
-  auto value =
-      Sum(Mul(ColRef(base, "ps_supplycost"), ColRef(base, "ps_availqty")));
+  auto value = Sum(
+      Mul(ColRef(base, "ps_supplycost"), Float(ColRef(base, "ps_availqty"))));
 
   OperatorSchema schema;
   schema.AddDerivedColumn("ps_partkey", VirtColRef(ps_partkey, 0));

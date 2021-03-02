@@ -13,8 +13,25 @@ namespace kush::plan {
 
 catalog::SqlType CalculateType(BinaryArithmeticOperatorType type,
                                catalog::SqlType left, catalog::SqlType right) {
-  // TODO: calculate type
-  return left;
+  switch (type) {
+    case BinaryArithmeticOperatorType::AND:
+    case BinaryArithmeticOperatorType::OR:
+    case BinaryArithmeticOperatorType::EQ:
+    case BinaryArithmeticOperatorType::NEQ:
+    case BinaryArithmeticOperatorType::LT:
+    case BinaryArithmeticOperatorType::LEQ:
+    case BinaryArithmeticOperatorType::GT:
+    case BinaryArithmeticOperatorType::GEQ:
+    case BinaryArithmeticOperatorType::STARTS_WITH:
+    case BinaryArithmeticOperatorType::ENDS_WITH:
+    case BinaryArithmeticOperatorType::CONTAINS:
+      assert(left == right);
+      return catalog::SqlType::BOOLEAN;
+
+    default:
+      assert(left == right);
+      return left;
+  }
 }
 
 BinaryArithmeticExpression::BinaryArithmeticExpression(

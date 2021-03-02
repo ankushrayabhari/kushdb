@@ -60,7 +60,7 @@ std::unique_ptr<Operator> SubquerySelect() {
   auto subquery = SubqueryAgg();
 
   std::unique_ptr<Expression> cond =
-      Gt(ColRef(subquery, "sum_l_quantity"), Literal(313));
+      Gt(ColRef(subquery, "sum_l_quantity"), Literal(313.0));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*subquery, {"l_orderkey"});

@@ -169,6 +169,7 @@ cc_library(
         "//plan/expression:binary_arithmetic_expression",
         "//plan/expression:case_expression",
         "//plan/expression:column_ref_expression",
+        "//plan/expression:conversion_expression",
         "//plan/expression:expression_visitor",
         "//plan/expression:literal_expression",
         "//plan/expression:virtual_column_ref_expression",

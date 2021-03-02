@@ -89,3 +89,15 @@ cc_library(
         "@magic_enum",
     ],
 )
+
+cc_library(
+    name = "conversion_expression",
+    srcs = ["conversion_expression.cc"],
+    hdrs = ["conversion_expression.h"],
+    deps = [
+        ":expression",
+        ":expression_visitor",
+        "@json",
+        "@magic_enum",
+    ],
+)

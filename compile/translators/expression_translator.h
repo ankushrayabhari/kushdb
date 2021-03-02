@@ -27,6 +27,7 @@ class ExpressionTranslator
   void Visit(const plan::LiteralExpression& literal) override;
   void Visit(const plan::BinaryArithmeticExpression& arith) override;
   void Visit(const plan::CaseExpression& case_expr) override;
+  void Visit(const plan::IntToFloatConversionExpression& conv_expr) override;
 
  private:
   ProgramBuilder<T>& program_;

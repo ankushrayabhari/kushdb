@@ -171,7 +171,7 @@ std::unique_ptr<Operator> GroupByAgg() {
 
   // aggregate
   auto revenue = Sum(Mul(ColRef(base, "l_extendedprice"),
-                         Sub(Literal(1), ColRef(base, "l_discount"))));
+                         Sub(Literal(1.0), ColRef(base, "l_discount"))));
 
   // output
   OperatorSchema schema;

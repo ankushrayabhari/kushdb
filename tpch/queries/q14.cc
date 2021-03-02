@@ -89,10 +89,10 @@ std::unique_ptr<Operator> Agg() {
   // aggregate
   auto agg1 = Sum(Case(StartsWith(ColRef(base, "p_type"), Literal("PROMO"sv)),
                        Mul(ColRef(base, "l_extendedprice"),
-                           Sub(Literal(1), ColRef(base, "l_discount"))),
+                           Sub(Literal(1.0), ColRef(base, "l_discount"))),
                        Literal(0.0)));
   auto agg2 = Sum(Mul(ColRef(base, "l_extendedprice"),
-                      Sub(Literal(1), ColRef(base, "l_discount"))));
+                      Sub(Literal(1.0), ColRef(base, "l_discount"))));
 
   OperatorSchema schema;
   schema.AddDerivedColumn(

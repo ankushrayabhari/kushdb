@@ -15,6 +15,7 @@
 #include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
+#include "plan/expression/conversion_expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
@@ -200,6 +201,15 @@ void ExpressionTranslator<T>::Visit(const plan::CaseExpression& case_expr) {
       break;
     }
   }
+}
+
+template <typename T>
+void ExpressionTranslator<T>::Visit(
+    const plan::IntToFloatConversionExpression& conv_expr) {
+  auto v = this->Compute(conv_expr.Child());
+  this->Return(
+      proxy::Float64<T>(program_, program_.CastSignedIntToF64(v->Get()))
+          .ToPointer());
 }
 
 INSTANTIATE_ON_IR(ExpressionTranslator);

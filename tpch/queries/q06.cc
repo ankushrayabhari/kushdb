@@ -55,7 +55,7 @@ std::unique_ptr<Operator> SelectLineitem() {
     std::unique_ptr<Expression> p4 =
         Leq(ColRef(lineitem, "l_discount"), Literal(0.09));
     std::unique_ptr<Expression> p5 =
-        Lt(ColRef(lineitem, "l_quantity"), Literal(24));
+        Lt(ColRef(lineitem, "l_quantity"), Literal(24.0));
 
     cond = And(util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                                 std::move(p4), std::move(p5)));
