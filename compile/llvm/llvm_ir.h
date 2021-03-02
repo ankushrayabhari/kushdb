@@ -16,7 +16,6 @@ class LLVMIrTypes {
   using Value = llvm::Value;
   using PhiValue = llvm::PHINode;
   using CompType = llvm::CmpInst::Predicate;
-  using Constant = llvm::Constant;
   using Function = llvm::Function;
   using Type = llvm::Type;
 };
@@ -139,7 +138,9 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Value& CastSignedIntToF64(Value& v) override;
 
   // Globals
-  Value& CreateGlobal(std::string_view s) override;
+  Value& ConstString(std::string_view s) override;
+  Value& ConstStruct(Type& t,
+                     std::vector<std::reference_wrapper<Value>> v) override;
 
  private:
   std::unique_ptr<llvm::LLVMContext> context_;

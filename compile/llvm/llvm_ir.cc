@@ -20,7 +20,6 @@ using BasicBlock = LLVMIrTypes::BasicBlock;
 using Value = LLVMIrTypes::Value;
 using PhiValue = LLVMIrTypes::PhiValue;
 using CompType = LLVMIrTypes::CompType;
-using Constant = LLVMIrTypes::Constant;
 using Function = LLVMIrTypes::Function;
 using Type = LLVMIrTypes::Type;
 
@@ -363,8 +362,21 @@ Value& LLVMIr::CastSignedIntToF64(Value& v) {
 }
 
 // Globals
-Value& LLVMIr::CreateGlobal(std::string_view s) {
+Value& LLVMIr::ConstString(std::string_view s) {
   return *builder_->CreateGlobalStringPtr(s);
+}
+
+Value& LLVMIr::ConstStruct(Type& t,
+                           std::vector<std::reference_wrapper<Value>> v) {
+  std::vector<llvm::Constant*> constants;
+  constants.reserve(v.size());
+  for (auto& x : v) {
+    constants.push_back(llvm::dyn_cast<llvm::Constant>(&x.get()));
+  }
+
+  auto* st = llvm::dyn_cast<llvm::StructType>(&t);
+
+  return *llvm::ConstantStruct::get(st, constants);
 }
 
 void LLVMIr::Compile() const {

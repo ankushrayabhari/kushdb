@@ -5,6 +5,7 @@
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
+#include "compile/proxy/string.h"
 
 namespace kush::compile::proxy {
 
@@ -14,6 +15,8 @@ constexpr std::string_view i32_fn_name("_ZN4kush4util5PrintEi");
 constexpr std::string_view i64_fn_name("_ZN4kush4util5PrintEl");
 constexpr std::string_view f64_fn_name("_ZN4kush4util5PrintEd");
 constexpr std::string_view newline_fn_name("_ZN4kush4util12PrintNewlineEv");
+constexpr std::string_view string_fn_name(
+    "_ZN4kush4util11PrintStringEPNS_4data6StringE");
 
 template <typename T>
 Printer<T>::Printer(ProgramBuilder<T>& program) : program_(program) {}
@@ -49,6 +52,11 @@ void Printer<T>::Print(Float64<T>& t) {
 }
 
 template <typename T>
+void Printer<T>::Print(String<T>& t) {
+  program_.Call(program_.GetFunction(string_fn_name), {t.Get()});
+}
+
+template <typename T>
 void Printer<T>::PrintNewline() {
   program_.Call(program_.GetFunction(newline_fn_name), {});
 }
@@ -65,6 +73,9 @@ void Printer<T>::ForwardDeclare(ProgramBuilder<T>& program) {
                                   {program.I64Type()});
   program.DeclareExternalFunction(f64_fn_name, program.VoidType(),
                                   {program.F64Type()});
+  program.DeclareExternalFunction(string_fn_name, program.VoidType(),
+                                  {program.PointerType(program.GetStructType(
+                                      String<T>::StringStructName))});
   program.DeclareExternalFunction(newline_fn_name, program.VoidType(), {});
 }
 

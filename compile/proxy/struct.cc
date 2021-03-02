@@ -9,6 +9,7 @@
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
+#include "compile/proxy/string.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile::proxy {
@@ -37,7 +38,7 @@ void StructBuilder<T>::Add(catalog::SqlType type) {
       fields_.push_back(program_.I64Type());
       break;
     case catalog::SqlType::TEXT:
-      throw std::runtime_error("Text not supported at the moment.");
+      fields_.push_back(program_.GetStructType(String<T>::StringStructName));
       break;
     case catalog::SqlType::BOOLEAN:
       fields_.push_back(program_.I8Type());
@@ -75,14 +76,14 @@ void Struct<T>::Pack(std::vector<std::reference_wrapper<Value<T>>> values) {
   for (int i = 0; i < values.size(); i++) {
     auto& ptr = program_.GetElementPtr(
         fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(i)});
+    auto& v = values[i].get().Get();
 
     if (types[i] == catalog::SqlType::TEXT) {
-      throw std::runtime_error("Text not supported at the moment.");
+      String<T> rhs(program_, v);
+      String<T>(program_, ptr).Copy(rhs);
+    } else {
+      program_.Store(ptr, v);
     }
-
-    auto& value = values[i].get().Get();
-
-    program_.Store(ptr, value);
   }
 }
 
@@ -94,29 +95,34 @@ std::vector<std::unique_ptr<Value<T>>> Struct<T>::Unpack() {
   for (int i = 0; i < types.size(); i++) {
     auto& ptr = program_.GetElementPtr(
         fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(i)});
-    auto& value = program_.Load(ptr);
 
     switch (types[i]) {
       case catalog::SqlType::SMALLINT:
-        result.push_back(std::make_unique<Int16<T>>(program_, value));
+        result.push_back(
+            std::make_unique<Int16<T>>(program_, program_.Load(ptr)));
         break;
       case catalog::SqlType::INT:
-        result.push_back(std::make_unique<Int32<T>>(program_, value));
+        result.push_back(
+            std::make_unique<Int32<T>>(program_, program_.Load(ptr)));
         break;
       case catalog::SqlType::BIGINT:
-        result.push_back(std::make_unique<Int64<T>>(program_, value));
+        result.push_back(
+            std::make_unique<Int64<T>>(program_, program_.Load(ptr)));
         break;
       case catalog::SqlType::DATE:
-        result.push_back(std::make_unique<Int64<T>>(program_, value));
+        result.push_back(
+            std::make_unique<Int64<T>>(program_, program_.Load(ptr)));
         break;
       case catalog::SqlType::REAL:
-        result.push_back(std::make_unique<Float64<T>>(program_, value));
+        result.push_back(
+            std::make_unique<Float64<T>>(program_, program_.Load(ptr)));
         break;
       case catalog::SqlType::TEXT:
-        throw std::runtime_error("Text unsupported at the moment.");
+        result.push_back(std::make_unique<String<T>>(program_, ptr));
         break;
       case catalog::SqlType::BOOLEAN:
-        result.push_back(std::make_unique<Bool<T>>(program_, value));
+        result.push_back(
+            std::make_unique<Bool<T>>(program_, program_.Load(ptr)));
         break;
     }
   }
@@ -131,10 +137,10 @@ void Struct<T>::Update(proxy::Value<T>& v, int field) {
       fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(field)});
 
   if (types[field] == catalog::SqlType::TEXT) {
-    throw std::runtime_error("Text not supported at the moment.");
+    String<T>(program_, ptr).Copy(dynamic_cast<String<T>&>(v));
+  } else {
+    program_.Store(ptr, v.Get());
   }
-
-  program_.Store(ptr, v.Get());
 }
 
 INSTANTIATE_ON_IR(Struct);

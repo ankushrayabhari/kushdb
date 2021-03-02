@@ -16,7 +16,6 @@ class ProgramBuilder {
   using Value = typename Impl::Value;
   using PhiValue = typename Impl::PhiValue;
   using CompType = typename Impl::CompType;
-  using Constant = typename Impl::Constant;
   using Function = typename Impl::Function;
   using Type = typename Impl::Type;
 
@@ -130,7 +129,9 @@ class ProgramBuilder {
   virtual Value& CastSignedIntToF64(Value& v) = 0;
 
   // Globals
-  virtual Value& CreateGlobal(std::string_view s) = 0;
+  virtual Value& ConstString(std::string_view s) = 0;
+  virtual Value& ConstStruct(Type& t,
+                             std::vector<std::reference_wrapper<Value>> v) = 0;
 };
 
 }  // namespace kush::compile

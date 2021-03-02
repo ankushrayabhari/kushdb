@@ -30,6 +30,7 @@ cc_library(
         "//catalog",
         "//compile:program",
         "//compile/proxy:hash_table",
+        "//compile/proxy:string",
         "//compile/proxy:vector",
         "//compile/translators:translator_factory",
     ],

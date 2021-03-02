@@ -33,58 +33,39 @@ using namespace kush::catalog;
 const Database db = Schema();
 
 // Scan(lineitem)
-std::unique_ptr<Operator> ScanLineitem() {
+std::unique_ptr<Operator> ScanNation() {
   OperatorSchema schema;
-  schema.AddGeneratedColumns(db["nation"], {"n_nationkey"});
+  schema.AddGeneratedColumns(db["nation"], {"n_name"});
   return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
 std::unique_ptr<Operator> OrderBy() {
-  auto scan = ScanLineitem();
+  auto scan = ScanNation();
 
-  auto l_quantity = ColRef(scan, "n_nationkey");
+  auto n_name = ColRef(scan, "n_name");
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*scan);
 
-  return std::make_unique<OrderByOperator>(
-      std::move(schema), std::move(scan),
-      util::MakeVector(std::move(l_quantity)), std::vector<bool>{true});
+  return std::make_unique<OrderByOperator>(std::move(schema), std::move(scan),
+                                           util::MakeVector(std::move(n_name)),
+                                           std::vector<bool>{true});
 }
 
 std::unique_ptr<Operator> Join() {
-  auto o1 = ScanLineitem();
-  auto o2 = ScanLineitem();
+  auto o1 = OrderBy();
+  auto o2 = OrderBy();
 
-  auto l_quantity_1 = ColRef(o1, "n_nationkey", 0);
-  auto l_quantity_2 = ColRef(o2, "n_nationkey", 1);
+  auto n_name_1 = ColRef(o1, "n_name", 0);
+  auto n_name_2 = ColRef(o2, "n_name", 1);
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*o1, {"n_nationkey"}, 0);
-  schema.AddPassthroughColumns(*o2, {"n_nationkey"}, 1);
+  schema.AddPassthroughColumns(*o1, {"n_name"}, 0);
+  schema.AddPassthroughColumns(*o2, {"n_name"}, 1);
   return std::make_unique<HashJoinOperator>(
       std::move(schema), std::move(o1), std::move(o2),
-      util::MakeVector(std::move(l_quantity_1)),
-      util::MakeVector(std::move(l_quantity_2)));
-}
-
-// Avg n_nationkey
-std::unique_ptr<Operator> GroupByAgg() {
-  auto base = ScanLineitem();
-
-  // Group by
-  std::unique_ptr<Expression> t = Literal(true);
-
-  // aggregate
-  auto n_nationkey = Min(ColRef(base, "n_nationkey"));
-
-  // output
-  OperatorSchema schema;
-  schema.AddDerivedColumn("avg_n_nationkey", VirtColRef(n_nationkey, 1));
-
-  return std::make_unique<GroupByAggregateOperator>(
-      std::move(schema), std::move(base), util::MakeVector(std::move(t)),
-      util::MakeVector(std::move(n_nationkey)));
+      util::MakeVector(std::move(n_name_1)),
+      util::MakeVector(std::move(n_name_2)));
 }
 
 int main() {

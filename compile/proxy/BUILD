@@ -29,6 +29,7 @@ cc_library(
         ":float",
         ":int",
         ":printer_h",
+        ":string",
         "//compile:ir_registry",
         "//compile:program_builder",
     ],
@@ -42,6 +43,7 @@ cc_library(
         ":bool",
         ":float",
         ":int",
+        ":string",
         ":value",
         "//catalog:sql_type",
         "//compile:ir_registry",
@@ -108,6 +110,7 @@ cc_library(
         ":float",
         ":int",
         ":ptr",
+        ":string",
         ":value",
         "//catalog:sql_type",
         "//compile:program_builder",
@@ -119,6 +122,20 @@ cc_library(
     hdrs = ["numeric.h"],
     deps = [
         ":value",
+        "//plan/expression:binary_arithmetic_expression",
+    ],
+)
+
+cc_library(
+    name = "string",
+    srcs = ["string.cc"],
+    hdrs = ["string.h"],
+    deps = [
+        ":bool",
+        ":printer_h",
+        ":value",
+        "//compile:ir_registry",
+        "//compile:program_builder",
         "//plan/expression:binary_arithmetic_expression",
     ],
 )

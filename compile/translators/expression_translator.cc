@@ -10,6 +10,7 @@
 #include "compile/proxy/float.h"
 #include "compile/proxy/if.h"
 #include "compile/proxy/int.h"
+#include "compile/proxy/string.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/case_expression.h"
@@ -100,7 +101,9 @@ void ExpressionTranslator<T>::Visit(const plan::LiteralExpression& literal) {
                                                        literal.GetRealValue()));
       break;
     case catalog::SqlType::TEXT:
-      throw std::runtime_error("String unsupported at the moment.");
+      this->Return(std::make_unique<proxy::String<T>>(
+          program_,
+          proxy::String<T>::Constant(program_, literal.GetTextValue())));
       break;
     case catalog::SqlType::BOOLEAN:
       this->Return(std::make_unique<proxy::Bool<T>>(program_,
@@ -116,25 +119,18 @@ std::unique_ptr<proxy::Value<T>> CopyProxyValue(
   switch (type) {
     case catalog::SqlType::SMALLINT:
       return std::make_unique<proxy::Int16<T>>(program, value);
-      break;
     case catalog::SqlType::INT:
       return std::make_unique<proxy::Int32<T>>(program, value);
-      break;
     case catalog::SqlType::BIGINT:
       return std::make_unique<proxy::Int64<T>>(program, value);
-      break;
     case catalog::SqlType::DATE:
       return std::make_unique<proxy::Int64<T>>(program, value);
-      break;
     case catalog::SqlType::REAL:
       return std::make_unique<proxy::Float64<T>>(program, value);
-      break;
     case catalog::SqlType::TEXT:
-      throw std::runtime_error("String unsupported at the moment.");
-      break;
+      return std::make_unique<proxy::String<T>>(program, value);
     case catalog::SqlType::BOOLEAN:
       return std::make_unique<proxy::Bool<T>>(program, value);
-      break;
   }
 }
 
@@ -196,7 +192,7 @@ void ExpressionTranslator<T>::Visit(const plan::CaseExpression& case_expr) {
       break;
     }
     case catalog::SqlType::TEXT: {
-      throw std::runtime_error("String unsupported at the moment.");
+      this->Return(Ternary<proxy::String<T>, T>(program_, *this, case_expr));
       break;
     }
     case catalog::SqlType::BOOLEAN: {

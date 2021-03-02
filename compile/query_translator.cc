@@ -10,6 +10,7 @@
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/printer.h"
+#include "compile/proxy/string.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/translator_factory.h"
 #include "plan/operator.h"
@@ -22,6 +23,9 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   auto program = std::make_unique<ir::LLVMIr>();
 
   using T = ir::LLVMIrTypes;
+
+  // Forward declare string functions
+  proxy::String<T>::ForwardDeclare(*program);
 
   // Forward declare vector functions
   proxy::Vector<T>::ForwardDeclare(*program);
@@ -40,6 +44,7 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   proxy::ColumnData<T, catalog::SqlType::BOOLEAN>::ForwardDeclare(*program);
   proxy::ColumnData<T, catalog::SqlType::DATE>::ForwardDeclare(*program);
   proxy::ColumnData<T, catalog::SqlType::REAL>::ForwardDeclare(*program);
+  proxy::ColumnData<T, catalog::SqlType::TEXT>::ForwardDeclare(*program);
 
   // Create the compute function
   program->CreatePublicFunction(program->VoidType(), {}, "compute");

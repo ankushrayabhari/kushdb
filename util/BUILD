@@ -20,4 +20,7 @@ cc_library(
 cc_library(
     name = "print_util",
     srcs = ["print_util.cpp"],
+    deps = [
+        "//data:string",
+    ],
 )

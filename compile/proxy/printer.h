@@ -23,6 +23,9 @@ class Int64;
 template <typename T>
 class Float64;
 
+template <typename T>
+class String;
+
 // Generate print calls in generated program.
 template <typename T>
 class Printer {
@@ -35,6 +38,7 @@ class Printer {
   void Print(Int32<T>& t);
   void Print(Int64<T>& t);
   void Print(Float64<T>& t);
+  void Print(String<T>& t);
   void PrintNewline();
 
   static void ForwardDeclare(ProgramBuilder<T>& program);

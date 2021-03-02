@@ -1,5 +1,6 @@
 #include "compile/proxy/column_data.h"
 
+#include <iostream>
 #include <memory>
 
 #include "catalog/sql_type.h"
@@ -8,6 +9,7 @@
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
+#include "compile/proxy/string.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile::proxy {
@@ -25,6 +27,8 @@ std::string_view OpenFnName() {
     return "_ZN4kush4data4OpenEPNS0_17Float64ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
     return "_ZN4kush4data4OpenEPNS0_14Int8ColumnDataEPKc";
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    return "_ZN4kush4data4OpenEPNS0_14TextColumnDataEPKc";
   }
 }
 
@@ -41,6 +45,8 @@ std::string_view CloseFnName() {
     return "_ZN4kush4data5CloseEPNS0_17Float64ColumnDataE";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
     return "_ZN4kush4data5CloseEPNS0_14Int8ColumnDataE";
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    return "_ZN4kush4data5CloseEPNS0_14TextColumnDataE";
   }
 }
 
@@ -57,6 +63,8 @@ std::string_view GetFnName() {
     return "_ZN4kush4data3GetEPNS0_17Float64ColumnDataEj";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
     return "_ZN4kush4data3GetEPNS0_14Int8ColumnDataEj";
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    return "_ZN4kush4data3GetEPNS0_14TextColumnDataEjPNS0_6StringE";
   }
 }
 
@@ -73,6 +81,8 @@ std::string_view SizeFnName() {
     return "_ZN4kush4data4SizeEPNS0_17Float64ColumnDataE";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
     return "_ZN4kush4data4SizeEPNS0_14Int8ColumnDataE";
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    return "_ZN4kush4data4SizeEPNS0_14TextColumnDataE";
   }
 }
 
@@ -86,18 +96,25 @@ std::string_view StructName() {
                        catalog::SqlType::DATE == S) {
     return "kush::data::Int64ColumnData";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "kush::data::Flaot64ColumnData";
+    return "kush::data::Float64ColumnData";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
     return "kush::data::Int8ColumnData";
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    return "kush::data::TextColumnData";
   }
 }
 
 template <typename T, catalog::SqlType S>
 ColumnData<T, S>::ColumnData(ProgramBuilder<T>& program, std::string_view path)
     : program_(program) {
-  auto& path_value = program_.CreateGlobal(path);
+  auto& path_value = program_.ConstString(path);
   value_ = &program_.Alloca(program.GetStructType(StructName<S>()));
   program_.Call(program_.GetFunction(OpenFnName<S>()), {*value_, path_value});
+
+  if constexpr (S == catalog::SqlType::TEXT) {
+    result_ =
+        &program_.Alloca(program_.GetStructType(String<T>::StringStructName));
+  }
 }
 
 template <typename T, catalog::SqlType S>
@@ -114,6 +131,12 @@ UInt32<T> ColumnData<T, S>::Size() {
 
 template <typename T, catalog::SqlType S>
 std::unique_ptr<Value<T>> ColumnData<T, S>::operator[](UInt32<T>& idx) {
+  if constexpr (catalog::SqlType::TEXT == S) {
+    program_.Call(program_.GetFunction(GetFnName<S>()),
+                  {*value_, idx.Get(), *result_});
+    return std::make_unique<String<T>>(program_, *result_);
+  }
+
   auto& elem =
       program_.Call(program_.GetFunction(GetFnName<S>()), {*value_, idx.Get()});
 
@@ -148,6 +171,9 @@ void ColumnData<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
     elem_type = &program.F64Type();
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
     elem_type = &program.I8Type();
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    elem_type = &program.PointerType(
+        program.GetStructType(String<T>::StringStructName));
   }
 
   auto& string_type = program.PointerType(program.I8Type());
@@ -159,10 +185,17 @@ void ColumnData<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
                                   {struct_ptr, string_type});
   program.DeclareExternalFunction(CloseFnName<S>(), program.VoidType(),
                                   {struct_ptr});
-  program.DeclareExternalFunction(GetFnName<S>(), *elem_type,
-                                  {struct_ptr, program.I32Type()});
   program.DeclareExternalFunction(SizeFnName<S>(), program.I32Type(),
                                   {struct_ptr});
+
+  if constexpr (catalog::SqlType::TEXT == S) {
+    program.DeclareExternalFunction(
+        GetFnName<S>(), program.VoidType(),
+        {struct_ptr, program.I32Type(), *elem_type});
+  } else {
+    program.DeclareExternalFunction(GetFnName<S>(), *elem_type,
+                                    {struct_ptr, program.I32Type()});
+  }
 }
 
 INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::SMALLINT);
@@ -171,8 +204,6 @@ INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::BIGINT);
 INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::REAL);
 INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::DATE);
 INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::BOOLEAN);
-
-// TODO: add after proxy::StringView implementation
-// INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::TEXT);
+INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::TEXT);
 
 }  // namespace kush::compile::proxy

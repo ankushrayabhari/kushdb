@@ -37,51 +37,41 @@ void ScanTranslator<T>::Produce() {
 
     auto path = table[column.Name()].Path();
     switch (type) {
-      case SqlType::SMALLINT: {
+      case SqlType::SMALLINT:
         column_data_vars.push_back(
             std::make_unique<proxy::ColumnData<T, SqlType::SMALLINT>>(program_,
                                                                       path));
         break;
-      }
-
-      case SqlType::INT: {
+      case SqlType::INT:
         column_data_vars.push_back(
             std::make_unique<proxy::ColumnData<T, SqlType::INT>>(program_,
                                                                  path));
         break;
-      }
-
-      case SqlType::BIGINT: {
+      case SqlType::BIGINT:
         column_data_vars.push_back(
             std::make_unique<proxy::ColumnData<T, SqlType::BIGINT>>(program_,
                                                                     path));
         break;
-      }
-
-      case SqlType::REAL: {
+      case SqlType::REAL:
         column_data_vars.push_back(
             std::make_unique<proxy::ColumnData<T, SqlType::REAL>>(program_,
                                                                   path));
         break;
-      }
-
-      case SqlType::DATE: {
+      case SqlType::DATE:
         column_data_vars.push_back(
             std::make_unique<proxy::ColumnData<T, SqlType::DATE>>(program_,
                                                                   path));
         break;
-      }
-
       case SqlType::TEXT:
-        throw std::runtime_error("Text type unsupported at the moment.");
+        column_data_vars.push_back(
+            std::make_unique<proxy::ColumnData<T, SqlType::TEXT>>(program_,
+                                                                  path));
         break;
-
-      case SqlType::BOOLEAN: {
+      case SqlType::BOOLEAN:
         column_data_vars.push_back(
             std::make_unique<proxy::ColumnData<T, SqlType::BOOLEAN>>(program_,
                                                                      path));
         break;
-      }
     }
   }
 

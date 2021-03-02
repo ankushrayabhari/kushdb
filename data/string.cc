@@ -8,12 +8,7 @@
 
 namespace kush::data {
 
-void Create(String* vec, const char* data, uint32_t length) {
-  vec->data = data;
-  vec->length = length;
-}
-
-void DeepCopy(String* src, String* dest) {
+void Copy(String* dest, String* src) {
   auto* cpy = (char*)malloc(sizeof(char) * src->length);
   memcpy(cpy, src->data, src->length);
 
@@ -61,6 +56,11 @@ int8_t NotEquals(String* s1, String* s2) {
 int64_t Hash(String* s1) {
   auto sv1 = std::string_view(s1->data, s1->length);
   return std::hash<std::string_view>{}(sv1);
+}
+
+int8_t LessThan(String* s1, String* s2) {
+  return std::string_view(s1->data, s1->length) <
+         std::string_view(s2->data, s2->length);
 }
 
 }  // namespace kush::data

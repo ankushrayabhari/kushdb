@@ -117,8 +117,8 @@ double Get(Float64ColumnData* col, uint32_t idx) { return col->data[idx]; }
 
 void Get(TextColumnData* col, uint32_t idx, String* dest) {
   const auto& slot = col->data->slot[idx];
-  return Create(dest, reinterpret_cast<const char*>(col->data) + slot.offset,
-                slot.length);
+  dest->data = reinterpret_cast<const char*>(col->data) + slot.offset;
+  dest->length = slot.length;
 }
 
 }  // namespace kush::data

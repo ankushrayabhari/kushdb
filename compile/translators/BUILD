@@ -162,6 +162,7 @@ cc_library(
         "//compile/proxy:float",
         "//compile/proxy:if",
         "//compile/proxy:int",
+        "//compile/proxy:string",
         "//compile/proxy:value",
         "//plan/expression",
         "//plan/expression:aggregate_expression",
