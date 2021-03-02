@@ -175,9 +175,9 @@ std::unique_ptr<Operator> OrderBy() {
 int main() {
   std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(OrderBy());
 
-  QueryTranslator translator(db, *query);
+  QueryTranslator translator(*query);
   auto prog = translator.Translate();
-  prog.Compile();
-  prog.Execute();
+  prog->Compile();
+  prog->Execute();
   return 0;
 }

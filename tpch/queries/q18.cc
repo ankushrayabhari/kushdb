@@ -6,7 +6,6 @@
 #include "absl/time/civil_time.h"
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "compile/cpp_translator.h"
 #include "plan/cross_product_operator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
@@ -194,9 +193,9 @@ std::unique_ptr<Operator> OrderBy() {
 int main() {
   std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(OrderBy());
 
-  QueryTranslator translator(db, *query);
+  QueryTranslator translator(*query);
   auto prog = translator.Translate();
-  prog.Compile();
-  prog.Execute();
+  prog->Compile();
+  prog->Execute();
   return 0;
 }

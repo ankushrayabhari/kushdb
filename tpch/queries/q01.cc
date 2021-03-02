@@ -70,11 +70,11 @@ std::unique_ptr<Operator> GroupByAgg() {
   auto sum_base_price = Sum(ColRef(select_lineitem, "l_extendedprice"));
   auto sum_disc_price =
       Sum(Mul(ColRef(select_lineitem, "l_extendedprice"),
-              Sub(Literal(1), ColRef(select_lineitem, "l_discount"))));
+              Sub(Literal(1.0), ColRef(select_lineitem, "l_discount"))));
   auto sum_charge =
       Sum(Mul(Mul(ColRef(select_lineitem, "l_extendedprice"),
-                  Sub(Literal(1), ColRef(select_lineitem, "l_discount"))),
-              Add(Literal(1), ColRef(select_lineitem, "l_tax"))));
+                  Sub(Literal(1.0), ColRef(select_lineitem, "l_discount"))),
+              Add(Literal(1.0), ColRef(select_lineitem, "l_tax"))));
   auto avg_qty = Avg(ColRef(select_lineitem, "l_quantity"));
   auto avg_price = Avg(ColRef(select_lineitem, "l_extendedprice"));
   auto avg_disc = Avg(ColRef(select_lineitem, "l_discount"));
@@ -121,9 +121,9 @@ std::unique_ptr<Operator> OrderBy() {
 int main() {
   auto query = std::make_unique<OutputOperator>(OrderBy());
 
-  QueryTranslator translator(db, *query);
+  QueryTranslator translator(*query);
   auto prog = translator.Translate();
-  prog.Compile();
-  prog.Execute();
+  prog->Compile();
+  prog->Execute();
   return 0;
 }
