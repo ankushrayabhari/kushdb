@@ -21,7 +21,7 @@ ComparisonFunction<T>::ComparisonFunction(
   auto& type = program.PointerType(element.Type());
   auto& arg_ptr_type = program.PointerType(program.I8Type());
   func =
-      &program.CreateFunction(program.I8Type(), {arg_ptr_type, arg_ptr_type});
+      &program.CreateFunction(program.I1Type(), {arg_ptr_type, arg_ptr_type});
   auto args = program.GetFunctionArguments(*func);
 
   auto& s1_ptr = program.PointerCast(args[0], type);

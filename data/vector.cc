@@ -43,7 +43,7 @@ uint32_t Size(Vector* vec) {
 void Free(Vector* vec) { free(vec->data); }
 
 void Merge(Vector* vec,
-           ::std::add_pointer<int8_t(int8_t*, int8_t*)>::type comp_fn, int l,
+           ::std::add_pointer<bool(int8_t*, int8_t*)>::type comp_fn, int l,
            int m, int r) {
   int n1 = m - l + 1;
   int n2 = r - m;
@@ -63,7 +63,7 @@ void Merge(Vector* vec,
     auto* right_j = Get(&v2, j);
     auto* dest = Get(vec, k);
 
-    if (comp_fn(left_i, right_j) != 0) {
+    if (comp_fn(left_i, right_j)) {
       memcpy(dest, left_i, vec->element_size);
       i++;
     } else {
@@ -95,8 +95,8 @@ void Merge(Vector* vec,
 }
 
 void MergeSort(Vector* vec,
-               ::std::add_pointer<int8_t(int8_t*, int8_t*)>::type comp_fn,
-               int l, int r) {
+               ::std::add_pointer<bool(int8_t*, int8_t*)>::type comp_fn, int l,
+               int r) {
   if (l >= r) {
     return;  // returns recursively
   }
@@ -107,7 +107,7 @@ void MergeSort(Vector* vec,
 }
 
 void Sort(Vector* vec,
-          ::std::add_pointer<int8_t(int8_t*, int8_t*)>::type comp_fn) {
+          ::std::add_pointer<bool(int8_t*, int8_t*)>::type comp_fn) {
   return MergeSort(vec, comp_fn, 0, vec->size - 1);
 }
 

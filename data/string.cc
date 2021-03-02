@@ -18,13 +18,13 @@ void Copy(String* dest, String* src) {
 
 void Free(String* src) { free((void*)src->data); }
 
-int8_t Contains(String* s1, String* s2) {
+bool Contains(String* s1, String* s2) {
   auto sv1 = std::string_view(s1->data, s1->length);
   auto sv2 = std::string_view(s2->data, s2->length);
   return sv1.find(sv2) != -1;
 }
 
-int8_t EndsWith(String* s1, String* s2) {
+bool EndsWith(String* s1, String* s2) {
   auto sv1 = std::string_view(s1->data, s1->length);
   auto sv2 = std::string_view(s2->data, s2->length);
 
@@ -35,32 +35,32 @@ int8_t EndsWith(String* s1, String* s2) {
   }
 }
 
-int8_t StartsWith(String* s1, String* s2) {
+bool StartsWith(String* s1, String* s2) {
   auto sv1 = std::string_view(s1->data, s1->length);
   auto sv2 = std::string_view(s2->data, s2->length);
   return sv1.rfind(sv2, 0) == 0;
 }
 
-int8_t Equals(String* s1, String* s2) {
+bool Equals(String* s1, String* s2) {
   auto sv1 = std::string_view(s1->data, s1->length);
   auto sv2 = std::string_view(s2->data, s2->length);
   return sv1 == sv2;
 }
 
-int8_t NotEquals(String* s1, String* s2) {
+bool NotEquals(String* s1, String* s2) {
   auto sv1 = std::string_view(s1->data, s1->length);
   auto sv2 = std::string_view(s2->data, s2->length);
   return sv1 != sv2;
 }
 
+bool LessThan(String* s1, String* s2) {
+  return std::string_view(s1->data, s1->length) <
+         std::string_view(s2->data, s2->length);
+}
+
 int64_t Hash(String* s1) {
   auto sv1 = std::string_view(s1->data, s1->length);
   return std::hash<std::string_view>{}(sv1);
-}
-
-int8_t LessThan(String* s1, String* s2) {
-  return std::string_view(s1->data, s1->length) <
-         std::string_view(s2->data, s2->length);
 }
 
 }  // namespace kush::data

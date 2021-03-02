@@ -62,6 +62,6 @@ const std::string_view Vector<T>::FreeFnName(
 
 template <typename T>
 const std::string_view Vector<T>::SortFnName(
-    "_ZN4kush4data4SortEPNS0_6VectorEPFaPaS3_E");
+    "_ZN4kush4data4SortEPNS0_6VectorEPFbPaS3_E");
 
 }  // namespace kush::compile::proxy

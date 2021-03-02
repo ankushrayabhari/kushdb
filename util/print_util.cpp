@@ -6,6 +6,8 @@
 
 namespace kush::util {
 
+void Print(bool v) { std::cout << v << "|"; }
+
 void Print(int8_t v) { std::cout << v << "|"; }
 
 void Print(int16_t v) { std::cout << v << "|"; }

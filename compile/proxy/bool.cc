@@ -16,8 +16,7 @@ Bool<T>::Bool(ProgramBuilder<T>& program,
 
 template <typename T>
 Bool<T>::Bool(ProgramBuilder<T>& program, bool value)
-    : program_(program),
-      value_(value ? program_.ConstI8(1) : program_.ConstI8(0)) {}
+    : program_(program), value_(program_.ConstI1(value)) {}
 
 template <typename T>
 typename ProgramBuilder<T>::Value& Bool<T>::Get() const {
@@ -26,19 +25,19 @@ typename ProgramBuilder<T>::Value& Bool<T>::Get() const {
 
 template <typename T>
 Bool<T> Bool<T>::operator!() {
-  return Bool<T>(program_, program_.LNotI8(value_));
+  return Bool<T>(program_, program_.LNotI1(value_));
 }
 
 template <typename T>
 Bool<T> Bool<T>::operator==(const Bool<T>& rhs) {
   return Bool<T>(program_,
-                 program_.CmpI8(T::CompType::ICMP_EQ, value_, rhs.value_));
+                 program_.CmpI1(T::CompType::ICMP_EQ, value_, rhs.value_));
 }
 
 template <typename T>
 Bool<T> Bool<T>::operator!=(const Bool<T>& rhs) {
   return Bool<T>(program_,
-                 program_.CmpI8(T::CompType::ICMP_NE, value_, rhs.value_));
+                 program_.CmpI1(T::CompType::ICMP_NE, value_, rhs.value_));
 }
 
 template <typename T>

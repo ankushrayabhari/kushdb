@@ -41,7 +41,7 @@ void StructBuilder<T>::Add(catalog::SqlType type) {
       fields_.push_back(program_.GetStructType(String<T>::StringStructName));
       break;
     case catalog::SqlType::BOOLEAN:
-      fields_.push_back(program_.I8Type());
+      fields_.push_back(program_.I1Type());
       break;
   }
 }

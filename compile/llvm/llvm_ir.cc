@@ -37,6 +37,8 @@ std::vector<T*> VectorRefToVectorPtr(
 // Types
 Type& LLVMIr::VoidType() { return *builder_->getVoidTy(); }
 
+Type& LLVMIr::I1Type() { return *builder_->getInt1Ty(); }
+
 Type& LLVMIr::I8Type() { return *builder_->getInt8Ty(); }
 
 Type& LLVMIr::I16Type() { return *builder_->getInt16Ty(); }
@@ -204,6 +206,17 @@ void LLVMIr::AddToPhi(PhiValue& phi, Value& v, BasicBlock& b) {
   phi.addIncoming(&v, &b);
 }
 
+// I1
+Value& LLVMIr::LNotI1(Value& v) {
+  return *builder_->CreateXor(&v, builder_->getInt1(true));
+}
+
+Value& LLVMIr::CmpI1(CompType cmp, Value& v1, Value& v2) {
+  return *builder_->CreateCmp(cmp, &v1, &v2);
+}
+
+Value& LLVMIr::ConstI1(bool v) { return *builder_->getInt1(v); }
+
 // I8
 Value& LLVMIr::AddI8(Value& v1, Value& v2) {
   return *builder_->CreateAdd(&v1, &v2);
@@ -223,10 +236,6 @@ Value& LLVMIr::SubI8(Value& v1, Value& v2) {
 
 Value& LLVMIr::CmpI8(CompType cmp, Value& v1, Value& v2) {
   return *builder_->CreateCmp(cmp, &v1, &v2);
-}
-
-Value& LLVMIr::LNotI8(Value& v) {
-  return *builder_->CreateXor(&v, builder_->getInt8(0));
 }
 
 Value& LLVMIr::ConstI8(int8_t v) { return *builder_->getInt8(v); }
@@ -376,7 +385,12 @@ Value& LLVMIr::ConstStruct(Type& t,
 
   auto* st = llvm::dyn_cast<llvm::StructType>(&t);
 
-  return *llvm::ConstantStruct::get(st, constants);
+  auto const_struct = llvm::ConstantStruct::get(st, constants);
+
+  auto ptr = new llvm::GlobalVariable(
+      *module_, &t, true, llvm::GlobalValue::LinkageTypes::InternalLinkage,
+      const_struct);
+  return *ptr;
 }
 
 void LLVMIr::Compile() const {

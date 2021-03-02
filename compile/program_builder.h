@@ -21,6 +21,7 @@ class ProgramBuilder {
 
   // Types
   virtual Type& VoidType() = 0;
+  virtual Type& I1Type() = 0;
   virtual Type& I8Type() = 0;
   virtual Type& I16Type() = 0;
   virtual Type& I32Type() = 0;
@@ -76,13 +77,17 @@ class ProgramBuilder {
   virtual PhiValue& Phi(Type& type) = 0;
   virtual void AddToPhi(PhiValue& phi, Value& v, BasicBlock& b) = 0;
 
+  // I1
+  virtual Value& LNotI1(Value& v) = 0;
+  virtual Value& CmpI1(CompType cmp, Value& v1, Value& v2) = 0;
+  virtual Value& ConstI1(bool v) = 0;
+
   // I8
   virtual Value& AddI8(Value& v1, Value& v2) = 0;
   virtual Value& MulI8(Value& v1, Value& v2) = 0;
   virtual Value& DivI8(Value& v1, Value& v2) = 0;
   virtual Value& SubI8(Value& v1, Value& v2) = 0;
   virtual Value& CmpI8(CompType cmp, Value& v1, Value& v2) = 0;
-  virtual Value& LNotI8(Value& v) = 0;
   virtual Value& ConstI8(int8_t v) = 0;
 
   // I16

@@ -40,43 +40,37 @@ void String<T>::Reset() {
 template <typename T>
 Bool<T> String<T>::Contains(const String<T>& rhs) {
   return Bool<T>(program_, program_.Call(program_.GetFunction(ContainsFnName),
-                                         {value_, rhs.Get()})) ==
-         Bool<T>(program_, true);
+                                         {value_, rhs.Get()}));
 }
 
 template <typename T>
 Bool<T> String<T>::StartsWith(const String<T>& rhs) {
   return Bool<T>(program_, program_.Call(program_.GetFunction(StartsWithFnName),
-                                         {value_, rhs.Get()})) ==
-         Bool<T>(program_, true);
+                                         {value_, rhs.Get()}));
 }
 
 template <typename T>
 Bool<T> String<T>::EndsWith(const String<T>& rhs) {
   return Bool<T>(program_, program_.Call(program_.GetFunction(EndsWithFnName),
-                                         {value_, rhs.Get()})) ==
-         Bool<T>(program_, true);
+                                         {value_, rhs.Get()}));
 }
 
 template <typename T>
 Bool<T> String<T>::operator==(const String<T>& rhs) {
   return Bool<T>(program_, program_.Call(program_.GetFunction(EqualsFnName),
-                                         {value_, rhs.Get()})) ==
-         Bool<T>(program_, true);
+                                         {value_, rhs.Get()}));
 }
 
 template <typename T>
 Bool<T> String<T>::operator!=(const String<T>& rhs) {
   return Bool<T>(program_, program_.Call(program_.GetFunction(NotEqualsFnName),
-                                         {value_, rhs.Get()})) ==
-         Bool<T>(program_, true);
+                                         {value_, rhs.Get()}));
 }
 
 template <typename T>
 Bool<T> String<T>::operator<(const String<T>& rhs) {
   return Bool<T>(program_, program_.Call(program_.GetFunction(LessThanFnName),
-                                         {value_, rhs.Get()})) ==
-         Bool<T>(program_, true);
+                                         {value_, rhs.Get()}));
 }
 
 template <typename T>
@@ -149,17 +143,17 @@ void String<T>::ForwardDeclare(ProgramBuilder<T>& program) {
   program.DeclareExternalFunction(CopyFnName, program.VoidType(),
                                   {struct_ptr, struct_ptr});
   program.DeclareExternalFunction(FreeFnName, program.VoidType(), {struct_ptr});
-  program.DeclareExternalFunction(ContainsFnName, program.I8Type(),
+  program.DeclareExternalFunction(ContainsFnName, program.I1Type(),
                                   {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(EndsWithFnName, program.I8Type(),
+  program.DeclareExternalFunction(EndsWithFnName, program.I1Type(),
                                   {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(StartsWithFnName, program.I8Type(),
+  program.DeclareExternalFunction(StartsWithFnName, program.I1Type(),
                                   {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(EqualsFnName, program.I8Type(),
+  program.DeclareExternalFunction(EqualsFnName, program.I1Type(),
                                   {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(NotEqualsFnName, program.I8Type(),
+  program.DeclareExternalFunction(NotEqualsFnName, program.I1Type(),
                                   {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(LessThanFnName, program.I8Type(),
+  program.DeclareExternalFunction(LessThanFnName, program.I1Type(),
                                   {struct_ptr, struct_ptr});
   program.DeclareExternalFunction(HashFnName, program.I64Type(), {struct_ptr});
 }

@@ -23,6 +23,6 @@ uint32_t Size(Vector* vec);
 void Free(Vector* vec);
 
 void Sort(Vector* vec,
-          ::std::add_pointer<int8_t(int8_t*, int8_t*)>::type comp_fn);
+          ::std::add_pointer<bool(int8_t*, int8_t*)>::type comp_fn);
 
 }  // namespace kush::data

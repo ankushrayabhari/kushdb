@@ -15,12 +15,12 @@ struct String {
 
 void Copy(String* dest, String* src);
 void Free(String* src);
-int8_t Contains(String* s1, String* s2);
-int8_t EndsWith(String* s1, String* s2);
-int8_t StartsWith(String* s1, String* s2);
-int8_t Equals(String* s1, String* s2);
-int8_t NotEquals(String* s1, String* s2);
-int8_t LessThan(String* s1, String* s2);
+bool Contains(String* s1, String* s2);
+bool EndsWith(String* s1, String* s2);
+bool StartsWith(String* s1, String* s2);
+bool Equals(String* s1, String* s2);
+bool NotEquals(String* s1, String* s2);
+bool LessThan(String* s1, String* s2);
 int64_t Hash(String* s1);
 
 }  // namespace kush::data

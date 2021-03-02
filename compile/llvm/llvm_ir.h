@@ -31,6 +31,7 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
 
   // Types
   Type& VoidType() override;
+  Type& I1Type() override;
   Type& I8Type() override;
   Type& I16Type() override;
   Type& I32Type() override;
@@ -85,13 +86,17 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   PhiValue& Phi(Type& type) override;
   void AddToPhi(PhiValue& phi, Value& v, BasicBlock& b) override;
 
+  // I1
+  Value& LNotI1(Value& v) override;
+  Value& CmpI1(CompType cmp, Value& v1, Value& v2) override;
+  Value& ConstI1(bool v) override;
+
   // I8
   Value& AddI8(Value& v1, Value& v2) override;
   Value& MulI8(Value& v1, Value& v2) override;
   Value& DivI8(Value& v1, Value& v2) override;
   Value& SubI8(Value& v1, Value& v2) override;
   Value& CmpI8(CompType cmp, Value& v1, Value& v2) override;
-  Value& LNotI8(Value& v) override;
   Value& ConstI8(int8_t v) override;
 
   // I16

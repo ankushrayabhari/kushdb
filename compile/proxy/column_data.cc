@@ -170,7 +170,7 @@ void ColumnData<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
   } else if constexpr (catalog::SqlType::REAL == S) {
     elem_type = &program.F64Type();
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    elem_type = &program.I8Type();
+    elem_type = &program.I1Type();
   } else if constexpr (catalog::SqlType::TEXT == S) {
     elem_type = &program.PointerType(
         program.GetStructType(String<T>::StringStructName));

@@ -91,7 +91,7 @@ void Vector<T>::ForwardDeclare(ProgramBuilder<T>& program) {
       SortFnName, program.VoidType(),
       {struct_ptr,
        program.PointerType(program.FunctionType(
-           program.I8Type(), {program.PointerType(program.I8Type()),
+           program.I1Type(), {program.PointerType(program.I8Type()),
                               program.PointerType(program.I8Type())}))});
 }
 

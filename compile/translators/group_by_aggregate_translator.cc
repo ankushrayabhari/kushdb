@@ -56,7 +56,7 @@ void GroupByAggregateTranslator<T>::Produce() {
 
   // Declare the found variable
   found_ = std::make_unique<proxy::Ptr<T, proxy::Bool<T>>>(
-      program_, program_.Alloca(program_.I8Type()));
+      program_, program_.Alloca(program_.I1Type()));
 
   // Populate hash table
   this->Child().Produce();
@@ -129,8 +129,6 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
         auto packed = bucket[i];
         auto values = packed.Unpack();
 
-        // TODO: if the key columns are not equal, set i = i + 1
-        // else move to next column
         auto values_ref = util::ReferenceVector(values);
         CheckEquality<T>(
             0, program_, expr_translator_, values_ref, group_by_exprs, [&]() {
@@ -212,51 +210,49 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
         // If we didn't find, move to next element
         // Else, break out of loop
         std::unique_ptr<proxy::UInt32<T>> next_index;
-        proxy::If<T> check(
-            program_, found_->Load() != proxy::Bool<T>(program_, true), [&]() {
-              next_index = std::make_unique<proxy::UInt32<T>>(
-                  i + proxy::UInt32<T>(program_, 1));
-            });
+        proxy::If<T> check(program_, !found_->Load(), [&]() {
+          next_index = std::make_unique<proxy::UInt32<T>>(
+              i + proxy::UInt32<T>(program_, 1));
+        });
         return proxy::UInt32<T>(program_, check.Phi(size, *next_index));
       });
 
-  proxy::If<T>(
-      program_, found_->Load() != proxy::Bool<T>(program_, true), [&]() {
-        auto inserted = buffer_->Insert(util::ReferenceVector(keys));
+  proxy::If<T>(program_, !found_->Load(), [&]() {
+    auto inserted = buffer_->Insert(util::ReferenceVector(keys));
 
-        std::vector<std::unique_ptr<proxy::Value<T>>> values;
+    std::vector<std::unique_ptr<proxy::Value<T>>> values;
 
-        // Record Counter
-        values.push_back(std::make_unique<proxy::Int64<T>>(program_, 2));
+    // Record Counter
+    values.push_back(std::make_unique<proxy::Int64<T>>(program_, 2));
 
-        // Group By Values
-        for (auto& group_by : group_by_exprs) {
-          values.push_back(expr_translator_.Compute(group_by.get()));
+    // Group By Values
+    for (auto& group_by : group_by_exprs) {
+      values.push_back(expr_translator_.Compute(group_by.get()));
+    }
+
+    // Aggregates
+    for (auto& agg : agg_exprs) {
+      switch (agg.get().AggType()) {
+        case plan::AggregateType::AVG: {
+          auto v = expr_translator_.Compute(agg.get().Child());
+          values.push_back(std::make_unique<proxy::Float64<T>>(
+              program_, program_.CastSignedIntToF64(v->Get())));
+          break;
         }
 
-        // Aggregates
-        for (auto& agg : agg_exprs) {
-          switch (agg.get().AggType()) {
-            case plan::AggregateType::AVG: {
-              auto v = expr_translator_.Compute(agg.get().Child());
-              values.push_back(std::make_unique<proxy::Float64<T>>(
-                  program_, program_.CastSignedIntToF64(v->Get())));
-              break;
-            }
+        case plan::AggregateType::SUM:
+        case plan::AggregateType::MAX:
+        case plan::AggregateType::MIN:
+          values.push_back(expr_translator_.Compute(agg.get().Child()));
+          break;
+        case plan::AggregateType::COUNT:
+          values.push_back(std::make_unique<proxy::Int64<T>>(program_, 1));
+          break;
+      }
+    }
 
-            case plan::AggregateType::SUM:
-            case plan::AggregateType::MAX:
-            case plan::AggregateType::MIN:
-              values.push_back(expr_translator_.Compute(agg.get().Child()));
-              break;
-            case plan::AggregateType::COUNT:
-              values.push_back(std::make_unique<proxy::Int64<T>>(program_, 1));
-              break;
-          }
-        }
-
-        inserted.Pack(util::ReferenceVector(values));
-      });
+    inserted.Pack(util::ReferenceVector(values));
+  });
 }
 
 INSTANTIATE_ON_IR(GroupByAggregateTranslator);

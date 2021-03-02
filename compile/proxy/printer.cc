@@ -9,6 +9,7 @@
 
 namespace kush::compile::proxy {
 
+constexpr std::string_view i1_fn_name("_ZN4kush4util5PrintEb");
 constexpr std::string_view i8_fn_name("_ZN4kush4util5PrintEa");
 constexpr std::string_view i16_fn_name("_ZN4kush4util5PrintEs");
 constexpr std::string_view i32_fn_name("_ZN4kush4util5PrintEi");
@@ -28,7 +29,7 @@ void Printer<T>::Print(Int8<T>& t) {
 
 template <typename T>
 void Printer<T>::Print(Bool<T>& t) {
-  program_.Call(program_.GetFunction(i8_fn_name), {t.Get()});
+  program_.Call(program_.GetFunction(i1_fn_name), {t.Get()});
 }
 
 template <typename T>
@@ -63,6 +64,8 @@ void Printer<T>::PrintNewline() {
 
 template <typename T>
 void Printer<T>::ForwardDeclare(ProgramBuilder<T>& program) {
+  program.DeclareExternalFunction(i1_fn_name, program.VoidType(),
+                                  {program.I1Type()});
   program.DeclareExternalFunction(i8_fn_name, program.VoidType(),
                                   {program.I8Type()});
   program.DeclareExternalFunction(i16_fn_name, program.VoidType(),
