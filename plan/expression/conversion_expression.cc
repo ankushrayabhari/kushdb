@@ -14,8 +14,10 @@ namespace kush::plan {
 using SqlType = catalog::SqlType;
 
 SqlType CalculateSqlType(catalog::SqlType child_type) {
-  assert(child_type == SqlType::BIGINT || child_type == SqlType::INT ||
-         child_type == SqlType::SMALLINT);
+  if (child_type != SqlType::BIGINT && child_type != SqlType::INT &&
+      child_type != SqlType::SMALLINT) {
+    throw std::runtime_error("Non-integral child type for conversion.");
+  }
   return SqlType::REAL;
 }
 

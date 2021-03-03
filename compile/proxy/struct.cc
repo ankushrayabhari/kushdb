@@ -71,7 +71,10 @@ Struct<T>::Struct(ProgramBuilder<T>& program, StructBuilder<T>& fields,
 template <typename T>
 void Struct<T>::Pack(std::vector<std::reference_wrapper<Value<T>>> values) {
   auto types = fields_.Types();
-  assert(values.size() == types.size());
+  if (values.size() != types.size()) {
+    throw std::runtime_error(
+        "Must pack exactly number of values as fields in struct.");
+  }
 
   for (int i = 0; i < values.size(); i++) {
     auto& ptr = program_.GetElementPtr(

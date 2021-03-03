@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <exception>
@@ -26,17 +25,30 @@ template <typename T>
 void Serialize(std::string_view path, const std::vector<T>& contents) {
   int fd = open(std::string(path).c_str(), O_RDWR | O_CREAT,
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-  assert(fd != -1);
+  if (fd == -1) {
+    throw std::system_error(errno, std::generic_category());
+  }
 
   int length = sizeof(T) * contents.size();
 
-  assert(posix_fallocate(fd, 0, length) == 0);
+  if (posix_fallocate(fd, 0, length) != 0) {
+    throw std::system_error(errno, std::generic_category());
+  }
+
   T* data = reinterpret_cast<T*>(
       mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
-  assert(data != MAP_FAILED);
+  if (data == MAP_FAILED) {
+    throw std::system_error(errno, std::generic_category());
+  }
   memcpy(data, contents.data(), length);
-  assert(munmap(data, length) == 0);
-  assert(close(fd) == 0);
+
+  if (munmap(data, length) != 0) {
+    throw std::system_error(errno, std::generic_category());
+  }
+
+  if (close(fd) == 0) {
+    throw std::system_error(errno, std::generic_category());
+  }
 }
 
 template <>
@@ -44,7 +56,9 @@ void Serialize(std::string_view path,
                const std::vector<std::string>& contents) {
   int fd = open(std::string(path).c_str(), O_RDWR | O_CREAT,
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-  assert(fd != -1);
+  if (fd == -1) {
+    throw std::system_error(errno, std::generic_category());
+  }
 
   // 4 bytes for the metadata cardinality + (4 + 4) bytes per slot
   uint32_t length = 4 + 8 * contents.size();
@@ -52,11 +66,15 @@ void Serialize(std::string_view path,
   // 1 byte per character + 1 null terminator
   for (auto s : contents) length += s.size() + 1;
 
-  assert(posix_fallocate(fd, 0, length) == 0);
+  if (posix_fallocate(fd, 0, length) != 0) {
+    throw std::system_error(errno, std::generic_category());
+  }
 
   auto data = reinterpret_cast<StringMetadata*>(
       mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
-  assert(data != MAP_FAILED);
+  if (data == MAP_FAILED) {
+    throw std::system_error(errno, std::generic_category());
+  }
 
   data->cardinality = contents.size();
   uint32_t offset = 4 + 8 * contents.size();
@@ -70,8 +88,13 @@ void Serialize(std::string_view path,
     offset += length + 1;
   }
 
-  assert(munmap(data, length) == 0);
-  assert(close(fd) == 0);
+  if (munmap(data, length) != 0) {
+    throw std::system_error(errno, std::generic_category());
+  }
+
+  if (close(fd) == 0) {
+    throw std::system_error(errno, std::generic_category());
+  }
 }
 
 }  // namespace kush::data

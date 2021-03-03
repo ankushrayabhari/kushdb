@@ -12,7 +12,9 @@ class Visitor : public VisitorImplementation {
 
   std::unique_ptr<Data> Compute(Target target) {
     target.Accept(*this);
-    assert(result_ != nullptr);
+    if (result_ == nullptr) {
+      throw std::runtime_error("No value was returned.");
+    }
     auto value = std::move(result_);
     result_.reset();
     return std::move(value);

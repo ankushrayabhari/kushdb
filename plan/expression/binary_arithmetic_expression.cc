@@ -13,6 +13,10 @@ namespace kush::plan {
 
 catalog::SqlType CalculateType(BinaryArithmeticOperatorType type,
                                catalog::SqlType left, catalog::SqlType right) {
+  if (left != right) {
+    std::runtime_error("Require same type arguments");
+  }
+
   switch (type) {
     case BinaryArithmeticOperatorType::AND:
     case BinaryArithmeticOperatorType::OR:
@@ -25,11 +29,9 @@ catalog::SqlType CalculateType(BinaryArithmeticOperatorType type,
     case BinaryArithmeticOperatorType::STARTS_WITH:
     case BinaryArithmeticOperatorType::ENDS_WITH:
     case BinaryArithmeticOperatorType::CONTAINS:
-      assert(left == right);
       return catalog::SqlType::BOOLEAN;
 
     default:
-      assert(left == right);
       return left;
   }
 }

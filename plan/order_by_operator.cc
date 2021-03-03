@@ -19,7 +19,10 @@ OrderByOperator::OrderByOperator(
     : UnaryOperator(std::move(schema), std::move(child)),
       key_exprs_(std::move(key_exprs)),
       asc_(std::move(asc)) {
-  assert(key_exprs_.size() == asc_.size());
+  if (key_exprs_.size() != asc_.size()) {
+    throw std::runtime_error(
+        "Must have exactly as many asc flags as key exprs.");
+  }
 }
 
 nlohmann::json OrderByOperator::ToJson() const {

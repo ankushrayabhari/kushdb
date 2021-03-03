@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <exception>

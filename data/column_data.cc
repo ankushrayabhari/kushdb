@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <exception>
@@ -14,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 namespace kush::data {
@@ -23,16 +23,23 @@ namespace kush::data {
 template <typename T>
 inline void OpenImpl(T*& data, uint32_t& file_length, const char* path) {
   int fd = open(path, O_RDONLY);
-  assert(fd != -1);
+  if (fd == -1) {
+    throw std::system_error(errno, std::generic_category());
+  }
 
   struct stat sb;
-  assert(fstat(fd, &sb) != -1);
+  if (fstat(fd, &sb) == -1) {
+    throw std::system_error(errno, std::generic_category());
+  }
   file_length = static_cast<uint32_t>(sb.st_size);
 
   data = reinterpret_cast<T*>(
       mmap(nullptr, file_length, PROT_READ, MAP_PRIVATE, fd, 0));
-  assert(data != MAP_FAILED);
-  assert(close(fd) == 0);
+  if (data == MAP_FAILED) {
+    throw std::system_error(errno, std::generic_category());
+  }
+
+  close(fd);
 }
 
 void Open(Int8ColumnData* col, const char* path) {
@@ -64,7 +71,7 @@ void Open(TextColumnData* col, const char* path) {
 template <typename T>
 inline void CloseImpl(T* column) {
   if (column->data) {
-    assert(munmap(column->data, column->file_length) == 0);
+    munmap(column->data, column->file_length);
   }
 }
 

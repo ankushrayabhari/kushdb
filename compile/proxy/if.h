@@ -23,7 +23,9 @@ class If {
 
   template <typename U>
   typename ProgramBuilder<T>::Value& Phi(U& v1, U& v2) {
-    assert(b1 != nullptr && b2 != nullptr);
+    if (b1 == nullptr || b2 == nullptr) {
+      throw std::runtime_error("Don't call phi on a single predecessor block.");
+    }
     auto& phi = program_.Phi(program_.TypeOf(v1.Get()));
     program_.AddToPhi(phi, v1.Get(), *b1);
     program_.AddToPhi(phi, v2.Get(), *b2);
@@ -34,7 +36,9 @@ class If {
   typename ProgramBuilder<T>::Value& Phi(
       typename ProgramBuilder<T>::Value& v1,
       typename ProgramBuilder<T>::Value& v2) {
-    assert(b1 != nullptr && b2 != nullptr);
+    if (b1 == nullptr || b2 == nullptr) {
+      throw std::runtime_error("Don't call phi on a single predecessor block.");
+    }
     auto& phi = program_.Phi(program_.TypeOf(v1));
     program_.AddToPhi(phi, v1, *b1);
     program_.AddToPhi(phi, v2, *b2);

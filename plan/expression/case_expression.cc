@@ -1,7 +1,6 @@
 
 #include "plan/expression/case_expression.h"
 
-#include <cassert>
 #include <memory>
 
 #include "catalog/sql_type.h"
@@ -15,8 +14,12 @@ namespace kush::plan {
 
 catalog::SqlType CalculateType(catalog::SqlType cond, catalog::SqlType left,
                                catalog::SqlType right) {
-  assert(cond == catalog::SqlType::BOOLEAN);
-  assert(left == right);
+  if (cond != catalog::SqlType::BOOLEAN) {
+    throw std::runtime_error("Non-boolean condition");
+  }
+  if (left != right) {
+    throw std::runtime_error("Case must have same type arguments");
+  }
   return left;
 }
 
