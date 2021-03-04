@@ -1,7 +1,8 @@
 build --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
-build --cxxopt=-flto=thin
-build --linkopt=-flto=thin
 build --experimental_guard_against_concurrent_changes
+
+build:lto --cxxopt=-flto=thin
+build:lto --linkopt=-flto=thin
 
 build:asan --strip=never
 build:asan --cxxopt=-fsanitize=address

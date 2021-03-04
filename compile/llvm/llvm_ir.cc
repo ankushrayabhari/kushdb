@@ -7,8 +7,17 @@
 #include <type_traits>
 
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
-#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
 
 namespace kush::compile::ir {
 
@@ -399,22 +408,60 @@ Value& LLVMIr::ConstStruct(Type& t,
 void LLVMIr::Compile() const {
   gen = std::chrono::system_clock::now();
 
-  // Write the module to a file
-  std::error_code ec;
-  llvm::raw_fd_ostream out("/tmp/query.bc", ec);
-  llvm::WriteBitcodeToFile(*module_, out);
-  out.close();
+  llvm::legacy::PassManager pass;
 
-  if (system("opt -O3 < /tmp/query.bc > /tmp/query_opt.bc")) {
-    throw std::runtime_error("Failed to optimize module.");
+  // Setup Optimizations
+  pass.add(llvm::createInstructionCombiningPass());
+  pass.add(llvm::createReassociatePass());
+  pass.add(llvm::createGVNPass());
+  pass.add(llvm::createCFGSimplificationPass());
+  pass.add(llvm::createAggressiveDCEPass());
+  pass.add(llvm::createCFGSimplificationPass());
+
+  // Setup Compilation
+  LLVMInitializeX86TargetInfo();
+  LLVMInitializeX86Target();
+  LLVMInitializeX86TargetMC();
+  LLVMInitializeX86AsmParser();
+  LLVMInitializeX86AsmPrinter();
+
+  auto target_triple = llvm::sys::getDefaultTargetTriple();
+  module_->setTargetTriple(target_triple);
+
+  std::string error;
+  auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
+  if (!target) {
+    throw std::runtime_error("Target not found: " + error);
   }
 
-  if (system("llc -relocation-model=pic -filetype=obj /tmp/query_opt.bc -o "
-             "/tmp/query.o")) {
-    throw std::runtime_error("Failed to compile file.");
+  auto cpu = "znver3";
+  auto features = "";
+
+  llvm::TargetOptions opt;
+  auto reloc_model =
+      llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
+  auto target_machine = target->createTargetMachine(target_triple, cpu,
+                                                    features, opt, reloc_model);
+
+  module_->setDataLayout(target_machine->createDataLayout());
+
+  auto file = "/tmp/query.o";
+  std::error_code error_code;
+  llvm::raw_fd_ostream dest(file, error_code, llvm::sys::fs::OF_None);
+  if (error_code) {
+    throw std::runtime_error(error_code.message());
+  }
+  auto FileType = llvm::CGFT_ObjectFile;
+  if (target_machine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+    throw std::runtime_error("Cannot emit object file.");
   }
 
-  if (system("clang++ -flto=thin -shared -fpic bazel-bin/util/libprint_util.so "
+  // Run Optimizations and Compilation
+  pass.run(*module_);
+  dest.close();
+
+  // Link
+  if (system("clang++ -shared -fpic bazel-bin/util/libprint_util.so "
              "bazel-bin/data/libstring.so bazel-bin/data/libcolumn_data.so "
              "bazel-bin/data/libvector.so bazel-bin/data/libhash_table.so "
              "/tmp/query.o -o /tmp/query.so")) {
