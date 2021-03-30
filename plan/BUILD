@@ -99,6 +99,19 @@ cc_library(
 )
 
 cc_library(
+    name = "skinner_join_operator",
+    srcs = ["skinner_join_operator.cc"],
+    hdrs = ["skinner_join_operator.h"],
+    deps = [
+        ":operator",
+        ":operator_schema",
+        ":operator_visitor",
+        "//plan/expression:column_ref_expression",
+        "@json",
+    ],
+)
+
+cc_library(
     name = "group_by_aggregate_operator",
     srcs = ["group_by_aggregate_operator.cc"],
     hdrs = ["group_by_aggregate_operator.h"],

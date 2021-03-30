@@ -27,6 +27,7 @@ class TranslatorFactory
   void Visit(const plan::ScanOperator& scan) override;
   void Visit(const plan::SelectOperator& select) override;
   void Visit(const plan::OutputOperator& output) override;
+  void Visit(const plan::SkinnerJoinOperator& skinner_join) override;
   void Visit(const plan::HashJoinOperator& hash_join) override;
   void Visit(const plan::CrossProductOperator& cross_product) override;
   void Visit(const plan::GroupByAggregateOperator& group_by_agg) override;

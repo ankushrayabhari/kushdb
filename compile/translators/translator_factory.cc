@@ -51,6 +51,15 @@ void TranslatorFactory<T>::Visit(const plan::OutputOperator& output) {
 }
 
 template <typename T>
+void TranslatorFactory<T>::Visit(
+    const plan::SkinnerJoinOperator& skinner_join) {
+  throw std::runtime_error("TODO");
+  // TODO: Implement this
+  // this->Return(std::make_unique<HashJoinTranslator<T>>(
+  //    hash_join, program_, GetChildTranslators(hash_join)));
+}
+
+template <typename T>
 void TranslatorFactory<T>::Visit(const plan::HashJoinOperator& hash_join) {
   this->Return(std::make_unique<HashJoinTranslator<T>>(
       hash_join, program_, GetChildTranslators(hash_join)));
