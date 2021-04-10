@@ -24,6 +24,7 @@
 #include "plan/output_operator.h"
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
+#include "plan/skinner_join_operator.h"
 #include "tpch/schema.h"
 #include "util/vector_util.h"
 
