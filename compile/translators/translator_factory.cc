@@ -9,12 +9,14 @@
 #include "compile/translators/output_translator.h"
 #include "compile/translators/scan_translator.h"
 #include "compile/translators/select_translator.h"
+#include "compile/translators/skinner_join_translator.h"
 #include "plan/hash_join_operator.h"
 #include "plan/operator.h"
 #include "plan/operator_visitor.h"
 #include "plan/output_operator.h"
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
+#include "plan/skinner_join_operator.h"
 
 namespace kush::compile {
 
@@ -53,10 +55,8 @@ void TranslatorFactory<T>::Visit(const plan::OutputOperator& output) {
 template <typename T>
 void TranslatorFactory<T>::Visit(
     const plan::SkinnerJoinOperator& skinner_join) {
-  throw std::runtime_error("TODO");
-  // TODO: Implement this
-  // this->Return(std::make_unique<HashJoinTranslator<T>>(
-  //    hash_join, program_, GetChildTranslators(hash_join)));
+  this->Return(std::make_unique<SkinnerJoinTranslator<T>>(
+      skinner_join, program_, GetChildTranslators(skinner_join)));
 }
 
 template <typename T>

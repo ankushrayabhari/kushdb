@@ -92,6 +92,23 @@ cc_library(
 )
 
 cc_library(
+    name = "skinner_join_translator",
+    srcs = ["skinner_join_translator.cc"],
+    hdrs = ["skinner_join_translator.h"],
+    deps = [
+        ":expression_translator",
+        ":operator_translator",
+        "//compile:ir_registry",
+        "//compile/proxy:hash_table",
+        "//compile/proxy:loop",
+        "//compile/proxy:struct",
+        "//compile/proxy:value",
+        "//plan:hash_join_operator",
+        "//util:vector_util",
+    ],
+)
+
+cc_library(
     name = "group_by_aggregate_translator",
     srcs = ["group_by_aggregate_translator.cc"],
     hdrs = ["group_by_aggregate_translator.h"],
@@ -140,6 +157,7 @@ cc_library(
         ":output_translator",
         ":scan_translator",
         ":select_translator",
+        ":skinner_join_translator",
         "//compile/proxy:hash_table",
         "//compile/proxy:vector",
         "//plan:hash_join_operator",
@@ -147,6 +165,7 @@ cc_library(
         "//plan:output_operator",
         "//plan:scan_operator",
         "//plan:select_operator",
+        "//plan:skinner_join_operator",
     ],
 )
 
