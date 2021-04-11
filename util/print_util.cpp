@@ -14,6 +14,8 @@ void Print(int16_t v) { std::cout << v << "|"; }
 
 void Print(int32_t v) { std::cout << v << "|"; }
 
+void Print(uint32_t v) { std::cout << v << "|"; }
+
 void Print(int64_t v) { std::cout << v << "|"; }
 
 void Print(double v) { std::cout << v << "|"; }

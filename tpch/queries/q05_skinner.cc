@@ -146,8 +146,8 @@ std::unique_ptr<Operator> RegionNationCustomerOrdersLineitemSupplier() {
   return std::make_unique<SkinnerJoinOperator>(
       std::move(schema),
       util::MakeVector(std::move(region), std::move(nation),
-                       std::move(customer), std::move(lineitem),
-                       std::move(supplier)),
+                       std::move(customer), std::move(orders),
+                       std::move(lineitem), std::move(supplier)),
       std::move(conditions));
 }
 
@@ -188,11 +188,10 @@ std::unique_ptr<Operator> OrderBy() {
 
 int main() {
   std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(OrderBy());
-  std::cout << query->ToJson() << std::endl;
 
-  // QueryTranslator translator(*query);
-  // auto prog = translator.Translate();
-  // prog->Compile();
-  // prog->Execute();
+  QueryTranslator translator(*query);
+  auto prog = translator.Translate();
+  prog->Compile();
+  prog->Execute();
   return 0;
 }

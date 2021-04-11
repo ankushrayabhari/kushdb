@@ -4,10 +4,10 @@
 #include <utility>
 #include <vector>
 
-#include "compile/proxy/hash_table.h"
+#include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
-#include "plan/hash_join_operator.h"
+#include "plan/skinner_join_operator.h"
 
 namespace kush::compile {
 
@@ -25,6 +25,7 @@ class SkinnerJoinTranslator : public OperatorTranslator<T> {
   const plan::SkinnerJoinOperator& join_;
   ProgramBuilder<T>& program_;
   ExpressionTranslator<T> expr_translator_;
+  std::vector<std::unique_ptr<proxy::Vector<T>>> buffers_;
 };
 
 }  // namespace kush::compile

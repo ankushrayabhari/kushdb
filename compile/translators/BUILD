@@ -98,12 +98,12 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
+        ":scan_translator",
         "//compile:ir_registry",
-        "//compile/proxy:hash_table",
-        "//compile/proxy:loop",
         "//compile/proxy:struct",
         "//compile/proxy:value",
-        "//plan:hash_join_operator",
+        "//compile/proxy:vector",
+        "//plan:skinner_join_operator",
         "//util:vector_util",
     ],
 )

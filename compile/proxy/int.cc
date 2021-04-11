@@ -374,7 +374,7 @@ std::unique_ptr<Value<T>> UInt32<T>::EvaluateBinary(
 
 template <typename T>
 void UInt32<T>::Print(proxy::Printer<T>& printer) {
-  throw std::runtime_error("No support for print UInt32.");
+  printer.Print(*this);
 }
 
 template <typename T>

@@ -13,6 +13,7 @@ constexpr std::string_view i1_fn_name("_ZN4kush4util5PrintEb");
 constexpr std::string_view i8_fn_name("_ZN4kush4util5PrintEa");
 constexpr std::string_view i16_fn_name("_ZN4kush4util5PrintEs");
 constexpr std::string_view i32_fn_name("_ZN4kush4util5PrintEi");
+constexpr std::string_view ui32_fn_name("_ZN4kush4util5PrintEj");
 constexpr std::string_view i64_fn_name("_ZN4kush4util5PrintEl");
 constexpr std::string_view f64_fn_name("_ZN4kush4util5PrintEd");
 constexpr std::string_view newline_fn_name("_ZN4kush4util12PrintNewlineEv");
@@ -40,6 +41,11 @@ void Printer<T>::Print(Int16<T>& t) {
 template <typename T>
 void Printer<T>::Print(Int32<T>& t) {
   program_.Call(program_.GetFunction(i32_fn_name), {t.Get()});
+}
+
+template <typename T>
+void Printer<T>::Print(UInt32<T>& t) {
+  program_.Call(program_.GetFunction(ui32_fn_name), {t.Get()});
 }
 
 template <typename T>
@@ -71,6 +77,8 @@ void Printer<T>::ForwardDeclare(ProgramBuilder<T>& program) {
   program.DeclareExternalFunction(i16_fn_name, program.VoidType(),
                                   {program.I16Type()});
   program.DeclareExternalFunction(i32_fn_name, program.VoidType(),
+                                  {program.I32Type()});
+  program.DeclareExternalFunction(ui32_fn_name, program.VoidType(),
                                   {program.I32Type()});
   program.DeclareExternalFunction(i64_fn_name, program.VoidType(),
                                   {program.I64Type()});

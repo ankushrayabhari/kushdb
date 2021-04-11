@@ -15,6 +15,9 @@ class ScanTranslator : public OperatorTranslator<T> {
                  std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
   virtual ~ScanTranslator() = default;
 
+  void Init();
+  void Get();
+
   void Produce() override;
   void Consume(OperatorTranslator<T>& src) override;
 
