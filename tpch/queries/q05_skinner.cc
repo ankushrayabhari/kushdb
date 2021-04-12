@@ -125,18 +125,18 @@ std::unique_ptr<Operator> RegionNationCustomerOrdersLineitemSupplier() {
 
   std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
   conditions.push_back(
-      Eq(ColRef(region, "r_regionkey"), ColRef(nation, "n_regionkey")));
+      Eq(ColRef(region, "r_regionkey", 0), ColRef(nation, "n_regionkey", 1)));
   conditions.push_back(
-      Eq(ColRef(nation, "n_nationkey"), ColRef(customer, "c_nationkey")));
+      Eq(ColRef(nation, "n_nationkey", 1), ColRef(customer, "c_nationkey", 2)));
   conditions.push_back(
-      Eq(ColRef(customer, "c_custkey"), ColRef(orders, "o_custkey")));
+      Eq(ColRef(customer, "c_custkey", 2), ColRef(orders, "o_custkey", 3)));
   conditions.push_back(
-      Eq(ColRef(orders, "o_orderkey"), ColRef(lineitem, "l_orderkey")));
+      Eq(ColRef(orders, "o_orderkey", 3), ColRef(lineitem, "l_orderkey", 4)));
   {
-    std::unique_ptr<Expression> p1 =
-        Eq(ColRef(supplier, "s_nationkey"), ColRef(nation, "n_nationkey"));
+    std::unique_ptr<Expression> p1 = Eq(ColRef(supplier, "s_nationkey", 5),
+                                        ColRef(nation, "n_nationkey", 1));
     std::unique_ptr<Expression> p2 =
-        Eq(ColRef(supplier, "s_suppkey"), ColRef(lineitem, "l_suppkey"));
+        Eq(ColRef(supplier, "s_suppkey", 5), ColRef(lineitem, "l_suppkey", 4));
     conditions.push_back(And(util::MakeVector(std::move(p1), std::move(p2))));
   }
 

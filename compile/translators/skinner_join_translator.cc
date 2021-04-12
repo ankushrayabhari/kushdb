@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "compile/ir_registry.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/struct.h"
@@ -12,9 +14,79 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/scan_translator.h"
+#include "plan/expression/aggregate_expression.h"
+#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/case_expression.h"
+#include "plan/expression/column_ref_expression.h"
+#include "plan/expression/conversion_expression.h"
+#include "plan/expression/expression_visitor.h"
+#include "plan/expression/literal_expression.h"
+#include "plan/expression/virtual_column_ref_expression.h"
 #include "util/vector_util.h"
 
 namespace kush::compile {
+
+class PredicateColumnCollector : public plan::ImmutableExpressionVisitor {
+ public:
+  PredicateColumnCollector() = default;
+  virtual ~PredicateColumnCollector() = default;
+
+  std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
+  PredicateColumns() {
+    // dedupe, should actually be doing this via hashing
+    absl::flat_hash_set<std::pair<int, int>> exists;
+
+    std::vector<std::reference_wrapper<const plan::ColumnRefExpression>> output;
+    for (auto& col_ref : predicate_columns_) {
+      std::pair<int, int> key = {col_ref.get().GetChildIdx(),
+                                 col_ref.get().GetColumnIdx()};
+      if (exists.contains(key)) {
+        continue;
+      }
+
+      output.push_back(col_ref);
+      exists.insert(key);
+    }
+    return output;
+  }
+
+  void Visit(const plan::ColumnRefExpression& col_ref) override {
+    predicate_columns_.push_back(col_ref);
+  }
+
+  void VisitChildren(const plan::Expression& expr) {
+    for (auto& child : expr.Children()) {
+      child.get().Accept(*this);
+    }
+  }
+
+  void Visit(const plan::BinaryArithmeticExpression& arith) override {
+    VisitChildren(arith);
+  }
+
+  void Visit(const plan::CaseExpression& case_expr) override {
+    VisitChildren(case_expr);
+  }
+
+  void Visit(const plan::IntToFloatConversionExpression& conv) override {
+    VisitChildren(conv);
+  }
+
+  void Visit(const plan::LiteralExpression& literal) override {}
+
+  void Visit(const plan::AggregateExpression& agg) override {
+    throw std::runtime_error("Aggregates cannot appear in join predicates.");
+  }
+
+  void Visit(const plan::VirtualColumnRefExpression& virtual_col_ref) override {
+    throw std::runtime_error(
+        "Virtual column references cannot appear in join predicates.");
+  }
+
+ private:
+  std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
+      predicate_columns_;
+};
 
 template <typename T>
 SkinnerJoinTranslator<T>::SkinnerJoinTranslator(
@@ -30,6 +102,8 @@ void SkinnerJoinTranslator<T>::Produce() {
   // 1. Materialize each child.
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
+  auto conditions = join_.Conditions();
+
   std::vector<std::unique_ptr<proxy::StructBuilder<T>>> structs;
   for (int i = 0; i < child_translators.size(); i++) {
     auto& child_translator = child_translators[i].get();
@@ -54,16 +128,33 @@ void SkinnerJoinTranslator<T>::Produce() {
     }
   }
 
-  proxy::Printer printer(program_);
-  for (auto& buffer : buffers_) {
-    if (buffer != nullptr) {
-      buffer->Size().Print(printer);
-    }
+  // 2. Setup join evaluation
+  // Setup struct of predicate columns
+  PredicateColumnCollector collector;
+  for (const auto& condition : conditions) {
+    condition.get().Accept(collector);
   }
-  printer.PrintNewline();
+
+  auto predicate_columns = collector.PredicateColumns();
+  predicate_struct_ = std::make_unique<proxy::StructBuilder<T>>(program_);
+
+  for (auto& predicate_column : predicate_columns) {
+    const auto& child = child_operators[predicate_column.get().GetChildIdx()];
+    const auto& col =
+        child.get().Schema().Columns()[predicate_column.get().GetColumnIdx()];
+    auto type = col.Expr().Type();
+    predicate_struct_->Add(type);
+  }
+  predicate_struct_->Build();
 
   // TODO:
-  // 2. Setup join evaluation
+  // Compile a function of type:
+  // void(uint32_t idx, struct* predicates, void() cb)
+  // where we loop over tuples in the result starting from idx store each of
+  // the values into predicates then calls cb
+
+  // TODO: actually invoke the predicates.
+
   // 3. Execute join
 
   // Cleanup
@@ -72,6 +163,7 @@ void SkinnerJoinTranslator<T>::Produce() {
       buffer.reset();
     }
   }
+  predicate_struct_.reset();
 }
 
 template <typename T>

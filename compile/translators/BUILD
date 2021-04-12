@@ -105,6 +105,7 @@ cc_library(
         "//compile/proxy:vector",
         "//plan:skinner_join_operator",
         "//util:vector_util",
+        "@absl//absl/container:flat_hash_set",
     ],
 )
 
