@@ -23,7 +23,7 @@ GroupByAggregateTranslator<T>::GroupByAggregateTranslator(
     const plan::GroupByAggregateOperator& group_by_agg,
     ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(std::move(children)),
+    : OperatorTranslator<T>(group_by_agg, std::move(children)),
       group_by_agg_(group_by_agg),
       program_(program),
       expr_translator_(program, *this) {}
@@ -71,6 +71,7 @@ void GroupByAggregateTranslator<T>::Produce() {
     }
 
     // generate output variables
+    this->values_.ResetValues();
     for (const auto& column : group_by_agg_.Schema().Columns()) {
       this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
     }
@@ -146,7 +147,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
                     auto next = expr_translator_.Compute(agg.Child());
                     auto sum = current_value.EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::ADD, *next);
-                    packed.Update(*sum, i);
+                    packed.Update(i, *sum);
                     break;
                   }
 
@@ -156,7 +157,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
                         plan::BinaryArithmeticOperatorType::LT, current_value);
 
                     proxy::If<T>(program_, static_cast<proxy::Bool<T>&>(*cond),
-                                 [&]() { packed.Update(*next, i); });
+                                 [&]() { packed.Update(i, *next); });
                     break;
                   }
 
@@ -166,7 +167,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
                         plan::BinaryArithmeticOperatorType::GT, current_value);
 
                     proxy::If<T>(program_, static_cast<proxy::Bool<T>&>(*cond),
-                                 [&]() { packed.Update(*next, i); });
+                                 [&]() { packed.Update(i, *next); });
                     break;
                   }
 
@@ -186,7 +187,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
                         record_count_as_float);
                     auto sum = current_value.EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::ADD, *to_add);
-                    packed.Update(*sum, i);
+                    packed.Update(i, *sum);
                     break;
                   }
 
@@ -194,7 +195,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
                     auto one = proxy::Int64<T>(program_, 1);
                     auto sum = current_value.EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::ADD, one);
-                    packed.Update(*sum, i);
+                    packed.Update(i, *sum);
                     break;
                   }
                 }
@@ -204,7 +205,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
               auto one = proxy::Int64<T>(program_, 1);
               auto sum = record_count_field.EvaluateBinary(
                   plan::BinaryArithmeticOperatorType::ADD, one);
-              packed.Update(*sum, 0);
+              packed.Update(0, *sum);
             });
 
         // If we didn't find, move to next element

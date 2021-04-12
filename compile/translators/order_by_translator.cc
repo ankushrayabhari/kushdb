@@ -23,7 +23,7 @@ template <typename T>
 OrderByTranslator<T>::OrderByTranslator(
     const plan::OrderByOperator& order_by, ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(std::move(children)),
+    : OperatorTranslator<T>(order_by, std::move(children)),
       order_by_(order_by),
       program_(program),
       expr_translator_(program, *this) {}
@@ -95,6 +95,7 @@ void OrderByTranslator<T>::Produce() {
       [&](proxy::UInt32<T>& i) {
         this->Child().SchemaValues().SetValues((*buffer_)[i].Unpack());
 
+        this->values_.ResetValues();
         for (const auto& column : order_by_.Schema().Columns()) {
           this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
         }

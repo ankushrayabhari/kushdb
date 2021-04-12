@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "compile/translators/schema_values.h"
+#include "plan/operator.h"
 
 namespace kush::compile {
 
@@ -12,6 +13,7 @@ template <typename T>
 class OperatorTranslator {
  public:
   OperatorTranslator(
+      const plan::Operator& op,
       std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
   virtual ~OperatorTranslator() = default;
 

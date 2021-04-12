@@ -20,7 +20,7 @@ template <typename T>
 HashJoinTranslator<T>::HashJoinTranslator(
     const plan::HashJoinOperator& hash_join, ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(std::move(children)),
+    : OperatorTranslator<T>(hash_join, std::move(children)),
       hash_join_(hash_join),
       program_(program),
       expr_translator_(program_, *this) {}
@@ -103,6 +103,7 @@ void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
 
         auto cond = expr_translator_.Compute(*conj);
         proxy::If(program_, dynamic_cast<proxy::Bool<T>&>(*cond), [&]() {
+          this->values_.ResetValues();
           for (const auto& column : hash_join_.Schema().Columns()) {
             this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
           }

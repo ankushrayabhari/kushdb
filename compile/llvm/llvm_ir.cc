@@ -436,6 +436,7 @@ Value& LLVMIr::GlobalArray(bool constant, Type& t,
 void LLVMIr::Compile() const {
   gen = std::chrono::system_clock::now();
   llvm::verifyModule(*module_, &llvm::errs());
+  // module_->print(llvm::errs(), nullptr);
 
   llvm::legacy::PassManager pass;
 

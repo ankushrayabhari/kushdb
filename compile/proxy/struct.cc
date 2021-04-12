@@ -146,7 +146,7 @@ std::vector<std::unique_ptr<Value<T>>> Struct<T>::Unpack() {
 }
 
 template <typename T>
-void Struct<T>::Update(proxy::Value<T>& v, int field) {
+void Struct<T>::Update(int field, proxy::Value<T>& v) {
   auto types = fields_.Types();
 
   auto& ptr = program_.GetElementPtr(

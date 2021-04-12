@@ -12,8 +12,12 @@ namespace kush::compile {
 
 template <typename T>
 OperatorTranslator<T>::OperatorTranslator(
+    const plan::Operator& op,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
-    : parent_(nullptr), children_(std::move(children)) {
+    : values_(op.Schema().Columns().size()),
+      virtual_values_(0),
+      parent_(nullptr),
+      children_(std::move(children)) {
   for (auto& child : children_) {
     child->parent_ = this;
   }

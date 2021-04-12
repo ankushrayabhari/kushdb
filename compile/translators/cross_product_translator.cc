@@ -12,7 +12,7 @@ template <typename T>
 CrossProductTranslator<T>::CrossProductTranslator(
     const plan::CrossProductOperator& cross_product, ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(std::move(children)),
+    : OperatorTranslator<T>(cross_product, std::move(children)),
       cross_product_(cross_product),
       program_(program),
       expr_translator_(program, *this) {}
@@ -30,6 +30,7 @@ void CrossProductTranslator<T>::Consume(OperatorTranslator<T>& src) {
   if (&src == &left_child) {
     right_child.Produce();
   } else {
+    this->values_.ResetValues();
     for (const auto& column : cross_product_.Schema().Columns()) {
       this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
     }

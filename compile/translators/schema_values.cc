@@ -11,6 +11,14 @@
 namespace kush::compile {
 
 template <typename T>
+SchemaValues<T>::SchemaValues(int num_values) : values_(num_values) {}
+
+template <typename T>
+void SchemaValues<T>::ResetValues() {
+  values_.clear();
+}
+
+template <typename T>
 void SchemaValues<T>::AddVariable(std::unique_ptr<proxy::Value<T>> value) {
   values_.push_back(std::move(value));
 }
@@ -35,6 +43,12 @@ template <typename T>
 void SchemaValues<T>::SetValues(
     std::vector<std::unique_ptr<proxy::Value<T>>> values) {
   values_ = std::move(values);
+}
+
+template <typename T>
+void SchemaValues<T>::SetValue(int idx,
+                               std::unique_ptr<proxy::Value<T>> value) {
+  values_[idx] = std::move(value);
 }
 
 INSTANTIATE_ON_IR(SchemaValues);

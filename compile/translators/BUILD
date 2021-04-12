@@ -19,6 +19,7 @@ cc_library(
     deps = [
         ":schema_values",
         "//compile:ir_registry",
+        "//plan:operator",
         "//util:vector_util",
     ],
 )

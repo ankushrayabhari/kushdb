@@ -11,7 +11,7 @@ template <typename T>
 OutputTranslator<T>::OutputTranslator(
     const plan::OutputOperator& output, ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(std::move(children)), program_(program) {}
+    : OperatorTranslator<T>(output, std::move(children)), program_(program) {}
 
 template <typename T>
 void OutputTranslator<T>::Produce() {

@@ -20,7 +20,7 @@ template <typename T>
 ScanTranslator<T>::ScanTranslator(
     const plan::ScanOperator& scan, ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(std::move(children)),
+    : OperatorTranslator<T>(scan, std::move(children)),
       scan_(scan),
       program_(program) {}
 
@@ -81,6 +81,7 @@ void ScanTranslator<T>::Produce() {
       program_, [&]() { return proxy::UInt32<T>(program_, 0); },
       [&](proxy::UInt32<T>& i) { return i < card_var; },
       [&](proxy::UInt32<T>& i) {
+        this->values_.ResetValues();
         for (auto& col_var : column_data_vars) {
           this->values_.AddVariable((*col_var)[i]);
         }

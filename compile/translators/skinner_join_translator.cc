@@ -94,7 +94,7 @@ template <typename T>
 SkinnerJoinTranslator<T>::SkinnerJoinTranslator(
     const plan::SkinnerJoinOperator& join, ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(std::move(children)),
+    : OperatorTranslator<T>(join, std::move(children)),
       join_(join),
       program_(program),
       expr_translator_(program_, *this) {}
@@ -112,7 +112,7 @@ void SkinnerJoinTranslator<T>::Produce() {
     auto& child_operator = child_operators[i].get();
 
     if (auto scan = dynamic_cast<ScanTranslator<T>*>(&child_translator)) {
-      // Already materialized so do nothing.
+      // Scans are already materialized so do nothing
     } else {
       // Create struct for materialization
       structs.push_back(std::make_unique<proxy::StructBuilder<T>>(program_));
@@ -150,8 +150,10 @@ void SkinnerJoinTranslator<T>::Produce() {
   }
   predicate_struct_->Build();
 
-  auto& global_predicate_struct = program_.GlobalStruct(
-      false, predicate_struct_->Type(), predicate_struct_->DefaultValues());
+  proxy::Struct<T> global_predicate_struct(
+      program_, *predicate_struct_,
+      program_.GlobalStruct(false, predicate_struct_->Type(),
+                            predicate_struct_->DefaultValues()));
 
   // Setup table handlers
   auto& handler_type = program_.FunctionType(program_.VoidType(), {});
@@ -170,18 +172,35 @@ void SkinnerJoinTranslator<T>::Produce() {
 
   std::vector<proxy::VoidFunction<T>> table_functions;
   int current_buffer = 0;
-  for (int i = 0; i < child_translators.size(); i++) {
-    auto& child_translator = child_translators[i].get();
-    auto& child_operator = child_operators[i].get();
+  for (int j = 0; j < child_translators.size(); j++) {
+    auto& child_translator = child_translators[j].get();
 
     proxy::VoidFunction<T>(program_, [&]() {
       auto& handler_ptr = program_.GetElementPtr(
           handler_pointer_array_type, handler_pointer_array,
-          {program_.ConstI32(0), program_.ConstI32(i)});
+          {program_.ConstI32(0), program_.ConstI32(j)});
       auto& handler = program_.Load(handler_ptr);
 
+      {
+        // Unpack the predicate struct.
+        auto column_values = global_predicate_struct.Unpack();
+
+        // Set the schema value for each predicate column to be the ones from
+        // the predicate struct.
+        for (int i = 0; i < column_values.size(); i++) {
+          auto& column_ref = predicate_columns[i].get();
+
+          // Set the ColumnIdx value of the ChildIdx operator to be the
+          // unpacked value.
+          auto& child_translator =
+              child_translators[column_ref.GetChildIdx()].get();
+          child_translator.SchemaValues().SetValue(column_ref.GetColumnIdx(),
+                                                   std::move(column_values[i]));
+        }
+      }
+
       if (auto scan = dynamic_cast<ScanTranslator<T>*>(&child_translator)) {
-        // Loop over tuples in column data
+        // TODO: Loop over predicate columns in column data
         program_.Return();
       } else {
         // Loop over tuples in buffer
@@ -191,8 +210,31 @@ void SkinnerJoinTranslator<T>::Produce() {
             program_, [&]() { return proxy::UInt32<T>(program_, 0); },
             [&](proxy::UInt32<T>& i) { return i < buffer.Size(); },
             [&](proxy::UInt32<T>& i) {
-              // TODO: store this tables values into the
-              // global_predicate_struct
+              {  // Handle any predicate columns for this table
+                 // Load the current tuple of table.
+                auto current_table_values = buffer[i].Unpack();
+
+                // Store each of this table's predicate column values into
+                // the global_predicate_struct
+                for (int k = 0; k < predicate_columns.size(); k++) {
+                  auto& col_ref = predicate_columns[k].get();
+                  if (col_ref.GetChildIdx() == j) {
+                    global_predicate_struct.Update(
+                        k, *current_table_values[col_ref.GetColumnIdx()]);
+
+                    // Additionally, update this table's values to read from
+                    // the unpacked tuple instead of the old loaded value from
+                    // global_predicate_struct.
+                    child_translator.SchemaValues().SetValue(
+                        col_ref.GetColumnIdx(),
+                        std::move(
+                            current_table_values[col_ref.GetColumnIdx()]));
+                  }
+                }
+              }
+
+              // TODO: Evaluate every predicate that references this table's
+              // columns.
 
               // Call next table handler
               program_.Call(handler, handler_type);
@@ -203,8 +245,6 @@ void SkinnerJoinTranslator<T>::Produce() {
       }
     });
   }
-
-  // TODO: actually invoke the predicates.
 
   // 3. Execute join
 

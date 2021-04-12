@@ -13,7 +13,7 @@ template <typename T>
 SelectTranslator<T>::SelectTranslator(
     const plan::SelectOperator& select, ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(std::move(children)),
+    : OperatorTranslator<T>(select, std::move(children)),
       select_(select),
       program_(program),
       expr_translator_(program, *this) {}
@@ -28,6 +28,7 @@ void SelectTranslator<T>::Consume(OperatorTranslator<T>& src) {
   auto value = expr_translator_.Compute(select_.Expr());
 
   proxy::If(program_, dynamic_cast<proxy::Bool<T>&>(*value), [&]() {
+    this->values_.ResetValues();
     for (const auto& column : select_.Schema().Columns()) {
       this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
     }
