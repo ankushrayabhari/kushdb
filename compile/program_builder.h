@@ -32,7 +32,7 @@ class ProgramBuilder {
                            std::string_view name = "") = 0;
   virtual Type& GetStructType(std::string_view name) = 0;
   virtual Type& PointerType(Type& type) = 0;
-  virtual Type& ArrayType(Type& type) = 0;
+  virtual Type& ArrayType(Type& type, int len = 0) = 0;
   virtual Type& FunctionType(
       Type& result, std::vector<std::reference_wrapper<Type>> args) = 0;
   virtual Type& TypeOf(Value& value) = 0;
@@ -65,6 +65,9 @@ class ProgramBuilder {
   virtual void Return() = 0;
   virtual Value& Call(
       Function& func,
+      std::vector<std::reference_wrapper<Value>> arguments = {}) = 0;
+  virtual Value& Call(
+      Value& func, Type& type,
       std::vector<std::reference_wrapper<Value>> arguments = {}) = 0;
 
   // Control Flow
@@ -134,8 +137,10 @@ class ProgramBuilder {
   virtual Value& CastSignedIntToF64(Value& v) = 0;
 
   // Globals
-  virtual Value& ConstString(std::string_view s) = 0;
-  virtual Value& ConstStruct(Type& t,
+  virtual Value& GlobalConstString(std::string_view s) = 0;
+  virtual Value& GlobalStruct(bool constant, Type& t,
+                              std::vector<std::reference_wrapper<Value>> v) = 0;
+  virtual Value& GlobalArray(bool constant, Type& t,
                              std::vector<std::reference_wrapper<Value>> v) = 0;
 };
 

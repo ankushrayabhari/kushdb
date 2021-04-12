@@ -42,7 +42,7 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
                    std::string_view name) override;
   Type& GetStructType(std::string_view name) override;
   Type& PointerType(Type& type) override;
-  Type& ArrayType(Type& type) override;
+  Type& ArrayType(Type& type, int len = 0) override;
   Type& FunctionType(Type& result,
                      std::vector<std::reference_wrapper<Type>> args) override;
   Type& TypeOf(Value& value) override;
@@ -74,6 +74,8 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   void Return(Value& v) override;
   void Return() override;
   Value& Call(Function& name,
+              std::vector<std::reference_wrapper<Value>> arguments) override;
+  Value& Call(Value& func, Type& function_type,
               std::vector<std::reference_wrapper<Value>> arguments) override;
 
   // Control Flow
@@ -143,8 +145,10 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Value& CastSignedIntToF64(Value& v) override;
 
   // Globals
-  Value& ConstString(std::string_view s) override;
-  Value& ConstStruct(Type& t,
+  Value& GlobalConstString(std::string_view s) override;
+  Value& GlobalStruct(bool constant, Type& t,
+                      std::vector<std::reference_wrapper<Value>> v) override;
+  Value& GlobalArray(bool constant, Type& t,
                      std::vector<std::reference_wrapper<Value>> v) override;
 
  private:

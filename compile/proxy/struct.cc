@@ -24,24 +24,31 @@ void StructBuilder<T>::Add(catalog::SqlType type) {
   switch (type) {
     case catalog::SqlType::SMALLINT:
       fields_.push_back(program_.I16Type());
+      values_.push_back(program_.ConstI16(0));
       break;
     case catalog::SqlType::INT:
       fields_.push_back(program_.I32Type());
+      values_.push_back(program_.ConstI32(0));
       break;
     case catalog::SqlType::BIGINT:
       fields_.push_back(program_.I64Type());
+      values_.push_back(program_.ConstI64(0));
       break;
     case catalog::SqlType::REAL:
       fields_.push_back(program_.F64Type());
+      values_.push_back(program_.ConstF64(0));
       break;
     case catalog::SqlType::DATE:
       fields_.push_back(program_.I64Type());
+      values_.push_back(program_.ConstI64(0));
       break;
     case catalog::SqlType::TEXT:
       fields_.push_back(program_.GetStructType(String<T>::StringStructName));
+      values_.push_back(String<T>::Constant(program_, ""));
       break;
     case catalog::SqlType::BOOLEAN:
       fields_.push_back(program_.I1Type());
+      values_.push_back(program_.ConstI1(0));
       break;
   }
 }
@@ -59,6 +66,12 @@ typename ProgramBuilder<T>::Type& StructBuilder<T>::Type() {
 template <typename T>
 std::vector<catalog::SqlType> StructBuilder<T>::Types() {
   return types_;
+}
+
+template <typename T>
+std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+StructBuilder<T>::DefaultValues() {
+  return values_;
 }
 
 INSTANTIATE_ON_IR(StructBuilder);

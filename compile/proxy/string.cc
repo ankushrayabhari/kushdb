@@ -124,10 +124,12 @@ typename ProgramBuilder<T>::Value& String<T>::Get() const {
 template <typename T>
 typename ProgramBuilder<T>::Value& String<T>::Constant(
     ProgramBuilder<T>& program, std::string_view value) {
-  auto& str = program.ConstString(value);
+  auto& str = program.GlobalConstString(value);
   auto& len = program.ConstUI32(value.size());
-  return program.ConstStruct(program.GetStructType(StringStructName),
-                             {str, len});
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>> values{
+      str, len};
+  return program.GlobalStruct(true, program.GetStructType(StringStructName),
+                              values);
 }
 
 template <typename T>

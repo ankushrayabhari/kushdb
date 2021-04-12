@@ -9,6 +9,7 @@
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/Verifier.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/TargetRegistry.h"
@@ -83,7 +84,9 @@ Type& LLVMIr::PointerType(Type& type) {
   return *llvm::PointerType::get(&type, 0);
 }
 
-Type& LLVMIr::ArrayType(Type& type) { return *llvm::ArrayType::get(&type, 0); }
+Type& LLVMIr::ArrayType(Type& type, int len) {
+  return *llvm::ArrayType::get(&type, len);
+}
 
 Type& LLVMIr::FunctionType(Type& result,
                            std::vector<std::reference_wrapper<Type>> args) {
@@ -190,6 +193,13 @@ void LLVMIr::Return() { builder_->CreateRetVoid(); }
 Value& LLVMIr::Call(Function& func,
                     std::vector<std::reference_wrapper<Value>> arguments) {
   return *builder_->CreateCall(&func, VectorRefToVectorPtr(arguments));
+}
+
+Value& LLVMIr::Call(Value& func, Type& function_type,
+                    std::vector<std::reference_wrapper<Value>> arguments) {
+  return *llvm::CallInst::Create(
+      llvm::dyn_cast<llvm::FunctionType>(&function_type), &func,
+      VectorRefToVectorPtr(arguments), "", builder_->GetInsertBlock());
 }
 
 // Control Flow
@@ -383,30 +393,49 @@ Value& LLVMIr::CastSignedIntToF64(Value& v) {
 }
 
 // Globals
-Value& LLVMIr::ConstString(std::string_view s) {
+Value& LLVMIr::GlobalConstString(std::string_view s) {
   return *builder_->CreateGlobalStringPtr(s);
 }
 
-Value& LLVMIr::ConstStruct(Type& t,
-                           std::vector<std::reference_wrapper<Value>> v) {
+Value& LLVMIr::GlobalStruct(bool constant, Type& t,
+                            std::vector<std::reference_wrapper<Value>> value) {
   std::vector<llvm::Constant*> constants;
-  constants.reserve(v.size());
-  for (auto& x : v) {
+  constants.reserve(value.size());
+  for (auto& x : value) {
     constants.push_back(llvm::dyn_cast<llvm::Constant>(&x.get()));
   }
 
   auto* st = llvm::dyn_cast<llvm::StructType>(&t);
 
-  auto const_struct = llvm::ConstantStruct::get(st, constants);
+  auto init = llvm::ConstantStruct::get(st, constants);
 
   auto ptr = new llvm::GlobalVariable(
-      *module_, &t, true, llvm::GlobalValue::LinkageTypes::InternalLinkage,
-      const_struct);
+      *module_, &t, constant, llvm::GlobalValue::LinkageTypes::InternalLinkage,
+      init);
+  return *ptr;
+}
+
+Value& LLVMIr::GlobalArray(bool constant, Type& t,
+                           std::vector<std::reference_wrapper<Value>> value) {
+  std::vector<llvm::Constant*> constants;
+  constants.reserve(value.size());
+  for (auto& x : value) {
+    constants.push_back(llvm::dyn_cast<llvm::Constant>(&x.get()));
+  }
+
+  auto* st = llvm::dyn_cast<llvm::ArrayType>(&t);
+
+  auto init = llvm::ConstantArray::get(st, constants);
+
+  auto ptr = new llvm::GlobalVariable(
+      *module_, &t, constant, llvm::GlobalValue::LinkageTypes::InternalLinkage,
+      init);
   return *ptr;
 }
 
 void LLVMIr::Compile() const {
   gen = std::chrono::system_clock::now();
+  llvm::verifyModule(*module_, &llvm::errs());
 
   llvm::legacy::PassManager pass;
 

@@ -17,11 +17,15 @@ class StructBuilder {
   void Build();
   typename ProgramBuilder<T>::Type& Type();
   std::vector<catalog::SqlType> Types();
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+  DefaultValues();
 
  private:
   ProgramBuilder<T>& program_;
   std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Type>> fields_;
   std::vector<catalog::SqlType> types_;
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+      values_;
   typename ProgramBuilder<T>::Type* struct_type_;
 };
 

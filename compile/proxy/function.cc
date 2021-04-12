@@ -42,4 +42,22 @@ typename ProgramBuilder<T>::Function& ComparisonFunction<T>::Get() {
 
 INSTANTIATE_ON_IR(ComparisonFunction);
 
+template <typename T>
+VoidFunction<T>::VoidFunction(ProgramBuilder<T>& program,
+                              std::function<void()> body) {
+  auto& current_block = program.CurrentBlock();
+  func = &program.CreateFunction(program.VoidType(), {});
+
+  body();
+
+  program.SetCurrentBlock(current_block);
+}
+
+template <typename T>
+typename ProgramBuilder<T>::Function& VoidFunction<T>::Get() {
+  return *func;
+}
+
+INSTANTIATE_ON_IR(VoidFunction);
+
 }  // namespace kush::compile::proxy

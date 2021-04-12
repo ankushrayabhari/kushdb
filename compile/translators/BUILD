@@ -100,6 +100,8 @@ cc_library(
         ":operator_translator",
         ":scan_translator",
         "//compile:ir_registry",
+        "//compile/proxy:function",
+        "//compile/proxy:loop",
         "//compile/proxy:struct",
         "//compile/proxy:value",
         "//compile/proxy:vector",

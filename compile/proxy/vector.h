@@ -11,7 +11,8 @@ namespace kush::compile::proxy {
 template <typename T>
 class Vector {
  public:
-  Vector(ProgramBuilder<T>& program, StructBuilder<T>& content);
+  Vector(ProgramBuilder<T>& program, StructBuilder<T>& content,
+         bool global = false);
   Vector(ProgramBuilder<T>& program, StructBuilder<T>& content,
          typename ProgramBuilder<T>::Value& value);
 

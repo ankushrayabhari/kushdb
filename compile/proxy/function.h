@@ -23,4 +23,14 @@ class ComparisonFunction {
   typename ProgramBuilder<T>::Function* func;
 };
 
+template <typename T>
+class VoidFunction {
+ public:
+  VoidFunction(ProgramBuilder<T>& program, std::function<void()> body);
+  typename ProgramBuilder<T>::Function& Get();
+
+ private:
+  typename ProgramBuilder<T>::Function* func;
+};
+
 }  // namespace kush::compile::proxy

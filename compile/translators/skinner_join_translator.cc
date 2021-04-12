@@ -1,12 +1,14 @@
 #include "compile/translators/skinner_join_translator.h"
 
+#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "compile/ir_registry.h"
+#include "compile/proxy/function.h"
+#include "compile/proxy/loop.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/value.h"
@@ -110,6 +112,7 @@ void SkinnerJoinTranslator<T>::Produce() {
     auto& child_operator = child_operators[i].get();
 
     if (auto scan = dynamic_cast<ScanTranslator<T>*>(&child_translator)) {
+      // Already materialized so do nothing.
     } else {
       // Create struct for materialization
       structs.push_back(std::make_unique<proxy::StructBuilder<T>>(program_));
@@ -121,7 +124,7 @@ void SkinnerJoinTranslator<T>::Produce() {
 
       // Init vector of structs
       buffers_.push_back(
-          std::make_unique<proxy::Vector<T>>(program_, *structs.back()));
+          std::make_unique<proxy::Vector<T>>(program_, *structs.back(), true));
 
       // Fill buffer
       child_translator.Produce();
@@ -147,11 +150,59 @@ void SkinnerJoinTranslator<T>::Produce() {
   }
   predicate_struct_->Build();
 
-  // TODO:
-  // Compile a function of type:
-  // void(uint32_t idx, struct* predicates, void() cb)
-  // where we loop over tuples in the result starting from idx store each of
-  // the values into predicates then calls cb
+  auto& global_predicate_struct = program_.GlobalStruct(
+      false, predicate_struct_->Type(), predicate_struct_->DefaultValues());
+
+  // Setup table handlers
+  auto& handler_type = program_.FunctionType(program_.VoidType(), {});
+  auto& handler_pointer_type = program_.PointerType(handler_type);
+  auto& handler_pointer_array_type =
+      program_.ArrayType(handler_pointer_type, child_translators.size());
+
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+      initial_values;
+  initial_values.reserve(child_translators.size());
+  for (int i = 0; i < child_translators.size(); i++) {
+    initial_values.push_back(program_.NullPtr(handler_pointer_type));
+  }
+  auto& handler_pointer_array =
+      program_.GlobalArray(false, handler_pointer_array_type, initial_values);
+
+  std::vector<proxy::VoidFunction<T>> table_functions;
+  int current_buffer = 0;
+  for (int i = 0; i < child_translators.size(); i++) {
+    auto& child_translator = child_translators[i].get();
+    auto& child_operator = child_operators[i].get();
+
+    proxy::VoidFunction<T>(program_, [&]() {
+      auto& handler_ptr = program_.GetElementPtr(
+          handler_pointer_array_type, handler_pointer_array,
+          {program_.ConstI32(0), program_.ConstI32(i)});
+      auto& handler = program_.Load(handler_ptr);
+
+      if (auto scan = dynamic_cast<ScanTranslator<T>*>(&child_translator)) {
+        // Loop over tuples in column data
+        program_.Return();
+      } else {
+        // Loop over tuples in buffer
+        proxy::Vector<T>& buffer = *buffers_[current_buffer++];
+
+        proxy::IndexLoop<T>(
+            program_, [&]() { return proxy::UInt32<T>(program_, 0); },
+            [&](proxy::UInt32<T>& i) { return i < buffer.Size(); },
+            [&](proxy::UInt32<T>& i) {
+              // TODO: store this tables values into the
+              // global_predicate_struct
+
+              // Call next table handler
+              program_.Call(handler, handler_type);
+
+              return i + proxy::UInt32<T>(program_, 1);
+            });
+        program_.Return();
+      }
+    });
+  }
 
   // TODO: actually invoke the predicates.
 
@@ -168,7 +219,7 @@ void SkinnerJoinTranslator<T>::Produce() {
 
 template <typename T>
 void SkinnerJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
-  // Last element of buffers is the materialization for src operator.
+  // Last element of buffers is the materialization vector for src.
   buffers_.back()->PushBack().Pack(src.SchemaValues().Values());
 }
 
