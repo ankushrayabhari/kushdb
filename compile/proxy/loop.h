@@ -18,6 +18,10 @@ class IndexLoop {
             std::function<Bool<T>(UInt32<T>&)> cond,
             std::function<UInt32<T>(UInt32<T>&)> body);
 
+  IndexLoop(ProgramBuilder<T>& program, std::function<UInt32<T>()> init,
+            std::function<Bool<T>(UInt32<T>&)> cond,
+            std::function<UInt32<T>(UInt32<T>&, std::function<void(UInt32<T>&)>)> body);
+
  private:
   ProgramBuilder<T>& program_;
   std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>

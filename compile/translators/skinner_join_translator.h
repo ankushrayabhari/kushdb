@@ -27,7 +27,6 @@ class SkinnerJoinTranslator : public OperatorTranslator<T> {
   ProgramBuilder<T>& program_;
   ExpressionTranslator<T> expr_translator_;
   std::vector<std::unique_ptr<proxy::Vector<T>>> buffers_;
-  std::unique_ptr<proxy::StructBuilder<T>> predicate_struct_;
 };
 
 }  // namespace kush::compile

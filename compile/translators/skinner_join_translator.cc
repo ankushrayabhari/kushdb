@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_set.h"
 #include "compile/ir_registry.h"
 #include "compile/proxy/function.h"
@@ -137,48 +138,80 @@ void SkinnerJoinTranslator<T>::Produce() {
   for (const auto& condition : conditions) {
     condition.get().Accept(collector);
   }
-
   auto predicate_columns = collector.PredicateColumns();
-  predicate_struct_ = std::make_unique<proxy::StructBuilder<T>>(program_);
-
+  auto predicate_struct = std::make_unique<proxy::StructBuilder<T>>(program_);
   for (auto& predicate_column : predicate_columns) {
     const auto& child = child_operators[predicate_column.get().GetChildIdx()];
     const auto& col =
         child.get().Schema().Columns()[predicate_column.get().GetColumnIdx()];
     auto type = col.Expr().Type();
-    predicate_struct_->Add(type);
+    predicate_struct->Add(type);
   }
-  predicate_struct_->Build();
+  predicate_struct->Build();
 
   proxy::Struct<T> global_predicate_struct(
-      program_, *predicate_struct_,
-      program_.GlobalStruct(false, predicate_struct_->Type(),
-                            predicate_struct_->DefaultValues()));
+      program_, *predicate_struct,
+      program_.GlobalStruct(false, predicate_struct->Type(),
+                            predicate_struct->DefaultValues()));
+
+  // Setup idx array.
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+      initial_idx_values(child_operators.size(), program_.ConstUI32(0));
+  auto& idx_type = program_.UI32Type();
+  auto& idx_array_type = program_.ArrayType(idx_type, child_operators.size());
+  auto& idx_array =
+      program_.GlobalArray(false, idx_array_type, initial_idx_values);
+
+  // Setup flag array for each table.
+  std::vector<absl::btree_set<int>> predicates_per_table(
+      child_operators.size());
+  for (int i = 0; i < conditions.size(); i++) {
+    auto& condition = conditions[i];
+    PredicateColumnCollector collector;
+    condition.get().Accept(collector);
+    auto predicate_columns = collector.PredicateColumns();
+    for (const auto& col_ref : predicate_columns) {
+      predicates_per_table[col_ref.get().GetChildIdx()].insert(i);
+    }
+  }
+
+  int total_flags = 0;
+  absl::flat_hash_map<std::pair<int, int>, int> table_predicate_to_flag_idx;
+  int flag_idx = 0;
+  for (int i = 0; i < predicates_per_table.size(); i++) {
+    total_flags += predicates_per_table[i].size();
+    for (int predicate_idx : predicates_per_table[i]) {
+      table_predicate_to_flag_idx[{i, predicate_idx}] = flag_idx++;
+    }
+  }
+
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+      initial_flag_values(total_flags, program_.ConstI1(0));
+  auto& flag_type = program_.I1Type();
+  auto& flag_array_type = program_.ArrayType(flag_type, total_flags);
+  auto& flag_array =
+      program_.GlobalArray(false, flag_array_type, initial_flag_values);
 
   // Setup table handlers
   auto& handler_type = program_.FunctionType(program_.VoidType(), {});
   auto& handler_pointer_type = program_.PointerType(handler_type);
   auto& handler_pointer_array_type =
       program_.ArrayType(handler_pointer_type, child_translators.size());
-
   std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
-      initial_values;
-  initial_values.reserve(child_translators.size());
-  for (int i = 0; i < child_translators.size(); i++) {
-    initial_values.push_back(program_.NullPtr(handler_pointer_type));
-  }
+      initial_values(child_translators.size(),
+                     program_.NullPtr(handler_pointer_type));
   auto& handler_pointer_array =
       program_.GlobalArray(false, handler_pointer_array_type, initial_values);
 
   std::vector<proxy::VoidFunction<T>> table_functions;
   int current_buffer = 0;
-  for (int j = 0; j < child_translators.size(); j++) {
-    auto& child_translator = child_translators[j].get();
+  for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
+    auto& child_translator = child_translators[table_idx].get();
 
     proxy::VoidFunction<T>(program_, [&]() {
       auto& handler_ptr = program_.GetElementPtr(
           handler_pointer_array_type, handler_pointer_array,
-          {program_.ConstI32(0), program_.ConstI32(j)});
+          {program_.ConstI32(0), program_.ConstI32(table_idx)});
       auto& handler = program_.Load(handler_ptr);
 
       {
@@ -209,7 +242,8 @@ void SkinnerJoinTranslator<T>::Produce() {
         proxy::IndexLoop<T>(
             program_, [&]() { return proxy::UInt32<T>(program_, 0); },
             [&](proxy::UInt32<T>& i) { return i < buffer.Size(); },
-            [&](proxy::UInt32<T>& i) {
+            [&](proxy::UInt32<T>& i,
+                std::function<void(proxy::UInt32<T>&)> Continue) {
               {  // Handle any predicate columns for this table
                  // Load the current tuple of table.
                 auto current_table_values = buffer[i].Unpack();
@@ -218,7 +252,7 @@ void SkinnerJoinTranslator<T>::Produce() {
                 // the global_predicate_struct
                 for (int k = 0; k < predicate_columns.size(); k++) {
                   auto& col_ref = predicate_columns[k].get();
-                  if (col_ref.GetChildIdx() == j) {
+                  if (col_ref.GetChildIdx() == table_idx) {
                     global_predicate_struct.Update(
                         k, *current_table_values[col_ref.GetColumnIdx()]);
 
@@ -233,8 +267,29 @@ void SkinnerJoinTranslator<T>::Produce() {
                 }
               }
 
-              // TODO: Evaluate every predicate that references this table's
+              // Evaluate every predicate that references this table's
               // columns.
+              for (int predicate_idx : predicates_per_table[table_idx]) {
+                auto& flag_ptr = program_.GetElementPtr(
+                    flag_array_type, flag_array,
+                    {program_.ConstI32(0),
+                     program_.ConstI32(table_predicate_to_flag_idx.at(
+                         {table_idx, predicate_idx}))});
+                proxy::Bool<T> flag(program_, program_.Load(flag_ptr));
+                proxy::If<T>(program_, flag, [&]() {
+                  auto cond =
+                      expr_translator_.Compute(conditions[predicate_idx]);
+                  auto next = i + proxy::UInt32<T>(program_, 1);
+                  proxy::If<T>(program_, !static_cast<proxy::Bool<T>&>(*cond),
+                               [&]() { Continue(next); });
+                });
+              }
+
+              // Store idx into global idx array.
+              auto& idx_ptr = program_.GetElementPtr(
+                  idx_array_type, idx_array,
+                  {program_.ConstI32(0), program_.ConstI32(table_idx)});
+              program_.Store(idx_ptr, i.Get());
 
               // Call next table handler
               program_.Call(handler, handler_type);
@@ -246,7 +301,9 @@ void SkinnerJoinTranslator<T>::Produce() {
     });
   }
 
-  // 3. Execute join
+  // Setup function that gets invoked for a valid tuple
+
+  // 3. TODO: Execute join
 
   // Cleanup
   for (auto& buffer : buffers_) {
@@ -254,7 +311,7 @@ void SkinnerJoinTranslator<T>::Produce() {
       buffer.reset();
     }
   }
-  predicate_struct_.reset();
+  predicate_struct.reset();
 }
 
 template <typename T>
