@@ -194,6 +194,7 @@ void SkinnerJoinTranslator<T>::Produce() {
   // Setup flag array for each table.
   std::vector<absl::btree_set<int>> predicates_per_table(
       child_operators.size());
+  std::vector<absl::flat_hash_set<int>> tables_per_predicate(conditions.size());
   for (int i = 0; i < conditions.size(); i++) {
     auto& condition = conditions[i];
     PredicateColumnCollector collector;
@@ -201,6 +202,7 @@ void SkinnerJoinTranslator<T>::Produce() {
     auto predicate_columns = collector.PredicateColumns();
     for (const auto& col_ref : predicate_columns) {
       predicates_per_table[col_ref.get().GetChildIdx()].insert(i);
+      tables_per_predicate[i].insert(col_ref.get().GetChildIdx());
     }
   }
 
@@ -237,7 +239,7 @@ void SkinnerJoinTranslator<T>::Produce() {
   for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
     auto& child_translator = child_translators[table_idx].get();
 
-    proxy::VoidFunction<T>(program_, [&]() {
+    table_functions.push_back(proxy::VoidFunction<T>(program_, [&]() {
       auto& handler_ptr = program_.GetElementPtr(
           handler_pointer_array_type, handler_pointer_array,
           {program_.ConstI32(0), program_.ConstI32(table_idx)});
@@ -329,7 +331,7 @@ void SkinnerJoinTranslator<T>::Produce() {
             });
         program_.Return();
       }
-    });
+    }));
   }
 
   // Setup global hash table that contains tuple idx
@@ -378,23 +380,67 @@ void SkinnerJoinTranslator<T>::Produce() {
   proxy::VoidFunction<T> valid_tuple_handler(program_, [&]() {
     // Insert tuple idx into hash table
     auto& tuple_idx_table = program_.Load(tuple_idx_table_ptr);
-
-    auto& tuple_idx =
+    auto& tuple_idx_arr =
         program_.GetElementPtr(idx_array_type, idx_array,
                                {program_.ConstI32(0), program_.ConstI32(0)});
 
     auto& num_tables = program_.ConstUI32(child_translators.size());
-
-    program_.Call(insert_fn, {tuple_idx_table, tuple_idx, num_tables});
-
+    program_.Call(insert_fn, {tuple_idx_table, tuple_idx_arr, num_tables});
     program_.Return();
   });
 
   // 3. Execute join
-
-  // Toggle predicate flags and set join order
   // For now, call static order by executing 0th function
   // TODO: Setup UCT join ordering
+
+  // Set join order
+  for (int i = 0; i < child_operators.size() - 1; i++) {
+    // set the ith hanlder to i+1 function
+    auto& handler_ptr = program_.GetElementPtr(
+        handler_pointer_array_type, handler_pointer_array,
+        {program_.ConstI32(0), program_.ConstI32(i)});
+    program_.Store(handler_ptr, {table_functions[i + 1].Get()});
+  }
+  // Set the last handler to be the valid_tuple_handler
+  {
+    auto& handler_ptr = program_.GetElementPtr(
+        handler_pointer_array_type, handler_pointer_array,
+        {program_.ConstI32(0), program_.ConstI32(child_operators.size() - 1)});
+    program_.Store(handler_ptr, {valid_tuple_handler.Get()});
+  }
+
+  // Toggle predicate flags
+  absl::flat_hash_set<int> available_tables;
+  absl::flat_hash_set<int> executed_predicates;
+  for (int table_idx = 0; table_idx < child_operators.size(); table_idx++) {
+    available_tables.insert(table_idx);
+
+    // all tables in available_tables have been joined
+    // execute any non-executed predicate
+    for (int predicate_idx = 0; predicate_idx < conditions.size();
+         predicate_idx++) {
+      if (executed_predicates.contains(predicate_idx)) continue;
+
+      bool all_tables_available = true;
+      for (int table : tables_per_predicate[predicate_idx]) {
+        all_tables_available =
+            all_tables_available && available_tables.contains(table);
+      }
+      if (!all_tables_available) continue;
+
+      executed_predicates.insert(predicate_idx);
+
+      auto& flag_ptr = program_.GetElementPtr(
+          flag_array_type, flag_array,
+          {program_.ConstI32(0),
+           program_.ConstI32(
+               table_predicate_to_flag_idx.at({table_idx, predicate_idx}))});
+      program_.Store(flag_ptr, program_.ConstI1(1));
+    }
+  }
+
+  // Execute static order by calling 0th function.
+  program_.Call(table_functions[0].Get(), {});
 
   // Loop over tuple idx table and then output tuples from each table.
   auto& tuple_it = program_.Alloca(program_.I8Type());

@@ -27,7 +27,7 @@ cc_library(
 )
 
 cc_binary(
-    name = "q1",
+    name = "q01",
     srcs = ["q01.cc"],
     deps = [
         ":builder",
@@ -77,7 +77,7 @@ cc_binary(
 )
 
 cc_binary(
-    name = "q2",
+    name = "q02",
     srcs = ["q02.cc"],
     deps = [
         ":builder",
@@ -102,7 +102,7 @@ cc_binary(
 )
 
 cc_binary(
-    name = "q3",
+    name = "q03",
     srcs = ["q03.cc"],
     deps = [
         ":builder",
@@ -127,7 +127,7 @@ cc_binary(
 )
 
 cc_binary(
-    name = "q5",
+    name = "q05",
     srcs = ["q05.cc"],
     deps = [
         ":builder",
@@ -152,7 +152,7 @@ cc_binary(
 )
 
 cc_binary(
-    name = "q6",
+    name = "q06",
     srcs = ["q06.cc"],
     deps = [
         ":builder",
