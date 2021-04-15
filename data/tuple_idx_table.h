@@ -23,8 +23,16 @@ std::unordered_set<std::vector<uint32_t>>* CreateTupleIdxTable();
 void Insert(std::unordered_set<std::vector<uint32_t>>* ht, uint32_t* arr,
             uint32_t n);
 
-void ForEach(std::unordered_set<std::vector<uint32_t>>* ht,
-             ::std::add_pointer<void(uint32_t*)>::type cb);
+uint32_t Size(std::unordered_set<std::vector<uint32_t>>* ht);
+
+void Begin(std::unordered_set<std::vector<uint32_t>>* ht,
+           std::unordered_set<std::vector<uint32_t>>::const_iterator** it);
+
+void Increment(std::unordered_set<std::vector<uint32_t>>::const_iterator** it);
+
+uint32_t* Get(std::unordered_set<std::vector<uint32_t>>::const_iterator** it);
+
+void Free(std::unordered_set<std::vector<uint32_t>>::const_iterator** it);
 
 void Free(std::unordered_set<std::vector<uint32_t>>* ht);
 

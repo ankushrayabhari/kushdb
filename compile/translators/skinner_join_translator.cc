@@ -333,30 +333,44 @@ void SkinnerJoinTranslator<T>::Produce() {
   }
 
   // Setup global hash table that contains tuple idx
+  auto& tuple_idx_table_type = program_.PointerType(program_.I8Type());
   auto& create_fn = program_.DeclareExternalFunction(
-      "_ZN4kush4data19CreateTupleIdxTableEv",
-      program_.PointerType(program_.I8Type()), {});
+      "_ZN4kush4data19CreateTupleIdxTableEv", tuple_idx_table_type, {});
   auto& insert_fn = program_.DeclareExternalFunction(
       "_ZN4kush4data6InsertEPSt13unordered_setISt6vectorIjSaIjEESt4hashIS4_"
       "ESt8equal_toIS4_ESaIS4_EEPjj",
       program_.VoidType(),
-      {program_.PointerType(program_.I8Type()),
-       program_.PointerType(program_.UI32Type()), program_.UI32Type()});
+      {tuple_idx_table_type, program_.PointerType(program_.UI32Type()),
+       program_.UI32Type()});
   auto& free_fn = program_.DeclareExternalFunction(
       "_ZN4kush4data4FreeEPSt13unordered_setISt6vectorIjSaIjEESt4hashIS4_"
       "ESt8equal_toIS4_ESaIS4_EE",
-      program_.VoidType(), {program_.PointerType(program_.I8Type())});
-  auto& for_each_fn = program_.DeclareExternalFunction(
-      "_ZN4kush4data7ForEachEPSt13unordered_setISt6vectorIjSaIjEESt4hashIS4_"
-      "ESt8equal_toIS4_ESaIS4_EEPFvPjE",
-      program_.VoidType(),
-      {program_.PointerType(program_.I8Type()),
-       program_.PointerType(program_.FunctionType(
-           program_.VoidType(), {program_.PointerType(program_.UI32Type())}))});
-  auto& tuple_idx_table_ptr = program_.GlobalPointer(
-      false, program_.PointerType(program_.I8Type()),
-      program_.NullPtr(program_.PointerType(program_.I8Type())));
+      program_.VoidType(), {tuple_idx_table_type});
+  auto& size_fn = program_.DeclareExternalFunction(
+      "_ZN4kush4data4SizeEPSt13unordered_setISt6vectorIjSaIjEESt4hashIS4_"
+      "ESt8equal_toIS4_ESaIS4_EE",
+      program_.UI32Type(), {tuple_idx_table_type});
+  auto& tuple_idx_iterator_type = program_.PointerType(program_.I8Type());
+  auto& begin_fn = program_.DeclareExternalFunction(
+      "_ZN4kush4data5BeginEPSt13unordered_setISt6vectorIjSaIjEESt4hashIS4_"
+      "ESt8equal_toIS4_ESaIS4_EEPPNSt8__detail20_Node_const_iteratorIS4_"
+      "Lb1ELb1EEE",
+      program_.VoidType(), {tuple_idx_table_type, tuple_idx_iterator_type});
+  auto& increment_fn = program_.DeclareExternalFunction(
+      "_ZN4kush4data9IncrementEPPNSt8__detail20_Node_const_"
+      "iteratorISt6vectorIjSaIjEELb1ELb1EEE",
+      program_.VoidType(), {tuple_idx_iterator_type});
+  auto& get_fn = program_.DeclareExternalFunction(
+      "_ZN4kush4data3GetEPPNSt8__detail20_Node_const_"
+      "iteratorISt6vectorIjSaIjEELb1ELb1EEE",
+      program_.PointerType(program_.UI32Type()), {tuple_idx_iterator_type});
+  auto& free_it_fn = program_.DeclareExternalFunction(
+      "_ZN4kush4data4FreeEPPNSt8__detail20_Node_const_"
+      "iteratorISt6vectorIjSaIjEELb1ELb1EEE",
+      program_.VoidType(), {tuple_idx_iterator_type});
 
+  auto& tuple_idx_table_ptr = program_.GlobalPointer(
+      false, tuple_idx_table_type, program_.NullPtr(tuple_idx_table_type));
   auto& tuple_idx_table = program_.Call(create_fn);
   program_.Store(tuple_idx_table_ptr, tuple_idx_table);
 
@@ -376,9 +390,25 @@ void SkinnerJoinTranslator<T>::Produce() {
     program_.Return();
   });
 
-  // Setup function that gets invoked for every output tuple
-  TupleIdxHandler<T> output_handler(
-      program_, [&](typename ProgramBuilder<T>::Value& tuple_idx_arr) {
+  // 3. Execute join
+
+  // Toggle predicate flags and set join order
+  // For now, call static order by executing 0th function
+  // TODO: Setup UCT join ordering
+
+  // Loop over tuple idx table and then output tuples from each table.
+  auto& tuple_it = program_.Alloca(program_.I8Type());
+  program_.Call(begin_fn, {tuple_idx_table, tuple_it});
+  auto size =
+      proxy::UInt32<T>(program_, program_.Call(size_fn, {tuple_idx_table}));
+
+  proxy::IndexLoop<T>(
+      program_, [&]() { return proxy::UInt32<T>(program_, 0); },
+      [&](proxy::UInt32<T>& i) { return i < size; },
+      [&](proxy::UInt32<T>& i,
+          std::function<void(proxy::UInt32<T>&)> Continue) {
+        auto& tuple_idx_arr = program_.Call(get_fn, {tuple_it});
+
         int current_buffer = 0;
         for (int i = 0; i < child_translators.size(); i++) {
           auto& child_translator = child_translators[i].get();
@@ -413,19 +443,12 @@ void SkinnerJoinTranslator<T>::Produce() {
           parent->get().Consume(*this);
         }
 
-        program_.Return();
+        program_.Call(increment_fn, {tuple_it});
+        return i + proxy::UInt32<T>(program_, 1);
       });
 
-  // 3. Execute join
-
-  // Toggle predicate flags and set join order
-  // For now, call static order by executing 0th function
-  // TODO: Setup UCT join ordering
-
-  // Loop over tuple idx table and then output tuples from each table.
-  program_.Call(for_each_fn, {tuple_idx_table, output_handler.Get()});
-
   // Cleanup
+  program_.Call(free_it_fn, {tuple_it});
   program_.Call(free_fn, {tuple_idx_table});
 
   for (auto& buffer : buffers_) {

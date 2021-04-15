@@ -13,11 +13,26 @@ void Insert(std::unordered_set<std::vector<uint32_t>>* ht, uint32_t* arr,
 
 void Free(std::unordered_set<std::vector<uint32_t>>* ht) { delete ht; }
 
-void ForEach(std::unordered_set<std::vector<uint32_t>>* ht,
-             ::std::add_pointer<void(uint32_t*)>::type cb) {
-  for (auto& v : *ht) {
-    cb(const_cast<uint32_t*>(v.data()));
-  }
+uint32_t Size(std::unordered_set<std::vector<uint32_t>>* ht) {
+  return ht->size();
+}
+
+void Begin(std::unordered_set<std::vector<uint32_t>>* ht,
+           std::unordered_set<std::vector<uint32_t>>::const_iterator** it) {
+  *it = new std::unordered_set<std::vector<uint32_t>>::const_iterator(
+      ht->cbegin());
+}
+
+void Free(std::unordered_set<std::vector<uint32_t>>::const_iterator** it) {
+  delete *it;
+}
+
+void Increment(std::unordered_set<std::vector<uint32_t>>::const_iterator** it) {
+  (*it)->operator++();
+}
+
+uint32_t* Get(std::unordered_set<std::vector<uint32_t>>::const_iterator** it) {
+  return const_cast<uint32_t*>((*it)->operator*().data());
 }
 
 }  // namespace kush::data
