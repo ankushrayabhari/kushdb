@@ -40,8 +40,14 @@ cc_library(
     hdrs = ["hash_table.h"],
     deps = [
         ":vector",
-        "@absl//absl/container:flat_hash_map",
     ],
+)
+
+cc_library(
+    name = "tuple_idx_table",
+    srcs = ["tuple_idx_table.cc"],
+    hdrs = ["tuple_idx_table.h"],
+    deps = [],
 )
 
 cc_library(

@@ -142,6 +142,7 @@ class ProgramBuilder {
                               std::vector<std::reference_wrapper<Value>> v) = 0;
   virtual Value& GlobalArray(bool constant, Type& t,
                              std::vector<std::reference_wrapper<Value>> v) = 0;
+  virtual Value& GlobalPointer(bool constant, Type& t, Value& v) = 0;
 };
 
 }  // namespace kush::compile

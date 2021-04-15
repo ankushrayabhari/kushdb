@@ -92,6 +92,32 @@ class PredicateColumnCollector : public plan::ImmutableExpressionVisitor {
 };
 
 template <typename T>
+class TupleIdxHandler {
+ public:
+  TupleIdxHandler(
+      ProgramBuilder<T>& program,
+      std::function<void(typename ProgramBuilder<T>::Value& v)> body) {
+    auto& current_block = program.CurrentBlock();
+
+    func = &program.CreateFunction(program.VoidType(),
+                                   {program.PointerType(program.UI32Type())});
+    auto args = program.GetFunctionArguments(*func);
+
+    auto& idx_ptr =
+        program.PointerCast(args[0], program.PointerType(program.UI32Type()));
+
+    body(idx_ptr);
+
+    program.SetCurrentBlock(current_block);
+  }
+
+  typename ProgramBuilder<T>::Function& Get() { return *func; }
+
+ private:
+  typename ProgramBuilder<T>::Function* func;
+};
+
+template <typename T>
 SkinnerJoinTranslator<T>::SkinnerJoinTranslator(
     const plan::SkinnerJoinOperator& join, ProgramBuilder<T>& program,
     std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
@@ -112,9 +138,12 @@ void SkinnerJoinTranslator<T>::Produce() {
     auto& child_translator = child_translators[i].get();
     auto& child_operator = child_operators[i].get();
 
-    if (auto scan = dynamic_cast<ScanTranslator<T>*>(&child_translator)) {
-      // Scans are already materialized so do nothing
-    } else {
+    // TODO: Scans are already materialized so do nothing
+    /*if (auto scan = dynamic_cast<ScanTranslator<T>*>(&child_translator)) {
+
+    } else*/
+
+    {
       // Create struct for materialization
       structs.push_back(std::make_unique<proxy::StructBuilder<T>>(program_));
       const auto& child_schema = child_operator.Schema().Columns();
@@ -232,10 +261,12 @@ void SkinnerJoinTranslator<T>::Produce() {
         }
       }
 
-      if (auto scan = dynamic_cast<ScanTranslator<T>*>(&child_translator)) {
-        // TODO: Loop over predicate columns in column data
+      // TODO: specialize this for scans, only loop over the predicate columns
+      /*if (auto scan = dynamic_cast<ScanTranslator<T>*>(&child_translator)) {
+        // Loop over predicate columns in column data
         program_.Return();
-      } else {
+      } else*/
+      {
         // Loop over tuples in buffer
         proxy::Vector<T>& buffer = *buffers_[current_buffer++];
 
@@ -301,11 +332,102 @@ void SkinnerJoinTranslator<T>::Produce() {
     });
   }
 
-  // Setup function that gets invoked for a valid tuple
+  // Setup global hash table that contains tuple idx
+  auto& create_fn = program_.DeclareExternalFunction(
+      "_ZN4kush4data19CreateTupleIdxTableEv",
+      program_.PointerType(program_.I8Type()), {});
+  auto& insert_fn = program_.DeclareExternalFunction(
+      "_ZN4kush4data6InsertEPSt13unordered_setISt6vectorIjSaIjEESt4hashIS4_"
+      "ESt8equal_toIS4_ESaIS4_EEPjj",
+      program_.VoidType(),
+      {program_.PointerType(program_.I8Type()),
+       program_.PointerType(program_.UI32Type()), program_.UI32Type()});
+  auto& free_fn = program_.DeclareExternalFunction(
+      "_ZN4kush4data4FreeEPSt13unordered_setISt6vectorIjSaIjEESt4hashIS4_"
+      "ESt8equal_toIS4_ESaIS4_EE",
+      program_.VoidType(), {program_.PointerType(program_.I8Type())});
+  auto& for_each_fn = program_.DeclareExternalFunction(
+      "_ZN4kush4data7ForEachEPSt13unordered_setISt6vectorIjSaIjEESt4hashIS4_"
+      "ESt8equal_toIS4_ESaIS4_EEPFvPjE",
+      program_.VoidType(),
+      {program_.PointerType(program_.I8Type()),
+       program_.PointerType(program_.FunctionType(
+           program_.VoidType(), {program_.PointerType(program_.UI32Type())}))});
+  auto& tuple_idx_table_ptr = program_.GlobalPointer(
+      false, program_.PointerType(program_.I8Type()),
+      program_.NullPtr(program_.PointerType(program_.I8Type())));
 
-  // 3. TODO: Execute join
+  auto& tuple_idx_table = program_.Call(create_fn);
+  program_.Store(tuple_idx_table_ptr, tuple_idx_table);
+
+  // Setup function for each valid tuple
+  proxy::VoidFunction<T> valid_tuple_handler(program_, [&]() {
+    // Insert tuple idx into hash table
+    auto& tuple_idx_table = program_.Load(tuple_idx_table_ptr);
+
+    auto& tuple_idx =
+        program_.GetElementPtr(idx_array_type, idx_array,
+                               {program_.ConstI32(0), program_.ConstI32(0)});
+
+    auto& num_tables = program_.ConstUI32(child_translators.size());
+
+    program_.Call(insert_fn, {tuple_idx_table, tuple_idx, num_tables});
+
+    program_.Return();
+  });
+
+  // Setup function that gets invoked for every output tuple
+  TupleIdxHandler<T> output_handler(
+      program_, [&](typename ProgramBuilder<T>::Value& tuple_idx_arr) {
+        int current_buffer = 0;
+        for (int i = 0; i < child_translators.size(); i++) {
+          auto& child_translator = child_translators[i].get();
+
+          auto& tuple_idx_ptr = program_.GetElementPtr(
+              program_.UI32Type(), tuple_idx_arr, {program_.ConstI32(i)});
+          auto tuple_idx =
+              proxy::UInt32<T>(program_, program_.Load(tuple_idx_ptr));
+
+          // TODO: Specialize scan to get tuple_idx element
+          /* if (auto scan =
+          dynamic_cast<ScanTranslator<T>*>(&child_translator)) {
+          } else */
+
+          {
+            proxy::Vector<T>& buffer = *buffers_[current_buffer++];
+            // set the schema values of child to be the tuple_idx'th tuple of
+            // current table.
+            child_translator.SchemaValues().SetValues(
+                buffer[tuple_idx].Unpack());
+          }
+        }
+
+        // Compute the output schema
+        this->values_.ResetValues();
+        for (const auto& column : join_.Schema().Columns()) {
+          this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+        }
+
+        // Push tuples to next operator
+        if (auto parent = this->Parent()) {
+          parent->get().Consume(*this);
+        }
+
+        program_.Return();
+      });
+
+  // 3. Execute join
+
+  // Toggle predicate flags and set join order
+  // For now, call static order by executing 0th function
+  // TODO: Setup UCT join ordering
+
+  // Loop over tuple idx table and then output tuples from each table.
+  program_.Call(for_each_fn, {tuple_idx_table, output_handler.Get()});
 
   // Cleanup
+  program_.Call(free_fn, {tuple_idx_table});
+
   for (auto& buffer : buffers_) {
     if (buffer != nullptr) {
       buffer.reset();

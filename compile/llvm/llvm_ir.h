@@ -150,6 +150,7 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
                       std::vector<std::reference_wrapper<Value>> v) override;
   Value& GlobalArray(bool constant, Type& t,
                      std::vector<std::reference_wrapper<Value>> v) override;
+  Value& GlobalPointer(bool constant, Type& t, Value& v) override;
 
  private:
   std::unique_ptr<llvm::LLVMContext> context_;

@@ -433,6 +433,13 @@ Value& LLVMIr::GlobalArray(bool constant, Type& t,
   return *ptr;
 }
 
+Value& LLVMIr::GlobalPointer(bool constant, Type& t, Value& v) {
+  auto ptr = new llvm::GlobalVariable(
+      *module_, &t, constant, llvm::GlobalValue::LinkageTypes::InternalLinkage,
+      llvm::dyn_cast<llvm::Constant>(&v));
+  return *ptr;
+}
+
 void LLVMIr::Compile() const {
   gen = std::chrono::system_clock::now();
   llvm::verifyModule(*module_, &llvm::errs());
@@ -494,6 +501,7 @@ void LLVMIr::Compile() const {
   if (system("clang++ -shared -fpic bazel-bin/util/libprint_util.so "
              "bazel-bin/data/libstring.so bazel-bin/data/libcolumn_data.so "
              "bazel-bin/data/libvector.so bazel-bin/data/libhash_table.so "
+             "bazel-bin/data/libtuple_idx_table.so "
              "/tmp/query.o -o /tmp/query.so")) {
     throw std::runtime_error("Failed to link file.");
   }
