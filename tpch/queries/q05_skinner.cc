@@ -132,13 +132,10 @@ std::unique_ptr<Operator> RegionNationCustomerOrdersLineitemSupplier() {
       Eq(ColRef(customer, "c_custkey", 2), ColRef(orders, "o_custkey", 3)));
   conditions.push_back(
       Eq(ColRef(orders, "o_orderkey", 3), ColRef(lineitem, "l_orderkey", 4)));
-  {
-    std::unique_ptr<Expression> p1 = Eq(ColRef(supplier, "s_nationkey", 5),
-                                        ColRef(nation, "n_nationkey", 1));
-    std::unique_ptr<Expression> p2 =
-        Eq(ColRef(supplier, "s_suppkey", 5), ColRef(lineitem, "l_suppkey", 4));
-    conditions.push_back(And(util::MakeVector(std::move(p1), std::move(p2))));
-  }
+  conditions.push_back(
+      Eq(ColRef(supplier, "s_nationkey", 5), ColRef(nation, "n_nationkey", 1)));
+  conditions.push_back(
+      Eq(ColRef(supplier, "s_suppkey", 5), ColRef(lineitem, "l_suppkey", 4)));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*nation, {"n_name"}, 1);
