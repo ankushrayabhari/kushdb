@@ -15,7 +15,7 @@
 #include <system_error>
 #include <vector>
 
-#include "data/column_data.h"
+#include "runtime/column_data.h"
 
 namespace kush::data {
 

@@ -10,7 +10,7 @@
 
 #include "absl/time/civil_time.h"
 #include "absl/time/time.h"
-#include "data/column_data_builder.h"
+#include "runtime/column_data_builder.h"
 
 std::vector<std::string> split(const std::string& s, char delim) {
   std::stringstream ss(s);

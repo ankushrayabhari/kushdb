@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "data/string.h"
+#include "runtime/string.h"
 
 namespace kush::data {
 

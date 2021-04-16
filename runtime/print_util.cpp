@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string_view>
 
-#include "data/string.h"
+#include "runtime/string.h"
 
 namespace kush::util {
 

@@ -1,10 +1,10 @@
-#include "data/hash_table.h"
+#include "runtime/hash_table.h"
 
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 
-#include "data/vector.h"
+#include "runtime/vector.h"
 
 namespace kush::data {
 

@@ -1,8 +1,8 @@
 #include <cstdint>
 #include <iostream>
 
-#include "data/column_data.h"
-#include "data/vector.h"
+#include "runtime/column_data.h"
+#include "runtime/vector.h"
 
 using namespace kush::data;
 

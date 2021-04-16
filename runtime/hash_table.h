@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "data/vector.h"
+#include "runtime/vector.h"
 
 namespace kush::data {
 

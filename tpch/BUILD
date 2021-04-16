@@ -10,7 +10,7 @@ cc_binary(
         "-ltbb",
     ],
     deps = [
-        "//data:column_data_builder",
+        "//runtime:column_data_builder",
         "@absl//absl/time",
     ],
 )

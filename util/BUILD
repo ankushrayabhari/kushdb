@@ -16,11 +16,3 @@ cc_library(
     name = "visitor",
     hdrs = ["visitor.h"],
 )
-
-cc_library(
-    name = "print_util",
-    srcs = ["print_util.cpp"],
-    deps = [
-        "//data:string",
-    ],
-)

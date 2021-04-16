@@ -1,4 +1,4 @@
-#include "data/tuple_idx_table.h"
+#include "runtime/tuple_idx_table.h"
 
 namespace kush::data {
 

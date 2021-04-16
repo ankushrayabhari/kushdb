@@ -498,11 +498,12 @@ void LLVMIr::Compile() const {
   dest.close();
 
   // Link
-  if (system("clang++ -shared -fpic bazel-bin/util/libprint_util.so "
-             "bazel-bin/data/libstring.so bazel-bin/data/libcolumn_data.so "
-             "bazel-bin/data/libvector.so bazel-bin/data/libhash_table.so "
-             "bazel-bin/data/libtuple_idx_table.so "
-             "/tmp/query.o -o /tmp/query.so")) {
+  if (system(
+          "clang++ -shared -fpic bazel-bin/runtime/libprint_util.so "
+          "bazel-bin/runtime/libstring.so bazel-bin/runtime/libcolumn_data.so "
+          "bazel-bin/runtime/libvector.so bazel-bin/runtime/libhash_table.so "
+          "bazel-bin/runtime/libtuple_idx_table.so "
+          "/tmp/query.o -o /tmp/query.so")) {
     throw std::runtime_error("Failed to link file.");
   }
 

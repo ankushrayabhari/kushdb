@@ -1,4 +1,4 @@
-#include "data/string.h"
+#include "runtime/string.h"
 
 #include <cstdint>
 #include <cstdlib>
