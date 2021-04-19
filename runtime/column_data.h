@@ -11,6 +11,7 @@
 #include <exception>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "runtime/string.h"
@@ -55,6 +56,7 @@ struct TextColumnData {
   uint32_t file_length;
 };
 
+// Open column data file
 void Open(Int8ColumnData* col, const char* path);
 void Open(Int16ColumnData* col, const char* path);
 void Open(Int32ColumnData* col, const char* path);
@@ -62,6 +64,7 @@ void Open(Int64ColumnData* col, const char* path);
 void Open(Float64ColumnData* col, const char* path);
 void Open(TextColumnData* col, const char* path);
 
+// Close column data file
 void Close(Int8ColumnData* col);
 void Close(Int16ColumnData* col);
 void Close(Int32ColumnData* col);
@@ -84,5 +87,50 @@ int32_t Get(Int32ColumnData* col, uint32_t idx);
 int64_t Get(Int64ColumnData* col, uint32_t idx);
 double Get(Float64ColumnData* col, uint32_t idx);
 void Get(TextColumnData* col, uint32_t idx, String* dest);
+
+// Create the column index
+std::unordered_map<int8_t, std::vector<uint32_t>>* CreateInt8Index();
+std::unordered_map<int16_t, std::vector<uint32_t>>* CreateInt16Index();
+std::unordered_map<int32_t, std::vector<uint32_t>>* CreateInt32Index();
+std::unordered_map<int64_t, std::vector<uint32_t>>* CreateInt64Index();
+std::unordered_map<double, std::vector<uint32_t>>* CreateFloat64Index();
+std::unordered_map<std::string, std::vector<uint32_t>>* CreateStringIndex();
+
+// Free the column index
+void Free(std::unordered_map<int8_t, std::vector<uint32_t>>* index);
+void Free(std::unordered_map<int16_t, std::vector<uint32_t>>* index);
+void Free(std::unordered_map<int32_t, std::vector<uint32_t>>* index);
+void Free(std::unordered_map<int64_t, std::vector<uint32_t>>* index);
+void Free(std::unordered_map<double, std::vector<uint32_t>>* index);
+void Free(std::unordered_map<std::string, std::vector<uint32_t>>* index);
+
+// Insert tuple idx
+void Insert(std::unordered_map<int8_t, std::vector<uint32_t>>* index,
+            int8_t value, uint32_t tuple_idx);
+void Insert(std::unordered_map<int16_t, std::vector<uint32_t>>* index,
+            int16_t value, uint32_t tuple_idx);
+void Insert(std::unordered_map<int32_t, std::vector<uint32_t>>* index,
+            int32_t value, uint32_t tuple_idx);
+void Insert(std::unordered_map<int64_t, std::vector<uint32_t>>* index,
+            int64_t value, uint32_t tuple_idx);
+void Insert(std::unordered_map<double, std::vector<uint32_t>>* index,
+            double value, uint32_t tuple_idx);
+void Insert(std::unordered_map<std::string, std::vector<uint32_t>>* index,
+            String* value, uint32_t tuple_idx);
+
+// Get the next tuple from index
+uint32_t GetNextTuple(std::unordered_map<int8_t, std::vector<uint32_t>>* index,
+                      int8_t value, uint32_t prev_tuple, uint32_t cardinality);
+uint32_t GetNextTuple(std::unordered_map<int16_t, std::vector<uint32_t>>* index,
+                      int16_t value, uint32_t prev_tuple, uint32_t cardinality);
+uint32_t GetNextTuple(std::unordered_map<int32_t, std::vector<uint32_t>>* index,
+                      int32_t value, uint32_t prev_tuple, uint32_t cardinality);
+uint32_t GetNextTuple(std::unordered_map<int64_t, std::vector<uint32_t>>* index,
+                      int64_t value, uint32_t prev_tuple, uint32_t cardinality);
+uint32_t GetNextTuple(std::unordered_map<double, std::vector<uint32_t>>* index,
+                      double value, uint32_t prev_tuple, uint32_t cardinality);
+uint32_t GetNextTuple(
+    std::unordered_map<std::string, std::vector<uint32_t>>* index,
+    String* value, uint32_t prev_tuple, uint32_t cardinality);
 
 }  // namespace kush::data

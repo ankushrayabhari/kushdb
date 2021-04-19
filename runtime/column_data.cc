@@ -129,4 +129,148 @@ void Get(TextColumnData* col, uint32_t idx, String* dest) {
   dest->length = slot.length;
 }
 
+// ---------- Create Index -------------
+std::unordered_map<int8_t, std::vector<uint32_t>>* CreateInt8Index() {
+  return new std::unordered_map<int8_t, std::vector<uint32_t>>;
+}
+
+std::unordered_map<int16_t, std::vector<uint32_t>>* CreateInt16Index() {
+  return new std::unordered_map<int16_t, std::vector<uint32_t>>;
+}
+
+std::unordered_map<int32_t, std::vector<uint32_t>>* CreateInt32Index() {
+  return new std::unordered_map<int32_t, std::vector<uint32_t>>;
+}
+
+std::unordered_map<int64_t, std::vector<uint32_t>>* CreateInt64Index() {
+  return new std::unordered_map<int64_t, std::vector<uint32_t>>;
+}
+
+std::unordered_map<double, std::vector<uint32_t>>* CreateFloat64Index() {
+  return new std::unordered_map<double, std::vector<uint32_t>>;
+}
+
+std::unordered_map<std::string, std::vector<uint32_t>>* CreateStringIndex() {
+  return new std::unordered_map<std::string, std::vector<uint32_t>>;
+}
+
+// ---------- Free Index -------------
+void Free(std::unordered_map<int8_t, std::vector<uint32_t>>* index) {
+  delete index;
+}
+
+void Free(std::unordered_map<int16_t, std::vector<uint32_t>>* index) {
+  delete index;
+}
+
+void Free(std::unordered_map<int32_t, std::vector<uint32_t>>* index) {
+  delete index;
+}
+
+void Free(std::unordered_map<int64_t, std::vector<uint32_t>>* index) {
+  delete index;
+}
+
+void Free(std::unordered_map<double, std::vector<uint32_t>>* index) {
+  delete index;
+}
+
+void Free(std::unordered_map<std::string, std::vector<uint32_t>>* index) {
+  delete index;
+}
+
+// ---------- Insert -------------
+void Insert(std::unordered_map<int8_t, std::vector<uint32_t>>* index,
+            int8_t value, uint32_t tuple_idx) {
+  index->operator[](value).push_back(tuple_idx);
+}
+
+void Insert(std::unordered_map<int16_t, std::vector<uint32_t>>* index,
+            int16_t value, uint32_t tuple_idx) {
+  index->operator[](value).push_back(tuple_idx);
+}
+
+void Insert(std::unordered_map<int32_t, std::vector<uint32_t>>* index,
+            int32_t value, uint32_t tuple_idx) {
+  index->operator[](value).push_back(tuple_idx);
+}
+
+void Insert(std::unordered_map<int64_t, std::vector<uint32_t>>* index,
+            int64_t value, uint32_t tuple_idx) {
+  index->operator[](value).push_back(tuple_idx);
+}
+
+void Insert(std::unordered_map<double, std::vector<uint32_t>>* index,
+            double value, uint32_t tuple_idx) {
+  index->operator[](value).push_back(tuple_idx);
+}
+
+void Insert(std::unordered_map<std::string, std::vector<uint32_t>>* index,
+            String* value, uint32_t tuple_idx) {
+  index->operator[](std::string(value->data, value->length))
+      .push_back(tuple_idx);
+}
+
+// Get the next tuple from index or cardinality
+template <typename T>
+inline uint32_t GetNextTupleImpl(
+    std::unordered_map<T, std::vector<uint32_t>>* index, const T& value,
+    uint32_t prev_tuple, uint32_t cardinality) {
+  // Get bucket
+  const auto& bucket = index->at(value);
+
+  // Binary search for tuple greater than prev_tuple
+  int start = 0;
+  int end = bucket.size() - 1;
+
+  uint32_t next_greater = cardinality;
+  while (start <= end) {
+    int mid = (start + end) / 2;
+
+    if (bucket[mid] <= prev_tuple) {
+      start = mid + 1;
+    } else {
+      next_greater = mid;
+      end = mid - 1;
+    }
+  }
+
+  return next_greater;
+}
+
+uint32_t GetNextTuple(std::unordered_map<int8_t, std::vector<uint32_t>>* index,
+                      int8_t value, uint32_t prev_tuple, uint32_t cardinality) {
+  return GetNextTupleImpl(index, value, prev_tuple, cardinality);
+}
+
+uint32_t GetNextTuple(std::unordered_map<int16_t, std::vector<uint32_t>>* index,
+                      int16_t value, uint32_t prev_tuple,
+                      uint32_t cardinality) {
+  return GetNextTupleImpl(index, value, prev_tuple, cardinality);
+}
+
+uint32_t GetNextTuple(std::unordered_map<int32_t, std::vector<uint32_t>>* index,
+                      int32_t value, uint32_t prev_tuple,
+                      uint32_t cardinality) {
+  return GetNextTupleImpl(index, value, prev_tuple, cardinality);
+}
+
+uint32_t GetNextTuple(std::unordered_map<int64_t, std::vector<uint32_t>>* index,
+                      int64_t value, uint32_t prev_tuple,
+                      uint32_t cardinality) {
+  return GetNextTupleImpl(index, value, prev_tuple, cardinality);
+}
+
+uint32_t GetNextTuple(std::unordered_map<double, std::vector<uint32_t>>* index,
+                      double value, uint32_t prev_tuple, uint32_t cardinality) {
+  return GetNextTupleImpl(index, value, prev_tuple, cardinality);
+}
+
+uint32_t GetNextTuple(
+    std::unordered_map<std::string, std::vector<uint32_t>>* index,
+    String* value, uint32_t prev_tuple, uint32_t cardinality) {
+  return GetNextTupleImpl(index, std::string(value->data, value->length),
+                          prev_tuple, cardinality);
+}
+
 }  // namespace kush::data
