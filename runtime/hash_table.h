@@ -10,31 +10,31 @@ namespace kush::data {
 
 // Represents a hash table of tuples, i.e. map<key, vector<tuple>>
 struct HashTable {
-  uint64_t element_size_;
-  std::unordered_map<uint32_t, Vector>* data_;
+  int64_t element_size_;
+  std::unordered_map<int32_t, Vector>* data_;
 };
 
 struct BucketList {
-  uint32_t num_buckets;
+  int32_t num_buckets;
   Vector** buckets;
 };
 
-void Create(HashTable* ht, uint64_t element_size);
+void Create(HashTable* ht, int64_t element_size);
 
-int8_t* Insert(HashTable* ht, uint32_t hash);
+int8_t* Insert(HashTable* ht, int32_t hash);
 
-Vector* GetBucket(HashTable* ht, uint32_t hash);
+Vector* GetBucket(HashTable* ht, int32_t hash);
 
 void GetAllBuckets(HashTable* ht, BucketList* l);
 
 void Free(HashTable* ht);
 
-Vector* GetBucketIdx(BucketList* l, uint32_t i);
+Vector* GetBucketIdx(BucketList* l, int32_t i);
 
-uint32_t Size(BucketList* l);
+int32_t Size(BucketList* l);
 
 void Free(BucketList* bl);
 
-void HashCombine(uint32_t* hash, int64_t v);
+void HashCombine(int32_t* hash, int64_t v);
 
 }  // namespace kush::data

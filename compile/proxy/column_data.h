@@ -15,8 +15,8 @@ template <typename T>
 class Iterable {
  public:
   virtual ~Iterable() = default;
-  virtual UInt32<T> Size() = 0;
-  virtual std::unique_ptr<Value<T>> operator[](UInt32<T>& idx) = 0;
+  virtual Int32<T> Size() = 0;
+  virtual std::unique_ptr<Value<T>> operator[](Int32<T>& idx) = 0;
 };
 
 template <typename T, catalog::SqlType S>
@@ -25,8 +25,8 @@ class ColumnData : public Iterable<T> {
   ColumnData(ProgramBuilder<T>& program, std::string_view path);
   virtual ~ColumnData();
 
-  UInt32<T> Size() override;
-  std::unique_ptr<Value<T>> operator[](UInt32<T>& idx) override;
+  Int32<T> Size() override;
+  std::unique_ptr<Value<T>> operator[](Int32<T>& idx) override;
 
   static void ForwardDeclare(ProgramBuilder<T>& program);
 

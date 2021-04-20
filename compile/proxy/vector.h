@@ -16,9 +16,9 @@ class Vector {
   Vector(ProgramBuilder<T>& program, StructBuilder<T>& content,
          typename ProgramBuilder<T>::Value& value);
 
-  Struct<T> operator[](const proxy::UInt32<T>& idx);
+  Struct<T> operator[](const proxy::Int32<T>& idx);
   Struct<T> PushBack();
-  UInt32<T> Size();
+  Int32<T> Size();
   void Reset();
   void Sort(typename ProgramBuilder<T>::Function& comp);
 
@@ -44,14 +44,14 @@ const std::string_view Vector<T>::VectorStructName("kush::data::Vector");
 
 template <typename T>
 const std::string_view Vector<T>::CreateFnName(
-    "_ZN4kush4data6CreateEPNS0_6VectorEmj");
+    "_ZN4kush4data6CreateEPNS0_6VectorEli");
 
 template <typename T>
 const std::string_view Vector<T>::PushBackFnName(
     "_ZN4kush4data8PushBackEPNS0_6VectorE");
 
 template <typename T>
-const std::string_view Vector<T>::GetFnName("_ZN4kush4data3GetEPNS0_6VectorEj");
+const std::string_view Vector<T>::GetFnName("_ZN4kush4data3GetEPNS0_6VectorEi");
 
 template <typename T>
 const std::string_view Vector<T>::SizeFnName(

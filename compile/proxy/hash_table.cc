@@ -25,7 +25,7 @@ const std::string_view BucketList<T>::FreeFnName(
 
 template <typename T>
 const std::string_view BucketList<T>::GetBucketIdxFnName(
-    "_ZN4kush4data12GetBucketIdxEPNS0_10BucketListEj");
+    "_ZN4kush4data12GetBucketIdxEPNS0_10BucketListEi");
 
 template <typename T>
 BucketList<T>::BucketList(ProgramBuilder<T>& program, StructBuilder<T>& content,
@@ -33,15 +33,15 @@ BucketList<T>::BucketList(ProgramBuilder<T>& program, StructBuilder<T>& content,
     : program_(program), content_(content), value_(value) {}
 
 template <typename T>
-Vector<T> BucketList<T>::operator[](const UInt32<T>& i) {
+Vector<T> BucketList<T>::operator[](const Int32<T>& i) {
   auto& ptr = program_.Call(program_.GetFunction(GetBucketIdxFnName),
                             {value_, i.Get()});
   return Vector<T>(program_, content_, ptr);
 }
 
 template <typename T>
-UInt32<T> BucketList<T>::Size() {
-  return proxy::UInt32<T>(
+Int32<T> BucketList<T>::Size() {
+  return proxy::Int32<T>(
       program_, program_.Call(program_.GetFunction(SizeFnName), {value_}));
 }
 
@@ -62,8 +62,8 @@ void BucketList<T>::ForwardDeclare(ProgramBuilder<T>& program) {
 
   program.DeclareExternalFunction(BucketList<T>::GetBucketIdxFnName,
                                   vector_ptr_type,
-                                  {bucket_list_struct_ptr, program.UI32Type()});
-  program.DeclareExternalFunction(BucketList<T>::SizeFnName, program.UI32Type(),
+                                  {bucket_list_struct_ptr, program.I32Type()});
+  program.DeclareExternalFunction(BucketList<T>::SizeFnName, program.I32Type(),
                                   {bucket_list_struct_ptr});
   program.DeclareExternalFunction(BucketList<T>::FreeFnName, program.VoidType(),
                                   {bucket_list_struct_ptr});
@@ -76,15 +76,15 @@ const std::string_view HashTable<T>::HashTableStructName("kush::data::Struct");
 
 template <typename T>
 const std::string_view HashTable<T>::CreateFnName(
-    "_ZN4kush4data6CreateEPNS0_9HashTableEm");
+    "_ZN4kush4data6CreateEPNS0_9HashTableEl");
 
 template <typename T>
 const std::string_view HashTable<T>::InsertFnName(
-    "_ZN4kush4data6InsertEPNS0_9HashTableEj");
+    "_ZN4kush4data6InsertEPNS0_9HashTableEi");
 
 template <typename T>
 const std::string_view HashTable<T>::GetBucketFnName(
-    "_ZN4kush4data9GetBucketEPNS0_9HashTableEj");
+    "_ZN4kush4data9GetBucketEPNS0_9HashTableEi");
 
 template <typename T>
 const std::string_view HashTable<T>::GetAllBucketsFnName(
@@ -96,7 +96,7 @@ const std::string_view HashTable<T>::FreeFnName(
 
 template <typename T>
 const std::string_view HashTable<T>::HashCombineFnName(
-    "_ZN4kush4data11HashCombineEPjl");
+    "_ZN4kush4data11HashCombineEPil");
 
 template <typename T>
 HashTable<T>::HashTable(ProgramBuilder<T>& program, StructBuilder<T>& content)
@@ -119,7 +119,7 @@ HashTable<T>::~HashTable() {
 template <typename T>
 Struct<T> HashTable<T>::Insert(
     std::vector<std::reference_wrapper<proxy::Value<T>>> keys) {
-  program_.Store(hash_ptr_, program_.ConstUI32(0));
+  program_.Store(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
     auto& k_hash = k.get().Hash();
     program_.Call(program_.GetFunction(HashCombineFnName), {hash_ptr_, k_hash});
@@ -135,7 +135,7 @@ Struct<T> HashTable<T>::Insert(
 template <typename T>
 Vector<T> HashTable<T>::Get(
     std::vector<std::reference_wrapper<proxy::Value<T>>> keys) {
-  program_.Store(hash_ptr_, program_.ConstUI32(0));
+  program_.Store(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
     auto& k_hash = k.get().Hash();
     program_.Call(program_.GetFunction(HashCombineFnName), {hash_ptr_, k_hash});
@@ -190,23 +190,23 @@ void HashTable<T>::ForEach(std::function<void(Struct<T>&)> handler) {
   BucketList<T> bucket_list(program_, content_, bucket_list_);
 
   proxy::IndexLoop<T>(
-      program_, [&]() { return proxy::UInt32<T>(program_, 0); },
-      [&](proxy::UInt32<T>& i) { return i < bucket_list.Size(); },
-      [&](proxy::UInt32<T>& i) {
+      program_, [&]() { return proxy::Int32<T>(program_, 0); },
+      [&](proxy::Int32<T>& i) { return i < bucket_list.Size(); },
+      [&](proxy::Int32<T>& i, auto Continue) {
         auto bucket = bucket_list[i];
 
         proxy::IndexLoop<T>(
-            program_, [&]() { return proxy::UInt32<T>(program_, 0); },
-            [&](proxy::UInt32<T>& j) { return j < bucket.Size(); },
-            [&](proxy::UInt32<T>& j) {
+            program_, [&]() { return proxy::Int32<T>(program_, 0); },
+            [&](proxy::Int32<T>& j) { return j < bucket.Size(); },
+            [&](proxy::Int32<T>& j, auto Continue) {
               auto data = bucket[j];
 
               handler(data);
 
-              return j + proxy::UInt32<T>(program_, 1);
+              return j + proxy::Int32<T>(program_, 1);
             });
 
-        return i + proxy::UInt32<T>(program_, 1);
+        return i + proxy::Int32<T>(program_, 1);
       });
 
   bucket_list.Reset();

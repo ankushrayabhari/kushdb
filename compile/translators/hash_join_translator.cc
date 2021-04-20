@@ -69,9 +69,9 @@ void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
 
   auto bucket = buffer_->Get(util::ReferenceVector(key_columns));
   proxy::IndexLoop<T>(
-      program_, [&]() { return proxy::UInt32<T>(program_, 0); },
-      [&](proxy::UInt32<T>& i) { return i < bucket.Size(); },
-      [&](proxy::UInt32<T>& i) {
+      program_, [&]() { return proxy::Int32<T>(program_, 0); },
+      [&](proxy::Int32<T>& i) { return i < bucket.Size(); },
+      [&](proxy::Int32<T>& i, auto Continue) {
         auto left_tuple = bucket[i];
 
         left_translator.SchemaValues().SetValues(left_tuple.Unpack());
@@ -113,7 +113,7 @@ void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
           }
         });
 
-        return i + proxy::UInt32<T>(program_, 1);
+        return i + proxy::Int32<T>(program_, 1);
       });
 }
 

@@ -14,18 +14,10 @@ namespace kush::compile::proxy {
 template <typename T>
 class IndexLoop {
  public:
-  IndexLoop(ProgramBuilder<T>& program, std::function<UInt32<T>()> init,
-            std::function<Bool<T>(UInt32<T>&)> cond,
-            std::function<UInt32<T>(UInt32<T>&)> body);
-
-  IndexLoop(ProgramBuilder<T>& program, std::function<UInt32<T>()> init,
-            std::function<Bool<T>(UInt32<T>&)> cond,
-            std::function<UInt32<T>(UInt32<T>&, std::function<void(UInt32<T>&)>)> body);
-
- private:
-  ProgramBuilder<T>& program_;
-  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
-      loop_vars_;
+  IndexLoop(
+      ProgramBuilder<T>& program, std::function<Int32<T>()> init,
+      std::function<Bool<T>(Int32<T>&)> cond,
+      std::function<Int32<T>(Int32<T>&, std::function<void(Int32<T>&)>)> body);
 };
 
 }  // namespace kush::compile::proxy

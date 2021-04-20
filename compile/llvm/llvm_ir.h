@@ -36,7 +36,6 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Type& I16Type() override;
   Type& I32Type() override;
   Type& I64Type() override;
-  Type& UI32Type() override;
   Type& F64Type() override;
   Type& StructType(std::vector<std::reference_wrapper<Type>> types,
                    std::string_view name) override;
@@ -116,14 +115,6 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Value& SubI32(Value& v1, Value& v2) override;
   Value& CmpI32(CompType cmp, Value& v1, Value& v2) override;
   Value& ConstI32(int32_t v) override;
-
-  // UI32
-  Value& AddUI32(Value& v1, Value& v2) override;
-  Value& MulUI32(Value& v1, Value& v2) override;
-  Value& DivUI32(Value& v1, Value& v2) override;
-  Value& SubUI32(Value& v1, Value& v2) override;
-  Value& CmpUI32(CompType cmp, Value& v1, Value& v2) override;
-  Value& ConstUI32(uint32_t v) override;
 
   // I64
   Value& AddI64(Value& v1, Value& v2) override;

@@ -101,6 +101,7 @@ cc_library(
         ":operator_translator",
         ":scan_translator",
         "//compile:ir_registry",
+        "//compile/proxy:column_index",
         "//compile/proxy:function",
         "//compile/proxy:loop",
         "//compile/proxy:struct",

@@ -15,8 +15,8 @@ class BucketList {
   BucketList(ProgramBuilder<T>& program, StructBuilder<T>& content,
              typename ProgramBuilder<T>::Value& value);
 
-  Vector<T> operator[](const UInt32<T>& i);
-  UInt32<T> Size();
+  Vector<T> operator[](const Int32<T>& i);
+  Int32<T> Size();
   void Reset();
 
   static void ForwardDeclare(ProgramBuilder<T>& program);

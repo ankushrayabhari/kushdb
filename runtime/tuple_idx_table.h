@@ -5,8 +5,8 @@
 
 namespace std {
 template <>
-struct hash<std::vector<uint32_t>> {
-  size_t operator()(const std::vector<uint32_t>& x) const {
+struct hash<std::vector<int32_t>> {
+  size_t operator()(const std::vector<int32_t>& x) const {
     std::size_t seed(0);
     for (const int v : x) {
       seed ^= v + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -18,22 +18,22 @@ struct hash<std::vector<uint32_t>> {
 
 namespace kush::data {
 
-std::unordered_set<std::vector<uint32_t>>* CreateTupleIdxTable();
+std::unordered_set<std::vector<int32_t>>* CreateTupleIdxTable();
 
-void Insert(std::unordered_set<std::vector<uint32_t>>* ht, uint32_t* arr,
-            uint32_t n);
+void Insert(std::unordered_set<std::vector<int32_t>>* ht, int32_t* arr,
+            int32_t n);
 
-uint32_t Size(std::unordered_set<std::vector<uint32_t>>* ht);
+int32_t Size(std::unordered_set<std::vector<int32_t>>* ht);
 
-void Begin(std::unordered_set<std::vector<uint32_t>>* ht,
-           std::unordered_set<std::vector<uint32_t>>::const_iterator** it);
+void Begin(std::unordered_set<std::vector<int32_t>>* ht,
+           std::unordered_set<std::vector<int32_t>>::const_iterator** it);
 
-void Increment(std::unordered_set<std::vector<uint32_t>>::const_iterator** it);
+void Increment(std::unordered_set<std::vector<int32_t>>::const_iterator** it);
 
-uint32_t* Get(std::unordered_set<std::vector<uint32_t>>::const_iterator** it);
+int32_t* Get(std::unordered_set<std::vector<int32_t>>::const_iterator** it);
 
-void Free(std::unordered_set<std::vector<uint32_t>>::const_iterator** it);
+void Free(std::unordered_set<std::vector<int32_t>>::const_iterator** it);
 
-void Free(std::unordered_set<std::vector<uint32_t>>* ht);
+void Free(std::unordered_set<std::vector<int32_t>>* ht);
 
 }  // namespace kush::data

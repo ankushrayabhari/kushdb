@@ -60,8 +60,6 @@ Type& LLVMIr::I32Type() { return *builder_->getInt32Ty(); }
 
 Type& LLVMIr::I64Type() { return *builder_->getInt64Ty(); }
 
-Type& LLVMIr::UI32Type() { return *builder_->getInt32Ty(); }
-
 Type& LLVMIr::F64Type() { return *builder_->getDoubleTy(); }
 
 Type& LLVMIr::StructType(std::vector<std::reference_wrapper<Type>> types,
@@ -307,29 +305,6 @@ Value& LLVMIr::CmpI32(CompType cmp, Value& v1, Value& v2) {
 }
 
 Value& LLVMIr::ConstI32(int32_t v) { return *builder_->getInt32(v); }
-
-// UI32
-Value& LLVMIr::AddUI32(Value& v1, Value& v2) {
-  return *builder_->CreateAdd(&v1, &v2);
-}
-
-Value& LLVMIr::MulUI32(Value& v1, Value& v2) {
-  return *builder_->CreateMul(&v1, &v2);
-}
-
-Value& LLVMIr::DivUI32(Value& v1, Value& v2) {
-  return *builder_->CreateUDiv(&v1, &v2);
-}
-
-Value& LLVMIr::SubUI32(Value& v1, Value& v2) {
-  return *builder_->CreateSub(&v1, &v2);
-}
-
-Value& LLVMIr::CmpUI32(CompType cmp, Value& v1, Value& v2) {
-  return *builder_->CreateCmp(cmp, &v1, &v2);
-}
-
-Value& LLVMIr::ConstUI32(uint32_t v) { return *builder_->getInt32(v); }
 
 // I64
 Value& LLVMIr::AddI64(Value& v1, Value& v2) {

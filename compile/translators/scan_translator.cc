@@ -78,9 +78,9 @@ void ScanTranslator<T>::Produce() {
   auto card_var = column_data_vars[0]->Size();
 
   proxy::IndexLoop<T>(
-      program_, [&]() { return proxy::UInt32<T>(program_, 0); },
-      [&](proxy::UInt32<T>& i) { return i < card_var; },
-      [&](proxy::UInt32<T>& i) {
+      program_, [&]() { return proxy::Int32<T>(program_, 0); },
+      [&](proxy::Int32<T>& i) { return i < card_var; },
+      [&](proxy::Int32<T>& i, auto Continue) {
         this->values_.ResetValues();
         for (auto& col_var : column_data_vars) {
           this->values_.AddVariable((*col_var)[i]);
@@ -90,7 +90,7 @@ void ScanTranslator<T>::Produce() {
           parent->get().Consume(*this);
         }
 
-        return i + proxy::UInt32<T>(program_, 1);
+        return i + proxy::Int32<T>(program_, 1);
       });
 
   column_data_vars.clear();

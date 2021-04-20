@@ -124,9 +124,9 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
   auto bucket = buffer_->Get(util::ReferenceVector(keys));
   auto size = bucket.Size();
   proxy::IndexLoop<T>(
-      program_, [&]() { return proxy::UInt32<T>(program_, 0); },
-      [&](proxy::UInt32<T>& i) { return i < size; },
-      [&](proxy::UInt32<T>& i) {
+      program_, [&]() { return proxy::Int32<T>(program_, 0); },
+      [&](proxy::Int32<T>& i) { return i < size; },
+      [&](proxy::Int32<T>& i, auto Continue) {
         auto packed = bucket[i];
         auto values = packed.Unpack();
 
@@ -210,12 +210,12 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
 
         // If we didn't find, move to next element
         // Else, break out of loop
-        std::unique_ptr<proxy::UInt32<T>> next_index;
+        std::unique_ptr<proxy::Int32<T>> next_index;
         proxy::If<T> check(program_, !found_->Load(), [&]() {
-          next_index = std::make_unique<proxy::UInt32<T>>(
-              i + proxy::UInt32<T>(program_, 1));
+          next_index = std::make_unique<proxy::Int32<T>>(
+              i + proxy::Int32<T>(program_, 1));
         });
-        return proxy::UInt32<T>(program_, check.Phi(size, *next_index));
+        return proxy::Int32<T>(program_, check.Phi(size, *next_index));
       });
 
   proxy::If<T>(program_, !found_->Load(), [&]() {

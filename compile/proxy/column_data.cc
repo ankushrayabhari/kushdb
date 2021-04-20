@@ -53,18 +53,18 @@ std::string_view CloseFnName() {
 template <catalog::SqlType S>
 std::string_view GetFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush4data3GetEPNS0_15Int16ColumnDataEj";
+    return "_ZN4kush4data3GetEPNS0_15Int16ColumnDataEi";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush4data3GetEPNS0_15Int32ColumnDataEj";
+    return "_ZN4kush4data3GetEPNS0_15Int32ColumnDataEi";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush4data3GetEPNS0_15Int64ColumnDataEj";
+    return "_ZN4kush4data3GetEPNS0_15Int64ColumnDataEi";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush4data3GetEPNS0_17Float64ColumnDataEj";
+    return "_ZN4kush4data3GetEPNS0_17Float64ColumnDataEi";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush4data3GetEPNS0_14Int8ColumnDataEj";
+    return "_ZN4kush4data3GetEPNS0_14Int8ColumnDataEi";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush4data3GetEPNS0_14TextColumnDataEjPNS0_6StringE";
+    return "_ZN4kush4data3GetEPNS0_14TextColumnDataEiPNS0_6StringE";
   }
 }
 
@@ -123,14 +123,13 @@ ColumnData<T, S>::~ColumnData() {
 }
 
 template <typename T, catalog::SqlType S>
-UInt32<T> ColumnData<T, S>::Size() {
-  return UInt32<T>(
-      program_,
-      program_.Call(program_.GetFunction(SizeFnName<S>()), {*value_}));
+Int32<T> ColumnData<T, S>::Size() {
+  return Int32<T>(program_, program_.Call(program_.GetFunction(SizeFnName<S>()),
+                                          {*value_}));
 }
 
 template <typename T, catalog::SqlType S>
-std::unique_ptr<Value<T>> ColumnData<T, S>::operator[](UInt32<T>& idx) {
+std::unique_ptr<Value<T>> ColumnData<T, S>::operator[](Int32<T>& idx) {
   if constexpr (catalog::SqlType::TEXT == S) {
     program_.Call(program_.GetFunction(GetFnName<S>()),
                   {*value_, idx.Get(), *result_});

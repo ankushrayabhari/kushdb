@@ -105,37 +105,6 @@ class Int32 : public Value<T> {
 };
 
 template <typename T>
-class UInt32 : public Value<T> {
- public:
-  UInt32(ProgramBuilder<T>& program, typename ProgramBuilder<T>::Value& value);
-  UInt32(ProgramBuilder<T>& program, uint32_t value);
-
-  typename ProgramBuilder<T>::Value& Get() const override;
-
-  UInt32<T> operator+(const UInt32<T>& rhs);
-  UInt32<T> operator-(const UInt32<T>& rhs);
-  UInt32<T> operator*(const UInt32<T>& rhs);
-  UInt32<T> operator/(const UInt32<T>& rhs);
-  Bool<T> operator==(const UInt32<T>& rhs);
-  Bool<T> operator!=(const UInt32<T>& rhs);
-  Bool<T> operator<(const UInt32<T>& rhs);
-  Bool<T> operator<=(const UInt32<T>& rhs);
-  Bool<T> operator>(const UInt32<T>& rhs);
-  Bool<T> operator>=(const UInt32<T>& rhs);
-  void Print(proxy::Printer<T>& printer) override;
-
-  std::unique_ptr<UInt32<T>> ToPointer();
-  std::unique_ptr<Value<T>> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      Value<T>& right_value) override;
-  typename ProgramBuilder<T>::Value& Hash() override;
-
- private:
-  ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value& value_;
-};
-
-template <typename T>
 class Int64 : public Value<T> {
  public:
   Int64(ProgramBuilder<T>& program, typename ProgramBuilder<T>::Value& value);

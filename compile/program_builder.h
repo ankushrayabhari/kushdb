@@ -26,7 +26,6 @@ class ProgramBuilder {
   virtual Type& I16Type() = 0;
   virtual Type& I32Type() = 0;
   virtual Type& I64Type() = 0;
-  virtual Type& UI32Type() = 0;
   virtual Type& F64Type() = 0;
   virtual Type& StructType(std::vector<std::reference_wrapper<Type>> types,
                            std::string_view name = "") = 0;
@@ -108,14 +107,6 @@ class ProgramBuilder {
   virtual Value& SubI32(Value& v1, Value& v2) = 0;
   virtual Value& CmpI32(CompType cmp, Value& v1, Value& v2) = 0;
   virtual Value& ConstI32(int32_t v) = 0;
-
-  // UI32
-  virtual Value& AddUI32(Value& v1, Value& v2) = 0;
-  virtual Value& MulUI32(Value& v1, Value& v2) = 0;
-  virtual Value& DivUI32(Value& v1, Value& v2) = 0;
-  virtual Value& SubUI32(Value& v1, Value& v2) = 0;
-  virtual Value& CmpUI32(CompType cmp, Value& v1, Value& v2) = 0;
-  virtual Value& ConstUI32(uint32_t v) = 0;
 
   // I64
   virtual Value& AddI64(Value& v1, Value& v2) = 0;

@@ -90,9 +90,9 @@ void OrderByTranslator<T>::Produce() {
   buffer_->Sort(comp_fn.Get());
 
   proxy::IndexLoop<T>(
-      program_, [&]() { return proxy::UInt32<T>(program_, 0); },
-      [&](proxy::UInt32<T>& i) { return i < buffer_->Size(); },
-      [&](proxy::UInt32<T>& i) {
+      program_, [&]() { return proxy::Int32<T>(program_, 0); },
+      [&](proxy::Int32<T>& i) { return i < buffer_->Size(); },
+      [&](proxy::Int32<T>& i, auto Continue) {
         this->Child().SchemaValues().SetValues((*buffer_)[i].Unpack());
 
         this->values_.ResetValues();
@@ -104,7 +104,7 @@ void OrderByTranslator<T>::Produce() {
           parent->get().Consume(*this);
         }
 
-        return i + proxy::UInt32<T>(program_, 1);
+        return i + proxy::Int32<T>(program_, 1);
       });
 
   buffer_->Reset();

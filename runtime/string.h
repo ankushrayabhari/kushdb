@@ -10,7 +10,7 @@ namespace kush::data {
 
 struct String {
   const char* data;
-  uint32_t length;
+  int32_t length;
 };
 
 void Copy(String* dest, String* src);

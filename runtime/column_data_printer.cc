@@ -21,7 +21,7 @@ int main() {
   Open(&col, "tpch/data/l_quantity.kdb");
 
   auto size = Size(&col);
-  for (uint32_t i = 0; i < size; i++) {
+  for (int32_t i = 0; i < size; i++) {
     double val = Get(&col, i);
     std::cout << val << "|\n";
   } */

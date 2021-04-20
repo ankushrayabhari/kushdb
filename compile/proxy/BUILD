@@ -118,6 +118,22 @@ cc_library(
 )
 
 cc_library(
+    name = "column_index",
+    srcs = ["column_index.cc"],
+    hdrs = ["column_index.h"],
+    deps = [
+        ":bool",
+        ":float",
+        ":int",
+        ":ptr",
+        ":string",
+        ":value",
+        "//catalog:sql_type",
+        "//compile:program_builder",
+    ],
+)
+
+cc_library(
     name = "numeric",
     hdrs = ["numeric.h"],
     deps = [

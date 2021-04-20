@@ -18,9 +18,6 @@ template <typename T>
 class Int32;
 
 template <typename T>
-class UInt32;
-
-template <typename T>
 class Int64;
 
 template <typename T>
@@ -39,7 +36,6 @@ class Printer {
   void Print(Bool<T>& t);
   void Print(Int16<T>& t);
   void Print(Int32<T>& t);
-  void Print(UInt32<T>& t);
   void Print(Int64<T>& t);
   void Print(Float64<T>& t);
   void Print(String<T>& t);

@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "compile/proxy/column_index.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
@@ -27,6 +28,10 @@ class SkinnerJoinTranslator : public OperatorTranslator<T> {
   ProgramBuilder<T>& program_;
   ExpressionTranslator<T> expr_translator_;
   std::vector<std::unique_ptr<proxy::Vector<T>>> buffers_;
+  std::vector<std::vector<std::unique_ptr<proxy::ColumnIndex<T>>>> indexes_;
+  std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
+      predicate_columns_;
+  int child_idx_ = -1;
 };
 
 }  // namespace kush::compile

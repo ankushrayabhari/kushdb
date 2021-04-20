@@ -27,7 +27,7 @@ Vector<T>::Vector(ProgramBuilder<T>& program, StructBuilder<T>& content,
                     })
               : program_.Alloca(program_.GetStructType(VectorStructName))) {
   auto& element_size = program_.SizeOf(content_type_);
-  auto& initial_capacity = program_.ConstUI32(2);
+  auto& initial_capacity = program_.ConstI32(2);
   program_.Call(program_.GetFunction(CreateFnName),
                 {value_, element_size, initial_capacity});
 }
@@ -46,7 +46,7 @@ void Vector<T>::Reset() {
 }
 
 template <typename T>
-Struct<T> Vector<T>::operator[](const proxy::UInt32<T>& idx) {
+Struct<T> Vector<T>::operator[](const proxy::Int32<T>& idx) {
   auto& ptr =
       program_.Call(program_.GetFunction(GetFnName), {value_, idx.Get()});
   auto& ptr_type = program_.PointerType(content_type_);
@@ -66,9 +66,9 @@ void Vector<T>::Sort(typename ProgramBuilder<T>::Function& comp) {
 }
 
 template <typename T>
-UInt32<T> Vector<T>::Size() {
-  return UInt32<T>(program_,
-                   program_.Call(program_.GetFunction(SizeFnName), {value_}));
+Int32<T> Vector<T>::Size() {
+  return Int32<T>(program_,
+                  program_.Call(program_.GetFunction(SizeFnName), {value_}));
 }
 
 template <typename T>

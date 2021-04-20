@@ -62,7 +62,7 @@ void Serialize(std::string_view path,
   }
 
   // 4 bytes for the metadata cardinality + (4 + 4) bytes per slot
-  uint32_t length = 4 + 8 * contents.size();
+  int32_t length = 4 + 8 * contents.size();
 
   // 1 byte per character + 1 null terminator
   for (auto s : contents) length += s.size() + 1;
@@ -78,11 +78,11 @@ void Serialize(std::string_view path,
   }
 
   data->cardinality = contents.size();
-  uint32_t offset = 4 + 8 * contents.size();
+  int32_t offset = 4 + 8 * contents.size();
   char* string_data_ = reinterpret_cast<char*>(data);
 
   for (int slot = 0; slot < contents.size(); slot++) {
-    uint32_t length = contents[slot].size();
+    int32_t length = contents[slot].size();
     data->slot[slot].length = length;
     data->slot[slot].offset = offset;
     memcpy(string_data_ + offset, contents[slot].c_str(), length + 1);

@@ -8,14 +8,14 @@
 
 namespace kush::data {
 
-using map_type = std::unordered_map<uint32_t, Vector>;
+using map_type = std::unordered_map<int32_t, Vector>;
 
-void Create(HashTable* ht, uint64_t element_size) {
+void Create(HashTable* ht, int64_t element_size) {
   ht->element_size_ = element_size;
   ht->data_ = new map_type;
 }
 
-int8_t* Insert(HashTable* ht, uint32_t hash) {
+int8_t* Insert(HashTable* ht, int32_t hash) {
   if (ht->data_->find(hash) == ht->data_->end()) {
     auto& new_vec = (*ht->data_)[hash];
     Create(&new_vec, ht->element_size_, 2);
@@ -26,7 +26,7 @@ int8_t* Insert(HashTable* ht, uint32_t hash) {
   return data;
 }
 
-Vector* GetBucket(HashTable* ht, uint32_t hash) {
+Vector* GetBucket(HashTable* ht, int32_t hash) {
   if (ht->data_->find(hash) == ht->data_->end()) {
     return nullptr;
   }
@@ -46,9 +46,9 @@ void GetAllBuckets(HashTable* ht, BucketList* list) {
   }
 }
 
-Vector* GetBucketIdx(BucketList* l, uint32_t i) { return l->buckets[i]; }
+Vector* GetBucketIdx(BucketList* l, int32_t i) { return l->buckets[i]; }
 
-uint32_t Size(BucketList* l) { return l->num_buckets; }
+int32_t Size(BucketList* l) { return l->num_buckets; }
 
 void Free(HashTable* ht) {
   for (auto& [k, v_list] : (*ht->data_)) {
@@ -60,7 +60,7 @@ void Free(HashTable* ht) {
 
 void Free(BucketList* ht) { delete[] ht->buckets; }
 
-void HashCombine(uint32_t* hash, int64_t v) {
+void HashCombine(int32_t* hash, int64_t v) {
   *hash ^= v + 0x9e3779b9 + (*hash << 6) + (*hash >> 2);
 }
 
