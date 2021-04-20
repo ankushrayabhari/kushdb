@@ -22,7 +22,7 @@ If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
   program.SetCurrentBlock(then_block);
   then_fn();
   if (!program_.IsTerminated(program_.CurrentBlock())) {
-    b2 = &then_block;
+    b2 = &program_.CurrentBlock();
     program.Branch(dest_block);
   }
 

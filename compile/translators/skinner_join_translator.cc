@@ -169,53 +169,51 @@ void SkinnerJoinTranslator<T>::Produce() {
     buffers_.push_back(
         std::make_unique<proxy::Vector<T>>(program_, *structs.back(), true));
 
-    indexes_.push_back({});
-
     // For each predicate column on this table, declare an index.
     for (auto& predicate_column : predicate_columns_) {
       if (i != predicate_column.get().GetChildIdx()) {
         continue;
       }
 
+      predicate_to_index_idx_[{predicate_column.get().GetChildIdx(),
+                               predicate_column.get().GetColumnIdx()}] =
+          indexes_.size();
+
       switch (predicate_column.get().Type()) {
         case catalog::SqlType::SMALLINT:
-          indexes_.back().push_back(
+          indexes_.push_back(
               std::make_unique<
                   proxy::ColumnIndexImpl<T, catalog::SqlType::SMALLINT>>(
                   program_, true));
           break;
         case catalog::SqlType::INT:
-          indexes_.back().push_back(
-              std::make_unique<
-                  proxy::ColumnIndexImpl<T, catalog::SqlType::INT>>(program_,
-                                                                    true));
+          indexes_.push_back(std::make_unique<
+                             proxy::ColumnIndexImpl<T, catalog::SqlType::INT>>(
+              program_, true));
           break;
         case catalog::SqlType::BIGINT:
-          indexes_.back().push_back(
+          indexes_.push_back(
               std::make_unique<
                   proxy::ColumnIndexImpl<T, catalog::SqlType::BIGINT>>(program_,
                                                                        true));
           break;
         case catalog::SqlType::REAL:
-          indexes_.back().push_back(
-              std::make_unique<
-                  proxy::ColumnIndexImpl<T, catalog::SqlType::REAL>>(program_,
-                                                                     true));
+          indexes_.push_back(std::make_unique<
+                             proxy::ColumnIndexImpl<T, catalog::SqlType::REAL>>(
+              program_, true));
           break;
         case catalog::SqlType::DATE:
-          indexes_.back().push_back(
-              std::make_unique<
-                  proxy::ColumnIndexImpl<T, catalog::SqlType::DATE>>(program_,
-                                                                     true));
+          indexes_.push_back(std::make_unique<
+                             proxy::ColumnIndexImpl<T, catalog::SqlType::DATE>>(
+              program_, true));
           break;
         case catalog::SqlType::TEXT:
-          indexes_.back().push_back(
-              std::make_unique<
-                  proxy::ColumnIndexImpl<T, catalog::SqlType::TEXT>>(program_,
-                                                                     true));
+          indexes_.push_back(std::make_unique<
+                             proxy::ColumnIndexImpl<T, catalog::SqlType::TEXT>>(
+              program_, true));
           break;
         case catalog::SqlType::BOOLEAN:
-          indexes_.back().push_back(
+          indexes_.push_back(
               std::make_unique<
                   proxy::ColumnIndexImpl<T, catalog::SqlType::BOOLEAN>>(
                   program_, true));
@@ -313,12 +311,12 @@ void SkinnerJoinTranslator<T>::Produce() {
 
       // if this table has an index associated with it:
 
-      // lastTuple = -1
-      // while (lastTuple  < cardinality):
-      // nextTuple = lastTuple + 1
+      // last_tuple = -1
+      // while (last_tuple  < cardinality):
+      // next_tuple = last_tuple + 1
       // for each equality predicate that is active:
-      //  nextTuple = max(lastTuple, GetNextTuple(index, cardinality, lastTuple,
-      //  other
+      //  next_tuple = max(last_tuple, GetNextTuple(index, cardinality,
+      //  last_tuple, other
       //    tuple's value))
       // if next_tuple = cardinality:
       //    # done with this table
@@ -327,7 +325,7 @@ void SkinnerJoinTranslator<T>::Produce() {
       // store next_tuple's predicate columns in struct
       // evaluate all other active predicates on next tuple
       // move to next table in join order
-      // lastTuple = nextTuple
+      // last_tuple = next_tuple
 
       // Loop over tuples in buffer
       proxy::Vector<T>& buffer = *buffers_[current_buffer++];
@@ -335,18 +333,81 @@ void SkinnerJoinTranslator<T>::Produce() {
 
       proxy::IndexLoop<T>(
           program_, [&]() { return proxy::Int32<T>(program_, -1); },
-          [&](proxy::Int32<T>& lastTuple) { return lastTuple < cardinality; },
-          [&](proxy::Int32<T>& lastTuple, auto Continue) {
-            auto nextTuple = lastTuple + proxy::Int32<T>(program_, 1);
+          [&](proxy::Int32<T>& last_tuple) { return last_tuple < cardinality; },
+          [&](proxy::Int32<T>& last_tuple, auto Continue) {
+            auto next_tuple =
+                (last_tuple + proxy::Int32<T>(program_, 1)).ToPointer();
 
-            // TODO get nextTuple from active equality predicates
+            absl::flat_hash_set<int> index_evaluated_predicates;
+            // TODO get next_tuple from active equality predicates
+            for (int predicate_idx : predicates_per_table[table_idx]) {
+              const auto& predicate = conditions[predicate_idx].get();
+              if (auto eq = dynamic_cast<
+                      const kush::plan::BinaryArithmeticExpression*>(
+                      &predicate)) {
+                if (auto left_column =
+                        dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                            &eq->LeftChild())) {
+                  if (auto right_column =
+                          dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                              &eq->RightChild())) {
+                    if (table_idx == left_column->GetChildIdx() ||
+                        table_idx == right_column->GetChildIdx()) {
+                      auto table_column =
+                          table_idx == left_column->GetChildIdx()
+                              ? left_column->GetColumnIdx()
+                              : right_column->GetColumnIdx();
 
-            proxy::If<T>(program_, nextTuple == cardinality,
+                      auto it = predicate_to_index_idx_.find(
+                          {table_idx, table_column});
+                      if (it != predicate_to_index_idx_.end()) {
+                        auto idx = it->second;
+
+                        auto& flag_ptr = program_.GetElementPtr(
+                            flag_array_type, flag_array,
+                            {program_.ConstI32(0),
+                             program_.ConstI32(table_predicate_to_flag_idx.at(
+                                 {table_idx, predicate_idx}))});
+                        proxy::Bool<T> flag(program_, program_.Load(flag_ptr));
+
+                        std::unique_ptr<proxy::Int32<T>> next_tuple_result;
+                        proxy::If<T> check(program_, flag, [&]() {
+                          auto other_side_value = expr_translator_.Compute(
+                              table_idx == left_column->GetChildIdx()
+                                  ? *right_column
+                                  : *left_column);
+                          auto next_greater_in_index =
+                              indexes_[idx]->GetNextGreater(*other_side_value,
+                                                            last_tuple);
+
+                          proxy::If<T> max_check(
+                              program_, next_greater_in_index > (*next_tuple),
+                              [&]() {
+                                next_tuple_result =
+                                    next_greater_in_index.ToPointer();
+                              });
+
+                          next_tuple_result = std::make_unique<proxy::Int32<T>>(
+                              program_,
+                              max_check.Phi(*next_tuple, *next_tuple_result));
+                        });
+                        next_tuple = std::make_unique<proxy::Int32<T>>(
+                            program_,
+                            check.Phi(*next_tuple, *next_tuple_result));
+
+                        index_evaluated_predicates.insert(predicate_idx);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            proxy::If<T>(program_, *next_tuple == cardinality,
                          [&]() { Continue(cardinality); });
 
             // Load the current tuple of table.
-            auto current_table_values =
-                buffer[proxy::Int32<T>(program_, nextTuple.Get())].Unpack();
+            auto current_table_values = buffer[*next_tuple].Unpack();
 
             // Store each of this table's predicate column values into
             // the global_predicate_struct
@@ -365,9 +426,13 @@ void SkinnerJoinTranslator<T>::Produce() {
               }
             }
 
-            // Evaluate every (TODO: every non-index checked) predicate that
+            // Evaluate every non-index checked predicate that
             // references this table's columns.
             for (int predicate_idx : predicates_per_table[table_idx]) {
+              if (index_evaluated_predicates.contains(predicate_idx)) {
+                continue;
+              }
+
               auto& flag_ptr = program_.GetElementPtr(
                   flag_array_type, flag_array,
                   {program_.ConstI32(0),
@@ -377,7 +442,7 @@ void SkinnerJoinTranslator<T>::Produce() {
               proxy::If<T>(program_, flag, [&]() {
                 auto cond = expr_translator_.Compute(conditions[predicate_idx]);
                 proxy::If<T>(program_, !static_cast<proxy::Bool<T>&>(*cond),
-                             [&]() { Continue(nextTuple); });
+                             [&]() { Continue(*next_tuple); });
               });
             }
 
@@ -385,13 +450,13 @@ void SkinnerJoinTranslator<T>::Produce() {
             auto& idx_ptr = program_.GetElementPtr(
                 idx_array_type, idx_array,
                 {program_.ConstI32(0), program_.ConstI32(table_idx)});
-            program_.Store(idx_ptr, nextTuple.Get());
+            program_.Store(idx_ptr, next_tuple->Get());
 
             // Call next table handler
             program_.Call(handler, handler_type);
 
-            // lastTuple = nextTuple
-            return nextTuple;
+            // last_tuple = next_tuple
+            return *next_tuple;
           });
       program_.Return();
     }));
@@ -526,18 +591,10 @@ void SkinnerJoinTranslator<T>::Produce() {
           auto tuple_idx =
               proxy::Int32<T>(program_, program_.Load(tuple_idx_ptr));
 
-          // TODO: Specialize scan to get tuple_idx element
-          /* if (auto scan =
-          dynamic_cast<ScanTranslator<T>*>(&child_translator)) {
-          } else */
-
-          {
-            proxy::Vector<T>& buffer = *buffers_[current_buffer++];
-            // set the schema values of child to be the tuple_idx'th tuple of
-            // current table.
-            child_translator.SchemaValues().SetValues(
-                buffer[tuple_idx].Unpack());
-          }
+          proxy::Vector<T>& buffer = *buffers_[current_buffer++];
+          // set the schema values of child to be the tuple_idx'th tuple of
+          // current table.
+          child_translator.SchemaValues().SetValues(buffer[tuple_idx].Unpack());
         }
 
         // Compute the output schema
@@ -576,14 +633,18 @@ void SkinnerJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
 
   // for each predicate column on this table, insert tuple idx into
   // corresponding HT
-  int next_index = 0;
   for (auto& predicate_column : predicate_columns_) {
     if (child_idx_ != predicate_column.get().GetChildIdx()) {
       continue;
     }
 
-    indexes_[child_idx_][next_index++]->Insert(
-        values[predicate_column.get().GetColumnIdx()], tuple_idx);
+    auto it = predicate_to_index_idx_.find(
+        {child_idx_, predicate_column.get().GetColumnIdx()});
+    if (it != predicate_to_index_idx_.end()) {
+      auto idx = it->second;
+      indexes_[idx]->Insert(values[predicate_column.get().GetColumnIdx()],
+                            tuple_idx);
+    }
   }
 
   // insert tuple into buffer

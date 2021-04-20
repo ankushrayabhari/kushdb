@@ -28,9 +28,10 @@ class SkinnerJoinTranslator : public OperatorTranslator<T> {
   ProgramBuilder<T>& program_;
   ExpressionTranslator<T> expr_translator_;
   std::vector<std::unique_ptr<proxy::Vector<T>>> buffers_;
-  std::vector<std::vector<std::unique_ptr<proxy::ColumnIndex<T>>>> indexes_;
+  std::vector<std::unique_ptr<proxy::ColumnIndex<T>>> indexes_;
   std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
       predicate_columns_;
+  absl::flat_hash_map<std::pair<int, int>, int> predicate_to_index_idx_;
   int child_idx_ = -1;
 };
 
