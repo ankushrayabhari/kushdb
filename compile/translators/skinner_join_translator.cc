@@ -340,7 +340,7 @@ void SkinnerJoinTranslator<T>::Produce() {
                 (last_tuple + proxy::Int32<T>(program_, 1)).ToPointer();
 
             absl::flat_hash_set<int> index_evaluated_predicates;
-            // TODO get next_tuple from active equality predicates
+            // Get next_tuple from active equality predicates
             for (int predicate_idx : predicates_per_table[table_idx]) {
               const auto& predicate = conditions[predicate_idx].get();
               if (auto eq = dynamic_cast<
@@ -427,10 +427,13 @@ void SkinnerJoinTranslator<T>::Produce() {
               }
             }
 
-            // Evaluate every non-index checked predicate that
-            // references this table's columns.
             for (int predicate_idx : predicates_per_table[table_idx]) {
-              if (index_evaluated_predicates.contains(predicate_idx)) {
+              // If there was only one predicate checked via index, we're
+              // guaranteed it holds.
+              // Otherwise, we checked multiple indexes and so we need to
+              // evaluate all predicates again.
+              if (index_evaluated_predicates.size() == 1 &&
+                  index_evaluated_predicates.contains(predicate_idx)) {
                 continue;
               }
 
