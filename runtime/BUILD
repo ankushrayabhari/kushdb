@@ -12,6 +12,15 @@ cc_binary(
 )
 
 cc_library(
+    name = "column_index",
+    srcs = ["column_index.cc"],
+    hdrs = ["column_index.h"],
+    deps = [
+        ":string",
+    ],
+)
+
+cc_library(
     name = "column_data",
     srcs = ["column_data.cc"],
     hdrs = ["column_data.h"],

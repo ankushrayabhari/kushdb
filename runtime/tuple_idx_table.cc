@@ -1,5 +1,7 @@
 #include "runtime/tuple_idx_table.h"
 
+#include <iostream>
+
 namespace kush::data {
 
 std::unordered_set<std::vector<int32_t>>* CreateTupleIdxTable() {

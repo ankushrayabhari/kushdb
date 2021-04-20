@@ -11,6 +11,7 @@
 #include "compile/proxy/function.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/printer.h"
+#include "compile/proxy/string.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/value.h"
 #include "compile/proxy/vector.h"
@@ -377,8 +378,8 @@ void SkinnerJoinTranslator<T>::Produce() {
                                   ? *right_column
                                   : *left_column);
                           auto next_greater_in_index =
-                              indexes_[idx]->GetNextGreater(*other_side_value,
-                                                            last_tuple);
+                              indexes_[idx]->GetNextGreater(
+                                  *other_side_value, last_tuple, cardinality);
 
                           proxy::If<T> max_check(
                               program_, next_greater_in_index > (*next_tuple),
@@ -488,7 +489,7 @@ void SkinnerJoinTranslator<T>::Produce() {
       program_.VoidType(), {tuple_idx_table_type, tuple_idx_iterator_type});
   auto& increment_fn = program_.DeclareExternalFunction(
       "_ZN4kush4data9IncrementEPPNSt8__detail20_Node_const_"
-      "iteratorISt6vectorIiSaIiEELb1ELb1E",
+      "iteratorISt6vectorIiSaIiEELb1ELb1EEE",
       program_.VoidType(), {tuple_idx_iterator_type});
   auto& get_fn = program_.DeclareExternalFunction(
       "_ZN4kush4data3GetEPPNSt8__detail20_Node_const_"
@@ -616,6 +617,10 @@ void SkinnerJoinTranslator<T>::Produce() {
   program_.Call(free_it_fn, {tuple_it});
   program_.Call(free_fn, {tuple_idx_table});
 
+  for (auto& index : indexes_) {
+    index.reset();
+  }
+
   for (auto& buffer : buffers_) {
     if (buffer != nullptr) {
       buffer.reset();
@@ -642,7 +647,7 @@ void SkinnerJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
         {child_idx_, predicate_column.get().GetColumnIdx()});
     if (it != predicate_to_index_idx_.end()) {
       auto idx = it->second;
-      indexes_[idx]->Insert(values[predicate_column.get().GetColumnIdx()],
+      indexes_[idx]->Insert(values[predicate_column.get().GetColumnIdx()].get(),
                             tuple_idx);
     }
   }

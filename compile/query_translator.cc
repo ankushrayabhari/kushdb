@@ -8,6 +8,7 @@
 #include "compile/llvm/llvm_ir.h"
 #include "compile/program.h"
 #include "compile/proxy/column_data.h"
+#include "compile/proxy/column_index.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/string.h"
@@ -45,6 +46,17 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   proxy::ColumnData<T, catalog::SqlType::DATE>::ForwardDeclare(*program);
   proxy::ColumnData<T, catalog::SqlType::REAL>::ForwardDeclare(*program);
   proxy::ColumnData<T, catalog::SqlType::TEXT>::ForwardDeclare(*program);
+
+  // Forward declare the column index implementations
+  proxy::ColumnIndexImpl<T, catalog::SqlType::SMALLINT>::ForwardDeclare(
+      *program);
+  proxy::ColumnIndexImpl<T, catalog::SqlType::INT>::ForwardDeclare(*program);
+  proxy::ColumnIndexImpl<T, catalog::SqlType::BIGINT>::ForwardDeclare(*program);
+  proxy::ColumnIndexImpl<T, catalog::SqlType::BOOLEAN>::ForwardDeclare(
+      *program);
+  proxy::ColumnIndexImpl<T, catalog::SqlType::DATE>::ForwardDeclare(*program);
+  proxy::ColumnIndexImpl<T, catalog::SqlType::REAL>::ForwardDeclare(*program);
+  proxy::ColumnIndexImpl<T, catalog::SqlType::TEXT>::ForwardDeclare(*program);
 
   // Create the compute function
   program->CreatePublicFunction(program->VoidType(), {}, "compute");

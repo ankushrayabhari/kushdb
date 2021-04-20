@@ -29,7 +29,10 @@ cc_library(
     deps = [
         "//catalog",
         "//compile:program",
+        "//compile/proxy:column_data",
+        "//compile/proxy:column_index",
         "//compile/proxy:hash_table",
+        "//compile/proxy:printer_h",
         "//compile/proxy:string",
         "//compile/proxy:vector",
         "//compile/translators:translator_factory",
