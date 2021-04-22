@@ -479,6 +479,7 @@ void LLVMIr::Compile() const {
           "bazel-bin/runtime/libvector.so bazel-bin/runtime/libhash_table.so "
           "bazel-bin/runtime/libtuple_idx_table.so "
           "bazel-bin/runtime/libcolumn_index.so "
+          "bazel-bin/runtime/libskinner_join_executor.so "
           "/tmp/query.o -o /tmp/query.so")) {
     throw std::runtime_error("Failed to link file.");
   }

@@ -264,8 +264,8 @@ void SkinnerJoinTranslator<T>::Produce() {
   }
 
   std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
-      initial_flag_values(total_flags, program_.ConstI1(0));
-  auto& flag_type = program_.I1Type();
+      initial_flag_values(total_flags, program_.ConstI8(0));
+  auto& flag_type = program_.I8Type();
   auto& flag_array_type = program_.ArrayType(flag_type, total_flags);
   auto& flag_array =
       program_.GlobalArray(false, flag_array_type, initial_flag_values);
@@ -369,7 +369,9 @@ void SkinnerJoinTranslator<T>::Produce() {
                             {program_.ConstI32(0),
                              program_.ConstI32(table_predicate_to_flag_idx.at(
                                  {table_idx, predicate_idx}))});
-                        proxy::Bool<T> flag(program_, program_.Load(flag_ptr));
+                        proxy::Int8<T> flag_value(program_,
+                                                  program_.Load(flag_ptr));
+                        auto flag = flag_value == proxy::Int8<T>(program_, 1);
 
                         std::unique_ptr<proxy::Int32<T>> next_tuple_result;
                         proxy::If<T> check(program_, flag, [&]() {
@@ -442,7 +444,8 @@ void SkinnerJoinTranslator<T>::Produce() {
                   {program_.ConstI32(0),
                    program_.ConstI32(table_predicate_to_flag_idx.at(
                        {table_idx, predicate_idx}))});
-              proxy::Bool<T> flag(program_, program_.Load(flag_ptr));
+              proxy::Int8<T> flag_value(program_, program_.Load(flag_ptr));
+              auto flag = flag_value == proxy::Int8<T>(program_, 1);
               proxy::If<T>(program_, flag, [&]() {
                 auto cond = expr_translator_.Compute(conditions[predicate_idx]);
                 proxy::If<T>(program_, !static_cast<proxy::Bool<T>&>(*cond),
@@ -522,57 +525,73 @@ void SkinnerJoinTranslator<T>::Produce() {
   });
 
   // 3. Execute join
-  // For now, call static order by executing 0th function
-  // TODO: Setup UCT join ordering
-
-  // Set join order
-  for (int i = 0; i < child_operators.size() - 1; i++) {
-    // set the ith hanlder to i+1 function
+  // Initialize handler array with the corresponding functions for each table
+  for (int i = 0; i < child_operators.size(); i++) {
     auto& handler_ptr = program_.GetElementPtr(
         handler_pointer_array_type, handler_pointer_array,
         {program_.ConstI32(0), program_.ConstI32(i)});
-    program_.Store(handler_ptr, {table_functions[i + 1].Get()});
-  }
-  // Set the last handler to be the valid_tuple_handler
-  {
-    auto& handler_ptr = program_.GetElementPtr(
-        handler_pointer_array_type, handler_pointer_array,
-        {program_.ConstI32(0), program_.ConstI32(child_operators.size() - 1)});
-    program_.Store(handler_ptr, {valid_tuple_handler.Get()});
+    program_.Store(handler_ptr, {table_functions[i].Get()});
   }
 
-  // Toggle predicate flags
-  absl::flat_hash_set<int> available_tables;
-  absl::flat_hash_set<int> executed_predicates;
-  for (int table_idx = 0; table_idx < child_operators.size(); table_idx++) {
-    available_tables.insert(table_idx);
+  // Serialize the table_predicate_to_flag_idx map.
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+      table_predicate_to_flag_idx_values;
+  for (const auto& [table_predicate, flag_idx] : table_predicate_to_flag_idx) {
+    table_predicate_to_flag_idx_values.push_back(
+        program_.ConstI32(table_predicate.first));
+    table_predicate_to_flag_idx_values.push_back(
+        program_.ConstI32(table_predicate.second));
+    table_predicate_to_flag_idx_values.push_back(program_.ConstI32(flag_idx));
+  }
+  auto& table_predicate_to_flag_idx_arr_type = program_.ArrayType(
+      program_.I32Type(), table_predicate_to_flag_idx_values.size());
+  auto& table_predicate_to_flag_idx_arr =
+      program_.GlobalArray(true, table_predicate_to_flag_idx_arr_type,
+                           table_predicate_to_flag_idx_values);
 
-    // all tables in available_tables have been joined
-    // execute any non-executed predicate
-    for (int predicate_idx = 0; predicate_idx < conditions.size();
-         predicate_idx++) {
-      if (executed_predicates.contains(predicate_idx)) continue;
-
-      bool all_tables_available = true;
-      for (int table : tables_per_predicate[predicate_idx]) {
-        all_tables_available =
-            all_tables_available && available_tables.contains(table);
-      }
-      if (!all_tables_available) continue;
-
-      executed_predicates.insert(predicate_idx);
-
-      auto& flag_ptr = program_.GetElementPtr(
-          flag_array_type, flag_array,
-          {program_.ConstI32(0),
-           program_.ConstI32(
-               table_predicate_to_flag_idx.at({table_idx, predicate_idx}))});
-      program_.Store(flag_ptr, program_.ConstI1(1));
+  // Serialize the tables_per_predicate map.
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+      tables_per_predicate_arr_values;
+  for (int i = 0; i < conditions.size(); i++) {
+    tables_per_predicate_arr_values.push_back(
+        program_.ConstI32(tables_per_predicate[i].size()));
+  }
+  for (int i = 0; i < conditions.size(); i++) {
+    for (int x : tables_per_predicate[i]) {
+      tables_per_predicate_arr_values.push_back(program_.ConstI32(x));
     }
   }
+  auto& tables_per_predicate_arr_type = program_.ArrayType(
+      program_.I32Type(), tables_per_predicate_arr_values.size());
+  auto& tables_per_predicate_arr = program_.GlobalArray(
+      true, tables_per_predicate_arr_type, tables_per_predicate_arr_values);
 
-  // Execute static order by calling 0th function.
-  program_.Call(table_functions[0].Get(), {});
+  // Execute build side of skinner join
+  auto& execute_skinner_join_fn = program_.DeclareExternalFunction(
+      "_ZN4kush7runtime18ExecuteSkinnerJoinEiiPPFvvES2_iPiS4_Pa",
+      program_.VoidType(),
+      {program_.I32Type(), program_.I32Type(),
+       program_.PointerType(handler_pointer_type), handler_pointer_type,
+       program_.I32Type(), program_.PointerType(program_.I32Type()),
+       program_.PointerType(program_.I32Type()),
+       program_.PointerType(program_.I8Type())});
+
+  program_.Call(
+      execute_skinner_join_fn,
+      {program_.ConstI32(child_operators.size()),
+       program_.ConstI32(conditions.size()),
+       program_.GetElementPtr(handler_pointer_array_type, handler_pointer_array,
+                              {program_.ConstI32(0), program_.ConstI32(0)}),
+       valid_tuple_handler.Get(),
+       program_.ConstI32(table_predicate_to_flag_idx_values.size()),
+       program_.GetElementPtr(table_predicate_to_flag_idx_arr_type,
+                              table_predicate_to_flag_idx_arr,
+                              {program_.ConstI32(0), program_.ConstI32(0)}),
+       program_.GetElementPtr(tables_per_predicate_arr_type,
+                              tables_per_predicate_arr,
+                              {program_.ConstI32(0), program_.ConstI32(0)}),
+       program_.GetElementPtr(flag_array_type, flag_array,
+                              {program_.ConstI32(0), program_.ConstI32(0)})});
 
   // Loop over tuple idx table and then output tuples from each table.
   auto& tuple_it = program_.Alloca(program_.I8Type());

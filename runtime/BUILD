@@ -60,6 +60,13 @@ cc_library(
 )
 
 cc_library(
+    name = "skinner_join_executor",
+    srcs = ["skinner_join_executor.cc"],
+    hdrs = ["skinner_join_executor.h"],
+    deps = [],
+)
+
+cc_library(
     name = "column_data_builder",
     hdrs = ["column_data_builder.h"],
     deps = [
