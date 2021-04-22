@@ -93,6 +93,28 @@ class PredicateColumnCollector : public plan::ImmutableExpressionVisitor {
 };
 
 template <typename T>
+class TableFunction {
+ public:
+  TableFunction(ProgramBuilder<T>& program, std::function<void()> body) {
+    auto& current_block = program.CurrentBlock();
+    func = &program.CreateFunction(program.VoidType(), {});
+
+    body();
+
+    if (!program.IsTerminated(program.CurrentBlock())) {
+      program.Return();
+    }
+
+    program.SetCurrentBlock(current_block);
+  }
+
+  typename ProgramBuilder<T>::Function& Get() { return *func; }
+
+ private:
+  typename ProgramBuilder<T>::Function* func;
+};
+
+template <typename T>
 class TupleIdxHandler {
  public:
   TupleIdxHandler(
@@ -281,12 +303,12 @@ void SkinnerJoinTranslator<T>::Produce() {
   auto& handler_pointer_array =
       program_.GlobalArray(false, handler_pointer_array_type, initial_values);
 
-  std::vector<proxy::VoidFunction<T>> table_functions;
+  std::vector<TableFunction<T>> table_functions;
   int current_buffer = 0;
   for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
     auto& child_translator = child_translators[table_idx].get();
 
-    table_functions.push_back(proxy::VoidFunction<T>(program_, [&]() {
+    table_functions.push_back(TableFunction<T>(program_, [&]() {
       auto& handler_ptr = program_.GetElementPtr(
           handler_pointer_array_type, handler_pointer_array,
           {program_.ConstI32(0), program_.ConstI32(table_idx)});
@@ -512,7 +534,7 @@ void SkinnerJoinTranslator<T>::Produce() {
   program_.Store(tuple_idx_table_ptr, tuple_idx_table);
 
   // Setup function for each valid tuple
-  proxy::VoidFunction<T> valid_tuple_handler(program_, [&]() {
+  TableFunction<T> valid_tuple_handler(program_, [&]() {
     // Insert tuple idx into hash table
     auto& tuple_idx_table = program_.Load(tuple_idx_table_ptr);
     auto& tuple_idx_arr =
