@@ -16,6 +16,7 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/order_by_operator.h"
+#include "util/vector_util.h"
 
 namespace kush::compile {
 
@@ -89,10 +90,19 @@ void OrderByTranslator<T>::Produce() {
 
   buffer_->Sort(comp_fn.Get());
 
-  proxy::IndexLoop<T>(
-      program_, [&]() { return proxy::Int32<T>(program_, 0); },
-      [&](proxy::Int32<T>& i) { return i < buffer_->Size(); },
-      [&](proxy::Int32<T>& i, auto Continue) {
+  proxy::Loop<T>(
+      program_,
+      [&](auto& loop) {
+        auto i = proxy::Int32<T>(program_, 0);
+        loop.AddLoopVariable(i);
+      },
+      [&](auto& loop) {
+        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        return i < buffer_->Size();
+      },
+      [&](auto& loop) {
+        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+
         this->Child().SchemaValues().SetValues((*buffer_)[i].Unpack());
 
         this->values_.ResetValues();
@@ -104,7 +114,9 @@ void OrderByTranslator<T>::Produce() {
           parent->get().Consume(*this);
         }
 
-        return i + proxy::Int32<T>(program_, 1);
+        std::unique_ptr<proxy::Value<T>> next_i =
+            (i + proxy::Int32<T>(program_, 1)).ToPointer();
+        return util::MakeVector(std::move(next_i));
       });
 
   buffer_->Reset();

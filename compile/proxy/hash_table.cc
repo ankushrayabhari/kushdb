@@ -8,6 +8,7 @@
 #include "compile/proxy/loop.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
+#include "util/vector_util.h"
 
 namespace kush::compile::proxy {
 
@@ -189,24 +190,44 @@ void HashTable<T>::ForEach(std::function<void(Struct<T>&)> handler) {
 
   BucketList<T> bucket_list(program_, content_, bucket_list_);
 
-  proxy::IndexLoop<T>(
-      program_, [&]() { return proxy::Int32<T>(program_, 0); },
-      [&](proxy::Int32<T>& i) { return i < bucket_list.Size(); },
-      [&](proxy::Int32<T>& i, auto Continue) {
+  proxy::Loop<T>(
+      program_,
+      [&](auto& loop) {
+        auto i = proxy::Int32<T>(program_, 0);
+        loop.AddLoopVariable(i);
+      },
+      [&](auto& loop) {
+        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        return i < bucket_list.Size();
+      },
+      [&](auto& loop) {
+        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
         auto bucket = bucket_list[i];
 
-        proxy::IndexLoop<T>(
-            program_, [&]() { return proxy::Int32<T>(program_, 0); },
-            [&](proxy::Int32<T>& j) { return j < bucket.Size(); },
-            [&](proxy::Int32<T>& j, auto Continue) {
+        proxy::Loop<T>(
+            program_,
+            [&](auto& loop) {
+              auto j = proxy::Int32<T>(program_, 0);
+              loop.AddLoopVariable(j);
+            },
+            [&](auto& loop) {
+              auto j = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+              return j < bucket.Size();
+            },
+            [&](auto& loop) {
+              auto j = loop.template GetLoopVariable<proxy::Int32<T>>(0);
               auto data = bucket[j];
 
               handler(data);
 
-              return j + proxy::Int32<T>(program_, 1);
+              std::unique_ptr<proxy::Value<T>> next_j =
+                  (j + proxy::Int32<T>(program_, 1)).ToPointer();
+              return util::MakeVector(std::move(next_j));
             });
 
-        return i + proxy::Int32<T>(program_, 1);
+        std::unique_ptr<proxy::Value<T>> next_i =
+            (i + proxy::Int32<T>(program_, 1)).ToPointer();
+        return util::MakeVector(std::move(next_i));
       });
 
   bucket_list.Reset();

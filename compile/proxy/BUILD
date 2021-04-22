@@ -61,6 +61,7 @@ cc_library(
         ":vector",
         "//compile:ir_registry",
         "//compile:program_builder",
+        "//util:vector_util",
     ],
 )
 

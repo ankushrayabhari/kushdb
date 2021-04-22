@@ -12,15 +12,6 @@
 namespace kush::compile::proxy {
 
 template <typename T>
-class IndexLoop {
- public:
-  IndexLoop(
-      ProgramBuilder<T>& program, std::function<Int32<T>()> init,
-      std::function<Bool<T>(Int32<T>&)> cond,
-      std::function<Int32<T>(Int32<T>&, std::function<void(Int32<T>&)>)> body);
-};
-
-template <typename T>
 class Loop {
  public:
   Loop(

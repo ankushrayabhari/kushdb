@@ -147,6 +147,7 @@ cc_library(
         "//compile/proxy:loop",
         "//compile/proxy:vector",
         "//plan:order_by_operator",
+        "//util:vector_util",
     ],
 )
 

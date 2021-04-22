@@ -123,10 +123,20 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
   // Loop over bucket if exists
   auto bucket = buffer_->Get(util::ReferenceVector(keys));
   auto size = bucket.Size();
-  proxy::IndexLoop<T>(
-      program_, [&]() { return proxy::Int32<T>(program_, 0); },
-      [&](proxy::Int32<T>& i) { return i < size; },
-      [&](proxy::Int32<T>& i, auto Continue) {
+
+  proxy::Loop<T>(
+      program_,
+      [&](auto& loop) {
+        auto i = proxy::Int32<T>(program_, 0);
+        loop.AddLoopVariable(i);
+      },
+      [&](auto& loop) {
+        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        return i < size;
+      },
+      [&](auto& loop) {
+        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+
         auto packed = bucket[i];
         auto values = packed.Unpack();
 
@@ -215,7 +225,10 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
           next_index = std::make_unique<proxy::Int32<T>>(
               i + proxy::Int32<T>(program_, 1));
         });
-        return proxy::Int32<T>(program_, check.Phi(size, *next_index));
+
+        std::unique_ptr<proxy::Value<T>> next_i =
+            proxy::Int32<T>(program_, check.Phi(size, *next_index)).ToPointer();
+        return util::MakeVector(std::move(next_i));
       });
 
   proxy::If<T>(program_, !found_->Load(), [&]() {

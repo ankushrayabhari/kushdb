@@ -354,10 +354,18 @@ void SkinnerJoinTranslator<T>::Produce() {
       proxy::Vector<T>& buffer = *buffers_[current_buffer++];
       auto cardinality = proxy::Int32<T>(program_, buffer.Size().Get());
 
-      proxy::IndexLoop<T>(
-          program_, [&]() { return proxy::Int32<T>(program_, -1); },
-          [&](proxy::Int32<T>& last_tuple) { return last_tuple < cardinality; },
-          [&](proxy::Int32<T>& last_tuple, auto Continue) {
+      proxy::Loop<T>(
+          program_,
+          [&](auto& loop) {
+            auto last_tuple = proxy::Int32<T>(program_, -1);
+            loop.AddLoopVariable(last_tuple);
+          },
+          [&](auto& loop) {
+            auto last_tuple = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+            return last_tuple < cardinality;
+          },
+          [&](auto& loop) {
+            auto last_tuple = loop.template GetLoopVariable<proxy::Int32<T>>(0);
             auto next_tuple =
                 (last_tuple + proxy::Int32<T>(program_, 1)).ToPointer();
 
@@ -429,7 +437,7 @@ void SkinnerJoinTranslator<T>::Produce() {
             }
 
             proxy::If<T>(program_, *next_tuple == cardinality,
-                         [&]() { Continue(cardinality); });
+                         [&]() { loop.Continue({cardinality}); });
 
             // Load the current tuple of table.
             auto current_table_values = buffer[*next_tuple].Unpack();
@@ -471,7 +479,7 @@ void SkinnerJoinTranslator<T>::Produce() {
               proxy::If<T>(program_, flag, [&]() {
                 auto cond = expr_translator_.Compute(conditions[predicate_idx]);
                 proxy::If<T>(program_, !static_cast<proxy::Bool<T>&>(*cond),
-                             [&]() { Continue(*next_tuple); });
+                             [&]() { loop.Continue({*next_tuple}); });
               });
             }
 
@@ -485,7 +493,9 @@ void SkinnerJoinTranslator<T>::Produce() {
             program_.Call(handler, handler_type);
 
             // last_tuple = next_tuple
-            return *next_tuple;
+            std::unique_ptr<proxy::Value<T>> next_last_tuple =
+                std::move(next_tuple);
+            return util::MakeVector(std::move(next_last_tuple));
           });
       program_.Return();
     }));
@@ -621,10 +631,19 @@ void SkinnerJoinTranslator<T>::Produce() {
   auto size =
       proxy::Int32<T>(program_, program_.Call(size_fn, {tuple_idx_table}));
 
-  proxy::IndexLoop<T>(
-      program_, [&]() { return proxy::Int32<T>(program_, 0); },
-      [&](proxy::Int32<T>& i) { return i < size; },
-      [&](proxy::Int32<T>& i, std::function<void(proxy::Int32<T>&)> Continue) {
+  proxy::Loop<T>(
+      program_,
+      [&](auto& loop) {
+        auto i = proxy::Int32<T>(program_, 0);
+        loop.AddLoopVariable(i);
+      },
+      [&](auto& loop) {
+        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        return i < size;
+      },
+      [&](auto& loop) {
+        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+
         auto& tuple_idx_arr = program_.Call(get_fn, {tuple_it});
 
         int current_buffer = 0;
@@ -654,7 +673,10 @@ void SkinnerJoinTranslator<T>::Produce() {
         }
 
         program_.Call(increment_fn, {tuple_it});
-        return i + proxy::Int32<T>(program_, 1);
+
+        std::unique_ptr<proxy::Value<T>> next_i =
+            (i + proxy::Int32<T>(program_, 1)).ToPointer();
+        return util::MakeVector(std::move(next_i));
       });
 
   // Cleanup
