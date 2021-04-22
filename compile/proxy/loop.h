@@ -20,4 +20,33 @@ class IndexLoop {
       std::function<Int32<T>(Int32<T>&, std::function<void(Int32<T>&)>)> body);
 };
 
+template <typename T>
+class Loop {
+ public:
+  Loop(
+      ProgramBuilder<T>& program, std::function<void(Loop&)> init,
+      std::function<Bool<T>(Loop&)> cond,
+      std::function<std::vector<std::unique_ptr<proxy::Value<T>>>(Loop&)> body);
+
+  void AddLoopVariable(proxy::Value<T>& v);
+
+  void Break();
+
+  void Continue(std::vector<std::reference_wrapper<proxy::Value<T>>> loop_vars);
+
+  template <typename S>
+  S GetLoopVariable(int i) {
+    return S(program_, phi_nodes_[i].get());
+  }
+
+ private:
+  ProgramBuilder<T>& program_;
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::PhiValue>>
+      phi_nodes_;
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+      phi_nodes_initial_values_;
+  typename ProgramBuilder<T>::BasicBlock* header_;
+  typename ProgramBuilder<T>::BasicBlock* end_;
+};
+
 }  // namespace kush::compile::proxy
