@@ -9,12 +9,12 @@
 
 namespace kush::runtime {
 
-void ExecuteSkinnerJoin(int num_tables, int num_predicates,
-                        std::add_pointer<int(int)>::type* join_handler_fn_arr,
-                        std::add_pointer<int(int)>::type valid_tuple_handler,
-                        int table_predicate_to_flag_idx_len,
-                        int* table_predicate_to_flag_idx_arr,
-                        int* tables_per_predicate_arr, int8_t* flag_arr) {
+void ExecuteSkinnerJoin(
+    int num_tables, int num_predicates,
+    std::add_pointer<int(int, int8_t)>::type* join_handler_fn_arr,
+    std::add_pointer<int(int, int8_t)>::type valid_tuple_handler,
+    int table_predicate_to_flag_idx_len, int* table_predicate_to_flag_idx_arr,
+    int* tables_per_predicate_arr, int8_t* flag_arr, int* progress_arr) {
   // Reconstruct join/predicate graph
   std::vector<std::unordered_map<int, int>> table_predicate_to_flag_idx(
       num_tables);
@@ -25,7 +25,7 @@ void ExecuteSkinnerJoin(int num_tables, int num_predicates,
     table_predicate_to_flag_idx[table][predicate] = flag_idx;
   }
 
-  std::vector<std::add_pointer<int(int)>::type> table_functions;
+  std::vector<std::add_pointer<int(int, int8_t)>::type> table_functions;
   for (int i = 0; i < num_tables; i++) {
     table_functions.push_back(join_handler_fn_arr[i]);
   }
@@ -80,7 +80,7 @@ void ExecuteSkinnerJoin(int num_tables, int num_predicates,
   // Initial budget = 10000
 
   // Execute the join order by calling the first function
-  table_functions[0](INT32_MAX);
+  table_functions[0](INT32_MAX, 0);
 }
 
 }  // namespace kush::runtime
