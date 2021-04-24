@@ -1,13 +1,114 @@
 #include "runtime/skinner_join_executor.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
+#include <memory>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 namespace kush::runtime {
+
+class Environment {
+ public:
+  virtual bool IsComplete() = 0;
+};
+
+class JoinState {
+ private:
+  class ProgressTree {
+   public:
+    ProgressTree(int num_tables) : child_nodes(num_tables) {}
+    int32_t last_completed_tuple;
+    std::vector<std::unique_ptr<ProgressTree>> child_nodes;
+  };
+
+  bool IsJoinCompleted(const std::vector<int32_t>& last_completed_tuple,
+                       const std::vector<int32_t>& cardinalities) {
+    for (int i = 0; i < last_completed_tuple.size(); i++) {
+      if (last_completed_tuple[i] != cardinalities[i] - 1) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+ public:
+  JoinState(const std::vector<int32_t>& cardinalities)
+      : finished_(false),
+        cardinalities_(cardinalities),
+        root_(cardinalities.size()) {}
+
+  bool IsComplete() { return finished_; }
+
+  void Update(const std::vector<int32_t>& order,
+              const std::vector<int32_t>& last_completed_tuple_idx) {
+    if (finished_) {
+      throw std::runtime_error("Already done executing join.");
+    }
+
+    if (IsJoinCompleted(last_completed_tuple_idx, cardinalities_)) {
+      finished_ = true;
+      return;
+    }
+
+    // Update progress tree
+    ProgressTree* prev = &root_;
+    for (int i = 0; i < order.size(); i++) {
+      int32_t table = order[i];
+      int32_t last_completed_tuple = last_completed_tuple_idx[table];
+      std::unique_ptr<ProgressTree>& curr = prev->child_nodes[table];
+
+      if (curr == nullptr) {
+        for (int j = i; j < order.size(); j++) {
+          int32_t table = order[j];
+          int32_t last_completed_tuple = last_completed_tuple_idx[table];
+          std::unique_ptr<ProgressTree>& curr = prev->child_nodes[table];
+          curr = std::make_unique<ProgressTree>(order.size());
+          curr->last_completed_tuple = last_completed_tuple;
+          prev = curr.get();
+        }
+        return;
+      }
+
+      if (last_completed_tuple < curr->last_completed_tuple) {
+        throw std::runtime_error("Negative progress was made");
+      }
+
+      if (last_completed_tuple > curr->last_completed_tuple) {
+        // fast forwarding this node
+        curr->last_completed_tuple = last_completed_tuple;
+
+        // delete all children since we've never executed them with the current
+        // last_completed_tuple
+        for (auto& x : curr->child_nodes) {
+          x.reset();
+        }
+
+        // set join order
+        prev = curr.get();
+        for (int j = i + 1; j < order.size(); j++) {
+          int32_t table = order[j];
+          int32_t last_completed_tuple = last_completed_tuple_idx[table];
+          std::unique_ptr<ProgressTree>& curr = prev->child_nodes[table];
+          curr = std::make_unique<ProgressTree>(order.size());
+          curr->last_completed_tuple = last_completed_tuple;
+          prev = curr.get();
+        }
+        return;
+      }
+
+      prev = curr.get();
+    }
+  }
+
+ private:
+  bool finished_;
+  std::vector<int32_t> cardinalities_;
+  ProgressTree root_;
+};
 
 bool IsJoinCompleted(const std::vector<int32_t>& last_completed_tuple,
                      const std::vector<int32_t>& cardinalities) {
