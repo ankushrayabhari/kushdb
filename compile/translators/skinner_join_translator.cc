@@ -372,6 +372,7 @@ void SkinnerJoinTranslator<T>::Produce() {
           program_, resume_progress != proxy::Int8<T>(program_, 0),
           [&]() {
             auto next_tuple = progress;
+
             // Load the current tuple of table.
             auto current_table_values = buffer[next_tuple].Unpack();
 
@@ -520,14 +521,14 @@ void SkinnerJoinTranslator<T>::Produce() {
             proxy::If<T>(program_, *next_tuple == cardinality, [&]() {
               auto last_tuple = cardinality - proxy::Int32<T>(program_, 1);
 
+              // Store last_tuple into global idx array.
+              auto& idx_ptr = program_.GetElementPtr(
+                  idx_array_type, idx_array,
+                  {program_.ConstI32(0), program_.ConstI32(table_idx)});
+              program_.Store(idx_ptr, last_tuple.Get());
+
               proxy::If<T>(
                   program_, budget == proxy::Int32<T>(program_, 0), [&] {
-                    // Store last_tuple into global idx array.
-                    auto& idx_ptr = program_.GetElementPtr(
-                        idx_array_type, idx_array,
-                        {program_.ConstI32(0), program_.ConstI32(table_idx)});
-                    program_.Store(idx_ptr, last_tuple.Get());
-
                     // Set table_ctr to be the current table
                     program_.Store(
                         program_.GetElementPtr(

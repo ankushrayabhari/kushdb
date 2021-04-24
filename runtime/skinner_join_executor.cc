@@ -9,23 +9,25 @@
 
 namespace kush::runtime {
 
-bool IsJoinCompleted(const std::vector<int>& order,
-                     const std::vector<int32_t>& cardinalities,
-                     int32_t* idx_arr) {
-  int left_most_table = order[0];
-  if (idx_arr[left_most_table] == cardinalities[left_most_table]) {
-    return true;
+bool IsJoinCompleted(const std::vector<int32_t>& last_completed_tuple,
+                     const std::vector<int32_t>& cardinalities) {
+  for (int i = 0; i < last_completed_tuple.size(); i++) {
+    if (last_completed_tuple[i] != cardinalities[i] - 1) {
+      return false;
+    }
   }
-  return false;
+  return true;
 }
 
-void SetJoinHandlerOrder(
+void SetJoinOrder(
     const std::vector<int>& order,
     const std::vector<std::add_pointer<int(int, int8_t)>::type>&
         table_functions,
     std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler,
-    std::add_pointer<int32_t(int32_t, int8_t)>::type* join_handler_fn_arr) {
-  // Set an initial static join order to be the tables that appear
+    std::add_pointer<int32_t(int32_t, int8_t)>::type* join_handler_fn_arr,
+    int32_t* last_table) {
+  *last_table = order.back();
+
   for (int i = 0; i < order.size() - 1; i++) {
     // set the ith handler to i+1 function
     int current_table = order[i];
@@ -36,6 +38,60 @@ void SetJoinHandlerOrder(
 
   // set last handler to be the valid tuple handler
   join_handler_fn_arr[order.size() - 1] = valid_tuple_handler;
+}
+
+std::vector<int32_t> ComputeLastCompletedTuple(
+    const std::vector<int32_t>& order,
+    const std::vector<int32_t>& cardinalities, bool should_decrement,
+    int32_t table_ctr, int* idx_arr) {
+  std::vector<int32_t> last_completed_tuple(order.size(), 0);
+
+  int table_ctr_idx = -1;
+  for (int i = 0; i < order.size(); i++) {
+    int table = order[i];
+    last_completed_tuple[table] = idx_arr[table];
+    if (table_ctr == table) {
+      table_ctr_idx = i;
+    }
+  }
+
+  if (!should_decrement) {
+    // every table after table_ctr is just cardinality - 1
+    for (int i = table_ctr_idx + 1; i < order.size(); i++) {
+      int table = order[i];
+      last_completed_tuple[table] = cardinalities[table] - 1;
+    }
+    return last_completed_tuple;
+  }
+
+  // fill in every table after table_ctr with 0
+  for (int i = table_ctr_idx + 1; i < order.size(); i++) {
+    int table = order[i];
+    last_completed_tuple[table] = 0;
+  }
+
+  // decrement last_completed_tuple by 1
+  for (int i = order.size() - 1; i >= 0; i--) {
+    int table = order[i];
+
+    if (last_completed_tuple[table] == 0) {
+      last_completed_tuple[table] = cardinalities[table] - 1;
+    } else {
+      last_completed_tuple[table]--;
+      break;
+    }
+  }
+
+  return last_completed_tuple;
+}
+
+void SetProgress(const std::vector<int32_t>& order,
+                 const std::vector<int32_t>& last_completed_tuple,
+                 int32_t* progress_arr, int32_t* table_ctr) {
+  for (int table = 0; table < last_completed_tuple.size(); table++) {
+    progress_arr[table] = last_completed_tuple[table];
+  }
+  *table_ctr = order[0];
 }
 
 void TogglePredicateFlags(
@@ -112,20 +168,36 @@ void ExecuteSkinnerJoin(
     cardinalities.push_back(idx_arr[i]);
   }
 
-  // For now set order to just be a static one
-  std::vector<int> order;
-  for (int i = 0; i < num_tables; i++) {
-    order.push_back(i);
+  bool initial_execution = true;
+  int32_t budget = 10000;
+
+  std::vector<int32_t> last_completed_tuple(num_tables, -1);
+
+  while (true) {
+    // For now set order to just be a static one
+    std::vector<int> order;
+    for (int i = 0; i < num_tables; i++) {
+      order.push_back(i);
+    }
+
+    SetJoinOrder(order, table_functions, valid_tuple_handler,
+                 join_handler_fn_arr, last_table);
+    TogglePredicateFlags(order, num_predicates, tables_per_predicate,
+                         table_predicate_to_flag_idx, flag_arr);
+    SetProgress(order, last_completed_tuple, progress_arr, table_ctr);
+
+    bool should_decrement =
+        table_functions[order[0]](budget, initial_execution ? 0 : 1) == -2;
+
+    last_completed_tuple = ComputeLastCompletedTuple(
+        order, cardinalities, should_decrement, *table_ctr, idx_arr);
+
+    initial_execution = false;
+
+    if (IsJoinCompleted(last_completed_tuple, cardinalities)) {
+      break;
+    }
   }
-  *last_table = order.back();
-
-  SetJoinHandlerOrder(order, table_functions, valid_tuple_handler,
-                      join_handler_fn_arr);
-  TogglePredicateFlags(order, num_predicates, tables_per_predicate,
-                       table_predicate_to_flag_idx, flag_arr);
-
-  // Execute the join order by calling the first table's function
-  bool should_decrement = table_functions[order[0]](INT32_MAX, 0) == -2;
 }
 
 }  // namespace kush::runtime
