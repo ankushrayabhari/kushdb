@@ -286,6 +286,16 @@ void SkinnerJoinTranslator<T>::Produce() {
   auto& progress_array =
       program_.GlobalArray(false, progress_array_type, initial_progress_values);
 
+  // Setup table_ctr
+  auto& table_ctr_type = program_.ArrayType(program_.I32Type(), 1);
+  auto& table_ctr_ptr =
+      program_.GlobalArray(false, table_ctr_type, {program_.ConstI32(0)});
+
+  // Setup last_table
+  auto& last_table_type = program_.ArrayType(program_.I32Type(), 1);
+  auto& last_table_ptr =
+      program_.GlobalArray(false, table_ctr_type, {program_.ConstI32(0)});
+
   // Setup flag array for each table.
   int total_flags = 0;
   absl::flat_hash_map<std::pair<int, int>, int> table_predicate_to_flag_idx;
@@ -317,7 +327,6 @@ void SkinnerJoinTranslator<T>::Produce() {
       program_.GlobalArray(false, handler_pointer_array_type, initial_values);
 
   std::vector<TableFunction<T>> table_functions;
-  int current_buffer = 0;
   for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
     auto& child_translator = child_translators[table_idx].get();
 
@@ -347,89 +356,40 @@ void SkinnerJoinTranslator<T>::Produce() {
         }
       }
 
-      // last_tuple = resume_progress ? progress : -1
-      // while (last_tuple  < cardinality && budget > 0):
-      //    budget--
-      //    next_tuple = last_tuple + 1
-      //    for each equality predicate that is active:
-      //        next_tuple = max(last_tuple, GetNextTuple(index, cardinality,
-      //        last_tuple, other tuple's value))
-      //    if next_tuple = cardinality:
-      //        # done with this table
-      //        break
-      //    fetch next_tuple
-      //    store next_tuple's predicate columns in struct
-      //    evaluate all other active predicates on next tuple
-      //    budget = next_table()
-      //    last_tuple = next_tuple
-
       // Loop over tuples in buffer
-      proxy::Vector<T>& buffer = *buffers_[current_buffer++];
+      proxy::Vector<T>& buffer = *buffers_[table_idx];
       auto cardinality = proxy::Int32<T>(program_, buffer.Size().Get());
 
       // Get progress
       auto& progress_ptr = program_.GetElementPtr(
           progress_array_type, progress_array,
           {program_.ConstI32(0), program_.ConstI32(table_idx)});
-      proxy::Int32<T> progress(program_, program_.Load(progress_ptr));
+      auto progress = proxy::Int32<T>(program_, program_.Load(progress_ptr));
 
       proxy::Loop<T> loop(
           program_,
           [&](auto& loop) {
-            std::unique_ptr<proxy::Int32<T>> left, right;
-            proxy::If<T> initial_value(
-                program_, resume_progress != proxy::Int8<T>(program_, 0),
-                [&]() { left = progress.ToPointer(); },
-                [&]() { right = proxy::Int32<T>(program_, -1).ToPointer(); });
-
-            auto last_tuple =
-                proxy::Int32<T>(program_, initial_value.Phi(*left, *right));
+            auto last_tuple = proxy::Int32<T>(program_, -1);
             loop.AddLoopVariable(last_tuple);
             loop.AddLoopVariable(initial_budget);
             loop.AddLoopVariable(resume_progress);
           },
           [&](auto& loop) {
             auto last_tuple = loop.template GetLoopVariable<proxy::Int32<T>>(0);
-            auto budget = loop.template GetLoopVariable<proxy::Int32<T>>(1);
-            auto resume_progress =
-                loop.template GetLoopVariable<proxy::Int8<T>>(2);
-
-            std::unique_ptr<proxy::Bool<T>> result_1, result_2;
-            proxy::If<T> check(
-                program_, last_tuple < cardinality,
-                [&]() {
-                  std::unique_ptr<proxy::Bool<T>> inner_result_1,
-                      inner_result_2;
-                  proxy::If<T> inner(
-                      program_, budget > proxy::Int32<T>(program_, 0),
-                      [&]() {
-                        inner_result_1 =
-                            proxy::Bool<T>(program_, true).ToPointer();
-                      },
-                      [&] {
-                        inner_result_2 =
-                            proxy::Bool<T>(program_, false).ToPointer();
-                      });
-                  result_1 =
-                      proxy::Bool<T>(
-                          program_, inner.Phi(*inner_result_1, *inner_result_2))
-                          .ToPointer();
-                },
-                [&] {
-                  result_2 = proxy::Bool<T>(program_, false).ToPointer();
-                });
-
-            return proxy::Bool<T>(program_, check.Phi(*result_1, *result_2));
+            return last_tuple < (cardinality - proxy::Int32<T>(program_, 1));
           },
           [&](auto& loop) {
             auto last_tuple = loop.template GetLoopVariable<proxy::Int32<T>>(0);
             auto budget = loop.template GetLoopVariable<proxy::Int32<T>>(1) -
                           proxy::Int32<T>(program_, 1);
+            auto resume_progress =
+                loop.template GetLoopVariable<proxy::Int8<T>>(2);
+
             auto next_tuple =
                 (last_tuple + proxy::Int32<T>(program_, 1)).ToPointer();
 
-            absl::flat_hash_set<int> index_evaluated_predicates;
             // Get next_tuple from active equality predicates
+            absl::flat_hash_set<int> index_evaluated_predicates;
             for (int predicate_idx : predicates_per_table[table_idx]) {
               const auto& predicate = conditions[predicate_idx].get();
               if (auto eq = dynamic_cast<
@@ -496,8 +456,27 @@ void SkinnerJoinTranslator<T>::Produce() {
             }
 
             proxy::If<T>(program_, *next_tuple == cardinality, [&]() {
-              auto next_resume_progress = proxy::Int8<T>(program_, 0);
-              loop.Continue({cardinality, budget, next_resume_progress});
+              auto last_tuple = cardinality - proxy::Int32<T>(program_, 1);
+
+              proxy::If<T>(
+                  program_, budget == proxy::Int32<T>(program_, 0), [&] {
+                    // Store last_tuple into global idx array.
+                    auto& idx_ptr = program_.GetElementPtr(
+                        idx_array_type, idx_array,
+                        {program_.ConstI32(0), program_.ConstI32(table_idx)});
+                    program_.Store(idx_ptr, last_tuple.Get());
+
+                    // Set table_ctr to be the current table
+                    program_.Store(
+                        program_.GetElementPtr(
+                            table_ctr_type, table_ctr_ptr,
+                            {program_.ConstI32(0), program_.ConstI32(0)}),
+                        program_.ConstI32(table_idx));
+
+                    program_.Return(program_.ConstI32(-1));
+                  });
+
+              program_.Return(budget.Get());
             });
 
             // Load the current tuple of table.
@@ -541,8 +520,31 @@ void SkinnerJoinTranslator<T>::Produce() {
                 auto cond = expr_translator_.Compute(conditions[predicate_idx]);
                 proxy::If<
                     T>(program_, !static_cast<proxy::Bool<T>&>(*cond), [&]() {
-                  auto next_resume_progress = proxy::Int8<T>(program_, 1);
-                  loop.Continue({*next_tuple, budget, next_resume_progress});
+                  auto last_tuple = next_tuple->ToPointer();
+
+                  proxy::If<T>(
+                      program_, budget == proxy::Int32<T>(program_, 0),
+                      [&]() {
+                        // Store last_tuple into global idx array.
+                        auto& idx_ptr = program_.GetElementPtr(
+                            idx_array_type, idx_array,
+                            {program_.ConstI32(0),
+                             program_.ConstI32(table_idx)});
+                        program_.Store(idx_ptr, last_tuple->Get());
+
+                        // Set table_ctr to be the current table
+                        program_.Store(
+                            program_.GetElementPtr(
+                                table_ctr_type, table_ctr_ptr,
+                                {program_.ConstI32(0), program_.ConstI32(0)}),
+                            program_.ConstI32(table_idx));
+
+                        program_.Return(program_.ConstI32(-1));
+                      },
+                      [&]() {
+                        auto resume_progress = proxy::Int8<T>(program_, 0);
+                        loop.Continue({*last_tuple, budget, resume_progress});
+                      });
                 });
               });
             }
@@ -553,19 +555,51 @@ void SkinnerJoinTranslator<T>::Produce() {
                 {program_.ConstI32(0), program_.ConstI32(table_idx)});
             program_.Store(idx_ptr, next_tuple->Get());
 
-            // Call next table handler
-            program_.Call(handler, handler_type,
-                          {budget.Get(), resume_progress.Get()});
+            proxy::If<T>(
+                program_, budget == proxy::Int32<T>(program_, 0), [&]() {
+                  // Set table_ctr to be the current table
+                  program_.Store(
+                      program_.GetElementPtr(
+                          table_ctr_type, table_ctr_ptr,
+                          {program_.ConstI32(0), program_.ConstI32(0)}),
+                      program_.ConstI32(table_idx));
 
-            // last_tuple = next_tuple
-            std::unique_ptr<proxy::Value<T>> next_last_tuple =
-                std::move(next_tuple);
-            std::unique_ptr<proxy::Value<T>> next_budget = budget.ToPointer();
-            std::unique_ptr<proxy::Value<T>> next_resume_progress =
-                proxy::Int8<T>(program_, 0).ToPointer();
-            return util::MakeVector(std::move(next_last_tuple),
-                                    std::move(next_budget),
-                                    std::move(next_resume_progress));
+                  proxy::Int32<T> runtime_table_idx(program_, table_idx);
+
+                  proxy::Int32<T> last_table(
+                      program_,
+                      program_.Load(program_.GetElementPtr(
+                          last_table_type, last_table_ptr,
+                          {program_.ConstI32(0), program_.ConstI32(0)})));
+
+                  proxy::If<T>(
+                      program_, runtime_table_idx == last_table, [&]() {
+                        program_.Call(handler, handler_type,
+                                      {budget.Get(), resume_progress.Get()});
+                        program_.Return(program_.ConstI32(-1));
+                      });
+
+                  program_.Return(program_.ConstI32(-2));
+                });
+
+            // Valid tuple
+            {
+              auto next_budget = proxy::Int32<T>(
+                  program_,
+                  program_.Call(handler, handler_type,
+                                {budget.Get(), resume_progress.Get()}));
+              proxy::If<T>(program_, next_budget < proxy::Int32<T>(program_, 0),
+                           [&]() { program_.Return(next_budget.Get()); });
+              {
+                using value = std::unique_ptr<proxy::Value<T>>;
+                value last_tuple = next_tuple->ToPointer();
+                value budget = next_budget.ToPointer();
+                value resume_progress = proxy::Int8<T>(program_, 0).ToPointer();
+                return util::MakeVector(std::move(last_tuple),
+                                        std::move(budget),
+                                        std::move(resume_progress));
+              }
+            }
           });
       return loop.template GetLoopVariable<proxy::Int32<T>>(1);
     }));
@@ -669,35 +703,57 @@ void SkinnerJoinTranslator<T>::Produce() {
   auto& tables_per_predicate_arr = program_.GlobalArray(
       true, tables_per_predicate_arr_type, tables_per_predicate_arr_values);
 
+  // Write out cardinalities to idx_array
+  for (int i = 0; i < child_operators.size(); i++) {
+    proxy::Vector<T>& buffer = *buffers_[i];
+    auto cardinality = proxy::Int32<T>(program_, buffer.Size().Get());
+    program_.Store(
+        program_.GetElementPtr(idx_array_type, idx_array,
+                               {program_.ConstI32(0), program_.ConstI32(i)}),
+        cardinality.Get());
+  }
+
   // Execute build side of skinner join
   auto& execute_skinner_join_fn = program_.DeclareExternalFunction(
-      "_ZN4kush7runtime18ExecuteSkinnerJoinEiiPPFiiaES2_iPiS4_PaS4_",
+      "_ZN4kush7runtime18ExecuteSkinnerJoinEiiPPFiiaES2_iPiS4_PaS4_S4_S4_S4_",
       program_.VoidType(),
       {program_.I32Type(), program_.I32Type(),
        program_.PointerType(handler_pointer_type), handler_pointer_type,
        program_.I32Type(), program_.PointerType(program_.I32Type()),
        program_.PointerType(program_.I32Type()),
        program_.PointerType(program_.I8Type()),
+       program_.PointerType(program_.I32Type()),
+       program_.PointerType(program_.I32Type()),
+       program_.PointerType(program_.I32Type()),
        program_.PointerType(program_.I32Type())});
 
   program_.Call(
       execute_skinner_join_fn,
-      {program_.ConstI32(child_operators.size()),
-       program_.ConstI32(conditions.size()),
-       program_.GetElementPtr(handler_pointer_array_type, handler_pointer_array,
-                              {program_.ConstI32(0), program_.ConstI32(0)}),
-       valid_tuple_handler.Get(),
-       program_.ConstI32(table_predicate_to_flag_idx_values.size()),
-       program_.GetElementPtr(table_predicate_to_flag_idx_arr_type,
-                              table_predicate_to_flag_idx_arr,
-                              {program_.ConstI32(0), program_.ConstI32(0)}),
-       program_.GetElementPtr(tables_per_predicate_arr_type,
-                              tables_per_predicate_arr,
-                              {program_.ConstI32(0), program_.ConstI32(0)}),
-       program_.GetElementPtr(flag_array_type, flag_array,
-                              {program_.ConstI32(0), program_.ConstI32(0)}),
-       program_.GetElementPtr(progress_array_type, progress_array,
-                              {program_.ConstI32(0), program_.ConstI32(0)})});
+      {
+          program_.ConstI32(child_operators.size()),
+          program_.ConstI32(conditions.size()),
+          program_.GetElementPtr(handler_pointer_array_type,
+                                 handler_pointer_array,
+                                 {program_.ConstI32(0), program_.ConstI32(0)}),
+          valid_tuple_handler.Get(),
+          program_.ConstI32(table_predicate_to_flag_idx_values.size()),
+          program_.GetElementPtr(table_predicate_to_flag_idx_arr_type,
+                                 table_predicate_to_flag_idx_arr,
+                                 {program_.ConstI32(0), program_.ConstI32(0)}),
+          program_.GetElementPtr(tables_per_predicate_arr_type,
+                                 tables_per_predicate_arr,
+                                 {program_.ConstI32(0), program_.ConstI32(0)}),
+          program_.GetElementPtr(flag_array_type, flag_array,
+                                 {program_.ConstI32(0), program_.ConstI32(0)}),
+          program_.GetElementPtr(progress_array_type, progress_array,
+                                 {program_.ConstI32(0), program_.ConstI32(0)}),
+          program_.GetElementPtr(table_ctr_type, table_ctr_ptr,
+                                 {program_.ConstI32(0), program_.ConstI32(0)}),
+          program_.GetElementPtr(idx_array_type, idx_array,
+                                 {program_.ConstI32(0), program_.ConstI32(0)}),
+          program_.GetElementPtr(last_table_type, last_table_ptr,
+                                 {program_.ConstI32(0), program_.ConstI32(0)}),
+      });
 
   // Loop over tuple idx table and then output tuples from each table.
   auto& tuple_it = program_.Alloca(program_.I8Type());
