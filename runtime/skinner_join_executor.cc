@@ -125,7 +125,7 @@ void ExecuteSkinnerJoin(
                        table_predicate_to_flag_idx, flag_arr);
 
   // Execute the join order by calling the first table's function
-  bool should_decrement = table_functions[order[0]](9995, 0) == -2;
+  bool should_decrement = table_functions[order[0]](INT32_MAX, 0) == -2;
 }
 
 }  // namespace kush::runtime
