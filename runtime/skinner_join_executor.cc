@@ -13,19 +13,6 @@
 #include <unordered_set>
 #include <vector>
 
-namespace std {
-template <>
-struct hash<std::vector<int>> {
-  size_t operator()(const std::vector<int>& x) const {
-    std::size_t seed(0);
-    for (const int v : x) {
-      seed ^= v + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    }
-    return seed;
-  }
-};
-}  // namespace std
-
 namespace kush::runtime {
 
 class JoinState {
@@ -49,18 +36,56 @@ class JoinState {
 
  public:
   JoinState(const std::vector<int32_t>& cardinalities)
-      : finished_(false), cardinalities_(cardinalities) {}
+      : finished_(false),
+        cardinalities_(cardinalities),
+        root_(cardinalities.size()) {}
 
   bool IsComplete() { return finished_; }
 
   std::optional<std::vector<int32_t>> GetLastCompletedTupleIdx(
       const std::vector<int>& order) {
-    auto it = order_to_last_completed_tuple.find(order);
-    if (it == order_to_last_completed_tuple.end()) {
-      return std::nullopt;
-    }
+    std::vector<int32_t> last_completed_tuple_idx(order.size());
+    ProgressTree* prev = &root_;
+    for (int i = 0; i < order.size(); i++) {
+      int table = order[i];
+      std::unique_ptr<ProgressTree>& curr = prev->child_nodes[table];
 
-    return it->second;
+      if (curr == nullptr) {
+        // first time executing this order at all
+        if (prev == &root_) {
+          return std::nullopt;
+        }
+
+        // set all remaining tables to value 0
+        for (int j = i; j < order.size(); j++) {
+          int table = order[j];
+          last_completed_tuple_idx[table] = 0;
+        }
+
+        // attempt to decrement
+        for (int i = order.size() - 1; i >= 0; i--) {
+          int table = order[i];
+
+          if (last_completed_tuple_idx[table] == 0) {
+            if (i == 0) {
+              // we've decremented back to nothing
+              return std::nullopt;
+            }
+
+            last_completed_tuple_idx[table] = cardinalities_[table] - 1;
+          } else {
+            last_completed_tuple_idx[table]--;
+            break;
+          }
+        }
+
+        return last_completed_tuple_idx;
+      }
+
+      last_completed_tuple_idx[table] = curr->last_completed_tuple;
+      prev = curr.get();
+    }
+    return last_completed_tuple_idx;
   }
 
   void Update(const std::vector<int>& order,
@@ -74,14 +99,60 @@ class JoinState {
       return;
     }
 
-    order_to_last_completed_tuple[order] = last_completed_tuple_idx;
+    // Update progress tree
+    ProgressTree* prev = &root_;
+    for (int i = 0; i < order.size(); i++) {
+      int32_t table = order[i];
+      int32_t last_completed_tuple = last_completed_tuple_idx[table];
+      std::unique_ptr<ProgressTree>& curr = prev->child_nodes[table];
+
+      if (curr == nullptr) {
+        for (int j = i; j < order.size(); j++) {
+          int32_t table = order[j];
+          int32_t last_completed_tuple = last_completed_tuple_idx[table];
+          std::unique_ptr<ProgressTree>& curr = prev->child_nodes[table];
+          curr = std::make_unique<ProgressTree>(order.size());
+          curr->last_completed_tuple = last_completed_tuple;
+          prev = curr.get();
+        }
+        return;
+      }
+
+      if (last_completed_tuple < curr->last_completed_tuple) {
+        throw std::runtime_error("Negative progress was made");
+      }
+
+      if (last_completed_tuple > curr->last_completed_tuple) {
+        // fast forwarding this node
+        curr->last_completed_tuple = last_completed_tuple;
+
+        // delete all children since we've never executed them with the current
+        // last_completed_tuple
+        for (auto& x : curr->child_nodes) {
+          x.reset();
+        }
+
+        // set join order
+        prev = curr.get();
+        for (int j = i + 1; j < order.size(); j++) {
+          int32_t table = order[j];
+          int32_t last_completed_tuple = last_completed_tuple_idx[table];
+          std::unique_ptr<ProgressTree>& curr = prev->child_nodes[table];
+          curr = std::make_unique<ProgressTree>(order.size());
+          curr->last_completed_tuple = last_completed_tuple;
+          prev = curr.get();
+        }
+        return;
+      }
+
+      prev = curr.get();
+    }
   }
 
  private:
   bool finished_;
   std::vector<int32_t> cardinalities_;
-  std::unordered_map<std::vector<int>, std::vector<int>>
-      order_to_last_completed_tuple;
+  ProgressTree root_;
 };
 
 struct ExecutionEngineFlags {
@@ -91,6 +162,7 @@ struct ExecutionEngineFlags {
   int32_t* table_ctr;
   int32_t* idx_arr;
   int32_t* last_table;
+  int32_t* num_result_tuples;
 };
 
 class JoinEnvironment {
@@ -140,10 +212,10 @@ class JoinEnvironment {
   }
 
  private:
-  double Reward(const std::vector<int32_t> initial_last_completed_tuple,
-                const std::vector<int32_t> final_last_completed_tuple) {
-    // TODO: fix this
-    return 0.5;
+  double Reward(const std::vector<int32_t>& initial_last_completed_tuple,
+                const std::vector<int32_t>& final_last_completed_tuple) {
+    return 0.5 * (*execution_engine_.num_result_tuples) /
+           (double)budget_per_episode_;
   }
 
   void SetJoinOrder(const std::vector<int>& order) {
@@ -169,6 +241,7 @@ class JoinEnvironment {
       execution_engine_.progress_arr[table] = last_completed_tuple[table];
     }
     *execution_engine_.table_ctr = order[0];
+    *execution_engine_.num_result_tuples = 0;
   }
 
   void TogglePredicateFlags(const std::vector<int>& order) {
@@ -202,8 +275,6 @@ class JoinEnvironment {
         if (!all_tables_available) continue;
 
         executed_predicates.insert(predicate_idx);
-
-        std::cout << table << ' ' << predicate_idx << std::endl;
         execution_engine_
             .flag_arr[table_predicate_to_flag_idx_[table].at(predicate_idx)] =
             1;
@@ -422,35 +493,6 @@ class UctNode {
   static constexpr double EXPLORATION_WEIGHT_ = 1E-5;
 };
 
-class SwitchingRandomStaticJoinAgent {
- public:
-  SwitchingRandomStaticJoinAgent(int num_tables, JoinEnvironment& environment)
-      : round_ctr_(0), environment_(environment) {
-    for (int i = 0; i < num_tables; i++) {
-      order1_.push_back(i);
-      order2_.push_back(i);
-    }
-
-    std::default_random_engine rng(0);
-    std::shuffle(order1_.begin(), order1_.end(), rng);
-    std::shuffle(order2_.begin(), order2_.end(), rng);
-  }
-
-  void Act() {
-    if (round_ctr_ % 2 == 0) {
-      environment_.Execute(order1_);
-    } else {
-      environment_.Execute(order2_);
-    }
-    round_ctr_++;
-  }
-
- private:
-  int round_ctr_;
-  JoinEnvironment& environment_;
-  std::vector<int> order1_, order2_;
-};
-
 class UctJoinAgent {
  public:
   UctJoinAgent(int num_tables, JoinEnvironment& environment)
@@ -526,7 +568,7 @@ void ExecuteSkinnerJoin(
     int32_t table_predicate_to_flag_idx_len,
     int32_t* table_predicate_to_flag_idx_arr, int32_t* tables_per_predicate_arr,
     int8_t* flag_arr, int32_t* progress_arr, int32_t* table_ctr,
-    int32_t* idx_arr, int32_t* last_table) {
+    int32_t* idx_arr, int32_t* last_table, int* num_result_tuples) {
   auto table_predicate_to_flag_idx = ReconstructTablePredicateToFlagIdx(
       num_tables, table_predicate_to_flag_idx_len,
       table_predicate_to_flag_idx_arr);
@@ -541,13 +583,14 @@ void ExecuteSkinnerJoin(
       .progress_arr = progress_arr,
       .table_ctr = table_ctr,
       .idx_arr = idx_arr,
-      .last_table = last_table};
+      .last_table = last_table,
+      .num_result_tuples = num_result_tuples};
 
   JoinEnvironment environment(
       num_predicates, table_predicate_to_flag_idx, tables_per_predicate,
       cardinalities, table_functions, valid_tuple_handler, execution_engine);
 
-  SwitchingRandomStaticJoinAgent agent(num_tables, environment);
+  UctJoinAgent agent(num_tables, environment);
 
   while (!environment.IsComplete()) {
     agent.Act();
