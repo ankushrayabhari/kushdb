@@ -38,9 +38,12 @@ class JoinState {
   JoinState(const std::vector<int32_t>& cardinalities)
       : finished_(false),
         cardinalities_(cardinalities),
-        root_(cardinalities.size()) {}
+        root_(cardinalities.size()),
+        offset_(cardinalities_.size(), -1) {}
 
   bool IsComplete() { return finished_; }
+
+  const std::vector<int32_t>& GetOffset() { return offset_; }
 
   std::optional<std::vector<int32_t>> GetLastCompletedTupleIdx(
       const std::vector<int>& order) {
@@ -99,6 +102,14 @@ class JoinState {
       return;
     }
 
+    // Update offset
+    {
+      int first_table = order[0];
+      int32_t last_finished_tuple = last_completed_tuple_idx[first_table];
+      offset_[first_table] =
+          std::max(last_finished_tuple, offset_[first_table]);
+    }
+
     // Update progress tree
     ProgressTree* prev = &root_;
     for (int i = 0; i < order.size(); i++) {
@@ -151,8 +162,9 @@ class JoinState {
 
  private:
   bool finished_;
-  std::vector<int32_t> cardinalities_;
+  const std::vector<int32_t> cardinalities_;
   ProgressTree root_;
+  std::vector<int32_t> offset_;
 };
 
 struct ExecutionEngineFlags {
@@ -163,6 +175,7 @@ struct ExecutionEngineFlags {
   int32_t* idx_arr;
   int32_t* last_table;
   int32_t* num_result_tuples;
+  int32_t* offset_arr;
 };
 
 class JoinEnvironment {
@@ -210,11 +223,14 @@ class JoinEnvironment {
 
   double Execute(const std::vector<int>& order) {
     auto initial_last_completed_tuple = state_.GetLastCompletedTupleIdx(order);
+    const auto& offset = state_.GetOffset();
 
     SetJoinOrder(order);
     TogglePredicateFlags(order);
-    SetResumeProgress(order, initial_last_completed_tuple.value_or(
-                                 std::vector<int32_t>(order.size(), -1)));
+    SetResumeProgress(order,
+                      initial_last_completed_tuple.value_or(
+                          std::vector<int32_t>(order.size(), -1)),
+                      offset);
 
     auto status = table_functions_[order[0]](
         budget_per_episode_, initial_last_completed_tuple.has_value() ? 1 : 0);
@@ -224,16 +240,32 @@ class JoinEnvironment {
 
     state_.Update(order, final_last_completed_tuple);
 
-    return Reward(initial_last_completed_tuple.value_or(
+    return Reward(order, offset,
+                  initial_last_completed_tuple.value_or(
                       std::vector<int32_t>(order.size(), -1)),
                   final_last_completed_tuple);
   }
 
  private:
-  double Reward(const std::vector<int32_t>& initial_last_completed_tuple,
+  double Reward(const std::vector<int32_t>& order,
+                const std::vector<int32_t>& offset,
+                const std::vector<int32_t>& initial_last_completed_tuple,
                 const std::vector<int32_t>& final_last_completed_tuple) {
-    return 0.5 * (*execution_engine_.num_result_tuples) /
-           (double)budget_per_episode_;
+    double progress = 0;
+    double weight = 1;
+    for (int i = 0; i < order.size(); i++) {
+      int table = order[i];
+      int remaining_card = cardinalities_[table] - offset[table];
+      weight *= 1.0 / remaining_card;
+
+      int start = std::max(offset[table], initial_last_completed_tuple[table]);
+      int end = std::max(offset[table], final_last_completed_tuple[table]);
+
+      progress += (end - start) * weight;
+    }
+
+    return 0.5 * progress + 0.5 * (*execution_engine_.num_result_tuples) /
+                                (double)budget_per_episode_;
   }
 
   void SetJoinOrder(const std::vector<int>& order) {
@@ -254,9 +286,12 @@ class JoinEnvironment {
   }
 
   void SetResumeProgress(const std::vector<int>& order,
-                         const std::vector<int32_t>& last_completed_tuple) {
+                         const std::vector<int32_t>& last_completed_tuple,
+                         const std::vector<int32_t>& offset) {
     for (int table = 0; table < last_completed_tuple.size(); table++) {
-      execution_engine_.progress_arr[table] = last_completed_tuple[table];
+      execution_engine_.progress_arr[table] =
+          std::max(last_completed_tuple[table], offset[table]);
+      execution_engine_.offset_arr[table] = offset[table];
     }
     *execution_engine_.table_ctr = order[0];
     *execution_engine_.num_result_tuples = 0;
@@ -646,7 +681,8 @@ void ExecuteSkinnerJoin(
     int32_t table_predicate_to_flag_idx_len,
     int32_t* table_predicate_to_flag_idx_arr, int32_t* tables_per_predicate_arr,
     int8_t* flag_arr, int32_t* progress_arr, int32_t* table_ctr,
-    int32_t* idx_arr, int32_t* last_table, int* num_result_tuples) {
+    int32_t* idx_arr, int32_t* last_table, int32_t* num_result_tuples,
+    int32_t* offset_arr) {
   auto table_predicate_to_flag_idx = ReconstructTablePredicateToFlagIdx(
       num_tables, table_predicate_to_flag_idx_len,
       table_predicate_to_flag_idx_arr);
@@ -662,7 +698,9 @@ void ExecuteSkinnerJoin(
       .table_ctr = table_ctr,
       .idx_arr = idx_arr,
       .last_table = last_table,
-      .num_result_tuples = num_result_tuples};
+      .num_result_tuples = num_result_tuples,
+      .offset_arr = offset_arr,
+  };
 
   JoinEnvironment environment(
       num_predicates, table_predicate_to_flag_idx, tables_per_predicate,

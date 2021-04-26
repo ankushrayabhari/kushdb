@@ -286,6 +286,14 @@ void SkinnerJoinTranslator<T>::Produce() {
   auto& progress_array =
       program_.GlobalArray(false, progress_array_type, initial_progress_values);
 
+  // Setup offset array
+  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+      initial_offset_values(child_operators.size(), program_.ConstI32(-1));
+  auto& offset_array_type =
+      program_.ArrayType(program_.I32Type(), child_operators.size());
+  auto& offset_array =
+      program_.GlobalArray(false, offset_array_type, initial_offset_values);
+
   // Setup table_ctr
   auto& table_ctr_type = program_.ArrayType(program_.I32Type(), 1);
   auto& table_ctr_ptr =
@@ -788,7 +796,7 @@ void SkinnerJoinTranslator<T>::Produce() {
   // Execute build side of skinner join
   auto& execute_skinner_join_fn = program_.DeclareExternalFunction(
       "_ZN4kush7runtime18ExecuteSkinnerJoinEiiPPFiiaES2_iPiS4_PaS4_S4_S4_S4_"
-      "S4_",
+      "S4_S4_",
       program_.VoidType(),
       {
           program_.I32Type(),
@@ -799,6 +807,7 @@ void SkinnerJoinTranslator<T>::Produce() {
           program_.PointerType(program_.I32Type()),
           program_.PointerType(program_.I32Type()),
           program_.PointerType(program_.I8Type()),
+          program_.PointerType(program_.I32Type()),
           program_.PointerType(program_.I32Type()),
           program_.PointerType(program_.I32Type()),
           program_.PointerType(program_.I32Type()),
@@ -833,6 +842,8 @@ void SkinnerJoinTranslator<T>::Produce() {
           program_.GetElementPtr(last_table_type, last_table_ptr,
                                  {program_.ConstI32(0), program_.ConstI32(0)}),
           program_.GetElementPtr(num_result_tuples_type, num_result_tuples_ptr,
+                                 {program_.ConstI32(0), program_.ConstI32(0)}),
+          program_.GetElementPtr(offset_array_type, offset_array,
                                  {program_.ConstI32(0), program_.ConstI32(0)}),
       });
 
