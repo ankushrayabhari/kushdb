@@ -35,6 +35,7 @@ cc_library(
         "//compile/proxy:printer_h",
         "//compile/proxy:skinner_join_executor",
         "//compile/proxy:string",
+        "//compile/proxy:tuple_idx_table",
         "//compile/proxy:vector",
         "//compile/translators:translator_factory",
     ],

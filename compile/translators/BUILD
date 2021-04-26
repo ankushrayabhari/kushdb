@@ -106,6 +106,7 @@ cc_library(
         "//compile/proxy:loop",
         "//compile/proxy:skinner_join_executor",
         "//compile/proxy:struct",
+        "//compile/proxy:tuple_idx_table",
         "//compile/proxy:value",
         "//compile/proxy:vector",
         "//plan:skinner_join_operator",

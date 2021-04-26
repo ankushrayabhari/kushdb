@@ -14,6 +14,7 @@
 #include "compile/proxy/skinner_join_executor.h"
 #include "compile/proxy/string.h"
 #include "compile/proxy/struct.h"
+#include "compile/proxy/tuple_idx_table.h"
 #include "compile/proxy/value.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
@@ -627,58 +628,18 @@ void SkinnerJoinTranslator<T>::Produce() {
   }
 
   // Setup global hash table that contains tuple idx
-  auto& tuple_idx_table_type = program_.PointerType(program_.I8Type());
-  auto& create_fn = program_.DeclareExternalFunction(
-      "_ZN4kush4data19CreateTupleIdxTableEv", tuple_idx_table_type, {});
-  auto& insert_fn = program_.DeclareExternalFunction(
-      "_ZN4kush4data6InsertEPSt13unordered_setISt6vectorIiSaIiEESt4hashIS4_"
-      "ESt8equal_toIS4_ESaIS4_EEPii",
-      program_.VoidType(),
-      {tuple_idx_table_type, program_.PointerType(program_.I32Type()),
-       program_.I32Type()});
-  auto& free_fn = program_.DeclareExternalFunction(
-      "_ZN4kush4data4FreeEPSt13unordered_setISt6vectorIiSaIiEESt4hashIS4_"
-      "ESt8equal_toIS4_ESaIS4_EE",
-      program_.VoidType(), {tuple_idx_table_type});
-  auto& size_fn = program_.DeclareExternalFunction(
-      "_ZN4kush4data4SizeEPSt13unordered_setISt6vectorIiSaIiEESt4hashIS4_"
-      "ESt8equal_toIS4_ESaIS4_EE",
-      program_.I32Type(), {tuple_idx_table_type});
-  auto& tuple_idx_iterator_type = program_.PointerType(program_.I8Type());
-  auto& begin_fn = program_.DeclareExternalFunction(
-      "_ZN4kush4data5BeginEPSt13unordered_setISt6vectorIiSaIiEESt4hashIS4_"
-      "ESt8equal_toIS4_ESaIS4_EEPPNSt8__detail20_Node_const_iteratorIS4_"
-      "Lb1ELb1EEE",
-      program_.VoidType(), {tuple_idx_table_type, tuple_idx_iterator_type});
-  auto& increment_fn = program_.DeclareExternalFunction(
-      "_ZN4kush4data9IncrementEPPNSt8__detail20_Node_const_"
-      "iteratorISt6vectorIiSaIiEELb1ELb1EEE",
-      program_.VoidType(), {tuple_idx_iterator_type});
-  auto& get_fn = program_.DeclareExternalFunction(
-      "_ZN4kush4data3GetEPPNSt8__detail20_Node_const_"
-      "iteratorISt6vectorIiSaIiEELb1ELb1EEE",
-      program_.PointerType(program_.I32Type()), {tuple_idx_iterator_type});
-  auto& free_it_fn = program_.DeclareExternalFunction(
-      "_ZN4kush4data4FreeEPPNSt8__detail20_Node_const_"
-      "iteratorISt6vectorIiSaIiEELb1ELb1EEE",
-      program_.VoidType(), {tuple_idx_iterator_type});
-
-  auto& tuple_idx_table_ptr = program_.GlobalPointer(
-      false, tuple_idx_table_type, program_.NullPtr(tuple_idx_table_type));
-  auto& tuple_idx_table = program_.Call(create_fn);
-  program_.Store(tuple_idx_table_ptr, tuple_idx_table);
+  proxy::TupleIdxTable<T> tuple_idx_table(program_);
 
   // Setup function for each valid tuple
   proxy::TableFunction<T> valid_tuple_handler(
       program_, [&](auto& budget, auto& resume_progress) {
         // Insert tuple idx into hash table
-        auto& tuple_idx_table = program_.Load(tuple_idx_table_ptr);
         auto& tuple_idx_arr = program_.GetElementPtr(
             idx_array_type, idx_array,
             {program_.ConstI32(0), program_.ConstI32(0)});
 
-        auto& num_tables = program_.ConstI32(child_translators.size());
-        program_.Call(insert_fn, {tuple_idx_table, tuple_idx_arr, num_tables});
+        proxy::Int32<T> num_tables(program_, child_translators.size());
+        tuple_idx_table.Insert(tuple_idx_arr, num_tables);
 
         auto& result_ptr = program_.GetElementPtr(
             num_result_tuples_type, num_result_tuples_ptr,
@@ -776,62 +737,32 @@ void SkinnerJoinTranslator<T>::Produce() {
   });
 
   // Loop over tuple idx table and then output tuples from each table.
-  auto& tuple_it = program_.Alloca(program_.I8Type());
-  program_.Call(begin_fn, {tuple_idx_table, tuple_it});
-  auto size =
-      proxy::Int32<T>(program_, program_.Call(size_fn, {tuple_idx_table}));
+  tuple_idx_table.ForEach([&](auto& tuple_idx_arr) {
+    int current_buffer = 0;
+    for (int i = 0; i < child_translators.size(); i++) {
+      auto& child_translator = child_translators[i].get();
 
-  proxy::Loop<T>(
-      program_,
-      [&](auto& loop) {
-        auto i = proxy::Int32<T>(program_, 0);
-        loop.AddLoopVariable(i);
-      },
-      [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
-        return i < size;
-      },
-      [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+      auto& tuple_idx_ptr = program_.GetElementPtr(
+          program_.I32Type(), tuple_idx_arr, {program_.ConstI32(i)});
+      auto tuple_idx = proxy::Int32<T>(program_, program_.Load(tuple_idx_ptr));
 
-        auto& tuple_idx_arr = program_.Call(get_fn, {tuple_it});
+      proxy::Vector<T>& buffer = *buffers_[current_buffer++];
+      // set the schema values of child to be the tuple_idx'th tuple of
+      // current table.
+      child_translator.SchemaValues().SetValues(buffer[tuple_idx].Unpack());
+    }
 
-        int current_buffer = 0;
-        for (int i = 0; i < child_translators.size(); i++) {
-          auto& child_translator = child_translators[i].get();
+    // Compute the output schema
+    this->values_.ResetValues();
+    for (const auto& column : join_.Schema().Columns()) {
+      this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+    }
 
-          auto& tuple_idx_ptr = program_.GetElementPtr(
-              program_.I32Type(), tuple_idx_arr, {program_.ConstI32(i)});
-          auto tuple_idx =
-              proxy::Int32<T>(program_, program_.Load(tuple_idx_ptr));
-
-          proxy::Vector<T>& buffer = *buffers_[current_buffer++];
-          // set the schema values of child to be the tuple_idx'th tuple of
-          // current table.
-          child_translator.SchemaValues().SetValues(buffer[tuple_idx].Unpack());
-        }
-
-        // Compute the output schema
-        this->values_.ResetValues();
-        for (const auto& column : join_.Schema().Columns()) {
-          this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
-        }
-
-        // Push tuples to next operator
-        if (auto parent = this->Parent()) {
-          parent->get().Consume(*this);
-        }
-
-        program_.Call(increment_fn, {tuple_it});
-
-        std::unique_ptr<proxy::Value<T>> next_i =
-            (i + proxy::Int32<T>(program_, 1)).ToPointer();
-        return util::MakeVector(std::move(next_i));
-      });
-
-  // Cleanup
-  program_.Call(free_it_fn, {tuple_it});
-  program_.Call(free_fn, {tuple_idx_table});
+    // Push tuples to next operator
+    if (auto parent = this->Parent()) {
+      parent->get().Consume(*this);
+    }
+  });
 
   for (auto& index : indexes_) {
     index.reset();

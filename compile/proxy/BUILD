@@ -81,6 +81,19 @@ cc_library(
 )
 
 cc_library(
+    name = "tuple_idx_table",
+    srcs = ["tuple_idx_table.cc"],
+    hdrs = ["tuple_idx_table.h"],
+    deps = [
+        ":int",
+        ":loop",
+        "//compile:ir_registry",
+        "//compile:program_builder",
+        "//util:vector_util",
+    ],
+)
+
+cc_library(
     name = "function",
     srcs = ["function.cc"],
     hdrs = ["function.h"],
