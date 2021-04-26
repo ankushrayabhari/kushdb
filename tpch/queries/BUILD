@@ -127,6 +127,31 @@ cc_binary(
 )
 
 cc_binary(
+    name = "q03_skinner",
+    srcs = ["q03_skinner.cc"],
+    deps = [
+        ":builder",
+        "//catalog",
+        "//compile:query_translator",
+        "//plan:group_by_aggregate_operator",
+        "//plan:hash_join_operator",
+        "//plan:operator",
+        "//plan:order_by_operator",
+        "//plan:output_operator",
+        "//plan:scan_operator",
+        "//plan:select_operator",
+        "//plan:skinner_join_operator",
+        "//plan/expression",
+        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:column_ref_expression",
+        "//plan/expression:literal_expression",
+        "//plan/expression:virtual_column_ref_expression",
+        "//tpch:schema",
+        "//util:vector_util",
+    ],
+)
+
+cc_binary(
     name = "q05",
     srcs = ["q05.cc"],
     deps = [
@@ -202,6 +227,31 @@ cc_binary(
 )
 
 cc_binary(
+    name = "q10_skinner",
+    srcs = ["q10_skinner.cc"],
+    deps = [
+        ":builder",
+        "//catalog",
+        "//compile:query_translator",
+        "//plan:group_by_aggregate_operator",
+        "//plan:hash_join_operator",
+        "//plan:operator",
+        "//plan:order_by_operator",
+        "//plan:output_operator",
+        "//plan:scan_operator",
+        "//plan:select_operator",
+        "//plan:skinner_join_operator",
+        "//plan/expression",
+        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:column_ref_expression",
+        "//plan/expression:literal_expression",
+        "//plan/expression:virtual_column_ref_expression",
+        "//tpch:schema",
+        "//util:vector_util",
+    ],
+)
+
+cc_binary(
     name = "q11",
     srcs = ["q11.cc"],
     deps = [
@@ -252,8 +302,58 @@ cc_binary(
 )
 
 cc_binary(
+    name = "q12_skinner",
+    srcs = ["q12_skinner.cc"],
+    deps = [
+        ":builder",
+        "//catalog",
+        "//compile:query_translator",
+        "//plan:group_by_aggregate_operator",
+        "//plan:hash_join_operator",
+        "//plan:operator",
+        "//plan:order_by_operator",
+        "//plan:output_operator",
+        "//plan:scan_operator",
+        "//plan:select_operator",
+        "//plan:skinner_join_operator",
+        "//plan/expression",
+        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:column_ref_expression",
+        "//plan/expression:literal_expression",
+        "//plan/expression:virtual_column_ref_expression",
+        "//tpch:schema",
+        "//util:vector_util",
+    ],
+)
+
+cc_binary(
     name = "q14",
     srcs = ["q14.cc"],
+    deps = [
+        ":builder",
+        "//catalog",
+        "//compile:query_translator",
+        "//plan:group_by_aggregate_operator",
+        "//plan:hash_join_operator",
+        "//plan:operator",
+        "//plan:order_by_operator",
+        "//plan:output_operator",
+        "//plan:scan_operator",
+        "//plan:select_operator",
+        "//plan:skinner_join_operator",
+        "//plan/expression",
+        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:column_ref_expression",
+        "//plan/expression:literal_expression",
+        "//plan/expression:virtual_column_ref_expression",
+        "//tpch:schema",
+        "//util:vector_util",
+    ],
+)
+
+cc_binary(
+    name = "q14_skinner",
+    srcs = ["q14_skinner.cc"],
     deps = [
         ":builder",
         "//catalog",
@@ -304,6 +404,31 @@ cc_binary(
 cc_binary(
     name = "q19",
     srcs = ["q19.cc"],
+    deps = [
+        ":builder",
+        "//catalog",
+        "//compile:query_translator",
+        "//plan:group_by_aggregate_operator",
+        "//plan:hash_join_operator",
+        "//plan:operator",
+        "//plan:order_by_operator",
+        "//plan:output_operator",
+        "//plan:scan_operator",
+        "//plan:select_operator",
+        "//plan:skinner_join_operator",
+        "//plan/expression",
+        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:column_ref_expression",
+        "//plan/expression:literal_expression",
+        "//plan/expression:virtual_column_ref_expression",
+        "//tpch:schema",
+        "//util:vector_util",
+    ],
+)
+
+cc_binary(
+    name = "q19_skinner",
+    srcs = ["q19_skinner.cc"],
     deps = [
         ":builder",
         "//catalog",
