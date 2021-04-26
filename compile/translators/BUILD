@@ -104,6 +104,7 @@ cc_library(
         "//compile/proxy:column_index",
         "//compile/proxy:function",
         "//compile/proxy:loop",
+        "//compile/proxy:skinner_join_executor",
         "//compile/proxy:struct",
         "//compile/proxy:value",
         "//compile/proxy:vector",

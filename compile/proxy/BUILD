@@ -93,6 +93,17 @@ cc_library(
 )
 
 cc_library(
+    name = "skinner_join_executor",
+    srcs = ["skinner_join_executor.cc"],
+    hdrs = ["skinner_join_executor.h"],
+    deps = [
+        ":int",
+        "//compile:ir_registry",
+        "//compile:program_builder",
+    ],
+)
+
+cc_library(
     name = "ptr",
     hdrs = ["ptr.h"],
     deps = [

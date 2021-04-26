@@ -11,6 +11,7 @@
 #include "compile/proxy/function.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/printer.h"
+#include "compile/proxy/skinner_join_executor.h"
 #include "compile/proxy/string.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/value.h"
@@ -90,58 +91,6 @@ class PredicateColumnCollector : public plan::ImmutableExpressionVisitor {
  private:
   std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
       predicate_columns_;
-};
-
-template <typename T>
-class TableFunction {
- public:
-  TableFunction(
-      ProgramBuilder<T>& program,
-      std::function<proxy::Int32<T>(proxy::Int32<T>&, proxy::Int8<T>&)> body) {
-    auto& current_block = program.CurrentBlock();
-    func = &program.CreateFunction(program.I32Type(),
-                                   {program.I32Type(), program.I8Type()});
-
-    auto args = program.GetFunctionArguments(*func);
-    proxy::Int32<T> budget(program, args[0]);
-    proxy::Int8<T> resume_progress(program, args[1]);
-
-    auto x = body(budget, resume_progress);
-    program.Return(x.Get());
-
-    program.SetCurrentBlock(current_block);
-  }
-
-  typename ProgramBuilder<T>::Function& Get() { return *func; }
-
- private:
-  typename ProgramBuilder<T>::Function* func;
-};
-
-template <typename T>
-class TupleIdxHandler {
- public:
-  TupleIdxHandler(
-      ProgramBuilder<T>& program,
-      std::function<void(typename ProgramBuilder<T>::Value& v)> body) {
-    auto& current_block = program.CurrentBlock();
-
-    func = &program.CreateFunction(program.VoidType(),
-                                   {program.PointerType(program.I32Type())});
-    auto args = program.GetFunctionArguments(*func);
-
-    auto& idx_ptr =
-        program.PointerCast(args[0], program.PointerType(program.I32Type()));
-
-    body(idx_ptr);
-
-    program.SetCurrentBlock(current_block);
-  }
-
-  typename ProgramBuilder<T>::Function& Get() { return *func; }
-
- private:
-  typename ProgramBuilder<T>::Function* func;
 };
 
 template <typename T>
@@ -339,11 +288,11 @@ void SkinnerJoinTranslator<T>::Produce() {
   auto& handler_pointer_array =
       program_.GlobalArray(false, handler_pointer_array_type, initial_values);
 
-  std::vector<TableFunction<T>> table_functions;
+  std::vector<proxy::TableFunction<T>> table_functions;
   for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
     auto& child_translator = child_translators[table_idx].get();
 
-    table_functions.push_back(TableFunction<
+    table_functions.push_back(proxy::TableFunction<
                               T>(program_, [&](auto& initial_budget,
                                                auto& resume_progress) {
       auto& handler_ptr = program_.GetElementPtr(
@@ -720,26 +669,27 @@ void SkinnerJoinTranslator<T>::Produce() {
   program_.Store(tuple_idx_table_ptr, tuple_idx_table);
 
   // Setup function for each valid tuple
-  TableFunction<T> valid_tuple_handler(program_, [&](auto& budget,
-                                                     auto& resume_progress) {
-    // Insert tuple idx into hash table
-    auto& tuple_idx_table = program_.Load(tuple_idx_table_ptr);
-    auto& tuple_idx_arr =
-        program_.GetElementPtr(idx_array_type, idx_array,
-                               {program_.ConstI32(0), program_.ConstI32(0)});
+  proxy::TableFunction<T> valid_tuple_handler(
+      program_, [&](auto& budget, auto& resume_progress) {
+        // Insert tuple idx into hash table
+        auto& tuple_idx_table = program_.Load(tuple_idx_table_ptr);
+        auto& tuple_idx_arr = program_.GetElementPtr(
+            idx_array_type, idx_array,
+            {program_.ConstI32(0), program_.ConstI32(0)});
 
-    auto& num_tables = program_.ConstI32(child_translators.size());
-    program_.Call(insert_fn, {tuple_idx_table, tuple_idx_arr, num_tables});
+        auto& num_tables = program_.ConstI32(child_translators.size());
+        program_.Call(insert_fn, {tuple_idx_table, tuple_idx_arr, num_tables});
 
-    auto& result_ptr =
-        program_.GetElementPtr(num_result_tuples_type, num_result_tuples_ptr,
-                               {program_.ConstI32(0), program_.ConstI32(0)});
-    proxy::Int32<T> num_result_tuples(program_, program_.Load(result_ptr));
-    program_.Store(result_ptr,
-                   (num_result_tuples + proxy::Int32<T>(program_, 1)).Get());
+        auto& result_ptr = program_.GetElementPtr(
+            num_result_tuples_type, num_result_tuples_ptr,
+            {program_.ConstI32(0), program_.ConstI32(0)});
+        proxy::Int32<T> num_result_tuples(program_, program_.Load(result_ptr));
+        program_.Store(
+            result_ptr,
+            (num_result_tuples + proxy::Int32<T>(program_, 1)).Get());
 
-    return budget;
-  });
+        return budget;
+      });
 
   // 3. Execute join
   // Initialize handler array with the corresponding functions for each table
@@ -794,58 +744,36 @@ void SkinnerJoinTranslator<T>::Produce() {
   }
 
   // Execute build side of skinner join
-  auto& execute_skinner_join_fn = program_.DeclareExternalFunction(
-      "_ZN4kush7runtime18ExecuteSkinnerJoinEiiPPFiiaES2_iPiS4_PaS4_S4_S4_S4_"
-      "S4_S4_",
-      program_.VoidType(),
-      {
-          program_.I32Type(),
-          program_.I32Type(),
-          program_.PointerType(handler_pointer_type),
-          handler_pointer_type,
-          program_.I32Type(),
-          program_.PointerType(program_.I32Type()),
-          program_.PointerType(program_.I32Type()),
-          program_.PointerType(program_.I8Type()),
-          program_.PointerType(program_.I32Type()),
-          program_.PointerType(program_.I32Type()),
-          program_.PointerType(program_.I32Type()),
-          program_.PointerType(program_.I32Type()),
-          program_.PointerType(program_.I32Type()),
-          program_.PointerType(program_.I32Type()),
-      });
+  proxy::SkinnerJoinExecutor<T> executor(program_);
 
-  program_.Call(
-      execute_skinner_join_fn,
-      {
-          program_.ConstI32(child_operators.size()),
-          program_.ConstI32(conditions.size()),
-          program_.GetElementPtr(handler_pointer_array_type,
-                                 handler_pointer_array,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-          valid_tuple_handler.Get(),
-          program_.ConstI32(table_predicate_to_flag_idx_values.size()),
-          program_.GetElementPtr(table_predicate_to_flag_idx_arr_type,
-                                 table_predicate_to_flag_idx_arr,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-          program_.GetElementPtr(tables_per_predicate_arr_type,
-                                 tables_per_predicate_arr,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-          program_.GetElementPtr(flag_array_type, flag_array,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-          program_.GetElementPtr(progress_array_type, progress_array,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-          program_.GetElementPtr(table_ctr_type, table_ctr_ptr,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-          program_.GetElementPtr(idx_array_type, idx_array,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-          program_.GetElementPtr(last_table_type, last_table_ptr,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-          program_.GetElementPtr(num_result_tuples_type, num_result_tuples_ptr,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-          program_.GetElementPtr(offset_array_type, offset_array,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-      });
+  executor.Execute({
+      program_.ConstI32(child_operators.size()),
+      program_.ConstI32(conditions.size()),
+      program_.GetElementPtr(handler_pointer_array_type, handler_pointer_array,
+                             {program_.ConstI32(0), program_.ConstI32(0)}),
+      valid_tuple_handler.Get(),
+      program_.ConstI32(table_predicate_to_flag_idx_values.size()),
+      program_.GetElementPtr(table_predicate_to_flag_idx_arr_type,
+                             table_predicate_to_flag_idx_arr,
+                             {program_.ConstI32(0), program_.ConstI32(0)}),
+      program_.GetElementPtr(tables_per_predicate_arr_type,
+                             tables_per_predicate_arr,
+                             {program_.ConstI32(0), program_.ConstI32(0)}),
+      program_.GetElementPtr(flag_array_type, flag_array,
+                             {program_.ConstI32(0), program_.ConstI32(0)}),
+      program_.GetElementPtr(progress_array_type, progress_array,
+                             {program_.ConstI32(0), program_.ConstI32(0)}),
+      program_.GetElementPtr(table_ctr_type, table_ctr_ptr,
+                             {program_.ConstI32(0), program_.ConstI32(0)}),
+      program_.GetElementPtr(idx_array_type, idx_array,
+                             {program_.ConstI32(0), program_.ConstI32(0)}),
+      program_.GetElementPtr(last_table_type, last_table_ptr,
+                             {program_.ConstI32(0), program_.ConstI32(0)}),
+      program_.GetElementPtr(num_result_tuples_type, num_result_tuples_ptr,
+                             {program_.ConstI32(0), program_.ConstI32(0)}),
+      program_.GetElementPtr(offset_array_type, offset_array,
+                             {program_.ConstI32(0), program_.ConstI32(0)}),
+  });
 
   // Loop over tuple idx table and then output tuples from each table.
   auto& tuple_it = program_.Alloca(program_.I8Type());

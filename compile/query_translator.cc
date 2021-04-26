@@ -11,6 +11,7 @@
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/printer.h"
+#include "compile/proxy/skinner_join_executor.h"
 #include "compile/proxy/string.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/translator_factory.h"
@@ -57,6 +58,8 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   proxy::ColumnIndexImpl<T, catalog::SqlType::DATE>::ForwardDeclare(*program);
   proxy::ColumnIndexImpl<T, catalog::SqlType::REAL>::ForwardDeclare(*program);
   proxy::ColumnIndexImpl<T, catalog::SqlType::TEXT>::ForwardDeclare(*program);
+
+  proxy::SkinnerJoinExecutor<T>::ForwardDeclare(*program);
 
   // Create the compute function
   program->CreatePublicFunction(program->VoidType(), {}, "compute");
