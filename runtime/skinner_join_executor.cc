@@ -188,6 +188,24 @@ class JoinEnvironment {
         state_(cardinalities_),
         execution_engine_(execution_engine) {}
 
+  bool IsConnected(const std::set<int>& joined_tables, int table) {
+    for (int i = 0; i < num_predicates_; i++) {
+      const auto& tables = tables_per_predicate_[i];
+
+      if (tables.find(table) == tables.end()) {
+        continue;
+      }
+
+      for (int x : tables) {
+        if (joined_tables.find(x) != joined_tables.end()) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   bool IsComplete() { return state_.IsComplete(); }
 
   double Execute(const std::vector<int>& order) {
@@ -352,10 +370,10 @@ class UctNode {
         num_tries_per_action_(num_actions_, 0),
         acc_reward_per_action_(num_actions_, 0),
         table_per_action_(num_actions_),
-        // rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
-        rng_(0) {
+        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
     for (int i = 0; i < num_actions_; i++) {
       priority_actions_.push_back(i);
+      recommended_actions_.insert(i);
     }
 
     for (int i = 0; i < num_tables_; i++) {
@@ -377,12 +395,7 @@ class UctNode {
         joined_tables_(parent.joined_tables_),
         unjoined_tables_(parent.unjoined_tables_),
         table_per_action_(num_actions_),
-        // rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
-        rng_(0) {
-    for (int i = 0; i < num_actions_; i++) {
-      priority_actions_.push_back(i);
-    }
-
+        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
     joined_tables_.insert(joined_table);
 
     auto it = std::find(unjoined_tables_.begin(), unjoined_tables_.end(),
@@ -392,6 +405,28 @@ class UctNode {
     int action = 0;
     for (int table : unjoined_tables_) {
       table_per_action_[action++] = table;
+    }
+
+    if (USE_HEURISTIC_) {
+      for (int i = 0; i < num_actions_; i++) {
+        int table = table_per_action_[i];
+        if (environment_.IsConnected(joined_tables_, table)) {
+          recommended_actions_.insert(i);
+        }
+      }
+
+      if (recommended_actions_.empty()) {
+        for (int i = 0; i < num_actions_; i++) {
+          recommended_actions_.insert(i);
+        }
+      }
+    }
+
+    for (int i = 0; i < num_actions_; i++) {
+      if (!USE_HEURISTIC_ ||
+          recommended_actions_.find(i) != recommended_actions_.end()) {
+        priority_actions_.push_back(i);
+      }
     }
   }
 
@@ -422,17 +457,49 @@ class UctNode {
   double Playout(std::vector<int>& order) {
     int last_table = order[tree_level_];
 
-    std::shuffle(unjoined_tables_.begin(), unjoined_tables_.end(), rng_);
+    if (USE_HEURISTIC_) {
+      std::set<int> newly_joined;
+      newly_joined.insert(joined_tables_.begin(), joined_tables_.end());
+      newly_joined.insert(last_table);
 
-    auto it = unjoined_tables_.begin();
-    for (int level = tree_level_ + 1; level < num_tables_; ++level) {
-      int table = *it++;
-
-      if (table == last_table) {
-        table = *it++;
+      std::vector<int> unjoined_tables_shuffled(unjoined_tables_.begin(),
+                                                unjoined_tables_.end());
+      std::shuffle(unjoined_tables_shuffled.begin(),
+                   unjoined_tables_shuffled.end(), rng_);
+      for (int pos = tree_level_ + 1; pos < num_tables_; pos++) {
+        bool found_table = false;
+        for (int table : unjoined_tables_shuffled) {
+          if (newly_joined.find(table) == newly_joined.end() &&
+              environment_.IsConnected(newly_joined, table)) {
+            order[pos] = table;
+            newly_joined.insert(table);
+            found_table = true;
+            break;
+          }
+        }
+        if (!found_table) {
+          for (int table : unjoined_tables_shuffled) {
+            if (newly_joined.find(table) == newly_joined.end()) {
+              order[pos] = table;
+              newly_joined.insert(table);
+              break;
+            }
+          }
+        }
       }
+    } else {
+      std::shuffle(unjoined_tables_.begin(), unjoined_tables_.end(), rng_);
 
-      order[level] = table;
+      auto it = unjoined_tables_.begin();
+      for (int level = tree_level_ + 1; level < num_tables_; ++level) {
+        int table = *it++;
+
+        if (table == last_table) {
+          table = *it++;
+        }
+
+        order[level] = table;
+      }
     }
 
     return environment_.Execute(order);
@@ -452,6 +519,15 @@ class UctNode {
     double best_quality = -1;
     for (int action_idx = 0; action_idx < num_actions_; ++action_idx) {
       int action = (offset + action_idx) % num_actions_;
+
+      if (USE_HEURISTIC_ && recommended_actions_.empty()) {
+        throw std::runtime_error("no recommended actions with heuristic.");
+      }
+
+      if (USE_HEURISTIC_ &&
+          recommended_actions_.find(action) == recommended_actions_.end()) {
+        continue;
+      }
 
       double mean_reward =
           acc_reward_per_action_[action] / num_tries_per_action_[action];
@@ -486,11 +562,13 @@ class UctNode {
   std::vector<int> num_tries_per_action_;
   std::vector<double> acc_reward_per_action_;
   std::set<int> joined_tables_;
+  std::set<int> recommended_actions_;
   std::vector<int> unjoined_tables_;
   std::vector<int> table_per_action_;
   std::default_random_engine rng_;
 
   static constexpr double EXPLORATION_WEIGHT_ = 1E-5;
+  static constexpr bool USE_HEURISTIC_ = true;
 };
 
 class UctJoinAgent {
