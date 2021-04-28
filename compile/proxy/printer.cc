@@ -23,37 +23,37 @@ template <typename T>
 Printer<T>::Printer(ProgramBuilder<T>& program) : program_(program) {}
 
 template <typename T>
-void Printer<T>::Print(Int8<T>& t) {
+void Printer<T>::Print(const Int8<T>& t) {
   program_.Call(program_.GetFunction(i8_fn_name), {t.Get()});
 }
 
 template <typename T>
-void Printer<T>::Print(Bool<T>& t) {
+void Printer<T>::Print(const Bool<T>& t) {
   program_.Call(program_.GetFunction(i1_fn_name), {t.Get()});
 }
 
 template <typename T>
-void Printer<T>::Print(Int16<T>& t) {
+void Printer<T>::Print(const Int16<T>& t) {
   program_.Call(program_.GetFunction(i16_fn_name), {t.Get()});
 }
 
 template <typename T>
-void Printer<T>::Print(Int32<T>& t) {
+void Printer<T>::Print(const Int32<T>& t) {
   program_.Call(program_.GetFunction(i32_fn_name), {t.Get()});
 }
 
 template <typename T>
-void Printer<T>::Print(Int64<T>& t) {
+void Printer<T>::Print(const Int64<T>& t) {
   program_.Call(program_.GetFunction(i64_fn_name), {t.Get()});
 }
 
 template <typename T>
-void Printer<T>::Print(Float64<T>& t) {
+void Printer<T>::Print(const Float64<T>& t) {
   program_.Call(program_.GetFunction(f64_fn_name), {t.Get()});
 }
 
 template <typename T>
-void Printer<T>::Print(String<T>& t) {
+void Printer<T>::Print(const String<T>& t) {
   program_.Call(program_.GetFunction(string_fn_name), {t.Get()});
 }
 

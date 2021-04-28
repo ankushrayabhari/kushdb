@@ -32,13 +32,13 @@ class Printer {
  public:
   Printer(ProgramBuilder<T>& program);
 
-  void Print(Int8<T>& t);
-  void Print(Bool<T>& t);
-  void Print(Int16<T>& t);
-  void Print(Int32<T>& t);
-  void Print(Int64<T>& t);
-  void Print(Float64<T>& t);
-  void Print(String<T>& t);
+  void Print(const Int8<T>& t);
+  void Print(const Bool<T>& t);
+  void Print(const Int16<T>& t);
+  void Print(const Int32<T>& t);
+  void Print(const Int64<T>& t);
+  void Print(const Float64<T>& t);
+  void Print(const String<T>& t);
   void PrintNewline();
 
   static void ForwardDeclare(ProgramBuilder<T>& program);
