@@ -207,9 +207,28 @@ template <typename T>
 void ExpressionTranslator<T>::Visit(
     const plan::IntToFloatConversionExpression& conv_expr) {
   auto v = this->Compute(conv_expr.Child());
-  this->Return(
-      proxy::Float64<T>(program_, program_.CastSignedIntToF64(v->Get()))
-          .ToPointer());
+
+  if (auto i = dynamic_cast<proxy::Int8<T>*>(v.get())) {
+    this->Return(proxy::Float64<T>(program_, *i).ToPointer());
+    return;
+  }
+
+  if (auto i = dynamic_cast<proxy::Int16<T>*>(v.get())) {
+    this->Return(proxy::Float64<T>(program_, *i).ToPointer());
+    return;
+  }
+
+  if (auto i = dynamic_cast<proxy::Int32<T>*>(v.get())) {
+    this->Return(proxy::Float64<T>(program_, *i).ToPointer());
+    return;
+  }
+
+  if (auto i = dynamic_cast<proxy::Int64<T>*>(v.get())) {
+    this->Return(proxy::Float64<T>(program_, *i).ToPointer());
+    return;
+  }
+
+  throw std::runtime_error("Not an integer input.");
 }
 
 INSTANTIATE_ON_IR(ExpressionTranslator);

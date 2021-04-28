@@ -200,6 +200,7 @@ cc_library(
     hdrs = ["float.h"],
     deps = [
         ":bool",
+        ":int",
         ":numeric",
         ":printer_h",
         ":value",
