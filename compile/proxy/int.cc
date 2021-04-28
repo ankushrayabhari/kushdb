@@ -83,6 +83,62 @@ Bool<T> Int8<T>::operator>=(const Int8<T>& rhs) {
 }
 
 template <typename T>
+Int8<T> Int8<T>::operator+(int8_t rhs) {
+  return Int8<T>(program_, program_.AddI8(value_, program_.ConstI8(rhs)));
+}
+
+template <typename T>
+Int8<T> Int8<T>::operator-(int8_t rhs) {
+  return Int8<T>(program_, program_.SubI8(value_, program_.ConstI8(rhs)));
+}
+
+template <typename T>
+Int8<T> Int8<T>::operator*(int8_t rhs) {
+  return Int8<T>(program_, program_.MulI8(value_, program_.ConstI8(rhs)));
+}
+
+template <typename T>
+Int8<T> Int8<T>::operator/(int8_t rhs) {
+  return Int8<T>(program_, program_.DivI8(value_, program_.ConstI8(rhs)));
+}
+
+template <typename T>
+Bool<T> Int8<T>::operator==(int8_t rhs) {
+  return Bool<T>(program_, program_.CmpI8(T::CompType::ICMP_EQ, value_,
+                                          program_.ConstI8(rhs)));
+}
+
+template <typename T>
+Bool<T> Int8<T>::operator!=(int8_t rhs) {
+  return Bool<T>(program_, program_.CmpI8(T::CompType::ICMP_NE, value_,
+                                          program_.ConstI8(rhs)));
+}
+
+template <typename T>
+Bool<T> Int8<T>::operator<(int8_t rhs) {
+  return Bool<T>(program_, program_.CmpI8(T::CompType::ICMP_SLT, value_,
+                                          program_.ConstI8(rhs)));
+}
+
+template <typename T>
+Bool<T> Int8<T>::operator<=(int8_t rhs) {
+  return Bool<T>(program_, program_.CmpI8(T::CompType::ICMP_SLE, value_,
+                                          program_.ConstI8(rhs)));
+}
+
+template <typename T>
+Bool<T> Int8<T>::operator>(int8_t rhs) {
+  return Bool<T>(program_, program_.CmpI8(T::CompType::ICMP_SGT, value_,
+                                          program_.ConstI8(rhs)));
+}
+
+template <typename T>
+Bool<T> Int8<T>::operator>=(int8_t rhs) {
+  return Bool<T>(program_, program_.CmpI8(T::CompType::ICMP_SGE, value_,
+                                          program_.ConstI8(rhs)));
+}
+
+template <typename T>
 std::unique_ptr<Int8<T>> Int8<T>::ToPointer() {
   return std::make_unique<Int8<T>>(program_, value_);
 }
@@ -173,6 +229,62 @@ template <typename T>
 Bool<T> Int16<T>::operator>=(const Int16<T>& rhs) {
   return Bool<T>(program_,
                  program_.CmpI16(T::CompType::ICMP_SGE, value_, rhs.value_));
+}
+
+template <typename T>
+Int16<T> Int16<T>::operator+(int16_t rhs) {
+  return Int16<T>(program_, program_.AddI16(value_, program_.ConstI16(rhs)));
+}
+
+template <typename T>
+Int16<T> Int16<T>::operator-(int16_t rhs) {
+  return Int16<T>(program_, program_.SubI16(value_, program_.ConstI16(rhs)));
+}
+
+template <typename T>
+Int16<T> Int16<T>::operator*(int16_t rhs) {
+  return Int16<T>(program_, program_.MulI16(value_, program_.ConstI16(rhs)));
+}
+
+template <typename T>
+Int16<T> Int16<T>::operator/(int16_t rhs) {
+  return Int16<T>(program_, program_.DivI16(value_, program_.ConstI16(rhs)));
+}
+
+template <typename T>
+Bool<T> Int16<T>::operator==(int16_t rhs) {
+  return Bool<T>(program_, program_.CmpI16(T::CompType::ICMP_EQ, value_,
+                                           program_.ConstI16(rhs)));
+}
+
+template <typename T>
+Bool<T> Int16<T>::operator!=(int16_t rhs) {
+  return Bool<T>(program_, program_.CmpI16(T::CompType::ICMP_NE, value_,
+                                           program_.ConstI16(rhs)));
+}
+
+template <typename T>
+Bool<T> Int16<T>::operator<(int16_t rhs) {
+  return Bool<T>(program_, program_.CmpI16(T::CompType::ICMP_SLT, value_,
+                                           program_.ConstI16(rhs)));
+}
+
+template <typename T>
+Bool<T> Int16<T>::operator<=(int16_t rhs) {
+  return Bool<T>(program_, program_.CmpI16(T::CompType::ICMP_SLE, value_,
+                                           program_.ConstI16(rhs)));
+}
+
+template <typename T>
+Bool<T> Int16<T>::operator>(int16_t rhs) {
+  return Bool<T>(program_, program_.CmpI16(T::CompType::ICMP_SGT, value_,
+                                           program_.ConstI16(rhs)));
+}
+
+template <typename T>
+Bool<T> Int16<T>::operator>=(int16_t rhs) {
+  return Bool<T>(program_, program_.CmpI16(T::CompType::ICMP_SGE, value_,
+                                           program_.ConstI16(rhs)));
 }
 
 template <typename T>
@@ -269,6 +381,62 @@ Bool<T> Int32<T>::operator>=(const Int32<T>& rhs) {
 }
 
 template <typename T>
+Int32<T> Int32<T>::operator+(int32_t rhs) {
+  return Int32<T>(program_, program_.AddI32(value_, program_.ConstI32(rhs)));
+}
+
+template <typename T>
+Int32<T> Int32<T>::operator-(int32_t rhs) {
+  return Int32<T>(program_, program_.SubI32(value_, program_.ConstI32(rhs)));
+}
+
+template <typename T>
+Int32<T> Int32<T>::operator*(int32_t rhs) {
+  return Int32<T>(program_, program_.MulI32(value_, program_.ConstI32(rhs)));
+}
+
+template <typename T>
+Int32<T> Int32<T>::operator/(int32_t rhs) {
+  return Int32<T>(program_, program_.DivI32(value_, program_.ConstI32(rhs)));
+}
+
+template <typename T>
+Bool<T> Int32<T>::operator==(int32_t rhs) {
+  return Bool<T>(program_, program_.CmpI32(T::CompType::ICMP_EQ, value_,
+                                           program_.ConstI32(rhs)));
+}
+
+template <typename T>
+Bool<T> Int32<T>::operator!=(int32_t rhs) {
+  return Bool<T>(program_, program_.CmpI32(T::CompType::ICMP_NE, value_,
+                                           program_.ConstI32(rhs)));
+}
+
+template <typename T>
+Bool<T> Int32<T>::operator<(int32_t rhs) {
+  return Bool<T>(program_, program_.CmpI32(T::CompType::ICMP_SLT, value_,
+                                           program_.ConstI32(rhs)));
+}
+
+template <typename T>
+Bool<T> Int32<T>::operator<=(int32_t rhs) {
+  return Bool<T>(program_, program_.CmpI32(T::CompType::ICMP_SLE, value_,
+                                           program_.ConstI32(rhs)));
+}
+
+template <typename T>
+Bool<T> Int32<T>::operator>(int32_t rhs) {
+  return Bool<T>(program_, program_.CmpI32(T::CompType::ICMP_SGT, value_,
+                                           program_.ConstI32(rhs)));
+}
+
+template <typename T>
+Bool<T> Int32<T>::operator>=(int32_t rhs) {
+  return Bool<T>(program_, program_.CmpI32(T::CompType::ICMP_SGE, value_,
+                                           program_.ConstI32(rhs)));
+}
+
+template <typename T>
 std::unique_ptr<Int32<T>> Int32<T>::ToPointer() {
   return std::make_unique<Int32<T>>(program_, value_);
 }
@@ -359,6 +527,62 @@ template <typename T>
 Bool<T> Int64<T>::operator>=(const Int64<T>& rhs) {
   return Bool<T>(program_,
                  program_.CmpI64(T::CompType::ICMP_SGE, value_, rhs.value_));
+}
+
+template <typename T>
+Int64<T> Int64<T>::operator+(int64_t rhs) {
+  return Int64<T>(program_, program_.AddI64(value_, program_.ConstI64(rhs)));
+}
+
+template <typename T>
+Int64<T> Int64<T>::operator-(int64_t rhs) {
+  return Int64<T>(program_, program_.SubI64(value_, program_.ConstI64(rhs)));
+}
+
+template <typename T>
+Int64<T> Int64<T>::operator*(int64_t rhs) {
+  return Int64<T>(program_, program_.MulI64(value_, program_.ConstI64(rhs)));
+}
+
+template <typename T>
+Int64<T> Int64<T>::operator/(int64_t rhs) {
+  return Int64<T>(program_, program_.DivI64(value_, program_.ConstI64(rhs)));
+}
+
+template <typename T>
+Bool<T> Int64<T>::operator==(int64_t rhs) {
+  return Bool<T>(program_, program_.CmpI64(T::CompType::ICMP_EQ, value_,
+                                           program_.ConstI64(rhs)));
+}
+
+template <typename T>
+Bool<T> Int64<T>::operator!=(int64_t rhs) {
+  return Bool<T>(program_, program_.CmpI64(T::CompType::ICMP_NE, value_,
+                                           program_.ConstI64(rhs)));
+}
+
+template <typename T>
+Bool<T> Int64<T>::operator<(int64_t rhs) {
+  return Bool<T>(program_, program_.CmpI64(T::CompType::ICMP_SLT, value_,
+                                           program_.ConstI64(rhs)));
+}
+
+template <typename T>
+Bool<T> Int64<T>::operator<=(int64_t rhs) {
+  return Bool<T>(program_, program_.CmpI64(T::CompType::ICMP_SLE, value_,
+                                           program_.ConstI64(rhs)));
+}
+
+template <typename T>
+Bool<T> Int64<T>::operator>(int64_t rhs) {
+  return Bool<T>(program_, program_.CmpI64(T::CompType::ICMP_SGT, value_,
+                                           program_.ConstI64(rhs)));
+}
+
+template <typename T>
+Bool<T> Int64<T>::operator>=(int64_t rhs) {
+  return Bool<T>(program_, program_.CmpI64(T::CompType::ICMP_SGE, value_,
+                                           program_.ConstI64(rhs)));
 }
 
 template <typename T>

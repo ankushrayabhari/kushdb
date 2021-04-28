@@ -92,8 +92,7 @@ void TupleIdxTable<T>::ForEach(
 
         program_.Call(program_.GetFunction(increment_fn_name), {tuple_it});
 
-        std::unique_ptr<proxy::Value<T>> next_i =
-            (i + proxy::Int32<T>(program_, 1)).ToPointer();
+        std::unique_ptr<proxy::Value<T>> next_i = (i + 1).ToPointer();
         return util::MakeVector(std::move(next_i));
       });
 

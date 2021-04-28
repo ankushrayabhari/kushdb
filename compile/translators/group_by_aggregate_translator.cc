@@ -222,8 +222,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
         // Else, break out of loop
         std::unique_ptr<proxy::Int32<T>> next_index;
         proxy::If<T> check(program_, !found_->Load(), [&]() {
-          next_index = std::make_unique<proxy::Int32<T>>(
-              i + proxy::Int32<T>(program_, 1));
+          next_index = std::make_unique<proxy::Int32<T>>(i + 1);
         });
 
         std::unique_ptr<proxy::Value<T>> next_i =

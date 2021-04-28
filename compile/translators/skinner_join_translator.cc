@@ -332,7 +332,7 @@ void SkinnerJoinTranslator<T>::Produce() {
       std::unique_ptr<proxy::Int32<T>> last_tuple_left, last_tuple_right;
       std::unique_ptr<proxy::Int32<T>> budget_left, budget_right;
       proxy::If<T> progress_check(
-          program_, resume_progress != proxy::Int8<T>(program_, 0),
+          program_, resume_progress != 0,
           [&]() {
             auto next_tuple = progress;
 
@@ -380,7 +380,7 @@ void SkinnerJoinTranslator<T>::Produce() {
             auto new_budget = proxy::Int32<T>(
                 program_, check.Phi(*resume_progress_budget_left,
                                     *resume_progress_budget_right));
-            proxy::If<T>(program_, new_budget < proxy::Int32<T>(program_, 0),
+            proxy::If<T>(program_, new_budget < 0,
                          [&]() { program_.Return(new_budget.Get()); });
 
             last_tuple_left = next_tuple.ToPointer();
@@ -404,15 +404,13 @@ void SkinnerJoinTranslator<T>::Produce() {
           },
           [&](auto& loop) {
             auto last_tuple = loop.template GetLoopVariable<proxy::Int32<T>>(0);
-            return last_tuple < (cardinality - proxy::Int32<T>(program_, 1));
+            return last_tuple < (cardinality - 1);
           },
           [&](auto& loop) {
             auto last_tuple = loop.template GetLoopVariable<proxy::Int32<T>>(0);
-            auto budget = loop.template GetLoopVariable<proxy::Int32<T>>(1) -
-                          proxy::Int32<T>(program_, 1);
+            auto budget = loop.template GetLoopVariable<proxy::Int32<T>>(1) - 1;
 
-            auto next_tuple =
-                (last_tuple + proxy::Int32<T>(program_, 1)).ToPointer();
+            auto next_tuple = (last_tuple + 1).ToPointer();
 
             // Get next_tuple from active equality predicates
             absl::flat_hash_set<int> index_evaluated_predicates;
@@ -446,10 +444,9 @@ void SkinnerJoinTranslator<T>::Produce() {
                                  {table_idx, predicate_idx}))});
                         proxy::Int8<T> flag_value(program_,
                                                   program_.Load(flag_ptr));
-                        auto flag = flag_value == proxy::Int8<T>(program_, 1);
 
                         std::unique_ptr<proxy::Int32<T>> next_tuple_result;
-                        proxy::If<T> check(program_, flag, [&]() {
+                        proxy::If<T> check(program_, flag_value == 1, [&]() {
                           auto other_side_value = expr_translator_.Compute(
                               table_idx == left_column->GetChildIdx()
                                   ? *right_column
@@ -482,7 +479,7 @@ void SkinnerJoinTranslator<T>::Produce() {
             }
 
             proxy::If<T>(program_, *next_tuple == cardinality, [&]() {
-              auto last_tuple = cardinality - proxy::Int32<T>(program_, 1);
+              auto last_tuple = cardinality - 1;
 
               // Store last_tuple into global idx array.
               auto& idx_ptr = program_.GetElementPtr(
@@ -490,17 +487,16 @@ void SkinnerJoinTranslator<T>::Produce() {
                   {program_.ConstI32(0), program_.ConstI32(table_idx)});
               program_.Store(idx_ptr, last_tuple.Get());
 
-              proxy::If<T>(
-                  program_, budget == proxy::Int32<T>(program_, 0), [&] {
-                    // Set table_ctr to be the current table
-                    program_.Store(
-                        program_.GetElementPtr(
-                            table_ctr_type, table_ctr_ptr,
-                            {program_.ConstI32(0), program_.ConstI32(0)}),
-                        program_.ConstI32(table_idx));
+              proxy::If<T>(program_, budget == 0, [&] {
+                // Set table_ctr to be the current table
+                program_.Store(
+                    program_.GetElementPtr(
+                        table_ctr_type, table_ctr_ptr,
+                        {program_.ConstI32(0), program_.ConstI32(0)}),
+                    program_.ConstI32(table_idx));
 
-                    program_.Return(program_.ConstI32(-1));
-                  });
+                program_.Return(program_.ConstI32(-1));
+              });
 
               program_.Return(budget.Get());
             });
@@ -541,15 +537,14 @@ void SkinnerJoinTranslator<T>::Produce() {
                    program_.ConstI32(table_predicate_to_flag_idx.at(
                        {table_idx, predicate_idx}))});
               proxy::Int8<T> flag_value(program_, program_.Load(flag_ptr));
-              auto flag = flag_value == proxy::Int8<T>(program_, 1);
-              proxy::If<T>(program_, flag, [&]() {
+              proxy::If<T>(program_, flag_value == 1, [&]() {
                 auto cond = expr_translator_.Compute(conditions[predicate_idx]);
                 proxy::If<T>(
                     program_, !static_cast<proxy::Bool<T>&>(*cond), [&]() {
                       auto last_tuple = next_tuple->ToPointer();
 
                       proxy::If<T>(
-                          program_, budget == proxy::Int32<T>(program_, 0),
+                          program_, budget == 0,
                           [&]() {
                             // Store last_tuple into global idx array.
                             auto& idx_ptr = program_.GetElementPtr(
@@ -580,39 +575,35 @@ void SkinnerJoinTranslator<T>::Produce() {
                 {program_.ConstI32(0), program_.ConstI32(table_idx)});
             program_.Store(idx_ptr, next_tuple->Get());
 
-            proxy::If<T>(
-                program_, budget == proxy::Int32<T>(program_, 0), [&]() {
-                  // Set table_ctr to be the current table
-                  program_.Store(
-                      program_.GetElementPtr(
-                          table_ctr_type, table_ctr_ptr,
-                          {program_.ConstI32(0), program_.ConstI32(0)}),
-                      program_.ConstI32(table_idx));
+            proxy::If<T>(program_, budget == 0, [&]() {
+              // Set table_ctr to be the current table
+              program_.Store(program_.GetElementPtr(
+                                 table_ctr_type, table_ctr_ptr,
+                                 {program_.ConstI32(0), program_.ConstI32(0)}),
+                             program_.ConstI32(table_idx));
 
-                  proxy::Int32<T> runtime_table_idx(program_, table_idx);
+              proxy::Int32<T> runtime_table_idx(program_, table_idx);
 
-                  proxy::Int32<T> last_table(
-                      program_,
-                      program_.Load(program_.GetElementPtr(
-                          last_table_type, last_table_ptr,
-                          {program_.ConstI32(0), program_.ConstI32(0)})));
+              proxy::Int32<T> last_table(
+                  program_, program_.Load(program_.GetElementPtr(
+                                last_table_type, last_table_ptr,
+                                {program_.ConstI32(0), program_.ConstI32(0)})));
 
-                  proxy::If<T>(
-                      program_, runtime_table_idx == last_table, [&]() {
-                        program_.Call(handler, handler_type,
-                                      {budget.Get(), program_.ConstI8(0)});
-                        program_.Return(program_.ConstI32(-1));
-                      });
+              proxy::If<T>(program_, runtime_table_idx == last_table, [&]() {
+                program_.Call(handler, handler_type,
+                              {budget.Get(), program_.ConstI8(0)});
+                program_.Return(program_.ConstI32(-1));
+              });
 
-                  program_.Return(program_.ConstI32(-2));
-                });
+              program_.Return(program_.ConstI32(-2));
+            });
 
             // Valid tuple
             {
               auto next_budget = proxy::Int32<T>(
                   program_, program_.Call(handler, handler_type,
                                           {budget.Get(), program_.ConstI8(0)}));
-              proxy::If<T>(program_, next_budget < proxy::Int32<T>(program_, 0),
+              proxy::If<T>(program_, next_budget < 0,
                            [&]() { program_.Return(next_budget.Get()); });
               {
                 using value = std::unique_ptr<proxy::Value<T>>;
@@ -645,9 +636,7 @@ void SkinnerJoinTranslator<T>::Produce() {
             num_result_tuples_type, num_result_tuples_ptr,
             {program_.ConstI32(0), program_.ConstI32(0)});
         proxy::Int32<T> num_result_tuples(program_, program_.Load(result_ptr));
-        program_.Store(
-            result_ptr,
-            (num_result_tuples + proxy::Int32<T>(program_, 1)).Get());
+        program_.Store(result_ptr, (num_result_tuples + 1).Get());
 
         return budget;
       });

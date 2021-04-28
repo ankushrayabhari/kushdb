@@ -20,15 +20,25 @@ class Int8 : public Value<T> {
   typename ProgramBuilder<T>::Value& Get() const override;
 
   Int8<T> operator+(const Int8<T>& rhs);
+  Int8<T> operator+(int8_t rhs);
   Int8<T> operator-(const Int8<T>& rhs);
+  Int8<T> operator-(int8_t rhs);
   Int8<T> operator*(const Int8<T>& rhs);
+  Int8<T> operator*(int8_t rhs);
   Int8<T> operator/(const Int8<T>& rhs);
+  Int8<T> operator/(int8_t rhs);
   Bool<T> operator==(const Int8<T>& rhs);
+  Bool<T> operator==(int8_t rhs);
   Bool<T> operator!=(const Int8<T>& rhs);
+  Bool<T> operator!=(int8_t rhs);
   Bool<T> operator<(const Int8<T>& rhs);
+  Bool<T> operator<(int8_t rhs);
   Bool<T> operator<=(const Int8<T>& rhs);
+  Bool<T> operator<=(int8_t rhs);
   Bool<T> operator>(const Int8<T>& rhs);
+  Bool<T> operator>(int8_t rhs);
   Bool<T> operator>=(const Int8<T>& rhs);
+  Bool<T> operator>=(int8_t rhs);
 
   std::unique_ptr<Int8<T>> ToPointer();
   std::unique_ptr<Value<T>> EvaluateBinary(
@@ -51,15 +61,25 @@ class Int16 : public Value<T> {
   typename ProgramBuilder<T>::Value& Get() const override;
 
   Int16<T> operator+(const Int16<T>& rhs);
+  Int16<T> operator+(int16_t rhs);
   Int16<T> operator-(const Int16<T>& rhs);
+  Int16<T> operator-(int16_t rhs);
   Int16<T> operator*(const Int16<T>& rhs);
+  Int16<T> operator*(int16_t rhs);
   Int16<T> operator/(const Int16<T>& rhs);
+  Int16<T> operator/(int16_t rhs);
   Bool<T> operator==(const Int16<T>& rhs);
+  Bool<T> operator==(int16_t rhs);
   Bool<T> operator!=(const Int16<T>& rhs);
+  Bool<T> operator!=(int16_t rhs);
   Bool<T> operator<(const Int16<T>& rhs);
+  Bool<T> operator<(int16_t rhs);
   Bool<T> operator<=(const Int16<T>& rhs);
+  Bool<T> operator<=(int16_t rhs);
   Bool<T> operator>(const Int16<T>& rhs);
+  Bool<T> operator>(int16_t rhs);
   Bool<T> operator>=(const Int16<T>& rhs);
+  Bool<T> operator>=(int16_t rhs);
 
   std::unique_ptr<Int16<T>> ToPointer();
   std::unique_ptr<Value<T>> EvaluateBinary(
@@ -82,15 +102,25 @@ class Int32 : public Value<T> {
   typename ProgramBuilder<T>::Value& Get() const override;
 
   Int32<T> operator+(const Int32<T>& rhs);
+  Int32<T> operator+(int32_t rhs);
   Int32<T> operator-(const Int32<T>& rhs);
+  Int32<T> operator-(int32_t rhs);
   Int32<T> operator*(const Int32<T>& rhs);
+  Int32<T> operator*(int32_t rhs);
   Int32<T> operator/(const Int32<T>& rhs);
+  Int32<T> operator/(int32_t rhs);
   Bool<T> operator==(const Int32<T>& rhs);
+  Bool<T> operator==(int32_t rhs);
   Bool<T> operator!=(const Int32<T>& rhs);
+  Bool<T> operator!=(int32_t rhs);
   Bool<T> operator<(const Int32<T>& rhs);
+  Bool<T> operator<(int32_t rhs);
   Bool<T> operator<=(const Int32<T>& rhs);
+  Bool<T> operator<=(int32_t rhs);
   Bool<T> operator>(const Int32<T>& rhs);
+  Bool<T> operator>(int32_t rhs);
   Bool<T> operator>=(const Int32<T>& rhs);
+  Bool<T> operator>=(int32_t rhs);
 
   std::unique_ptr<Int32<T>> ToPointer();
   std::unique_ptr<Value<T>> EvaluateBinary(
@@ -113,21 +143,31 @@ class Int64 : public Value<T> {
   typename ProgramBuilder<T>::Value& Get() const override;
 
   Int64<T> operator+(const Int64<T>& rhs);
+  Int64<T> operator+(int64_t rhs);
   Int64<T> operator-(const Int64<T>& rhs);
+  Int64<T> operator-(int64_t rhs);
   Int64<T> operator*(const Int64<T>& rhs);
+  Int64<T> operator*(int64_t rhs);
   Int64<T> operator/(const Int64<T>& rhs);
+  Int64<T> operator/(int64_t rhs);
   Bool<T> operator==(const Int64<T>& rhs);
+  Bool<T> operator==(int64_t rhs);
   Bool<T> operator!=(const Int64<T>& rhs);
+  Bool<T> operator!=(int64_t rhs);
   Bool<T> operator<(const Int64<T>& rhs);
+  Bool<T> operator<(int64_t rhs);
   Bool<T> operator<=(const Int64<T>& rhs);
+  Bool<T> operator<=(int64_t rhs);
   Bool<T> operator>(const Int64<T>& rhs);
+  Bool<T> operator>(int64_t rhs);
   Bool<T> operator>=(const Int64<T>& rhs);
-  void Print(proxy::Printer<T>& printer) override;
+  Bool<T> operator>=(int64_t rhs);
 
   std::unique_ptr<Int64<T>> ToPointer();
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
+  void Print(proxy::Printer<T>& printer) override;
   typename ProgramBuilder<T>::Value& Hash() override;
 
  private:
