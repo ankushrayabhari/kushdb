@@ -10,6 +10,8 @@ class String : public Value<T> {
  public:
   String(ProgramBuilder<T>& program, typename ProgramBuilder<T>::Value& value);
 
+  static String<T> Constant(ProgramBuilder<T>& program, std::string_view value);
+
   void Copy(const String<T>& rhs);
   void Reset();
 
@@ -28,11 +30,7 @@ class String : public Value<T> {
   typename ProgramBuilder<T>::Value& Hash() override;
   typename ProgramBuilder<T>::Value& Get() const override;
 
-  static typename ProgramBuilder<T>::Value& Constant(ProgramBuilder<T>& program,
-                                                     std::string_view value);
-
   static void ForwardDeclare(ProgramBuilder<T>& program);
-
   static const std::string_view StringStructName;
 
  private:

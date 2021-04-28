@@ -102,9 +102,8 @@ void ExpressionTranslator<T>::Visit(const plan::LiteralExpression& literal) {
                                                        literal.GetRealValue()));
       break;
     case catalog::SqlType::TEXT:
-      this->Return(std::make_unique<proxy::String<T>>(
-          program_,
-          proxy::String<T>::Constant(program_, literal.GetTextValue())));
+      this->Return(proxy::String<T>::Constant(program_, literal.GetTextValue())
+                       .ToPointer());
       break;
     case catalog::SqlType::BOOLEAN:
       this->Return(std::make_unique<proxy::Bool<T>>(program_,
