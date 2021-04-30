@@ -19,7 +19,7 @@ class Loop {
       std::function<Bool<T>(Loop&)> cond,
       std::function<std::vector<std::unique_ptr<proxy::Value<T>>>(Loop&)> body);
 
-  void AddLoopVariable(proxy::Value<T>& v);
+  void AddLoopVariable(const proxy::Value<T>& v);
 
   void Break();
 

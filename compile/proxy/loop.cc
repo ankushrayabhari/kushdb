@@ -55,7 +55,7 @@ Loop<T>::Loop(
 }
 
 template <typename T>
-void Loop<T>::AddLoopVariable(proxy::Value<T>& v) {
+void Loop<T>::AddLoopVariable(const proxy::Value<T>& v) {
   // switch to header
   auto& current_block = program_.CurrentBlock();
   program_.SetCurrentBlock(*header_);

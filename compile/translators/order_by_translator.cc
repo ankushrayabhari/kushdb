@@ -92,10 +92,7 @@ void OrderByTranslator<T>::Produce() {
 
   proxy::Loop<T>(
       program_,
-      [&](auto& loop) {
-        auto i = proxy::Int32<T>(program_, 0);
-        loop.AddLoopVariable(i);
-      },
+      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32<T>(program_, 0)); },
       [&](auto& loop) {
         auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
         return i < buffer_->Size();
