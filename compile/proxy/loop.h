@@ -27,7 +27,7 @@ class Loop {
 
   template <typename S>
   S GetLoopVariable(int i) {
-    return S(program_, phi_nodes_[i].get());
+    return S(program_, phi_nodes_[i]);
   }
 
  private:

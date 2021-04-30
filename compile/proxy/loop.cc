@@ -24,7 +24,7 @@ Loop<T>::Loop(
 
   // now that all loop varaibles are knowns, add to phi nodes
   for (int i = 0; i < phi_nodes_.size(); i++) {
-    program_.AddToPhi(phi_nodes_[i].get(), phi_nodes_initial_values_[i].get(),
+    program_.AddToPhi(phi_nodes_[i], phi_nodes_initial_values_[i],
                       program_.CurrentBlock());
   }
 
@@ -45,7 +45,7 @@ Loop<T>::Loop(
   program_.SetCurrentBlock(body_block);
   auto updated_values = body(*this);
   for (int i = 0; i < phi_nodes_.size(); i++) {
-    program_.AddToPhi(phi_nodes_[i].get(), updated_values[i]->Get(),
+    program_.AddToPhi(phi_nodes_[i], updated_values[i]->Get(),
                       program_.CurrentBlock());
   }
   program_.Branch(*header_);
@@ -75,7 +75,7 @@ void Loop<T>::Continue(
     std::vector<std::reference_wrapper<proxy::Value<T>>> loop_vars) {
   // add each loop var to phi node
   for (int i = 0; i < phi_nodes_.size(); i++) {
-    program_.AddToPhi(phi_nodes_[i].get(), loop_vars[i].get().Get(),
+    program_.AddToPhi(phi_nodes_[i], loop_vars[i].get().Get(),
                       program_.CurrentBlock());
   }
 
