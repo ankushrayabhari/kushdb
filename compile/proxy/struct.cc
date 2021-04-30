@@ -146,14 +146,14 @@ std::vector<std::unique_ptr<Value<T>>> Struct<T>::Unpack() {
 }
 
 template <typename T>
-void Struct<T>::Update(int field, proxy::Value<T>& v) {
+void Struct<T>::Update(int field, const proxy::Value<T>& v) {
   auto types = fields_.Types();
 
   auto& ptr = program_.GetElementPtr(
       fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(field)});
 
   if (types[field] == catalog::SqlType::TEXT) {
-    String<T>(program_, ptr).Copy(dynamic_cast<String<T>&>(v));
+    String<T>(program_, ptr).Copy(dynamic_cast<const String<T>&>(v));
   } else {
     program_.Store(ptr, v.Get());
   }

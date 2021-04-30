@@ -36,7 +36,7 @@ class Struct {
          typename ProgramBuilder<T>::Value& value);
 
   void Pack(std::vector<std::reference_wrapper<proxy::Value<T>>> value);
-  void Update(int field, proxy::Value<T>& v);
+  void Update(int field, const proxy::Value<T>& v);
 
   std::vector<std::unique_ptr<Value<T>>> Unpack();
 
