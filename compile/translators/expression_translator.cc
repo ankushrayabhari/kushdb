@@ -44,8 +44,7 @@ void ExpressionTranslator<T>::Visit(
       proxy::Bool<T>& th_ref = dynamic_cast<proxy::Bool<T>&>(*th);
       proxy::Bool<T>& el_ref = dynamic_cast<proxy::Bool<T>&>(*el);
 
-      this->Return(std::make_unique<proxy::Bool<T>>(
-          program_, branch.Phi(th_ref, el_ref)));
+      this->Return(branch.Phi(th_ref, el_ref).ToPointer());
       break;
     }
 
@@ -60,8 +59,7 @@ void ExpressionTranslator<T>::Visit(
       proxy::Bool<T>& th_ref = dynamic_cast<proxy::Bool<T>&>(*th);
       proxy::Bool<T>& el_ref = dynamic_cast<proxy::Bool<T>&>(*el);
 
-      this->Return(std::make_unique<proxy::Bool<T>>(
-          program_, branch.Phi(th_ref, el_ref)));
+      this->Return(branch.Phi(th_ref, el_ref).ToPointer());
       break;
     }
 
@@ -165,7 +163,7 @@ std::unique_ptr<S> Ternary(ProgramBuilder<T>& program,
   S& th_ref = dynamic_cast<S&>(*th);
   S& el_ref = dynamic_cast<S&>(*el);
 
-  return std::make_unique<S>(program, branch.Phi(th_ref, el_ref));
+  return branch.Phi(th_ref, el_ref).ToPointer();
 }
 
 template <typename T>

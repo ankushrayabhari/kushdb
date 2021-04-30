@@ -226,7 +226,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
         });
 
         std::unique_ptr<proxy::Value<T>> next_i =
-            proxy::Int32<T>(program_, check.Phi(size, *next_index)).ToPointer();
+            check.Phi(size, *next_index).ToPointer();
         return util::MakeVector(std::move(next_i));
       });
 

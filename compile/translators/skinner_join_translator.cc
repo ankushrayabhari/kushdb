@@ -377,9 +377,8 @@ void SkinnerJoinTranslator<T>::Produce() {
                 [&]() {
                   resume_progress_budget_right = initial_budget.ToPointer();
                 });
-            auto new_budget = proxy::Int32<T>(
-                program_, check.Phi(*resume_progress_budget_left,
-                                    *resume_progress_budget_right));
+            auto new_budget = check.Phi(*resume_progress_budget_left,
+                                        *resume_progress_budget_right);
             proxy::If<T>(program_, new_budget < 0,
                          [&]() { program_.Return(new_budget.Get()); });
 
@@ -391,10 +390,8 @@ void SkinnerJoinTranslator<T>::Produce() {
             budget_right = initial_budget.ToPointer();
           });
 
-      auto last_tuple = proxy::Int32<T>(
-          program_, progress_check.Phi(*last_tuple_left, *last_tuple_right));
-      auto budget = proxy::Int32<T>(
-          program_, progress_check.Phi(*budget_left, *budget_right));
+      auto last_tuple = progress_check.Phi(*last_tuple_left, *last_tuple_right);
+      auto budget = progress_check.Phi(*budget_left, *budget_right);
 
       proxy::Loop<T> loop(
           program_,
@@ -462,13 +459,12 @@ void SkinnerJoinTranslator<T>::Produce() {
                                     next_greater_in_index.ToPointer();
                               });
 
-                          next_tuple_result = std::make_unique<proxy::Int32<T>>(
-                              program_,
-                              max_check.Phi(*next_tuple, *next_tuple_result));
+                          next_tuple_result =
+                              max_check.Phi(*next_tuple, *next_tuple_result)
+                                  .ToPointer();
                         });
-                        next_tuple = std::make_unique<proxy::Int32<T>>(
-                            program_,
-                            check.Phi(*next_tuple, *next_tuple_result));
+                        next_tuple = check.Phi(*next_tuple, *next_tuple_result)
+                                         .ToPointer();
 
                         index_evaluated_predicates.insert(predicate_idx);
                       }
