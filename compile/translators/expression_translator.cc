@@ -23,6 +23,18 @@
 namespace kush::compile {
 
 template <typename T>
+template <typename S>
+std::unique_ptr<S> ExpressionTranslator<T>::ComputeAs(
+    const plan::Expression& e) {
+  auto p = this->Compute(e);
+  if (S* result = dynamic_cast<S*>(p.get())) {
+    p.release();
+    return std::unique_ptr<S>(result);
+  }
+  return std::unique_ptr<S>(nullptr);
+}
+
+template <typename T>
 ExpressionTranslator<T>::ExpressionTranslator(ProgramBuilder<T>& program,
                                               OperatorTranslator<T>& source)
     : program_(program), source_(source) {}
@@ -34,32 +46,25 @@ void ExpressionTranslator<T>::Visit(
   switch (arith.OpType()) {
     // Special handling for AND/OR for short circuiting
     case OpType::AND: {
-      std::unique_ptr<proxy::Value<T>> th, el;
-      auto left_value = this->Compute(arith.LeftChild());
+      std::unique_ptr<proxy::Bool<T>> th, el;
+      auto left_value = ComputeAs<proxy::Bool<T>>(arith.LeftChild());
       proxy::If branch(
-          program_, dynamic_cast<proxy::Bool<T>&>(*left_value),
-          [&]() { th = this->Compute(arith.RightChild()); },
-          [&]() { el = std::make_unique<proxy::Bool<T>>(program_, false); });
-
-      proxy::Bool<T>& th_ref = dynamic_cast<proxy::Bool<T>&>(*th);
-      proxy::Bool<T>& el_ref = dynamic_cast<proxy::Bool<T>&>(*el);
-
-      this->Return(branch.Phi(th_ref, el_ref).ToPointer());
+          program_, *left_value,
+          [&]() { th = ComputeAs<proxy::Bool<T>>(arith.RightChild()); },
+          [&]() { el = proxy::Bool<T>(program_, false).ToPointer(); });
+      this->Return(branch.Phi(*th, *el).ToPointer());
       break;
     }
 
     case OpType::OR: {
-      std::unique_ptr<proxy::Value<T>> th, el;
-      auto left_value = this->Compute(arith.LeftChild());
+      std::unique_ptr<proxy::Bool<T>> th, el;
+      auto left_value = ComputeAs<proxy::Bool<T>>(arith.LeftChild());
       proxy::If branch(
-          program_, dynamic_cast<proxy::Bool<T>&>(*left_value),
-          [&]() { th = std::make_unique<proxy::Bool<T>>(program_, true); },
-          [&]() { el = this->Compute(arith.RightChild()); });
+          program_, *left_value,
+          [&]() { th = proxy::Bool<T>(program_, true).ToPointer(); },
+          [&]() { el = ComputeAs<proxy::Bool<T>>(arith.RightChild()); });
 
-      proxy::Bool<T>& th_ref = dynamic_cast<proxy::Bool<T>&>(*th);
-      proxy::Bool<T>& el_ref = dynamic_cast<proxy::Bool<T>&>(*el);
-
-      this->Return(branch.Phi(th_ref, el_ref).ToPointer());
+      this->Return(branch.Phi(*th, *el).ToPointer());
       break;
     }
 
@@ -149,52 +154,48 @@ void ExpressionTranslator<T>::Visit(
   this->Return(CopyProxyValue(program_, type, value.Get()));
 }
 
-template <typename S, typename T>
-std::unique_ptr<S> Ternary(ProgramBuilder<T>& program,
-                           ExpressionTranslator<T>& translator,
-                           const plan::CaseExpression& case_expr) {
-  std::unique_ptr<proxy::Value<T>> th, el;
-  auto cond = translator.Compute(case_expr.Cond());
+template <typename T>
+template <typename S>
+std::unique_ptr<S> ExpressionTranslator<T>::Ternary(
+    const plan::CaseExpression& case_expr) {
+  std::unique_ptr<S> th, el;
+  auto cond = ComputeAs<proxy::Bool<T>>(case_expr.Cond());
   proxy::If branch(
-      program, dynamic_cast<proxy::Bool<T>&>(*cond),
-      [&]() { th = translator.Compute(case_expr.Then()); },
-      [&]() { el = translator.Compute(case_expr.Else()); });
+      program_, *cond, [&]() { th = ComputeAs<S>(case_expr.Then()); },
+      [&]() { el = ComputeAs<S>(case_expr.Else()); });
 
-  S& th_ref = dynamic_cast<S&>(*th);
-  S& el_ref = dynamic_cast<S&>(*el);
-
-  return branch.Phi(th_ref, el_ref).ToPointer();
+  return branch.Phi(*th, *el).ToPointer();
 }
 
 template <typename T>
 void ExpressionTranslator<T>::Visit(const plan::CaseExpression& case_expr) {
   switch (case_expr.Type()) {
     case catalog::SqlType::SMALLINT: {
-      this->Return(Ternary<proxy::Int16<T>, T>(program_, *this, case_expr));
+      this->Return(Ternary<proxy::Int16<T>>(case_expr));
       break;
     }
     case catalog::SqlType::INT: {
-      this->Return(Ternary<proxy::Int32<T>, T>(program_, *this, case_expr));
+      this->Return(Ternary<proxy::Int32<T>>(case_expr));
       break;
     }
     case catalog::SqlType::BIGINT: {
-      this->Return(Ternary<proxy::Int64<T>, T>(program_, *this, case_expr));
+      this->Return(Ternary<proxy::Int64<T>>(case_expr));
       break;
     }
     case catalog::SqlType::DATE: {
-      this->Return(Ternary<proxy::Int64<T>, T>(program_, *this, case_expr));
+      this->Return(Ternary<proxy::Int64<T>>(case_expr));
       break;
     }
     case catalog::SqlType::REAL: {
-      this->Return(Ternary<proxy::Float64<T>, T>(program_, *this, case_expr));
+      this->Return(Ternary<proxy::Float64<T>>(case_expr));
       break;
     }
     case catalog::SqlType::TEXT: {
-      this->Return(Ternary<proxy::String<T>, T>(program_, *this, case_expr));
+      this->Return(Ternary<proxy::String<T>>(case_expr));
       break;
     }
     case catalog::SqlType::BOOLEAN: {
-      this->Return(Ternary<proxy::Bool<T>, T>(program_, *this, case_expr));
+      this->Return(Ternary<proxy::Bool<T>>(case_expr));
       break;
     }
   }

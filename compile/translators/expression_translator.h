@@ -30,6 +30,12 @@ class ExpressionTranslator
   void Visit(const plan::IntToFloatConversionExpression& conv_expr) override;
 
  private:
+  template <typename S>
+  std::unique_ptr<S> ComputeAs(const plan::Expression&);
+
+  template <typename S>
+  std::unique_ptr<S> Ternary(const plan::CaseExpression& case_expr);
+
   ProgramBuilder<T>& program_;
   OperatorTranslator<T>& source_;
 };
