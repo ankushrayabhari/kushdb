@@ -16,10 +16,11 @@ class ColumnIndex {
  public:
   virtual ~ColumnIndex() = default;
 
-  virtual void Insert(proxy::Value<T>& v, proxy::Int32<T>& tuple_idx) = 0;
-  virtual proxy::Int32<T> GetNextGreater(proxy::Value<T>& v,
-                                         proxy::Int32<T>& tuple_idx,
-                                         proxy::Int32<T>& cardinality) = 0;
+  virtual void Insert(const proxy::Value<T>& v,
+                      const proxy::Int32<T>& tuple_idx) = 0;
+  virtual proxy::Int32<T> GetNextGreater(
+      const proxy::Value<T>& v, const proxy::Int32<T>& tuple_idx,
+      const proxy::Int32<T>& cardinality) = 0;
 };
 
 template <typename T, catalog::SqlType S>
@@ -28,9 +29,11 @@ class ColumnIndexImpl : public ColumnIndex<T> {
   ColumnIndexImpl(ProgramBuilder<T>& program, bool global);
   virtual ~ColumnIndexImpl();
 
-  void Insert(proxy::Value<T>& v, proxy::Int32<T>& tuple_idx) override;
-  proxy::Int32<T> GetNextGreater(proxy::Value<T>& v, proxy::Int32<T>& tuple_idx,
-                                 proxy::Int32<T>& cardinality) override;
+  void Insert(const proxy::Value<T>& v,
+              const proxy::Int32<T>& tuple_idx) override;
+  proxy::Int32<T> GetNextGreater(const proxy::Value<T>& v,
+                                 const proxy::Int32<T>& tuple_idx,
+                                 const proxy::Int32<T>& cardinality) override;
 
   static void ForwardDeclare(ProgramBuilder<T>& program);
 

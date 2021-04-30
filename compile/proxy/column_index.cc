@@ -136,16 +136,16 @@ ColumnIndexImpl<T, S>::~ColumnIndexImpl() {
 }
 
 template <typename T, catalog::SqlType S>
-void ColumnIndexImpl<T, S>::Insert(proxy::Value<T>& v,
-                                   proxy::Int32<T>& tuple_idx) {
+void ColumnIndexImpl<T, S>::Insert(const proxy::Value<T>& v,
+                                   const proxy::Int32<T>& tuple_idx) {
   program_.Call(program_.GetFunction(InsertFnName<S>()),
                 {program_.Load(*value_), v.Get(), tuple_idx.Get()});
 }
 
 template <typename T, catalog::SqlType S>
 proxy::Int32<T> ColumnIndexImpl<T, S>::GetNextGreater(
-    proxy::Value<T>& v, proxy::Int32<T>& tuple_idx,
-    proxy::Int32<T>& cardinality) {
+    const proxy::Value<T>& v, const proxy::Int32<T>& tuple_idx,
+    const proxy::Int32<T>& cardinality) {
   return proxy::Int32<T>(
       program_, program_.Call(program_.GetFunction(GetNextGreaterFnName<S>()),
                               {program_.Load(*value_), v.Get(), tuple_idx.Get(),
