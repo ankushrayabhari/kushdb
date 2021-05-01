@@ -218,13 +218,9 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
         // If we didn't find, move to next element
         // Else, break out of loop
         std::unique_ptr<proxy::Int32<T>> next_index;
-        proxy::If<T> check(program_, !found_->Load(), [&]() {
-          next_index = std::make_unique<proxy::Int32<T>>(i + 1);
-        });
-
-        std::unique_ptr<proxy::Value<T>> next_i =
-            check.Phi(size, *next_index).ToPointer();
-        return util::MakeVector(std::move(next_i));
+        proxy::If<T> check(program_, !found_->Load(),
+                           [&]() { next_index = (i + 1).ToPointer(); });
+        return loop.Continue(check.Phi(size, *next_index));
       });
 
   proxy::If<T>(program_, !found_->Load(), [&]() {

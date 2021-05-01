@@ -13,10 +13,9 @@
 namespace kush::compile::proxy {
 
 template <typename T>
-Loop<T>::Loop(
-    ProgramBuilder<T>& program, std::function<void(Loop&)> init,
-    std::function<Bool<T>(Loop&)> cond,
-    std::function<std::vector<std::unique_ptr<proxy::Value<T>>>(Loop&)> body)
+Loop<T>::Loop(ProgramBuilder<T>& program, std::function<void(Loop&)> init,
+              std::function<Bool<T>(Loop&)> cond,
+              std::function<typename Loop<T>::Continuation(Loop&)> body)
     : program_(program) {
   header_ = &program.GenerateBlock();
   // Initialize all loop variables value
@@ -40,15 +39,9 @@ Loop<T>::Loop(
   end_ = &program_.GenerateBlock();
   program_.Branch(c.Get(), body_block, *end_);
 
-  // run body and get next value for loop var
-  // add values to phi nodes and jump back to header
+  // run body
   program_.SetCurrentBlock(body_block);
-  auto updated_values = body(*this);
-  for (int i = 0; i < phi_nodes_.size(); i++) {
-    program_.AddToPhi(phi_nodes_[i], updated_values[i]->Get(),
-                      program_.CurrentBlock());
-  }
-  program_.Branch(*header_);
+  body(*this);
 
   // set block to end
   program_.SetCurrentBlock(*end_);
@@ -68,18 +61,6 @@ void Loop<T>::AddLoopVariable(const proxy::Value<T>& v) {
 
   // switch back to original block
   program_.SetCurrentBlock(current_block);
-}
-
-template <typename T>
-void Loop<T>::Continue(
-    std::vector<std::reference_wrapper<proxy::Value<T>>> loop_vars) {
-  // add each loop var to phi node
-  for (int i = 0; i < phi_nodes_.size(); i++) {
-    program_.AddToPhi(phi_nodes_[i], loop_vars[i].get().Get(),
-                      program_.CurrentBlock());
-  }
-
-  program_.Branch(*header_);
 }
 
 template <typename T>

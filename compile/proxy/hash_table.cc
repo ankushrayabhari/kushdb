@@ -216,12 +216,10 @@ void HashTable<T>::ForEach(std::function<void(Struct<T>&)> handler) {
 
               handler(data);
 
-              std::unique_ptr<proxy::Value<T>> next_j = (j + 1).ToPointer();
-              return util::MakeVector(std::move(next_j));
+              return loop.Continue(j + 1);
             });
 
-        std::unique_ptr<proxy::Value<T>> next_i = (i + 1).ToPointer();
-        return util::MakeVector(std::move(next_i));
+        return loop.Continue(i + 1);
       });
 
   bucket_list.Reset();

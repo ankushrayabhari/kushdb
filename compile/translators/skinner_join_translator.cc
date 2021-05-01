@@ -558,9 +558,7 @@ void SkinnerJoinTranslator<T>::Produce() {
 
                             program_.Return(program_.ConstI32(-1));
                           },
-                          [&]() {
-                            loop.Continue({*last_tuple, budget});
-                          });
+                          [&]() { loop.Continue(*last_tuple, budget); });
                     });
               });
             }
@@ -595,20 +593,12 @@ void SkinnerJoinTranslator<T>::Produce() {
             });
 
             // Valid tuple
-            {
-              auto next_budget = proxy::Int32<T>(
-                  program_, program_.Call(handler, handler_type,
-                                          {budget.Get(), program_.ConstI8(0)}));
-              proxy::If<T>(program_, next_budget < 0,
-                           [&]() { program_.Return(next_budget.Get()); });
-              {
-                using value = std::unique_ptr<proxy::Value<T>>;
-                value last_tuple = next_tuple->ToPointer();
-                value budget = next_budget.ToPointer();
-                return util::MakeVector(std::move(last_tuple),
-                                        std::move(budget));
-              }
-            }
+            auto next_budget = proxy::Int32<T>(
+                program_, program_.Call(handler, handler_type,
+                                        {budget.Get(), program_.ConstI8(0)}));
+            proxy::If<T>(program_, next_budget < 0,
+                         [&]() { program_.Return(next_budget.Get()); });
+            return loop.Continue(*next_tuple, next_budget);
           });
       return loop.template GetLoopVariable<proxy::Int32<T>>(1);
     }));

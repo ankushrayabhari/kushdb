@@ -111,8 +111,7 @@ void OrderByTranslator<T>::Produce() {
           parent->get().Consume(*this);
         }
 
-        std::unique_ptr<proxy::Value<T>> next_i = (i + 1).ToPointer();
-        return util::MakeVector(std::move(next_i));
+        return loop.Continue(i + 1);
       });
 
   buffer_->Reset();

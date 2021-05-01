@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
 #include <utility>
 #include <vector>
 
@@ -14,20 +15,41 @@ namespace kush::compile::proxy {
 template <typename T>
 class Loop {
  public:
-  Loop(
-      ProgramBuilder<T>& program, std::function<void(Loop&)> init,
-      std::function<Bool<T>(Loop&)> cond,
-      std::function<std::vector<std::unique_ptr<proxy::Value<T>>>(Loop&)> body);
+  class Continuation {
+    friend class Loop;
+
+   private:
+    Continuation() = default;
+  };
+
+  Loop(ProgramBuilder<T>& program, std::function<void(Loop&)> init,
+       std::function<Bool<T>(Loop&)> cond,
+       std::function<Continuation(Loop&)> body);
 
   void AddLoopVariable(const proxy::Value<T>& v);
 
   void Break();
 
-  void Continue(std::vector<std::reference_wrapper<proxy::Value<T>>> loop_vars);
-
   template <typename S>
   S GetLoopVariable(int i) {
     return S(program_, phi_nodes_[i]);
+  }
+
+  Continuation Continue() {
+    program_.Branch(*header_);
+    return Continuation();
+  }
+
+  template <typename... Args>
+  Continuation Continue(const proxy::Value<T>& first, Args const&... rest) {
+    int i = phi_nodes_.size() - 1 - sizeof...(rest);
+    program_.AddToPhi(phi_nodes_[i], first.Get(), program_.CurrentBlock());
+    if (sizeof...(rest)) {
+      return Continue(rest...);
+    } else {
+      program_.Branch(*header_);
+      return Continuation();
+    }
   }
 
  private:
