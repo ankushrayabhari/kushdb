@@ -108,8 +108,8 @@ void HashJoinTranslator<T>::Consume(OperatorTranslator<T>& src) {
           }
         }
 
-        auto cond = expr_translator_.Compute(*conj);
-        proxy::If(program_, dynamic_cast<proxy::Bool<T>&>(*cond), [&]() {
+        auto cond = expr_translator_.template ComputeAs<proxy::Bool<T>>(*conj);
+        proxy::If(program_, cond, [&]() {
           this->values_.ResetValues();
           for (const auto& column : hash_join_.Schema().Columns()) {
             this->values_.AddVariable(expr_translator_.Compute(column.Expr()));

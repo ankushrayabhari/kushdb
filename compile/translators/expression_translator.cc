@@ -23,16 +23,6 @@
 namespace kush::compile {
 
 template <typename T>
-template <typename S>
-S ExpressionTranslator<T>::ComputeAs(const plan::Expression& e) {
-  auto p = this->Compute(e);
-  if (S* result = dynamic_cast<S*>(p.get())) {
-    return S(*result);
-  }
-  throw std::runtime_error("Invalid type.");
-}
-
-template <typename T>
 ExpressionTranslator<T>::ExpressionTranslator(ProgramBuilder<T>& program,
                                               OperatorTranslator<T>& source)
     : program_(program), source_(source) {}

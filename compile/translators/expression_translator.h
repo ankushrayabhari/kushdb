@@ -29,10 +29,16 @@ class ExpressionTranslator
   void Visit(const plan::CaseExpression& case_expr) override;
   void Visit(const plan::IntToFloatConversionExpression& conv_expr) override;
 
- private:
   template <typename S>
-  S ComputeAs(const plan::Expression&);
+  S ComputeAs(const plan::Expression& e) {
+    auto p = this->Compute(e);
+    if (S* result = dynamic_cast<S*>(p.get())) {
+      return S(*result);
+    }
+    throw std::runtime_error("Invalid type.");
+  }
 
+ private:
   template <typename S>
   std::unique_ptr<S> Ternary(const plan::CaseExpression& case_expr);
 

@@ -25,9 +25,10 @@ void SelectTranslator<T>::Produce() {
 
 template <typename T>
 void SelectTranslator<T>::Consume(OperatorTranslator<T>& src) {
-  auto value = expr_translator_.Compute(select_.Expr());
+  auto value =
+      expr_translator_.template ComputeAs<proxy::Bool<T>>(select_.Expr());
 
-  proxy::If(program_, dynamic_cast<proxy::Bool<T>&>(*value), [&]() {
+  proxy::If(program_, value, [&]() {
     this->values_.ResetValues();
     for (const auto& column : select_.Schema().Columns()) {
       this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
