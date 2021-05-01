@@ -31,7 +31,7 @@ class ExpressionTranslator
 
  private:
   template <typename S>
-  std::unique_ptr<S> ComputeAs(const plan::Expression&);
+  S ComputeAs(const plan::Expression&);
 
   template <typename S>
   std::unique_ptr<S> Ternary(const plan::CaseExpression& case_expr);

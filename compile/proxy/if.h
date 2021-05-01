@@ -70,4 +70,14 @@ class If {
   typename ProgramBuilder<T>::BasicBlock* b2;
 };
 
+template <typename T, typename S>
+S Ternary(ProgramBuilder<T>& program, const proxy::Bool<T>& cond,
+          std::function<S()> left, std::function<S()> right) {
+  std::unique_ptr<S> l, r;
+  If<T> check(
+      program, cond, [&]() { l = left().ToPointer(); },
+      [&]() { r = right().ToPointer(); });
+  return check.Phi(*l, *r);
+}
+
 }  // namespace kush::compile::proxy

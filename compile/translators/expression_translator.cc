@@ -24,14 +24,12 @@ namespace kush::compile {
 
 template <typename T>
 template <typename S>
-std::unique_ptr<S> ExpressionTranslator<T>::ComputeAs(
-    const plan::Expression& e) {
+S ExpressionTranslator<T>::ComputeAs(const plan::Expression& e) {
   auto p = this->Compute(e);
   if (S* result = dynamic_cast<S*>(p.get())) {
-    p.release();
-    return std::unique_ptr<S>(result);
+    return S(*result);
   }
-  return std::unique_ptr<S>(nullptr);
+  throw std::runtime_error("Invalid type.");
 }
 
 template <typename T>
@@ -48,23 +46,24 @@ void ExpressionTranslator<T>::Visit(
     case OpType::AND: {
       std::unique_ptr<proxy::Bool<T>> th, el;
       auto left_value = ComputeAs<proxy::Bool<T>>(arith.LeftChild());
-      proxy::If branch(
-          program_, *left_value,
-          [&]() { th = ComputeAs<proxy::Bool<T>>(arith.RightChild()); },
-          [&]() { el = proxy::Bool<T>(program_, false).ToPointer(); });
-      this->Return(branch.Phi(*th, *el).ToPointer());
+      this->Return(
+          proxy::Ternary<T, proxy::Bool<T>>(
+              program_, left_value,
+              [&]() { return ComputeAs<proxy::Bool<T>>(arith.RightChild()); },
+              [&] { return proxy::Bool<T>(program_, false); })
+              .ToPointer());
       break;
     }
 
     case OpType::OR: {
       std::unique_ptr<proxy::Bool<T>> th, el;
       auto left_value = ComputeAs<proxy::Bool<T>>(arith.LeftChild());
-      proxy::If branch(
-          program_, *left_value,
-          [&]() { th = proxy::Bool<T>(program_, true).ToPointer(); },
-          [&]() { el = ComputeAs<proxy::Bool<T>>(arith.RightChild()); });
-
-      this->Return(branch.Phi(*th, *el).ToPointer());
+      this->Return(
+          proxy::Ternary<T, proxy::Bool<T>>(
+              program_, left_value,
+              [&]() { return proxy::Bool<T>(program_, true); },
+              [&]() { return ComputeAs<proxy::Bool<T>>(arith.RightChild()); })
+              .ToPointer());
       break;
     }
 
@@ -160,11 +159,10 @@ std::unique_ptr<S> ExpressionTranslator<T>::Ternary(
     const plan::CaseExpression& case_expr) {
   std::unique_ptr<S> th, el;
   auto cond = ComputeAs<proxy::Bool<T>>(case_expr.Cond());
-  proxy::If branch(
-      program_, *cond, [&]() { th = ComputeAs<S>(case_expr.Then()); },
-      [&]() { el = ComputeAs<S>(case_expr.Else()); });
-
-  return branch.Phi(*th, *el).ToPointer();
+  return proxy::Ternary<T, S>(
+             program_, cond, [&]() { return ComputeAs<S>(case_expr.Then()); },
+             [&]() { return ComputeAs<S>(case_expr.Else()); })
+      .ToPointer();
 }
 
 template <typename T>
