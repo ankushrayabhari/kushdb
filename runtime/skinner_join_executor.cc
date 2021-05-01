@@ -102,12 +102,11 @@ class JoinState {
       return;
     }
 
+    // TODO: Offset diabled due to incorrect outputs.
     // Update offset
     {
       int first_table = order[0];
-      int32_t last_finished_tuple = last_completed_tuple_idx[first_table];
-      offset_[first_table] =
-          std::max(last_finished_tuple, offset_[first_table]);
+      offset_[first_table] = -1;
     }
 
     // Update progress tree
@@ -290,7 +289,7 @@ class JoinEnvironment {
                          const std::vector<int32_t>& offset) {
     for (int table = 0; table < last_completed_tuple.size(); table++) {
       execution_engine_.progress_arr[table] =
-          std::max(last_completed_tuple[table], offset[table]);
+          std::max(offset[table], last_completed_tuple[table]);
       execution_engine_.offset_arr[table] = offset[table];
     }
     *execution_engine_.table_ctr = order[0];
