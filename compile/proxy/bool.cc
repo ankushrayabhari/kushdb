@@ -11,7 +11,7 @@ namespace kush::compile::proxy {
 
 template <typename T>
 Bool<T>::Bool(ProgramBuilder<T>& program,
-              typename ProgramBuilder<T>::Value& value)
+              const typename ProgramBuilder<T>::Value& value)
     : program_(program), value_(value) {}
 
 template <typename T>
@@ -19,7 +19,7 @@ Bool<T>::Bool(ProgramBuilder<T>& program, bool value)
     : program_(program), value_(program_.ConstI1(value)) {}
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Bool<T>::Get() const {
+typename ProgramBuilder<T>::Value Bool<T>::Get() const {
   return value_;
 }
 
@@ -68,7 +68,7 @@ void Bool<T>::Print(proxy::Printer<T>& printer) {
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Bool<T>::Hash() {
+typename ProgramBuilder<T>::Value Bool<T>::Hash() {
   return program_.ZextI64(value_);
 }
 

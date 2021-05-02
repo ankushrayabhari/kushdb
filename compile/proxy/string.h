@@ -8,7 +8,8 @@ namespace kush::compile::proxy {
 template <typename T>
 class String : public Value<T> {
  public:
-  String(ProgramBuilder<T>& program, typename ProgramBuilder<T>::Value& value);
+  String(ProgramBuilder<T>& program,
+         const typename ProgramBuilder<T>::Value& value);
 
   static String<T> Constant(ProgramBuilder<T>& program, std::string_view value);
 
@@ -27,15 +28,15 @@ class String : public Value<T> {
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
   void Print(proxy::Printer<T>& printer) override;
-  typename ProgramBuilder<T>::Value& Hash() override;
-  typename ProgramBuilder<T>::Value& Get() const override;
+  typename ProgramBuilder<T>::Value Hash() override;
+  typename ProgramBuilder<T>::Value Get() const override;
 
   static void ForwardDeclare(ProgramBuilder<T>& program);
   static const std::string_view StringStructName;
 
  private:
   ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value& value_;
+  typename ProgramBuilder<T>::Value value_;
 };
 
 template <typename T>

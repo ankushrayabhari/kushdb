@@ -12,7 +12,7 @@ namespace kush::compile::proxy {
 
 template <typename T>
 Float64<T>::Float64(ProgramBuilder<T>& program,
-                    typename ProgramBuilder<T>::Value& value)
+                    const typename ProgramBuilder<T>::Value& value)
     : program_(program), value_(value) {}
 
 template <typename T>
@@ -36,7 +36,7 @@ Float64<T>::Float64(ProgramBuilder<T>& program, const proxy::Int64<T>& v)
     : program_(program), value_(program_.CastSignedIntToF64(v.Get())) {}
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Float64<T>::Get() const {
+typename ProgramBuilder<T>::Value Float64<T>::Get() const {
   return value_;
 }
 
@@ -169,7 +169,7 @@ void Float64<T>::Print(proxy::Printer<T>& printer) {
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Float64<T>::Hash() {
+typename ProgramBuilder<T>::Value Float64<T>::Hash() {
   return program_.F64ConversionI64(value_);
 }
 

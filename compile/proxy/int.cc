@@ -14,7 +14,7 @@ namespace kush::compile::proxy {
 
 template <typename T>
 Int8<T>::Int8(ProgramBuilder<T>& program,
-              typename ProgramBuilder<T>::Value& value)
+              const typename ProgramBuilder<T>::Value& value)
     : program_(program), value_(value) {}
 
 template <typename T>
@@ -22,7 +22,7 @@ Int8<T>::Int8(ProgramBuilder<T>& program, int8_t value)
     : program_(program), value_(program.ConstI8(value)) {}
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Int8<T>::Get() const {
+typename ProgramBuilder<T>::Value Int8<T>::Get() const {
   return value_;
 }
 
@@ -155,7 +155,7 @@ void Int8<T>::Print(proxy::Printer<T>& printer) {
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Int8<T>::Hash() {
+typename ProgramBuilder<T>::Value Int8<T>::Hash() {
   return program_.ZextI64(value_);
 }
 
@@ -163,7 +163,7 @@ INSTANTIATE_ON_IR(Int8);
 
 template <typename T>
 Int16<T>::Int16(ProgramBuilder<T>& program,
-                typename ProgramBuilder<T>::Value& value)
+                const typename ProgramBuilder<T>::Value& value)
     : program_(program), value_(value) {}
 
 template <typename T>
@@ -171,7 +171,7 @@ Int16<T>::Int16(ProgramBuilder<T>& program, int16_t value)
     : program_(program), value_(program.ConstI16(value)) {}
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Int16<T>::Get() const {
+typename ProgramBuilder<T>::Value Int16<T>::Get() const {
   return value_;
 }
 
@@ -304,7 +304,7 @@ void Int16<T>::Print(proxy::Printer<T>& printer) {
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Int16<T>::Hash() {
+typename ProgramBuilder<T>::Value Int16<T>::Hash() {
   return program_.ZextI64(value_);
 }
 
@@ -312,7 +312,7 @@ INSTANTIATE_ON_IR(Int16);
 
 template <typename T>
 Int32<T>::Int32(ProgramBuilder<T>& program,
-                typename ProgramBuilder<T>::Value& value)
+                const typename ProgramBuilder<T>::Value& value)
     : program_(program), value_(value) {}
 
 template <typename T>
@@ -320,7 +320,7 @@ Int32<T>::Int32(ProgramBuilder<T>& program, int32_t value)
     : program_(program), value_(program.ConstI32(value)) {}
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Int32<T>::Get() const {
+typename ProgramBuilder<T>::Value Int32<T>::Get() const {
   return value_;
 }
 
@@ -453,7 +453,7 @@ void Int32<T>::Print(proxy::Printer<T>& printer) {
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Int32<T>::Hash() {
+typename ProgramBuilder<T>::Value Int32<T>::Hash() {
   return program_.ZextI64(value_);
 }
 
@@ -461,7 +461,7 @@ INSTANTIATE_ON_IR(Int32);
 
 template <typename T>
 Int64<T>::Int64(ProgramBuilder<T>& program,
-                typename ProgramBuilder<T>::Value& value)
+                const typename ProgramBuilder<T>::Value& value)
     : program_(program), value_(value) {}
 
 template <typename T>
@@ -469,7 +469,7 @@ Int64<T>::Int64(ProgramBuilder<T>& program, int64_t value)
     : program_(program), value_(program.ConstI64(value)) {}
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Int64<T>::Get() const {
+typename ProgramBuilder<T>::Value Int64<T>::Get() const {
   return value_;
 }
 
@@ -602,7 +602,7 @@ void Int64<T>::Print(proxy::Printer<T>& printer) {
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Value& Int64<T>::Hash() {
+typename ProgramBuilder<T>::Value Int64<T>::Hash() {
   return program_.ZextI64(value_);
 }
 

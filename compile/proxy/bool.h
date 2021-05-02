@@ -12,10 +12,11 @@ namespace kush::compile::proxy {
 template <typename T>
 class Bool : public Value<T> {
  public:
-  Bool(ProgramBuilder<T>& program, typename ProgramBuilder<T>::Value& value);
+  Bool(ProgramBuilder<T>& program,
+       const typename ProgramBuilder<T>::Value& value);
   Bool(ProgramBuilder<T>& program, bool value);
 
-  typename ProgramBuilder<T>::Value& Get() const override;
+  typename ProgramBuilder<T>::Value Get() const override;
 
   Bool<T> operator!();
   Bool<T> operator==(const Bool<T>& rhs);
@@ -25,11 +26,11 @@ class Bool : public Value<T> {
   std::unique_ptr<Value<T>> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) override;
   void Print(proxy::Printer<T>& printer) override;
-  typename ProgramBuilder<T>::Value& Hash() override;
+  typename ProgramBuilder<T>::Value Hash() override;
 
  private:
   ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value& value_;
+  typename ProgramBuilder<T>::Value value_;
 };
 
 }  // namespace kush::compile::proxy

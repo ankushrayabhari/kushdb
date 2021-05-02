@@ -14,14 +14,15 @@ namespace kush::compile::proxy {
 template <typename T>
 class Float64 : public Value<T> {
  public:
-  Float64(ProgramBuilder<T>& program, typename ProgramBuilder<T>::Value& value);
+  Float64(ProgramBuilder<T>& program,
+          const typename ProgramBuilder<T>::Value& value);
   Float64(ProgramBuilder<T>& program, double value);
   Float64(ProgramBuilder<T>& program, const proxy::Int8<T>& v);
   Float64(ProgramBuilder<T>& program, const proxy::Int16<T>& v);
   Float64(ProgramBuilder<T>& program, const proxy::Int32<T>& v);
   Float64(ProgramBuilder<T>& program, const proxy::Int64<T>& v);
 
-  typename ProgramBuilder<T>::Value& Get() const override;
+  typename ProgramBuilder<T>::Value Get() const override;
 
   Float64<T> operator+(const Float64<T>& rhs);
   Float64<T> operator+(double value);
@@ -49,11 +50,11 @@ class Float64 : public Value<T> {
       plan::BinaryArithmeticOperatorType op_type,
       Value<T>& right_value) override;
   void Print(proxy::Printer<T>& printer) override;
-  typename ProgramBuilder<T>::Value& Hash() override;
+  typename ProgramBuilder<T>::Value Hash() override;
 
  private:
   ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value& value_;
+  typename ProgramBuilder<T>::Value value_;
 };
 
 }  // namespace kush::compile::proxy

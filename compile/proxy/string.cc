@@ -24,7 +24,7 @@ constexpr std::string_view HashFnName("_ZN4kush4data4HashEPNS0_6StringE");
 
 template <typename T>
 String<T>::String(ProgramBuilder<T>& program,
-                  typename ProgramBuilder<T>::Value& value)
+                  const typename ProgramBuilder<T>::Value& value)
     : program_(program), value_(value) {}
 
 template <typename T>
@@ -112,36 +112,34 @@ void String<T>::Print(proxy::Printer<T>& printer) {
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Value& String<T>::Hash() {
+typename ProgramBuilder<T>::Value String<T>::Hash() {
   return program_.Call(program_.GetFunction(HashFnName), {value_});
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Value& String<T>::Get() const {
+typename ProgramBuilder<T>::Value String<T>::Get() const {
   return value_;
 }
 
 template <typename T>
 String<T> String<T>::Constant(ProgramBuilder<T>& program,
                               std::string_view value) {
-  auto& str = program.GlobalConstString(value);
-  auto& len = program.ConstI32(value.size());
-  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>> values{
-      str, len};
-  return String<T>(program,
-                   program.GlobalStruct(
-                       true, program.GetStructType(StringStructName), values));
+  auto str = program.GlobalConstString(value);
+  auto len = program.ConstI32(value.size());
+  return String<T>(
+      program, program.GlobalStruct(
+                   true, program.GetStructType(StringStructName), {str, len}));
 }
 
 template <typename T>
 void String<T>::ForwardDeclare(ProgramBuilder<T>& program) {
-  auto& struct_type = program.StructType(
+  auto struct_type = program.StructType(
       {
           program.PointerType(program.I8Type()),
           program.I32Type(),
       },
       StringStructName);
-  auto& struct_ptr = program.PointerType(struct_type);
+  auto struct_ptr = program.PointerType(struct_type);
 
   program.DeclareExternalFunction(CopyFnName, program.VoidType(),
                                   {struct_ptr, struct_ptr});
