@@ -1,7 +1,7 @@
 #pragma once
 
 #include <functional>
-#include <utility>
+#include <optional>
 #include <vector>
 
 #include "compile/program_builder.h"
@@ -17,10 +17,10 @@ class ComparisonFunction {
       ProgramBuilder<T>& program, StructBuilder<T> element,
       std::function<void(Struct<T>&, Struct<T>&, std::function<void(Bool<T>)>)>
           body);
-  typename ProgramBuilder<T>::Function& Get();
+  typename ProgramBuilder<T>::Function Get();
 
  private:
-  typename ProgramBuilder<T>::Function* func;
+  std::optional<typename ProgramBuilder<T>::Function> func;
 };
 
 }  // namespace kush::compile::proxy

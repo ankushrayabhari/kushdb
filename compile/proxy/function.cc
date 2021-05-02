@@ -16,16 +16,15 @@ ComparisonFunction<T>::ComparisonFunction(
     ProgramBuilder<T>& program, StructBuilder<T> element,
     std::function<void(Struct<T>&, Struct<T>&, std::function<void(Bool<T>)>)>
         body) {
-  auto& current_block = program.CurrentBlock();
+  auto current_block = program.CurrentBlock();
 
-  auto& type = program.PointerType(element.Type());
-  auto& arg_ptr_type = program.PointerType(program.I8Type());
-  func =
-      &program.CreateFunction(program.I1Type(), {arg_ptr_type, arg_ptr_type});
-  auto args = program.GetFunctionArguments(*func);
+  auto type = program.PointerType(element.Type());
+  auto arg_ptr_type = program.PointerType(program.I8Type());
+  func = program.CreateFunction(program.I1Type(), {arg_ptr_type, arg_ptr_type});
+  auto args = program.GetFunctionArguments(func.value());
 
-  auto& s1_ptr = program.PointerCast(args[0], type);
-  auto& s2_ptr = program.PointerCast(args[1], type);
+  auto s1_ptr = program.PointerCast(args[0], type);
+  auto s2_ptr = program.PointerCast(args[1], type);
 
   Struct<T> s1(program, element, s1_ptr);
   Struct<T> s2(program, element, s2_ptr);
@@ -36,8 +35,8 @@ ComparisonFunction<T>::ComparisonFunction(
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Function& ComparisonFunction<T>::Get() {
-  return *func;
+typename ProgramBuilder<T>::Function ComparisonFunction<T>::Get() {
+  return func.value();
 }
 
 INSTANTIATE_ON_IR(ComparisonFunction);

@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 
+#include "absl/types/span.h"
+
 #include "catalog/sql_type.h"
 #include "compile/ir_registry.h"
 #include "compile/program_builder.h"
@@ -16,7 +18,7 @@ namespace kush::compile::proxy {
 
 template <typename T>
 StructBuilder<T>::StructBuilder(ProgramBuilder<T>& program)
-    : program_(program), struct_type_(nullptr) {}
+    : program_(program) {}
 
 template <typename T>
 void StructBuilder<T>::Add(catalog::SqlType type) {
@@ -55,21 +57,21 @@ void StructBuilder<T>::Add(catalog::SqlType type) {
 
 template <typename T>
 void StructBuilder<T>::Build() {
-  struct_type_ = &program_.StructType(fields_);
+  struct_type_ = program_.StructType(fields_);
 }
 
 template <typename T>
 typename ProgramBuilder<T>::Type& StructBuilder<T>::Type() {
-  return *struct_type_;
+  return struct_type_.value();
 }
 
 template <typename T>
-std::vector<catalog::SqlType> StructBuilder<T>::Types() {
+absl::Span<const catalog::SqlType> StructBuilder<T>::Types() {
   return types_;
 }
 
 template <typename T>
-std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
+absl::Span<const typename ProgramBuilder<T>::Value>
 StructBuilder<T>::DefaultValues() {
   return values_;
 }
@@ -78,7 +80,7 @@ INSTANTIATE_ON_IR(StructBuilder);
 
 template <typename T>
 Struct<T>::Struct(ProgramBuilder<T>& program, StructBuilder<T>& fields,
-                  typename ProgramBuilder<T>::Value& value)
+                  const typename ProgramBuilder<T>::Value& value)
     : program_(program), fields_(fields), value_(value) {}
 
 template <typename T>
@@ -90,9 +92,9 @@ void Struct<T>::Pack(std::vector<std::reference_wrapper<Value<T>>> values) {
   }
 
   for (int i = 0; i < values.size(); i++) {
-    auto& ptr = program_.GetElementPtr(
+    auto ptr = program_.GetElementPtr(
         fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(i)});
-    auto& v = values[i].get().Get();
+    auto v = values[i].get().Get();
 
     if (types[i] == catalog::SqlType::TEXT) {
       String<T> rhs(program_, v);
@@ -109,7 +111,7 @@ std::vector<std::unique_ptr<Value<T>>> Struct<T>::Unpack() {
 
   std::vector<std::unique_ptr<Value<T>>> result;
   for (int i = 0; i < types.size(); i++) {
-    auto& ptr = program_.GetElementPtr(
+    auto ptr = program_.GetElementPtr(
         fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(i)});
 
     switch (types[i]) {
@@ -149,7 +151,7 @@ template <typename T>
 void Struct<T>::Update(int field, const proxy::Value<T>& v) {
   auto types = fields_.Types();
 
-  auto& ptr = program_.GetElementPtr(
+  auto ptr = program_.GetElementPtr(
       fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(field)});
 
   if (types[field] == catalog::SqlType::TEXT) {
