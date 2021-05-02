@@ -61,7 +61,7 @@ void StructBuilder<T>::Build() {
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Type& StructBuilder<T>::Type() {
+typename ProgramBuilder<T>::Type StructBuilder<T>::Type() {
   return struct_type_.value();
 }
 

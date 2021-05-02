@@ -14,7 +14,7 @@ class Vector {
   Vector(ProgramBuilder<T>& program, StructBuilder<T>& content,
          bool global = false);
   Vector(ProgramBuilder<T>& program, StructBuilder<T>& content,
-         typename ProgramBuilder<T>::Value& value);
+         const typename ProgramBuilder<T>::Value& value);
 
   Struct<T> operator[](const proxy::Int32<T>& idx);
   Struct<T> PushBack();
@@ -25,44 +25,15 @@ class Vector {
   static void ForwardDeclare(ProgramBuilder<T>& program);
 
   static const std::string_view VectorStructName;
-  static const std::string_view CreateFnName;
-  static const std::string_view PushBackFnName;
-  static const std::string_view GetFnName;
-  static const std::string_view SizeFnName;
-  static const std::string_view FreeFnName;
-  static const std::string_view SortFnName;
 
  private:
   ProgramBuilder<T>& program_;
   StructBuilder<T>& content_;
-  typename ProgramBuilder<T>::Type& content_type_;
-  typename ProgramBuilder<T>::Value& value_;
+  typename ProgramBuilder<T>::Type content_type_;
+  typename ProgramBuilder<T>::Value value_;
 };
 
 template <typename T>
 const std::string_view Vector<T>::VectorStructName("kush::data::Vector");
-
-template <typename T>
-const std::string_view Vector<T>::CreateFnName(
-    "_ZN4kush4data6CreateEPNS0_6VectorEli");
-
-template <typename T>
-const std::string_view Vector<T>::PushBackFnName(
-    "_ZN4kush4data8PushBackEPNS0_6VectorE");
-
-template <typename T>
-const std::string_view Vector<T>::GetFnName("_ZN4kush4data3GetEPNS0_6VectorEi");
-
-template <typename T>
-const std::string_view Vector<T>::SizeFnName(
-    "_ZN4kush4data4SizeEPNS0_6VectorE");
-
-template <typename T>
-const std::string_view Vector<T>::FreeFnName(
-    "_ZN4kush4data4FreeEPNS0_6VectorE");
-
-template <typename T>
-const std::string_view Vector<T>::SortFnName(
-    "_ZN4kush4data4SortEPNS0_6VectorEPFbPaS3_E");
 
 }  // namespace kush::compile::proxy

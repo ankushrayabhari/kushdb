@@ -17,7 +17,7 @@ class StructBuilder {
   StructBuilder(ProgramBuilder<T>& program);
   void Add(catalog::SqlType type);
   void Build();
-  typename ProgramBuilder<T>::Type& Type();
+  typename ProgramBuilder<T>::Type Type();
   absl::Span<const catalog::SqlType> Types();
   absl::Span<const typename ProgramBuilder<T>::Value> DefaultValues();
 
