@@ -35,7 +35,6 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   proxy::Vector<T>::ForwardDeclare(*program);
 
   // Forward declare hash functions
-  proxy::BucketList<T>::ForwardDeclare(*program);
   proxy::HashTable<T>::ForwardDeclare(*program);
 
   // Forward declare print function

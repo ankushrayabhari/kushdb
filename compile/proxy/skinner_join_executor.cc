@@ -12,12 +12,12 @@ namespace kush::compile::proxy {
 template <typename T>
 TableFunction<T>::TableFunction(
     ProgramBuilder<T>& program,
-    std::function<proxy::Int32<T>(proxy::Int32<T>&, proxy::Int8<T>&)> body) {
-  auto& current_block = program.CurrentBlock();
-  func_ = &program.CreateFunction(program.I32Type(),
-                                  {program.I32Type(), program.I8Type()});
+    std::function<proxy::Int32<T>(proxy::Int32<T>&, proxy::Int8<T>&)> body)
+    : func_(program.CreateFunction(program.I32Type(),
+                                   {program.I32Type(), program.I8Type()})) {
+  auto current_block = program.CurrentBlock();
 
-  auto args = program.GetFunctionArguments(*func_);
+  auto args = program.GetFunctionArguments(func_);
   proxy::Int32<T> budget(program, args[0]);
   proxy::Int8<T> resume_progress(program, args[1]);
 
@@ -28,8 +28,8 @@ TableFunction<T>::TableFunction(
 }
 
 template <typename T>
-typename ProgramBuilder<T>::Function& TableFunction<T>::Get() {
-  return *func_;
+typename ProgramBuilder<T>::Function TableFunction<T>::Get() {
+  return func_;
 }
 
 INSTANTIATE_ON_IR(TableFunction);
@@ -44,16 +44,15 @@ SkinnerJoinExecutor<T>::SkinnerJoinExecutor(ProgramBuilder<T>& program)
 
 template <typename T>
 void SkinnerJoinExecutor<T>::Execute(
-    std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
-        args) {
+    absl::Span<const typename ProgramBuilder<T>::Value> args) {
   program_.Call(program_.GetFunction(fn), args);
 }
 
 template <typename T>
 void SkinnerJoinExecutor<T>::ForwardDeclare(ProgramBuilder<T>& program) {
-  auto& handler_type = program.FunctionType(
+  auto handler_type = program.FunctionType(
       program.I32Type(), {program.I32Type(), program.I8Type()});
-  auto& handler_pointer_type = program.PointerType(handler_type);
+  auto handler_pointer_type = program.PointerType(handler_type);
 
   program.DeclareExternalFunction(fn, program.VoidType(),
                                   {
