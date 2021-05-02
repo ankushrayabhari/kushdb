@@ -32,8 +32,8 @@ class ColumnData : public Iterable<T> {
 
  private:
   ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value* value_;
-  typename ProgramBuilder<T>::Value* result_;
+  std::optional<typename ProgramBuilder<T>::Value> value_;
+  std::optional<typename ProgramBuilder<T>::Value> result_;
 };
 
 }  // namespace kush::compile::proxy

@@ -107,37 +107,38 @@ std::string_view StructName() {
 template <typename T, catalog::SqlType S>
 ColumnData<T, S>::ColumnData(ProgramBuilder<T>& program, std::string_view path)
     : program_(program) {
-  auto& path_value = program_.GlobalConstString(path);
-  value_ = &program_.Alloca(program.GetStructType(StructName<S>()));
-  program_.Call(program_.GetFunction(OpenFnName<S>()), {*value_, path_value});
+  auto path_value = program_.GlobalConstString(path);
+  value_ = program_.Alloca(program.GetStructType(StructName<S>()));
+  program_.Call(program_.GetFunction(OpenFnName<S>()),
+                {value_.value(), path_value});
 
   if constexpr (S == catalog::SqlType::TEXT) {
     result_ =
-        &program_.Alloca(program_.GetStructType(String<T>::StringStructName));
+        program_.Alloca(program_.GetStructType(String<T>::StringStructName));
   }
 }
 
 template <typename T, catalog::SqlType S>
 ColumnData<T, S>::~ColumnData() {
-  program_.Call(program_.GetFunction(CloseFnName<S>()), {*value_});
+  program_.Call(program_.GetFunction(CloseFnName<S>()), {value_.value()});
 }
 
 template <typename T, catalog::SqlType S>
 Int32<T> ColumnData<T, S>::Size() {
   return Int32<T>(program_, program_.Call(program_.GetFunction(SizeFnName<S>()),
-                                          {*value_}));
+                                          {value_.value()}));
 }
 
 template <typename T, catalog::SqlType S>
 std::unique_ptr<Value<T>> ColumnData<T, S>::operator[](Int32<T>& idx) {
   if constexpr (catalog::SqlType::TEXT == S) {
     program_.Call(program_.GetFunction(GetFnName<S>()),
-                  {*value_, idx.Get(), *result_});
-    return std::make_unique<String<T>>(program_, *result_);
+                  {value_.value(), idx.Get(), result_.value()});
+    return std::make_unique<String<T>>(program_, result_.value());
   }
 
-  auto& elem =
-      program_.Call(program_.GetFunction(GetFnName<S>()), {*value_, idx.Get()});
+  auto elem = program_.Call(program_.GetFunction(GetFnName<S>()),
+                            {value_.value(), idx.Get()});
 
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return std::make_unique<Int16<T>>(program_, elem);
@@ -156,29 +157,30 @@ std::unique_ptr<Value<T>> ColumnData<T, S>::operator[](Int32<T>& idx) {
 
 template <typename T, catalog::SqlType S>
 void ColumnData<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
-  typename ProgramBuilder<T>::Type* elem_type;
+  std::optional<typename ProgramBuilder<T>::Type> elem_type;
 
   // Initialize all the mangled names and the corresponding data type
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    elem_type = &program.I16Type();
+    elem_type = program.I16Type();
   } else if constexpr (catalog::SqlType::INT == S) {
-    elem_type = &program.I32Type();
+    elem_type = program.I32Type();
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    elem_type = &program.I64Type();
+    elem_type = program.I64Type();
   } else if constexpr (catalog::SqlType::REAL == S) {
-    elem_type = &program.F64Type();
+    elem_type = program.F64Type();
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    elem_type = &program.I1Type();
+    elem_type = program.I1Type();
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    elem_type = &program.ArrayType(
+    elem_type = program.ArrayType(
         program.StructType({program.I32Type(), program.I32Type()}));
   }
 
-  auto& string_type = program.PointerType(program.I8Type());
-  auto& struct_type = program.StructType(
-      {program.PointerType(*elem_type), program.I32Type()}, StructName<S>());
-  auto& struct_ptr = program.PointerType(struct_type);
+  auto string_type = program.PointerType(program.I8Type());
+  auto struct_type = program.StructType(
+      {program.PointerType(elem_type.value()), program.I32Type()},
+      StructName<S>());
+  auto struct_ptr = program.PointerType(struct_type);
 
   program.DeclareExternalFunction(OpenFnName<S>(), program.VoidType(),
                                   {struct_ptr, string_type});
@@ -193,7 +195,7 @@ void ColumnData<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
                                      program.PointerType(program.GetStructType(
                                          String<T>::StringStructName))});
   } else {
-    program.DeclareExternalFunction(GetFnName<S>(), *elem_type,
+    program.DeclareExternalFunction(GetFnName<S>(), elem_type.value(),
                                     {struct_ptr, program.I32Type()});
   }
 }
