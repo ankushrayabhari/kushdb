@@ -73,7 +73,7 @@ Struct<T> Vector<T>::PushBack() {
 }
 
 template <typename T>
-void Vector<T>::Sort(typename ProgramBuilder<T>::Function& comp) {
+void Vector<T>::Sort(const typename ProgramBuilder<T>::Function& comp) {
   program_.Call(program_.GetFunction(SortFnName), {value_, comp});
 }
 

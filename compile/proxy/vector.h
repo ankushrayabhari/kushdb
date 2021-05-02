@@ -20,7 +20,7 @@ class Vector {
   Struct<T> PushBack();
   Int32<T> Size();
   void Reset();
-  void Sort(typename ProgramBuilder<T>::Function& comp);
+  void Sort(const typename ProgramBuilder<T>::Function& comp);
 
   static void ForwardDeclare(ProgramBuilder<T>& program);
 

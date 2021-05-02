@@ -20,7 +20,7 @@ class TableFunction {
   typename ProgramBuilder<T>::Function Get();
 
  private:
-  typename ProgramBuilder<T>::Function func_;
+  std::optional<typename ProgramBuilder<T>::Function> func_;
 };
 
 template <typename T>

@@ -11,10 +11,11 @@ namespace kush::compile::proxy {
 template <typename T, typename S>
 class Ptr {
  public:
-  Ptr(ProgramBuilder<T>& program, typename ProgramBuilder<T>::Value& value)
+  Ptr(ProgramBuilder<T>& program,
+      const typename ProgramBuilder<T>::Value& value)
       : program_(program), value_(value) {}
 
-  typename ProgramBuilder<T>::Value& Get() const { return value_; }
+  typename ProgramBuilder<T>::Value Get() const { return value_; }
 
   void Store(const S& data) { program_.Store(value_, data.Get()); }
 
@@ -22,7 +23,7 @@ class Ptr {
 
  private:
   ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value& value_;
+  typename ProgramBuilder<T>::Value value_;
 };
 
 }  // namespace kush::compile::proxy

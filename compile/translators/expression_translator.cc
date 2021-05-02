@@ -107,7 +107,7 @@ void ExpressionTranslator<T>::Visit(const plan::LiteralExpression& literal) {
 template <typename T>
 std::unique_ptr<proxy::Value<T>> CopyProxyValue(
     ProgramBuilder<T>& program, catalog::SqlType type,
-    typename ProgramBuilder<T>::Value& value) {
+    const typename ProgramBuilder<T>::Value& value) {
   switch (type) {
     case catalog::SqlType::SMALLINT:
       return std::make_unique<proxy::Int16<T>>(program, value);

@@ -12,12 +12,13 @@ namespace kush::compile::proxy {
 template <typename T>
 TableFunction<T>::TableFunction(
     ProgramBuilder<T>& program,
-    std::function<proxy::Int32<T>(proxy::Int32<T>&, proxy::Int8<T>&)> body)
-    : func_(program.CreateFunction(program.I32Type(),
-                                   {program.I32Type(), program.I8Type()})) {
+    std::function<proxy::Int32<T>(proxy::Int32<T>&, proxy::Int8<T>&)> body) {
   auto current_block = program.CurrentBlock();
 
-  auto args = program.GetFunctionArguments(func_);
+  func_ = program.CreateFunction(program.I32Type(),
+                                 {program.I32Type(), program.I8Type()});
+
+  auto args = program.GetFunctionArguments(func_.value());
   proxy::Int32<T> budget(program, args[0]);
   proxy::Int8<T> resume_progress(program, args[1]);
 
@@ -29,7 +30,7 @@ TableFunction<T>::TableFunction(
 
 template <typename T>
 typename ProgramBuilder<T>::Function TableFunction<T>::Get() {
-  return func_;
+  return func_.value();
 }
 
 INSTANTIATE_ON_IR(TableFunction);

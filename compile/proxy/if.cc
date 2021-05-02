@@ -53,7 +53,7 @@ If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
   program.SetCurrentBlock(second_block);
   else_fn();
   if (!program_.IsTerminated(program_.CurrentBlock())) {
-    if (dest_block == nullptr) {
+    if (dest_block == std::nullopt) {
       dest_block = program.GenerateBlock();
     }
 
@@ -61,7 +61,7 @@ If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
     program.Branch(*dest_block);
   }
 
-  if (dest_block != nullptr) {
+  if (dest_block != std::nullopt) {
     program.SetCurrentBlock(*dest_block);
   }
 }
