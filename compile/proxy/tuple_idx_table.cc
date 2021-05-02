@@ -41,34 +41,34 @@ TupleIdxTable<T>::TupleIdxTable(ProgramBuilder<T>& program)
       value_(program_.GlobalPointer(
           false, program_.PointerType(program_.I8Type()),
           program_.NullPtr(program_.PointerType(program_.I8Type())))) {
-  auto& tuple_idx_table = program_.Call(program_.GetFunction(create_fn_name));
+  auto tuple_idx_table = program_.Call(program_.GetFunction(create_fn_name));
   program_.Store(value_, tuple_idx_table);
 }
 
 template <typename T>
 TupleIdxTable<T>::~TupleIdxTable() {
-  auto& tuple_idx_table = program_.Load(value_);
+  auto tuple_idx_table = program_.Load(value_);
   program_.Call(program_.GetFunction(free_fn_name), {tuple_idx_table});
 }
 
 template <typename T>
-void TupleIdxTable<T>::Insert(typename ProgramBuilder<T>::Value& idx_arr,
+void TupleIdxTable<T>::Insert(const typename ProgramBuilder<T>::Value& idx_arr,
                               Int32<T>& num_tables) {
-  auto& tuple_idx_table = program_.Load(value_);
+  auto tuple_idx_table = program_.Load(value_);
   program_.Call(program_.GetFunction(insert_fn_name),
                 {tuple_idx_table, idx_arr, num_tables.Get()});
 }
 
 template <typename T>
 void TupleIdxTable<T>::ForEach(
-    std::function<void(typename ProgramBuilder<T>::Value&)> handler) {
-  auto& tuple_idx_table = program_.Load(value_);
+    std::function<void(const typename ProgramBuilder<T>::Value&)> handler) {
+  auto tuple_idx_table = program_.Load(value_);
 
   auto size = proxy::Int32<T>(
       program_,
       program_.Call(program_.GetFunction(size_fn_name), {tuple_idx_table}));
 
-  auto& tuple_it = program_.Alloca(program_.I8Type());
+  auto tuple_it = program_.Alloca(program_.I8Type());
   program_.Call(program_.GetFunction(begin_fn_name),
                 {tuple_idx_table, tuple_it});
 
@@ -82,7 +82,7 @@ void TupleIdxTable<T>::ForEach(
       [&](auto& loop) {
         auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
 
-        auto& tuple_idx_arr =
+        auto tuple_idx_arr =
             program_.Call(program_.GetFunction(get_fn_name), {tuple_it});
 
         handler(tuple_idx_arr);
@@ -97,7 +97,7 @@ void TupleIdxTable<T>::ForEach(
 
 template <typename T>
 void TupleIdxTable<T>::ForwardDeclare(ProgramBuilder<T>& program) {
-  auto& tuple_idx_table_type = program.PointerType(program.I8Type());
+  auto tuple_idx_table_type = program.PointerType(program.I8Type());
   program.DeclareExternalFunction(create_fn_name, tuple_idx_table_type, {});
   program.DeclareExternalFunction(
       insert_fn_name, program.VoidType(),
@@ -108,7 +108,7 @@ void TupleIdxTable<T>::ForwardDeclare(ProgramBuilder<T>& program) {
   program.DeclareExternalFunction(size_fn_name, program.I32Type(),
                                   {tuple_idx_table_type});
 
-  auto& tuple_idx_iterator_type = program.PointerType(program.I8Type());
+  auto tuple_idx_iterator_type = program.PointerType(program.I8Type());
   program.DeclareExternalFunction(
       begin_fn_name, program.VoidType(),
       {tuple_idx_table_type, tuple_idx_iterator_type});
