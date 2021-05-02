@@ -56,7 +56,7 @@ class If {
  private:
   template <typename S>
   S PhiImpl(const S& v1, const S& v2) {
-    if (b1 == std::nullopt || b2 == std::nullopt) {
+    if (!b1.has_value() || !b2.has_value()) {
       throw std::runtime_error("Don't call phi on a single predecessor block.");
     }
     typename ProgramBuilder<T>::Value phi =
