@@ -121,25 +121,24 @@ template <typename T, catalog::SqlType S>
 ColumnIndexImpl<T, S>::ColumnIndexImpl(ProgramBuilder<T>& program, bool global)
     : program_(program),
       value_(global
-                 ? &program_.GlobalPointer(
+                 ? program_.GlobalPointer(
                        false, program_.PointerType(program_.I8Type()),
                        program.NullPtr(program.PointerType(program.I8Type())))
-                 : &program_.Alloca(program_.PointerType(program_.I8Type()))) {
-  program_.Store(*value_,
+                 : program_.Alloca(program_.PointerType(program_.I8Type()))) {
+  program_.Store(value_,
                  program_.Call(program_.GetFunction(CreateFnName<S>()), {}));
 }
 
 template <typename T, catalog::SqlType S>
 ColumnIndexImpl<T, S>::~ColumnIndexImpl() {
-  program_.Call(program_.GetFunction(FreeFnName<S>()),
-                {program_.Load(*value_)});
+  program_.Call(program_.GetFunction(FreeFnName<S>()), {program_.Load(value_)});
 }
 
 template <typename T, catalog::SqlType S>
 void ColumnIndexImpl<T, S>::Insert(const proxy::Value<T>& v,
                                    const proxy::Int32<T>& tuple_idx) {
   program_.Call(program_.GetFunction(InsertFnName<S>()),
-                {program_.Load(*value_), v.Get(), tuple_idx.Get()});
+                {program_.Load(value_), v.Get(), tuple_idx.Get()});
 }
 
 template <typename T, catalog::SqlType S>
@@ -148,30 +147,30 @@ proxy::Int32<T> ColumnIndexImpl<T, S>::GetNextGreater(
     const proxy::Int32<T>& cardinality) {
   return proxy::Int32<T>(
       program_, program_.Call(program_.GetFunction(GetNextGreaterFnName<S>()),
-                              {program_.Load(*value_), v.Get(), tuple_idx.Get(),
+                              {program_.Load(value_), v.Get(), tuple_idx.Get(),
                                cardinality.Get()}));
 }
 
 template <typename T, catalog::SqlType S>
 void ColumnIndexImpl<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
-  auto& index_type = program.I8Type();
-  auto& index_ptr_type = program.PointerType(index_type);
+  auto index_type = program.I8Type();
+  auto index_ptr_type = program.PointerType(index_type);
 
-  typename ProgramBuilder<T>::Type* value_type;
+  std::optional<typename ProgramBuilder<T>::Type> value_type;
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    value_type = &program.I16Type();
+    value_type = program.I16Type();
   } else if constexpr (catalog::SqlType::INT == S) {
-    value_type = &program.I32Type();
+    value_type = program.I32Type();
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    value_type = &program.I64Type();
+    value_type = program.I64Type();
   } else if constexpr (catalog::SqlType::REAL == S) {
-    value_type = &program.F64Type();
+    value_type = program.F64Type();
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    value_type = &program.I8Type();
+    value_type = program.I8Type();
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    value_type = &program.PointerType(
-        program.GetStructType(String<T>::StringStructName));
+    value_type =
+        program.PointerType(program.GetStructType(String<T>::StringStructName));
   }
 
   program.DeclareExternalFunction(CreateFnName<S>(), index_ptr_type, {});
@@ -179,10 +178,10 @@ void ColumnIndexImpl<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
                                   {index_ptr_type});
   program.DeclareExternalFunction(
       InsertFnName<S>(), program.VoidType(),
-      {index_ptr_type, *value_type, program.I32Type()});
-  program.DeclareExternalFunction(
-      GetNextGreaterFnName<S>(), program.I32Type(),
-      {index_ptr_type, *value_type, program.I32Type(), program.I32Type()});
+      {index_ptr_type, value_type.value(), program.I32Type()});
+  program.DeclareExternalFunction(GetNextGreaterFnName<S>(), program.I32Type(),
+                                  {index_ptr_type, value_type.value(),
+                                   program.I32Type(), program.I32Type()});
 }
 
 INSTANTIATE_ON_IR(ColumnIndexImpl, catalog::SqlType::SMALLINT);

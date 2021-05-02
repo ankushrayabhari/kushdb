@@ -39,7 +39,7 @@ class ColumnIndexImpl : public ColumnIndex<T> {
 
  private:
   ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value* value_;
+  typename ProgramBuilder<T>::Value value_;
 };
 
 }  // namespace kush::compile::proxy
