@@ -1,19 +1,18 @@
 #include "runtime/column_data.h"
 
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-
 #include <cstdint>
 #include <cstring>
 #include <exception>
+#include <fcntl.h>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <system_error>
+#include <unistd.h>
 #include <vector>
 
 namespace kush::data {

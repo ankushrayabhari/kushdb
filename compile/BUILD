@@ -19,7 +19,10 @@ cc_library(
 cc_library(
     name = "program_builder",
     hdrs = ["program_builder.h"],
-    deps = [],
+    deps = [
+        "@absl//absl/types:span",
+        "@type_safe",
+    ],
 )
 
 cc_library(

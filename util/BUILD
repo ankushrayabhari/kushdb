@@ -16,3 +16,11 @@ cc_library(
     name = "visitor",
     hdrs = ["visitor.h"],
 )
+
+cc_library(
+    name = "nn",
+    hdrs = ["nn.h"],
+    deps = [
+        "@nn",
+    ],
+)

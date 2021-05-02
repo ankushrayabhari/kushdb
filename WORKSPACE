@@ -44,6 +44,22 @@ http_archive(
     urls = ["https://github.com/foonathan/type_safe/archive/v0.2.1.zip"],
 )
 
+http_archive(
+    name = "debug_assert",
+    build_file = "@//third_party:debug_assert.BUILD",
+    sha256 = "c0871c7bb8d7e0f36cfae9a5ba526ea0c0fcaa41203ffb4280de27cb030e7383",
+    strip_prefix = "debug_assert-1.3.3",
+    urls = ["https://github.com/foonathan/debug_assert/archive/refs/tags/v1.3.3.zip"],
+)
+
+http_archive(
+    name = "nn",
+    build_file = "@//third_party:nn.BUILD",
+    sha256 = "17662cfdc8ceb63272ad9c8586fd8b3620cf087edefce7d0d64deae28b7dcf4e",
+    strip_prefix = "nn-master",
+    urls = ["https://github.com/dropbox/nn/archive/refs/heads/master.zip"],
+)
+
 LLVM_COMMIT = "fde3ae88ee4236d6ecb8178c6c893df5a5a04437"
 
 LLVM_BAZEL_TAG = "llvm-project-%s" % (LLVM_COMMIT,)

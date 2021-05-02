@@ -6,4 +6,7 @@ cc_library(
     name = "type_safe",
     hdrs = glob(["include/**/*.hpp"]),
     strip_include_prefix = "include",
+    deps = [
+        "@debug_assert",
+    ],
 )

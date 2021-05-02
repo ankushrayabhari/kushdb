@@ -14,6 +14,8 @@ cc_library(
         "//runtime:hash_table",
         "//runtime:print_util",
         "//runtime:vector",
+        "//util:nn",
+        "@absl//absl/types:span",
         "@llvm-project//llvm:BitWriter",
         "@llvm-project//llvm:Core",
         "@llvm-project//llvm:InstCombine",
