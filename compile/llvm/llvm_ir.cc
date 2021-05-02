@@ -34,7 +34,6 @@ LLVMIr::LLVMIr()
 
 using BasicBlock = LLVMIrTypes::BasicBlock;
 using Value = LLVMIrTypes::Value;
-using PhiValue = LLVMIrTypes::PhiValue;
 using CompType = LLVMIrTypes::CompType;
 using Function = LLVMIrTypes::Function;
 using Type = LLVMIrTypes::Type;
@@ -228,12 +227,12 @@ void LLVMIr::Branch(Value cond, BasicBlock b1, BasicBlock b2) {
   builder_->CreateCondBr(cond, b1, b2);
 }
 
-PhiValue LLVMIr::Phi(Type type) {
+Value LLVMIr::Phi(Type type) {
   return NN_CHECK_THROW(builder_->CreatePHI(type, 2));
 }
 
-void LLVMIr::AddToPhi(PhiValue phi, Value v, BasicBlock b) {
-  phi->addIncoming(v, b);
+void LLVMIr::AddToPhi(Value phi, Value v, BasicBlock b) {
+  llvm::dyn_cast<llvm::PHINode>(phi.as_nullable())->addIncoming(v, b);
 }
 
 // I1

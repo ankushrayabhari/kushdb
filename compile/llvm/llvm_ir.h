@@ -18,7 +18,6 @@ class LLVMIrTypes {
  public:
   using BasicBlock = util::nn<llvm::BasicBlock*>;
   using Value = util::nn<llvm::Value*>;
-  using PhiValue = util::nn<llvm::PHINode*>;
   using CompType = llvm::CmpInst::Predicate;
   using Function = util::nn<llvm::Function*>;
   using Type = util::nn<llvm::Type*>;
@@ -81,8 +80,8 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   void SetCurrentBlock(BasicBlock b) override;
   void Branch(BasicBlock b) override;
   void Branch(Value cond, BasicBlock b1, BasicBlock b2) override;
-  PhiValue Phi(Type type) override;
-  void AddToPhi(PhiValue phi, Value v, BasicBlock b) override;
+  Value Phi(Type type) override;
+  void AddToPhi(Value phi, Value v, BasicBlock b) override;
 
   // I1
   Value LNotI1(Value v) override;

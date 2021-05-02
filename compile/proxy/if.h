@@ -56,18 +56,19 @@ class If {
  private:
   template <typename S>
   S PhiImpl(const S& v1, const S& v2) {
-    if (b1 == nullptr || b2 == nullptr) {
+    if (b1 == std::nullopt || b2 == std::nullopt) {
       throw std::runtime_error("Don't call phi on a single predecessor block.");
     }
-    auto& phi = program_.Phi(program_.TypeOf(v1.Get()));
-    program_.AddToPhi(phi, v1.Get(), *b1);
-    program_.AddToPhi(phi, v2.Get(), *b2);
+    typename ProgramBuilder<T>::Value phi =
+        program_.Phi(program_.TypeOf(v1.Get()));
+    program_.AddToPhi(phi, v1.Get(), b1.value());
+    program_.AddToPhi(phi, v2.Get(), b2.value());
     return S(program_, phi);
   }
 
   ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::BasicBlock* b1;
-  typename ProgramBuilder<T>::BasicBlock* b2;
+  std::optional<typename ProgramBuilder<T>::BasicBlock> b1;
+  std::optional<typename ProgramBuilder<T>::BasicBlock> b2;
 };
 
 template <typename T, typename S>

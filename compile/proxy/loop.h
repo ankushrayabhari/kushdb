@@ -54,7 +54,7 @@ class Loop {
 
  private:
   ProgramBuilder<T>& program_;
-  std::vector<typename ProgramBuilder<T>::PhiValue> phi_nodes_;
+  std::vector<typename ProgramBuilder<T>::Value> phi_nodes_;
   std::vector<typename ProgramBuilder<T>::Value> phi_nodes_initial_values_;
   typename ProgramBuilder<T>::BasicBlock header_;
   typename ProgramBuilder<T>::BasicBlock end_;

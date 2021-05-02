@@ -12,17 +12,16 @@ namespace kush::compile::proxy {
 template <typename T>
 If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
           std::function<void()> then_fn)
-    : program_(program), b1(&program.CurrentBlock()), b2(nullptr) {
-  auto& dest_block = program.GenerateBlock();
-
-  auto& then_block = program.GenerateBlock();
+    : program_(program), b1(program.CurrentBlock()) {
+  auto dest_block = program.GenerateBlock();
+  auto then_block = program.GenerateBlock();
 
   program.Branch(cond.Get(), then_block, dest_block);
 
   program.SetCurrentBlock(then_block);
   then_fn();
   if (!program_.IsTerminated(program_.CurrentBlock())) {
-    b2 = &program_.CurrentBlock();
+    b2 = program_.CurrentBlock();
     program.Branch(dest_block);
   }
 
@@ -32,22 +31,22 @@ If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
 template <typename T>
 If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
           std::function<void()> then_fn, std::function<void()> else_fn)
-    : program_(program), b1(nullptr), b2(nullptr) {
-  typename ProgramBuilder<T>::BasicBlock* dest_block = nullptr;
+    : program_(program) {
+  std::optional<typename ProgramBuilder<T>::BasicBlock> dest_block;
 
-  auto& first_block = program.GenerateBlock();
-  auto& second_block = program.GenerateBlock();
+  auto first_block = program.GenerateBlock();
+  auto second_block = program.GenerateBlock();
 
   program.Branch(cond.Get(), first_block, second_block);
 
   program.SetCurrentBlock(first_block);
   then_fn();
   if (!program_.IsTerminated(program_.CurrentBlock())) {
-    if (dest_block == nullptr) {
-      dest_block = &program.GenerateBlock();
+    if (dest_block == std::nullopt) {
+      dest_block = program.GenerateBlock();
     }
 
-    b1 = &program_.CurrentBlock();
+    b1 = program_.CurrentBlock();
     program.Branch(*dest_block);
   }
 
@@ -55,10 +54,10 @@ If<T>::If(ProgramBuilder<T>& program, const Bool<T>& cond,
   else_fn();
   if (!program_.IsTerminated(program_.CurrentBlock())) {
     if (dest_block == nullptr) {
-      dest_block = &program.GenerateBlock();
+      dest_block = program.GenerateBlock();
     }
 
-    b2 = &program_.CurrentBlock();
+    b2 = program_.CurrentBlock();
     program.Branch(*dest_block);
   }
 

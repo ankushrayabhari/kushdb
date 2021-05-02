@@ -16,7 +16,6 @@ class ProgramBuilder {
 
   using BasicBlock = typename Impl::BasicBlock;
   using Value = typename Impl::Value;
-  using PhiValue = typename Impl::PhiValue;
   using CompType = typename Impl::CompType;
   using Function = typename Impl::Function;
   using Type = typename Impl::Type;
@@ -72,8 +71,8 @@ class ProgramBuilder {
   virtual void SetCurrentBlock(BasicBlock b) = 0;
   virtual void Branch(BasicBlock b) = 0;
   virtual void Branch(Value cond, BasicBlock b1, BasicBlock b2) = 0;
-  virtual PhiValue Phi(Type type) = 0;
-  virtual void AddToPhi(PhiValue phi, Value v, BasicBlock b) = 0;
+  virtual Value Phi(Type type) = 0;
+  virtual void AddToPhi(Value phi, Value v, BasicBlock b) = 0;
 
   // I1
   virtual Value LNotI1(Value v) = 0;
