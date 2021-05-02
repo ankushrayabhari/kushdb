@@ -1,6 +1,7 @@
 #pragma once
 
 #include "absl/container/flat_hash_map.h"
+
 #include "compile/program_builder.h"
 #include "compile/proxy/column_data.h"
 #include "compile/translators/operator_translator.h"

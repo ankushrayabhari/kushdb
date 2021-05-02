@@ -1,1 +1,11 @@
 BasedOnStyle: Google
+IncludeCategories:
+  # Headers in <> without extension.
+  - Regex:           '<([A-Za-z0-9\Q/-_\E])+>'
+    Priority:        1
+  - Regex:           '"absl\/'
+    Priority:        2
+  - Regex:           '"type_safe\/'
+    Priority:        3
+  - Regex:           '"llvm\/'
+    Priority:        4

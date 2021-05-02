@@ -2,11 +2,12 @@
 
 #include <memory>
 
-#include "compile/program.h"
-#include "compile/program_builder.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+
+#include "compile/program.h"
+#include "compile/program_builder.h"
 
 namespace kush::compile::ir {
 

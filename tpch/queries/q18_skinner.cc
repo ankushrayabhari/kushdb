@@ -4,6 +4,7 @@
 #include <string>
 
 #include "absl/time/civil_time.h"
+
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "plan/cross_product_operator.h"

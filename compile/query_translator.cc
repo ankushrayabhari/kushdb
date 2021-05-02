@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "absl/container/flat_hash_map.h"
+
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "compile/llvm/llvm_ir.h"
@@ -12,8 +13,8 @@
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/skinner_join_executor.h"
-#include "compile/proxy/tuple_idx_table.h"
 #include "compile/proxy/string.h"
+#include "compile/proxy/tuple_idx_table.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/translator_factory.h"
 #include "plan/operator.h"

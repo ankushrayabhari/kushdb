@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "expression/expression.h"

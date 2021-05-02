@@ -1,7 +1,5 @@
 #include "compile/llvm/llvm_ir.h"
 
-#include <dlfcn.h>
-
 #include <iostream>
 #include <system_error>
 #include <type_traits>
@@ -19,6 +17,8 @@
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
+
+#include <dlfcn.h>
 
 namespace kush::compile::ir {
 

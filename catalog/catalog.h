@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "absl/container/flat_hash_map.h"
+
 #include "catalog/sql_type.h"
 
 namespace kush::catalog {

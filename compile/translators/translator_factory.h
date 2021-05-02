@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+
 #include "compile/llvm/llvm_ir.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/hash_table.h"

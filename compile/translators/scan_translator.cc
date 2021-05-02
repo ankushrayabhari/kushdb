@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+
 #include "catalog/sql_type.h"
 #include "compile/ir_registry.h"
 #include "compile/program_builder.h"
