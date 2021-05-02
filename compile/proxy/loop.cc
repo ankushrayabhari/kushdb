@@ -16,8 +16,9 @@ template <typename T>
 Loop<T>::Loop(ProgramBuilder<T>& program, std::function<void(Loop&)> init,
               std::function<Bool<T>(Loop&)> cond,
               std::function<typename Loop<T>::Continuation(Loop&)> body)
-    : program_(program) {
-  header_ = &program.GenerateBlock();
+    : program_(program),
+      header_(program.GenerateBlock()),
+      end_(program_.GenerateBlock()) {
   // Initialize all loop variables value
   init(*this);
 
@@ -28,30 +29,29 @@ Loop<T>::Loop(ProgramBuilder<T>& program, std::function<void(Loop&)> init,
   }
 
   // move to header
-  program_.Branch(*header_);
-  program_.SetCurrentBlock(*header_);
+  program_.Branch(header_);
+  program_.SetCurrentBlock(header_);
 
   // check the condition
   auto c = cond(*this);
 
   // jump to either body or end
-  auto& body_block = program_.GenerateBlock();
-  end_ = &program_.GenerateBlock();
-  program_.Branch(c.Get(), body_block, *end_);
+  auto body_block = program_.GenerateBlock();
+  program_.Branch(c.Get(), body_block, end_);
 
   // run body
   program_.SetCurrentBlock(body_block);
   body(*this);
 
   // set block to end
-  program_.SetCurrentBlock(*end_);
+  program_.SetCurrentBlock(end_);
 }
 
 template <typename T>
 void Loop<T>::AddLoopVariable(const proxy::Value<T>& v) {
   // switch to header
-  auto& current_block = program_.CurrentBlock();
-  program_.SetCurrentBlock(*header_);
+  auto current_block = program_.CurrentBlock();
+  program_.SetCurrentBlock(header_);
 
   // add a phi node
   phi_nodes_.push_back(program_.Phi(program_.TypeOf(v.Get())));
@@ -65,7 +65,7 @@ void Loop<T>::AddLoopVariable(const proxy::Value<T>& v) {
 
 template <typename T>
 void Loop<T>::Break() {
-  program_.Branch(*end_);
+  program_.Branch(end_);
 }
 
 INSTANTIATE_ON_IR(Loop);

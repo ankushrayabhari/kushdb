@@ -36,7 +36,7 @@ class Loop {
   }
 
   Continuation Continue() {
-    program_.Branch(*header_);
+    program_.Branch(header_);
     return Continuation();
   }
 
@@ -47,19 +47,17 @@ class Loop {
     if (sizeof...(rest)) {
       return Continue(rest...);
     } else {
-      program_.Branch(*header_);
+      program_.Branch(header_);
       return Continuation();
     }
   }
 
  private:
   ProgramBuilder<T>& program_;
-  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::PhiValue>>
-      phi_nodes_;
-  std::vector<std::reference_wrapper<typename ProgramBuilder<T>::Value>>
-      phi_nodes_initial_values_;
-  typename ProgramBuilder<T>::BasicBlock* header_;
-  typename ProgramBuilder<T>::BasicBlock* end_;
+  std::vector<typename ProgramBuilder<T>::PhiValue> phi_nodes_;
+  std::vector<typename ProgramBuilder<T>::Value> phi_nodes_initial_values_;
+  typename ProgramBuilder<T>::BasicBlock header_;
+  typename ProgramBuilder<T>::BasicBlock end_;
 };
 
 }  // namespace kush::compile::proxy
