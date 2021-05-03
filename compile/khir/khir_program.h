@@ -50,6 +50,16 @@ enum class Opcode : int8_t {
   SUB_I32,
   CMP_I32,
   CONST_I32,
+
+  // I64
+  ADD_I64,
+  MUL_I64,
+  DIV_I64,
+  SUB_I64,
+  CMP_I64,
+  ZEXT_I64,
+  F64_CONV_I64,
+  CONST_I64
 };
 
 enum class CompType : int8_t {
@@ -109,18 +119,17 @@ class KhirProgram {
   Value CmpI32(CompType cmp, Value v1, Value v2);
   Value ConstI32(int32_t v);
 
+  // I64
+  Value AddI64(Value v1, Value v2);
+  Value MulI64(Value v1, Value v2);
+  Value DivI64(Value v1, Value v2);
+  Value SubI64(Value v1, Value v2);
+  Value CmpI64(CompType cmp, Value v1, Value v2);
+  Value ZextI64(Value v);
+  Value F64ConversionI64(Value v);
+  Value ConstI64(int64_t v);
+
   /*
-
-    // I64
-    Value AddI64(Value v1, Value v2);
-    Value MulI64(Value v1, Value v2);
-    Value DivI64(Value v1, Value v2);
-    Value SubI64(Value v1, Value v2);
-    Value CmpI64(CompType cmp, Value v1, Value v2);
-    Value ConstI64(int64_t v);
-    Value ZextI64(Value v);
-    Value F64ConversionI64(Value v);
-
     // F64
     Value AddF64(Value v1, Value v2);
     Value MulF64(Value v1, Value v2);

@@ -229,4 +229,67 @@ Value KhirProgram::ConstI32(int32_t v) {
   return Value(offset);
 }
 
+// I64
+Value KhirProgram::AddI64(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::ADD_I64);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::MulI64(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::MUL_I64);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::DivI64(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::DIV_I64);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::SubI64(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::SUB_I64);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::CmpI64(CompType cmp, Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::CMP_I64);
+  AppendCompType(cmp);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::ZextI64(Value v) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::ZEXT_I64);
+  AppendValue(v);
+  return Value(offset);
+}
+
+Value KhirProgram::F64ConversionI64(Value v) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::F64_CONV_I64);
+  AppendValue(v);
+  return Value(offset);
+}
+
+Value KhirProgram::ConstI64(int64_t v) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::CONST_I64);
+  AppendLiteral(v);
+  return Value(offset);
+}
+
 }  // namespace kush::khir
