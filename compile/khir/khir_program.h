@@ -102,7 +102,7 @@ class BasicBlockImpl {
 // Function Idx, Basic Block Offset
 struct BasicBlock
     : type_safe::strong_typedef<Value, std::pair<int32_t, int32_t>>,
-      type_safe::strong_typedef_op::equality_comparison<Value> {
+      type_safe::strong_typedef_op::equality_comparison<BasicBlock> {
   using strong_typedef::strong_typedef;
 };
 
