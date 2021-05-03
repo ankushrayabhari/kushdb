@@ -25,6 +25,10 @@ void KhirProgram::AppendOpcode(Opcode opcode) {
   instructions_.push_back(static_cast<int8_t>(opcode));
 }
 
+void KhirProgram::AppendCompType(CompType c) {
+  instructions_.push_back(static_cast<int8_t>(c));
+}
+
 void KhirProgram::AppendLiteral(bool v) { instructions_.push_back(v ? 0 : 1); }
 
 void KhirProgram::AppendLiteral(int8_t v) { instructions_.push_back(v); }
@@ -67,7 +71,8 @@ Value KhirProgram::LNotI1(Value v) {
 
 Value KhirProgram::CmpI1(CompType cmp, Value v1, Value v2) {
   auto offset = instructions_.size();
-  AppendOpcode(CompTypeToOpcode(cmp));
+  AppendOpcode(Opcode::CMP_I1);
+  AppendCompType(cmp);
   AppendValue(v1);
   AppendValue(v2);
   return Value(offset);
@@ -76,6 +81,54 @@ Value KhirProgram::CmpI1(CompType cmp, Value v1, Value v2) {
 Value KhirProgram::ConstI1(bool v) {
   auto offset = instructions_.size();
   AppendOpcode(Opcode::CONST_I1);
+  AppendLiteral(v);
+  return Value(offset);
+}
+
+Value KhirProgram::AddI8(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::ADD_I8);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::MulI8(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::MUL_I8);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::DivI8(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::DIV_I8);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::SubI8(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::SUB_I8);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::CmpI8(CompType cmp, Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::CMP_I8);
+  AppendCompType(cmp);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::ConstI8(int8_t v) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::CONST_I8);
   AppendLiteral(v);
   return Value(offset);
 }

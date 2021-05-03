@@ -8,8 +8,35 @@
 namespace kush::khir {
 
 enum class Opcode : int8_t {
+  // Comparison
+  FCMP_OEQ,
+  FCMP_ONE,
+  FCMP_OLT,
+  FCMP_OLE,
+  FCMP_OGT,
+  FCMP_OGE,
+  ICMP_EQ,
+  ICMP_NE,
+  ICMP_SGT,
+  ICMP_SGE,
+  ICMP_SLT,
+  ICMP_SLE,
+
+  // I1
   LNOT_I1,
   CONST_I1,
+  CMP_I1,
+
+  // I8
+  ADD_I8,
+  MUL_I8,
+  DIV_I8,
+  SUB_I8,
+  CMP_I8,
+  CONST_I8,
+};
+
+enum class CompType : int8_t {
   FCMP_OEQ,
   FCMP_ONE,
   FCMP_OLT,
@@ -23,23 +50,6 @@ enum class Opcode : int8_t {
   ICMP_SLT,
   ICMP_SLE,
 };
-
-enum class CompType : int8_t {
-  FCMP_OEQ = static_cast<int8_t>(Opcode::FCMP_OEQ),
-  FCMP_ONE = static_cast<int8_t>(Opcode::FCMP_ONE),
-  FCMP_OLT = static_cast<int8_t>(Opcode::FCMP_OLT),
-  FCMP_OLE = static_cast<int8_t>(Opcode::FCMP_OLE),
-  FCMP_OGT = static_cast<int8_t>(Opcode::FCMP_OGT),
-  FCMP_OGE = static_cast<int8_t>(Opcode::FCMP_OGE),
-  ICMP_EQ = static_cast<int8_t>(Opcode::ICMP_EQ),
-  ICMP_NE = static_cast<int8_t>(Opcode::ICMP_NE),
-  ICMP_SGT = static_cast<int8_t>(Opcode::ICMP_SGT),
-  ICMP_SGE = static_cast<int8_t>(Opcode::ICMP_SGE),
-  ICMP_SLT = static_cast<int8_t>(Opcode::ICMP_SLT),
-  ICMP_SLE = static_cast<int8_t>(Opcode::ICMP_SLE),
-};
-
-Opcode CompTypeToOpcode(CompType c);
 
 class KhirProgram {
  public:
@@ -59,15 +69,15 @@ class KhirProgram {
   Value CmpI1(CompType cmp, Value v1, Value v2);
   Value ConstI1(bool v);
 
-  /*
-    // I8
-    Value AddI8(Value v1, Value v2);
-    Value MulI8(Value v1, Value v2);
-    Value DivI8(Value v1, Value v2);
-    Value SubI8(Value v1, Value v2);
-    Value CmpI8(CompType cmp, Value v1, Value v2);
-    Value ConstI8(int8_t v);
+  // I8
+  Value AddI8(Value v1, Value v2);
+  Value MulI8(Value v1, Value v2);
+  Value DivI8(Value v1, Value v2);
+  Value SubI8(Value v1, Value v2);
+  Value CmpI8(CompType cmp, Value v1, Value v2);
+  Value ConstI8(int8_t v);
 
+  /*
     // I16
     Value AddI16(Value v1, Value v2);
     Value MulI16(Value v1, Value v2);
@@ -106,6 +116,7 @@ class KhirProgram {
  private:
   void AppendValue(Value v);
   void AppendOpcode(Opcode opcode);
+  void AppendCompType(CompType c);
   void AppendLiteral(bool v);
   void AppendLiteral(int8_t v);
   void AppendLiteral(int16_t v);
