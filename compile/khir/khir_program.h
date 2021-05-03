@@ -8,19 +8,9 @@
 namespace kush::khir {
 
 enum class Opcode : int8_t {
-  // Comparison
-  FCMP_OEQ,
-  FCMP_ONE,
-  FCMP_OLT,
-  FCMP_OLE,
-  FCMP_OGT,
-  FCMP_OGE,
-  ICMP_EQ,
-  ICMP_NE,
-  ICMP_SGT,
-  ICMP_SGE,
-  ICMP_SLT,
-  ICMP_SLE,
+  // Control Flow
+  BR,
+  COND_BR,
 
   // I1
   LNOT_I1,
@@ -86,18 +76,47 @@ enum class CompType : int8_t {
   ICMP_SLE,
 };
 
+// Instruction Offset
+struct Value : type_safe::strong_typedef<Value, int32_t>,
+               type_safe::strong_typedef_op::equality_comparison<Value> {
+  using strong_typedef::strong_typedef;
+};
+
+class BasicBlockImpl {
+ public:
+  BasicBlockImpl(int32_t current_function);
+  void Terminate(int32_t offset);
+  void Codegen(int32_t offset);
+  int32_t CurrentFunction() const;
+  bool operator==(const BasicBlockImpl& other) const;
+  bool IsTerminated() const;
+  bool IsEmpty() const;
+
+ private:
+  int32_t begin_offset_;
+  int32_t end_offset_;
+  int32_t current_function_;
+};
+
+// Function Idx, Basic Block Offset
+struct BasicBlock
+    : type_safe::strong_typedef<Value, std::pair<int32_t, int32_t>>,
+      type_safe::strong_typedef_op::equality_comparison<Value> {
+  using strong_typedef::strong_typedef;
+};
+
 class KhirProgram {
  public:
   KhirProgram();
   ~KhirProgram() = default;
 
-  // Instruction Offset
-  struct Value : type_safe::strong_typedef<Value, int32_t>,
-                 type_safe::strong_typedef_op::equality_comparison<Value> {
-    using strong_typedef::strong_typedef;
-  };
-
-  using CompType = CompType;
+  // Control Flow
+  BasicBlock GenerateBlock();
+  BasicBlock CurrentBlock();
+  bool IsTerminated(BasicBlock b);
+  void SetCurrentBlock(BasicBlock b);
+  void Branch(BasicBlock b);
+  void Branch(Value cond, BasicBlock b1, BasicBlock b2);
 
   // I1
   Value LNotI1(Value v);
@@ -149,6 +168,7 @@ class KhirProgram {
 
  private:
   void AppendValue(Value v);
+  void AppendBasicBlock(BasicBlock b);
   void AppendOpcode(Opcode opcode);
   void AppendCompType(CompType c);
   void AppendLiteral(bool v);
@@ -158,7 +178,10 @@ class KhirProgram {
   void AppendLiteral(int64_t v);
   void AppendLiteral(double v);
 
-  std::vector<int8_t> instructions_;
+  std::vector<std::vector<int8_t>> instructions_per_function_;
+  std::vector<std::vector<BasicBlockImpl>> basic_blocks_per_function_;
+  int32_t current_block_;
+  int32_t current_function_;
 };
 
 }  // namespace kush::khir
