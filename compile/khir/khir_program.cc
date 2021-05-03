@@ -181,4 +181,52 @@ Value KhirProgram::ConstI16(int16_t v) {
   return Value(offset);
 }
 
+Value KhirProgram::AddI32(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::ADD_I32);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::MulI32(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::MUL_I32);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::DivI32(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::DIV_I32);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::SubI32(Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::SUB_I32);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::CmpI32(CompType cmp, Value v1, Value v2) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::CMP_I32);
+  AppendCompType(cmp);
+  AppendValue(v1);
+  AppendValue(v2);
+  return Value(offset);
+}
+
+Value KhirProgram::ConstI32(int32_t v) {
+  auto offset = instructions_.size();
+  AppendOpcode(Opcode::CONST_I32);
+  AppendLiteral(v);
+  return Value(offset);
+}
+
 }  // namespace kush::khir
