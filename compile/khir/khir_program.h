@@ -59,7 +59,16 @@ enum class Opcode : int8_t {
   CMP_I64,
   ZEXT_I64,
   F64_CONV_I64,
-  CONST_I64
+  CONST_I64,
+
+  // F64
+  ADD_F64,
+  MUL_F64,
+  DIV_F64,
+  SUB_F64,
+  CMP_F64,
+  CONST_F64,
+  I_CONV_F64,
 };
 
 enum class CompType : int8_t {
@@ -129,16 +138,15 @@ class KhirProgram {
   Value F64ConversionI64(Value v);
   Value ConstI64(int64_t v);
 
-  /*
-    // F64
-    Value AddF64(Value v1, Value v2);
-    Value MulF64(Value v1, Value v2);
-    Value DivF64(Value v1, Value v2);
-    Value SubF64(Value v1, Value v2);
-    Value CmpF64(CompType cmp, Value v1, Value v2);
-    Value ConstF64(double v);
-    Value CastSignedIntToF64(Value v);
-  */
+  // F64
+  Value AddF64(Value v1, Value v2);
+  Value MulF64(Value v1, Value v2);
+  Value DivF64(Value v1, Value v2);
+  Value SubF64(Value v1, Value v2);
+  Value CmpF64(CompType cmp, Value v1, Value v2);
+  Value ConstF64(double v);
+  Value CastSignedIntToF64(Value v);
+
  private:
   void AppendValue(Value v);
   void AppendOpcode(Opcode opcode);
