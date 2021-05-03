@@ -34,6 +34,14 @@ enum class Opcode : int8_t {
   SUB_I8,
   CMP_I8,
   CONST_I8,
+
+  // I16
+  ADD_I16,
+  MUL_I16,
+  DIV_I16,
+  SUB_I16,
+  CMP_I16,
+  CONST_I16,
 };
 
 enum class CompType : int8_t {
@@ -77,15 +85,15 @@ class KhirProgram {
   Value CmpI8(CompType cmp, Value v1, Value v2);
   Value ConstI8(int8_t v);
 
-  /*
-    // I16
-    Value AddI16(Value v1, Value v2);
-    Value MulI16(Value v1, Value v2);
-    Value DivI16(Value v1, Value v2);
-    Value SubI16(Value v1, Value v2);
-    Value CmpI16(CompType cmp, Value v1, Value v2);
-    Value ConstI16(int16_t v);
+  // I16
+  Value AddI16(Value v1, Value v2);
+  Value MulI16(Value v1, Value v2);
+  Value DivI16(Value v1, Value v2);
+  Value SubI16(Value v1, Value v2);
+  Value CmpI16(CompType cmp, Value v1, Value v2);
+  Value ConstI16(int16_t v);
 
+  /*
     // I32
     Value AddI32(Value v1, Value v2);
     Value MulI32(Value v1, Value v2);
