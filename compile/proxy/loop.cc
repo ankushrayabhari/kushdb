@@ -21,16 +21,18 @@ Loop<T>::Loop(ProgramBuilder<T>& program, std::function<void(Loop&)> init,
       end_(program_.GenerateBlock()) {
   // Initialize all loop variables value
   init(*this);
-
-  // now that all loop varaibles are knowns, add to phi nodes
-  for (int i = 0; i < phi_nodes_.size(); i++) {
-    program_.AddToPhi(phi_nodes_[i], phi_nodes_initial_values_[i],
-                      program_.CurrentBlock());
-  }
+  auto initial_block = program_.CurrentBlock();
 
   // move to header
   program_.Branch(header_);
   program_.SetCurrentBlock(header_);
+
+  // now that all loop varaibles are known, add to phi nodes
+  for (int i = 0; i < phi_nodes_initial_values_.size(); i++) {
+    auto phi = program_.Phi(program_.TypeOf(phi_nodes_initial_values_[i]));
+    program_.AddToPhi(phi, phi_nodes_initial_values_[i], initial_block);
+    phi_nodes_.push_back(phi);
+  }
 
   // check the condition
   auto c = cond(*this);
@@ -49,18 +51,8 @@ Loop<T>::Loop(ProgramBuilder<T>& program, std::function<void(Loop&)> init,
 
 template <typename T>
 void Loop<T>::AddLoopVariable(const proxy::Value<T>& v) {
-  // switch to header
-  auto current_block = program_.CurrentBlock();
-  program_.SetCurrentBlock(header_);
-
-  // add a phi node
-  phi_nodes_.push_back(program_.Phi(program_.TypeOf(v.Get())));
-
   // delay setting the initial value until all others have been computed
   phi_nodes_initial_values_.push_back(v.Get());
-
-  // switch back to original block
-  program_.SetCurrentBlock(current_block);
 }
 
 template <typename T>
