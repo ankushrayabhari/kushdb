@@ -34,13 +34,10 @@ void KhirProgram::AppendValue(Value v) {
   }
 }
 
-void KhirProgram::AppendBasicBlock(BasicBlock b) {
-  auto [func_idx, block_idx] = static_cast<std::pair<int32_t, int32_t>>(b);
-  if (func_idx != current_function_) {
-    throw std::runtime_error("Cannot jump to a basic block across functions.");
-  }
+void KhirProgram::AppendBasicBlockIdx(int32_t b) { AppendLiteral(b); }
 
-  AppendLiteral(block_idx);
+int32_t KhirProgram::GetBasicBlockIdx(int32_t offset) {
+  return GetI32Literal(offset);
 }
 
 void KhirProgram::AppendOpcode(Opcode opcode) {
@@ -48,17 +45,36 @@ void KhirProgram::AppendOpcode(Opcode opcode) {
       static_cast<int8_t>(opcode));
 }
 
+Opcode KhirProgram::GetOpcode(int32_t offset) {
+  int8_t literal = GetI8Literal(offset);
+  return static_cast<Opcode>(literal);
+}
+
 void KhirProgram::AppendCompType(CompType c) {
   instructions_per_function_[current_function_].push_back(
       static_cast<int8_t>(c));
+}
+
+CompType KhirProgram::GetCompType(int32_t offset) {
+  int8_t literal = GetI8Literal(offset);
+  return static_cast<CompType>(literal);
 }
 
 void KhirProgram::AppendLiteral(bool v) {
   instructions_per_function_[current_function_].push_back(v ? 0 : 1);
 }
 
+bool KhirProgram::GetBoolLiteral(int32_t offset) {
+  int8_t literal = GetI8Literal(offset);
+  return literal == 0 ? false : true;
+}
+
 void KhirProgram::AppendLiteral(int8_t v) {
   instructions_per_function_[current_function_].push_back(v);
+}
+
+int8_t KhirProgram::GetI8Literal(int32_t offset) {
+  return instructions_per_function_[current_function_][offset];
 }
 
 void KhirProgram::AppendLiteral(int16_t v) {
@@ -68,11 +84,31 @@ void KhirProgram::AppendLiteral(int16_t v) {
   }
 }
 
+int16_t KhirProgram::GetI16Literal(int32_t offset) {
+  int16_t result = 0;
+  for (int byte = 0; byte < 2; byte++) {
+    int16_t upshifted =
+        instructions_per_function_[current_function_][offset + byte];
+    result |= upshifted << (8 * (1 - byte));
+  }
+  return result;
+}
+
 void KhirProgram::AppendLiteral(int32_t v) {
   for (int byte = 0; byte < 4; byte++) {
     instructions_per_function_[current_function_].push_back((v >> (8 * byte)) &
                                                             0xFF);
   }
+}
+
+int32_t KhirProgram::GetI32Literal(int32_t offset) {
+  int32_t result = 0;
+  for (int byte = 0; byte < 4; byte++) {
+    int32_t upshifted =
+        instructions_per_function_[current_function_][offset + byte];
+    result |= upshifted << (8 * (3 - byte));
+  }
+  return result;
 }
 
 void KhirProgram::AppendLiteral(int64_t v) {
@@ -82,16 +118,30 @@ void KhirProgram::AppendLiteral(int64_t v) {
   }
 }
 
+int64_t KhirProgram::GetI64Literal(int32_t offset) {
+  int64_t result = 0;
+  for (int byte = 0; byte < 8; byte++) {
+    int64_t upshifted =
+        instructions_per_function_[current_function_][offset + byte];
+    result |= upshifted << (8 * (3 - byte));
+  }
+  return result;
+}
+
 void KhirProgram::AppendLiteral(double v) {
   // Non-portable way to convert double to an IEEE-754 64bit representation
-  uint64_t bytes;
-  static_assert(sizeof(uint64_t) == sizeof(double));
+  int64_t bytes;
+  static_assert(sizeof(int64_t) == sizeof(double));
   std::memcpy(&bytes, &v, sizeof(bytes));
+  AppendLiteral(bytes);
+}
 
-  for (int byte = 0; byte < 8; byte++) {
-    instructions_per_function_[current_function_].push_back(
-        (bytes >> (8 * byte)) & 0xFF);
-  }
+double KhirProgram::GetF64Literal(int32_t offset) {
+  int64_t bytes = GetI64Literal(offset);
+  double result;
+  static_assert(sizeof(int64_t) == sizeof(double));
+  std::memcpy(&result, &bytes, sizeof(result));
+  return result;
 }
 
 BasicBlock KhirProgram::GenerateBlock() {
@@ -126,9 +176,13 @@ void KhirProgram::SetCurrentBlock(BasicBlock b) {
 
 void KhirProgram::Branch(BasicBlock b) {
   auto offset = instructions_per_function_[current_function_].size();
+  auto [func_idx, block_idx] = static_cast<std::pair<int32_t, int32_t>>(b);
+  if (func_idx != current_function_) {
+    throw std::runtime_error("Cannot branch outside of function.");
+  }
 
   AppendOpcode(Opcode::BR);
-  AppendBasicBlock(b);
+  AppendBasicBlockIdx(block_idx);
 
   basic_blocks_per_function_[current_function_][current_block_].Terminate(
       offset);
@@ -136,14 +190,36 @@ void KhirProgram::Branch(BasicBlock b) {
 
 void KhirProgram::Branch(Value cond, BasicBlock b1, BasicBlock b2) {
   auto offset = instructions_per_function_[current_function_].size();
+  auto [func_idx1, block_idx1] = static_cast<std::pair<int32_t, int32_t>>(b1);
+  auto [func_idx2, block_idx2] = static_cast<std::pair<int32_t, int32_t>>(b2);
+  if (func_idx1 != current_function_ || func_idx2 != current_function_) {
+    throw std::runtime_error("Cannot branch outside of function.");
+  }
 
   AppendOpcode(Opcode::COND_BR);
   AppendValue(cond);
-  AppendBasicBlock(b1);
-  AppendBasicBlock(b2);
+  AppendBasicBlockIdx(block_idx1);
+  AppendBasicBlockIdx(block_idx2);
 
   basic_blocks_per_function_[current_function_][current_block_].Terminate(
       offset);
+}
+
+Value KhirProgram::Phi(/* Type type */) {
+  int32_t phi_id = phi_values_.size();
+  phi_values_.emplace_back();
+
+  auto offset = instructions_per_function_[current_function_].size();
+  AppendOpcode(Opcode::PHI);
+  AppendLiteral(phi_id);
+  return Value(offset);
+}
+
+void KhirProgram::AddToPhi(Value phi, Value v, BasicBlock b) {
+  int32_t phi_id_offset = static_cast<int32_t>(phi) + sizeof(Value);
+  int32_t phi_id = GetI32Literal(phi_id_offset);
+  auto [func_idx, block_idx] = static_cast<std::pair<int32_t, int32_t>>(b);
+  phi_values_[phi_id].emplace_back(block_idx, v);
 }
 
 Value KhirProgram::LNotI1(Value v) {

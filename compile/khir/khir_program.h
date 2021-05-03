@@ -11,6 +11,7 @@ enum class Opcode : int8_t {
   // Control Flow
   BR,
   COND_BR,
+  PHI,
 
   // I1
   LNOT_I1,
@@ -117,6 +118,8 @@ class KhirProgram {
   void SetCurrentBlock(BasicBlock b);
   void Branch(BasicBlock b);
   void Branch(Value cond, BasicBlock b1, BasicBlock b2);
+  Value Phi(/* Type type */);
+  void AddToPhi(Value phi, Value v, BasicBlock b);
 
   // I1
   Value LNotI1(Value v);
@@ -168,7 +171,7 @@ class KhirProgram {
 
  private:
   void AppendValue(Value v);
-  void AppendBasicBlock(BasicBlock b);
+  void AppendBasicBlockIdx(int32_t b);
   void AppendOpcode(Opcode opcode);
   void AppendCompType(CompType c);
   void AppendLiteral(bool v);
@@ -178,8 +181,22 @@ class KhirProgram {
   void AppendLiteral(int64_t v);
   void AppendLiteral(double v);
 
+  Value GetValue(int32_t offset);
+  int32_t GetBasicBlockIdx(int32_t offset);
+  Opcode GetOpcode(int32_t offset);
+  CompType GetCompType(int32_t offset);
+  bool GetBoolLiteral(int32_t offset);
+  int8_t GetI8Literal(int32_t offset);
+  int16_t GetI16Literal(int32_t offset);
+  int32_t GetI32Literal(int32_t offset);
+  int64_t GetI64Literal(int32_t offset);
+  double GetF64Literal(int32_t offset);
+
   std::vector<std::vector<int8_t>> instructions_per_function_;
   std::vector<std::vector<BasicBlockImpl>> basic_blocks_per_function_;
+  // Stores a block idx, value pair that contains the phi node for the
+  // predecessor
+  std::vector<std::vector<std::pair<int32_t, Value>>> phi_values_;
   int32_t current_block_;
   int32_t current_function_;
 };
