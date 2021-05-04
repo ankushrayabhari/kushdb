@@ -61,7 +61,7 @@ void KhirProgram::AppendType(const Type& t) {
       instructions_per_function_[current_function_].end(), v.begin(), v.end());
 }
 
-Type KhirProgram::GetType(int32_t offset) {
+absl::Span<int8_t> KhirProgram::GetType(int32_t offset) {
   auto id_int = GetI8Literal(offset);
   TypeID id = static_cast<TypeID>(id_int);
 
@@ -73,9 +73,8 @@ Type KhirProgram::GetType(int32_t offset) {
     case TypeID::I64:
     case TypeID::F64:
     case TypeID::VOID: {
-      absl::InlinedVector<int8_t, 4> result;
-      result.push_back(id_int);
-      return Type(result);
+      auto it = instructions_per_function_[current_function_].data() + offset;
+      return absl::Span<int8_t>(it, 1);
     }
 
     case TypeID::POINTER:
@@ -83,10 +82,8 @@ Type KhirProgram::GetType(int32_t offset) {
     case TypeID::STRUCT:
     case TypeID::FUNCTION: {
       auto len = GetI32Literal(offset + 1);
-      auto it = instructions_per_function_[current_function_].begin() + offset;
-      auto end_it =
-          instructions_per_function_[current_function_].begin() + offset + len;
-      return Type(absl::InlinedVector<int8_t, 4>(it, end_it));
+      auto it = instructions_per_function_[current_function_].data() + offset;
+      return absl::Span<int8_t>(it, len);
     }
   }
 }
@@ -361,7 +358,8 @@ Value KhirProgram::SizeOf(Type t) {
 }
 
 Type KhirProgram::TypeOf(Value value) {
-  return GetType(static_cast<int32_t>(value) + sizeof(Opcode));
+  return Type(absl::InlinedVector<int8_t, 4>(static_cast<int32_t>(value) +
+                                             sizeof(Opcode)));
 }
 
 BasicBlock KhirProgram::GenerateBlock() {
@@ -441,7 +439,7 @@ Value KhirProgram::Phi(Type type) {
 void KhirProgram::AddToPhi(Value phi, Value v, BasicBlock b) {
   auto offset = static_cast<int32_t>(phi);
   auto type = GetType(offset + 1);
-  int32_t phi_id_offset = static_cast<int32_t>(phi) + sizeof(Value);
+  int32_t phi_id_offset = offset + 1 + type.size();
   int32_t phi_id = GetI32Literal(phi_id_offset);
   auto [func_idx, block_idx] = static_cast<std::pair<int32_t, int32_t>>(b);
   phi_values_[phi_id].emplace_back(block_idx, v);

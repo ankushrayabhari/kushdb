@@ -235,7 +235,7 @@ class KhirProgram {
   Value GetValue(int32_t offset);
   int32_t GetBasicBlockIdx(int32_t offset);
   Opcode GetOpcode(int32_t offset);
-  Type GetType(int32_t offset);
+  absl::Span<int8_t> GetType(int32_t offset);
   CompType GetCompType(int32_t offset);
   bool GetBoolLiteral(int32_t offset);
   int8_t GetI8Literal(int32_t offset);
