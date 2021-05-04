@@ -92,8 +92,7 @@ void Struct<T>::Pack(std::vector<std::reference_wrapper<Value<T>>> values) {
   }
 
   for (int i = 0; i < values.size(); i++) {
-    auto ptr = program_.GetElementPtr(
-        fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(i)});
+    auto ptr = program_.GetElementPtr(fields_.Type(), value_, {0, i});
     auto v = values[i].get().Get();
 
     if (types[i] == catalog::SqlType::TEXT) {
@@ -111,8 +110,7 @@ std::vector<std::unique_ptr<Value<T>>> Struct<T>::Unpack() {
 
   std::vector<std::unique_ptr<Value<T>>> result;
   for (int i = 0; i < types.size(); i++) {
-    auto ptr = program_.GetElementPtr(
-        fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(i)});
+    auto ptr = program_.GetElementPtr(fields_.Type(), value_, {0, i});
 
     switch (types[i]) {
       case catalog::SqlType::SMALLINT:
@@ -151,8 +149,7 @@ template <typename T>
 void Struct<T>::Update(int field, const proxy::Value<T>& v) {
   auto types = fields_.Types();
 
-  auto ptr = program_.GetElementPtr(
-      fields_.Type(), value_, {program_.ConstI32(0), program_.ConstI32(field)});
+  auto ptr = program_.GetElementPtr(fields_.Type(), value_, {0, field});
 
   if (types[field] == catalog::SqlType::TEXT) {
     String<T>(program_, ptr).Copy(dynamic_cast<const String<T>&>(v));

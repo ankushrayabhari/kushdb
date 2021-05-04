@@ -297,8 +297,7 @@ void SkinnerJoinTranslator<T>::Produce() {
                               T>(program_, [&](auto& initial_budget,
                                                auto& resume_progress) {
       auto handler_ptr = program_.GetElementPtr(
-          handler_pointer_array_type, handler_pointer_array,
-          {program_.ConstI32(0), program_.ConstI32(table_idx)});
+          handler_pointer_array_type, handler_pointer_array, {0, table_idx});
       auto handler = program_.Load(handler_ptr);
 
       {
@@ -325,8 +324,7 @@ void SkinnerJoinTranslator<T>::Produce() {
 
       // Get progress
       auto progress_ptr = program_.GetElementPtr(
-          progress_array_type, progress_array,
-          {program_.ConstI32(0), program_.ConstI32(table_idx)});
+          progress_array_type, progress_array, {0, table_idx});
       auto progress = proxy::Int32<T>(program_, program_.Load(progress_ptr));
 
       std::unique_ptr<proxy::Int32<T>> last_tuple_left, last_tuple_right;
@@ -350,17 +348,15 @@ void SkinnerJoinTranslator<T>::Produce() {
             }
 
             // Store idx into global idx array.
-            auto idx_ptr = program_.GetElementPtr(
-                idx_array_type, idx_array,
-                {program_.ConstI32(0), program_.ConstI32(table_idx)});
+            auto idx_ptr = program_.GetElementPtr(idx_array_type, idx_array,
+                                                  {0, table_idx});
             program_.Store(idx_ptr, next_tuple.Get());
 
             proxy::Int32<T> runtime_table_idx(program_, table_idx);
 
             proxy::Int32<T> last_table(
                 program_, program_.Load(program_.GetElementPtr(
-                              last_table_type, last_table_ptr,
-                              {program_.ConstI32(0), program_.ConstI32(0)})));
+                              last_table_type, last_table_ptr, {0, 0})));
 
             std::unique_ptr<proxy::Int32<T>> resume_progress_budget_left,
                 resume_progress_budget_right;
@@ -436,9 +432,8 @@ void SkinnerJoinTranslator<T>::Produce() {
 
                         auto flag_ptr = program_.GetElementPtr(
                             flag_array_type, flag_array,
-                            {program_.ConstI32(0),
-                             program_.ConstI32(table_predicate_to_flag_idx.at(
-                                 {table_idx, predicate_idx}))});
+                            {0, table_predicate_to_flag_idx.at(
+                                    {table_idx, predicate_idx})});
                         proxy::Int8<T> flag_value(program_,
                                                   program_.Load(flag_ptr));
 
@@ -478,18 +473,15 @@ void SkinnerJoinTranslator<T>::Produce() {
               auto last_tuple = cardinality - 1;
 
               // Store last_tuple into global idx array.
-              auto idx_ptr = program_.GetElementPtr(
-                  idx_array_type, idx_array,
-                  {program_.ConstI32(0), program_.ConstI32(table_idx)});
+              auto idx_ptr = program_.GetElementPtr(idx_array_type, idx_array,
+                                                    {0, table_idx});
               program_.Store(idx_ptr, last_tuple.Get());
 
               proxy::If<T>(program_, budget == 0, [&] {
                 // Set table_ctr to be the current table
-                program_.Store(
-                    program_.GetElementPtr(
-                        table_ctr_type, table_ctr_ptr,
-                        {program_.ConstI32(0), program_.ConstI32(0)}),
-                    program_.ConstI32(table_idx));
+                program_.Store(program_.GetElementPtr(table_ctr_type,
+                                                      table_ctr_ptr, {0, 0}),
+                               program_.ConstI32(table_idx));
 
                 program_.Return(program_.ConstI32(-1));
               });
@@ -529,9 +521,8 @@ void SkinnerJoinTranslator<T>::Produce() {
 
               auto flag_ptr = program_.GetElementPtr(
                   flag_array_type, flag_array,
-                  {program_.ConstI32(0),
-                   program_.ConstI32(table_predicate_to_flag_idx.at(
-                       {table_idx, predicate_idx}))});
+                  {0,
+                   table_predicate_to_flag_idx.at({table_idx, predicate_idx})});
               proxy::Int8<T> flag_value(program_, program_.Load(flag_ptr));
               proxy::If<T>(program_, flag_value == 1, [&]() {
                 auto cond = expr_translator_.Compute(conditions[predicate_idx]);
@@ -544,17 +535,14 @@ void SkinnerJoinTranslator<T>::Produce() {
                           [&]() {
                             // Store last_tuple into global idx array.
                             auto idx_ptr = program_.GetElementPtr(
-                                idx_array_type, idx_array,
-                                {program_.ConstI32(0),
-                                 program_.ConstI32(table_idx)});
+                                idx_array_type, idx_array, {0, table_idx});
                             program_.Store(idx_ptr, last_tuple->Get());
 
                             // Set table_ctr to be the current table
-                            program_.Store(program_.GetElementPtr(
-                                               table_ctr_type, table_ctr_ptr,
-                                               {program_.ConstI32(0),
-                                                program_.ConstI32(0)}),
-                                           program_.ConstI32(table_idx));
+                            program_.Store(
+                                program_.GetElementPtr(table_ctr_type,
+                                                       table_ctr_ptr, {0, 0}),
+                                program_.ConstI32(table_idx));
 
                             program_.Return(program_.ConstI32(-1));
                           },
@@ -564,24 +552,21 @@ void SkinnerJoinTranslator<T>::Produce() {
             }
 
             // Store idx into global idx array.
-            auto idx_ptr = program_.GetElementPtr(
-                idx_array_type, idx_array,
-                {program_.ConstI32(0), program_.ConstI32(table_idx)});
+            auto idx_ptr = program_.GetElementPtr(idx_array_type, idx_array,
+                                                  {0, table_idx});
             program_.Store(idx_ptr, next_tuple->Get());
 
             proxy::If<T>(program_, budget == 0, [&]() {
               // Set table_ctr to be the current table
-              program_.Store(program_.GetElementPtr(
-                                 table_ctr_type, table_ctr_ptr,
-                                 {program_.ConstI32(0), program_.ConstI32(0)}),
-                             program_.ConstI32(table_idx));
+              program_.Store(
+                  program_.GetElementPtr(table_ctr_type, table_ctr_ptr, {0, 0}),
+                  program_.ConstI32(table_idx));
 
               proxy::Int32<T> runtime_table_idx(program_, table_idx);
 
               proxy::Int32<T> last_table(
                   program_, program_.Load(program_.GetElementPtr(
-                                last_table_type, last_table_ptr,
-                                {program_.ConstI32(0), program_.ConstI32(0)})));
+                                last_table_type, last_table_ptr, {0, 0})));
 
               proxy::If<T>(program_, runtime_table_idx == last_table, [&]() {
                 program_.Call(handler, handler_type,
@@ -611,16 +596,14 @@ void SkinnerJoinTranslator<T>::Produce() {
   proxy::TableFunction<T> valid_tuple_handler(
       program_, [&](const auto& budget, const auto& resume_progress) {
         // Insert tuple idx into hash table
-        auto tuple_idx_arr = program_.GetElementPtr(
-            idx_array_type, idx_array,
-            {program_.ConstI32(0), program_.ConstI32(0)});
+        auto tuple_idx_arr =
+            program_.GetElementPtr(idx_array_type, idx_array, {0, 0});
 
         proxy::Int32<T> num_tables(program_, child_translators.size());
         tuple_idx_table.Insert(tuple_idx_arr, num_tables);
 
-        auto result_ptr = program_.GetElementPtr(
-            num_result_tuples_type, num_result_tuples_ptr,
-            {program_.ConstI32(0), program_.ConstI32(0)});
+        auto result_ptr = program_.GetElementPtr(num_result_tuples_type,
+                                                 num_result_tuples_ptr, {0, 0});
         proxy::Int32<T> num_result_tuples(program_, program_.Load(result_ptr));
         program_.Store(result_ptr, (num_result_tuples + 1).Get());
 
@@ -630,9 +613,8 @@ void SkinnerJoinTranslator<T>::Produce() {
   // 3. Execute join
   // Initialize handler array with the corresponding functions for each table
   for (int i = 0; i < child_operators.size(); i++) {
-    auto handler_ptr = program_.GetElementPtr(
-        handler_pointer_array_type, handler_pointer_array,
-        {program_.ConstI32(0), program_.ConstI32(i)});
+    auto handler_ptr = program_.GetElementPtr(handler_pointer_array_type,
+                                              handler_pointer_array, {0, i});
     program_.Store(handler_ptr, {table_functions[i].Get()});
   }
 
@@ -673,10 +655,8 @@ void SkinnerJoinTranslator<T>::Produce() {
   for (int i = 0; i < child_operators.size(); i++) {
     proxy::Vector<T>& buffer = *buffers_[i];
     auto cardinality = proxy::Int32<T>(program_, buffer.Size().Get());
-    program_.Store(
-        program_.GetElementPtr(idx_array_type, idx_array,
-                               {program_.ConstI32(0), program_.ConstI32(i)}),
-        cardinality.Get());
+    program_.Store(program_.GetElementPtr(idx_array_type, idx_array, {0, i}),
+                   cardinality.Get());
   }
 
   // Execute build side of skinner join
@@ -686,29 +666,21 @@ void SkinnerJoinTranslator<T>::Produce() {
       program_.ConstI32(child_operators.size()),
       program_.ConstI32(conditions.size()),
       program_.GetElementPtr(handler_pointer_array_type, handler_pointer_array,
-                             {program_.ConstI32(0), program_.ConstI32(0)}),
+                             {0, 0}),
       valid_tuple_handler.Get(),
       program_.ConstI32(table_predicate_to_flag_idx_values.size()),
       program_.GetElementPtr(table_predicate_to_flag_idx_arr_type,
-                             table_predicate_to_flag_idx_arr,
-                             {program_.ConstI32(0), program_.ConstI32(0)}),
+                             table_predicate_to_flag_idx_arr, {0, 0}),
       program_.GetElementPtr(tables_per_predicate_arr_type,
-                             tables_per_predicate_arr,
-                             {program_.ConstI32(0), program_.ConstI32(0)}),
-      program_.GetElementPtr(flag_array_type, flag_array,
-                             {program_.ConstI32(0), program_.ConstI32(0)}),
-      program_.GetElementPtr(progress_array_type, progress_array,
-                             {program_.ConstI32(0), program_.ConstI32(0)}),
-      program_.GetElementPtr(table_ctr_type, table_ctr_ptr,
-                             {program_.ConstI32(0), program_.ConstI32(0)}),
-      program_.GetElementPtr(idx_array_type, idx_array,
-                             {program_.ConstI32(0), program_.ConstI32(0)}),
-      program_.GetElementPtr(last_table_type, last_table_ptr,
-                             {program_.ConstI32(0), program_.ConstI32(0)}),
+                             tables_per_predicate_arr, {0, 0}),
+      program_.GetElementPtr(flag_array_type, flag_array, {0, 0}),
+      program_.GetElementPtr(progress_array_type, progress_array, {0, 0}),
+      program_.GetElementPtr(table_ctr_type, table_ctr_ptr, {0, 0}),
+      program_.GetElementPtr(idx_array_type, idx_array, {0, 0}),
+      program_.GetElementPtr(last_table_type, last_table_ptr, {0, 0}),
       program_.GetElementPtr(num_result_tuples_type, num_result_tuples_ptr,
-                             {program_.ConstI32(0), program_.ConstI32(0)}),
-      program_.GetElementPtr(offset_array_type, offset_array,
-                             {program_.ConstI32(0), program_.ConstI32(0)}),
+                             {0, 0}),
+      program_.GetElementPtr(offset_array_type, offset_array, {0, 0}),
   });
 
   // Loop over tuple idx table and then output tuples from each table.
@@ -717,8 +689,8 @@ void SkinnerJoinTranslator<T>::Produce() {
     for (int i = 0; i < child_translators.size(); i++) {
       auto& child_translator = child_translators[i].get();
 
-      auto tuple_idx_ptr = program_.GetElementPtr(
-          program_.I32Type(), tuple_idx_arr, {program_.ConstI32(i)});
+      auto tuple_idx_ptr =
+          program_.GetElementPtr(program_.I32Type(), tuple_idx_arr, {i});
       auto tuple_idx = proxy::Int32<T>(program_, program_.Load(tuple_idx_ptr));
 
       proxy::Vector<T>& buffer = *buffers_[current_buffer++];

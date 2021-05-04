@@ -51,7 +51,8 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   // Memory
   Value Alloca(Type t) override;
   Value NullPtr(Type t) override;
-  Value GetElementPtr(Type t, Value ptr, absl::Span<const Value> idx) override;
+  Value GetElementPtr(Type t, Value ptr,
+                      absl::Span<const int32_t> idx) override;
   Value PointerCast(Value v, Type t) override;
   void Store(Value ptr, Value v) override;
   Value Load(Value ptr) override;

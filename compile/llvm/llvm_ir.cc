@@ -97,7 +97,7 @@ Type LLVMIr::TypeOf(Value value) { return NN_CHECK_THROW(value->getType()); }
 Value LLVMIr::SizeOf(Type type) {
   auto pointer_type = PointerType(type);
   auto null = NullPtr(pointer_type);
-  auto size_ptr = GetElementPtr(type, null, {ConstI32(1)});
+  auto size_ptr = GetElementPtr(type, null, {1});
   return PointerCast(size_ptr, I64Type());
 }
 
@@ -111,8 +111,14 @@ Value LLVMIr::NullPtr(Type t) {
       llvm::dyn_cast<llvm::PointerType>(t.as_nullable())));
 }
 
-Value LLVMIr::GetElementPtr(Type t, Value ptr, absl::Span<const Value> idx) {
-  return NN_CHECK_THROW(builder_->CreateGEP(t, ptr, NNVectorToVectorPtr(idx)));
+Value LLVMIr::GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx) {
+  std::vector<llvm::Value*> v;
+  v.reserve(idx.size());
+  for (int32_t i : idx) {
+    v.push_back(ConstI32(i).as_nullable());
+  }
+
+  return NN_CHECK_THROW(builder_->CreateGEP(t, ptr, v));
 }
 
 Value LLVMIr::PointerCast(Value v, Type t) {

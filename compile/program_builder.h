@@ -41,7 +41,7 @@ class ProgramBuilder {
   virtual Value Alloca(Type size) = 0;
   virtual Value NullPtr(Type t) = 0;
   virtual Value GetElementPtr(Type t, Value ptr,
-                              absl::Span<const Value> idx) = 0;
+                              absl::Span<const int32_t> idx) = 0;
   virtual Value PointerCast(Value v, Type t) = 0;
   virtual void Store(Value ptr, Value v) = 0;
   virtual Value Load(Value ptr) = 0;
