@@ -15,6 +15,16 @@ enum class Opcode : int8_t {
   // Types
   SIZEOF,
 
+  // Memory
+  ALLOCA,
+  GEP,
+  STORE,
+  LOAD,
+  MEMCPY,
+  PTR_CAST,
+  PTR_TO_INT,
+  INT_TO_PTR,
+
   // Control Flow
   BR,
   COND_BR,
@@ -160,6 +170,33 @@ class KhirProgram {
   Type FunctionType(Type result, absl::Span<const Type> args);
   Type TypeOf(Value value);
   Value SizeOf(Type type);
+
+  // Memory
+  Value Alloca(Type t);
+  Value NullPtr(Type t);
+  Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
+  Value PointerCast(Value v, Type t);
+  void Store(Value ptr, Value v);
+  Value Load(Value ptr);
+  void Memcpy(Value dest, Value src, Value length);
+
+  /*
+    // Function
+    Function CreateFunction(Type result_type,
+                            absl::Span<const Type> arg_types) override;
+    Function CreatePublicFunction(Type result_type,
+                                  absl::Span<const Type> arg_types,
+                                  std::string_view name) override;
+    Function DeclareExternalFunction(std::string_view name, Type result_type,
+                                     absl::Span<const Type> arg_types) override;
+    Function GetFunction(std::string_view name) override;
+    std::vector<Value> GetFunctionArguments(Function func) override;
+    void Return(Value v) override;
+    void Return() override;
+    Value Call(Function name, absl::Span<const Value> arguments) override;
+    Value Call(Value func, Type function_type,
+               absl::Span<const Value> arguments) override;
+               */
 
   // Control Flow
   BasicBlock GenerateBlock();

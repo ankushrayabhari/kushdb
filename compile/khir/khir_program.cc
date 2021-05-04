@@ -6,6 +6,98 @@
 
 namespace kush::khir {
 
+Type GetPointedToType(const Type& t) {
+  const auto& v = static_cast<const absl::InlinedVector<int8_t, 4>&>(t);
+  return Type(absl::InlinedVector<int8_t, 4>(v.begin() + 5, v.end()));
+}
+
+Type GetArrayElementType(const Type& t) {
+  const auto& v = static_cast<const absl::InlinedVector<int8_t, 4>&>(t);
+  return Type(absl::InlinedVector<int8_t, 4>(v.begin() + 9, v.end()));
+}
+
+Type GetStructFieldType(const Type& t, int32_t idx) {
+  // 1 byte for TypeID
+  // 4 bytes for type length
+  // 4 bytes for # of fields
+  // v.size() bytes for each element type
+  const auto& v = static_cast<const absl::InlinedVector<int8_t, 4>&>(t);
+
+  int32_t num_fields = 0;
+  for (int byte = 4; byte < 8; byte++) {
+    int32_t upshifted = v[byte];
+    num_fields |= upshifted << (8 * (3 - byte));
+  }
+
+  int32_t last_field = 9;
+  for (int i = 0; i < idx; i++) {
+    auto id_int = v[last_field];
+    TypeID id = static_cast<TypeID>(id_int);
+
+    switch (id) {
+      case TypeID::I1:
+      case TypeID::I8:
+      case TypeID::I16:
+      case TypeID::I32:
+      case TypeID::I64:
+      case TypeID::F64:
+      case TypeID::VOID: {
+        last_field += 1;
+        break;
+      }
+
+      case TypeID::POINTER:
+      case TypeID::ARRAY:
+      case TypeID::STRUCT:
+      case TypeID::FUNCTION: {
+        int32_t len = 0;
+        for (int byte = last_field + 1; byte < last_field + 5; byte++) {
+          int32_t upshifted = v[byte];
+          len |= upshifted << (8 * (3 - byte));
+        }
+
+        last_field += len;
+        break;
+      }
+    }
+  }
+
+  auto id_int = v[last_field];
+  TypeID id = static_cast<TypeID>(id_int);
+
+  switch (id) {
+    case TypeID::I1:
+    case TypeID::I8:
+    case TypeID::I16:
+    case TypeID::I32:
+    case TypeID::I64:
+    case TypeID::F64:
+    case TypeID::VOID: {
+      return Type(absl::InlinedVector<int8_t, 4>(v.begin() + last_field,
+                                                 v.begin() + last_field + 1));
+    }
+
+    case TypeID::POINTER:
+    case TypeID::ARRAY:
+    case TypeID::STRUCT:
+    case TypeID::FUNCTION: {
+      int32_t len = 0;
+      for (int byte = last_field + 1; byte < last_field + 5; byte++) {
+        int32_t upshifted = v[byte];
+        len |= upshifted << (8 * (3 - byte));
+      }
+
+      return Type(absl::InlinedVector<int8_t, 4>(v.begin() + last_field,
+                                                 v.begin() + last_field + len));
+    }
+  }
+}
+
+TypeID GetTypeID(const Type& t) {
+  const auto& v = static_cast<const absl::InlinedVector<int8_t, 4>&>(t);
+  return static_cast<TypeID>(v[0]);
+}
+
 BasicBlockImpl::BasicBlockImpl(int32_t current_function)
     : begin_offset_(-1), end_offset_(-1), current_function_(current_function) {}
 
@@ -355,6 +447,106 @@ Value KhirProgram::SizeOf(Type t) {
   AppendType(I64Type());
   AppendType(t);
   return Value(offset);
+}
+
+Value KhirProgram::Alloca(Type t) {
+  auto offset = instructions_per_function_[current_function_].size();
+
+  AppendOpcode(Opcode::ALLOCA);
+  AppendType(PointerType(t));
+  AppendType(t);
+
+  return Value(offset);
+}
+
+Value KhirProgram::NullPtr(Type t) {
+  auto offset = instructions_per_function_[current_function_].size();
+
+  AppendOpcode(Opcode::CONST_I64);
+  AppendType(PointerType(t));
+  AppendLiteral(static_cast<int64_t>(0));
+
+  return Value(offset);
+}
+
+Value KhirProgram::GetElementPtr(Type content_type, Value ptr,
+                                 absl::Span<const int32_t> idx) {
+  // Compute result type
+  Type last_type = PointerType(content_type);
+  for (int x : idx) {
+    switch (GetTypeID(last_type)) {
+      case TypeID::I1:
+      case TypeID::I8:
+      case TypeID::I16:
+      case TypeID::I32:
+      case TypeID::I64:
+      case TypeID::F64:
+      case TypeID::VOID:
+      case TypeID::FUNCTION: {
+        throw std::runtime_error("Cannot index into value type.");
+      }
+
+      case TypeID::POINTER: {
+        last_type = GetPointedToType(last_type);
+        break;
+      }
+
+      case TypeID::ARRAY: {
+        last_type = GetArrayElementType(last_type);
+        break;
+      }
+
+      case TypeID::STRUCT: {
+        last_type = GetStructFieldType(last_type, x);
+        break;
+      }
+    }
+  }
+
+  auto offset = instructions_per_function_[current_function_].size();
+
+  AppendOpcode(Opcode::GEP);
+  AppendType(PointerType(last_type));
+  AppendValue(ptr);
+  for (int32_t i : idx) {
+    AppendLiteral(i);
+  }
+
+  return Value(offset);
+}
+
+Value KhirProgram::PointerCast(Value v, Type t) {
+  auto offset = instructions_per_function_[current_function_].size();
+
+  AppendOpcode(Opcode::PTR_CAST);
+  AppendType(t);
+  AppendValue(v);
+
+  return Value(offset);
+}
+
+void KhirProgram::Store(Value ptr, Value v) {
+  AppendOpcode(Opcode::STORE);
+  AppendType(VoidType());
+  AppendValue(ptr);
+  AppendValue(v);
+}
+
+Value KhirProgram::Load(Value ptr) {
+  auto offset = instructions_per_function_[current_function_].size();
+  auto type = TypeOf(ptr);
+  AppendOpcode(Opcode::LOAD);
+  AppendType(GetPointedToType(type));
+  AppendValue(ptr);
+  return Value(offset);
+}
+
+void KhirProgram::Memcpy(Value dest, Value src, Value length) {
+  AppendOpcode(Opcode::MEMCPY);
+  AppendType(VoidType());
+  AppendValue(dest);
+  AppendValue(src);
+  AppendValue(length);
 }
 
 Type KhirProgram::TypeOf(Value value) {
