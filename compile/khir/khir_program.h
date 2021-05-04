@@ -3,11 +3,18 @@
 #include <cstdint>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/inlined_vector.h"
+#include "absl/types/span.h"
+
 #include "type_safe/strong_typedef.hpp"
 
 namespace kush::khir {
 
 enum class Opcode : int8_t {
+  // Types
+  SIZEOF,
+
   // Control Flow
   BR,
   COND_BR,
@@ -83,6 +90,33 @@ struct Value : type_safe::strong_typedef<Value, int32_t>,
   using strong_typedef::strong_typedef;
 };
 
+enum class TypeID : int8_t {
+  VOID,
+  I1,
+  I8,
+  I16,
+  I32,
+  I64,
+  F64,
+  POINTER,
+  STRUCT,
+  ARRAY,
+  FUNCTION
+};
+
+// Format for types
+// For I1-I64, F64, Void value is type ID
+// For Pointers, value is POINTER and then type ID of element
+// For Struct, value is STRUCT and then number of fields and then type ID of
+// each of the elements
+// For ARRAY, value is number of elements and then values
+// For FUNCTION, value is return type and then number of args and then arg type
+// IDs
+struct Type : type_safe::strong_typedef<Type, absl::InlinedVector<int8_t, 4>>,
+              type_safe::strong_typedef_op::equality_comparison<Type> {
+  using strong_typedef::strong_typedef;
+};
+
 class BasicBlockImpl {
  public:
   BasicBlockImpl(int32_t current_function);
@@ -111,6 +145,22 @@ class KhirProgram {
   KhirProgram();
   ~KhirProgram() = default;
 
+  // Types
+  Type VoidType();
+  Type I1Type();
+  Type I8Type();
+  Type I16Type();
+  Type I32Type();
+  Type I64Type();
+  Type F64Type();
+  Type StructType(absl::Span<const Type> types, std::string_view name);
+  Type GetStructType(std::string_view name);
+  Type PointerType(Type type);
+  Type ArrayType(Type type, int len);
+  Type FunctionType(Type result, absl::Span<const Type> args);
+  Type TypeOf(Value value);
+  Value SizeOf(Type type);
+
   // Control Flow
   BasicBlock GenerateBlock();
   BasicBlock CurrentBlock();
@@ -118,7 +168,7 @@ class KhirProgram {
   void SetCurrentBlock(BasicBlock b);
   void Branch(BasicBlock b);
   void Branch(Value cond, BasicBlock b1, BasicBlock b2);
-  Value Phi(/* Type type */);
+  Value Phi(Type type);
   void AddToPhi(Value phi, Value v, BasicBlock b);
 
   // I1
@@ -174,6 +224,7 @@ class KhirProgram {
   void AppendBasicBlockIdx(int32_t b);
   void AppendOpcode(Opcode opcode);
   void AppendCompType(CompType c);
+  void AppendType(const Type& t);
   void AppendLiteral(bool v);
   void AppendLiteral(int8_t v);
   void AppendLiteral(int16_t v);
@@ -184,6 +235,7 @@ class KhirProgram {
   Value GetValue(int32_t offset);
   int32_t GetBasicBlockIdx(int32_t offset);
   Opcode GetOpcode(int32_t offset);
+  Type GetType(int32_t offset);
   CompType GetCompType(int32_t offset);
   bool GetBoolLiteral(int32_t offset);
   int8_t GetI8Literal(int32_t offset);
@@ -199,6 +251,8 @@ class KhirProgram {
   std::vector<std::vector<std::pair<int32_t, Value>>> phi_values_;
   int32_t current_block_;
   int32_t current_function_;
+
+  absl::flat_hash_map<std::string, Type> named_structs_;
 };
 
 }  // namespace kush::khir

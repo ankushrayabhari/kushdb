@@ -7,6 +7,9 @@ cc_library(
     srcs = ["khir_program.cc"],
     hdrs = ["khir_program.h"],
     deps = [
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/container:inlined_vector",
+        "@absl//absl/types:span",
         "@type_safe",
     ],
 )
