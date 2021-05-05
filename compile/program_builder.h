@@ -45,7 +45,6 @@ class ProgramBuilder {
   virtual Value PointerCast(Value v, Type t) = 0;
   virtual void Store(Value ptr, Value v) = 0;
   virtual Value Load(Value ptr) = 0;
-  virtual void Memcpy(Value dest, Value src, Value length) = 0;
 
   // Function
   virtual Function CreateFunction(Type result_type,

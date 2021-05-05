@@ -178,7 +178,6 @@ class KhirProgram {
   Value PointerCast(Value v, Type t);
   void Store(Value ptr, Value v);
   Value Load(Value ptr);
-  void Memcpy(Value dest, Value src, Value length);
 
   /*
     // Function

@@ -56,7 +56,6 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Value PointerCast(Value v, Type t) override;
   void Store(Value ptr, Value v) override;
   Value Load(Value ptr) override;
-  void Memcpy(Value dest, Value src, Value length) override;
 
   // Function
   Function CreateFunction(Type result_type,

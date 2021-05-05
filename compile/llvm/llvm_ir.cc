@@ -133,11 +133,6 @@ Value LLVMIr::Load(Value ptr) {
   return NN_CHECK_THROW(builder_->CreateLoad(ptr));
 }
 
-void LLVMIr::Memcpy(Value dest, Value src, Value length) {
-  auto align = llvm::MaybeAlign(1);
-  builder_->CreateMemCpyInline(dest, align, src, align, length);
-}
-
 // Function
 Function CreateFunctionImpl(llvm::Module& module, llvm::LLVMContext& context,
                             llvm::IRBuilder<>& builder, Type result_type,

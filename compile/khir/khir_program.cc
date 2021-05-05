@@ -541,14 +541,6 @@ Value KhirProgram::Load(Value ptr) {
   return Value(offset);
 }
 
-void KhirProgram::Memcpy(Value dest, Value src, Value length) {
-  AppendOpcode(Opcode::MEMCPY);
-  AppendType(VoidType());
-  AppendValue(dest);
-  AppendValue(src);
-  AppendValue(length);
-}
-
 Type KhirProgram::TypeOf(Value value) {
   return Type(absl::InlinedVector<int8_t, 4>(static_cast<int32_t>(value) +
                                              sizeof(Opcode)));
