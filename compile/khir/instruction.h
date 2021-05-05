@@ -1,19 +1,27 @@
 #pragma once
 
-// Types:
-// I1, I8, I16, I32, I64, F64, STRING
+// Types: VOID, I1, I8, I16, I32, I64, F64, STRING
 
 // Type I format:
-// - 1-bit marker, 7-bit METADATA, 48-bit constant, 8-bit opcode
-// [D] [0] [constant]        I1_CONST
-// [D] [0] [constant]        I8_CONST
-// [D] [0] [constant]        I16_CONST
-// [D] [0] [constant]        I32_CONST
-// [D] [0] [I64 constant ID] I64_CONST
-// [D] [0] [F64 constant ID] F64_CONST
+//      1-bit marker
+//      23-bit 0
+//      32-bit max-length, variable-length constant/ID
+//      8-bit opcode
+// =============================================================================
+// [D] [0] [1-bit constant]  I1_CONST
+// [D] [0] [8-bit constant]  I8_CONST
+// [D] [0] [16-bit constant] I8_CONST
+// [D] [0] [32-bit constant] I32_CONST
+// [D] [0] [32-bit ID]       I64_CONST
+// [D] [0] [32-bit ID]       F64_CONST
+// [D] [0] [32-bit ID]       STR_CONST
 
 // Type II format:
-// - 1-bit marker, 7-bit METADATA, [24-bit ARG] ** 2, 8-bit opcode
+//      1-bit marker
+//      7-bit METADATA,
+//      [24-bit ARG] ** 2
+//      8-bit opcode
+// =============================================================================
 // [D] [0]  [ARG0] [ARG1] I1_CMP
 // [D] [0]  [ARG0] [ARG1] I8_ADD
 // [D] [0]  [ARG0] [ARG1] I8_MUL
@@ -54,26 +62,38 @@
 // [D] [0]  [0]    [ARG0] BR
 // [D] [0]  [0]    [0]    RETURN
 // [D] [MD] [ARG0] [ARG1] PHI_I1
-//      - MD: number of extensions
+//      - MD: number of PHI_EXT
 // [D] [MD] [ARG0] [ARG1] PHI_I8
-//      - MD: number of extensions
+//      - MD: number of PHI_EXT
 // [D] [MD] [ARG0] [ARG1] PHI_I16
-//      - MD: number of extensions
+//      - MD: number of PHI_EXT
 // [D] [MD] [ARG0] [ARG1] PHI_I32
-//      - MD: number of extensions
+//      - MD: number of PHI_EXT
 // [D] [MD] [ARG0] [ARG1] PHI_I64
-//      - MD: number of extensions
+//      - MD: number of PHI_EXT
 // [D] [MD] [ARG0] [ARG1] PHI_F64
-//      - MD: number of extensions
+//      - MD: number of PHI_EXT
 // [D] [MD] [ARG0] [ARG1] PHI_STRING
-//      - MD: number of extensions
-// [D] [0]  [ARG0] [ARG1] PHI_EXT
-// [D] [MD] [ARG0] [ARG1] CALL
-//      - MD: number of extensions
+//      - MD: number of PHI_EXT
+// [0] [0]  [ARG0] [ARG1] PHI_EXT
 // [0] [0]  [ARG0] [ARG1] CALL_EXT
 
 // Type III format:
-// - 1-bit marker, 7-bit METADATA, [8-bit ARG] ** 6, 8 bit opcode
-// [D] [MD] [ARG0] [ARG1] [ARG2] [ARG3] [ARG4] [ARG5] GEP
-//      - MD: number of extensions
-// [0] [MD] [ARG0] [ARG1] [ARG2] [ARG3] [ARG4] [ARG5] GEP_EXT
+//      1-bit marker
+//      7-bit METADATA
+//      8-bit Type ID
+//      [8-bit SARG] ** 2
+//      24-bit ARG
+//      8-bit opcode
+// =============================================================================
+// [D] [MD] [ID] [0] [ARG0] CALL
+//      - MD: number of CALL_EXT
+// [D] [MD] [ID] [SARG0] [SARG1] [ARG0] GEP
+//      - MD: number of GEP_EXT
+
+// Type IV Format:
+//      8-bit Type ID
+//      [8-bit SARG] ** 5
+//      8-bit opcode
+// =============================================================================
+// [ID] [SARG0] [SARG1] [SARG2] [SARG3] [SARG4] [SARG5] GEP_EXT
