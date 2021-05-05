@@ -1,7 +1,5 @@
 #pragma once
 
-// Types: VOID, I1, I8, I16, I32, I64, F64, STRING
-
 // Type I format:
 //      1-bit marker
 //      23-bit 0
@@ -61,20 +59,6 @@
 // [D] [0]  [0]    [ARG0] RETURN_VALUE
 // [D] [0]  [0]    [ARG0] BR
 // [D] [0]  [0]    [0]    RETURN
-// [D] [MD] [ARG0] [ARG1] PHI_I1
-//      - MD: number of PHI_EXT
-// [D] [MD] [ARG0] [ARG1] PHI_I8
-//      - MD: number of PHI_EXT
-// [D] [MD] [ARG0] [ARG1] PHI_I16
-//      - MD: number of PHI_EXT
-// [D] [MD] [ARG0] [ARG1] PHI_I32
-//      - MD: number of PHI_EXT
-// [D] [MD] [ARG0] [ARG1] PHI_I64
-//      - MD: number of PHI_EXT
-// [D] [MD] [ARG0] [ARG1] PHI_F64
-//      - MD: number of PHI_EXT
-// [D] [MD] [ARG0] [ARG1] PHI_STRING
-//      - MD: number of PHI_EXT
 // [0] [0]  [ARG0] [ARG1] PHI_EXT
 // [0] [0]  [ARG0] [ARG1] CALL_EXT
 
@@ -86,8 +70,10 @@
 //      24-bit ARG
 //      8-bit opcode
 // =============================================================================
-// [D] [MD] [ID] [0] [ARG0] CALL
+// [D] [MD] [ID] [0]             [ARG0] CALL
 //      - MD: number of CALL_EXT
+// [D] [MD] [ID] [0]             [ARG0] PHI
+//      - MD: number of PHI_EXT
 // [D] [MD] [ID] [SARG0] [SARG1] [ARG0] GEP
 //      - MD: number of GEP_EXT
 
