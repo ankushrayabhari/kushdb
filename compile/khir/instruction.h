@@ -13,6 +13,7 @@
 // [D] [0] [32-bit ID]       I64_CONST
 // [D] [0] [32-bit ID]       F64_CONST
 // [D] [0] [32-bit ID]       STR_CONST
+// [D] [0]                   RETURN
 
 // Type II format:
 //      1-bit marker
@@ -48,38 +49,45 @@
 // [D] [0]  [ARG0] [ARG1] F64_CMP
 // [D] [0]  [ARG0] [ARG1] STORE
 // [D] [0]  [ARG0] [ARG1] CONDBR
-// [D] [0]  [0]    [ARG0] I1_LNOT
-// [D] [0]  [0]    [ARG0] I1_ZEXT_I64
-// [D] [0]  [0]    [ARG0] I8_ZEXT_I64
-// [D] [0]  [0]    [ARG0] I16_ZEXT_I64
-// [D] [0]  [0]    [ARG0] I32_ZEXT_I64
-// [D] [0]  [0]    [ARG0] I64_CONV_F64
-// [D] [0]  [0]    [ARG0] F64_CONV_I64
-// [D] [0]  [0]    [ARG0] LOAD
-// [D] [0]  [0]    [ARG0] RETURN_VALUE
-// [D] [0]  [0]    [ARG0] BR
-// [D] [0]  [0]    [0]    RETURN
+// [D] [0]  [ARG0] [0]    I1_LNOT
+// [D] [0]  [ARG0] [0]    I1_ZEXT_I64
+// [D] [0]  [ARG0] [0]    I8_ZEXT_I64
+// [D] [0]  [ARG0] [0]    I16_ZEXT_I64
+// [D] [0]  [ARG0] [0]    I32_ZEXT_I64
+// [D] [0]  [ARG0] [0]    I64_CONV_F64
+// [D] [0]  [ARG0] [0]    F64_CONV_I64
+// [D] [0]  [ARG0] [0]    LOAD
+// [D] [0]  [ARG0] [0]    RETURN_VALUE
+// [D] [0]  [ARG0] [0]    BR
 // [0] [0]  [ARG0] [ARG1] PHI_EXT
 // [0] [0]  [ARG0] [ARG1] CALL_EXT
 
 // Type III format:
 //      1-bit marker
 //      7-bit METADATA
-//      8-bit Type ID
-//      [8-bit SARG] ** 2
+//      16-bit Type ID
+//      8-bit SARG
 //      24-bit ARG
 //      8-bit opcode
 // =============================================================================
-// [D] [MD] [ID] [0]             [ARG0] CALL
+// [D] [MD] [ID] [0]     [ARG0] CALL
 //      - MD: number of CALL_EXT
-// [D] [MD] [ID] [0]             [ARG0] PHI
+// [D] [MD] [ID] [0]     [ARG0] PHI
 //      - MD: number of PHI_EXT
-// [D] [MD] [ID] [SARG0] [SARG1] [ARG0] GEP
+// [D] [0]  [ID] [0]     [ARG0] PTR_CAST
+// [D] [0]  [ID] [0]            ALLOCA
+// [D] [MD] [ID] [SARG0] [ARG0] GEP
 //      - MD: number of GEP_EXT
 
 // Type IV Format:
-//      8-bit Type ID
-//      [8-bit SARG] ** 5
+//      16-bit Type ID
+//      [8-bit SARG] ** 4
 //      8-bit opcode
 // =============================================================================
-// [ID] [SARG0] [SARG1] [SARG2] [SARG3] [SARG4] [SARG5] GEP_EXT
+// [ID] [SARG0] [0] FUNC_ARG_DECL
+
+// Type V Format:
+//      [8-bit SARG] ** 7
+//      8-bit opcode
+// =============================================================================
+// [SARG0] [SARG1] [SARG2] [SARG3] [SARG4] [SARG5] [SARG6] FUNC_ARG
