@@ -17,7 +17,6 @@ namespace kush::khir {
 // [MD] [32-bit constant] I32_CONST
 // [MD] [32-bit ID]       I64_CONST
 // [MD] [32-bit ID]       F64_CONST
-// [MD] [32-bit ID]       STR_CONST
 // [MD]                   RETURN
 
 class Type1InstructionBuilder {

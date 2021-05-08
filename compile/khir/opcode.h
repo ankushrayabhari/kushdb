@@ -11,7 +11,6 @@ enum class Opcode : uint8_t {
   I32_CONST,
   I64_CONST,
   F64_CONST,
-  STR_CONST,
   RETURN,
   I1_CMP,
   I1_LNOT,
