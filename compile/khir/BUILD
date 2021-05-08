@@ -9,6 +9,15 @@ cc_library(
 )
 
 cc_library(
+    name = "instruction",
+    srcs = ["instruction.cc"],
+    hdrs = ["instruction.h"],
+    deps = [
+        ":opcode",
+    ],
+)
+
+cc_library(
     name = "khir_program",
     srcs = ["khir_program.cc"],
     hdrs = ["khir_program.h"],

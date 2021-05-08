@@ -4,7 +4,7 @@
 
 namespace kush::khir {
 
-enum class Opcode : int8_t {
+enum class Opcode : uint8_t {
   I1_CONST,
   I8_CONST,
   I16_CONST,
@@ -57,7 +57,6 @@ enum class Opcode : int8_t {
   PHI,
   PTR_CAST,
   GEP,
-  FUNC_ARG_DECL,
   FUNC_ARG
 };
 
