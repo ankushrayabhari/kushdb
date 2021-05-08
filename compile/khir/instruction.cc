@@ -39,6 +39,20 @@ Type1InstructionBuilder& Type1InstructionBuilder::SetOpcode(Opcode opcode) {
 
 uint64_t Type1InstructionBuilder::Build() { return value_; }
 
+Type1InstructionReader::Type1InstructionReader(uint64_t instr)
+    : instr_(instr) {}
+
+uint8_t Type1InstructionReader::Metadata() const { return (instr_ >> 56); }
+
+uint64_t Type1InstructionReader::Constant() const {
+  return (instr_ >> 8) & 0xFFFFFFFFFFFFll;
+}
+
+Opcode Type1InstructionReader::Opcode() const {
+  uint8_t opcode_repr = instr_ & 0xFFll;
+  return static_cast<khir::Opcode>(opcode_repr);
+}
+
 Type2InstructionBuilder::Type2InstructionBuilder(uint64_t initial_instr)
     : value_(initial_instr) {}
 
@@ -68,6 +82,24 @@ Type2InstructionBuilder& Type2InstructionBuilder::SetOpcode(Opcode opcode) {
 }
 
 uint64_t Type2InstructionBuilder::Build() { return value_; }
+
+Type2InstructionReader::Type2InstructionReader(uint64_t instr)
+    : instr_(instr) {}
+
+uint8_t Type2InstructionReader::Metadata() const { return (instr_ >> 56); }
+
+uint32_t Type2InstructionReader::Arg0() const {
+  return (instr_ >> 32) & 0xFFFFFFll;
+}
+
+uint32_t Type2InstructionReader::Arg1() const {
+  return (instr_ >> 8) & 0xFFFFFFll;
+}
+
+Opcode Type2InstructionReader::Opcode() const {
+  uint8_t opcode_repr = instr_ & 0xFFll;
+  return static_cast<khir::Opcode>(opcode_repr);
+}
 
 Type3InstructionBuilder::Type3InstructionBuilder(uint64_t initial_instr)
     : value_(initial_instr) {}
@@ -106,11 +138,25 @@ Type3InstructionBuilder& Type3InstructionBuilder::SetOpcode(Opcode opcode) {
 
 uint64_t Type3InstructionBuilder::Build() { return value_; }
 
-// Type IV Format:
-//      [8-bit SARG] ** 7
-//      8-bit opcode
-// =============================================================================
-// [SARG0] [SARG1] [SARG2] [SARG3] [SARG4] [SARG5] [SARG6] GEP_EXT
+Type3InstructionReader::Type3InstructionReader(uint64_t instr)
+    : instr_(instr) {}
+
+uint8_t Type3InstructionReader::Metadata() const { return instr_ >> 56; }
+
+uint16_t Type3InstructionReader::TypeID() const {
+  return (instr_ >> 40) & 0xFFFFll;
+}
+
+uint8_t Type3InstructionReader::Sarg() const { return (instr_ >> 32) & 0xFFll; }
+
+uint32_t Type3InstructionReader::Arg() const {
+  return (instr_ >> 8) & 0xFFFFFFll;
+}
+
+Opcode Type3InstructionReader::Opcode() const {
+  uint8_t opcode_repr = instr_ & 0xFFll;
+  return static_cast<khir::Opcode>(opcode_repr);
+}
 
 Type4InstructionBuilder::Type4InstructionBuilder(uint64_t initial_instr)
     : value_(initial_instr) {}
@@ -133,5 +179,22 @@ Type4InstructionBuilder& Type4InstructionBuilder::SetOpcode(Opcode opcode) {
 }
 
 uint64_t Type4InstructionBuilder::Build() { return value_; }
+
+Type4InstructionReader::Type4InstructionReader(uint64_t instr)
+    : instr_(instr) {}
+
+uint8_t Type4InstructionReader::Sarg(int8_t idx) const {
+  if (idx >= 7) {
+    throw std::runtime_error("idx must be less than 7");
+  }
+
+  int8_t byte = 6 - idx + 1;
+  return (instr_ >> (byte * 8)) & 0xFFll;
+}
+
+Opcode Type4InstructionReader::Opcode() const {
+  uint8_t opcode_repr = instr_ & 0xFFll;
+  return static_cast<khir::Opcode>(opcode_repr);
+}
 
 }  // namespace kush::khir

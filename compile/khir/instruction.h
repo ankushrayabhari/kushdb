@@ -32,6 +32,17 @@ class Type1InstructionBuilder {
   uint64_t value_;
 };
 
+class Type1InstructionReader {
+ public:
+  Type1InstructionReader(uint64_t instr);
+  uint8_t Metadata() const;
+  uint64_t Constant() const;
+  Opcode Opcode() const;
+
+ private:
+  uint64_t instr_;
+};
+
 // Type II format:
 //      8-bit METADATA,
 //      [24-bit ARG] ** 2
@@ -91,6 +102,18 @@ class Type2InstructionBuilder {
   uint64_t value_;
 };
 
+class Type2InstructionReader {
+ public:
+  Type2InstructionReader(uint64_t instr);
+  uint8_t Metadata() const;
+  uint32_t Arg0() const;
+  uint32_t Arg1() const;
+  Opcode Opcode() const;
+
+ private:
+  uint64_t instr_;
+};
+
 // Type III format:
 //      8-bit METADATA
 //      16-bit Type ID
@@ -121,6 +144,19 @@ class Type3InstructionBuilder {
   uint64_t value_;
 };
 
+class Type3InstructionReader {
+ public:
+  Type3InstructionReader(uint64_t instr);
+  uint8_t Metadata() const;
+  uint16_t TypeID() const;
+  uint8_t Sarg() const;
+  uint32_t Arg() const;
+  Opcode Opcode() const;
+
+ private:
+  uint64_t instr_;
+};
+
 // Type IV Format:
 //      [8-bit SARG] ** 7
 //      8-bit opcode
@@ -136,6 +172,16 @@ class Type4InstructionBuilder {
 
  private:
   uint64_t value_;
+};
+
+class Type4InstructionReader {
+ public:
+  Type4InstructionReader(uint64_t instr);
+  uint8_t Sarg(int8_t idx) const;
+  Opcode Opcode() const;
+
+ private:
+  uint64_t instr_;
 };
 
 }  // namespace kush::khir
