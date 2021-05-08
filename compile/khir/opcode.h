@@ -57,7 +57,8 @@ enum class Opcode : uint8_t {
   PHI,
   PTR_CAST,
   GEP,
-  FUNC_ARG
+  FUNC_ARG,
+  NULLPTR
 };
 
 }  // namespace kush::khir

@@ -18,7 +18,7 @@ namespace kush::khir {
 // [MD] [32-bit ID]       I64_CONST
 // [MD] [32-bit ID]       F64_CONST
 // [MD] [32-bit ID]       STR_CONST
-// [MD]                  RETURN
+// [MD]                   RETURN
 
 class Type1InstructionBuilder {
  public:
@@ -128,6 +128,7 @@ class Type2InstructionReader {
 // [MD] [ID] [SARG] [ARG] GEP
 // - SARG: number of GEP_EXT
 // [MD] [ID] [0]    [ARG] PTR_CAST
+// [MD] [ID] [0]          NULLPTR
 // [MD] [ID] [0]          FUNC_ARG
 
 class Type3InstructionBuilder {
