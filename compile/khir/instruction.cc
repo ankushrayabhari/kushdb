@@ -16,20 +16,6 @@ void SetOpcodeImpl(uint64_t& value, Opcode opcode) {
   value = (value & ~0xFFll) | static_cast<uint64_t>(opcode_repr);
 }
 
-// Type I format:
-//      8-bit METADATA,
-//      48-bit max-length, variable-length constant/ID
-//      8-bit opcode
-// =============================================================================
-// [MD] [1-bit constant]  I1_CONST
-// [MD] [8-bit constant]  I8_CONST
-// [MD] [16-bit constant] I16_CONST
-// [MD] [32-bit constant] I32_CONST
-// [MD] [32-bit ID]       I64_CONST
-// [MD] [32-bit ID]       F64_CONST
-// [MD] [32-bit ID]       STR_CONST
-// [MD]                  RETURN
-
 Type1InstructionBuilder::Type1InstructionBuilder(uint64_t initial_instr)
     : value_(initial_instr) {}
 
@@ -52,52 +38,6 @@ Type1InstructionBuilder& Type1InstructionBuilder::SetOpcode(Opcode opcode) {
 }
 
 uint64_t Type1InstructionBuilder::Build() { return value_; }
-
-// Type II format:
-//      8-bit METADATA,
-//      [24-bit ARG] ** 2
-//      8-bit opcode
-// =============================================================================
-// [MD] [ARG0] [ARG1] I1_CMP
-// [MD] [ARG0] [0]    I1_LNOT
-// [MD] [ARG0] [0]    I1_ZEXT_I64
-// [MD] [ARG0] [ARG1] I8_ADD
-// [MD] [ARG0] [ARG1] I8_MUL
-// [MD] [ARG0] [ARG1] I8_SUB
-// [MD] [ARG0] [ARG1] I8_DIV
-// [MD] [ARG0] [ARG1] I8_CMP
-// [MD] [ARG0] [0]    I8_ZEXT_I64
-// [MD] [ARG0] [ARG1] I16_ADD
-// [MD] [ARG0] [ARG1] I16_MUL
-// [MD] [ARG0] [ARG1] I16_SUB
-// [MD] [ARG0] [ARG1] I16_DIV
-// [MD] [ARG0] [ARG1] I16_CMP
-// [MD] [ARG0] [0]    I16_ZEXT_I64
-// [MD] [ARG0] [ARG1] I32_ADD
-// [MD] [ARG0] [ARG1] I32_MUL
-// [MD] [ARG0] [ARG1] I32_SUB
-// [MD] [ARG0] [ARG1] I32_DIV
-// [MD] [ARG0] [ARG1] I32_CMP
-// [MD] [ARG0] [0]    I32_ZEXT_I64
-// [MD] [ARG0] [ARG1] I64_ADD
-// [MD] [ARG0] [ARG1] I64_MUL
-// [MD] [ARG0] [ARG1] I64_SUB
-// [MD] [ARG0] [ARG1] I64_DIV
-// [MD] [ARG0] [ARG1] I64_CMP
-// [MD] [ARG0] [0]    I64_CONV_F64
-// [MD] [ARG0] [ARG1] F64_ADD
-// [MD] [ARG0] [ARG1] F64_MUL
-// [MD] [ARG0] [ARG1] F64_SUB
-// [MD] [ARG0] [ARG1] F64_DIV
-// [MD] [ARG0] [ARG1] F64_CMP
-// [MD] [ARG0] [0]    F64_CONV_I64
-// [MD] [ARG0] [ARG1] STORE
-// [MD] [ARG0] [ARG1] CONDBR
-// [MD] [ARG0] [0]    LOAD
-// [MD] [ARG0] [0]    RETURN_VALUE
-// [MD] [ARG0] [0]    BR
-// [MD] [ARG0] [ARG1] PHI_EXT
-// [MD] [ARG0] [ARG1] CALL_EXT
 
 Type2InstructionBuilder::Type2InstructionBuilder(uint64_t initial_instr)
     : value_(initial_instr) {}
@@ -128,22 +68,6 @@ Type2InstructionBuilder& Type2InstructionBuilder::SetOpcode(Opcode opcode) {
 }
 
 uint64_t Type2InstructionBuilder::Build() { return value_; }
-
-// Type III format:
-//      8-bit METADATA
-//      16-bit Type ID
-//      8-bit SARG
-//      24-bit ARG
-//      8-bit opcode
-// =============================================================================
-// [MD] [ID] [SARG] [ARG] CALL
-// - SARG: number of CALL_EXT
-// [MD] [ID] [SARG] [ARG] PHI
-// - SARG: number of PHI_EXT
-// [MD] [ID] [SARG] [ARG] GEP
-// - SARG: number of GEP_EXT
-// [MD] [ID] [0]    [ARG] PTR_CAST
-// [MD] [ID] [0]          FUNC_ARG
 
 Type3InstructionBuilder::Type3InstructionBuilder(uint64_t initial_instr)
     : value_(initial_instr) {}
