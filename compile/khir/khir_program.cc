@@ -13,15 +13,6 @@
 
 namespace kush::khir {
 
-class Function {
- public:
- private:
-  Type return_type_;
-  std::vector<Type> arg_types_;
-  Type function_type_;
-  std::vector<uint64_t> instructions_;
-};
-
 KHIRProgram::Function::Function(Type function_type, Type result_type,
                                 absl::Span<const Type> arg_types)
     : function_type_(function_type) {
@@ -37,14 +28,153 @@ absl::Span<const Value> KHIRProgram::Function::GetFunctionArguments() const {
   return arg_values_;
 }
 
+bool IsTerminatingInstr(Opcode opcode) {
+  switch (opcode) {
+    case Opcode::BR:
+    case Opcode::CONDBR:
+    case Opcode::RETURN:
+    case Opcode::RETURN_VALUE:
+      return true;
+
+    default:
+      return false;
+  }
+}
+
 Value KHIRProgram::Function::Append(uint64_t instr) {
   auto idx = instructions_.size();
   instructions_.push_back(instr);
+
+  if (basic_blocks_[current_basic_block_].second > 0) {
+    throw std::runtime_error("Cannot append to terminated basic block.");
+  }
+
+  if (basic_blocks_[current_basic_block_].first < 0) {
+    basic_blocks_[current_basic_block_].first = idx;
+  }
+
+  if (basic_blocks_[current_basic_block_].second < 0 &&
+      IsTerminatingInstr(GenericInstructionReader(instr).Opcode())) {
+    basic_blocks_[current_basic_block_].second = idx;
+  }
+
   return static_cast<Value>(idx);
+}
+
+void KHIRProgram::Function::Update(Value pos, uint64_t instr) {
+  auto idx = pos.GetID();
+  instructions_[idx] = instr;
+}
+
+uint64_t KHIRProgram::Function::GetInstruction(Value v) {
+  return instructions_[v.GetID()];
+}
+
+int KHIRProgram::Function::GenerateBasicBlock() {
+  auto idx = basic_blocks_.size();
+  basic_blocks_.push_back({-1, -1});
+  return idx;
+}
+
+void KHIRProgram::Function::SetCurrentBasicBlock(int basic_block_id) {
+  if (!IsTerminated(current_basic_block_)) {
+    throw std::runtime_error(
+        "Cannot switch from current block unless it is terminated.");
+  }
+
+  current_basic_block_ = basic_block_id;
+}
+int KHIRProgram::Function::GetCurrentBasicBlock() {
+  return current_basic_block_;
+}
+
+bool KHIRProgram::Function::IsTerminated(int basic_block_id) {
+  return basic_blocks_[current_basic_block_].second < 0;
 }
 
 KHIRProgram::Function& KHIRProgram::GetCurrentFunction() {
   return functions_[current_function_];
+}
+
+BasicBlockRef KHIRProgram::GenerateBlock() {
+  int basic_block_id = GetCurrentFunction().GenerateBasicBlock();
+  return static_cast<BasicBlockRef>(
+      std::pair<int, int>{current_function_, basic_block_id});
+}
+
+BasicBlockRef KHIRProgram::CurrentBlock() {
+  int basic_block_id = GetCurrentFunction().GetCurrentBasicBlock();
+  return static_cast<BasicBlockRef>(
+      std::pair<int, int>{current_function_, basic_block_id});
+}
+
+bool KHIRProgram::IsTerminated(BasicBlockRef b) {
+  return functions_[b.GetFunctionID()].IsTerminated(b.GetBasicBlockID());
+}
+
+void KHIRProgram::SetCurrentBlock(BasicBlockRef b) {
+  current_function_ = b.GetFunctionID();
+  GetCurrentFunction().SetCurrentBasicBlock(b.GetBasicBlockID());
+}
+
+void KHIRProgram::Branch(BasicBlockRef b) {
+  GetCurrentFunction().Append(Type5InstructionBuilder()
+                                  .SetOpcode(Opcode::BR)
+                                  .SetMarg0(b.GetBasicBlockID())
+                                  .Build());
+}
+
+void KHIRProgram::Branch(Value cond, BasicBlockRef b1, BasicBlockRef b2) {
+  GetCurrentFunction().Append(Type5InstructionBuilder()
+                                  .SetOpcode(Opcode::CONDBR)
+                                  .SetArg(cond.GetID())
+                                  .SetMarg0(b1.GetBasicBlockID())
+                                  .SetMarg1(b2.GetBasicBlockID())
+                                  .Build());
+}
+
+Value KHIRProgram::Phi(Type type, uint8_t num_ext) {
+  auto v = GetCurrentFunction().Append(Type3InstructionBuilder()
+                                           .SetOpcode(Opcode::PHI)
+                                           .SetSarg(num_ext)
+                                           .SetTypeID(type.GetID())
+                                           .Build());
+
+  for (uint8_t i = 0; i < num_ext; i++) {
+    GetCurrentFunction().Append(Type5InstructionBuilder()
+                                    .SetOpcode(Opcode::PHI_EXT)
+                                    .SetMetadata(1)
+                                    .Build());
+  }
+
+  return v;
+}
+
+void KHIRProgram::AddToPhi(Value phi, Value v, BasicBlockRef b) {
+  uint32_t offset = 1;
+  while (true) {
+    Value phi_ext = phi.GetAdjacentInstruction(offset);
+    uint64_t instr = GetCurrentFunction().GetInstruction(phi_ext);
+    Type5InstructionReader reader(instr);
+
+    if (reader.Opcode() != Opcode::PHI_EXT) {
+      break;
+    }
+
+    if (reader.Metadata() == 0) {
+      offset++;
+      continue;
+    }
+
+    GetCurrentFunction().Update(phi_ext, Type5InstructionBuilder()
+                                             .SetOpcode(Opcode::PHI_EXT)
+                                             .SetArg(v.GetID())
+                                             .SetMarg0(b.GetBasicBlockID())
+                                             .Build());
+    return;
+  }
+
+  throw std::runtime_error("Attempting to add to phi that is full");
 }
 
 Type KHIRProgram::VoidType() { return type_manager_.VoidType(); }

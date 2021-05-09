@@ -17,6 +17,10 @@ struct Value : type_safe::strong_typedef<Value, uint32_t>,
   using strong_typedef::strong_typedef;
 
   uint32_t GetID() { return static_cast<uint32_t>(*this); }
+
+  Value GetAdjacentInstruction(uint32_t offset) {
+    return static_cast<Value>(static_cast<uint32_t>(*this) + offset);
+  }
 };
 
 struct FunctionRef
@@ -25,6 +29,18 @@ struct FunctionRef
   using strong_typedef::strong_typedef;
 
   int GetID() { return static_cast<int>(*this); }
+};
+
+struct BasicBlockRef
+    : type_safe::strong_typedef<BasicBlockRef, std::pair<int, int>>,
+      type_safe::strong_typedef_op::equality_comparison<BasicBlockRef> {
+  using strong_typedef::strong_typedef;
+
+  int GetFunctionID() { return static_cast<std::pair<int, int>>(*this).first; }
+
+  int GetBasicBlockID() {
+    return static_cast<std::pair<int, int>>(*this).second;
+  }
 };
 
 enum class CompType { EQ, NE, LT, LE, GT, GE };
@@ -58,6 +74,16 @@ class KHIRProgram {
   void Return(Value v);
   void Return();
 
+  // Control Flow
+  BasicBlockRef GenerateBlock();
+  BasicBlockRef CurrentBlock();
+  bool IsTerminated(BasicBlockRef b);
+  void SetCurrentBlock(BasicBlockRef b);
+  void Branch(BasicBlockRef b);
+  void Branch(Value cond, BasicBlockRef b1, BasicBlockRef b2);
+  Value Phi(Type type, uint8_t num_ext);
+  void AddToPhi(Value phi, Value v, BasicBlockRef b);
+
   /*
    Type TypeOf(Value value);
    Value SizeOf(Type type);
@@ -74,17 +100,6 @@ class KHIRProgram {
                                    absl::Span<const Type> arg_types);
    Value Call(Function func, absl::Span<const Value> arguments = {});
    Value Call(Value func, Type type, absl::Span<const Value> arguments = {});
-
-
-   // Control Flow
-   BasicBlock GenerateBlock();
-   BasicBlock CurrentBlock();
-   bool IsTerminated(BasicBlock b);
-   void SetCurrentBlock(BasicBlock b);
-   void Branch(BasicBlock b);
-   void Branch(Value cond, BasicBlock b1, BasicBlock b2);
-   Value Phi(Type type);
-   void AddToPhi(Value phi, Value v, BasicBlock b);
  */
 
   // I1
@@ -148,14 +163,26 @@ class KHIRProgram {
     Function(Type function_type, Type result_type,
              absl::Span<const Type> arg_types);
     absl::Span<const Value> GetFunctionArguments() const;
+
     Value Append(uint64_t instr);
+    void Update(Value pos, uint64_t instr);
+    uint64_t GetInstruction(Value v);
+
+    int GenerateBasicBlock();
+    void SetCurrentBasicBlock(int basic_block_id);
+    int GetCurrentBasicBlock();
+    bool IsTerminated(int basic_block_id);
 
    private:
     Type return_type_;
     std::vector<Type> arg_types_;
     std::vector<Value> arg_values_;
     Type function_type_;
+
+    std::vector<std::pair<int, int>> basic_blocks_;
     std::vector<uint64_t> instructions_;
+
+    int current_basic_block_;
   };
 
   TypeManager type_manager_;

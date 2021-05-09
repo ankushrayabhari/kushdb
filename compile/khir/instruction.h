@@ -6,6 +6,15 @@
 
 namespace kush::khir {
 
+class GenericInstructionReader {
+ public:
+  GenericInstructionReader(uint64_t instr);
+  Opcode Opcode() const;
+
+ private:
+  uint64_t instr_;
+};
+
 // Type I format:
 //      8-bit METADATA,
 //      48-bit max-length, variable-length constant/ID
@@ -107,11 +116,8 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] F64_CMP_LE
 // [MD] [ARG0] [0]    F64_CONV_I64
 // [MD] [ARG0] [ARG1] STORE
-// [MD] [ARG0] [ARG1] CONDBR
 // [MD] [ARG0] [0]    LOAD
 // [MD] [ARG0] [0]    RETURN_VALUE
-// [MD] [ARG0] [0]    BR
-// [MD] [ARG0] [ARG1] PHI_EXT
 // [MD] [ARG0] [ARG1] CALL_EXT
 
 class Type2InstructionBuilder {
@@ -148,7 +154,7 @@ class Type2InstructionReader {
 // =============================================================================
 // [MD] [ID] [SARG] [ARG] CALL
 // - SARG: number of CALL_EXT
-// [MD] [ID] [SARG] [ARG] PHI
+// [MD] [ID] [SARG] [0]   PHI
 // - SARG: number of PHI_EXT
 // [MD] [ID] [SARG] [ARG] GEP
 // - SARG: number of GEP_EXT
@@ -204,6 +210,44 @@ class Type4InstructionReader {
  public:
   Type4InstructionReader(uint64_t instr);
   uint8_t Sarg(int8_t idx) const;
+  Opcode Opcode() const;
+
+ private:
+  uint64_t instr_;
+};
+
+// Type V Format:
+//      8-bit METADATA
+//      24-bit ARG
+//      12-bit MARG0
+//      12-bit MARG1
+//      8-bit opcode
+// =============================================================================
+// [MD] [0]   [SARG0] [0]     BR
+// [MD] [ARG] [SARG0] [SARG1] CONDBR
+// [MD] [ARG] [SARG0] [0]     PHI_EXT
+
+class Type5InstructionBuilder {
+ public:
+  Type5InstructionBuilder(uint64_t initial_instr = 0);
+  Type5InstructionBuilder& SetMetadata(uint8_t metadata);
+  Type5InstructionBuilder& SetArg(uint32_t arg);
+  Type5InstructionBuilder& SetMarg0(uint16_t marg0);
+  Type5InstructionBuilder& SetMarg1(uint16_t marg1);
+  Type5InstructionBuilder& SetOpcode(Opcode opcode);
+  uint64_t Build();
+
+ private:
+  uint64_t value_;
+};
+
+class Type5InstructionReader {
+ public:
+  Type5InstructionReader(uint64_t instr);
+  uint8_t Metadata() const;
+  uint32_t Arg() const;
+  uint16_t Marg0() const;
+  uint16_t Marg1() const;
   Opcode Opcode() const;
 
  private:
