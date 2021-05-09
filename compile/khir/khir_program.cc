@@ -393,7 +393,7 @@ Type KHIRProgram::TypeOf(Value value) {
       break;
 
     case Opcode::PHI_EXT:
-    case Opcode::CALL_EXT:
+    case Opcode::CALL_ARG:
       throw std::runtime_error("Cannot call type of on an extension.");
   }
 }
@@ -429,6 +429,24 @@ FunctionRef KHIRProgram::GetFunction(std::string_view name) {
 
 absl::Span<const Value> KHIRProgram::GetFunctionArguments(FunctionRef func) {
   return functions_[func.GetID()].GetFunctionArguments();
+}
+
+Value KHIRProgram::Call(FunctionRef func, absl::Span<const Value> arguments) {
+  auto type = functions_[func.GetID()].ReturnType();
+
+  for (uint8_t i = 0; i < arguments.size(); i++) {
+    GetCurrentFunction().Append(Type3InstructionBuilder()
+                                    .SetOpcode(Opcode::CALL_ARG)
+                                    .SetSarg(i)
+                                    .SetArg(arguments[i].GetID())
+                                    .Build());
+  }
+
+  return GetCurrentFunction().Append(Type3InstructionBuilder()
+                                         .SetOpcode(Opcode::CALL)
+                                         .SetArg(func.GetID())
+                                         .SetTypeID(type.GetID())
+                                         .Build());
 }
 
 void KHIRProgram::Return(Value v) {

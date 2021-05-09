@@ -118,7 +118,6 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] STORE
 // [MD] [ARG0] [0]    LOAD
 // [MD] [ARG0] [0]    RETURN_VALUE
-// [MD] [ARG0] [ARG1] CALL_EXT
 
 class Type2InstructionBuilder {
  public:
@@ -153,11 +152,9 @@ class Type2InstructionReader {
 //      8-bit opcode
 // =============================================================================
 // [MD] [ID] [SARG] [ARG] CALL
-// - SARG: number of CALL_EXT
+// [MD] [0]  [SARG] [ARG] CALL_ARG
 // [MD] [ID] [SARG] [0]   PHI
 // - SARG: number of PHI_EXT
-// [MD] [ID] [SARG] [ARG] GEP
-// - SARG: number of GEP_EXT
 // [MD] [ID] [0]    [ARG] PTR_CAST
 // [MD] [ID] [0]          NULLPTR
 // [MD] [ID] [0]          FUNC_ARG

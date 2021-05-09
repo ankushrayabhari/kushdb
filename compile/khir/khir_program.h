@@ -16,9 +16,9 @@ struct Value : type_safe::strong_typedef<Value, uint32_t>,
                type_safe::strong_typedef_op::equality_comparison<Value> {
   using strong_typedef::strong_typedef;
 
-  uint32_t GetID() { return static_cast<uint32_t>(*this); }
+  uint32_t GetID() const { return static_cast<uint32_t>(*this); }
 
-  Value GetAdjacentInstruction(uint32_t offset) {
+  Value GetAdjacentInstruction(uint32_t offset) const {
     return static_cast<Value>(static_cast<uint32_t>(*this) + offset);
   }
 };
@@ -28,7 +28,7 @@ struct FunctionRef
       type_safe::strong_typedef_op::equality_comparison<FunctionRef> {
   using strong_typedef::strong_typedef;
 
-  int GetID() { return static_cast<int>(*this); }
+  int GetID() const { return static_cast<int>(*this); }
 };
 
 struct BasicBlockRef
@@ -36,9 +36,11 @@ struct BasicBlockRef
       type_safe::strong_typedef_op::equality_comparison<BasicBlockRef> {
   using strong_typedef::strong_typedef;
 
-  int GetFunctionID() { return static_cast<std::pair<int, int>>(*this).first; }
+  int GetFunctionID() const {
+    return static_cast<std::pair<int, int>>(*this).first;
+  }
 
-  int GetBasicBlockID() {
+  int GetBasicBlockID() const {
     return static_cast<std::pair<int, int>>(*this).second;
   }
 };
@@ -74,6 +76,7 @@ class KHIRProgram {
                                       absl::Span<const Type> arg_types);
   FunctionRef GetFunction(std::string_view name);
   absl::Span<const Value> GetFunctionArguments(FunctionRef func);
+  Value Call(FunctionRef func, absl::Span<const Value> arguments = {});
   void Return(Value v);
   void Return();
 
@@ -97,7 +100,6 @@ class KHIRProgram {
   /*
    Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
    Value SizeOf(Type type);
-   Value Call(Function func, absl::Span<const Value> arguments = {});
    Value Call(Value func, Type type, absl::Span<const Value> arguments = {});
  */
 
@@ -174,6 +176,8 @@ class KHIRProgram {
     void SetCurrentBasicBlock(int basic_block_id);
     int GetCurrentBasicBlock();
     bool IsTerminated(int basic_block_id);
+
+    Type ReturnType();
 
    private:
     Type return_type_;

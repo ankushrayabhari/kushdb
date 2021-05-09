@@ -77,7 +77,6 @@ enum class Opcode : uint8_t {
   RETURN_VALUE,
   BR,
   PHI_EXT,
-  CALL_EXT,
   CALL,
   PHI,
   PTR_CAST,
@@ -85,6 +84,7 @@ enum class Opcode : uint8_t {
   FUNC_ARG,
   NULLPTR,
   ALLOCA,
+  CALL_ARG
 };
 
 }  // namespace kush::khir
