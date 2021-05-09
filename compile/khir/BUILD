@@ -9,6 +9,19 @@ cc_library(
 )
 
 cc_library(
+    name = "khir_program",
+    srcs = ["khir_program.cc"],
+    hdrs = ["khir_program.h"],
+    deps = [
+        ":instruction",
+        ":opcode",
+        ":type_manager",
+        "@absl//absl/types:span",
+        "@type_safe",
+    ],
+)
+
+cc_library(
     name = "type_manager",
     srcs = ["type_manager.cc"],
     hdrs = ["type_manager.h"],
