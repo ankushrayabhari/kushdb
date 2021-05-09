@@ -70,6 +70,8 @@ class KHIRProgram {
   FunctionRef CreatePublicFunction(Type result_type,
                                    absl::Span<const Type> arg_types,
                                    std::string_view name);
+  FunctionRef DeclareExternalFunction(std::string_view name, Type result_type,
+                                      absl::Span<const Type> arg_types);
   FunctionRef GetFunction(std::string_view name);
   absl::Span<const Value> GetFunctionArguments(FunctionRef func);
   void Return(Value v);
@@ -95,11 +97,6 @@ class KHIRProgram {
   /*
    Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
    Value SizeOf(Type type);
-
-
-
-   Function DeclareExternalFunction(std::string_view name, Type result_type,
-                                   absl::Span<const Type> arg_types);
    Value Call(Function func, absl::Span<const Value> arguments = {});
    Value Call(Value func, Type type, absl::Span<const Value> arguments = {});
  */
@@ -166,7 +163,7 @@ class KHIRProgram {
   class Function {
    public:
     Function(Type function_type, Type result_type,
-             absl::Span<const Type> arg_types);
+             absl::Span<const Type> arg_types, bool external);
     absl::Span<const Value> GetFunctionArguments() const;
 
     Value Append(uint64_t instr);
@@ -188,6 +185,7 @@ class KHIRProgram {
     std::vector<uint64_t> instructions_;
 
     int current_basic_block_;
+    bool external_;
   };
 
   TypeManager type_manager_;

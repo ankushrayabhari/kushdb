@@ -14,17 +14,24 @@
 namespace kush::khir {
 
 KHIRProgram::Function::Function(Type function_type, Type result_type,
-                                absl::Span<const Type> arg_types)
-    : function_type_(function_type) {
-  for (Type t : arg_types) {
-    arg_values_.push_back(Append(Type3InstructionBuilder()
-                                     .SetOpcode(Opcode::FUNC_ARG)
-                                     .SetTypeID(t.GetID())
-                                     .Build()));
+                                absl::Span<const Type> arg_types, bool external)
+    : function_type_(function_type), external_(external) {
+  if (!external_) {
+    for (Type t : arg_types) {
+      arg_values_.push_back(Append(Type3InstructionBuilder()
+                                       .SetOpcode(Opcode::FUNC_ARG)
+                                       .SetTypeID(t.GetID())
+                                       .Build()));
+    }
   }
 }
 
 absl::Span<const Value> KHIRProgram::Function::GetFunctionArguments() const {
+  if (external_) {
+    throw std::runtime_error(
+        "Cannot get argument registers of external function");
+  }
+
   return arg_values_;
 }
 
@@ -42,6 +49,10 @@ bool IsTerminatingInstr(Opcode opcode) {
 }
 
 Value KHIRProgram::Function::Append(uint64_t instr) {
+  if (external_) {
+    throw std::runtime_error("Cannot get add body to external function");
+  }
+
   auto idx = instructions_.size();
   instructions_.push_back(instr);
 
@@ -62,21 +73,37 @@ Value KHIRProgram::Function::Append(uint64_t instr) {
 }
 
 void KHIRProgram::Function::Update(Value pos, uint64_t instr) {
+  if (external_) {
+    throw std::runtime_error("Cannot mutate body of external function");
+  }
+
   auto idx = pos.GetID();
   instructions_[idx] = instr;
 }
 
 uint64_t KHIRProgram::Function::GetInstruction(Value v) {
+  if (external_) {
+    throw std::runtime_error("Cannot get body of external function");
+  }
+
   return instructions_[v.GetID()];
 }
 
 int KHIRProgram::Function::GenerateBasicBlock() {
+  if (external_) {
+    throw std::runtime_error("Cannot update body of external function");
+  }
+
   auto idx = basic_blocks_.size();
   basic_blocks_.push_back({-1, -1});
   return idx;
 }
 
 void KHIRProgram::Function::SetCurrentBasicBlock(int basic_block_id) {
+  if (external_) {
+    throw std::runtime_error("Cannot update body of external function");
+  }
+
   if (!IsTerminated(current_basic_block_)) {
     throw std::runtime_error(
         "Cannot switch from current block unless it is terminated.");
@@ -85,10 +112,18 @@ void KHIRProgram::Function::SetCurrentBasicBlock(int basic_block_id) {
   current_basic_block_ = basic_block_id;
 }
 int KHIRProgram::Function::GetCurrentBasicBlock() {
+  if (external_) {
+    throw std::runtime_error("Cannot get body of external function");
+  }
+
   return current_basic_block_;
 }
 
 bool KHIRProgram::Function::IsTerminated(int basic_block_id) {
+  if (external_) {
+    throw std::runtime_error("Cannot get body of external function");
+  }
+
   return basic_blocks_[current_basic_block_].second < 0;
 }
 
@@ -367,7 +402,7 @@ FunctionRef KHIRProgram::CreateFunction(Type result_type,
                                         absl::Span<const Type> arg_types) {
   auto idx = functions_.size();
   functions_.emplace_back(type_manager_.FunctionType(result_type, arg_types),
-                          result_type, arg_types);
+                          result_type, arg_types, false);
   current_function_ = idx;
   return static_cast<FunctionRef>(idx);
 }
@@ -378,6 +413,14 @@ FunctionRef KHIRProgram::CreatePublicFunction(Type result_type,
   auto ref = CreateFunction(result_type, arg_types);
   name_to_function_[name] = ref;
   return ref;
+}
+
+FunctionRef KHIRProgram::DeclareExternalFunction(
+    std::string_view name, Type result_type, absl::Span<const Type> arg_types) {
+  auto idx = functions_.size();
+  functions_.emplace_back(type_manager_.FunctionType(result_type, arg_types),
+                          result_type, arg_types, true);
+  return static_cast<FunctionRef>(idx);
 }
 
 FunctionRef KHIRProgram::GetFunction(std::string_view name) {
