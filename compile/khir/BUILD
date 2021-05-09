@@ -28,6 +28,7 @@ cc_library(
     deps = [
         "@absl//absl/container:flat_hash_map",
         "@absl//absl/types:span",
+        "@type_safe",
     ],
 )
 

@@ -9,73 +9,81 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/types/span.h"
 
+#include "type_safe/strong_typedef.hpp"
+
 namespace kush::khir {
+
+struct Type : type_safe::strong_typedef<Type, uint16_t>,
+              type_safe::strong_typedef_op::equality_comparison<Type> {
+  using strong_typedef::strong_typedef;
+
+  uint16_t GetID();
+};
 
 class TypeManager {
  public:
   TypeManager();
 
-  uint16_t VoidType();
-  uint16_t I1Type();
-  uint16_t I8Type();
-  uint16_t I16Type();
-  uint16_t I32Type();
-  uint16_t I64Type();
-  uint16_t F64Type();
-  uint16_t NamedStructType(absl::Span<const uint16_t> field_type_id,
-                           std::string_view name);
-  uint16_t StructType(absl::Span<const uint16_t> field_type_id);
+  Type VoidType();
+  Type I1Type();
+  Type I8Type();
+  Type I16Type();
+  Type I32Type();
+  Type I64Type();
+  Type F64Type();
+  Type NamedStructType(absl::Span<const Type> field_type_id,
+                       std::string_view name);
+  Type StructType(absl::Span<const Type> field_type_id);
 
-  uint16_t PointerType(uint16_t type);
-  uint16_t ArrayType(uint16_t type, int len);
-  uint16_t FunctionType(uint16_t result, absl::Span<const uint16_t> args);
+  Type PointerType(Type type);
+  Type ArrayType(Type type, int len);
+  Type FunctionType(Type result, absl::Span<const Type> args);
 
-  uint16_t GetNamedStructType(std::string_view name);
+  Type GetNamedStructType(std::string_view name);
 
  private:
   class PointerTypeImpl {
    public:
-    PointerTypeImpl(uint16_t element_type_id);
+    PointerTypeImpl(Type element_type_id);
 
-    uint16_t ElementType();
+    Type ElementType();
 
    private:
-    uint16_t element_type_;
+    Type element_type_;
   };
 
   class ArrayTypeImpl {
    public:
-    ArrayTypeImpl(uint16_t element_type_id, int length);
+    ArrayTypeImpl(Type element_type_id, int length);
 
-    uint16_t ElementType();
+    Type ElementType();
     int Length();
 
    private:
-    uint16_t element_type_;
+    Type element_type_;
     int length_;
   };
 
   class FunctionTypeImpl {
    public:
-    FunctionTypeImpl(uint16_t result_type_id,
-                     absl::Span<const uint16_t> arg_type_id);
+    FunctionTypeImpl(Type result_type_id, absl::Span<const Type> arg_type_id);
 
-    uint16_t ResultType();
-    absl::Span<const uint16_t> ArgTypes();
+    Type ResultType();
+    absl::Span<const Type> ArgTypes();
 
    private:
-    uint16_t result_type_;
-    std::vector<uint16_t> arg_type_ids_;
+    Type result_type_;
+    std::vector<Type> arg_type_ids_;
   };
 
   class StructTypeImpl {
    public:
-    StructTypeImpl(absl::Span<const uint16_t> field_type_ids);
+    StructTypeImpl(absl::Span<const Type> field_type_ids);
 
-    absl::Span<const uint16_t> FieldTypes();
+    absl::Span<const Type> FieldTypes();
 
    private:
-    std::vector<uint16_t> field_type_ids_;
+    std::vector<Type> field_type_ids_;
   };
 
   enum class BaseTypeImpl { VOID, I1, I8, I16, I32, I64, F64 };
@@ -83,7 +91,7 @@ class TypeManager {
   std::vector<std::variant<BaseTypeImpl, PointerTypeImpl, ArrayTypeImpl,
                            FunctionTypeImpl, StructTypeImpl>>
       type_id_to_impl_;
-  absl::flat_hash_map<std::string, uint16_t> struct_name_to_type_id_;
+  absl::flat_hash_map<std::string, Type> struct_name_to_type_id_;
 };
 
 }  // namespace kush::khir

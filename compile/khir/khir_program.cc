@@ -13,7 +13,45 @@
 
 namespace kush::khir {
 
-// I1
+Type KHIRProgram::VoidType() { return type_manager_.VoidType(); }
+
+Type KHIRProgram::I1Type() { return type_manager_.I1Type(); }
+
+Type KHIRProgram::I8Type() { return type_manager_.I8Type(); }
+
+Type KHIRProgram::I16Type() { return type_manager_.I16Type(); }
+
+Type KHIRProgram::I32Type() { return type_manager_.I32Type(); }
+
+Type KHIRProgram::I64Type() { return type_manager_.I64Type(); }
+
+Type KHIRProgram::F64Type() { return type_manager_.I64Type(); }
+
+Type KHIRProgram::StructType(absl::Span<const Type> types,
+                             std::string_view name) {
+  if (name.empty()) {
+    return type_manager_.StructType(types);
+  } else {
+    return type_manager_.NamedStructType(types, name);
+  }
+}
+
+Type KHIRProgram::GetStructType(std::string_view name) {
+  return type_manager_.GetNamedStructType(name);
+}
+
+Type KHIRProgram::PointerType(Type type) {
+  return type_manager_.PointerType(type);
+}
+
+Type KHIRProgram::ArrayType(Type type, int len) {
+  return type_manager_.ArrayType(type, len);
+}
+
+Type KHIRProgram::FunctionType(Type result, absl::Span<const Type> args) {
+  return type_manager_.FunctionType(result, args);
+}
+
 Value KHIRProgram::LNotI1(Value v) {
   uint32_t value = instructions_.size();
   instructions_.push_back(Type2InstructionBuilder()

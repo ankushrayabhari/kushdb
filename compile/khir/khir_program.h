@@ -7,12 +7,9 @@
 
 #include "type_safe/strong_typedef.hpp"
 
-namespace kush::khir {
+#include "compile/khir/type_manager.h"
 
-struct Type : type_safe::strong_typedef<Type, uint16_t>,
-              type_safe::strong_typedef_op::equality_comparison<Type> {
-  using strong_typedef::strong_typedef;
-};
+namespace kush::khir {
 
 struct Value : type_safe::strong_typedef<Value, uint32_t>,
                type_safe::strong_typedef_op::equality_comparison<Value> {
@@ -25,20 +22,21 @@ class KHIRProgram {
  public:
   KHIRProgram();
 
+  // Types
+  Type VoidType();
+  Type I1Type();
+  Type I8Type();
+  Type I16Type();
+  Type I32Type();
+  Type I64Type();
+  Type F64Type();
+  Type StructType(absl::Span<const Type> types, std::string_view name);
+  Type GetStructType(std::string_view name);
+  Type PointerType(Type type);
+  Type ArrayType(Type type, int len);
+  Type FunctionType(Type result, absl::Span<const Type> args);
+
   /*
-   // Types
-   Type VoidType();
-   Type I1Type();
-   Type I8Type();
-   Type I16Type();
-   Type I32Type();
-   Type I64Type();
-   Type F64Type();
-   Type StructType(absl::Span<const Type> types, std::string_view name);
-   Type GetStructType(std::string_view name);
-   Type PointerType(Type type);
-   Type ArrayType(Type type, int len);
-   Type FunctionType(Type result, absl::Span<const Type> args);
    Type TypeOf(Value value);
    Value SizeOf(Type type);
 
@@ -132,6 +130,7 @@ class KHIRProgram {
     */
  private:
   std::vector<uint64_t> instructions_;
+  TypeManager type_manager_;
 };
 
 }  // namespace kush::khir
