@@ -14,6 +14,15 @@ namespace kush::khir {
 struct Value : type_safe::strong_typedef<Value, uint32_t>,
                type_safe::strong_typedef_op::equality_comparison<Value> {
   using strong_typedef::strong_typedef;
+
+  uint32_t GetID() { return static_cast<uint32_t>(*this); }
+};
+
+struct Function : type_safe::strong_typedef<Value, uint32_t>,
+                  type_safe::strong_typedef_op::equality_comparison<Value> {
+  using strong_typedef::strong_typedef;
+
+  uint32_t GetID() { return static_cast<uint32_t>(*this); }
 };
 
 enum class CompType { EQ, NE, LT, LE, GT, GE };
@@ -36,6 +45,15 @@ class KHIRProgram {
   Type ArrayType(Type type, int len);
   Type FunctionType(Type result, absl::Span<const Type> args);
 
+  // Function
+  Function CreateFunction(Type result_type, absl::Span<const Type> arg_types);
+  Function CreatePublicFunction(Type result_type,
+                                absl::Span<const Type> arg_types,
+                                std::string_view name);
+  std::vector<Value> GetFunctionArguments(Function func);
+  void Return(Value v);
+  void Return();
+
   /*
    Type TypeOf(Value value);
    Value SizeOf(Type type);
@@ -48,19 +66,12 @@ class KHIRProgram {
    void Store(Value ptr, Value v);
    Value Load(Value ptr);
 
-   // Function
-   Function CreateFunction(Type result_type, absl::Span<const Type> arg_types);
-   Function CreatePublicFunction(Type result_type,
-                                 absl::Span<const Type> arg_types,
-                                 std::string_view name);
    Function DeclareExternalFunction(std::string_view name, Type result_type,
-                                    absl::Span<const Type> arg_types);
+                                   absl::Span<const Type> arg_types);
    Function GetFunction(std::string_view name);
-   std::vector<Value> GetFunctionArguments(Function func);
-   void Return(Value v);
-   void Return();
    Value Call(Function func, absl::Span<const Value> arguments = {});
    Value Call(Value func, Type type, absl::Span<const Value> arguments = {});
+
 
    // Control Flow
    BasicBlock GenerateBlock();

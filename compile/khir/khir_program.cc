@@ -56,7 +56,7 @@ Value KHIRProgram::LNotI1(Value v) {
   uint32_t value = instructions_.size();
   instructions_.push_back(Type2InstructionBuilder()
                               .SetOpcode(Opcode::I1_LNOT)
-                              .SetArg0(static_cast<uint32_t>(v))
+                              .SetArg0(v.GetID())
                               .Build());
   return static_cast<Value>(value);
 }
@@ -80,8 +80,8 @@ Value KHIRProgram::CmpI1(CompType cmp, Value v1, Value v2) {
   uint32_t value = instructions_.size();
   instructions_.push_back(Type2InstructionBuilder()
                               .SetOpcode(opcode)
-                              .SetArg0(static_cast<uint32_t>(v1))
-                              .SetArg0(static_cast<uint32_t>(v2))
+                              .SetArg0(v1.GetID())
+                              .SetArg0(v2.GetID())
                               .Build());
   return static_cast<Value>(value);
 }
@@ -99,8 +99,8 @@ Value KHIRProgram::AddI8(Value v1, Value v2) {
   uint32_t value = instructions_.size();
   instructions_.push_back(Type2InstructionBuilder()
                               .SetOpcode(Opcode::I8_ADD)
-                              .SetArg0(static_cast<uint32_t>(v1))
-                              .SetArg0(static_cast<uint32_t>(v2))
+                              .SetArg0(v1.GetID())
+                              .SetArg0(v2.GetID())
                               .Build());
   return static_cast<Value>(value);
 }
@@ -109,8 +109,8 @@ Value KHIRProgram::MulI8(Value v1, Value v2) {
   uint32_t value = instructions_.size();
   instructions_.push_back(Type2InstructionBuilder()
                               .SetOpcode(Opcode::I8_MUL)
-                              .SetArg0(static_cast<uint32_t>(v1))
-                              .SetArg0(static_cast<uint32_t>(v2))
+                              .SetArg0(v1.GetID())
+                              .SetArg0(v2.GetID())
                               .Build());
   return static_cast<Value>(value);
 }
@@ -119,8 +119,8 @@ Value KHIRProgram::DivI8(Value v1, Value v2) {
   uint32_t value = instructions_.size();
   instructions_.push_back(Type2InstructionBuilder()
                               .SetOpcode(Opcode::I8_DIV)
-                              .SetArg0(static_cast<uint32_t>(v1))
-                              .SetArg0(static_cast<uint32_t>(v2))
+                              .SetArg0(v1.GetID())
+                              .SetArg0(v2.GetID())
                               .Build());
   return static_cast<Value>(value);
 }
@@ -129,8 +129,8 @@ Value KHIRProgram::SubI8(Value v1, Value v2) {
   uint32_t value = instructions_.size();
   instructions_.push_back(Type2InstructionBuilder()
                               .SetOpcode(Opcode::I8_SUB)
-                              .SetArg0(static_cast<uint32_t>(v1))
-                              .SetArg0(static_cast<uint32_t>(v2))
+                              .SetArg0(v1.GetID())
+                              .SetArg0(v2.GetID())
                               .Build());
   return static_cast<Value>(value);
 }
@@ -166,8 +166,8 @@ Value KHIRProgram::CmpI8(CompType cmp, Value v1, Value v2) {
   uint32_t value = instructions_.size();
   instructions_.push_back(Type2InstructionBuilder()
                               .SetOpcode(opcode)
-                              .SetArg0(static_cast<uint32_t>(v1))
-                              .SetArg0(static_cast<uint32_t>(v2))
+                              .SetArg0(v1.GetID())
+                              .SetArg0(v2.GetID())
                               .Build());
   return static_cast<Value>(value);
 }
