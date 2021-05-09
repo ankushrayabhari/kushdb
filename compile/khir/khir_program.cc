@@ -216,6 +216,113 @@ Type KHIRProgram::FunctionType(Type result, absl::Span<const Type> args) {
   return type_manager_.FunctionType(result, args);
 }
 
+Type KHIRProgram::TypeOf(Value value) {
+  auto instr = GetCurrentFunction().GetInstruction(value);
+  auto opcode = GenericInstructionReader(instr).Opcode();
+
+  switch (opcode) {
+    case Opcode::I1_CONST:
+    case Opcode::I1_CMP_EQ:
+    case Opcode::I1_CMP_NE:
+    case Opcode::I1_LNOT:
+    case Opcode::I8_CMP_EQ:
+    case Opcode::I8_CMP_NE:
+    case Opcode::I8_CMP_LT:
+    case Opcode::I8_CMP_LE:
+    case Opcode::I8_CMP_GT:
+    case Opcode::I8_CMP_GE:
+    case Opcode::I16_CMP_EQ:
+    case Opcode::I16_CMP_NE:
+    case Opcode::I16_CMP_LT:
+    case Opcode::I16_CMP_LE:
+    case Opcode::I16_CMP_GT:
+    case Opcode::I16_CMP_GE:
+    case Opcode::I32_CMP_EQ:
+    case Opcode::I32_CMP_NE:
+    case Opcode::I32_CMP_LT:
+    case Opcode::I32_CMP_LE:
+    case Opcode::I32_CMP_GT:
+    case Opcode::I32_CMP_GE:
+    case Opcode::I64_CMP_EQ:
+    case Opcode::I64_CMP_NE:
+    case Opcode::I64_CMP_LT:
+    case Opcode::I64_CMP_LE:
+    case Opcode::I64_CMP_GT:
+    case Opcode::I64_CMP_GE:
+    case Opcode::F64_CMP_EQ:
+    case Opcode::F64_CMP_NE:
+    case Opcode::F64_CMP_LT:
+    case Opcode::F64_CMP_LE:
+    case Opcode::F64_CMP_GT:
+    case Opcode::F64_CMP_GE:
+      return type_manager_.I1Type();
+
+    case Opcode::I8_CONST:
+    case Opcode::I8_ADD:
+    case Opcode::I8_MUL:
+    case Opcode::I8_SUB:
+    case Opcode::I8_DIV:
+      return type_manager_.I8Type();
+
+    case Opcode::I16_CONST:
+    case Opcode::I16_ADD:
+    case Opcode::I16_MUL:
+    case Opcode::I16_SUB:
+    case Opcode::I16_DIV:
+      return type_manager_.I16Type();
+
+    case Opcode::I32_CONST:
+    case Opcode::I32_ADD:
+    case Opcode::I32_MUL:
+    case Opcode::I32_SUB:
+    case Opcode::I32_DIV:
+      return type_manager_.I32Type();
+
+    case Opcode::I64_CONST:
+    case Opcode::I64_ADD:
+    case Opcode::I64_MUL:
+    case Opcode::I64_SUB:
+    case Opcode::I64_DIV:
+    case Opcode::I1_ZEXT_I64:
+    case Opcode::I8_ZEXT_I64:
+    case Opcode::I16_ZEXT_I64:
+    case Opcode::I32_ZEXT_I64:
+    case Opcode::F64_CONV_I64:
+      return type_manager_.I64Type();
+
+    case Opcode::F64_CONST:
+    case Opcode::F64_ADD:
+    case Opcode::F64_MUL:
+    case Opcode::F64_SUB:
+    case Opcode::F64_DIV:
+    case Opcode::I64_CONV_F64:
+      return type_manager_.F64Type();
+
+    case Opcode::RETURN:
+    case Opcode::STORE:
+    case Opcode::RETURN_VALUE:
+    case Opcode::CONDBR:
+    case Opcode::BR:
+      return type_manager_.VoidType();
+
+    case Opcode::PHI:
+      return static_cast<Type>(Type3InstructionReader(instr).TypeID());
+
+    case Opcode::LOAD:
+    case Opcode::CALL:
+    case Opcode::PTR_CAST:
+    case Opcode::GEP:
+    case Opcode::FUNC_ARG:
+    case Opcode::NULLPTR:
+      throw std::runtime_error("TODO");
+      break;
+
+    case Opcode::PHI_EXT:
+    case Opcode::CALL_EXT:
+      throw std::runtime_error("Cannot call type of on an extension.");
+  }
+}
+
 FunctionRef KHIRProgram::CreateFunction(Type result_type,
                                         absl::Span<const Type> arg_types) {
   auto idx = functions_.size();

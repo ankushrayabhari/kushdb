@@ -62,6 +62,7 @@ class KHIRProgram {
   Type PointerType(Type type);
   Type ArrayType(Type type, int len);
   Type FunctionType(Type result, absl::Span<const Type> args);
+  Type TypeOf(Value value);
 
   // Function
   FunctionRef CreateFunction(Type result_type,
@@ -85,7 +86,7 @@ class KHIRProgram {
   void AddToPhi(Value phi, Value v, BasicBlockRef b);
 
   /*
-   Type TypeOf(Value value);
+
    Value SizeOf(Type type);
 
    // Memory
