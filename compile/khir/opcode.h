@@ -83,7 +83,8 @@ enum class Opcode : uint8_t {
   PTR_CAST,
   GEP,
   FUNC_ARG,
-  NULLPTR
+  NULLPTR,
+  ALLOCA,
 };
 
 }  // namespace kush::khir

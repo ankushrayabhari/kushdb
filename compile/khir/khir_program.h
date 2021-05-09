@@ -85,17 +85,18 @@ class KHIRProgram {
   Value Phi(Type type, uint8_t num_ext);
   void AddToPhi(Value phi, Value v, BasicBlockRef b);
 
-  /*
+  // Memory
+  Value Alloca(Type size);
+  Value NullPtr(Type t);
+  Value PointerCast(Value v, Type t);
+  void Store(Value ptr, Value v);
+  Value Load(Value ptr);
 
+  /*
+   Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
    Value SizeOf(Type type);
 
-   // Memory
-   Value Alloca(Type size);
-   Value NullPtr(Type t);
-   Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
-   Value PointerCast(Value v, Type t);
-   void Store(Value ptr, Value v);
-   Value Load(Value ptr);
+
 
    Function DeclareExternalFunction(std::string_view name, Type result_type,
                                    absl::Span<const Type> arg_types);

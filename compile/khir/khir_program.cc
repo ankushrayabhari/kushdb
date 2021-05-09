@@ -177,6 +177,45 @@ void KHIRProgram::AddToPhi(Value phi, Value v, BasicBlockRef b) {
   throw std::runtime_error("Attempting to add to phi that is full");
 }
 
+// Memory
+Value KHIRProgram::Alloca(Type t) {
+  return GetCurrentFunction().Append(
+      Type3InstructionBuilder()
+          .SetOpcode(Opcode::ALLOCA)
+          .SetTypeID(type_manager_.PointerType(t).GetID())
+          .Build());
+}
+
+Value KHIRProgram::NullPtr(Type t) {
+  return GetCurrentFunction().Append(Type3InstructionBuilder()
+                                         .SetOpcode(Opcode::ALLOCA)
+                                         .SetTypeID(t.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::PointerCast(Value v, Type t) {
+  return GetCurrentFunction().Append(Type3InstructionBuilder()
+                                         .SetOpcode(Opcode::PTR_CAST)
+                                         .SetArg(v.GetID())
+                                         .SetTypeID(t.GetID())
+                                         .Build());
+}
+
+void KHIRProgram::Store(Value ptr, Value v) {
+  GetCurrentFunction().Append(Type2InstructionBuilder()
+                                  .SetOpcode(Opcode::STORE)
+                                  .SetArg0(ptr.GetID())
+                                  .SetArg1(v.GetID())
+                                  .Build());
+}
+
+Value KHIRProgram::Load(Value ptr) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::LOAD)
+                                         .SetArg0(ptr.GetID())
+                                         .Build());
+}
+
 Type KHIRProgram::VoidType() { return type_manager_.VoidType(); }
 
 Type KHIRProgram::I1Type() { return type_manager_.I1Type(); }
@@ -306,6 +345,7 @@ Type KHIRProgram::TypeOf(Value value) {
       return type_manager_.VoidType();
 
     case Opcode::PHI:
+    case Opcode::ALLOCA:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
     case Opcode::LOAD:

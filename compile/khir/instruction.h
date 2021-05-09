@@ -161,6 +161,7 @@ class Type2InstructionReader {
 // [MD] [ID] [0]    [ARG] PTR_CAST
 // [MD] [ID] [0]          NULLPTR
 // [MD] [ID] [0]          FUNC_ARG
+// [MD] [ID] [0]          ALLOCA
 
 class Type3InstructionBuilder {
  public:
