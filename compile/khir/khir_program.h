@@ -77,6 +77,7 @@ class KHIRProgram {
   FunctionRef GetFunction(std::string_view name);
   absl::Span<const Value> GetFunctionArguments(FunctionRef func);
   Value Call(FunctionRef func, absl::Span<const Value> arguments = {});
+  Value Call(Value func, Type type, absl::Span<const Value> arguments = {});
   void Return(Value v);
   void Return();
 
@@ -100,7 +101,6 @@ class KHIRProgram {
   /*
    Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
    Value SizeOf(Type type);
-   Value Call(Value func, Type type, absl::Span<const Value> arguments = {});
  */
 
   // I1

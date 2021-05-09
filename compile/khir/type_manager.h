@@ -17,7 +17,7 @@ struct Type : type_safe::strong_typedef<Type, uint16_t>,
               type_safe::strong_typedef_op::equality_comparison<Type> {
   using strong_typedef::strong_typedef;
 
-  uint16_t GetID();
+  uint16_t GetID() const;
 };
 
 class TypeManager {
@@ -40,13 +40,15 @@ class TypeManager {
   Type FunctionType(Type result, absl::Span<const Type> args);
 
   Type GetNamedStructType(std::string_view name);
+  Type GetFunctionReturnType(Type func_type);
+  Type GetPointerElementType(Type ptr_type);
 
  private:
   class PointerTypeImpl {
    public:
     PointerTypeImpl(Type element_type_id);
 
-    Type ElementType();
+    Type ElementType() const;
 
    private:
     Type element_type_;
@@ -56,8 +58,8 @@ class TypeManager {
    public:
     ArrayTypeImpl(Type element_type_id, int length);
 
-    Type ElementType();
-    int Length();
+    Type ElementType() const;
+    int Length() const;
 
    private:
     Type element_type_;
@@ -68,8 +70,8 @@ class TypeManager {
    public:
     FunctionTypeImpl(Type result_type_id, absl::Span<const Type> arg_type_id);
 
-    Type ResultType();
-    absl::Span<const Type> ArgTypes();
+    Type ResultType() const;
+    absl::Span<const Type> ArgTypes() const;
 
    private:
     Type result_type_;
@@ -80,7 +82,7 @@ class TypeManager {
    public:
     StructTypeImpl(absl::Span<const Type> field_type_ids);
 
-    absl::Span<const Type> FieldTypes();
+    absl::Span<const Type> FieldTypes() const;
 
    private:
     std::vector<Type> field_type_ids_;

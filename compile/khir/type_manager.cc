@@ -11,7 +11,7 @@
 
 namespace kush::khir {
 
-uint16_t Type::GetID() { return static_cast<uint16_t>(*this); }
+uint16_t Type::GetID() const { return static_cast<uint16_t>(*this); }
 
 TypeManager::TypeManager() {
   type_id_to_impl_.push_back(BaseTypeImpl::VOID);
@@ -75,23 +75,23 @@ Type TypeManager::GetNamedStructType(std::string_view name) {
 TypeManager::PointerTypeImpl::PointerTypeImpl(Type element_type_id)
     : element_type_(element_type_id) {}
 
-Type TypeManager::PointerTypeImpl::ElementType() { return element_type_; }
+Type TypeManager::PointerTypeImpl::ElementType() const { return element_type_; }
 
 TypeManager::ArrayTypeImpl::ArrayTypeImpl(Type element_type_id, int length)
     : element_type_(element_type_id), length_(length) {}
 
-Type TypeManager::ArrayTypeImpl::ElementType() { return element_type_; }
+Type TypeManager::ArrayTypeImpl::ElementType() const { return element_type_; }
 
-int TypeManager::ArrayTypeImpl::Length() { return length_; }
+int TypeManager::ArrayTypeImpl::Length() const { return length_; }
 
 TypeManager::FunctionTypeImpl::FunctionTypeImpl(
     Type result_type_id, absl::Span<const Type> arg_type_id)
     : result_type_(result_type_id),
       arg_type_ids_(arg_type_id.begin(), arg_type_id.end()) {}
 
-Type TypeManager::FunctionTypeImpl::ResultType() { return result_type_; }
+Type TypeManager::FunctionTypeImpl::ResultType() const { return result_type_; }
 
-absl::Span<const Type> TypeManager::FunctionTypeImpl::ArgTypes() {
+absl::Span<const Type> TypeManager::FunctionTypeImpl::ArgTypes() const {
   return arg_type_ids_;
 }
 
@@ -99,8 +99,19 @@ TypeManager::StructTypeImpl::StructTypeImpl(
     absl::Span<const Type> field_type_ids)
     : field_type_ids_(field_type_ids.begin(), field_type_ids.end()) {}
 
-absl::Span<const Type> TypeManager::StructTypeImpl::FieldTypes() {
+absl::Span<const Type> TypeManager::StructTypeImpl::FieldTypes() const {
   return field_type_ids_;
+}
+
+Type TypeManager::GetFunctionReturnType(Type func_type) {
+  const auto& x =
+      std::get<FunctionTypeImpl>(type_id_to_impl_[func_type.GetID()]);
+  return x.ResultType();
+}
+
+Type TypeManager::GetPointerElementType(Type ptr_type) {
+  const auto& x = std::get<PointerTypeImpl>(type_id_to_impl_[ptr_type.GetID()]);
+  return x.ElementType();
 }
 
 }  // namespace kush::khir

@@ -84,7 +84,8 @@ enum class Opcode : uint8_t {
   FUNC_ARG,
   NULLPTR,
   ALLOCA,
-  CALL_ARG
+  CALL_ARG,
+  CALL_INDIRECT
 };
 
 }  // namespace kush::khir

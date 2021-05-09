@@ -116,7 +116,6 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] F64_CMP_LE
 // [MD] [ARG0] [0]    F64_CONV_I64
 // [MD] [ARG0] [ARG1] STORE
-// [MD] [ARG0] [0]    LOAD
 // [MD] [ARG0] [0]    RETURN_VALUE
 
 class Type2InstructionBuilder {
@@ -152,12 +151,14 @@ class Type2InstructionReader {
 //      8-bit opcode
 // =============================================================================
 // [MD] [ID] [SARG] [ARG] CALL
+// [MD] [ID] [SARG] [ARG] CALL_INDIRECT
 // [MD] [0]  [SARG] [ARG] CALL_ARG
 // [MD] [ID] [SARG] [0]   PHI
 // - SARG: number of PHI_EXT
 // [MD] [ID] [0]    [ARG] PTR_CAST
 // [MD] [ID] [0]          NULLPTR
 // [MD] [ID] [0]          FUNC_ARG
+// [MD] [ID] [0]    [ARG] LOAD
 // [MD] [ID] [0]          ALLOCA
 
 class Type3InstructionBuilder {

@@ -245,10 +245,14 @@ void KHIRProgram::Store(Value ptr, Value v) {
 }
 
 Value KHIRProgram::Load(Value ptr) {
-  return GetCurrentFunction().Append(Type2InstructionBuilder()
-                                         .SetOpcode(Opcode::LOAD)
-                                         .SetArg0(ptr.GetID())
-                                         .Build());
+  auto ptr_type = TypeOf(ptr);
+
+  return GetCurrentFunction().Append(
+      Type3InstructionBuilder()
+          .SetOpcode(Opcode::LOAD)
+          .SetTypeID(type_manager_.GetPointerElementType(ptr_type).GetID())
+          .SetArg(ptr.GetID())
+          .Build());
 }
 
 Type KHIRProgram::VoidType() { return type_manager_.VoidType(); }
@@ -381,14 +385,15 @@ Type KHIRProgram::TypeOf(Value value) {
 
     case Opcode::PHI:
     case Opcode::ALLOCA:
-      return static_cast<Type>(Type3InstructionReader(instr).TypeID());
-
-    case Opcode::LOAD:
     case Opcode::CALL:
+    case Opcode::CALL_INDIRECT:
+    case Opcode::LOAD:
     case Opcode::PTR_CAST:
-    case Opcode::GEP:
     case Opcode::FUNC_ARG:
     case Opcode::NULLPTR:
+      return static_cast<Type>(Type3InstructionReader(instr).TypeID());
+
+    case Opcode::GEP:
       throw std::runtime_error("TODO");
       break;
 
@@ -432,7 +437,7 @@ absl::Span<const Value> KHIRProgram::GetFunctionArguments(FunctionRef func) {
 }
 
 Value KHIRProgram::Call(FunctionRef func, absl::Span<const Value> arguments) {
-  auto type = functions_[func.GetID()].ReturnType();
+  auto result = functions_[func.GetID()].ReturnType();
 
   for (uint8_t i = 0; i < arguments.size(); i++) {
     GetCurrentFunction().Append(Type3InstructionBuilder()
@@ -445,7 +450,26 @@ Value KHIRProgram::Call(FunctionRef func, absl::Span<const Value> arguments) {
   return GetCurrentFunction().Append(Type3InstructionBuilder()
                                          .SetOpcode(Opcode::CALL)
                                          .SetArg(func.GetID())
-                                         .SetTypeID(type.GetID())
+                                         .SetTypeID(result.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::Call(Value func, Type type,
+                        absl::Span<const Value> arguments) {
+  auto result = type_manager_.GetFunctionReturnType(type);
+
+  for (uint8_t i = 0; i < arguments.size(); i++) {
+    GetCurrentFunction().Append(Type3InstructionBuilder()
+                                    .SetOpcode(Opcode::CALL_ARG)
+                                    .SetSarg(i)
+                                    .SetArg(arguments[i].GetID())
+                                    .Build());
+  }
+
+  return GetCurrentFunction().Append(Type3InstructionBuilder()
+                                         .SetOpcode(Opcode::CALL_INDIRECT)
+                                         .SetArg(func.GetID())
+                                         .SetTypeID(result.GetID())
                                          .Build());
 }
 
