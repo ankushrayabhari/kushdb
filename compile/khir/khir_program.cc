@@ -386,7 +386,7 @@ Value KHIRProgram::CmpI1(CompType cmp, Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(opcode)
                                          .SetArg0(v1.GetID())
-                                         .SetArg0(v2.GetID())
+                                         .SetArg1(v2.GetID())
                                          .Build());
 }
 
@@ -397,11 +397,18 @@ Value KHIRProgram::ConstI1(bool v) {
                                          .Build());
 }
 
+Value KHIRProgram::ZextI1(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I1_ZEXT_I64)
+                                         .SetArg0(v.GetID())
+                                         .Build());
+}
+
 Value KHIRProgram::AddI8(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_ADD)
                                          .SetArg0(v1.GetID())
-                                         .SetArg0(v2.GetID())
+                                         .SetArg1(v2.GetID())
                                          .Build());
 }
 
@@ -409,7 +416,7 @@ Value KHIRProgram::MulI8(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_MUL)
                                          .SetArg0(v1.GetID())
-                                         .SetArg0(v2.GetID())
+                                         .SetArg1(v2.GetID())
                                          .Build());
 }
 
@@ -417,7 +424,7 @@ Value KHIRProgram::DivI8(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_DIV)
                                          .SetArg0(v1.GetID())
-                                         .SetArg0(v2.GetID())
+                                         .SetArg1(v2.GetID())
                                          .Build());
 }
 
@@ -425,7 +432,7 @@ Value KHIRProgram::SubI8(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_SUB)
                                          .SetArg0(v1.GetID())
-                                         .SetArg0(v2.GetID())
+                                         .SetArg1(v2.GetID())
                                          .Build());
 }
 
@@ -460,14 +467,353 @@ Value KHIRProgram::CmpI8(CompType cmp, Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(opcode)
                                          .SetArg0(v1.GetID())
-                                         .SetArg0(v2.GetID())
+                                         .SetArg1(v2.GetID())
                                          .Build());
 }
 
-Value KHIRProgram::ConstI8(int8_t v) {
+Value KHIRProgram::ConstI8(uint8_t v) {
   return GetCurrentFunction().Append(Type1InstructionBuilder()
                                          .SetOpcode(Opcode::I8_CONST)
                                          .SetConstant(static_cast<uint8_t>(v))
+                                         .Build());
+}
+
+Value KHIRProgram::ZextI8(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I8_ZEXT_I64)
+                                         .SetArg0(v.GetID())
+                                         .Build());
+}
+
+// I16
+Value KHIRProgram::AddI16(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I16_ADD)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::MulI16(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I16_MUL)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::DivI16(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I16_DIV)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::SubI16(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I16_SUB)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::CmpI16(CompType cmp, Value v1, Value v2) {
+  Opcode opcode;
+  switch (cmp) {
+    case CompType::EQ:
+      opcode = Opcode::I16_CMP_EQ;
+      break;
+
+    case CompType::NE:
+      opcode = Opcode::I16_CMP_NE;
+      break;
+
+    case CompType::LT:
+      opcode = Opcode::I16_CMP_LT;
+      break;
+
+    case CompType::LE:
+      opcode = Opcode::I16_CMP_LE;
+      break;
+
+    case CompType::GT:
+      opcode = Opcode::I16_CMP_GT;
+      break;
+
+    case CompType::GE:
+      opcode = Opcode::I16_CMP_GE;
+      break;
+  }
+
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(opcode)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::ConstI16(uint16_t v) {
+  return GetCurrentFunction().Append(Type1InstructionBuilder()
+                                         .SetOpcode(Opcode::I16_CONST)
+                                         .SetConstant(v)
+                                         .Build());
+}
+
+Value KHIRProgram::ZextI16(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I16_ZEXT_I64)
+                                         .SetArg0(v.GetID())
+                                         .Build());
+}
+
+// I32
+Value KHIRProgram::AddI32(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I32_ADD)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::MulI32(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I32_MUL)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::DivI32(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I32_DIV)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::SubI32(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I32_SUB)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::CmpI32(CompType cmp, Value v1, Value v2) {
+  Opcode opcode;
+  switch (cmp) {
+    case CompType::EQ:
+      opcode = Opcode::I32_CMP_EQ;
+      break;
+
+    case CompType::NE:
+      opcode = Opcode::I32_CMP_NE;
+      break;
+
+    case CompType::LT:
+      opcode = Opcode::I32_CMP_LT;
+      break;
+
+    case CompType::LE:
+      opcode = Opcode::I32_CMP_LE;
+      break;
+
+    case CompType::GT:
+      opcode = Opcode::I32_CMP_GT;
+      break;
+
+    case CompType::GE:
+      opcode = Opcode::I32_CMP_GE;
+      break;
+  }
+
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(opcode)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::ConstI32(uint32_t v) {
+  return GetCurrentFunction().Append(Type1InstructionBuilder()
+                                         .SetOpcode(Opcode::I32_CONST)
+                                         .SetConstant(v)
+                                         .Build());
+}
+
+Value KHIRProgram::ZextI32(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I32_ZEXT_I64)
+                                         .SetArg0(v.GetID())
+                                         .Build());
+}
+
+// I64
+Value KHIRProgram::AddI64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I64_ADD)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::MulI64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I64_MUL)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::DivI64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I64_DIV)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::SubI64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I64_SUB)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::CmpI64(CompType cmp, Value v1, Value v2) {
+  Opcode opcode;
+  switch (cmp) {
+    case CompType::EQ:
+      opcode = Opcode::I64_CMP_EQ;
+      break;
+
+    case CompType::NE:
+      opcode = Opcode::I64_CMP_NE;
+      break;
+
+    case CompType::LT:
+      opcode = Opcode::I64_CMP_LT;
+      break;
+
+    case CompType::LE:
+      opcode = Opcode::I64_CMP_LE;
+      break;
+
+    case CompType::GT:
+      opcode = Opcode::I64_CMP_GT;
+      break;
+
+    case CompType::GE:
+      opcode = Opcode::I64_CMP_GE;
+      break;
+  }
+
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(opcode)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::ConstI64(uint64_t v) {
+  uint32_t id = i64_constants.size();
+  i64_constants.push_back(v);
+  return GetCurrentFunction().Append(Type1InstructionBuilder()
+                                         .SetOpcode(Opcode::I64_CONST)
+                                         .SetConstant(id)
+                                         .Build());
+}
+
+Value KHIRProgram::F64ConvI64(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I64_CONV_F64)
+                                         .SetArg0(v.GetID())
+                                         .Build());
+}
+
+// F64
+Value KHIRProgram::AddF64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::F64_ADD)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::MulF64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::F64_MUL)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::DivF64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::F64_DIV)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::SubF64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::F64_SUB)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::CmpF64(CompType cmp, Value v1, Value v2) {
+  Opcode opcode;
+  switch (cmp) {
+    case CompType::EQ:
+      opcode = Opcode::F64_CMP_EQ;
+      break;
+
+    case CompType::NE:
+      opcode = Opcode::F64_CMP_NE;
+      break;
+
+    case CompType::LT:
+      opcode = Opcode::F64_CMP_LT;
+      break;
+
+    case CompType::LE:
+      opcode = Opcode::F64_CMP_LE;
+      break;
+
+    case CompType::GT:
+      opcode = Opcode::F64_CMP_GT;
+      break;
+
+    case CompType::GE:
+      opcode = Opcode::F64_CMP_GE;
+      break;
+  }
+
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(opcode)
+                                         .SetArg0(v1.GetID())
+                                         .SetArg1(v2.GetID())
+                                         .Build());
+}
+
+Value KHIRProgram::ConstF64(double v) {
+  uint32_t id = f64_constants.size();
+  f64_constants.push_back(v);
+  return GetCurrentFunction().Append(Type1InstructionBuilder()
+                                         .SetOpcode(Opcode::F64_CONST)
+                                         .SetConstant(id)
+                                         .Build());
+}
+
+Value KHIRProgram::I64ConvF64(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::F64_CONV_I64)
+                                         .SetArg0(v.GetID())
                                          .Build());
 }
 

@@ -107,6 +107,7 @@ class KHIRProgram {
   Value LNotI1(Value v);
   Value CmpI1(CompType cmp, Value v1, Value v2);
   Value ConstI1(bool v);
+  Value ZextI1(Value v);
 
   // I8
   Value AddI8(Value v1, Value v2);
@@ -114,50 +115,52 @@ class KHIRProgram {
   Value DivI8(Value v1, Value v2);
   Value SubI8(Value v1, Value v2);
   Value CmpI8(CompType cmp, Value v1, Value v2);
-  Value ConstI8(int8_t v);
+  Value ConstI8(uint8_t v);
+  Value ZextI8(Value v);
+
+  // I16
+  Value AddI16(Value v1, Value v2);
+  Value MulI16(Value v1, Value v2);
+  Value DivI16(Value v1, Value v2);
+  Value SubI16(Value v1, Value v2);
+  Value CmpI16(CompType cmp, Value v1, Value v2);
+  Value ConstI16(uint16_t v);
+  Value ZextI16(Value v);
+
+  // I32
+  Value AddI32(Value v1, Value v2);
+  Value MulI32(Value v1, Value v2);
+  Value DivI32(Value v1, Value v2);
+  Value SubI32(Value v1, Value v2);
+  Value CmpI32(CompType cmp, Value v1, Value v2);
+  Value ConstI32(uint32_t v);
+  Value ZextI32(Value v);
+
+  // I64
+  Value AddI64(Value v1, Value v2);
+  Value MulI64(Value v1, Value v2);
+  Value DivI64(Value v1, Value v2);
+  Value SubI64(Value v1, Value v2);
+  Value CmpI64(CompType cmp, Value v1, Value v2);
+  Value ConstI64(uint64_t v);
+  Value F64ConvI64(Value v);
+
+  // F64
+  Value AddF64(Value v1, Value v2);
+  Value MulF64(Value v1, Value v2);
+  Value DivF64(Value v1, Value v2);
+  Value SubF64(Value v1, Value v2);
+  Value CmpF64(CompType cmp, Value v1, Value v2);
+  Value ConstF64(double v);
+  Value I64ConvF64(Value v);
 
   /*
-    // I16
-    Value AddI16(Value v1, Value v2);
-    Value MulI16(Value v1, Value v2);
-    Value DivI16(Value v1, Value v2);
-    Value SubI16(Value v1, Value v2);
-    Value CmpI16(CompType cmp, Value v1, Value v2);
-    Value ConstI16(int16_t v);
-
-    // I32
-    Value AddI32(Value v1, Value v2);
-    Value MulI32(Value v1, Value v2);
-    Value DivI32(Value v1, Value v2);
-    Value SubI32(Value v1, Value v2);
-    Value CmpI32(CompType cmp, Value v1, Value v2);
-    Value ConstI32(int32_t v);
-
-    // I64
-    Value AddI64(Value v1, Value v2);
-    Value MulI64(Value v1, Value v2);
-    Value DivI64(Value v1, Value v2);
-    Value SubI64(Value v1, Value v2);
-    Value CmpI64(CompType cmp, Value v1, Value v2);
-    Value ConstI64(int64_t v);
-    Value ZextI64(Value v);
-    Value F64ConversionI64(Value v);
-
-    // F64
-    Value AddF64(Value v1, Value v2);
-    Value MulF64(Value v1, Value v2);
-    Value DivF64(Value v1, Value v2);
-    Value SubF64(Value v1, Value v2);
-    Value CmpF64(CompType cmp, Value v1, Value v2);
-    Value ConstF64(double v);
-    Value CastSignedIntToF64(Value v);
-
     // Globals
     Value GlobalConstString(std::string_view s);
     Value GlobalStruct(bool constant, Type t, absl::Span<const Value> v);
     Value GlobalArray(bool constant, Type t, absl::Span<const Value> v);
     Value GlobalPointer(bool constant, Type t, Value v);
-    */
+  */
  private:
   class Function {
    public:
@@ -192,6 +195,9 @@ class KHIRProgram {
   Function& GetCurrentFunction();
   int current_function_;
   absl::flat_hash_map<std::string, FunctionRef> name_to_function_;
+
+  std::vector<uint64_t> i64_constants;
+  std::vector<double> f64_constants;
 };
 
 }  // namespace kush::khir
