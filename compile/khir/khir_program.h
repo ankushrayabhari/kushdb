@@ -80,15 +80,15 @@ class KHIRProgram {
   Value CmpI1(CompType cmp, Value v1, Value v2);
   Value ConstI1(bool v);
 
-  /*
-    // I8
-    Value AddI8(Value v1, Value v2);
-    Value MulI8(Value v1, Value v2);
-    Value DivI8(Value v1, Value v2);
-    Value SubI8(Value v1, Value v2);
-    Value CmpI8(CompType cmp, Value v1, Value v2);
-    Value ConstI8(int8_t v);
+  // I8
+  Value AddI8(Value v1, Value v2);
+  Value MulI8(Value v1, Value v2);
+  Value DivI8(Value v1, Value v2);
+  Value SubI8(Value v1, Value v2);
+  Value CmpI8(CompType cmp, Value v1, Value v2);
+  Value ConstI8(int8_t v);
 
+  /*
     // I16
     Value AddI16(Value v1, Value v2);
     Value MulI16(Value v1, Value v2);
