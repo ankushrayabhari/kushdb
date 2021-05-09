@@ -88,8 +88,9 @@ class KHIRProgram {
   void SetCurrentBlock(BasicBlockRef b);
   void Branch(BasicBlockRef b);
   void Branch(Value cond, BasicBlockRef b1, BasicBlockRef b2);
-  Value Phi(Type type, uint8_t num_ext);
-  void AddToPhi(Value phi, Value v, BasicBlockRef b);
+  Value Phi(Type type);
+  Value PhiMember(Value v);
+  void UpdatePhiMember(Value phi, Value phi_member);
 
   // Memory
   Value Alloca(Type size);

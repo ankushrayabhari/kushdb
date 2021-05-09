@@ -76,7 +76,7 @@ enum class Opcode : uint8_t {
   LOAD,
   RETURN_VALUE,
   BR,
-  PHI_EXT,
+  PHI_MEMBER,
   CALL,
   PHI,
   PTR_CAST,

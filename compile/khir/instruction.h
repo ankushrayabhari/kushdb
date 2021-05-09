@@ -117,6 +117,7 @@ class Type1InstructionReader {
 // [MD] [ARG0] [0]    F64_CONV_I64
 // [MD] [ARG0] [ARG1] STORE
 // [MD] [ARG0] [0]    RETURN_VALUE
+// [MD] [ARG0] [ARG1] PHI_MEMBER
 
 class Type2InstructionBuilder {
  public:
@@ -150,16 +151,15 @@ class Type2InstructionReader {
 //      24-bit ARG
 //      8-bit opcode
 // =============================================================================
-// [MD] [ID] [SARG] [ARG] CALL
-// [MD] [ID] [SARG] [ARG] CALL_INDIRECT
-// [MD] [0]  [SARG] [ARG] CALL_ARG
-// [MD] [ID] [SARG] [0]   PHI
-// - SARG: number of PHI_EXT
-// [MD] [ID] [0]    [ARG] PTR_CAST
-// [MD] [ID] [0]          NULLPTR
-// [MD] [ID] [0]          FUNC_ARG
-// [MD] [ID] [0]    [ARG] LOAD
-// [MD] [ID] [0]          ALLOCA
+// [MD] [ID] [0] [ARG] CALL
+// [MD] [ID] [0] [ARG] CALL_INDIRECT
+// [MD] [0]  [0] [ARG] CALL_ARG
+// [MD] [ID] [0] [ARG] PTR_CAST
+// [MD] [ID] [0]       NULLPTR
+// [MD] [ID] [0]       FUNC_ARG
+// [MD] [ID] [0] [ARG] LOAD
+// [MD] [ID] [0]       ALLOCA
+// [MD] [ID] [0]       PHI
 
 class Type3InstructionBuilder {
  public:
@@ -222,9 +222,9 @@ class Type4InstructionReader {
 //      12-bit MARG1
 //      8-bit opcode
 // =============================================================================
-// [MD] [0]   [SARG0] [0]     BR
-// [MD] [ARG] [SARG0] [SARG1] CONDBR
-// [MD] [ARG] [SARG0] [0]     PHI_EXT
+// [MD] [0]   [MARG0] [0]     BR
+// [MD] [ARG] [MARG0] [MARG1] CONDBR
+// [MD] [ARG] [MARG0] [0]     PHI_EXT
 
 class Type5InstructionBuilder {
  public:

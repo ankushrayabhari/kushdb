@@ -168,48 +168,26 @@ void KHIRProgram::Branch(Value cond, BasicBlockRef b1, BasicBlockRef b2) {
                                   .Build());
 }
 
-Value KHIRProgram::Phi(Type type, uint8_t num_ext) {
-  auto v = GetCurrentFunction().Append(Type3InstructionBuilder()
-                                           .SetOpcode(Opcode::PHI)
-                                           .SetSarg(num_ext)
-                                           .SetTypeID(type.GetID())
-                                           .Build());
-
-  for (uint8_t i = 0; i < num_ext; i++) {
-    GetCurrentFunction().Append(Type5InstructionBuilder()
-                                    .SetOpcode(Opcode::PHI_EXT)
-                                    .SetMetadata(1)
-                                    .Build());
-  }
-
-  return v;
+Value KHIRProgram::Phi(Type type) {
+  return GetCurrentFunction().Append(Type3InstructionBuilder()
+                                         .SetOpcode(Opcode::PHI)
+                                         .SetTypeID(type.GetID())
+                                         .Build());
 }
 
-void KHIRProgram::AddToPhi(Value phi, Value v, BasicBlockRef b) {
-  uint32_t offset = 1;
-  while (true) {
-    Value phi_ext = phi.GetAdjacentInstruction(offset);
-    uint64_t instr = GetCurrentFunction().GetInstruction(phi_ext);
-    Type5InstructionReader reader(instr);
+Value KHIRProgram::PhiMember(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::PHI_MEMBER)
+                                         .SetArg1(v.GetID())
+                                         .Build());
+}
 
-    if (reader.Opcode() != Opcode::PHI_EXT) {
-      break;
-    }
-
-    if (reader.Metadata() == 0) {
-      offset++;
-      continue;
-    }
-
-    GetCurrentFunction().Update(phi_ext, Type5InstructionBuilder()
-                                             .SetOpcode(Opcode::PHI_EXT)
-                                             .SetArg(v.GetID())
-                                             .SetMarg0(b.GetBasicBlockID())
-                                             .Build());
-    return;
-  }
-
-  throw std::runtime_error("Attempting to add to phi that is full");
+void KHIRProgram::UpdatePhiMember(Value phi, Value phi_member) {
+  GetCurrentFunction().Update(
+      phi_member,
+      Type2InstructionBuilder(GetCurrentFunction().GetInstruction(phi_member))
+          .SetArg0(phi.GetID())
+          .Build());
 }
 
 // Memory
@@ -397,7 +375,7 @@ Type KHIRProgram::TypeOf(Value value) {
       throw std::runtime_error("TODO");
       break;
 
-    case Opcode::PHI_EXT:
+    case Opcode::PHI_MEMBER:
     case Opcode::CALL_ARG:
       throw std::runtime_error("Cannot call type of on an extension.");
   }
