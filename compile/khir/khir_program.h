@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/types/span.h"
 
 #include "type_safe/strong_typedef.hpp"
@@ -18,11 +19,12 @@ struct Value : type_safe::strong_typedef<Value, uint32_t>,
   uint32_t GetID() { return static_cast<uint32_t>(*this); }
 };
 
-struct Function : type_safe::strong_typedef<Value, uint32_t>,
-                  type_safe::strong_typedef_op::equality_comparison<Value> {
+struct FunctionRef
+    : type_safe::strong_typedef<FunctionRef, int>,
+      type_safe::strong_typedef_op::equality_comparison<FunctionRef> {
   using strong_typedef::strong_typedef;
 
-  uint32_t GetID() { return static_cast<uint32_t>(*this); }
+  int GetID() { return static_cast<int>(*this); }
 };
 
 enum class CompType { EQ, NE, LT, LE, GT, GE };
@@ -46,11 +48,13 @@ class KHIRProgram {
   Type FunctionType(Type result, absl::Span<const Type> args);
 
   // Function
-  Function CreateFunction(Type result_type, absl::Span<const Type> arg_types);
-  Function CreatePublicFunction(Type result_type,
-                                absl::Span<const Type> arg_types,
-                                std::string_view name);
-  std::vector<Value> GetFunctionArguments(Function func);
+  FunctionRef CreateFunction(Type result_type,
+                             absl::Span<const Type> arg_types);
+  FunctionRef CreatePublicFunction(Type result_type,
+                                   absl::Span<const Type> arg_types,
+                                   std::string_view name);
+  FunctionRef GetFunction(std::string_view name);
+  absl::Span<const Value> GetFunctionArguments(FunctionRef func);
   void Return(Value v);
   void Return();
 
@@ -68,7 +72,6 @@ class KHIRProgram {
 
    Function DeclareExternalFunction(std::string_view name, Type result_type,
                                    absl::Span<const Type> arg_types);
-   Function GetFunction(std::string_view name);
    Value Call(Function func, absl::Span<const Value> arguments = {});
    Value Call(Value func, Type type, absl::Span<const Value> arguments = {});
 
@@ -140,8 +143,27 @@ class KHIRProgram {
     Value GlobalPointer(bool constant, Type t, Value v);
     */
  private:
-  std::vector<uint64_t> instructions_;
+  class Function {
+   public:
+    Function(Type function_type, Type result_type,
+             absl::Span<const Type> arg_types);
+    absl::Span<const Value> GetFunctionArguments() const;
+    Value Append(uint64_t instr);
+
+   private:
+    Type return_type_;
+    std::vector<Type> arg_types_;
+    std::vector<Value> arg_values_;
+    Type function_type_;
+    std::vector<uint64_t> instructions_;
+  };
+
   TypeManager type_manager_;
+  std::vector<Function> functions_;
+
+  Function& GetCurrentFunction();
+  int current_function_;
+  absl::flat_hash_map<std::string, FunctionRef> name_to_function_;
 };
 
 }  // namespace kush::khir
