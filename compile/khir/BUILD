@@ -9,22 +9,20 @@ cc_library(
 )
 
 cc_library(
+    name = "type_manager",
+    srcs = ["type_manager.cc"],
+    hdrs = ["type_manager.h"],
+    deps = [
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/types:span",
+    ],
+)
+
+cc_library(
     name = "instruction",
     srcs = ["instruction.cc"],
     hdrs = ["instruction.h"],
     deps = [
         ":opcode",
-    ],
-)
-
-cc_library(
-    name = "khir_program",
-    srcs = ["khir_program.cc"],
-    hdrs = ["khir_program.h"],
-    deps = [
-        "@absl//absl/container:flat_hash_map",
-        "@absl//absl/container:inlined_vector",
-        "@absl//absl/types:span",
-        "@type_safe",
     ],
 )
