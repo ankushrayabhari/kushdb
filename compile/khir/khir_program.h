@@ -155,13 +155,16 @@ class KHIRProgram {
   Value ConstF64(double v);
   Value I64ConvF64(Value v);
 
-  /*
-    // Globals
-    Value GlobalConstString(std::string_view s);
-    Value GlobalStruct(bool constant, Type t, absl::Span<const Value> v);
-    Value GlobalArray(bool constant, Type t, absl::Span<const Value> v);
-    Value GlobalPointer(bool constant, Type t, Value v);
-  */
+  // Globals
+  std::function<uint64_t()> GlobalConstString(std::string_view s);
+  std::function<uint64_t()> GlobalConstantStruct(Type t,
+                                                 absl::Span<const Value> v);
+  std::function<uint64_t()> GlobalStruct(bool constant, Type t,
+                                         absl::Span<const Value> v);
+  std::function<uint64_t()> GlobalArray(bool constant, Type t,
+                                        absl::Span<const Value> v);
+  std::function<uint64_t()> GlobalPointer(bool constant, Type t, Value v);
+
  private:
   class Function {
    public:
@@ -200,8 +203,51 @@ class KHIRProgram {
   int current_function_;
   absl::flat_hash_map<std::string, FunctionRef> name_to_function_;
 
-  std::vector<uint64_t> i64_constants;
-  std::vector<double> f64_constants;
+  class GlobalArrayImpl {
+   public:
+    GlobalArrayImpl(bool constant, Type type, absl::Span<const uint64_t> init);
+    bool Constant() const;
+    Type Type() const;
+    absl::Span<const uint64_t> InitialValue() const;
+
+   private:
+    bool constant_;
+    khir::Type type_;
+    std::vector<uint64_t> init;
+  };
+
+  class GlobalPointerImpl {
+   public:
+    GlobalPointerImpl(bool constant, Type type, uint64_t init);
+    bool Constant() const;
+    Type Type() const;
+    uint64_t InitialValue() const;
+
+   private:
+    bool constant_;
+    khir::Type type_;
+    uint64_t init;
+  };
+
+  class GlobalStructImpl {
+   public:
+    GlobalStructImpl(bool constant, Type type, absl::Span<const uint64_t> init);
+    bool Constant() const;
+    Type Type() const;
+    absl::Span<const uint64_t> InitialValue() const;
+
+   private:
+    bool constant_;
+    khir::Type type_;
+    std::vector<uint64_t> init;
+  };
+
+  std::vector<uint64_t> i64_constants_;
+  std::vector<double> f64_constants_;
+  std::vector<std::string> string_constants_;
+  std::vector<GlobalPointerImpl> global_pointers_;
+  std::vector<GlobalArrayImpl> global_arrays_;
+  std::vector<GlobalStructImpl> global_structs_;
 };
 
 }  // namespace kush::khir
