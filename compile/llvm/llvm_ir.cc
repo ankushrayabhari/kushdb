@@ -385,7 +385,8 @@ Value LLVMIr::CastSignedIntToF64(Value v) {
 
 // Globals
 Value LLVMIr::GlobalConstString(std::string_view s) {
-  return NN_CHECK_THROW(builder_->CreateGlobalStringPtr(s));
+  auto x = NN_CHECK_THROW(builder_->CreateGlobalString(s));
+  return x;
 }
 
 Value LLVMIr::GlobalStruct(bool constant, Type t,
