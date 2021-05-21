@@ -11,6 +11,10 @@
 
 #include "type_safe/strong_typedef.hpp"
 
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+
 namespace kush::khir {
 
 struct Type : type_safe::strong_typedef<Type, uint16_t>,
@@ -44,55 +48,10 @@ class TypeManager {
   Type GetPointerElementType(Type ptr_type);
 
  private:
-  class PointerTypeImpl {
-   public:
-    PointerTypeImpl(Type element_type_id);
-
-    Type ElementType() const;
-
-   private:
-    Type element_type_;
-  };
-
-  class ArrayTypeImpl {
-   public:
-    ArrayTypeImpl(Type element_type_id, int length);
-
-    Type ElementType() const;
-    int Length() const;
-
-   private:
-    Type element_type_;
-    int length_;
-  };
-
-  class FunctionTypeImpl {
-   public:
-    FunctionTypeImpl(Type result_type_id, absl::Span<const Type> arg_type_id);
-
-    Type ResultType() const;
-    absl::Span<const Type> ArgTypes() const;
-
-   private:
-    Type result_type_;
-    std::vector<Type> arg_type_ids_;
-  };
-
-  class StructTypeImpl {
-   public:
-    StructTypeImpl(absl::Span<const Type> field_type_ids);
-
-    absl::Span<const Type> FieldTypes() const;
-
-   private:
-    std::vector<Type> field_type_ids_;
-  };
-
-  enum class BaseTypeImpl { VOID, I1, I8, I16, I32, I64, F64 };
-
-  std::vector<std::variant<BaseTypeImpl, PointerTypeImpl, ArrayTypeImpl,
-                           FunctionTypeImpl, StructTypeImpl>>
-      type_id_to_impl_;
+  std::unique_ptr<llvm::LLVMContext> context_;
+  std::unique_ptr<llvm::Module> module_;
+  std::unique_ptr<llvm::IRBuilder<>> builder_;
+  std::vector<llvm::Type*> type_id_to_impl_;
   absl::flat_hash_map<std::string, Type> struct_name_to_type_id_;
 };
 

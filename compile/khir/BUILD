@@ -28,6 +28,13 @@ cc_library(
     deps = [
         "@absl//absl/container:flat_hash_map",
         "@absl//absl/types:span",
+        "@llvm-project//llvm:BitWriter",
+        "@llvm-project//llvm:Core",
+        "@llvm-project//llvm:InstCombine",
+        "@llvm-project//llvm:Scalar",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:X86AsmParser",
+        "@llvm-project//llvm:X86CodeGen",
         "@type_safe",
     ],
 )

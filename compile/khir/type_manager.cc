@@ -9,18 +9,44 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/types/span.h"
 
+#include "type_safe/strong_typedef.hpp"
+
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
+
 namespace kush::khir {
+
+std::vector<llvm::Type*> GetTypeArray(std::vector<llvm::Type*>& types,
+                                      absl::Span<const Type> field_type_id) {
+  std::vector<llvm::Type*> result;
+  for (auto x : field_type_id) {
+    result.push_back(types[x.GetID()]);
+  }
+  return result;
+}
 
 uint16_t Type::GetID() const { return static_cast<uint16_t>(*this); }
 
-TypeManager::TypeManager() {
-  type_id_to_impl_.push_back(BaseTypeImpl::VOID);
-  type_id_to_impl_.push_back(BaseTypeImpl::I1);
-  type_id_to_impl_.push_back(BaseTypeImpl::I8);
-  type_id_to_impl_.push_back(BaseTypeImpl::I16);
-  type_id_to_impl_.push_back(BaseTypeImpl::I32);
-  type_id_to_impl_.push_back(BaseTypeImpl::I64);
-  type_id_to_impl_.push_back(BaseTypeImpl::F64);
+TypeManager::TypeManager()
+    : context_(std::make_unique<llvm::LLVMContext>()),
+      module_(std::make_unique<llvm::Module>("type_manager", *context_)),
+      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {
+  auto target_triple = llvm::sys::getDefaultTargetTriple();
+  module_->setTargetTriple(target_triple);
+
+  type_id_to_impl_.push_back(builder_->getVoidTy());
+  type_id_to_impl_.push_back(builder_->getInt1Ty());
+  type_id_to_impl_.push_back(builder_->getInt8Ty());
+  type_id_to_impl_.push_back(builder_->getInt16Ty());
+  type_id_to_impl_.push_back(builder_->getInt32Ty());
+  type_id_to_impl_.push_back(builder_->getInt64Ty());
+  type_id_to_impl_.push_back(builder_->getDoubleTy());
 }
 
 Type TypeManager::VoidType() { return static_cast<Type>(0); }
@@ -46,25 +72,30 @@ Type TypeManager::NamedStructType(absl::Span<const Type> field_type_id,
 
 Type TypeManager::StructType(absl::Span<const Type> field_type_id) {
   auto size = type_id_to_impl_.size();
-  type_id_to_impl_.push_back(StructTypeImpl(field_type_id));
+  type_id_to_impl_.push_back(llvm::StructType::create(
+      *context_, GetTypeArray(type_id_to_impl_, field_type_id)));
   return static_cast<Type>(size);
 }
 
 Type TypeManager::PointerType(Type type) {
   auto size = type_id_to_impl_.size();
-  type_id_to_impl_.push_back(PointerTypeImpl(type));
+  type_id_to_impl_.push_back(
+      llvm::PointerType::get(type_id_to_impl_[type.GetID()], 0));
   return static_cast<Type>(size);
 }
 
 Type TypeManager::ArrayType(Type type, int len) {
   auto size = type_id_to_impl_.size();
-  type_id_to_impl_.push_back(ArrayTypeImpl(type, len));
+  type_id_to_impl_.push_back(
+      llvm::ArrayType::get(type_id_to_impl_[type.GetID()], len));
   return static_cast<Type>(size);
 }
 
 Type TypeManager::FunctionType(Type result, absl::Span<const Type> args) {
   auto size = type_id_to_impl_.size();
-  type_id_to_impl_.push_back(FunctionTypeImpl(result, args));
+  type_id_to_impl_.push_back(
+      llvm::FunctionType::get(type_id_to_impl_[result.GetID()],
+                              GetTypeArray(type_id_to_impl_, args), false));
   return static_cast<Type>(size);
 }
 
@@ -72,46 +103,20 @@ Type TypeManager::GetNamedStructType(std::string_view name) {
   return struct_name_to_type_id_.at(name);
 }
 
-TypeManager::PointerTypeImpl::PointerTypeImpl(Type element_type_id)
-    : element_type_(element_type_id) {}
-
-Type TypeManager::PointerTypeImpl::ElementType() const { return element_type_; }
-
-TypeManager::ArrayTypeImpl::ArrayTypeImpl(Type element_type_id, int length)
-    : element_type_(element_type_id), length_(length) {}
-
-Type TypeManager::ArrayTypeImpl::ElementType() const { return element_type_; }
-
-int TypeManager::ArrayTypeImpl::Length() const { return length_; }
-
-TypeManager::FunctionTypeImpl::FunctionTypeImpl(
-    Type result_type_id, absl::Span<const Type> arg_type_id)
-    : result_type_(result_type_id),
-      arg_type_ids_(arg_type_id.begin(), arg_type_id.end()) {}
-
-Type TypeManager::FunctionTypeImpl::ResultType() const { return result_type_; }
-
-absl::Span<const Type> TypeManager::FunctionTypeImpl::ArgTypes() const {
-  return arg_type_ids_;
-}
-
-TypeManager::StructTypeImpl::StructTypeImpl(
-    absl::Span<const Type> field_type_ids)
-    : field_type_ids_(field_type_ids.begin(), field_type_ids.end()) {}
-
-absl::Span<const Type> TypeManager::StructTypeImpl::FieldTypes() const {
-  return field_type_ids_;
-}
-
 Type TypeManager::GetFunctionReturnType(Type func_type) {
-  const auto& x =
-      std::get<FunctionTypeImpl>(type_id_to_impl_[func_type.GetID()]);
-  return x.ResultType();
+  auto size = type_id_to_impl_.size();
+  type_id_to_impl_.push_back(
+      llvm::dyn_cast<llvm::FunctionType>(type_id_to_impl_[func_type.GetID()])
+          ->getReturnType());
+  return static_cast<Type>(size);
 }
 
 Type TypeManager::GetPointerElementType(Type ptr_type) {
-  const auto& x = std::get<PointerTypeImpl>(type_id_to_impl_[ptr_type.GetID()]);
-  return x.ElementType();
+  auto size = type_id_to_impl_.size();
+  type_id_to_impl_.push_back(
+      llvm::dyn_cast<llvm::PointerType>(type_id_to_impl_[ptr_type.GetID()])
+          ->getElementType());
+  return static_cast<Type>(size);
 }
 
 }  // namespace kush::khir
