@@ -46,6 +46,8 @@ class TypeManager {
   Type GetNamedStructType(std::string_view name);
   Type GetFunctionReturnType(Type func_type);
   Type GetPointerElementType(Type ptr_type);
+  std::pair<int64_t, Type> GetPointerOffset(Type t,
+                                            absl::Span<const int32_t> idx);
 
  private:
   std::unique_ptr<llvm::LLVMContext> context_;

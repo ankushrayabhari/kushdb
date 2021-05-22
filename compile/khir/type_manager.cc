@@ -119,4 +119,23 @@ Type TypeManager::GetPointerElementType(Type ptr_type) {
   return static_cast<Type>(size);
 }
 
+std::pair<int64_t, Type> TypeManager::GetPointerOffset(
+    Type t, absl::Span<const int32_t> idx) {
+  std::vector<llvm::Value*> values;
+  for (int32_t i : idx) {
+    values.push_back(builder_->getInt32(i));
+  }
+  llvm::Type* target = type_id_to_impl_[t.GetID()];
+
+  int64_t offset =
+      module_->getDataLayout().getIndexedOffsetInType(target, values);
+
+  auto size = type_id_to_impl_.size();
+  type_id_to_impl_.push_back(
+      llvm::GetElementPtrInst::getIndexedType(target, values));
+  auto result_type = static_cast<Type>(size);
+
+  return {offset, result_type};
+}
+
 }  // namespace kush::khir

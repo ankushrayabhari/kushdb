@@ -386,8 +386,8 @@ Type KHIRProgram::TypeOf(Value value) {
       return type_manager_.PointerType(
           global_pointers_[Type1InstructionReader(instr).Constant()].Type());
 
-    case Opcode::GEP:
-      throw std::runtime_error("TODO");
+    case Opcode::PTR_ADD:
+      throw std::runtime_error("PTR_ADD needs to be casted.");
       break;
 
     case Opcode::PHI_MEMBER:
@@ -988,6 +988,28 @@ std::function<uint64_t()> KHIRProgram::GlobalPointer(bool constant, Type t,
                    .SetConstant(idx)
                    .Build();
   return [v]() { return v; };
+}
+
+Value KHIRProgram::SizeOf(Type type) {
+  auto pointer_type = PointerType(type);
+  auto null = NullPtr(pointer_type);
+  auto size_ptr = GetElementPtr(type, null, {1});
+  return PointerCast(size_ptr, I64Type());
+}
+
+Value KHIRProgram::GetElementPtr(Type t, Value ptr,
+                                 absl::Span<const int32_t> idx) {
+  auto [offset, result_type] = type_manager_.GetPointerOffset(t, idx);
+  auto offset_v = ConstI64(offset);
+
+  auto untyped_location_v =
+      GetCurrentFunction().Append(Type2InstructionBuilder()
+                                      .SetOpcode(Opcode::PTR_ADD)
+                                      .SetArg0(ptr.GetID())
+                                      .SetArg1(offset_v.GetID())
+                                      .Build());
+
+  return PointerCast(untyped_location_v, result_type);
 }
 
 }  // namespace kush::khir

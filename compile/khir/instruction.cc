@@ -166,45 +166,6 @@ Opcode Type3InstructionReader::Opcode() const {
   return static_cast<khir::Opcode>(opcode_repr);
 }
 
-Type4InstructionBuilder::Type4InstructionBuilder(uint64_t initial_instr)
-    : value_(initial_instr) {}
-
-Type4InstructionBuilder& Type4InstructionBuilder::SetSarg(int8_t arg_idx,
-                                                          uint8_t sarg) {
-  if (arg_idx >= 7) {
-    throw std::runtime_error("arg idx must be less than 7");
-  }
-
-  int8_t byte = 6 - arg_idx + 1;
-  uint64_t mask = 0xFFll << (byte * 8);
-  value_ = (value_ & ~mask) | (static_cast<uint64_t>(sarg) << (byte * 8));
-  return *this;
-}
-
-Type4InstructionBuilder& Type4InstructionBuilder::SetOpcode(Opcode opcode) {
-  SetOpcodeImpl(value_, opcode);
-  return *this;
-}
-
-uint64_t Type4InstructionBuilder::Build() { return value_; }
-
-Type4InstructionReader::Type4InstructionReader(uint64_t instr)
-    : instr_(instr) {}
-
-uint8_t Type4InstructionReader::Sarg(int8_t idx) const {
-  if (idx >= 7) {
-    throw std::runtime_error("idx must be less than 7");
-  }
-
-  int8_t byte = 6 - idx + 1;
-  return (instr_ >> (byte * 8)) & 0xFFll;
-}
-
-Opcode Type4InstructionReader::Opcode() const {
-  uint8_t opcode_repr = instr_ & 0xFFll;
-  return static_cast<khir::Opcode>(opcode_repr);
-}
-
 Type5InstructionBuilder::Type5InstructionBuilder(uint64_t initial_instr)
     : value_(initial_instr) {}
 

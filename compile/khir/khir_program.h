@@ -98,11 +98,8 @@ class KHIRProgram {
   Value PointerCast(Value v, Type t);
   void Store(Value ptr, Value v);
   Value Load(Value ptr);
-
-  /*
-   Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
-   Value SizeOf(Type type);
- */
+  Value SizeOf(Type type);
+  Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
 
   // I1
   Value LNotI1(Value v);

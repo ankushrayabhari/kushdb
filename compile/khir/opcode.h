@@ -84,12 +84,12 @@ enum class Opcode : uint8_t {
   CALL,
   PHI,
   PTR_CAST,
-  GEP,
   FUNC_ARG,
   NULLPTR,
   ALLOCA,
   CALL_ARG,
-  CALL_INDIRECT
+  CALL_INDIRECT,
+  PTR_ADD
 };
 
 }  // namespace kush::khir

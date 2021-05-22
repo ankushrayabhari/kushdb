@@ -118,6 +118,7 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] STORE
 // [MD] [ARG0] [0]    RETURN_VALUE
 // [MD] [ARG0] [ARG1] PHI_MEMBER
+// [MD] [ARG0] [ARG1] PTR_ADD
 
 class Type2InstructionBuilder {
  public:
@@ -188,33 +189,6 @@ class Type3InstructionReader {
   uint64_t instr_;
 };
 
-// Type IV Format:
-//      [8-bit SARG] ** 7
-//      8-bit opcode
-// =============================================================================
-// [SARG0] [SARG1] [SARG2] [SARG3] [SARG4] [SARG5] [SARG6] GEP_EXT
-
-class Type4InstructionBuilder {
- public:
-  Type4InstructionBuilder(uint64_t initial_instr = 0);
-  Type4InstructionBuilder& SetSarg(int8_t arg_idx, uint8_t sarg);
-  Type4InstructionBuilder& SetOpcode(Opcode opcode);
-  uint64_t Build();
-
- private:
-  uint64_t value_;
-};
-
-class Type4InstructionReader {
- public:
-  Type4InstructionReader(uint64_t instr);
-  uint8_t Sarg(int8_t idx) const;
-  Opcode Opcode() const;
-
- private:
-  uint64_t instr_;
-};
-
 // Type V Format:
 //      8-bit METADATA
 //      24-bit ARG
@@ -224,7 +198,6 @@ class Type4InstructionReader {
 // =============================================================================
 // [MD] [0]   [MARG0] [0]     BR
 // [MD] [ARG] [MARG0] [MARG1] CONDBR
-// [MD] [ARG] [MARG0] [0]     PHI_EXT
 
 class Type5InstructionBuilder {
  public:
