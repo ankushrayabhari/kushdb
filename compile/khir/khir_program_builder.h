@@ -47,9 +47,9 @@ struct BasicBlockRef
 
 enum class CompType { EQ, NE, LT, LE, GT, GE };
 
-class KHIRProgram {
+class KHIRProgramBuilder {
  public:
-  KHIRProgram();
+  KHIRProgramBuilder();
 
   // Types
   Type VoidType();

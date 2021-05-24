@@ -1,4 +1,4 @@
-#include "compile/khir/khir_program.h"
+#include "compile/khir/khir_program_builder.h"
 
 #include <cstdint>
 #include <stdexcept>
@@ -13,8 +13,9 @@
 
 namespace kush::khir {
 
-KHIRProgram::Function::Function(Type function_type, Type result_type,
-                                absl::Span<const Type> arg_types, bool external)
+KHIRProgramBuilder::Function::Function(Type function_type, Type result_type,
+                                       absl::Span<const Type> arg_types,
+                                       bool external)
     : function_type_(function_type), external_(external) {
   if (!external_) {
     for (Type t : arg_types) {
@@ -26,7 +27,8 @@ KHIRProgram::Function::Function(Type function_type, Type result_type,
   }
 }
 
-absl::Span<const Value> KHIRProgram::Function::GetFunctionArguments() const {
+absl::Span<const Value> KHIRProgramBuilder::Function::GetFunctionArguments()
+    const {
   if (external_) {
     throw std::runtime_error(
         "Cannot get argument registers of external function");
@@ -48,7 +50,7 @@ bool IsTerminatingInstr(Opcode opcode) {
   }
 }
 
-Value KHIRProgram::Function::Append(uint64_t instr) {
+Value KHIRProgramBuilder::Function::Append(uint64_t instr) {
   if (external_) {
     throw std::runtime_error("Cannot get add body to external function");
   }
@@ -72,7 +74,7 @@ Value KHIRProgram::Function::Append(uint64_t instr) {
   return static_cast<Value>(idx);
 }
 
-void KHIRProgram::Function::Update(Value pos, uint64_t instr) {
+void KHIRProgramBuilder::Function::Update(Value pos, uint64_t instr) {
   if (external_) {
     throw std::runtime_error("Cannot mutate body of external function");
   }
@@ -81,7 +83,7 @@ void KHIRProgram::Function::Update(Value pos, uint64_t instr) {
   instructions_[idx] = instr;
 }
 
-uint64_t KHIRProgram::Function::GetInstruction(Value v) {
+uint64_t KHIRProgramBuilder::Function::GetInstruction(Value v) {
   if (external_) {
     throw std::runtime_error("Cannot get body of external function");
   }
@@ -89,7 +91,7 @@ uint64_t KHIRProgram::Function::GetInstruction(Value v) {
   return instructions_[v.GetID()];
 }
 
-int KHIRProgram::Function::GenerateBasicBlock() {
+int KHIRProgramBuilder::Function::GenerateBasicBlock() {
   if (external_) {
     throw std::runtime_error("Cannot update body of external function");
   }
@@ -99,7 +101,7 @@ int KHIRProgram::Function::GenerateBasicBlock() {
   return idx;
 }
 
-void KHIRProgram::Function::SetCurrentBasicBlock(int basic_block_id) {
+void KHIRProgramBuilder::Function::SetCurrentBasicBlock(int basic_block_id) {
   if (external_) {
     throw std::runtime_error("Cannot update body of external function");
   }
@@ -111,7 +113,7 @@ void KHIRProgram::Function::SetCurrentBasicBlock(int basic_block_id) {
 
   current_basic_block_ = basic_block_id;
 }
-int KHIRProgram::Function::GetCurrentBasicBlock() {
+int KHIRProgramBuilder::Function::GetCurrentBasicBlock() {
   if (external_) {
     throw std::runtime_error("Cannot get body of external function");
   }
@@ -119,7 +121,7 @@ int KHIRProgram::Function::GetCurrentBasicBlock() {
   return current_basic_block_;
 }
 
-bool KHIRProgram::Function::IsTerminated(int basic_block_id) {
+bool KHIRProgramBuilder::Function::IsTerminated(int basic_block_id) {
   if (external_) {
     throw std::runtime_error("Cannot get body of external function");
   }
@@ -127,39 +129,40 @@ bool KHIRProgram::Function::IsTerminated(int basic_block_id) {
   return basic_blocks_[current_basic_block_].second < 0;
 }
 
-KHIRProgram::Function& KHIRProgram::GetCurrentFunction() {
+KHIRProgramBuilder::Function& KHIRProgramBuilder::GetCurrentFunction() {
   return functions_[current_function_];
 }
 
-BasicBlockRef KHIRProgram::GenerateBlock() {
+BasicBlockRef KHIRProgramBuilder::GenerateBlock() {
   int basic_block_id = GetCurrentFunction().GenerateBasicBlock();
   return static_cast<BasicBlockRef>(
       std::pair<int, int>{current_function_, basic_block_id});
 }
 
-BasicBlockRef KHIRProgram::CurrentBlock() {
+BasicBlockRef KHIRProgramBuilder::CurrentBlock() {
   int basic_block_id = GetCurrentFunction().GetCurrentBasicBlock();
   return static_cast<BasicBlockRef>(
       std::pair<int, int>{current_function_, basic_block_id});
 }
 
-bool KHIRProgram::IsTerminated(BasicBlockRef b) {
+bool KHIRProgramBuilder::IsTerminated(BasicBlockRef b) {
   return functions_[b.GetFunctionID()].IsTerminated(b.GetBasicBlockID());
 }
 
-void KHIRProgram::SetCurrentBlock(BasicBlockRef b) {
+void KHIRProgramBuilder::SetCurrentBlock(BasicBlockRef b) {
   current_function_ = b.GetFunctionID();
   GetCurrentFunction().SetCurrentBasicBlock(b.GetBasicBlockID());
 }
 
-void KHIRProgram::Branch(BasicBlockRef b) {
+void KHIRProgramBuilder::Branch(BasicBlockRef b) {
   GetCurrentFunction().Append(Type5InstructionBuilder()
                                   .SetOpcode(Opcode::BR)
                                   .SetMarg0(b.GetBasicBlockID())
                                   .Build());
 }
 
-void KHIRProgram::Branch(Value cond, BasicBlockRef b1, BasicBlockRef b2) {
+void KHIRProgramBuilder::Branch(Value cond, BasicBlockRef b1,
+                                BasicBlockRef b2) {
   GetCurrentFunction().Append(Type5InstructionBuilder()
                                   .SetOpcode(Opcode::CONDBR)
                                   .SetArg(cond.GetID())
@@ -168,21 +171,21 @@ void KHIRProgram::Branch(Value cond, BasicBlockRef b1, BasicBlockRef b2) {
                                   .Build());
 }
 
-Value KHIRProgram::Phi(Type type) {
+Value KHIRProgramBuilder::Phi(Type type) {
   return GetCurrentFunction().Append(Type3InstructionBuilder()
                                          .SetOpcode(Opcode::PHI)
                                          .SetTypeID(type.GetID())
                                          .Build());
 }
 
-Value KHIRProgram::PhiMember(Value v) {
+Value KHIRProgramBuilder::PhiMember(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::PHI_MEMBER)
                                          .SetArg1(v.GetID())
                                          .Build());
 }
 
-void KHIRProgram::UpdatePhiMember(Value phi, Value phi_member) {
+void KHIRProgramBuilder::UpdatePhiMember(Value phi, Value phi_member) {
   GetCurrentFunction().Update(
       phi_member,
       Type2InstructionBuilder(GetCurrentFunction().GetInstruction(phi_member))
@@ -191,7 +194,7 @@ void KHIRProgram::UpdatePhiMember(Value phi, Value phi_member) {
 }
 
 // Memory
-Value KHIRProgram::Alloca(Type t) {
+Value KHIRProgramBuilder::Alloca(Type t) {
   return GetCurrentFunction().Append(
       Type3InstructionBuilder()
           .SetOpcode(Opcode::ALLOCA)
@@ -199,14 +202,14 @@ Value KHIRProgram::Alloca(Type t) {
           .Build());
 }
 
-Value KHIRProgram::NullPtr(Type t) {
+Value KHIRProgramBuilder::NullPtr(Type t) {
   return GetCurrentFunction().Append(Type3InstructionBuilder()
                                          .SetOpcode(Opcode::NULLPTR)
                                          .SetTypeID(t.GetID())
                                          .Build());
 }
 
-Value KHIRProgram::PointerCast(Value v, Type t) {
+Value KHIRProgramBuilder::PointerCast(Value v, Type t) {
   return GetCurrentFunction().Append(Type3InstructionBuilder()
                                          .SetOpcode(Opcode::PTR_CAST)
                                          .SetArg(v.GetID())
@@ -214,7 +217,7 @@ Value KHIRProgram::PointerCast(Value v, Type t) {
                                          .Build());
 }
 
-void KHIRProgram::Store(Value ptr, Value v) {
+void KHIRProgramBuilder::Store(Value ptr, Value v) {
   GetCurrentFunction().Append(Type2InstructionBuilder()
                                   .SetOpcode(Opcode::STORE)
                                   .SetArg0(ptr.GetID())
@@ -222,7 +225,7 @@ void KHIRProgram::Store(Value ptr, Value v) {
                                   .Build());
 }
 
-Value KHIRProgram::Load(Value ptr) {
+Value KHIRProgramBuilder::Load(Value ptr) {
   auto ptr_type = TypeOf(ptr);
 
   return GetCurrentFunction().Append(
@@ -233,22 +236,22 @@ Value KHIRProgram::Load(Value ptr) {
           .Build());
 }
 
-Type KHIRProgram::VoidType() { return type_manager_.VoidType(); }
+Type KHIRProgramBuilder::VoidType() { return type_manager_.VoidType(); }
 
-Type KHIRProgram::I1Type() { return type_manager_.I1Type(); }
+Type KHIRProgramBuilder::I1Type() { return type_manager_.I1Type(); }
 
-Type KHIRProgram::I8Type() { return type_manager_.I8Type(); }
+Type KHIRProgramBuilder::I8Type() { return type_manager_.I8Type(); }
 
-Type KHIRProgram::I16Type() { return type_manager_.I16Type(); }
+Type KHIRProgramBuilder::I16Type() { return type_manager_.I16Type(); }
 
-Type KHIRProgram::I32Type() { return type_manager_.I32Type(); }
+Type KHIRProgramBuilder::I32Type() { return type_manager_.I32Type(); }
 
-Type KHIRProgram::I64Type() { return type_manager_.I64Type(); }
+Type KHIRProgramBuilder::I64Type() { return type_manager_.I64Type(); }
 
-Type KHIRProgram::F64Type() { return type_manager_.I64Type(); }
+Type KHIRProgramBuilder::F64Type() { return type_manager_.I64Type(); }
 
-Type KHIRProgram::StructType(absl::Span<const Type> types,
-                             std::string_view name) {
+Type KHIRProgramBuilder::StructType(absl::Span<const Type> types,
+                                    std::string_view name) {
   if (name.empty()) {
     return type_manager_.StructType(types);
   } else {
@@ -256,23 +259,24 @@ Type KHIRProgram::StructType(absl::Span<const Type> types,
   }
 }
 
-Type KHIRProgram::GetStructType(std::string_view name) {
+Type KHIRProgramBuilder::GetStructType(std::string_view name) {
   return type_manager_.GetNamedStructType(name);
 }
 
-Type KHIRProgram::PointerType(Type type) {
+Type KHIRProgramBuilder::PointerType(Type type) {
   return type_manager_.PointerType(type);
 }
 
-Type KHIRProgram::ArrayType(Type type, int len) {
+Type KHIRProgramBuilder::ArrayType(Type type, int len) {
   return type_manager_.ArrayType(type, len);
 }
 
-Type KHIRProgram::FunctionType(Type result, absl::Span<const Type> args) {
+Type KHIRProgramBuilder::FunctionType(Type result,
+                                      absl::Span<const Type> args) {
   return type_manager_.FunctionType(result, args);
 }
 
-Type KHIRProgram::TypeOf(Value value) {
+Type KHIRProgramBuilder::TypeOf(Value value) {
   auto instr = GetCurrentFunction().GetInstruction(value);
   auto opcode = GenericInstructionReader(instr).Opcode();
 
@@ -396,8 +400,8 @@ Type KHIRProgram::TypeOf(Value value) {
   }
 }
 
-FunctionRef KHIRProgram::CreateFunction(Type result_type,
-                                        absl::Span<const Type> arg_types) {
+FunctionRef KHIRProgramBuilder::CreateFunction(
+    Type result_type, absl::Span<const Type> arg_types) {
   auto idx = functions_.size();
   functions_.emplace_back(type_manager_.FunctionType(result_type, arg_types),
                           result_type, arg_types, false);
@@ -405,15 +409,14 @@ FunctionRef KHIRProgram::CreateFunction(Type result_type,
   return static_cast<FunctionRef>(idx);
 }
 
-FunctionRef KHIRProgram::CreatePublicFunction(Type result_type,
-                                              absl::Span<const Type> arg_types,
-                                              std::string_view name) {
+FunctionRef KHIRProgramBuilder::CreatePublicFunction(
+    Type result_type, absl::Span<const Type> arg_types, std::string_view name) {
   auto ref = CreateFunction(result_type, arg_types);
   name_to_function_[name] = ref;
   return ref;
 }
 
-FunctionRef KHIRProgram::DeclareExternalFunction(
+FunctionRef KHIRProgramBuilder::DeclareExternalFunction(
     std::string_view name, Type result_type, absl::Span<const Type> arg_types) {
   auto idx = functions_.size();
   functions_.emplace_back(type_manager_.FunctionType(result_type, arg_types),
@@ -421,15 +424,17 @@ FunctionRef KHIRProgram::DeclareExternalFunction(
   return static_cast<FunctionRef>(idx);
 }
 
-FunctionRef KHIRProgram::GetFunction(std::string_view name) {
+FunctionRef KHIRProgramBuilder::GetFunction(std::string_view name) {
   return name_to_function_.at(name);
 }
 
-absl::Span<const Value> KHIRProgram::GetFunctionArguments(FunctionRef func) {
+absl::Span<const Value> KHIRProgramBuilder::GetFunctionArguments(
+    FunctionRef func) {
   return functions_[func.GetID()].GetFunctionArguments();
 }
 
-Value KHIRProgram::Call(FunctionRef func, absl::Span<const Value> arguments) {
+Value KHIRProgramBuilder::Call(FunctionRef func,
+                               absl::Span<const Value> arguments) {
   auto result = functions_[func.GetID()].ReturnType();
 
   for (uint8_t i = 0; i < arguments.size(); i++) {
@@ -447,8 +452,8 @@ Value KHIRProgram::Call(FunctionRef func, absl::Span<const Value> arguments) {
                                          .Build());
 }
 
-Value KHIRProgram::Call(Value func, Type type,
-                        absl::Span<const Value> arguments) {
+Value KHIRProgramBuilder::Call(Value func, Type type,
+                               absl::Span<const Value> arguments) {
   auto result = type_manager_.GetFunctionReturnType(type);
 
   for (uint8_t i = 0; i < arguments.size(); i++) {
@@ -466,26 +471,26 @@ Value KHIRProgram::Call(Value func, Type type,
                                          .Build());
 }
 
-void KHIRProgram::Return(Value v) {
+void KHIRProgramBuilder::Return(Value v) {
   GetCurrentFunction().Append(Type2InstructionBuilder()
                                   .SetOpcode(Opcode::RETURN_VALUE)
                                   .SetArg0(v.GetID())
                                   .Build());
 }
 
-void KHIRProgram::Return() {
+void KHIRProgramBuilder::Return() {
   GetCurrentFunction().Append(
       Type1InstructionBuilder().SetOpcode(Opcode::RETURN).Build());
 }
 
-Value KHIRProgram::LNotI1(Value v) {
+Value KHIRProgramBuilder::LNotI1(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I1_LNOT)
                                          .SetArg0(v.GetID())
                                          .Build());
 }
 
-Value KHIRProgram::CmpI1(CompType cmp, Value v1, Value v2) {
+Value KHIRProgramBuilder::CmpI1(CompType cmp, Value v1, Value v2) {
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -508,21 +513,21 @@ Value KHIRProgram::CmpI1(CompType cmp, Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::ConstI1(bool v) {
+Value KHIRProgramBuilder::ConstI1(bool v) {
   return GetCurrentFunction().Append(Type1InstructionBuilder()
                                          .SetOpcode(Opcode::I1_CONST)
                                          .SetConstant(v ? 1 : 0)
                                          .Build());
 }
 
-Value KHIRProgram::ZextI1(Value v) {
+Value KHIRProgramBuilder::ZextI1(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I1_ZEXT_I64)
                                          .SetArg0(v.GetID())
                                          .Build());
 }
 
-Value KHIRProgram::AddI8(Value v1, Value v2) {
+Value KHIRProgramBuilder::AddI8(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_ADD)
                                          .SetArg0(v1.GetID())
@@ -530,7 +535,7 @@ Value KHIRProgram::AddI8(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::MulI8(Value v1, Value v2) {
+Value KHIRProgramBuilder::MulI8(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_MUL)
                                          .SetArg0(v1.GetID())
@@ -538,7 +543,7 @@ Value KHIRProgram::MulI8(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::DivI8(Value v1, Value v2) {
+Value KHIRProgramBuilder::DivI8(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_DIV)
                                          .SetArg0(v1.GetID())
@@ -546,7 +551,7 @@ Value KHIRProgram::DivI8(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::SubI8(Value v1, Value v2) {
+Value KHIRProgramBuilder::SubI8(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_SUB)
                                          .SetArg0(v1.GetID())
@@ -554,7 +559,7 @@ Value KHIRProgram::SubI8(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::CmpI8(CompType cmp, Value v1, Value v2) {
+Value KHIRProgramBuilder::CmpI8(CompType cmp, Value v1, Value v2) {
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -589,14 +594,14 @@ Value KHIRProgram::CmpI8(CompType cmp, Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::ConstI8(uint8_t v) {
+Value KHIRProgramBuilder::ConstI8(uint8_t v) {
   return GetCurrentFunction().Append(Type1InstructionBuilder()
                                          .SetOpcode(Opcode::I8_CONST)
                                          .SetConstant(static_cast<uint8_t>(v))
                                          .Build());
 }
 
-Value KHIRProgram::ZextI8(Value v) {
+Value KHIRProgramBuilder::ZextI8(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_ZEXT_I64)
                                          .SetArg0(v.GetID())
@@ -604,7 +609,7 @@ Value KHIRProgram::ZextI8(Value v) {
 }
 
 // I16
-Value KHIRProgram::AddI16(Value v1, Value v2) {
+Value KHIRProgramBuilder::AddI16(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I16_ADD)
                                          .SetArg0(v1.GetID())
@@ -612,7 +617,7 @@ Value KHIRProgram::AddI16(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::MulI16(Value v1, Value v2) {
+Value KHIRProgramBuilder::MulI16(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I16_MUL)
                                          .SetArg0(v1.GetID())
@@ -620,7 +625,7 @@ Value KHIRProgram::MulI16(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::DivI16(Value v1, Value v2) {
+Value KHIRProgramBuilder::DivI16(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I16_DIV)
                                          .SetArg0(v1.GetID())
@@ -628,7 +633,7 @@ Value KHIRProgram::DivI16(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::SubI16(Value v1, Value v2) {
+Value KHIRProgramBuilder::SubI16(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I16_SUB)
                                          .SetArg0(v1.GetID())
@@ -636,7 +641,7 @@ Value KHIRProgram::SubI16(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::CmpI16(CompType cmp, Value v1, Value v2) {
+Value KHIRProgramBuilder::CmpI16(CompType cmp, Value v1, Value v2) {
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -671,14 +676,14 @@ Value KHIRProgram::CmpI16(CompType cmp, Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::ConstI16(uint16_t v) {
+Value KHIRProgramBuilder::ConstI16(uint16_t v) {
   return GetCurrentFunction().Append(Type1InstructionBuilder()
                                          .SetOpcode(Opcode::I16_CONST)
                                          .SetConstant(v)
                                          .Build());
 }
 
-Value KHIRProgram::ZextI16(Value v) {
+Value KHIRProgramBuilder::ZextI16(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I16_ZEXT_I64)
                                          .SetArg0(v.GetID())
@@ -686,7 +691,7 @@ Value KHIRProgram::ZextI16(Value v) {
 }
 
 // I32
-Value KHIRProgram::AddI32(Value v1, Value v2) {
+Value KHIRProgramBuilder::AddI32(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I32_ADD)
                                          .SetArg0(v1.GetID())
@@ -694,7 +699,7 @@ Value KHIRProgram::AddI32(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::MulI32(Value v1, Value v2) {
+Value KHIRProgramBuilder::MulI32(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I32_MUL)
                                          .SetArg0(v1.GetID())
@@ -702,7 +707,7 @@ Value KHIRProgram::MulI32(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::DivI32(Value v1, Value v2) {
+Value KHIRProgramBuilder::DivI32(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I32_DIV)
                                          .SetArg0(v1.GetID())
@@ -710,7 +715,7 @@ Value KHIRProgram::DivI32(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::SubI32(Value v1, Value v2) {
+Value KHIRProgramBuilder::SubI32(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I32_SUB)
                                          .SetArg0(v1.GetID())
@@ -718,7 +723,7 @@ Value KHIRProgram::SubI32(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::CmpI32(CompType cmp, Value v1, Value v2) {
+Value KHIRProgramBuilder::CmpI32(CompType cmp, Value v1, Value v2) {
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -753,14 +758,14 @@ Value KHIRProgram::CmpI32(CompType cmp, Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::ConstI32(uint32_t v) {
+Value KHIRProgramBuilder::ConstI32(uint32_t v) {
   return GetCurrentFunction().Append(Type1InstructionBuilder()
                                          .SetOpcode(Opcode::I32_CONST)
                                          .SetConstant(v)
                                          .Build());
 }
 
-Value KHIRProgram::ZextI32(Value v) {
+Value KHIRProgramBuilder::ZextI32(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I32_ZEXT_I64)
                                          .SetArg0(v.GetID())
@@ -768,7 +773,7 @@ Value KHIRProgram::ZextI32(Value v) {
 }
 
 // I64
-Value KHIRProgram::AddI64(Value v1, Value v2) {
+Value KHIRProgramBuilder::AddI64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I64_ADD)
                                          .SetArg0(v1.GetID())
@@ -776,7 +781,7 @@ Value KHIRProgram::AddI64(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::MulI64(Value v1, Value v2) {
+Value KHIRProgramBuilder::MulI64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I64_MUL)
                                          .SetArg0(v1.GetID())
@@ -784,7 +789,7 @@ Value KHIRProgram::MulI64(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::DivI64(Value v1, Value v2) {
+Value KHIRProgramBuilder::DivI64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I64_DIV)
                                          .SetArg0(v1.GetID())
@@ -792,7 +797,7 @@ Value KHIRProgram::DivI64(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::SubI64(Value v1, Value v2) {
+Value KHIRProgramBuilder::SubI64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I64_SUB)
                                          .SetArg0(v1.GetID())
@@ -800,7 +805,7 @@ Value KHIRProgram::SubI64(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::CmpI64(CompType cmp, Value v1, Value v2) {
+Value KHIRProgramBuilder::CmpI64(CompType cmp, Value v1, Value v2) {
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -835,7 +840,7 @@ Value KHIRProgram::CmpI64(CompType cmp, Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::ConstI64(uint64_t v) {
+Value KHIRProgramBuilder::ConstI64(uint64_t v) {
   uint32_t id = i64_constants_.size();
   i64_constants_.push_back(v);
   return GetCurrentFunction().Append(Type1InstructionBuilder()
@@ -844,7 +849,7 @@ Value KHIRProgram::ConstI64(uint64_t v) {
                                          .Build());
 }
 
-Value KHIRProgram::F64ConvI64(Value v) {
+Value KHIRProgramBuilder::F64ConvI64(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I64_CONV_F64)
                                          .SetArg0(v.GetID())
@@ -852,7 +857,7 @@ Value KHIRProgram::F64ConvI64(Value v) {
 }
 
 // F64
-Value KHIRProgram::AddF64(Value v1, Value v2) {
+Value KHIRProgramBuilder::AddF64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::F64_ADD)
                                          .SetArg0(v1.GetID())
@@ -860,7 +865,7 @@ Value KHIRProgram::AddF64(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::MulF64(Value v1, Value v2) {
+Value KHIRProgramBuilder::MulF64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::F64_MUL)
                                          .SetArg0(v1.GetID())
@@ -868,7 +873,7 @@ Value KHIRProgram::MulF64(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::DivF64(Value v1, Value v2) {
+Value KHIRProgramBuilder::DivF64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::F64_DIV)
                                          .SetArg0(v1.GetID())
@@ -876,7 +881,7 @@ Value KHIRProgram::DivF64(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::SubF64(Value v1, Value v2) {
+Value KHIRProgramBuilder::SubF64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::F64_SUB)
                                          .SetArg0(v1.GetID())
@@ -884,7 +889,7 @@ Value KHIRProgram::SubF64(Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::CmpF64(CompType cmp, Value v1, Value v2) {
+Value KHIRProgramBuilder::CmpF64(CompType cmp, Value v1, Value v2) {
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -919,7 +924,7 @@ Value KHIRProgram::CmpF64(CompType cmp, Value v1, Value v2) {
                                          .Build());
 }
 
-Value KHIRProgram::ConstF64(double v) {
+Value KHIRProgramBuilder::ConstF64(double v) {
   uint32_t id = f64_constants_.size();
   f64_constants_.push_back(v);
   return GetCurrentFunction().Append(Type1InstructionBuilder()
@@ -928,7 +933,7 @@ Value KHIRProgram::ConstF64(double v) {
                                          .Build());
 }
 
-Value KHIRProgram::I64ConvF64(Value v) {
+Value KHIRProgramBuilder::I64ConvF64(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::F64_CONV_I64)
                                          .SetArg0(v.GetID())
@@ -936,7 +941,8 @@ Value KHIRProgram::I64ConvF64(Value v) {
 }
 
 // Globals
-std::function<uint64_t()> KHIRProgram::GlobalConstString(std::string_view s) {
+std::function<uint64_t()> KHIRProgramBuilder::GlobalConstString(
+    std::string_view s) {
   uint32_t idx = string_constants_.size();
   string_constants_.emplace_back(s);
   uint64_t v = Type1InstructionBuilder()
@@ -946,7 +952,7 @@ std::function<uint64_t()> KHIRProgram::GlobalConstString(std::string_view s) {
   return [v]() { return v; };
 }
 
-std::function<uint64_t()> KHIRProgram::GlobalStruct(
+std::function<uint64_t()> KHIRProgramBuilder::GlobalStruct(
     bool constant, Type t, absl::Span<const Value> init) {
   std::vector<uint64_t> instrs;
   for (const Value v : init) {
@@ -962,7 +968,7 @@ std::function<uint64_t()> KHIRProgram::GlobalStruct(
   return [v]() { return v; };
 }
 
-std::function<uint64_t()> KHIRProgram::GlobalArray(
+std::function<uint64_t()> KHIRProgramBuilder::GlobalArray(
     bool constant, Type t, absl::Span<const Value> init) {
   std::vector<uint64_t> instrs;
   for (const Value v : init) {
@@ -978,8 +984,9 @@ std::function<uint64_t()> KHIRProgram::GlobalArray(
   return [v]() { return v; };
 }
 
-std::function<uint64_t()> KHIRProgram::GlobalPointer(bool constant, Type t,
-                                                     Value init) {
+std::function<uint64_t()> KHIRProgramBuilder::GlobalPointer(bool constant,
+                                                            Type t,
+                                                            Value init) {
   uint32_t idx = global_pointers_.size();
   global_pointers_.emplace_back(constant, t,
                                 GetCurrentFunction().GetInstruction(init));
@@ -990,15 +997,15 @@ std::function<uint64_t()> KHIRProgram::GlobalPointer(bool constant, Type t,
   return [v]() { return v; };
 }
 
-Value KHIRProgram::SizeOf(Type type) {
+Value KHIRProgramBuilder::SizeOf(Type type) {
   auto pointer_type = PointerType(type);
   auto null = NullPtr(pointer_type);
   auto size_ptr = GetElementPtr(type, null, {1});
   return PointerCast(size_ptr, I64Type());
 }
 
-Value KHIRProgram::GetElementPtr(Type t, Value ptr,
-                                 absl::Span<const int32_t> idx) {
+Value KHIRProgramBuilder::GetElementPtr(Type t, Value ptr,
+                                        absl::Span<const int32_t> idx) {
   auto [offset, result_type] = type_manager_.GetPointerOffset(t, idx);
   auto offset_v = ConstI64(offset);
 
