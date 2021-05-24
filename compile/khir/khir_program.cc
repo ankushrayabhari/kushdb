@@ -201,7 +201,7 @@ Value KHIRProgram::Alloca(Type t) {
 
 Value KHIRProgram::NullPtr(Type t) {
   return GetCurrentFunction().Append(Type3InstructionBuilder()
-                                         .SetOpcode(Opcode::ALLOCA)
+                                         .SetOpcode(Opcode::NULLPTR)
                                          .SetTypeID(t.GetID())
                                          .Build());
 }
