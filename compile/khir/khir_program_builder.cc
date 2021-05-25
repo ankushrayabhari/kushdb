@@ -13,10 +13,11 @@
 
 namespace kush::khir {
 
-KHIRProgramBuilder::Function::Function(Type function_type, Type result_type,
+KHIRProgramBuilder::Function::Function(std::string_view name,
+                                       Type function_type, Type result_type,
                                        absl::Span<const Type> arg_types,
                                        bool external)
-    : function_type_(function_type), external_(external) {
+    : name_(name), function_type_(function_type), external_(external) {
   if (!external_) {
     for (Type t : arg_types) {
       arg_values_.push_back(Append(Type3InstructionBuilder()
@@ -403,7 +404,8 @@ Type KHIRProgramBuilder::TypeOf(Value value) {
 FunctionRef KHIRProgramBuilder::CreateFunction(
     Type result_type, absl::Span<const Type> arg_types) {
   auto idx = functions_.size();
-  functions_.emplace_back(type_manager_.FunctionType(result_type, arg_types),
+  functions_.emplace_back("_func" + std::to_string(idx),
+                          type_manager_.FunctionType(result_type, arg_types),
                           result_type, arg_types, false);
   current_function_ = idx;
   return static_cast<FunctionRef>(idx);
@@ -419,7 +421,8 @@ FunctionRef KHIRProgramBuilder::CreatePublicFunction(
 FunctionRef KHIRProgramBuilder::DeclareExternalFunction(
     std::string_view name, Type result_type, absl::Span<const Type> arg_types) {
   auto idx = functions_.size();
-  functions_.emplace_back(type_manager_.FunctionType(result_type, arg_types),
+  functions_.emplace_back(name,
+                          type_manager_.FunctionType(result_type, arg_types),
                           result_type, arg_types, true);
   return static_cast<FunctionRef>(idx);
 }

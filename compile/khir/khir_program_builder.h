@@ -165,7 +165,7 @@ class KHIRProgramBuilder {
  private:
   class Function {
    public:
-    Function(Type function_type, Type result_type,
+    Function(std::string_view name, Type function_type, Type result_type,
              absl::Span<const Type> arg_types, bool external);
     absl::Span<const Value> GetFunctionArguments() const;
 
@@ -181,6 +181,7 @@ class KHIRProgramBuilder {
     Type ReturnType();
 
    private:
+    std::string name_;
     Type return_type_;
     std::vector<Type> arg_types_;
     std::vector<Value> arg_values_;
