@@ -153,9 +153,7 @@ class KHIRProgramBuilder {
   Value I64ConvF64(Value v);
 
   // Globals
-  std::function<Value()> GlobalConstString(std::string_view s);
-  std::function<Value()> GlobalConstantStruct(Type t,
-                                              absl::Span<const Value> v);
+  std::function<Value()> GlobalConstCharArray(std::string_view s);
   std::function<Value()> GlobalStruct(bool constant, Type t,
                                       absl::Span<const Value> v);
   std::function<Value()> GlobalArray(bool constant, Type t,

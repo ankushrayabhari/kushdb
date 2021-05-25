@@ -132,7 +132,7 @@ class LLVMIr : public Program, public ProgramBuilder<LLVMIrTypes> {
   Value CastSignedIntToF64(Value v) override;
 
   // Globals
-  Value GlobalConstString(std::string_view s) override;
+  Value GlobalConstCharArray(std::string_view s) override;
   Value GlobalStruct(bool constant, Type t, absl::Span<const Value> v) override;
   Value GlobalArray(bool constant, Type t, absl::Span<const Value> v) override;
   Value GlobalPointer(bool constant, Type t, Value v) override;

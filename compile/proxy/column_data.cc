@@ -107,9 +107,7 @@ std::string_view StructName() {
 template <typename T, catalog::SqlType S>
 ColumnData<T, S>::ColumnData(ProgramBuilder<T>& program, std::string_view path)
     : program_(program) {
-  auto path_value = program.GetElementPtr(
-      program.ArrayType(program.I8Type(), path.size() + 1),
-      program_.GlobalConstString(path), {0, 0});
+  auto path_value = program_.GlobalConstCharArray(path);
   value_ = program_.Alloca(program.GetStructType(StructName<S>()));
   program_.Call(program_.GetFunction(OpenFnName<S>()),
                 {value_.value(), path_value});

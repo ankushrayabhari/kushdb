@@ -124,13 +124,11 @@ typename ProgramBuilder<T>::Value String<T>::Get() const {
 template <typename T>
 String<T> String<T>::Constant(ProgramBuilder<T>& program,
                               std::string_view value) {
-  auto str_ptr = program.GlobalConstString(value);
-  auto str = program.GetElementPtr(
-      program.ArrayType(program.I8Type(), value.size() + 1), str_ptr, {0, 0});
+  auto char_ptr = program.GlobalConstCharArray(value);
   auto len = program.ConstI32(value.size());
-  return String<T>(
-      program, program.GlobalStruct(
-                   true, program.GetStructType(StringStructName), {str, len}));
+  return String<T>(program, program.GlobalStruct(
+                                true, program.GetStructType(StringStructName),
+                                {char_ptr, len}));
 }
 
 template <typename T>

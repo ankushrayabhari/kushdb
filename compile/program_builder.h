@@ -122,7 +122,7 @@ class ProgramBuilder {
   virtual Value CastSignedIntToF64(Value v) = 0;
 
   // Globals
-  virtual Value GlobalConstString(std::string_view s) = 0;
+  virtual Value GlobalConstCharArray(std::string_view s) = 0;
   virtual Value GlobalStruct(bool constant, Type t,
                              absl::Span<const Value> v) = 0;
   virtual Value GlobalArray(bool constant, Type t,
