@@ -946,8 +946,8 @@ Value KHIRProgramBuilder::I64ConvF64(Value v) {
 // Globals
 std::function<Value()> KHIRProgramBuilder::GlobalConstCharArray(
     std::string_view s) {
-  uint32_t idx = string_constants_.size();
-  string_constants_.emplace_back(s);
+  uint32_t idx = global_char_arrays_.size();
+  global_char_arrays_.emplace_back(s);
   return [idx, this]() {
     return this->GetCurrentFunction().Append(
         Type1InstructionBuilder()

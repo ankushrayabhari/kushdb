@@ -240,7 +240,7 @@ class KHIRProgramBuilder {
 
   std::vector<uint64_t> i64_constants_;
   std::vector<double> f64_constants_;
-  std::vector<std::string> string_constants_;
+  std::vector<std::string> global_char_arrays_;
   std::vector<GlobalPointerImpl> global_pointers_;
   std::vector<GlobalArrayImpl> global_arrays_;
   std::vector<GlobalStructImpl> global_structs_;
