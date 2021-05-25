@@ -153,14 +153,14 @@ class KHIRProgramBuilder {
   Value I64ConvF64(Value v);
 
   // Globals
-  std::function<uint64_t()> GlobalConstString(std::string_view s);
-  std::function<uint64_t()> GlobalConstantStruct(Type t,
-                                                 absl::Span<const Value> v);
-  std::function<uint64_t()> GlobalStruct(bool constant, Type t,
-                                         absl::Span<const Value> v);
-  std::function<uint64_t()> GlobalArray(bool constant, Type t,
-                                        absl::Span<const Value> v);
-  std::function<uint64_t()> GlobalPointer(bool constant, Type t, Value v);
+  std::function<Value()> GlobalConstString(std::string_view s);
+  std::function<Value()> GlobalConstantStruct(Type t,
+                                              absl::Span<const Value> v);
+  std::function<Value()> GlobalStruct(bool constant, Type t,
+                                      absl::Span<const Value> v);
+  std::function<Value()> GlobalArray(bool constant, Type t,
+                                     absl::Span<const Value> v);
+  std::function<Value()> GlobalPointer(bool constant, Type t, Value v);
 
  private:
   class Function {

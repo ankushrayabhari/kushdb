@@ -944,18 +944,20 @@ Value KHIRProgramBuilder::I64ConvF64(Value v) {
 }
 
 // Globals
-std::function<uint64_t()> KHIRProgramBuilder::GlobalConstString(
+std::function<Value()> KHIRProgramBuilder::GlobalConstString(
     std::string_view s) {
   uint32_t idx = string_constants_.size();
   string_constants_.emplace_back(s);
-  uint64_t v = Type1InstructionBuilder()
-                   .SetOpcode(Opcode::STRING_GLOBAL_CONST)
-                   .SetConstant(idx)
-                   .Build();
-  return [v]() { return v; };
+  return [idx, this]() {
+    return this->GetCurrentFunction().Append(
+        Type1InstructionBuilder()
+            .SetOpcode(Opcode::STRING_GLOBAL_CONST)
+            .SetConstant(idx)
+            .Build());
+  };
 }
 
-std::function<uint64_t()> KHIRProgramBuilder::GlobalStruct(
+std::function<Value()> KHIRProgramBuilder::GlobalStruct(
     bool constant, Type t, absl::Span<const Value> init) {
   std::vector<uint64_t> instrs;
   for (const Value v : init) {
@@ -964,14 +966,16 @@ std::function<uint64_t()> KHIRProgramBuilder::GlobalStruct(
 
   uint32_t idx = global_structs_.size();
   global_structs_.emplace_back(constant, t, instrs);
-  uint64_t v = Type1InstructionBuilder()
-                   .SetOpcode(Opcode::STRUCT_GLOBAL)
-                   .SetConstant(idx)
-                   .Build();
-  return [v]() { return v; };
+  return [idx, this]() {
+    return this->GetCurrentFunction().Append(
+        Type1InstructionBuilder()
+            .SetOpcode(Opcode::STRUCT_GLOBAL)
+            .SetConstant(idx)
+            .Build());
+  };
 }
 
-std::function<uint64_t()> KHIRProgramBuilder::GlobalArray(
+std::function<Value()> KHIRProgramBuilder::GlobalArray(
     bool constant, Type t, absl::Span<const Value> init) {
   std::vector<uint64_t> instrs;
   for (const Value v : init) {
@@ -980,24 +984,26 @@ std::function<uint64_t()> KHIRProgramBuilder::GlobalArray(
 
   uint32_t idx = global_arrays_.size();
   global_arrays_.emplace_back(constant, t, instrs);
-  uint64_t v = Type1InstructionBuilder()
-                   .SetOpcode(Opcode::ARRAY_GLOBAL)
-                   .SetConstant(idx)
-                   .Build();
-  return [v]() { return v; };
+  return [idx, this]() {
+    return this->GetCurrentFunction().Append(
+        Type1InstructionBuilder()
+            .SetOpcode(Opcode::ARRAY_GLOBAL)
+            .SetConstant(idx)
+            .Build());
+  };
 }
 
-std::function<uint64_t()> KHIRProgramBuilder::GlobalPointer(bool constant,
-                                                            Type t,
-                                                            Value init) {
+std::function<Value()> KHIRProgramBuilder::GlobalPointer(bool constant, Type t,
+                                                         Value init) {
   uint32_t idx = global_pointers_.size();
   global_pointers_.emplace_back(constant, t,
                                 GetCurrentFunction().GetInstruction(init));
-  uint64_t v = Type1InstructionBuilder()
-                   .SetOpcode(Opcode::PTR_GLOBAL)
-                   .SetConstant(idx)
-                   .Build();
-  return [v]() { return v; };
+  return [idx, this]() {
+    return this->GetCurrentFunction().Append(Type1InstructionBuilder()
+                                                 .SetOpcode(Opcode::PTR_GLOBAL)
+                                                 .SetConstant(idx)
+                                                 .Build());
+  };
 }
 
 Value KHIRProgramBuilder::SizeOf(Type type) {
