@@ -50,10 +50,104 @@ class TypeManager {
                                             absl::Span<const int32_t> idx);
 
  private:
+  class TypeImpl {
+   public:
+    virtual ~TypeImpl() = default;
+    virtual llvm::Type* GetLLVM() = 0;
+    virtual Type Get() = 0;
+  };
+
+  enum BaseTypeId { VOID, I1, I8, I16, I32, I64, F64 };
+
+  class BaseTypeImpl : public TypeImpl {
+   public:
+    BaseTypeImpl(BaseTypeId id, Type type, llvm::Type* type_impl);
+    virtual ~BaseTypeImpl() = default;
+
+    llvm::Type* GetLLVM() override;
+    Type Get() override;
+    BaseTypeId TypeId();
+
+   private:
+    BaseTypeId id_;
+    Type type_;
+    llvm::Type* type_impl_;
+  };
+
+  class PointerTypeImpl : public TypeImpl {
+   public:
+    PointerTypeImpl(Type elem, Type type, llvm::Type* type_impl);
+    virtual ~PointerTypeImpl() = default;
+
+    llvm::Type* GetLLVM() override;
+    Type Get() override;
+    Type ElementType();
+
+   private:
+    Type elem_;
+    Type type_;
+    llvm::Type* type_impl_;
+  };
+
+  class ArrayTypeImpl : public TypeImpl {
+   public:
+    ArrayTypeImpl(Type elem, int len, Type type, llvm::Type* type_impl);
+    virtual ~ArrayTypeImpl() = default;
+
+    llvm::Type* GetLLVM() override;
+    Type Get() override;
+    Type ElementType();
+    int Length();
+
+   private:
+    Type elem_;
+    int len_;
+    Type type_;
+    llvm::Type* type_impl_;
+  };
+
+  class FunctionTypeImpl : public TypeImpl {
+   public:
+    FunctionTypeImpl(Type result, absl::Span<const Type> arg_types, Type type,
+                     llvm::Type* type_impl);
+    virtual ~FunctionTypeImpl() = default;
+
+    llvm::Type* GetLLVM() override;
+    Type Get() override;
+    Type ResultType();
+    absl::Span<const Type> ArgTypes();
+
+   private:
+    Type result_type_;
+    std::vector<Type> arg_types_;
+    Type type_;
+    llvm::Type* type_impl_;
+  };
+
+  class StructTypeImpl : public TypeImpl {
+   public:
+    StructTypeImpl(absl::Span<const Type> element_types, Type type,
+                   llvm::Type* type_impl);
+    virtual ~StructTypeImpl() = default;
+
+    llvm::Type* GetLLVM() override;
+    Type Get() override;
+    absl::Span<const Type> ElementTypes();
+
+   private:
+    std::vector<Type> elem_types_;
+    Type type_;
+    llvm::Type* type_impl_;
+  };
+
+  std::vector<llvm::Type*> GetTypeArray(
+      std::vector<std::unique_ptr<TypeImpl>>& types,
+      absl::Span<const Type> field_type_id);
+
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> module_;
   std::unique_ptr<llvm::IRBuilder<>> builder_;
-  std::vector<llvm::Type*> type_id_to_impl_;
+  std::vector<std::unique_ptr<TypeImpl>> type_id_to_impl_;
   absl::flat_hash_map<std::string, Type> struct_name_to_type_id_;
 };
 

@@ -22,16 +22,79 @@
 
 namespace kush::khir {
 
-std::vector<llvm::Type*> GetTypeArray(std::vector<llvm::Type*>& types,
-                                      absl::Span<const Type> field_type_id) {
+uint16_t Type::GetID() const { return static_cast<uint16_t>(*this); }
+
+std::vector<llvm::Type*> TypeManager::GetTypeArray(
+    std::vector<std::unique_ptr<TypeManager::TypeImpl>>& types,
+    absl::Span<const Type> field_type_id) {
   std::vector<llvm::Type*> result;
   for (auto x : field_type_id) {
-    result.push_back(types[x.GetID()]);
+    result.push_back(types[x.GetID()]->GetLLVM());
   }
   return result;
 }
 
-uint16_t Type::GetID() const { return static_cast<uint16_t>(*this); }
+TypeManager::BaseTypeImpl::BaseTypeImpl(BaseTypeId id, Type type,
+                                        llvm::Type* type_impl)
+    : id_(id), type_(type), type_impl_(type_impl) {}
+
+llvm::Type* TypeManager::BaseTypeImpl::GetLLVM() { return type_impl_; }
+
+Type TypeManager::BaseTypeImpl::Get() { return type_; }
+
+TypeManager::BaseTypeId TypeManager::BaseTypeImpl::TypeId() { return id_; }
+
+TypeManager::PointerTypeImpl::PointerTypeImpl(Type elem, Type type,
+                                              llvm::Type* type_impl)
+    : elem_(elem), type_(type), type_impl_(type_impl) {}
+
+llvm::Type* TypeManager::PointerTypeImpl::GetLLVM() { return type_impl_; }
+
+Type TypeManager::PointerTypeImpl::Get() { return type_; }
+
+Type TypeManager::PointerTypeImpl::ElementType() { return elem_; }
+
+TypeManager::ArrayTypeImpl::ArrayTypeImpl(Type elem, int len, Type type,
+                                          llvm::Type* type_impl)
+    : elem_(elem), len_(len), type_(type), type_impl_(type_impl) {}
+
+llvm::Type* TypeManager::ArrayTypeImpl::GetLLVM() { return type_impl_; }
+
+Type TypeManager::ArrayTypeImpl::Get() { return type_; }
+
+Type TypeManager::ArrayTypeImpl::ElementType() { return elem_; }
+
+TypeManager::FunctionTypeImpl::FunctionTypeImpl(
+    Type result, absl::Span<const Type> arg_types, Type type,
+    llvm::Type* type_impl)
+    : result_type_(result),
+      arg_types_(arg_types.begin(), arg_types.end()),
+      type_(type),
+      type_impl_(type_impl) {}
+
+llvm::Type* TypeManager::FunctionTypeImpl::GetLLVM() { return type_impl_; }
+
+Type TypeManager::FunctionTypeImpl::Get() { return type_; }
+
+Type TypeManager::FunctionTypeImpl::ResultType() { return result_type_; }
+
+absl::Span<const Type> TypeManager::FunctionTypeImpl::ArgTypes() {
+  return arg_types_;
+}
+
+TypeManager::StructTypeImpl::StructTypeImpl(
+    absl::Span<const Type> element_types, Type type, llvm::Type* type_impl)
+    : elem_types_(element_types.begin(), element_types.end()),
+      type_(type),
+      type_impl_(type_impl) {}
+
+llvm::Type* TypeManager::StructTypeImpl::GetLLVM() { return type_impl_; }
+
+Type TypeManager::StructTypeImpl::Get() { return type_; }
+
+absl::Span<const Type> TypeManager::StructTypeImpl::ElementTypes() {
+  return elem_types_;
+}
 
 TypeManager::TypeManager()
     : context_(std::make_unique<llvm::LLVMContext>()),
@@ -40,13 +103,20 @@ TypeManager::TypeManager()
   auto target_triple = llvm::sys::getDefaultTargetTriple();
   module_->setTargetTriple(target_triple);
 
-  type_id_to_impl_.push_back(builder_->getVoidTy());
-  type_id_to_impl_.push_back(builder_->getInt1Ty());
-  type_id_to_impl_.push_back(builder_->getInt8Ty());
-  type_id_to_impl_.push_back(builder_->getInt16Ty());
-  type_id_to_impl_.push_back(builder_->getInt32Ty());
-  type_id_to_impl_.push_back(builder_->getInt64Ty());
-  type_id_to_impl_.push_back(builder_->getDoubleTy());
+  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
+      BaseTypeId::VOID, static_cast<Type>(0), builder_->getVoidTy()));
+  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
+      BaseTypeId::I1, static_cast<Type>(1), builder_->getInt1Ty()));
+  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
+      BaseTypeId::I8, static_cast<Type>(2), builder_->getInt8Ty()));
+  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
+      BaseTypeId::I16, static_cast<Type>(3), builder_->getInt16Ty()));
+  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
+      BaseTypeId::I32, static_cast<Type>(4), builder_->getInt32Ty()));
+  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
+      BaseTypeId::I64, static_cast<Type>(5), builder_->getInt64Ty()));
+  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
+      BaseTypeId::F64, static_cast<Type>(6), builder_->getDoubleTy()));
 }
 
 Type TypeManager::VoidType() { return static_cast<Type>(0); }
@@ -71,32 +141,41 @@ Type TypeManager::NamedStructType(absl::Span<const Type> field_type_id,
 }
 
 Type TypeManager::StructType(absl::Span<const Type> field_type_id) {
-  auto size = type_id_to_impl_.size();
-  type_id_to_impl_.push_back(llvm::StructType::create(
-      *context_, GetTypeArray(type_id_to_impl_, field_type_id)));
-  return static_cast<Type>(size);
+  auto output = static_cast<Type>(type_id_to_impl_.size());
+
+  auto impl = llvm::StructType::create(
+      *context_, GetTypeArray(type_id_to_impl_, field_type_id));
+  type_id_to_impl_.push_back(
+      std::make_unique<StructTypeImpl>(field_type_id, output, impl));
+  return output;
 }
 
 Type TypeManager::PointerType(Type type) {
-  auto size = type_id_to_impl_.size();
+  auto output = static_cast<Type>(type_id_to_impl_.size());
+  auto impl =
+      llvm::PointerType::get(type_id_to_impl_[type.GetID()]->GetLLVM(), 0);
   type_id_to_impl_.push_back(
-      llvm::PointerType::get(type_id_to_impl_[type.GetID()], 0));
-  return static_cast<Type>(size);
+      std::make_unique<PointerTypeImpl>(type, output, impl));
+  return output;
 }
 
 Type TypeManager::ArrayType(Type type, int len) {
-  auto size = type_id_to_impl_.size();
+  auto output = static_cast<Type>(type_id_to_impl_.size());
+  auto impl =
+      llvm::ArrayType::get(type_id_to_impl_[type.GetID()]->GetLLVM(), len);
   type_id_to_impl_.push_back(
-      llvm::ArrayType::get(type_id_to_impl_[type.GetID()], len));
-  return static_cast<Type>(size);
+      std::make_unique<ArrayTypeImpl>(type, len, output, impl));
+  return output;
 }
 
 Type TypeManager::FunctionType(Type result, absl::Span<const Type> args) {
-  auto size = type_id_to_impl_.size();
+  auto output = static_cast<Type>(type_id_to_impl_.size());
+  auto impl =
+      llvm::FunctionType::get(type_id_to_impl_[result.GetID()]->GetLLVM(),
+                              GetTypeArray(type_id_to_impl_, args), false);
   type_id_to_impl_.push_back(
-      llvm::FunctionType::get(type_id_to_impl_[result.GetID()],
-                              GetTypeArray(type_id_to_impl_, args), false));
-  return static_cast<Type>(size);
+      std::make_unique<FunctionTypeImpl>(result, args, output, impl));
+  return output;
 }
 
 Type TypeManager::GetNamedStructType(std::string_view name) {
@@ -104,19 +183,13 @@ Type TypeManager::GetNamedStructType(std::string_view name) {
 }
 
 Type TypeManager::GetFunctionReturnType(Type func_type) {
-  auto size = type_id_to_impl_.size();
-  type_id_to_impl_.push_back(
-      llvm::dyn_cast<llvm::FunctionType>(type_id_to_impl_[func_type.GetID()])
-          ->getReturnType());
-  return static_cast<Type>(size);
+  return dynamic_cast<FunctionTypeImpl&>(*type_id_to_impl_[func_type.GetID()])
+      .ResultType();
 }
 
 Type TypeManager::GetPointerElementType(Type ptr_type) {
-  auto size = type_id_to_impl_.size();
-  type_id_to_impl_.push_back(
-      llvm::dyn_cast<llvm::PointerType>(type_id_to_impl_[ptr_type.GetID()])
-          ->getElementType());
-  return static_cast<Type>(size);
+  return dynamic_cast<PointerTypeImpl&>(*type_id_to_impl_[ptr_type.GetID()])
+      .ElementType();
 }
 
 std::pair<int64_t, Type> TypeManager::GetPointerOffset(
@@ -125,17 +198,25 @@ std::pair<int64_t, Type> TypeManager::GetPointerOffset(
   for (int32_t i : idx) {
     values.push_back(builder_->getInt32(i));
   }
-  llvm::Type* target = type_id_to_impl_[t.GetID()];
-
+  llvm::Type* target = type_id_to_impl_[t.GetID()]->GetLLVM();
   int64_t offset =
       module_->getDataLayout().getIndexedOffsetInType(target, values);
 
-  auto size = type_id_to_impl_.size();
-  type_id_to_impl_.push_back(
-      llvm::GetElementPtrInst::getIndexedType(target, values));
-  auto result_type = static_cast<Type>(size);
+  TypeImpl* result_type = type_id_to_impl_[t.GetID()].get();
+  for (int i = 1; i < idx.size(); i++) {
+    if (auto ptr_type = dynamic_cast<PointerTypeImpl*>(result_type)) {
+      // nothing changes
+    } else if (auto array_type = dynamic_cast<ArrayTypeImpl*>(result_type)) {
+      // nothing changes
+    } else if (auto struct_type = dynamic_cast<StructTypeImpl*>(result_type)) {
+      result_type =
+          type_id_to_impl_[struct_type->ElementTypes()[idx[i]].GetID()].get();
+    }
 
-  return {offset, result_type};
+    throw std::runtime_error("Cannot index into type.");
+  }
+
+  return {offset, result_type->Get()};
 }
 
 }  // namespace kush::khir
