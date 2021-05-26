@@ -24,6 +24,22 @@ struct Type : type_safe::strong_typedef<Type, uint16_t>,
   uint16_t GetID() const;
 };
 
+class TypeTranslator {
+ public:
+  virtual void TranslateVoidType() = 0;
+  virtual void TranslateI1Type() = 0;
+  virtual void TranslateI8Type() = 0;
+  virtual void TranslateI16Type() = 0;
+  virtual void TranslateI32Type() = 0;
+  virtual void TranslateI64Type() = 0;
+  virtual void TranslateF64Type() = 0;
+  virtual void TranslatePointerType(Type elem) = 0;
+  virtual void TranslateArrayType(Type elem, int len) = 0;
+  virtual void TranslateFunctionType(Type result,
+                                     absl::Span<const Type> arg_types) = 0;
+  virtual void TranslateStructType(absl::Span<const Type> elem_types) = 0;
+};
+
 class TypeManager {
  public:
   TypeManager();

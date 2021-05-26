@@ -40,6 +40,15 @@ cc_library(
 )
 
 cc_library(
+    name = "khir_program_translator",
+    hdrs = ["khir_program_translator.h"],
+    deps = [
+        ":khir_program_builder",
+        ":type_manager",
+    ],
+)
+
+cc_library(
     name = "instruction",
     srcs = ["instruction.cc"],
     hdrs = ["instruction.h"],
