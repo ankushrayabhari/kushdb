@@ -38,11 +38,15 @@ class KhirLLVMBackend : public KhirProgramTranslator {
                          const std::vector<uint64_t>& instructions) override;
 
  private:
-  void TranslateInstr(const std::vector<llvm::Value*>& func_args,
-                      const std::vector<uint64_t>& i64_constants,
-                      const std::vector<double>& f64_constants,
-                      std::vector<llvm::Value*>& values,
-                      const std::vector<uint64_t>& instructions, int instr_idx);
+  void TranslateInstr(
+      const std::vector<llvm::Value*>& func_args,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants,
+      std::vector<llvm::Value*>& values,
+      absl::flat_hash_map<
+          uint32_t, std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>&
+          phi_member_list,
+      const std::vector<uint64_t>& instructions, int instr_idx);
 
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> module_;

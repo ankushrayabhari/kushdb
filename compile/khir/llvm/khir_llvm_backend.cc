@@ -97,6 +97,9 @@ void KhirLLVMBackend::TranslateFuncBody(
     args.push_back(&a);
   }
 
+  absl::flat_hash_map<uint32_t,
+                      std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>
+      phi_member_list;
   std::vector<llvm::Value*> values(instructions.size(), nullptr);
 
   for (int i = 0; i < basic_blocks.size(); i++) {
@@ -108,8 +111,8 @@ void KhirLLVMBackend::TranslateFuncBody(
 
     builder_->SetInsertPoint(basic_blocks_[i]);
     for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
-      TranslateInstr(args, i64_constants, f64_constants, values, instructions,
-                     instr_idx);
+      TranslateInstr(args, i64_constants, f64_constants, values,
+                     phi_member_list, instructions, instr_idx);
     }
   }
 }
@@ -179,12 +182,14 @@ LLVMCmp GetLLVMCompType(Opcode opcode) {
   }
 }
 
-void KhirLLVMBackend::TranslateInstr(const std::vector<llvm::Value*>& func_args,
-                                     const std::vector<uint64_t>& i64_constants,
-                                     const std::vector<double>& f64_constants,
-                                     std::vector<llvm::Value*>& values,
-                                     const std::vector<uint64_t>& instructions,
-                                     int instr_idx) {
+void KhirLLVMBackend::TranslateInstr(
+    const std::vector<llvm::Value*>& func_args,
+    const std::vector<uint64_t>& i64_constants,
+    const std::vector<double>& f64_constants, std::vector<llvm::Value*>& values,
+    absl::flat_hash_map<
+        uint32_t, std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>&
+        phi_member_list,
+    const std::vector<uint64_t>& instructions, int instr_idx) {
   auto instr = instructions[instr_idx];
   auto opcode = GenericInstructionReader(instr).Opcode();
 
@@ -485,12 +490,44 @@ void KhirLLVMBackend::TranslateInstr(const std::vector<llvm::Value*>& func_args,
       return;
     }
 
-    case Opcode::PHI:
+    case Opcode::PHI_MEMBER: {
+      Type2InstructionReader reader(instr);
+      auto phi = values[reader.Arg0()];
+      auto phi_member = values[reader.Arg1()];
+
+      if (phi == nullptr) {
+        phi_member_list[reader.Arg0()].emplace_back(phi_member,
+                                                    builder_->GetInsertBlock());
+      } else {
+        llvm::dyn_cast<llvm::PHINode>(phi)->addIncoming(
+            phi_member, builder_->GetInsertBlock());
+      }
+      return;
+    }
+
+    case Opcode::PHI: {
+      Type3InstructionReader reader(instr);
+      auto t = types_[reader.TypeID()];
+
+      auto phi = builder_->CreatePHI(t, 2);
+      values[instr_idx] = phi;
+
+      if (phi_member_list.contains(instr_idx)) {
+        for (const auto& [phi_member, basic_block] :
+             phi_member_list[instr_idx]) {
+          phi->addIncoming(phi_member, basic_block);
+        }
+
+        phi_member_list.erase(instr_idx);
+      }
+
+      return;
+    }
+
     case Opcode::STRING_GLOBAL_CONST:
     case Opcode::STRUCT_GLOBAL:
     case Opcode::ARRAY_GLOBAL:
     case Opcode::PTR_GLOBAL:
-    case Opcode::PHI_MEMBER:
       throw std::runtime_error("Unimplemented.");
   }
 }
