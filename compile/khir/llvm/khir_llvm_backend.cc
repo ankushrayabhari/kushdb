@@ -259,27 +259,67 @@ void KhirLLVMBackend::TranslateInstr(const std::vector<uint64_t>& i64_constants,
       return;
     }
 
-    case Opcode::I1_LNOT:
     case Opcode::I8_ADD:
-    case Opcode::I8_MUL:
-    case Opcode::I8_SUB:
-    case Opcode::I8_DIV:
     case Opcode::I16_ADD:
-    case Opcode::I16_MUL:
-    case Opcode::I16_SUB:
-    case Opcode::I16_DIV:
     case Opcode::I32_ADD:
+    case Opcode::I64_ADD: {
+      Type2InstructionReader reader(instr);
+      auto v0 = values[reader.Arg0()];
+      auto v1 = values[reader.Arg1()];
+      values[instr_idx] = builder_->CreateAdd(v0, v1);
+      return;
+    }
+
+    case Opcode::I8_MUL:
+    case Opcode::I16_MUL:
     case Opcode::I32_MUL:
+    case Opcode::I64_MUL: {
+      Type2InstructionReader reader(instr);
+      auto v0 = values[reader.Arg0()];
+      auto v1 = values[reader.Arg1()];
+      values[instr_idx] = builder_->CreateMul(v0, v1);
+      return;
+    }
+
+    case Opcode::I8_SUB:
+    case Opcode::I16_SUB:
     case Opcode::I32_SUB:
+    case Opcode::I64_SUB: {
+      Type2InstructionReader reader(instr);
+      auto v0 = values[reader.Arg0()];
+      auto v1 = values[reader.Arg1()];
+      values[instr_idx] = builder_->CreateSub(v0, v1);
+      return;
+    }
+
+    case Opcode::I8_DIV:
+    case Opcode::I16_DIV:
     case Opcode::I32_DIV:
-    case Opcode::I64_ADD:
-    case Opcode::I64_MUL:
-    case Opcode::I64_SUB:
-    case Opcode::I64_DIV:
+    case Opcode::I64_DIV: {
+      Type2InstructionReader reader(instr);
+      auto v0 = values[reader.Arg0()];
+      auto v1 = values[reader.Arg1()];
+      values[instr_idx] = builder_->CreateSDiv(v0, v1);
+      return;
+    }
+
     case Opcode::I1_ZEXT_I64:
     case Opcode::I8_ZEXT_I64:
     case Opcode::I16_ZEXT_I64:
-    case Opcode::I32_ZEXT_I64:
+    case Opcode::I32_ZEXT_I64: {
+      Type2InstructionReader reader(instr);
+      auto v = values[reader.Arg0()];
+      values[instr_idx] = builder_->CreateZExt(v, builder_->getInt64Ty());
+      return;
+    }
+
+    case Opcode::I1_LNOT: {
+      Type2InstructionReader reader(instr);
+      auto v = values[reader.Arg0()];
+      values[instr_idx] = builder_->CreateXor(v, builder_->getInt1(true));
+      return;
+    }
+
     case Opcode::F64_CONV_I64:
     case Opcode::F64_ADD:
     case Opcode::F64_MUL:
