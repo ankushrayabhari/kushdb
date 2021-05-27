@@ -366,11 +366,35 @@ void KhirLLVMBackend::TranslateInstr(const std::vector<uint64_t>& i64_constants,
       return;
     }
 
-    case Opcode::RETURN:
+    case Opcode::BR: {
+      Type5InstructionReader reader(instr);
+      auto bb = basic_blocks_[reader.Marg0()];
+      values[instr_idx] = builder_->CreateBr(bb);
+      return;
+    }
+
+    case Opcode::CONDBR: {
+      Type5InstructionReader reader(instr);
+      auto v = values[reader.Arg()];
+      auto bb0 = basic_blocks_[reader.Marg0()];
+      auto bb1 = basic_blocks_[reader.Marg1()];
+      values[instr_idx] = builder_->CreateCondBr(v, bb0, bb1);
+      return;
+    }
+
+    case Opcode::RETURN: {
+      values[instr_idx] = builder_->CreateRetVoid();
+      return;
+    }
+
+    case Opcode::RETURN_VALUE: {
+      Type2InstructionReader reader(instr);
+      auto v = values[reader.Arg0()];
+      values[instr_idx] = builder_->CreateRet(v);
+      return;
+    }
+
     case Opcode::STORE:
-    case Opcode::RETURN_VALUE:
-    case Opcode::CONDBR:
-    case Opcode::BR:
     case Opcode::PHI:
     case Opcode::ALLOCA:
     case Opcode::CALL:
