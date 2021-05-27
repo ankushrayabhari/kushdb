@@ -320,12 +320,52 @@ void KhirLLVMBackend::TranslateInstr(const std::vector<uint64_t>& i64_constants,
       return;
     }
 
-    case Opcode::F64_CONV_I64:
-    case Opcode::F64_ADD:
-    case Opcode::F64_MUL:
-    case Opcode::F64_SUB:
-    case Opcode::F64_DIV:
-    case Opcode::I64_CONV_F64:
+    case Opcode::F64_ADD: {
+      Type2InstructionReader reader(instr);
+      auto v0 = values[reader.Arg0()];
+      auto v1 = values[reader.Arg1()];
+      values[instr_idx] = builder_->CreateFAdd(v0, v1);
+      return;
+    }
+
+    case Opcode::F64_MUL: {
+      Type2InstructionReader reader(instr);
+      auto v0 = values[reader.Arg0()];
+      auto v1 = values[reader.Arg1()];
+      values[instr_idx] = builder_->CreateFMul(v0, v1);
+      return;
+    }
+
+    case Opcode::F64_SUB: {
+      Type2InstructionReader reader(instr);
+      auto v0 = values[reader.Arg0()];
+      auto v1 = values[reader.Arg1()];
+      values[instr_idx] = builder_->CreateFSub(v0, v1);
+      return;
+    }
+
+    case Opcode::F64_DIV: {
+      Type2InstructionReader reader(instr);
+      auto v0 = values[reader.Arg0()];
+      auto v1 = values[reader.Arg1()];
+      values[instr_idx] = builder_->CreateFDiv(v0, v1);
+      return;
+    }
+
+    case Opcode::F64_CONV_I64: {
+      Type2InstructionReader reader(instr);
+      auto v = values[reader.Arg0()];
+      values[instr_idx] = builder_->CreateFPToSI(v, builder_->getInt64Ty());
+      return;
+    }
+
+    case Opcode::I64_CONV_F64: {
+      Type2InstructionReader reader(instr);
+      auto v = values[reader.Arg0()];
+      values[instr_idx] = builder_->CreateSIToFP(v, builder_->getDoubleTy());
+      return;
+    }
+
     case Opcode::RETURN:
     case Opcode::STORE:
     case Opcode::RETURN_VALUE:
