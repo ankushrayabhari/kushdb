@@ -70,6 +70,7 @@ Value KHIRProgramBuilder::Function::Append(uint64_t instr) {
   if (basic_blocks_[current_basic_block_].second < 0 &&
       IsTerminatingInstr(GenericInstructionReader(instr).Opcode())) {
     basic_blocks_[current_basic_block_].second = idx;
+    basic_block_order_.push_back(current_basic_block_);
   }
 
   return static_cast<Value>(idx);

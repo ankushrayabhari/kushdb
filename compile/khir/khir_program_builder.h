@@ -186,6 +186,7 @@ class KHIRProgramBuilder {
     Type function_type_;
 
     std::vector<std::pair<int, int>> basic_blocks_;
+    std::vector<int> basic_block_order_;
     std::vector<uint64_t> instructions_;
 
     int current_basic_block_;
