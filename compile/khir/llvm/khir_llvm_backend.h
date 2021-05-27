@@ -38,7 +38,8 @@ class KhirLLVMBackend : public KhirProgramTranslator {
                          const std::vector<uint64_t>& instructions) override;
 
  private:
-  void TranslateInstr(const std::vector<uint64_t>& i64_constants,
+  void TranslateInstr(const std::vector<llvm::Value*>& func_args,
+                      const std::vector<uint64_t>& i64_constants,
                       const std::vector<double>& f64_constants,
                       std::vector<llvm::Value*>& values,
                       const std::vector<uint64_t>& instructions, int instr_idx);
@@ -49,6 +50,7 @@ class KhirLLVMBackend : public KhirProgramTranslator {
   std::vector<llvm::Type*> types_;
   std::vector<llvm::Function*> functions_;
   std::vector<llvm::BasicBlock*> basic_blocks_;
+  std::vector<llvm::Value*> call_args_;
 };
 
 }  // namespace kush::khir

@@ -1,5 +1,6 @@
 #include "compile/khir/llvm/khir_llvm_backend.h"
 
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
@@ -91,6 +92,11 @@ void KhirLLVMBackend::TranslateFuncBody(
     const std::vector<uint64_t>& instructions) {
   // create basic blocks for each one
   llvm::Function* function = functions_[func_idx];
+  std::vector<llvm::Value*> args;
+  for (auto& a : function->args()) {
+    args.push_back(&a);
+  }
+
   std::vector<llvm::Value*> values(instructions.size(), nullptr);
 
   for (int i = 0; i < basic_blocks.size(); i++) {
@@ -102,7 +108,7 @@ void KhirLLVMBackend::TranslateFuncBody(
 
     builder_->SetInsertPoint(basic_blocks_[i]);
     for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
-      TranslateInstr(i64_constants, f64_constants, values, instructions,
+      TranslateInstr(args, i64_constants, f64_constants, values, instructions,
                      instr_idx);
     }
   }
@@ -173,7 +179,8 @@ LLVMCmp GetLLVMCompType(Opcode opcode) {
   }
 }
 
-void KhirLLVMBackend::TranslateInstr(const std::vector<uint64_t>& i64_constants,
+void KhirLLVMBackend::TranslateInstr(const std::vector<llvm::Value*>& func_args,
+                                     const std::vector<uint64_t>& i64_constants,
                                      const std::vector<double>& f64_constants,
                                      std::vector<llvm::Value*>& values,
                                      const std::vector<uint64_t>& instructions,
@@ -438,17 +445,52 @@ void KhirLLVMBackend::TranslateInstr(const std::vector<uint64_t>& i64_constants,
       return;
     }
 
+    case Opcode::ALLOCA: {
+      Type3InstructionReader reader(instr);
+      auto t = types_[reader.TypeID()];
+      values[instr_idx] = builder_->CreateAlloca(t);
+      return;
+    }
+
+    case Opcode::CALL_ARG: {
+      Type3InstructionReader reader(instr);
+      auto v = values[reader.Arg()];
+      call_args_.push_back(v);
+      return;
+    }
+
+    case Opcode::CALL: {
+      Type3InstructionReader reader(instr);
+      auto func = functions_[reader.Arg()];
+      values[instr_idx] = builder_->CreateCall(func, call_args_);
+      call_args_.clear();
+      return;
+    }
+
+    case Opcode::CALL_INDIRECT: {
+      Type3InstructionReader reader(instr);
+      auto func = functions_[reader.Arg()];
+      auto func_type = types_[reader.TypeID()];
+      values[instr_idx] = llvm::CallInst::Create(
+          llvm::dyn_cast<llvm::FunctionType>(func_type), func, call_args_, "",
+          builder_->GetInsertBlock());
+      call_args_.clear();
+      return;
+    }
+
+    case Opcode::FUNC_ARG: {
+      Type3InstructionReader reader(instr);
+      auto arg_idx = reader.Sarg();
+      values[instr_idx] = func_args[arg_idx];
+      return;
+    }
+
     case Opcode::PHI:
-    case Opcode::ALLOCA:
-    case Opcode::CALL:
-    case Opcode::CALL_INDIRECT:
-    case Opcode::FUNC_ARG:
     case Opcode::STRING_GLOBAL_CONST:
     case Opcode::STRUCT_GLOBAL:
     case Opcode::ARRAY_GLOBAL:
     case Opcode::PTR_GLOBAL:
     case Opcode::PHI_MEMBER:
-    case Opcode::CALL_ARG:
       throw std::runtime_error("Unimplemented.");
   }
 }

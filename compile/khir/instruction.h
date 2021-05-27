@@ -152,15 +152,15 @@ class Type2InstructionReader {
 //      24-bit ARG
 //      8-bit opcode
 // =============================================================================
-// [MD] [ID] [0] [ARG] CALL
-// [MD] [ID] [0] [ARG] CALL_INDIRECT
-// [MD] [0]  [0] [ARG] CALL_ARG
-// [MD] [ID] [0] [ARG] PTR_CAST
-// [MD] [ID] [0]       NULLPTR
-// [MD] [ID] [0]       FUNC_ARG
-// [MD] [ID] [0] [ARG] LOAD
-// [MD] [ID] [0]       ALLOCA
-// [MD] [ID] [0]       PHI
+// [MD] [ID] [0]    [ARG] CALL
+// [MD] [ID] [0]    [ARG] CALL_INDIRECT
+// [MD] [0]  [SARG] [ARG] CALL_ARG
+// [MD] [ID] [0]    [ARG] PTR_CAST
+// [MD] [ID] [0]          NULLPTR
+// [MD] [ID] [SARG] [0]   FUNC_ARG
+// [MD] [ID] [0]    [ARG] LOAD
+// [MD] [ID] [0]          ALLOCA
+// [MD] [ID] [0]          PHI
 
 class Type3InstructionBuilder {
  public:

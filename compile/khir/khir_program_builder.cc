@@ -19,10 +19,11 @@ KHIRProgramBuilder::Function::Function(std::string_view name,
                                        bool external)
     : name_(name), function_type_(function_type), external_(external) {
   if (!external_) {
-    for (Type t : arg_types) {
+    for (int i = 0; i < arg_types.size(); i++) {
       arg_values_.push_back(Append(Type3InstructionBuilder()
                                        .SetOpcode(Opcode::FUNC_ARG)
-                                       .SetTypeID(t.GetID())
+                                       .SetSarg(i)
+                                       .SetTypeID(arg_types[i].GetID())
                                        .Build()));
     }
   }
@@ -367,10 +368,13 @@ Type KHIRProgramBuilder::TypeOf(Value value) {
     case Opcode::BR:
       return type_manager_.VoidType();
 
+    case Opcode::CALL_INDIRECT:
+      return type_manager_.GetFunctionReturnType(
+          static_cast<Type>(Type3InstructionReader(instr).TypeID()));
+
     case Opcode::PHI:
     case Opcode::ALLOCA:
     case Opcode::CALL:
-    case Opcode::CALL_INDIRECT:
     case Opcode::LOAD:
     case Opcode::PTR_CAST:
     case Opcode::FUNC_ARG:
@@ -458,8 +462,6 @@ Value KHIRProgramBuilder::Call(FunctionRef func,
 
 Value KHIRProgramBuilder::Call(Value func, Type type,
                                absl::Span<const Value> arguments) {
-  auto result = type_manager_.GetFunctionReturnType(type);
-
   for (uint8_t i = 0; i < arguments.size(); i++) {
     GetCurrentFunction().Append(Type3InstructionBuilder()
                                     .SetOpcode(Opcode::CALL_ARG)
@@ -471,7 +473,7 @@ Value KHIRProgramBuilder::Call(Value func, Type type,
   return GetCurrentFunction().Append(Type3InstructionBuilder()
                                          .SetOpcode(Opcode::CALL_INDIRECT)
                                          .SetArg(func.GetID())
-                                         .SetTypeID(result.GetID())
+                                         .SetTypeID(type.GetID())
                                          .Build());
 }
 
