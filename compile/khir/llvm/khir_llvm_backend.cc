@@ -73,6 +73,122 @@ void KhirLLVMBackend::TranslateStructType(absl::Span<const Type> elem_types) {
       llvm::StructType::create(*context_, GetTypeArray(types_, elem_types)));
 }
 
+llvm::Constant* KhirLLVMBackend::GetConstantFromInstr(
+    uint64_t instr, const std::vector<uint64_t>& i64_constants,
+    const std::vector<double>& f64_constants) {
+  auto opcode = GenericInstructionReader(instr).Opcode();
+
+  switch (opcode) {
+    case Opcode::NULLPTR: {
+      Type3InstructionReader reader(instr);
+      auto t = types_[reader.TypeID()];
+      return llvm::ConstantPointerNull::get(
+          llvm::dyn_cast<llvm::PointerType>(t));
+    }
+
+    case Opcode::I1_CONST: {
+      return builder_->getInt1(Type1InstructionReader(instr).Constant() == 1);
+    }
+
+    case Opcode::I8_CONST: {
+      return builder_->getInt8(Type1InstructionReader(instr).Constant());
+    }
+
+    case Opcode::I16_CONST: {
+      return builder_->getInt16(Type1InstructionReader(instr).Constant());
+    }
+
+    case Opcode::I32_CONST: {
+      return builder_->getInt32(Type1InstructionReader(instr).Constant());
+    }
+
+    case Opcode::I64_CONST: {
+      return builder_->getInt64(
+          i64_constants[Type1InstructionReader(instr).Constant()]);
+    }
+
+    case Opcode::F64_CONST: {
+      return llvm::ConstantFP::get(
+          builder_->getDoubleTy(),
+          f64_constants[Type1InstructionReader(instr).Constant()]);
+    }
+
+    case Opcode::CHAR_ARRAY_GLOBAL_CONST: {
+      Type1InstructionReader reader(instr);
+      return global_char_arrays_[reader.Constant()];
+    }
+
+    case Opcode::STRUCT_GLOBAL: {
+      Type1InstructionReader reader(instr);
+      return llvm::dyn_cast<llvm::Constant>(global_structs_[reader.Constant()]);
+    }
+
+    case Opcode::ARRAY_GLOBAL: {
+      Type1InstructionReader reader(instr);
+      return llvm::dyn_cast<llvm::Constant>(global_arrays_[reader.Constant()]);
+    }
+
+    case Opcode::PTR_GLOBAL: {
+      Type1InstructionReader reader(instr);
+      return llvm::dyn_cast<llvm::Constant>(
+          global_pointers_[reader.Constant()]);
+    }
+
+    default:
+      throw std::runtime_error("Invalid constant.");
+  }
+}
+
+void KhirLLVMBackend::TranslateGlobalConstCharArray(std::string_view s) {
+  global_char_arrays_.push_back(builder_->CreateGlobalStringPtr(s));
+}
+
+void KhirLLVMBackend::TranslateGlobalStruct(
+    bool constant, Type t, absl::Span<const uint64_t> value,
+    const std::vector<uint64_t>& i64_constants,
+    const std::vector<double>& f64_constants) {
+  std::vector<llvm::Constant*> constants;
+  constants.reserve(value.size());
+  for (auto x : value) {
+    constants.push_back(GetConstantFromInstr(x, i64_constants, f64_constants));
+  }
+  auto* st = llvm::dyn_cast<llvm::StructType>(types_[t.GetID()]);
+  auto init = llvm::ConstantStruct::get(st, constants);
+  auto ptr = new llvm::GlobalVariable(
+      *module_, st, constant, llvm::GlobalValue::LinkageTypes::InternalLinkage,
+      init);
+  global_structs_.push_back(ptr);
+}
+
+void KhirLLVMBackend::TranslateGlobalArray(
+    bool constant, Type t, absl::Span<const uint64_t> value,
+    const std::vector<uint64_t>& i64_constants,
+    const std::vector<double>& f64_constants) {
+  std::vector<llvm::Constant*> constants;
+  constants.reserve(value.size());
+  for (auto& x : value) {
+    constants.push_back(GetConstantFromInstr(x, i64_constants, f64_constants));
+  }
+  auto* st = llvm::dyn_cast<llvm::ArrayType>(types_[t.GetID()]);
+  auto init = llvm::ConstantArray::get(st, constants);
+  auto ptr = new llvm::GlobalVariable(
+      *module_, st, constant, llvm::GlobalValue::LinkageTypes::InternalLinkage,
+      init);
+  global_arrays_.push_back(ptr);
+}
+
+void KhirLLVMBackend::TranslateGlobalPointer(
+    bool constant, Type t, uint64_t v,
+    const std::vector<uint64_t>& i64_constants,
+    const std::vector<double>& f64_constants) {
+  auto type = types_[t.GetID()];
+  auto init = GetConstantFromInstr(v, i64_constants, f64_constants);
+  auto ptr = new llvm::GlobalVariable(
+      *module_, type, constant,
+      llvm::GlobalValue::LinkageTypes::InternalLinkage, init);
+  global_pointers_.push_back(ptr);
+}
+
 void KhirLLVMBackend::TranslateFuncDecl(bool external, std::string_view name,
                                         Type func_type) {
   std::string fn_name(name);
@@ -524,11 +640,33 @@ void KhirLLVMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::STRING_GLOBAL_CONST:
-    case Opcode::STRUCT_GLOBAL:
-    case Opcode::ARRAY_GLOBAL:
-    case Opcode::PTR_GLOBAL:
-      throw std::runtime_error("Unimplemented.");
+    case Opcode::CHAR_ARRAY_GLOBAL_CONST: {
+      Type1InstructionReader reader(instr);
+      auto v = global_char_arrays_[reader.Constant()];
+      values[instr_idx] = v;
+      return;
+    }
+
+    case Opcode::STRUCT_GLOBAL: {
+      Type1InstructionReader reader(instr);
+      auto v = global_structs_[reader.Constant()];
+      values[instr_idx] = v;
+      return;
+    }
+
+    case Opcode::ARRAY_GLOBAL: {
+      Type1InstructionReader reader(instr);
+      auto v = global_arrays_[reader.Constant()];
+      values[instr_idx] = v;
+      return;
+    }
+
+    case Opcode::PTR_GLOBAL: {
+      Type1InstructionReader reader(instr);
+      auto v = global_pointers_[reader.Constant()];
+      values[instr_idx] = v;
+      return;
+    }
   }
 }
 

@@ -7,6 +7,19 @@ namespace kush::khir {
 
 class KhirProgramTranslator : public TypeTranslator {
  public:
+  virtual void TranslateGlobalConstCharArray(std::string_view s) = 0;
+  virtual void TranslateGlobalStruct(
+      bool constant, Type t, absl::Span<const uint64_t> v,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants) = 0;
+  virtual void TranslateGlobalArray(
+      bool constant, Type t, absl::Span<const uint64_t> v,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants) = 0;
+  virtual void TranslateGlobalPointer(
+      bool constant, Type t, uint64_t v,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants) = 0;
   virtual void TranslateFuncDecl(bool external, std::string_view name,
                                  Type function_type) = 0;
   virtual void TranslateFuncBody(

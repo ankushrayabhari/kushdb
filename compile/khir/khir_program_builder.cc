@@ -381,7 +381,7 @@ Type KHIRProgramBuilder::TypeOf(Value value) {
     case Opcode::NULLPTR:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
-    case Opcode::STRING_GLOBAL_CONST:
+    case Opcode::CHAR_ARRAY_GLOBAL_CONST:
       return type_manager_.PointerType(type_manager_.I8Type());
 
     case Opcode::STRUCT_GLOBAL:
@@ -954,7 +954,7 @@ std::function<Value()> KHIRProgramBuilder::GlobalConstCharArray(
   return [idx, this]() {
     return this->GetCurrentFunction().Append(
         Type1InstructionBuilder()
-            .SetOpcode(Opcode::STRING_GLOBAL_CONST)
+            .SetOpcode(Opcode::CHAR_ARRAY_GLOBAL_CONST)
             .SetConstant(idx)
             .Build());
   };
