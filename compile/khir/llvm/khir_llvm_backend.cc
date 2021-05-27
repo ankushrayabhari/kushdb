@@ -394,20 +394,59 @@ void KhirLLVMBackend::TranslateInstr(const std::vector<uint64_t>& i64_constants,
       return;
     }
 
-    case Opcode::STORE:
+    case Opcode::STORE: {
+      Type2InstructionReader reader(instr);
+      auto v0 = values[reader.Arg0()];
+      auto v1 = values[reader.Arg1()];
+      values[instr_idx] = builder_->CreateStore(v0, v1);
+      return;
+    }
+
+    case Opcode::LOAD: {
+      Type3InstructionReader reader(instr);
+      auto v = values[reader.Arg()];
+      values[instr_idx] = builder_->CreateLoad(v);
+      return;
+    }
+
+    case Opcode::NULLPTR: {
+      Type3InstructionReader reader(instr);
+      auto t = types_[reader.TypeID()];
+      values[instr_idx] =
+          llvm::ConstantPointerNull::get(llvm::dyn_cast<llvm::PointerType>(t));
+      return;
+    }
+
+    case Opcode::PTR_CAST: {
+      Type3InstructionReader reader(instr);
+      auto t = types_[reader.TypeID()];
+      auto v = values[reader.Arg()];
+      values[instr_idx] = builder_->CreatePointerCast(v, t);
+      return;
+    }
+
+    case Opcode::PTR_ADD: {
+      Type2InstructionReader reader(instr);
+      auto ptr = values[reader.Arg0()];
+      auto offset = values[reader.Arg1()];
+
+      auto ptr_as_int = builder_->CreatePtrToInt(ptr, builder_->getInt64Ty());
+      auto ptr_plus_offset = builder_->CreateAdd(ptr_as_int, offset);
+
+      values[instr_idx] = builder_->CreateIntToPtr(
+          ptr_plus_offset, llvm::PointerType::get(builder_->getVoidTy(), 0));
+      return;
+    }
+
     case Opcode::PHI:
     case Opcode::ALLOCA:
     case Opcode::CALL:
     case Opcode::CALL_INDIRECT:
-    case Opcode::LOAD:
-    case Opcode::PTR_CAST:
     case Opcode::FUNC_ARG:
-    case Opcode::NULLPTR:
     case Opcode::STRING_GLOBAL_CONST:
     case Opcode::STRUCT_GLOBAL:
     case Opcode::ARRAY_GLOBAL:
     case Opcode::PTR_GLOBAL:
-    case Opcode::PTR_ADD:
     case Opcode::PHI_MEMBER:
     case Opcode::CALL_ARG:
       throw std::runtime_error("Unimplemented.");
