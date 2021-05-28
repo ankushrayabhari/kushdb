@@ -18,16 +18,20 @@ KHIRProgramBuilder::Function::Function(std::string_view name,
                                        khir::Type result_type,
                                        absl::Span<const khir::Type> arg_types,
                                        bool external)
-    : name_(name), function_type_(function_type), external_(external) {
-  if (!external_) {
-    GenerateBasicBlock();
-    for (int i = 0; i < arg_types.size(); i++) {
-      arg_values_.push_back(Append(Type3InstructionBuilder()
-                                       .SetOpcode(Opcode::FUNC_ARG)
-                                       .SetSarg(i)
-                                       .SetTypeID(arg_types[i].GetID())
-                                       .Build()));
-    }
+    : name_(name),
+      return_type_(result_type),
+      arg_types_(arg_types.begin(), arg_types.end()),
+      function_type_(function_type),
+      external_(external) {}
+
+void KHIRProgramBuilder::Function::InitBody() {
+  GenerateBasicBlock();
+  for (int i = 0; i < arg_types_.size(); i++) {
+    arg_values_.push_back(Append(Type3InstructionBuilder()
+                                     .SetOpcode(Opcode::FUNC_ARG)
+                                     .SetSarg(i)
+                                     .SetTypeID(arg_types_[i].GetID())
+                                     .Build()));
   }
 }
 
@@ -490,7 +494,10 @@ FunctionRef KHIRProgramBuilder::CreateFunction(
   functions_.emplace_back("_func" + std::to_string(idx),
                           type_manager_.FunctionType(result_type, arg_types),
                           result_type, arg_types, false);
+
   current_function_ = idx;
+  functions_.back().InitBody();
+
   return static_cast<FunctionRef>(idx);
 }
 
@@ -500,7 +507,10 @@ FunctionRef KHIRProgramBuilder::CreatePublicFunction(
   functions_.emplace_back(name,
                           type_manager_.FunctionType(result_type, arg_types),
                           result_type, arg_types, false);
+
   current_function_ = idx;
+  functions_.back().InitBody();
+
   auto ref = static_cast<FunctionRef>(idx);
   name_to_function_[name] = ref;
   return ref;

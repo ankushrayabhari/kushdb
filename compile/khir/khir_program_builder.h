@@ -200,6 +200,7 @@ class KHIRProgramBuilder {
              absl::Span<const Type> arg_types, bool external);
     absl::Span<const Value> GetFunctionArguments() const;
 
+    void InitBody();
     Value Append(uint64_t instr);
     void Update(Value pos, uint64_t instr);
     uint64_t GetInstruction(Value v);
