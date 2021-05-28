@@ -3,24 +3,22 @@
 #include <functional>
 #include <vector>
 
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/int.h"
 
 namespace kush::compile::proxy {
 
-template <typename T>
-TableFunction<T>::TableFunction(
-    ProgramBuilder<T>& program,
-    std::function<proxy::Int32<T>(proxy::Int32<T>&, proxy::Int8<T>&)> body) {
+TableFunction::TableFunction(
+    khir::KHIRProgramBuilder& program,
+    std::function<proxy::Int32(proxy::Int32&, proxy::Int8&)> body) {
   auto current_block = program.CurrentBlock();
 
   func_ = program.CreateFunction(program.I32Type(),
                                  {program.I32Type(), program.I8Type()});
 
   auto args = program.GetFunctionArguments(func_.value());
-  proxy::Int32<T> budget(program, args[0]);
-  proxy::Int8<T> resume_progress(program, args[1]);
+  proxy::Int32 budget(program, args[0]);
+  proxy::Int8 resume_progress(program, args[1]);
 
   auto x = body(budget, resume_progress);
   program.Return(x.Get());
@@ -28,29 +26,20 @@ TableFunction<T>::TableFunction(
   program.SetCurrentBlock(current_block);
 }
 
-template <typename T>
-typename ProgramBuilder<T>::Function TableFunction<T>::Get() {
-  return func_.value();
-}
-
-INSTANTIATE_ON_IR(TableFunction);
+khir::FunctionRef TableFunction::Get() { return func_.value(); }
 
 constexpr std::string_view fn =
     "_ZN4kush7runtime18ExecuteSkinnerJoinEiiPPFiiaES2_iPiS4_PaS4_S4_S4_S4_"
     "S4_S4_";
 
-template <typename T>
-SkinnerJoinExecutor<T>::SkinnerJoinExecutor(ProgramBuilder<T>& program)
+SkinnerJoinExecutor::SkinnerJoinExecutor(khir::KHIRProgramBuilder& program)
     : program_(program) {}
 
-template <typename T>
-void SkinnerJoinExecutor<T>::Execute(
-    absl::Span<const typename ProgramBuilder<T>::Value> args) {
+void SkinnerJoinExecutor::Execute(absl::Span<const khir::Value> args) {
   program_.Call(program_.GetFunction(fn), args);
 }
 
-template <typename T>
-void SkinnerJoinExecutor<T>::ForwardDeclare(ProgramBuilder<T>& program) {
+void SkinnerJoinExecutor::ForwardDeclare(khir::KHIRProgramBuilder& program) {
   auto handler_type = program.FunctionType(
       program.I32Type(), {program.I32Type(), program.I8Type()});
   auto handler_pointer_type = program.PointerType(handler_type);
@@ -73,7 +62,5 @@ void SkinnerJoinExecutor<T>::ForwardDeclare(ProgramBuilder<T>& program) {
                                       program.PointerType(program.I32Type()),
                                   });
 }
-
-INSTANTIATE_ON_IR(SkinnerJoinExecutor);
 
 }  // namespace kush::compile::proxy

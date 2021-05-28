@@ -109,8 +109,7 @@ cc_library(
     hdrs = ["skinner_join_executor.h"],
     deps = [
         ":int",
-        "//compile:ir_registry",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
     ],
 )
 
