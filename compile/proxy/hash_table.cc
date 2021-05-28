@@ -14,21 +14,20 @@ namespace kush::compile::proxy {
 
 constexpr std::string_view BucketListStructName("kush::data::BucketList");
 
-template <typename T>
 class BucketList {
  public:
-  BucketList(ProgramBuilder<T>& program, StructBuilder<T>& content,
-             typename ProgramBuilder<T>::Value& value)
+  BucketList(khir::KHIRProgramBuilder& program, StructBuilder& content,
+             khir::Value& value)
       : program_(program), content_(content), value_(value) {}
 
-  Vector<T> operator[](const Int32<T>& i) {
+  Vector operator[](const Int32& i) {
     auto ptr = program_.Call(program_.GetFunction(BucketListGetBucketIdxFnName),
                              {value_, i.Get()});
-    return Vector<T>(program_, content_, ptr);
+    return Vector(program_, content_, ptr);
   }
 
-  Int32<T> Size() {
-    return proxy::Int32<T>(
+  Int32 Size() {
+    return proxy::Int32(
         program_,
         program_.Call(program_.GetFunction(BucketListSizeFnName), {value_}));
   }
@@ -37,9 +36,9 @@ class BucketList {
     program_.Call(program_.GetFunction(BucketListFreeFnName), {value_});
   }
 
-  static void ForwardDeclare(ProgramBuilder<T>& program) {
+  static void ForwardDeclare(khir::KHIRProgramBuilder& program) {
     auto vector_ptr_type =
-        program.PointerType(program.GetStructType(Vector<T>::VectorStructName));
+        program.PointerType(program.GetStructType(Vector::VectorStructName));
 
     auto bucket_list_struct = program.StructType(
         {program.I32Type(), program.PointerType(vector_ptr_type)},
@@ -65,12 +64,10 @@ class BucketList {
   static constexpr std::string_view BucketListGetBucketIdxFnName =
       "_ZN4kush4data12GetBucketIdxEPNS0_10BucketListEi";
 
-  ProgramBuilder<T>& program_;
-  StructBuilder<T>& content_;
-  typename ProgramBuilder<T>::Value& value_;
+  khir::KHIRProgramBuilder& program_;
+  StructBuilder& content_;
+  khir::Value& value_;
 };
-
-INSTANTIATE_ON_IR(BucketList);
 
 constexpr std::string_view HashTableStructName("kush::data::Struct");
 constexpr std::string_view CreateFnName(
@@ -84,8 +81,7 @@ constexpr std::string_view GetAllBucketsFnName(
 constexpr std::string_view FreeFnName("_ZN4kush4data4FreeEPNS0_9HashTableE");
 constexpr std::string_view HashCombineFnName("_ZN4kush4data11HashCombineEPil");
 
-template <typename T>
-HashTable<T>::HashTable(ProgramBuilder<T>& program, StructBuilder<T>& content)
+HashTable::HashTable(khir::KHIRProgramBuilder& program, StructBuilder& content)
     : program_(program),
       content_(content),
       content_type_(content_.Type()),
@@ -97,14 +93,12 @@ HashTable<T>::HashTable(ProgramBuilder<T>& program, StructBuilder<T>& content)
   program_.Call(program.GetFunction(CreateFnName), {value_, element_size});
 }
 
-template <typename T>
-HashTable<T>::~HashTable() {
+HashTable::~HashTable() {
   program_.Call(program_.GetFunction(FreeFnName), {value_});
 }
 
-template <typename T>
-Struct<T> HashTable<T>::Insert(
-    std::vector<std::reference_wrapper<proxy::Value<T>>> keys) {
+Struct HashTable::Insert(
+    std::vector<std::reference_wrapper<proxy::Value>> keys) {
   program_.Store(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
     auto k_hash = k.get().Hash();
@@ -114,12 +108,10 @@ Struct<T> HashTable<T>::Insert(
 
   auto data = program_.Call(program_.GetFunction(InsertFnName), {value_, hash});
   auto ptr = program_.PointerCast(data, program_.PointerType(content_type_));
-  return Struct<T>(program_, content_, ptr);
+  return Struct(program_, content_, ptr);
 }
 
-template <typename T>
-Vector<T> HashTable<T>::Get(
-    std::vector<std::reference_wrapper<proxy::Value<T>>> keys) {
+Vector HashTable::Get(std::vector<std::reference_wrapper<proxy::Value>> keys) {
   program_.Store(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
     auto k_hash = k.get().Hash();
@@ -129,15 +121,14 @@ Vector<T> HashTable<T>::Get(
 
   auto bucket_ptr =
       program_.Call(program_.GetFunction(GetBucketFnName), {value_, hash});
-  return Vector<T>(program_, content_, bucket_ptr);
+  return Vector(program_, content_, bucket_ptr);
 }
 
-template <typename T>
-void HashTable<T>::ForwardDeclare(ProgramBuilder<T>& program) {
-  BucketList<T>::ForwardDeclare(program);
+void HashTable::ForwardDeclare(khir::KHIRProgramBuilder& program) {
+  BucketList::ForwardDeclare(program);
 
   auto vector_ptr_type =
-      program.PointerType(program.GetStructType(Vector<T>::VectorStructName));
+      program.PointerType(program.GetStructType(Vector::VectorStructName));
   auto bucket_list_struct_ptr =
       program.PointerType(program.GetStructType(BucketListStructName));
 
@@ -169,35 +160,34 @@ void HashTable<T>::ForwardDeclare(ProgramBuilder<T>& program) {
       {program.PointerType(program.I32Type()), program.I64Type()});
 }
 
-template <typename T>
-void HashTable<T>::ForEach(std::function<void(Struct<T>&)> handler) {
+void HashTable::ForEach(std::function<void(Struct&)> handler) {
   program_.Call(program_.GetFunction(GetAllBucketsFnName),
                 {value_, bucket_list_});
 
-  BucketList<T> bucket_list(program_, content_, bucket_list_);
+  BucketList bucket_list(program_, content_, bucket_list_);
 
-  proxy::Loop<T>(
+  proxy::Loop(
       program_,
-      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32<T>(program_, 0)); },
+      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
         return i < bucket_list.Size();
       },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
         auto bucket = bucket_list[i];
 
-        proxy::Loop<T>(
+        proxy::Loop(
             program_,
             [&](auto& loop) {
-              loop.AddLoopVariable(proxy::Int32<T>(program_, 0));
+              loop.AddLoopVariable(proxy::Int32(program_, 0));
             },
             [&](auto& loop) {
-              auto j = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+              auto j = loop.template GetLoopVariable<proxy::Int32>(0);
               return j < bucket.Size();
             },
             [&](auto& loop) {
-              auto j = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+              auto j = loop.template GetLoopVariable<proxy::Int32>(0);
               auto data = bucket[j];
 
               handler(data);
@@ -210,7 +200,5 @@ void HashTable<T>::ForEach(std::function<void(Struct<T>&)> handler) {
 
   bucket_list.Reset();
 }
-
-INSTANTIATE_ON_IR(HashTable);
 
 }  // namespace kush::compile::proxy

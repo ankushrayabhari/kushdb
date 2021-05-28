@@ -9,25 +9,24 @@
 
 namespace kush::compile::proxy {
 
-template <typename T>
 class HashTable {
  public:
-  HashTable(ProgramBuilder<T>& program, StructBuilder<T>& content);
+  HashTable(khir::KHIRProgramBuilder& program, StructBuilder& content);
   ~HashTable();
 
-  Struct<T> Insert(std::vector<std::reference_wrapper<Value<T>>> keys);
-  Vector<T> Get(std::vector<std::reference_wrapper<Value<T>>> keys);
-  void ForEach(std::function<void(Struct<T>&)> handler);
+  Struct Insert(std::vector<std::reference_wrapper<Value>> keys);
+  Vector Get(std::vector<std::reference_wrapper<Value>> keys);
+  void ForEach(std::function<void(Struct&)> handler);
 
-  static void ForwardDeclare(ProgramBuilder<T>& program);
+  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
 
  private:
-  ProgramBuilder<T>& program_;
-  StructBuilder<T>& content_;
-  typename ProgramBuilder<T>::Type content_type_;
-  typename ProgramBuilder<T>::Value value_;
-  typename ProgramBuilder<T>::Value hash_ptr_;
-  typename ProgramBuilder<T>::Value bucket_list_;
+  khir::KHIRProgramBuilder& program_;
+  StructBuilder& content_;
+  khir::Type content_type_;
+  khir::Value value_;
+  khir::Value hash_ptr_;
+  khir::Value bucket_list_;
 };
 
 }  // namespace kush::compile::proxy
