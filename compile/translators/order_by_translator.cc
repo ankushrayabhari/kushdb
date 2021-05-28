@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "catalog/sql_type.h"
-#include "compile/ir_registry.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/function.h"
@@ -20,19 +20,17 @@
 
 namespace kush::compile {
 
-template <typename T>
-OrderByTranslator<T>::OrderByTranslator(
-    const plan::OrderByOperator& order_by, ProgramBuilder<T>& program,
-    std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(order_by, std::move(children)),
+OrderByTranslator::OrderByTranslator(
+    const plan::OrderByOperator& order_by, khir::KHIRProgramBuilder& program,
+    std::vector<std::unique_ptr<OperatorTranslator>> children)
+    : OperatorTranslator(order_by, std::move(children)),
       order_by_(order_by),
       program_(program),
       expr_translator_(program, *this) {}
 
-template <typename T>
-void OrderByTranslator<T>::Produce() {
+void OrderByTranslator::Produce() {
   // include every child column inside the struct
-  proxy::StructBuilder<T> packed(program_);
+  proxy::StructBuilder packed(program_);
   const auto& child_schema = order_by_.Child().Schema().Columns();
   for (const auto& col : child_schema) {
     packed.Add(col.Expr().Type());
@@ -40,16 +38,16 @@ void OrderByTranslator<T>::Produce() {
   packed.Build();
 
   // init vector
-  buffer_ = std::make_unique<proxy::Vector<T>>(program_, packed);
+  buffer_ = std::make_unique<proxy::Vector>(program_, packed);
 
   // populate vector
   this->Child().Produce();
 
   // sort
-  proxy::ComparisonFunction<T> comp_fn(
+  proxy::ComparisonFunction comp_fn(
       program_, packed,
-      [&](proxy::Struct<T>& s1, proxy::Struct<T>& s2,
-          std::function<void(proxy::Bool<T>)> Return) {
+      [&](proxy::Struct& s1, proxy::Struct& s2,
+          std::function<void(proxy::Bool)> Return) {
         auto s1_fields = s1.Unpack();
         auto s2_fields = s2.Unpack();
 
@@ -65,40 +63,60 @@ void OrderByTranslator<T>::Produce() {
           if (asc) {
             auto v1 = s1_field.EvaluateBinary(
                 plan::BinaryArithmeticOperatorType::LT, s2_field);
-            proxy::If(program_, static_cast<proxy::Bool<T>&>(*v1),
-                      [&]() { Return(proxy::Bool<T>(program_, true)); });
+            proxy::If(
+                program_, static_cast<proxy::Bool&>(*v1),
+                [&]() -> std::vector<khir::Value> {
+                  Return(proxy::Bool(program_, true));
+                  return {};
+                },
+                [&]() -> std::vector<khir::Value> { return {}; });
 
             auto v2 = s2_field.EvaluateBinary(
                 plan::BinaryArithmeticOperatorType::LT, s1_field);
-            proxy::If(program_, static_cast<proxy::Bool<T>&>(*v2),
-                      [&]() { Return(proxy::Bool<T>(program_, false)); });
+            proxy::If(
+                program_, static_cast<proxy::Bool&>(*v2),
+                [&]() -> std::vector<khir::Value> {
+                  Return(proxy::Bool(program_, false));
+                  return {};
+                },
+                [&]() -> std::vector<khir::Value> { return {}; });
           } else {
             auto v1 = s1_field.EvaluateBinary(
                 plan::BinaryArithmeticOperatorType::LT, s2_field);
-            proxy::If(program_, static_cast<proxy::Bool<T>&>(*v1),
-                      [&]() { Return(proxy::Bool<T>(program_, false)); });
+            proxy::If(
+                program_, static_cast<proxy::Bool&>(*v1),
+                [&]() -> std::vector<khir::Value> {
+                  Return(proxy::Bool(program_, false));
+                  return {};
+                },
+                [&]() -> std::vector<khir::Value> { return {}; });
 
             auto v2 = s2_field.EvaluateBinary(
                 plan::BinaryArithmeticOperatorType::LT, s1_field);
-            proxy::If(program_, static_cast<proxy::Bool<T>&>(*v2),
-                      [&]() { Return(proxy::Bool<T>(program_, true)); });
+            proxy::If(
+                program_, static_cast<proxy::Bool&>(*v2),
+                [&]() -> std::vector<khir::Value> {
+                  Return(proxy::Bool(program_, true));
+                  return {};
+                },
+                [&]() -> std::vector<khir::Value> { return {}; });
           }
         }
 
-        Return(proxy::Bool<T>(program_, false));
+        Return(proxy::Bool(program_, false));
       });
 
   buffer_->Sort(comp_fn.Get());
 
-  proxy::Loop<T>(
+  proxy::Loop(
       program_,
-      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32<T>(program_, 0)); },
+      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
         return i < buffer_->Size();
       },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
 
         this->Child().SchemaValues().SetValues((*buffer_)[i].Unpack());
 
@@ -117,11 +135,8 @@ void OrderByTranslator<T>::Produce() {
   buffer_->Reset();
 }
 
-template <typename T>
-void OrderByTranslator<T>::Consume(OperatorTranslator<T>& src) {
+void OrderByTranslator::Consume(OperatorTranslator& src) {
   buffer_->PushBack().Pack(this->Child().SchemaValues().Values());
 }
-
-INSTANTIATE_ON_IR(OrderByTranslator);
 
 }  // namespace kush::compile

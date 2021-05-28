@@ -164,7 +164,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile:ir_registry",
+        "//compile/khir:khir_program_builder",
         "//compile/proxy:bool",
         "//compile/proxy:float",
         "//compile/proxy:function",
