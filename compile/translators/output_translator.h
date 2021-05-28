@@ -1,24 +1,24 @@
 #pragma once
 
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/printer.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/output_operator.h"
 
 namespace kush::compile {
 
-template <typename T>
-class OutputTranslator : public OperatorTranslator<T> {
+class OutputTranslator : public OperatorTranslator {
  public:
-  OutputTranslator(
-      const plan::OutputOperator& output, ProgramBuilder<T>& program,
-      std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
+  OutputTranslator(const plan::OutputOperator& output,
+                   khir::KHIRProgramBuilder& program,
+                   std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~OutputTranslator() = default;
 
   void Produce() override;
-  void Consume(OperatorTranslator<T>& src) override;
+  void Consume(OperatorTranslator& src) override;
 
  private:
-  ProgramBuilder<T>& program_;
+  khir::KHIRProgramBuilder& program_;
 };
 
 }  // namespace kush::compile
