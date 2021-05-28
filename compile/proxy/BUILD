@@ -121,7 +121,7 @@ cc_library(
     hdrs = ["ptr.h"],
     deps = [
         ":value",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
         "//plan/expression:binary_arithmetic_expression",
     ],
 )
@@ -154,7 +154,7 @@ cc_library(
         ":string",
         ":value",
         "//catalog:sql_type",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
     ],
 )
 

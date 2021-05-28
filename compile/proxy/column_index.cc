@@ -4,8 +4,7 @@
 #include <memory>
 
 #include "catalog/sql_type.h"
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -117,46 +116,47 @@ std::string_view InsertFnName() {
   }
 }
 
-template <typename T, catalog::SqlType S>
-ColumnIndexImpl<T, S>::ColumnIndexImpl(ProgramBuilder<T>& program, bool global)
+template <catalog::SqlType S>
+ColumnIndexImpl<S>::ColumnIndexImpl(khir::KHIRProgramBuilder& program,
+                                    bool global)
     : program_(program),
       value_(global
                  ? program_.GlobalPointer(
                        false, program_.PointerType(program_.I8Type()),
-                       program.NullPtr(program.PointerType(program.I8Type())))
+                       program.NullPtr(program.PointerType(program.I8Type())))()
                  : program_.Alloca(program_.PointerType(program_.I8Type()))) {
   program_.Store(value_,
                  program_.Call(program_.GetFunction(CreateFnName<S>()), {}));
 }
 
-template <typename T, catalog::SqlType S>
-ColumnIndexImpl<T, S>::~ColumnIndexImpl() {
+template <catalog::SqlType S>
+ColumnIndexImpl<S>::~ColumnIndexImpl() {
   program_.Call(program_.GetFunction(FreeFnName<S>()), {program_.Load(value_)});
 }
 
-template <typename T, catalog::SqlType S>
-void ColumnIndexImpl<T, S>::Insert(const proxy::Value<T>& v,
-                                   const proxy::Int32<T>& tuple_idx) {
+template <catalog::SqlType S>
+void ColumnIndexImpl<S>::Insert(const proxy::Value& v,
+                                const proxy::Int32& tuple_idx) {
   program_.Call(program_.GetFunction(InsertFnName<S>()),
                 {program_.Load(value_), v.Get(), tuple_idx.Get()});
 }
 
-template <typename T, catalog::SqlType S>
-proxy::Int32<T> ColumnIndexImpl<T, S>::GetNextGreater(
-    const proxy::Value<T>& v, const proxy::Int32<T>& tuple_idx,
-    const proxy::Int32<T>& cardinality) {
-  return proxy::Int32<T>(
+template <catalog::SqlType S>
+proxy::Int32 ColumnIndexImpl<S>::GetNextGreater(
+    const proxy::Value& v, const proxy::Int32& tuple_idx,
+    const proxy::Int32& cardinality) {
+  return proxy::Int32(
       program_, program_.Call(program_.GetFunction(GetNextGreaterFnName<S>()),
                               {program_.Load(value_), v.Get(), tuple_idx.Get(),
                                cardinality.Get()}));
 }
 
-template <typename T, catalog::SqlType S>
-void ColumnIndexImpl<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
+template <catalog::SqlType S>
+void ColumnIndexImpl<S>::ForwardDeclare(khir::KHIRProgramBuilder& program) {
   auto index_type = program.I8Type();
   auto index_ptr_type = program.PointerType(index_type);
 
-  std::optional<typename ProgramBuilder<T>::Type> value_type;
+  std::optional<typename khir::Type> value_type;
   if constexpr (catalog::SqlType::SMALLINT == S) {
     value_type = program.I16Type();
   } else if constexpr (catalog::SqlType::INT == S) {
@@ -170,7 +170,7 @@ void ColumnIndexImpl<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
     value_type = program.I8Type();
   } else if constexpr (catalog::SqlType::TEXT == S) {
     value_type =
-        program.PointerType(program.GetStructType(String<T>::StringStructName));
+        program.PointerType(program.GetStructType(String::StringStructName));
   }
 
   program.DeclareExternalFunction(CreateFnName<S>(), index_ptr_type, {});
@@ -184,12 +184,12 @@ void ColumnIndexImpl<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
                                    program.I32Type(), program.I32Type()});
 }
 
-INSTANTIATE_ON_IR(ColumnIndexImpl, catalog::SqlType::SMALLINT);
-INSTANTIATE_ON_IR(ColumnIndexImpl, catalog::SqlType::INT);
-INSTANTIATE_ON_IR(ColumnIndexImpl, catalog::SqlType::BIGINT);
-INSTANTIATE_ON_IR(ColumnIndexImpl, catalog::SqlType::REAL);
-INSTANTIATE_ON_IR(ColumnIndexImpl, catalog::SqlType::DATE);
-INSTANTIATE_ON_IR(ColumnIndexImpl, catalog::SqlType::BOOLEAN);
-INSTANTIATE_ON_IR(ColumnIndexImpl, catalog::SqlType::TEXT);
+template class ColumnIndexImpl<catalog::SqlType::SMALLINT>;
+template class ColumnIndexImpl<catalog::SqlType::INT>;
+template class ColumnIndexImpl<catalog::SqlType::BIGINT>;
+template class ColumnIndexImpl<catalog::SqlType::REAL>;
+template class ColumnIndexImpl<catalog::SqlType::DATE>;
+template class ColumnIndexImpl<catalog::SqlType::BOOLEAN>;
+template class ColumnIndexImpl<catalog::SqlType::TEXT>;
 
 }  // namespace kush::compile::proxy

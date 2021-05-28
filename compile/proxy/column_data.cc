@@ -110,7 +110,7 @@ ColumnData<S>::ColumnData(khir::KHIRProgramBuilder& program,
   auto path_value = program_.GlobalConstCharArray(path);
   value_ = program_.Alloca(program.GetStructType(StructName<S>()));
   program_.Call(program_.GetFunction(OpenFnName<S>()),
-                {value_.value(), path_value});
+                {value_.value(), path_value()});
 
   if constexpr (S == catalog::SqlType::TEXT) {
     result_ = program_.Alloca(program_.GetStructType(String::StringStructName));
@@ -198,5 +198,13 @@ void ColumnData<S>::ForwardDeclare(khir::KHIRProgramBuilder& program) {
                                     {struct_ptr, program.I32Type()});
   }
 }
+
+template class ColumnData<catalog::SqlType::SMALLINT>;
+template class ColumnData<catalog::SqlType::INT>;
+template class ColumnData<catalog::SqlType::BIGINT>;
+template class ColumnData<catalog::SqlType::REAL>;
+template class ColumnData<catalog::SqlType::DATE>;
+template class ColumnData<catalog::SqlType::BOOLEAN>;
+template class ColumnData<catalog::SqlType::TEXT>;
 
 }  // namespace kush::compile::proxy

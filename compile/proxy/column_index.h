@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "catalog/sql_type.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -11,35 +11,32 @@
 
 namespace kush::compile::proxy {
 
-template <typename T>
 class ColumnIndex {
  public:
   virtual ~ColumnIndex() = default;
 
-  virtual void Insert(const proxy::Value<T>& v,
-                      const proxy::Int32<T>& tuple_idx) = 0;
-  virtual proxy::Int32<T> GetNextGreater(
-      const proxy::Value<T>& v, const proxy::Int32<T>& tuple_idx,
-      const proxy::Int32<T>& cardinality) = 0;
+  virtual void Insert(const proxy::Value& v, const proxy::Int32& tuple_idx) = 0;
+  virtual proxy::Int32 GetNextGreater(const proxy::Value& v,
+                                      const proxy::Int32& tuple_idx,
+                                      const proxy::Int32& cardinality) = 0;
 };
 
-template <typename T, catalog::SqlType S>
-class ColumnIndexImpl : public ColumnIndex<T> {
+template <catalog::SqlType S>
+class ColumnIndexImpl : public ColumnIndex {
  public:
-  ColumnIndexImpl(ProgramBuilder<T>& program, bool global);
+  ColumnIndexImpl(khir::KHIRProgramBuilder& program, bool global);
   virtual ~ColumnIndexImpl();
 
-  void Insert(const proxy::Value<T>& v,
-              const proxy::Int32<T>& tuple_idx) override;
-  proxy::Int32<T> GetNextGreater(const proxy::Value<T>& v,
-                                 const proxy::Int32<T>& tuple_idx,
-                                 const proxy::Int32<T>& cardinality) override;
+  void Insert(const proxy::Value& v, const proxy::Int32& tuple_idx) override;
+  proxy::Int32 GetNextGreater(const proxy::Value& v,
+                              const proxy::Int32& tuple_idx,
+                              const proxy::Int32& cardinality) override;
 
-  static void ForwardDeclare(ProgramBuilder<T>& program);
+  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
 
  private:
-  ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value value_;
+  khir::KHIRProgramBuilder& program_;
+  khir::Value value_;
 };
 
 }  // namespace kush::compile::proxy
