@@ -4,14 +4,12 @@
 #include <optional>
 #include <vector>
 
-#include "compile/ir_registry.h"
 #include "compile/translators/schema_values.h"
 #include "util/vector_util.h"
 
 namespace kush::compile {
 
-template <typename T>
-OperatorTranslator<T>::OperatorTranslator(
+OperatorTranslator::OperatorTranslator(
     const plan::Operator& op,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : values_(op.Schema().Columns().size()),
@@ -23,9 +21,8 @@ OperatorTranslator<T>::OperatorTranslator(
   }
 }
 
-template <typename T>
-std::optional<std::reference_wrapper<OperatorTranslator<T>>>
-OperatorTranslator<T>::Parent() {
+std::optional<std::reference_wrapper<OperatorTranslator>>
+OperatorTranslator::Parent() {
   if (parent_ == nullptr) {
     return std::nullopt;
   }
@@ -33,42 +30,23 @@ OperatorTranslator<T>::Parent() {
   return *parent_;
 }
 
-template <typename T>
-std::vector<std::reference_wrapper<OperatorTranslator<T>>>
-OperatorTranslator<T>::Children() {
+std::vector<std::reference_wrapper<OperatorTranslator>>
+OperatorTranslator::Children() {
   return util::ReferenceVector(children_);
 }
 
-template <typename T>
-OperatorTranslator<T>& OperatorTranslator<T>::Child() {
-  return *children_[0];
-}
+OperatorTranslator& OperatorTranslator::Child() { return *children_[0]; }
 
-template <typename T>
-OperatorTranslator<T>& OperatorTranslator<T>::LeftChild() {
-  return *children_[0];
-}
+OperatorTranslator& OperatorTranslator::LeftChild() { return *children_[0]; }
 
-template <typename T>
-OperatorTranslator<T>& OperatorTranslator<T>::RightChild() {
-  return *children_[1];
-}
+OperatorTranslator& OperatorTranslator::RightChild() { return *children_[1]; }
 
-template <typename T>
-SchemaValues<T>& OperatorTranslator<T>::SchemaValues() {
-  return values_;
-}
+SchemaValues& OperatorTranslator::SchemaValues() { return values_; }
 
-template <typename T>
-const SchemaValues<T>& OperatorTranslator<T>::SchemaValues() const {
-  return values_;
-}
+const SchemaValues& OperatorTranslator::SchemaValues() const { return values_; }
 
-template <typename T>
-const SchemaValues<T>& OperatorTranslator<T>::VirtualSchemaValues() const {
+const SchemaValues& OperatorTranslator::VirtualSchemaValues() const {
   return virtual_values_;
 }
-
-INSTANTIATE_ON_IR(OperatorTranslator);
 
 }  // namespace kush::compile

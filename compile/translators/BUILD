@@ -7,7 +7,6 @@ cc_library(
     srcs = ["schema_values.cc"],
     hdrs = ["schema_values.h"],
     deps = [
-        "//compile:ir_registry",
         "//compile/proxy:value",
     ],
 )
@@ -18,7 +17,6 @@ cc_library(
     hdrs = ["operator_translator.h"],
     deps = [
         ":schema_values",
-        "//compile:ir_registry",
         "//plan:operator",
         "//util:vector_util",
     ],
