@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 
 namespace kush::compile::proxy {
 

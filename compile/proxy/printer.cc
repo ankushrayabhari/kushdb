@@ -1,7 +1,6 @@
 #include "compile/proxy/printer.h"
 
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
@@ -19,51 +18,41 @@ constexpr std::string_view newline_fn_name("_ZN4kush4util12PrintNewlineEv");
 constexpr std::string_view string_fn_name(
     "_ZN4kush4util11PrintStringEPNS_4data6StringE");
 
-template <typename T>
-Printer<T>::Printer(ProgramBuilder<T>& program) : program_(program) {}
+Printer::Printer(khir::KHIRProgramBuilder& program) : program_(program) {}
 
-template <typename T>
-void Printer<T>::Print(const Int8<T>& t) {
+void Printer::Print(const Int8& t) {
   program_.Call(program_.GetFunction(i8_fn_name), {t.Get()});
 }
 
-template <typename T>
-void Printer<T>::Print(const Bool<T>& t) {
+void Printer::Print(const Bool& t) {
   program_.Call(program_.GetFunction(i1_fn_name), {t.Get()});
 }
 
-template <typename T>
-void Printer<T>::Print(const Int16<T>& t) {
+void Printer::Print(const Int16& t) {
   program_.Call(program_.GetFunction(i16_fn_name), {t.Get()});
 }
 
-template <typename T>
-void Printer<T>::Print(const Int32<T>& t) {
+void Printer::Print(const Int32& t) {
   program_.Call(program_.GetFunction(i32_fn_name), {t.Get()});
 }
 
-template <typename T>
-void Printer<T>::Print(const Int64<T>& t) {
+void Printer::Print(const Int64& t) {
   program_.Call(program_.GetFunction(i64_fn_name), {t.Get()});
 }
 
-template <typename T>
-void Printer<T>::Print(const Float64<T>& t) {
+void Printer::Print(const Float64& t) {
   program_.Call(program_.GetFunction(f64_fn_name), {t.Get()});
 }
 
-template <typename T>
-void Printer<T>::Print(const String<T>& t) {
+void Printer::Print(const String& t) {
   program_.Call(program_.GetFunction(string_fn_name), {t.Get()});
 }
 
-template <typename T>
-void Printer<T>::PrintNewline() {
+void Printer::PrintNewline() {
   program_.Call(program_.GetFunction(newline_fn_name), {});
 }
 
-template <typename T>
-void Printer<T>::ForwardDeclare(ProgramBuilder<T>& program) {
+void Printer::ForwardDeclare(khir::KHIRProgramBuilder& program) {
   program.DeclareExternalFunction(i1_fn_name, program.VoidType(),
                                   {program.I1Type()});
   program.DeclareExternalFunction(i8_fn_name, program.VoidType(),
@@ -76,12 +65,10 @@ void Printer<T>::ForwardDeclare(ProgramBuilder<T>& program) {
                                   {program.I64Type()});
   program.DeclareExternalFunction(f64_fn_name, program.VoidType(),
                                   {program.F64Type()});
-  program.DeclareExternalFunction(string_fn_name, program.VoidType(),
-                                  {program.PointerType(program.GetStructType(
-                                      String<T>::StringStructName))});
+  program.DeclareExternalFunction(
+      string_fn_name, program.VoidType(),
+      {program.PointerType(program.GetStructType(String::StringStructName))});
   program.DeclareExternalFunction(newline_fn_name, program.VoidType(), {});
 }
-
-INSTANTIATE_ON_IR(Printer);
 
 }  // namespace kush::compile::proxy
