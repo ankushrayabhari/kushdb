@@ -123,7 +123,7 @@ cc_library(
         ":expression_translator",
         ":operator_translator",
         ":scan_translator",
-        "//compile:ir_registry",
+        "//compile/khir:khir_program_builder",
         "//compile/proxy:column_index",
         "//compile/proxy:function",
         "//compile/proxy:loop",
