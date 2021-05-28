@@ -209,11 +209,7 @@ cc_library(
     hdrs = ["if.h"],
     deps = [
         ":bool",
-        ":float",
-        ":int",
-        ":string",
-        "//compile:ir_registry",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
     ],
 )
 
