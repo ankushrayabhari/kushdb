@@ -7,9 +7,9 @@
 
 namespace kush::compile::proxy {
 
-template <typename V, typename T>
-std::unique_ptr<Value<T>> EvaluateBinaryNumeric(
-    plan::BinaryArithmeticOperatorType op_type, V& lhs, Value<T>& rhs_generic) {
+template <typename V>
+std::unique_ptr<Value> EvaluateBinaryNumeric(
+    plan::BinaryArithmeticOperatorType op_type, V& lhs, Value& rhs_generic) {
   V& rhs = dynamic_cast<V&>(rhs_generic);
 
   switch (op_type) {

@@ -231,8 +231,7 @@ cc_library(
         ":numeric",
         ":printer_h",
         ":value",
-        "//compile:ir_registry",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
     ],
 )
 

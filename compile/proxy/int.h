@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/value.h"
@@ -11,172 +11,160 @@
 
 namespace kush::compile::proxy {
 
-template <typename T>
-class Int8 : public Value<T> {
+class Int8 : public Value {
  public:
-  Int8(ProgramBuilder<T>& program,
-       const typename ProgramBuilder<T>::Value& value);
-  Int8(ProgramBuilder<T>& program, int8_t value);
+  Int8(khir::KHIRProgramBuilder& program, const khir::Value& value);
+  Int8(khir::KHIRProgramBuilder& program, int8_t value);
 
-  typename ProgramBuilder<T>::Value Get() const override;
+  khir::Value Get() const override;
 
-  Int8<T> operator+(const Int8<T>& rhs);
-  Int8<T> operator+(int8_t rhs);
-  Int8<T> operator-(const Int8<T>& rhs);
-  Int8<T> operator-(int8_t rhs);
-  Int8<T> operator*(const Int8<T>& rhs);
-  Int8<T> operator*(int8_t rhs);
-  Int8<T> operator/(const Int8<T>& rhs);
-  Int8<T> operator/(int8_t rhs);
-  Bool<T> operator==(const Int8<T>& rhs);
-  Bool<T> operator==(int8_t rhs);
-  Bool<T> operator!=(const Int8<T>& rhs);
-  Bool<T> operator!=(int8_t rhs);
-  Bool<T> operator<(const Int8<T>& rhs);
-  Bool<T> operator<(int8_t rhs);
-  Bool<T> operator<=(const Int8<T>& rhs);
-  Bool<T> operator<=(int8_t rhs);
-  Bool<T> operator>(const Int8<T>& rhs);
-  Bool<T> operator>(int8_t rhs);
-  Bool<T> operator>=(const Int8<T>& rhs);
-  Bool<T> operator>=(int8_t rhs);
+  Int8 operator+(const Int8& rhs);
+  Int8 operator+(int8_t rhs);
+  Int8 operator-(const Int8& rhs);
+  Int8 operator-(int8_t rhs);
+  Int8 operator*(const Int8& rhs);
+  Int8 operator*(int8_t rhs);
+  Int8 operator/(const Int8& rhs);
+  Int8 operator/(int8_t rhs);
+  Bool operator==(const Int8& rhs);
+  Bool operator==(int8_t rhs);
+  Bool operator!=(const Int8& rhs);
+  Bool operator!=(int8_t rhs);
+  Bool operator<(const Int8& rhs);
+  Bool operator<(int8_t rhs);
+  Bool operator<=(const Int8& rhs);
+  Bool operator<=(int8_t rhs);
+  Bool operator>(const Int8& rhs);
+  Bool operator>(int8_t rhs);
+  Bool operator>=(const Int8& rhs);
+  Bool operator>=(int8_t rhs);
 
-  std::unique_ptr<Int8<T>> ToPointer();
-  std::unique_ptr<Value<T>> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      Value<T>& right_value) override;
-  void Print(proxy::Printer<T>& printer) override;
-  typename ProgramBuilder<T>::Value Hash() override;
+  std::unique_ptr<Int8> ToPointer();
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
+  void Print(proxy::Printer& printer) override;
+  khir::Value Hash() override;
 
  private:
-  ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value value_;
+  khir::KHIRProgramBuilder& program_;
+  khir::Value value_;
 };
 
-template <typename T>
-class Int16 : public Value<T> {
+class Int16 : public Value {
  public:
-  Int16(ProgramBuilder<T>& program,
-        const typename ProgramBuilder<T>::Value& value);
-  Int16(ProgramBuilder<T>& program, int16_t value);
+  Int16(khir::KHIRProgramBuilder& program, const khir::Value& value);
+  Int16(khir::KHIRProgramBuilder& program, int16_t value);
 
-  typename ProgramBuilder<T>::Value Get() const override;
+  khir::Value Get() const override;
 
-  Int16<T> operator+(const Int16<T>& rhs);
-  Int16<T> operator+(int16_t rhs);
-  Int16<T> operator-(const Int16<T>& rhs);
-  Int16<T> operator-(int16_t rhs);
-  Int16<T> operator*(const Int16<T>& rhs);
-  Int16<T> operator*(int16_t rhs);
-  Int16<T> operator/(const Int16<T>& rhs);
-  Int16<T> operator/(int16_t rhs);
-  Bool<T> operator==(const Int16<T>& rhs);
-  Bool<T> operator==(int16_t rhs);
-  Bool<T> operator!=(const Int16<T>& rhs);
-  Bool<T> operator!=(int16_t rhs);
-  Bool<T> operator<(const Int16<T>& rhs);
-  Bool<T> operator<(int16_t rhs);
-  Bool<T> operator<=(const Int16<T>& rhs);
-  Bool<T> operator<=(int16_t rhs);
-  Bool<T> operator>(const Int16<T>& rhs);
-  Bool<T> operator>(int16_t rhs);
-  Bool<T> operator>=(const Int16<T>& rhs);
-  Bool<T> operator>=(int16_t rhs);
+  Int16 operator+(const Int16& rhs);
+  Int16 operator+(int16_t rhs);
+  Int16 operator-(const Int16& rhs);
+  Int16 operator-(int16_t rhs);
+  Int16 operator*(const Int16& rhs);
+  Int16 operator*(int16_t rhs);
+  Int16 operator/(const Int16& rhs);
+  Int16 operator/(int16_t rhs);
+  Bool operator==(const Int16& rhs);
+  Bool operator==(int16_t rhs);
+  Bool operator!=(const Int16& rhs);
+  Bool operator!=(int16_t rhs);
+  Bool operator<(const Int16& rhs);
+  Bool operator<(int16_t rhs);
+  Bool operator<=(const Int16& rhs);
+  Bool operator<=(int16_t rhs);
+  Bool operator>(const Int16& rhs);
+  Bool operator>(int16_t rhs);
+  Bool operator>=(const Int16& rhs);
+  Bool operator>=(int16_t rhs);
 
-  std::unique_ptr<Int16<T>> ToPointer();
-  std::unique_ptr<Value<T>> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      Value<T>& right_value) override;
-  void Print(proxy::Printer<T>& printer) override;
-  typename ProgramBuilder<T>::Value Hash() override;
+  std::unique_ptr<Int16> ToPointer();
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
+  void Print(proxy::Printer& printer) override;
+  khir::Value Hash() override;
 
  private:
-  ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value value_;
+  khir::KHIRProgramBuilder& program_;
+  khir::Value value_;
 };
 
-template <typename T>
-class Int32 : public Value<T> {
+class Int32 : public Value {
  public:
-  Int32(ProgramBuilder<T>& program,
-        const typename ProgramBuilder<T>::Value& value);
-  Int32(ProgramBuilder<T>& program, int32_t value);
+  Int32(khir::KHIRProgramBuilder& program, const khir::Value& value);
+  Int32(khir::KHIRProgramBuilder& program, int32_t value);
 
-  typename ProgramBuilder<T>::Value Get() const override;
+  khir::Value Get() const override;
 
-  Int32<T> operator+(const Int32<T>& rhs);
-  Int32<T> operator+(int32_t rhs);
-  Int32<T> operator-(const Int32<T>& rhs);
-  Int32<T> operator-(int32_t rhs);
-  Int32<T> operator*(const Int32<T>& rhs);
-  Int32<T> operator*(int32_t rhs);
-  Int32<T> operator/(const Int32<T>& rhs);
-  Int32<T> operator/(int32_t rhs);
-  Bool<T> operator==(const Int32<T>& rhs);
-  Bool<T> operator==(int32_t rhs);
-  Bool<T> operator!=(const Int32<T>& rhs);
-  Bool<T> operator!=(int32_t rhs);
-  Bool<T> operator<(const Int32<T>& rhs);
-  Bool<T> operator<(int32_t rhs);
-  Bool<T> operator<=(const Int32<T>& rhs);
-  Bool<T> operator<=(int32_t rhs);
-  Bool<T> operator>(const Int32<T>& rhs);
-  Bool<T> operator>(int32_t rhs);
-  Bool<T> operator>=(const Int32<T>& rhs);
-  Bool<T> operator>=(int32_t rhs);
+  Int32 operator+(const Int32& rhs);
+  Int32 operator+(int32_t rhs);
+  Int32 operator-(const Int32& rhs);
+  Int32 operator-(int32_t rhs);
+  Int32 operator*(const Int32& rhs);
+  Int32 operator*(int32_t rhs);
+  Int32 operator/(const Int32& rhs);
+  Int32 operator/(int32_t rhs);
+  Bool operator==(const Int32& rhs);
+  Bool operator==(int32_t rhs);
+  Bool operator!=(const Int32& rhs);
+  Bool operator!=(int32_t rhs);
+  Bool operator<(const Int32& rhs);
+  Bool operator<(int32_t rhs);
+  Bool operator<=(const Int32& rhs);
+  Bool operator<=(int32_t rhs);
+  Bool operator>(const Int32& rhs);
+  Bool operator>(int32_t rhs);
+  Bool operator>=(const Int32& rhs);
+  Bool operator>=(int32_t rhs);
 
-  std::unique_ptr<Int32<T>> ToPointer();
-  std::unique_ptr<Value<T>> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      Value<T>& right_value) override;
-  void Print(proxy::Printer<T>& printer) override;
-  typename ProgramBuilder<T>::Value Hash() override;
+  std::unique_ptr<Int32> ToPointer();
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
+  void Print(proxy::Printer& printer) override;
+  khir::Value Hash() override;
 
  private:
-  ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value value_;
+  khir::KHIRProgramBuilder& program_;
+  khir::Value value_;
 };
 
-template <typename T>
-class Int64 : public Value<T> {
+class Int64 : public Value {
  public:
-  Int64(ProgramBuilder<T>& program,
-        const typename ProgramBuilder<T>::Value& value);
-  Int64(ProgramBuilder<T>& program, int64_t value);
+  Int64(khir::KHIRProgramBuilder& program, const khir::Value& value);
+  Int64(khir::KHIRProgramBuilder& program, int64_t value);
 
-  typename ProgramBuilder<T>::Value Get() const override;
+  khir::Value Get() const override;
 
-  Int64<T> operator+(const Int64<T>& rhs);
-  Int64<T> operator+(int64_t rhs);
-  Int64<T> operator-(const Int64<T>& rhs);
-  Int64<T> operator-(int64_t rhs);
-  Int64<T> operator*(const Int64<T>& rhs);
-  Int64<T> operator*(int64_t rhs);
-  Int64<T> operator/(const Int64<T>& rhs);
-  Int64<T> operator/(int64_t rhs);
-  Bool<T> operator==(const Int64<T>& rhs);
-  Bool<T> operator==(int64_t rhs);
-  Bool<T> operator!=(const Int64<T>& rhs);
-  Bool<T> operator!=(int64_t rhs);
-  Bool<T> operator<(const Int64<T>& rhs);
-  Bool<T> operator<(int64_t rhs);
-  Bool<T> operator<=(const Int64<T>& rhs);
-  Bool<T> operator<=(int64_t rhs);
-  Bool<T> operator>(const Int64<T>& rhs);
-  Bool<T> operator>(int64_t rhs);
-  Bool<T> operator>=(const Int64<T>& rhs);
-  Bool<T> operator>=(int64_t rhs);
+  Int64 operator+(const Int64& rhs);
+  Int64 operator+(int64_t rhs);
+  Int64 operator-(const Int64& rhs);
+  Int64 operator-(int64_t rhs);
+  Int64 operator*(const Int64& rhs);
+  Int64 operator*(int64_t rhs);
+  Int64 operator/(const Int64& rhs);
+  Int64 operator/(int64_t rhs);
+  Bool operator==(const Int64& rhs);
+  Bool operator==(int64_t rhs);
+  Bool operator!=(const Int64& rhs);
+  Bool operator!=(int64_t rhs);
+  Bool operator<(const Int64& rhs);
+  Bool operator<(int64_t rhs);
+  Bool operator<=(const Int64& rhs);
+  Bool operator<=(int64_t rhs);
+  Bool operator>(const Int64& rhs);
+  Bool operator>(int64_t rhs);
+  Bool operator>=(const Int64& rhs);
+  Bool operator>=(int64_t rhs);
 
-  std::unique_ptr<Int64<T>> ToPointer();
-  std::unique_ptr<Value<T>> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      Value<T>& right_value) override;
-  void Print(proxy::Printer<T>& printer) override;
-  typename ProgramBuilder<T>::Value Hash() override;
+  std::unique_ptr<Int64> ToPointer();
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
+  void Print(proxy::Printer& printer) override;
+  khir::Value Hash() override;
 
  private:
-  ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value value_;
+  khir::KHIRProgramBuilder& program_;
+  khir::Value value_;
 };
 
 }  // namespace kush::compile::proxy
