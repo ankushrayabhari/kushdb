@@ -24,7 +24,6 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 
 #include "compile/khir/instruction.h"
-#include "compile/khir/khir_backend.h"
 #include "compile/khir/khir_program_builder.h"
 #include "compile/khir/type_manager.h"
 

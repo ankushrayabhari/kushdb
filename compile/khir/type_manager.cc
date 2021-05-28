@@ -219,4 +219,44 @@ std::pair<int64_t, Type> TypeManager::GetPointerOffset(
   return {offset, result_type->Get()};
 }
 
+void TypeManager::Translate(TypeTranslator& translator) {
+  for (int i = 0; i < type_id_to_impl_.size(); i++) {
+    auto type_impl = type_id_to_impl_[i].get();
+    if (auto base_type = dynamic_cast<BaseTypeImpl*>(type_impl)) {
+      switch (base_type->TypeId()) {
+        case VOID:
+          translator.TranslateVoidType();
+          break;
+        case I1:
+          translator.TranslateI1Type();
+          break;
+        case I8:
+          translator.TranslateI8Type();
+          break;
+        case I16:
+          translator.TranslateI16Type();
+          break;
+        case I32:
+          translator.TranslateI32Type();
+          break;
+        case I64:
+          translator.TranslateI64Type();
+          break;
+        case F64:
+          translator.TranslateF64Type();
+          break;
+      }
+    } else if (auto ptr_type = dynamic_cast<PointerTypeImpl*>(type_impl)) {
+      translator.TranslatePointerType(ptr_type->ElementType());
+    } else if (auto array_type = dynamic_cast<ArrayTypeImpl*>(type_impl)) {
+      translator.TranslateArrayType(array_type->ElementType(),
+                                    array_type->Length());
+    } else if (auto struct_type = dynamic_cast<StructTypeImpl*>(type_impl)) {
+      translator.TranslateStructType(struct_type->ElementTypes());
+    }
+
+    throw std::runtime_error("Cannot index into type.");
+  }
+}
+
 }  // namespace kush::khir

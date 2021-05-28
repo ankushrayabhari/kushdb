@@ -9,6 +9,7 @@
 #include "type_safe/strong_typedef.hpp"
 
 #include "compile/khir/type_manager.h"
+#include "compile/program.h"
 
 namespace kush::khir {
 
@@ -46,6 +47,32 @@ struct BasicBlockRef
 };
 
 enum class CompType { EQ, NE, LT, LE, GT, GE };
+
+class KhirBackend : public TypeTranslator, public compile::Program {
+ public:
+  virtual ~KhirBackend() = default;
+  virtual void TranslateGlobalConstCharArray(std::string_view s) = 0;
+  virtual void TranslateGlobalStruct(
+      bool constant, Type t, absl::Span<const uint64_t> v,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants) = 0;
+  virtual void TranslateGlobalArray(
+      bool constant, Type t, absl::Span<const uint64_t> v,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants) = 0;
+  virtual void TranslateGlobalPointer(
+      bool constant, Type t, uint64_t v,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants) = 0;
+  virtual void TranslateFuncDecl(bool external, std::string_view name,
+                                 Type function_type) = 0;
+  virtual void TranslateFuncBody(
+      int func_idx, const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants,
+      const std::vector<int>& basic_block_order,
+      const std::vector<std::pair<int, int>>& basic_blocks,
+      const std::vector<uint64_t>& instructions) = 0;
+};
 
 class KHIRProgramBuilder {
  public:
@@ -164,6 +191,8 @@ class KHIRProgramBuilder {
                                      absl::Span<const Value> v);
   std::function<Value()> GlobalPointer(bool constant, Type t, Value v);
 
+  void Translate(KhirBackend& backend);
+
  private:
   class Function {
    public:
@@ -180,8 +209,13 @@ class KHIRProgramBuilder {
     int GetCurrentBasicBlock();
     bool IsTerminated(int basic_block_id);
 
-    khir::Type ReturnType();
-    khir::Type Type();
+    khir::Type ReturnType() const;
+    khir::Type Type() const;
+    bool External() const;
+    std::string_view Name() const;
+    const std::vector<int>& BasicBlockOrder() const;
+    const std::vector<std::pair<int, int>>& BasicBlocks() const;
+    const std::vector<uint64_t>& Instructions() const;
 
    private:
     std::string name_;

@@ -6,7 +6,8 @@
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "compile/llvm/llvm_ir.h"
+#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/llvm/khir_llvm_backend.h"
 #include "compile/program.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/column_index.h"
@@ -24,57 +25,55 @@ namespace kush::compile {
 QueryTranslator::QueryTranslator(const plan::Operator& op) : op_(op) {}
 
 std::unique_ptr<Program> QueryTranslator::Translate() {
-  auto program = std::make_unique<ir::LLVMIr>();
-
-  using T = ir::LLVMIrTypes;
+  khir::KHIRProgramBuilder program;
 
   // Forward declare string functions
-  proxy::String<T>::ForwardDeclare(*program);
+  proxy::String::ForwardDeclare(program);
 
   // Forward declare vector functions
-  proxy::Vector<T>::ForwardDeclare(*program);
+  proxy::Vector::ForwardDeclare(program);
 
   // Forward declare hash functions
-  proxy::HashTable<T>::ForwardDeclare(*program);
+  proxy::HashTable::ForwardDeclare(program);
 
   // Forward declare print function
-  proxy::Printer<T>::ForwardDeclare(*program);
+  proxy::Printer::ForwardDeclare(program);
 
   // Forward declare the column data implementations.
-  proxy::ColumnData<T, catalog::SqlType::SMALLINT>::ForwardDeclare(*program);
-  proxy::ColumnData<T, catalog::SqlType::INT>::ForwardDeclare(*program);
-  proxy::ColumnData<T, catalog::SqlType::BIGINT>::ForwardDeclare(*program);
-  proxy::ColumnData<T, catalog::SqlType::BOOLEAN>::ForwardDeclare(*program);
-  proxy::ColumnData<T, catalog::SqlType::DATE>::ForwardDeclare(*program);
-  proxy::ColumnData<T, catalog::SqlType::REAL>::ForwardDeclare(*program);
-  proxy::ColumnData<T, catalog::SqlType::TEXT>::ForwardDeclare(*program);
+  proxy::ColumnData<catalog::SqlType::SMALLINT>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::SqlType::INT>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::SqlType::BIGINT>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::SqlType::DATE>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::SqlType::REAL>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::SqlType::TEXT>::ForwardDeclare(program);
 
   // Forward declare the column index implementations
-  proxy::ColumnIndexImpl<T, catalog::SqlType::SMALLINT>::ForwardDeclare(
-      *program);
-  proxy::ColumnIndexImpl<T, catalog::SqlType::INT>::ForwardDeclare(*program);
-  proxy::ColumnIndexImpl<T, catalog::SqlType::BIGINT>::ForwardDeclare(*program);
-  proxy::ColumnIndexImpl<T, catalog::SqlType::BOOLEAN>::ForwardDeclare(
-      *program);
-  proxy::ColumnIndexImpl<T, catalog::SqlType::DATE>::ForwardDeclare(*program);
-  proxy::ColumnIndexImpl<T, catalog::SqlType::REAL>::ForwardDeclare(*program);
-  proxy::ColumnIndexImpl<T, catalog::SqlType::TEXT>::ForwardDeclare(*program);
+  proxy::ColumnIndexImpl<catalog::SqlType::SMALLINT>::ForwardDeclare(program);
+  proxy::ColumnIndexImpl<catalog::SqlType::INT>::ForwardDeclare(program);
+  proxy::ColumnIndexImpl<catalog::SqlType::BIGINT>::ForwardDeclare(program);
+  proxy::ColumnIndexImpl<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
+  proxy::ColumnIndexImpl<catalog::SqlType::DATE>::ForwardDeclare(program);
+  proxy::ColumnIndexImpl<catalog::SqlType::REAL>::ForwardDeclare(program);
+  proxy::ColumnIndexImpl<catalog::SqlType::TEXT>::ForwardDeclare(program);
 
-  proxy::SkinnerJoinExecutor<T>::ForwardDeclare(*program);
-  proxy::TupleIdxTable<T>::ForwardDeclare(*program);
+  proxy::SkinnerJoinExecutor::ForwardDeclare(program);
+  proxy::TupleIdxTable::ForwardDeclare(program);
 
   // Create the compute function
-  program->CreatePublicFunction(program->VoidType(), {}, "compute");
+  program.CreatePublicFunction(program.VoidType(), {}, "compute");
 
   // Generate code for operator
-  TranslatorFactory<T> factory(*program);
+  TranslatorFactory factory(program);
   auto translator = factory.Compute(op_);
   translator->Produce();
 
   // terminate last basic block
-  program->Return();
+  program.Return();
 
-  return std::move(program);
+  auto llvm_program = std::make_unique<khir::KhirLLVMBackend>();
+  program.Translate(*llvm_program);
+  return std::move(llvm_program);
 }
 
 }  // namespace kush::compile

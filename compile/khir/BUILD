@@ -16,6 +16,7 @@ cc_library(
         ":instruction",
         ":opcode",
         ":type_manager",
+        "//compile:program",
         "@absl//absl/types:span",
         "@type_safe",
     ],
@@ -36,16 +37,6 @@ cc_library(
         "@llvm-project//llvm:X86AsmParser",
         "@llvm-project//llvm:X86CodeGen",
         "@type_safe",
-    ],
-)
-
-cc_library(
-    name = "khir_backend",
-    hdrs = ["khir_backend.h"],
-    deps = [
-        ":khir_program_builder",
-        ":type_manager",
-        "//compile:program",
     ],
 )
 

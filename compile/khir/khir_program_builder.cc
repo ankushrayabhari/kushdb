@@ -40,9 +40,29 @@ absl::Span<const Value> KHIRProgramBuilder::Function::GetFunctionArguments()
   return arg_values_;
 }
 
-khir::Type KHIRProgramBuilder::Function::ReturnType() { return return_type_; }
+khir::Type KHIRProgramBuilder::Function::ReturnType() const {
+  return return_type_;
+}
 
-khir::Type KHIRProgramBuilder::Function::Type() { return function_type_; }
+khir::Type KHIRProgramBuilder::Function::Type() const { return function_type_; }
+
+bool KHIRProgramBuilder::Function::External() const { return external_; }
+
+std::string_view KHIRProgramBuilder::Function::Name() const { return name_; }
+
+const std::vector<int>& KHIRProgramBuilder::Function::BasicBlockOrder() const {
+  return basic_block_order_;
+}
+
+const std::vector<std::pair<int, int>>&
+KHIRProgramBuilder::Function::BasicBlocks() const {
+  return basic_blocks_;
+}
+
+const std::vector<uint64_t>& KHIRProgramBuilder::Function::Instructions()
+    const {
+  return instructions_;
+}
 
 bool IsTerminatingInstr(Opcode opcode) {
   switch (opcode) {
@@ -1061,6 +1081,42 @@ Value KHIRProgramBuilder::GetElementPtr(Type t, Value ptr,
                                       .Build());
 
   return PointerCast(untyped_location_v, result_type);
+}
+
+void KHIRProgramBuilder::Translate(KhirBackend& backend) {
+  type_manager_.Translate(backend);
+
+  for (const auto& x : global_char_arrays_) {
+    backend.TranslateGlobalConstCharArray(x);
+  }
+
+  for (const auto& x : global_structs_) {
+    backend.TranslateGlobalStruct(x.Constant(), x.Type(), x.InitialValue(),
+                                  i64_constants_, f64_constants_);
+  }
+
+  for (const auto& x : global_arrays_) {
+    backend.TranslateGlobalArray(x.Constant(), x.Type(), x.InitialValue(),
+                                 i64_constants_, f64_constants_);
+  }
+
+  for (const auto& x : global_pointers_) {
+    backend.TranslateGlobalPointer(x.Constant(), x.Type(), x.InitialValue(),
+                                   i64_constants_, f64_constants_);
+  }
+
+  for (const auto& f : functions_) {
+    backend.TranslateFuncDecl(f.External(), f.Name(), f.Type());
+  }
+
+  for (int i = 0; i < functions_.size(); i++) {
+    const auto& f = functions_[i];
+    if (!f.External()) {
+      backend.TranslateFuncBody(i, i64_constants_, f64_constants_,
+                                f.BasicBlockOrder(), f.BasicBlocks(),
+                                f.Instructions());
+    }
+  }
 }
 
 }  // namespace kush::khir

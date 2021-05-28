@@ -65,6 +65,8 @@ class TypeManager {
   std::pair<int64_t, Type> GetPointerOffset(Type t,
                                             absl::Span<const int32_t> idx);
 
+  void Translate(TypeTranslator& translator);
+
  private:
   class TypeImpl {
    public:
