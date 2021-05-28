@@ -99,8 +99,7 @@ cc_library(
     deps = [
         ":bool",
         ":struct",
-        "//compile:ir_registry",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
     ],
 )
 

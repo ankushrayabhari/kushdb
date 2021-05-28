@@ -4,18 +4,15 @@
 #include <utility>
 #include <vector>
 
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/struct.h"
 
 namespace kush::compile::proxy {
 
-template <typename T>
-ComparisonFunction<T>::ComparisonFunction(
-    ProgramBuilder<T>& program, StructBuilder<T> element,
-    std::function<void(Struct<T>&, Struct<T>&, std::function<void(Bool<T>)>)>
-        body) {
+ComparisonFunction::ComparisonFunction(
+    khir::KHIRProgramBuilder& program, StructBuilder element,
+    std::function<void(Struct&, Struct&, std::function<void(Bool)>)> body) {
   auto current_block = program.CurrentBlock();
 
   auto type = program.PointerType(element.Type());
@@ -26,19 +23,14 @@ ComparisonFunction<T>::ComparisonFunction(
   auto s1_ptr = program.PointerCast(args[0], type);
   auto s2_ptr = program.PointerCast(args[1], type);
 
-  Struct<T> s1(program, element, s1_ptr);
-  Struct<T> s2(program, element, s2_ptr);
-  auto return_func = [&](Bool<T> arg) { program.Return(arg.Get()); };
+  Struct s1(program, element, s1_ptr);
+  Struct s2(program, element, s2_ptr);
+  auto return_func = [&](Bool arg) { program.Return(arg.Get()); };
   body(s1, s2, return_func);
 
   program.SetCurrentBlock(current_block);
 }
 
-template <typename T>
-typename ProgramBuilder<T>::Function ComparisonFunction<T>::Get() {
-  return func.value();
-}
-
-INSTANTIATE_ON_IR(ComparisonFunction);
+khir::FunctionRef ComparisonFunction::Get() { return func.value(); }
 
 }  // namespace kush::compile::proxy
