@@ -55,8 +55,7 @@ cc_library(
     deps = [
         ":operator_translator",
         "//catalog:sql_type",
-        "//compile:ir_registry",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
         "//compile/proxy:column_data",
         "//compile/proxy:loop",
         "//plan:scan_operator",

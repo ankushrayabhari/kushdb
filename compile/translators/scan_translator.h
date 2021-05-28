@@ -2,26 +2,26 @@
 
 #include "absl/container/flat_hash_map.h"
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/column_data.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/scan_operator.h"
 
 namespace kush::compile {
 
-template <typename T>
-class ScanTranslator : public OperatorTranslator<T> {
+class ScanTranslator : public OperatorTranslator {
  public:
-  ScanTranslator(const plan::ScanOperator& scan, ProgramBuilder<T>& program,
-                 std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
+  ScanTranslator(const plan::ScanOperator& scan,
+                 khir::KHIRProgramBuilder& program,
+                 std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~ScanTranslator() = default;
 
   void Produce() override;
-  void Consume(OperatorTranslator<T>& src) override;
+  void Consume(OperatorTranslator& src) override;
 
  private:
   const plan::ScanOperator& scan_;
-  ProgramBuilder<T>& program_;
+  khir::KHIRProgramBuilder& program_;
 };
 
 }  // namespace kush::compile
