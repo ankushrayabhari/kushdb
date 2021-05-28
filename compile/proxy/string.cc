@@ -1,7 +1,6 @@
 #include "compile/proxy/string.h"
 
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/bool.h"
 
 namespace kush::compile::proxy {
@@ -22,66 +21,54 @@ constexpr std::string_view LessThanFnName(
     "_ZN4kush4data8LessThanEPNS0_6StringES2_");
 constexpr std::string_view HashFnName("_ZN4kush4data4HashEPNS0_6StringE");
 
-template <typename T>
-String<T>::String(ProgramBuilder<T>& program,
-                  const typename ProgramBuilder<T>::Value& value)
+String::String(khir::KHIRProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-template <typename T>
-void String<T>::Copy(const String<T>& rhs) {
+void String::Copy(const String& rhs) {
   program_.Call(program_.GetFunction(CopyFnName), {value_, rhs.Get()});
 }
 
-template <typename T>
-void String<T>::Reset() {
+void String::Reset() {
   program_.Call(program_.GetFunction(FreeFnName), {value_});
 }
 
-template <typename T>
-Bool<T> String<T>::Contains(const String<T>& rhs) {
-  return Bool<T>(program_, program_.Call(program_.GetFunction(ContainsFnName),
-                                         {value_, rhs.Get()}));
+Bool String::Contains(const String& rhs) {
+  return Bool(program_, program_.Call(program_.GetFunction(ContainsFnName),
+                                      {value_, rhs.Get()}));
 }
 
-template <typename T>
-Bool<T> String<T>::StartsWith(const String<T>& rhs) {
-  return Bool<T>(program_, program_.Call(program_.GetFunction(StartsWithFnName),
-                                         {value_, rhs.Get()}));
+Bool String::StartsWith(const String& rhs) {
+  return Bool(program_, program_.Call(program_.GetFunction(StartsWithFnName),
+                                      {value_, rhs.Get()}));
 }
 
-template <typename T>
-Bool<T> String<T>::EndsWith(const String<T>& rhs) {
-  return Bool<T>(program_, program_.Call(program_.GetFunction(EndsWithFnName),
-                                         {value_, rhs.Get()}));
+Bool String::EndsWith(const String& rhs) {
+  return Bool(program_, program_.Call(program_.GetFunction(EndsWithFnName),
+                                      {value_, rhs.Get()}));
 }
 
-template <typename T>
-Bool<T> String<T>::operator==(const String<T>& rhs) {
-  return Bool<T>(program_, program_.Call(program_.GetFunction(EqualsFnName),
-                                         {value_, rhs.Get()}));
+Bool String::operator==(const String& rhs) {
+  return Bool(program_, program_.Call(program_.GetFunction(EqualsFnName),
+                                      {value_, rhs.Get()}));
 }
 
-template <typename T>
-Bool<T> String<T>::operator!=(const String<T>& rhs) {
-  return Bool<T>(program_, program_.Call(program_.GetFunction(NotEqualsFnName),
-                                         {value_, rhs.Get()}));
+Bool String::operator!=(const String& rhs) {
+  return Bool(program_, program_.Call(program_.GetFunction(NotEqualsFnName),
+                                      {value_, rhs.Get()}));
 }
 
-template <typename T>
-Bool<T> String<T>::operator<(const String<T>& rhs) {
-  return Bool<T>(program_, program_.Call(program_.GetFunction(LessThanFnName),
-                                         {value_, rhs.Get()}));
+Bool String::operator<(const String& rhs) {
+  return Bool(program_, program_.Call(program_.GetFunction(LessThanFnName),
+                                      {value_, rhs.Get()}));
 }
 
-template <typename T>
-std::unique_ptr<String<T>> String<T>::ToPointer() {
-  return std::make_unique<String<T>>(program_, value_);
+std::unique_ptr<String> String::ToPointer() {
+  return std::make_unique<String>(program_, value_);
 }
 
-template <typename T>
-std::unique_ptr<Value<T>> String<T>::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs_generic) {
-  String<T>& rhs = dynamic_cast<String<T>&>(rhs_generic);
+std::unique_ptr<Value> String::EvaluateBinary(
+    plan::BinaryArithmeticOperatorType op_type, Value& rhs_generic) {
+  String& rhs = dynamic_cast<String&>(rhs_generic);
   switch (op_type) {
     case plan::BinaryArithmeticOperatorType::STARTS_WITH:
       return StartsWith(rhs).ToPointer();
@@ -106,33 +93,24 @@ std::unique_ptr<Value<T>> String<T>::EvaluateBinary(
   }
 }
 
-template <typename T>
-void String<T>::Print(proxy::Printer<T>& printer) {
-  printer.Print(*this);
-}
+void String::Print(proxy::Printer& printer) { printer.Print(*this); }
 
-template <typename T>
-typename ProgramBuilder<T>::Value String<T>::Hash() {
+khir::Value String::Hash() {
   return program_.Call(program_.GetFunction(HashFnName), {value_});
 }
 
-template <typename T>
-typename ProgramBuilder<T>::Value String<T>::Get() const {
-  return value_;
-}
+khir::Value String::Get() const { return value_; }
 
-template <typename T>
-String<T> String<T>::Constant(ProgramBuilder<T>& program,
-                              std::string_view value) {
+String String::Constant(khir::KHIRProgramBuilder& program,
+                        std::string_view value) {
   auto char_ptr = program.GlobalConstCharArray(value);
   auto len = program.ConstI32(value.size());
-  return String<T>(program, program.GlobalStruct(
-                                true, program.GetStructType(StringStructName),
-                                {char_ptr, len}));
+  auto str_struct = program.GlobalStruct(
+      true, program.GetStructType(StringStructName), {char_ptr(), len});
+  return String(program, str_struct());
 }
 
-template <typename T>
-void String<T>::ForwardDeclare(ProgramBuilder<T>& program) {
+void String::ForwardDeclare(khir::KHIRProgramBuilder& program) {
   auto struct_type = program.StructType(
       {
           program.PointerType(program.I8Type()),
@@ -158,7 +136,5 @@ void String<T>::ForwardDeclare(ProgramBuilder<T>& program) {
                                   {struct_ptr, struct_ptr});
   program.DeclareExternalFunction(HashFnName, program.I64Type(), {struct_ptr});
 }
-
-INSTANTIATE_ON_IR(String);
 
 }  // namespace kush::compile::proxy

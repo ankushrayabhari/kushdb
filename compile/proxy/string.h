@@ -1,45 +1,43 @@
 #pragma once
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
+#include "compile/proxy/bool.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile::proxy {
 
-template <typename T>
-class String : public Value<T> {
+class String : public Value {
  public:
-  String(ProgramBuilder<T>& program,
-         const typename ProgramBuilder<T>::Value& value);
+  String(khir::KHIRProgramBuilder& program, const khir::Value& value);
 
-  static String<T> Constant(ProgramBuilder<T>& program, std::string_view value);
+  static String Constant(khir::KHIRProgramBuilder& program,
+                         std::string_view value);
 
-  void Copy(const String<T>& rhs);
+  void Copy(const String& rhs);
   void Reset();
 
-  Bool<T> Contains(const String<T>& rhs);
-  Bool<T> StartsWith(const String<T>& rhs);
-  Bool<T> EndsWith(const String<T>& rhs);
-  Bool<T> operator==(const String<T>& rhs);
-  Bool<T> operator!=(const String<T>& rhs);
-  Bool<T> operator<(const String<T>& rhs);
+  Bool Contains(const String& rhs);
+  Bool StartsWith(const String& rhs);
+  Bool EndsWith(const String& rhs);
+  Bool operator==(const String& rhs);
+  Bool operator!=(const String& rhs);
+  Bool operator<(const String& rhs);
 
-  std::unique_ptr<String<T>> ToPointer();
-  std::unique_ptr<Value<T>> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      Value<T>& right_value) override;
-  void Print(proxy::Printer<T>& printer) override;
-  typename ProgramBuilder<T>::Value Hash() override;
-  typename ProgramBuilder<T>::Value Get() const override;
+  std::unique_ptr<String> ToPointer();
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
+  void Print(proxy::Printer& printer) override;
+  khir::Value Hash() override;
+  khir::Value Get() const override;
 
-  static void ForwardDeclare(ProgramBuilder<T>& program);
+  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
   static const std::string_view StringStructName;
 
  private:
-  ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value value_;
+  khir::KHIRProgramBuilder& program_;
+  khir::Value value_;
 };
 
-template <typename T>
-const std::string_view String<T>::StringStructName("kush::data::String");
+const std::string_view String::StringStructName("kush::data::String");
 
 }  // namespace kush::compile::proxy
