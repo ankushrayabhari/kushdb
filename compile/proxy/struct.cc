@@ -6,8 +6,7 @@
 #include "absl/types/span.h"
 
 #include "catalog/sql_type.h"
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
@@ -16,12 +15,10 @@
 
 namespace kush::compile::proxy {
 
-template <typename T>
-StructBuilder<T>::StructBuilder(ProgramBuilder<T>& program)
+StructBuilder::StructBuilder(khir::KHIRProgramBuilder& program)
     : program_(program) {}
 
-template <typename T>
-void StructBuilder<T>::Add(catalog::SqlType type) {
+void StructBuilder::Add(catalog::SqlType type) {
   types_.push_back(type);
   switch (type) {
     case catalog::SqlType::SMALLINT:
@@ -45,8 +42,8 @@ void StructBuilder<T>::Add(catalog::SqlType type) {
       values_.push_back(program_.ConstI64(0));
       break;
     case catalog::SqlType::TEXT:
-      fields_.push_back(program_.GetStructType(String<T>::StringStructName));
-      values_.push_back(String<T>::Constant(program_, "").Get());
+      fields_.push_back(program_.GetStructType(String::StringStructName));
+      values_.push_back(String::Constant(program_, "").Get());
       break;
     case catalog::SqlType::BOOLEAN:
       fields_.push_back(program_.I1Type());
@@ -55,36 +52,19 @@ void StructBuilder<T>::Add(catalog::SqlType type) {
   }
 }
 
-template <typename T>
-void StructBuilder<T>::Build() {
-  struct_type_ = program_.StructType(fields_);
-}
+void StructBuilder::Build() { struct_type_ = program_.StructType(fields_); }
 
-template <typename T>
-typename ProgramBuilder<T>::Type StructBuilder<T>::Type() {
-  return struct_type_.value();
-}
+khir::Type StructBuilder::Type() { return struct_type_.value(); }
 
-template <typename T>
-absl::Span<const catalog::SqlType> StructBuilder<T>::Types() {
-  return types_;
-}
+absl::Span<const catalog::SqlType> StructBuilder::Types() { return types_; }
 
-template <typename T>
-absl::Span<const typename ProgramBuilder<T>::Value>
-StructBuilder<T>::DefaultValues() {
-  return values_;
-}
+absl::Span<const khir::Value> StructBuilder::DefaultValues() { return values_; }
 
-INSTANTIATE_ON_IR(StructBuilder);
-
-template <typename T>
-Struct<T>::Struct(ProgramBuilder<T>& program, StructBuilder<T>& fields,
-                  const typename ProgramBuilder<T>::Value& value)
+Struct::Struct(khir::KHIRProgramBuilder& program, StructBuilder& fields,
+               const khir::Value& value)
     : program_(program), fields_(fields), value_(value) {}
 
-template <typename T>
-void Struct<T>::Pack(std::vector<std::reference_wrapper<Value<T>>> values) {
+void Struct::Pack(std::vector<std::reference_wrapper<Value>> values) {
   auto types = fields_.Types();
   if (values.size() != types.size()) {
     throw std::runtime_error(
@@ -96,68 +76,59 @@ void Struct<T>::Pack(std::vector<std::reference_wrapper<Value<T>>> values) {
     auto v = values[i].get().Get();
 
     if (types[i] == catalog::SqlType::TEXT) {
-      String<T> rhs(program_, v);
-      String<T>(program_, ptr).Copy(rhs);
+      String rhs(program_, v);
+      String(program_, ptr).Copy(rhs);
     } else {
       program_.Store(ptr, v);
     }
   }
 }
 
-template <typename T>
-std::vector<std::unique_ptr<Value<T>>> Struct<T>::Unpack() {
+std::vector<std::unique_ptr<Value>> Struct::Unpack() {
   auto types = fields_.Types();
 
-  std::vector<std::unique_ptr<Value<T>>> result;
+  std::vector<std::unique_ptr<Value>> result;
   for (int i = 0; i < types.size(); i++) {
     auto ptr = program_.GetElementPtr(fields_.Type(), value_, {0, i});
 
     switch (types[i]) {
       case catalog::SqlType::SMALLINT:
-        result.push_back(
-            std::make_unique<Int16<T>>(program_, program_.Load(ptr)));
+        result.push_back(std::make_unique<Int16>(program_, program_.Load(ptr)));
         break;
       case catalog::SqlType::INT:
-        result.push_back(
-            std::make_unique<Int32<T>>(program_, program_.Load(ptr)));
+        result.push_back(std::make_unique<Int32>(program_, program_.Load(ptr)));
         break;
       case catalog::SqlType::BIGINT:
-        result.push_back(
-            std::make_unique<Int64<T>>(program_, program_.Load(ptr)));
+        result.push_back(std::make_unique<Int64>(program_, program_.Load(ptr)));
         break;
       case catalog::SqlType::DATE:
-        result.push_back(
-            std::make_unique<Int64<T>>(program_, program_.Load(ptr)));
+        result.push_back(std::make_unique<Int64>(program_, program_.Load(ptr)));
         break;
       case catalog::SqlType::REAL:
         result.push_back(
-            std::make_unique<Float64<T>>(program_, program_.Load(ptr)));
+            std::make_unique<Float64>(program_, program_.Load(ptr)));
         break;
       case catalog::SqlType::TEXT:
-        result.push_back(std::make_unique<String<T>>(program_, ptr));
+        result.push_back(std::make_unique<String>(program_, ptr));
         break;
       case catalog::SqlType::BOOLEAN:
-        result.push_back(
-            std::make_unique<Bool<T>>(program_, program_.Load(ptr)));
+        result.push_back(std::make_unique<Bool>(program_, program_.Load(ptr)));
         break;
     }
   }
   return result;
 }
 
-template <typename T>
-void Struct<T>::Update(int field, const proxy::Value<T>& v) {
+void Struct::Update(int field, const proxy::Value& v) {
   auto types = fields_.Types();
 
   auto ptr = program_.GetElementPtr(fields_.Type(), value_, {0, field});
 
   if (types[field] == catalog::SqlType::TEXT) {
-    String<T>(program_, ptr).Copy(dynamic_cast<const String<T>&>(v));
+    String(program_, ptr).Copy(dynamic_cast<const String&>(v));
   } else {
     program_.Store(ptr, v.Get());
   }
 }
-
-INSTANTIATE_ON_IR(Struct);
 
 }  // namespace kush::compile::proxy
