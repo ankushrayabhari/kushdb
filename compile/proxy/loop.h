@@ -5,14 +5,13 @@
 #include <utility>
 #include <vector>
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile::proxy {
 
-template <typename T>
 class Loop {
  public:
   class Continuation {
@@ -22,13 +21,11 @@ class Loop {
     Continuation() = default;
   };
 
-  Loop(ProgramBuilder<T>& program, std::function<void(Loop&)> init,
-       std::function<Bool<T>(Loop&)> cond,
+  Loop(khir::KHIRProgramBuilder& program, std::function<void(Loop&)> init,
+       std::function<Bool(Loop&)> cond,
        std::function<Continuation(Loop&)> body);
 
-  void AddLoopVariable(const proxy::Value<T>& v);
-
-  void Break();
+  void AddLoopVariable(const proxy::Value& v);
 
   template <typename S>
   S GetLoopVariable(int i) {
@@ -41,9 +38,10 @@ class Loop {
   }
 
   template <typename... Args>
-  Continuation Continue(const proxy::Value<T>& first, Args const&... rest) {
+  Continuation Continue(const proxy::Value& first, Args const&... rest) {
     int i = phi_nodes_.size() - 1 - sizeof...(rest);
-    program_.AddToPhi(phi_nodes_[i], first.Get(), program_.CurrentBlock());
+    auto phi_member = program_.PhiMember(first.Get());
+    program_.UpdatePhiMember(phi_nodes_[i], phi_member);
     if (sizeof...(rest)) {
       return Continue(rest...);
     } else {
@@ -53,11 +51,11 @@ class Loop {
   }
 
  private:
-  ProgramBuilder<T>& program_;
-  std::vector<typename ProgramBuilder<T>::Value> phi_nodes_;
-  std::vector<typename ProgramBuilder<T>::Value> phi_nodes_initial_values_;
-  typename ProgramBuilder<T>::BasicBlock header_;
-  typename ProgramBuilder<T>::BasicBlock end_;
+  khir::KHIRProgramBuilder& program_;
+  std::vector<khir::Value> phi_nodes_;
+  std::vector<khir::Value> phi_nodes_initial_values_;
+  khir::BasicBlockRef header_;
+  khir::BasicBlockRef end_;
 };
 
 }  // namespace kush::compile::proxy
