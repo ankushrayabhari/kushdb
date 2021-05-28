@@ -7,7 +7,7 @@ cc_library(
     hdrs = ["value.h"],
     deps = [
         ":printer_h",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
         "//plan/expression:binary_arithmetic_expression",
     ],
 )
@@ -17,7 +17,7 @@ cc_library(
     hdrs = ["printer.h"],
     deps = [
         "//compile:ir_registry",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
     ],
 )
 
@@ -31,7 +31,7 @@ cc_library(
         ":printer_h",
         ":string",
         "//compile:ir_registry",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
     ],
 )
 
@@ -188,8 +188,7 @@ cc_library(
     deps = [
         ":printer_h",
         ":value",
-        "//compile:ir_registry",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
         "//plan/expression:binary_arithmetic_expression",
     ],
 )

@@ -3,52 +3,37 @@
 #include <memory>
 
 #include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/value.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
-template <typename T>
-Bool<T>::Bool(ProgramBuilder<T>& program,
-              const typename ProgramBuilder<T>::Value& value)
+Bool::Bool(khir::KHIRProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-template <typename T>
-Bool<T>::Bool(ProgramBuilder<T>& program, bool value)
+Bool::Bool(khir::KHIRProgramBuilder& program, bool value)
     : program_(program), value_(program_.ConstI1(value)) {}
 
-template <typename T>
-typename ProgramBuilder<T>::Value Bool<T>::Get() const {
-  return value_;
+khir::Value Bool::Get() const { return value_; }
+
+Bool Bool::operator!() { return Bool(program_, program_.LNotI1(value_)); }
+
+Bool Bool::operator==(const Bool& rhs) {
+  return Bool(program_, program_.CmpI1(khir::CompType::EQ, value_, rhs.value_));
 }
 
-template <typename T>
-Bool<T> Bool<T>::operator!() {
-  return Bool<T>(program_, program_.LNotI1(value_));
+Bool Bool::operator!=(const Bool& rhs) {
+  return Bool(program_, program_.CmpI1(khir::CompType::NE, value_, rhs.value_));
 }
 
-template <typename T>
-Bool<T> Bool<T>::operator==(const Bool<T>& rhs) {
-  return Bool<T>(program_,
-                 program_.CmpI1(T::CompType::ICMP_EQ, value_, rhs.value_));
+std::unique_ptr<Bool> Bool::ToPointer() {
+  return std::make_unique<Bool>(program_, value_);
 }
 
-template <typename T>
-Bool<T> Bool<T>::operator!=(const Bool<T>& rhs) {
-  return Bool<T>(program_,
-                 program_.CmpI1(T::CompType::ICMP_NE, value_, rhs.value_));
-}
-
-template <typename T>
-std::unique_ptr<Bool<T>> Bool<T>::ToPointer() {
-  return std::make_unique<Bool<T>>(program_, value_);
-}
-
-template <typename T>
-std::unique_ptr<Value<T>> Bool<T>::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) {
-  Bool<T>& rhs_bool = dynamic_cast<Bool<T>&>(rhs);
+std::unique_ptr<Value> Bool::EvaluateBinary(
+    plan::BinaryArithmeticOperatorType op_type, Value& rhs) {
+  Bool& rhs_bool = dynamic_cast<Bool&>(rhs);
 
   switch (op_type) {
     case plan::BinaryArithmeticOperatorType::EQ:
@@ -62,16 +47,8 @@ std::unique_ptr<Value<T>> Bool<T>::EvaluateBinary(
   }
 }
 
-template <typename T>
-void Bool<T>::Print(proxy::Printer<T>& printer) {
-  printer.Print(*this);
-}
+void Bool::Print(proxy::Printer& printer) { printer.Print(*this); }
 
-template <typename T>
-typename ProgramBuilder<T>::Value Bool<T>::Hash() {
-  return program_.ZextI64(value_);
-}
-
-INSTANTIATE_ON_IR(Bool);
+khir::Value Bool::Hash() { return program_.ZextI1(value_); }
 
 }  // namespace kush::compile::proxy

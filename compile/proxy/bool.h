@@ -2,35 +2,33 @@
 
 #include <memory>
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/value.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
-template <typename T>
-class Bool : public Value<T> {
+class Bool : public Value {
  public:
-  Bool(ProgramBuilder<T>& program,
-       const typename ProgramBuilder<T>::Value& value);
-  Bool(ProgramBuilder<T>& program, bool value);
+  Bool(khir::KHIRProgramBuilder& program, const khir::Value& value);
+  Bool(khir::KHIRProgramBuilder& program, bool value);
 
-  typename ProgramBuilder<T>::Value Get() const override;
+  khir::Value Get() const override;
 
-  Bool<T> operator!();
-  Bool<T> operator==(const Bool<T>& rhs);
-  Bool<T> operator!=(const Bool<T>& rhs);
+  Bool operator!();
+  Bool operator==(const Bool& rhs);
+  Bool operator!=(const Bool& rhs);
 
-  std::unique_ptr<Bool<T>> ToPointer();
-  std::unique_ptr<Value<T>> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) override;
-  void Print(proxy::Printer<T>& printer) override;
-  typename ProgramBuilder<T>::Value Hash() override;
+  std::unique_ptr<Bool> ToPointer();
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type, Value& rhs) override;
+  void Print(proxy::Printer& printer) override;
+  khir::Value Hash() override;
 
  private:
-  ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value value_;
+  khir::KHIRProgramBuilder& program_;
+  khir::Value value_;
 };
 
 }  // namespace kush::compile::proxy
