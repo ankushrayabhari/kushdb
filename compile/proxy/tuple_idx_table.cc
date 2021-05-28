@@ -2,8 +2,7 @@
 
 #include <functional>
 
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/loop.h"
 #include "util/vector_util.h"
@@ -35,36 +34,30 @@ constexpr std::string_view free_it_fn_name(
     "_ZN4kush4data4FreeEPPNSt8__detail20_Node_const_"
     "iteratorISt6vectorIiSaIiEELb1ELb1EEE");
 
-template <typename T>
-TupleIdxTable<T>::TupleIdxTable(ProgramBuilder<T>& program)
+TupleIdxTable::TupleIdxTable(khir::KHIRProgramBuilder& program)
     : program_(program),
       value_(program_.GlobalPointer(
           false, program_.PointerType(program_.I8Type()),
-          program_.NullPtr(program_.PointerType(program_.I8Type())))) {
+          program_.NullPtr(program_.PointerType(program_.I8Type())))()) {
   auto tuple_idx_table = program_.Call(program_.GetFunction(create_fn_name));
   program_.Store(value_, tuple_idx_table);
 }
 
-template <typename T>
-TupleIdxTable<T>::~TupleIdxTable() {
+TupleIdxTable::~TupleIdxTable() {
   auto tuple_idx_table = program_.Load(value_);
   program_.Call(program_.GetFunction(free_fn_name), {tuple_idx_table});
 }
 
-template <typename T>
-void TupleIdxTable<T>::Insert(const typename ProgramBuilder<T>::Value& idx_arr,
-                              Int32<T>& num_tables) {
+void TupleIdxTable::Insert(const khir::Value& idx_arr, Int32& num_tables) {
   auto tuple_idx_table = program_.Load(value_);
   program_.Call(program_.GetFunction(insert_fn_name),
                 {tuple_idx_table, idx_arr, num_tables.Get()});
 }
 
-template <typename T>
-void TupleIdxTable<T>::ForEach(
-    std::function<void(const typename ProgramBuilder<T>::Value&)> handler) {
+void TupleIdxTable::ForEach(std::function<void(const khir::Value&)> handler) {
   auto tuple_idx_table = program_.Load(value_);
 
-  auto size = proxy::Int32<T>(
+  auto size = proxy::Int32(
       program_,
       program_.Call(program_.GetFunction(size_fn_name), {tuple_idx_table}));
 
@@ -72,15 +65,15 @@ void TupleIdxTable<T>::ForEach(
   program_.Call(program_.GetFunction(begin_fn_name),
                 {tuple_idx_table, tuple_it});
 
-  proxy::Loop<T>(
+  proxy::Loop(
       program_,
-      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32<T>(program_, 0)); },
+      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
         return i < size;
       },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
 
         auto tuple_idx_arr =
             program_.Call(program_.GetFunction(get_fn_name), {tuple_it});
@@ -95,8 +88,7 @@ void TupleIdxTable<T>::ForEach(
   program_.Call(program_.GetFunction(free_it_fn_name), {tuple_it});
 }
 
-template <typename T>
-void TupleIdxTable<T>::ForwardDeclare(ProgramBuilder<T>& program) {
+void TupleIdxTable::ForwardDeclare(khir::KHIRProgramBuilder& program) {
   auto tuple_idx_table_type = program.PointerType(program.I8Type());
   program.DeclareExternalFunction(create_fn_name, tuple_idx_table_type, {});
   program.DeclareExternalFunction(
@@ -120,7 +112,5 @@ void TupleIdxTable<T>::ForwardDeclare(ProgramBuilder<T>& program) {
   program.DeclareExternalFunction(free_it_fn_name, program.VoidType(),
                                   {tuple_idx_iterator_type});
 }
-
-INSTANTIATE_ON_IR(TupleIdxTable);
 
 }  // namespace kush::compile::proxy
