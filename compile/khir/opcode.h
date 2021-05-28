@@ -91,7 +91,8 @@ enum class Opcode : uint8_t {
   ALLOCA,
   CALL_ARG,
   CALL_INDIRECT,
-  PTR_ADD
+  PTR_ADD,
+  FUNC_PTR
 };
 
 }  // namespace kush::khir

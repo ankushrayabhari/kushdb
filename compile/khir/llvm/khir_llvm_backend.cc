@@ -565,6 +565,12 @@ void KhirLLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::FUNC_PTR: {
+      Type3InstructionReader reader(instr);
+      values[instr_idx] = functions_[reader.Arg()];
+      return;
+    }
+
     case Opcode::PTR_CAST: {
       Type3InstructionReader reader(instr);
       auto t = types_[reader.TypeID()];

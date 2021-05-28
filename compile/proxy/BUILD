@@ -74,8 +74,7 @@ cc_library(
         ":ptr",
         ":struct",
         "//catalog:sql_type",
-        "//compile:ir_registry",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
     ],
 )
 

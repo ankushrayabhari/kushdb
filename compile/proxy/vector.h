@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/if.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -8,32 +8,30 @@
 
 namespace kush::compile::proxy {
 
-template <typename T>
 class Vector {
  public:
-  Vector(ProgramBuilder<T>& program, StructBuilder<T>& content,
+  Vector(khir::KHIRProgramBuilder& program, StructBuilder& content,
          bool global = false);
-  Vector(ProgramBuilder<T>& program, StructBuilder<T>& content,
-         const typename ProgramBuilder<T>::Value& value);
+  Vector(khir::KHIRProgramBuilder& program, StructBuilder& content,
+         const khir::Value& value);
 
-  Struct<T> operator[](const proxy::Int32<T>& idx);
-  Struct<T> PushBack();
-  Int32<T> Size();
+  Struct operator[](const proxy::Int32& idx);
+  Struct PushBack();
+  Int32 Size();
   void Reset();
-  void Sort(const typename ProgramBuilder<T>::Function& comp);
+  void Sort(const khir::FunctionRef& comp);
 
-  static void ForwardDeclare(ProgramBuilder<T>& program);
+  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
 
   static const std::string_view VectorStructName;
 
  private:
-  ProgramBuilder<T>& program_;
-  StructBuilder<T>& content_;
-  typename ProgramBuilder<T>::Type content_type_;
-  typename ProgramBuilder<T>::Value value_;
+  khir::KHIRProgramBuilder& program_;
+  StructBuilder& content_;
+  typename khir::Type content_type_;
+  typename khir::Value value_;
 };
 
-template <typename T>
-const std::string_view Vector<T>::VectorStructName("kush::data::Vector");
+const std::string_view Vector::VectorStructName("kush::data::Vector");
 
 }  // namespace kush::compile::proxy

@@ -76,6 +76,7 @@ class KHIRProgramBuilder {
                                       absl::Span<const Type> arg_types);
   FunctionRef GetFunction(std::string_view name);
   absl::Span<const Value> GetFunctionArguments(FunctionRef func);
+  Value GetFunctionPointer(FunctionRef func);
   Value Call(FunctionRef func, absl::Span<const Value> arguments = {});
   Value Call(Value func, Type type, absl::Span<const Value> arguments = {});
   void Return(Value v);
@@ -179,14 +180,15 @@ class KHIRProgramBuilder {
     int GetCurrentBasicBlock();
     bool IsTerminated(int basic_block_id);
 
-    Type ReturnType();
+    khir::Type ReturnType();
+    khir::Type Type();
 
    private:
     std::string name_;
-    Type return_type_;
-    std::vector<Type> arg_types_;
+    khir::Type return_type_;
+    std::vector<khir::Type> arg_types_;
     std::vector<Value> arg_values_;
-    Type function_type_;
+    khir::Type function_type_;
 
     std::vector<std::pair<int, int>> basic_blocks_;
     std::vector<int> basic_block_order_;

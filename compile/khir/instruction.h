@@ -156,6 +156,7 @@ class Type2InstructionReader {
 //      24-bit ARG
 //      8-bit opcode
 // =============================================================================
+// [MD] [ID] [0]    [ARG] FUNC_PTR
 // [MD] [ID] [0]    [ARG] CALL
 // [MD] [ID] [0]    [ARG] CALL_INDIRECT
 // [MD] [0]  [SARG] [ARG] CALL_ARG

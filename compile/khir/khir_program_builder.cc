@@ -14,8 +14,9 @@
 namespace kush::khir {
 
 KHIRProgramBuilder::Function::Function(std::string_view name,
-                                       Type function_type, Type result_type,
-                                       absl::Span<const Type> arg_types,
+                                       khir::Type function_type,
+                                       khir::Type result_type,
+                                       absl::Span<const khir::Type> arg_types,
                                        bool external)
     : name_(name), function_type_(function_type), external_(external) {
   if (!external_) {
@@ -38,6 +39,10 @@ absl::Span<const Value> KHIRProgramBuilder::Function::GetFunctionArguments()
 
   return arg_values_;
 }
+
+khir::Type KHIRProgramBuilder::Function::ReturnType() { return return_type_; }
+
+khir::Type KHIRProgramBuilder::Function::Type() { return function_type_; }
 
 bool IsTerminatingInstr(Opcode opcode) {
   switch (opcode) {
@@ -381,6 +386,7 @@ Type KHIRProgramBuilder::TypeOf(Value value) {
     case Opcode::PTR_CAST:
     case Opcode::FUNC_ARG:
     case Opcode::NULLPTR:
+    case Opcode::FUNC_PTR:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
     case Opcode::CHAR_ARRAY_GLOBAL_CONST:
@@ -441,6 +447,16 @@ FunctionRef KHIRProgramBuilder::GetFunction(std::string_view name) {
 absl::Span<const Value> KHIRProgramBuilder::GetFunctionArguments(
     FunctionRef func) {
   return functions_[func.GetID()].GetFunctionArguments();
+}
+
+Value KHIRProgramBuilder::GetFunctionPointer(FunctionRef func) {
+  return GetCurrentFunction().Append(
+      Type3InstructionBuilder()
+          .SetOpcode(Opcode::FUNC_PTR)
+          .SetArg(func.GetID())
+          .SetTypeID(type_manager_.PointerType(functions_[func.GetID()].Type())
+                         .GetID())
+          .Build());
 }
 
 Value KHIRProgramBuilder::Call(FunctionRef func,
