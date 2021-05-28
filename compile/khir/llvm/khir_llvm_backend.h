@@ -4,15 +4,16 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
+#include "compile/khir/khir_backend.h"
 #include "compile/khir/khir_program_builder.h"
-#include "compile/khir/khir_program_translator.h"
 #include "compile/khir/type_manager.h"
 
 namespace kush::khir {
 
-class KhirLLVMBackend : public KhirProgramTranslator {
+class KhirLLVMBackend : public KhirBackend {
  public:
   KhirLLVMBackend();
+  virtual ~KhirLLVMBackend() = default;
 
   // Types
   void TranslateVoidType() override;
@@ -52,6 +53,10 @@ class KhirLLVMBackend : public KhirProgramTranslator {
                          const std::vector<std::pair<int, int>>& basic_blocks,
                          const std::vector<uint64_t>& instructions) override;
 
+  // Program
+  void Compile() const override;
+  void Execute() const override;
+
  private:
   void TranslateInstr(
       const std::vector<llvm::Value*>& func_args,
@@ -77,6 +82,8 @@ class KhirLLVMBackend : public KhirProgramTranslator {
   std::vector<llvm::Value*> global_pointers_;
   std::vector<llvm::Value*> global_arrays_;
   std::vector<llvm::Value*> global_structs_;
+  mutable std::chrono::time_point<std::chrono::system_clock> start, gen, comp,
+      link, end;
 };
 
 }  // namespace kush::khir

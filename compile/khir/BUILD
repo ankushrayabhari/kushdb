@@ -40,11 +40,12 @@ cc_library(
 )
 
 cc_library(
-    name = "khir_program_translator",
-    hdrs = ["khir_program_translator.h"],
+    name = "khir_backend",
+    hdrs = ["khir_backend.h"],
     deps = [
         ":khir_program_builder",
         ":type_manager",
+        "//compile:program",
     ],
 )
 

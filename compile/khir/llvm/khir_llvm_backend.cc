@@ -1,13 +1,31 @@
 #include "compile/khir/llvm/khir_llvm_backend.h"
 
-#include "llvm/ADT/iterator_range.h"
+#include <dlfcn.h>
+#include <iostream>
+#include <system_error>
+#include <type_traits>
+
+#include "absl/types/span.h"
+
+#include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
 
 #include "compile/khir/instruction.h"
+#include "compile/khir/khir_backend.h"
 #include "compile/khir/khir_program_builder.h"
-#include "compile/khir/khir_program_translator.h"
 #include "compile/khir/type_manager.h"
 
 namespace kush::khir {
@@ -668,6 +686,108 @@ void KhirLLVMBackend::TranslateInstr(
       return;
     }
   }
+}
+
+void KhirLLVMBackend::Compile() const {
+  gen = std::chrono::system_clock::now();
+  llvm::verifyModule(*module_, &llvm::errs());
+  // module_->print(llvm::errs(), nullptr);
+
+  llvm::legacy::PassManager pass;
+
+  // Setup Optimizations
+  pass.add(llvm::createInstructionCombiningPass());
+  pass.add(llvm::createReassociatePass());
+  pass.add(llvm::createGVNPass());
+  pass.add(llvm::createCFGSimplificationPass());
+  pass.add(llvm::createAggressiveDCEPass());
+  pass.add(llvm::createCFGSimplificationPass());
+
+  // Setup Compilation
+  LLVMInitializeX86TargetInfo();
+  LLVMInitializeX86Target();
+  LLVMInitializeX86TargetMC();
+  LLVMInitializeX86AsmParser();
+  LLVMInitializeX86AsmPrinter();
+
+  auto target_triple = llvm::sys::getDefaultTargetTriple();
+  module_->setTargetTriple(target_triple);
+
+  std::string error;
+  auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
+  if (!target) {
+    throw std::runtime_error("Target not found: " + error);
+  }
+
+  auto cpu = "znver3";
+  auto features = "";
+
+  llvm::TargetOptions opt;
+  auto reloc_model =
+      llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
+  auto target_machine = target->createTargetMachine(target_triple, cpu,
+                                                    features, opt, reloc_model);
+
+  module_->setDataLayout(target_machine->createDataLayout());
+
+  auto file = "/tmp/query.o";
+  std::error_code error_code;
+  llvm::raw_fd_ostream dest(file, error_code, llvm::sys::fs::OF_None);
+  if (error_code) {
+    throw std::runtime_error(error_code.message());
+  }
+  auto FileType = llvm::CGFT_ObjectFile;
+  if (target_machine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+    throw std::runtime_error("Cannot emit object file.");
+  }
+
+  // Run Optimizations and Compilation
+  pass.run(*module_);
+  dest.close();
+
+  // Link
+  if (system(
+          "clang++ -shared -fpic bazel-bin/runtime/libprint_util.so "
+          "bazel-bin/runtime/libstring.so bazel-bin/runtime/libcolumn_data.so "
+          "bazel-bin/runtime/libvector.so bazel-bin/runtime/libhash_table.so "
+          "bazel-bin/runtime/libtuple_idx_table.so "
+          "bazel-bin/runtime/libcolumn_index.so "
+          "bazel-bin/runtime/libskinner_join_executor.so "
+          "/tmp/query.o -o /tmp/query.so")) {
+    throw std::runtime_error("Failed to link file.");
+  }
+
+  comp = std::chrono::system_clock::now();
+}
+
+void KhirLLVMBackend::Execute() const {
+  void* handle = dlopen("/tmp/query.so", RTLD_LAZY);
+
+  if (!handle) {
+    throw std::runtime_error(dlerror());
+  }
+
+  using compute_fn = std::add_pointer<void()>::type;
+  auto process_query = (compute_fn)(dlsym(handle, "compute"));
+  if (!process_query) {
+    dlclose(handle);
+    throw std::runtime_error("Failed to get compute fn.");
+  }
+  link = std::chrono::system_clock::now();
+
+  process_query();
+  dlclose(handle);
+
+  end = std::chrono::system_clock::now();
+  std::cerr << "Performance stats (ms):" << std::endl;
+  std::chrono::duration<double, std::milli> elapsed_seconds = gen - start;
+  std::cerr << "Code generation: " << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = comp - gen;
+  std::cerr << "Compilation: " << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = link - comp;
+  std::cerr << "Linking: " << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = end - link;
+  std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
 }
 
 }  // namespace kush::khir

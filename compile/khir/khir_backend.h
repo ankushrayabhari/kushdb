@@ -2,11 +2,13 @@
 
 #include "compile/khir/khir_program_builder.h"
 #include "compile/khir/type_manager.h"
+#include "compile/program.h"
 
 namespace kush::khir {
 
-class KhirProgramTranslator : public TypeTranslator {
+class KhirBackend : public TypeTranslator, public compile::Program {
  public:
+  virtual ~KhirBackend() = default;
   virtual void TranslateGlobalConstCharArray(std::string_view s) = 0;
   virtual void TranslateGlobalStruct(
       bool constant, Type t, absl::Span<const uint64_t> v,
