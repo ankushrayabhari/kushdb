@@ -207,14 +207,14 @@ void KhirLLVMBackend::TranslateGlobalPointer(
   global_pointers_.push_back(ptr);
 }
 
-void KhirLLVMBackend::TranslateFuncDecl(bool external, std::string_view name,
-                                        Type func_type) {
+void KhirLLVMBackend::TranslateFuncDecl(bool pub, bool external,
+                                        std::string_view name, Type func_type) {
   std::string fn_name(name);
   auto type = llvm::dyn_cast<llvm::FunctionType>(types_[func_type.GetID()]);
   functions_.push_back(llvm::Function::Create(
       type,
-      external ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
-               : llvm::GlobalValue::LinkageTypes::InternalLinkage,
+      (pub || external) ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
+                        : llvm::GlobalValue::LinkageTypes::InternalLinkage,
       fn_name.c_str(), *module_));
 }
 
@@ -236,17 +236,19 @@ void KhirLLVMBackend::TranslateFuncBody(
       phi_member_list;
   std::vector<llvm::Value*> values(instructions.size(), nullptr);
 
+  std::vector<llvm::BasicBlock*> basic_blocks_impl;
   for (int i = 0; i < basic_blocks.size(); i++) {
-    basic_blocks_.push_back(llvm::BasicBlock::Create(*context_, "", function));
+    basic_blocks_impl.push_back(
+        llvm::BasicBlock::Create(*context_, "", function));
   }
 
   for (int i : basic_block_order) {
     const auto& [i_start, i_end] = basic_blocks[i];
 
-    builder_->SetInsertPoint(basic_blocks_[i]);
+    builder_->SetInsertPoint(basic_blocks_impl[i]);
     for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
-      TranslateInstr(args, i64_constants, f64_constants, values,
-                     phi_member_list, instructions, instr_idx);
+      TranslateInstr(args, basic_blocks_impl, i64_constants, f64_constants,
+                     values, phi_member_list, instructions, instr_idx);
     }
   }
 }
@@ -318,6 +320,7 @@ LLVMCmp GetLLVMCompType(Opcode opcode) {
 
 void KhirLLVMBackend::TranslateInstr(
     const std::vector<llvm::Value*>& func_args,
+    const std::vector<llvm::BasicBlock*>& basic_blocks,
     const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants, std::vector<llvm::Value*>& values,
     absl::flat_hash_map<
@@ -517,7 +520,7 @@ void KhirLLVMBackend::TranslateInstr(
 
     case Opcode::BR: {
       Type5InstructionReader reader(instr);
-      auto bb = basic_blocks_[reader.Marg0()];
+      auto bb = basic_blocks[reader.Marg0()];
       values[instr_idx] = builder_->CreateBr(bb);
       return;
     }
@@ -525,8 +528,8 @@ void KhirLLVMBackend::TranslateInstr(
     case Opcode::CONDBR: {
       Type5InstructionReader reader(instr);
       auto v = values[reader.Arg()];
-      auto bb0 = basic_blocks_[reader.Marg0()];
-      auto bb1 = basic_blocks_[reader.Marg1()];
+      auto bb0 = basic_blocks[reader.Marg0()];
+      auto bb1 = basic_blocks[reader.Marg1()];
       values[instr_idx] = builder_->CreateCondBr(v, bb0, bb1);
       return;
     }
@@ -700,7 +703,7 @@ void KhirLLVMBackend::TranslateInstr(
 void KhirLLVMBackend::Compile() const {
   gen = std::chrono::system_clock::now();
   llvm::verifyModule(*module_, &llvm::errs());
-  module_->print(llvm::errs(), nullptr);
+  // module_->print(llvm::errs(), nullptr);
 
   llvm::legacy::PassManager pass;
 

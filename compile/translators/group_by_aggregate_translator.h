@@ -25,7 +25,7 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   void Consume(OperatorTranslator& src) override;
 
  private:
-  proxy::Float64 IntToFloat(proxy::Value& v);
+  proxy::Float64 ToFloat(proxy::Value& v);
 
   const plan::GroupByAggregateOperator& group_by_agg_;
   khir::KHIRProgramBuilder& program_;

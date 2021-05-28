@@ -137,6 +137,9 @@ Type TypeManager::F64Type() { return static_cast<Type>(6); }
 
 Type TypeManager::NamedStructType(absl::Span<const Type> field_type_id,
                                   std::string_view name) {
+  if (struct_name_to_type_id_.contains(name)) {
+    return struct_name_to_type_id_[name];
+  }
   auto id = StructType(field_type_id);
   struct_name_to_type_id_[name] = id;
   return id;

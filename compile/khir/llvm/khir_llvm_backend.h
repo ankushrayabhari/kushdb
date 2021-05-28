@@ -43,7 +43,7 @@ class KhirLLVMBackend : public KhirBackend {
       const std::vector<double>& f64_constants) override;
 
   // Instructions
-  void TranslateFuncDecl(bool external, std::string_view name,
+  void TranslateFuncDecl(bool pub, bool external, std::string_view name,
                          Type function_type) override;
   void TranslateFuncBody(int func_idx,
                          const std::vector<uint64_t>& i64_constants,
@@ -59,6 +59,7 @@ class KhirLLVMBackend : public KhirBackend {
  private:
   void TranslateInstr(
       const std::vector<llvm::Value*>& func_args,
+      const std::vector<llvm::BasicBlock*>& basic_blocks,
       const std::vector<uint64_t>& i64_constants,
       const std::vector<double>& f64_constants,
       std::vector<llvm::Value*>& values,
@@ -75,7 +76,6 @@ class KhirLLVMBackend : public KhirBackend {
   std::unique_ptr<llvm::IRBuilder<>> builder_;
   std::vector<llvm::Type*> types_;
   std::vector<llvm::Function*> functions_;
-  std::vector<llvm::BasicBlock*> basic_blocks_;
   std::vector<llvm::Value*> call_args_;
   std::vector<llvm::Constant*> global_char_arrays_;
   std::vector<llvm::Value*> global_pointers_;

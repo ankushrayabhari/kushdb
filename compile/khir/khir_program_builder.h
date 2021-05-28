@@ -64,7 +64,7 @@ class KhirBackend : public TypeTranslator, public compile::Program {
       bool constant, Type t, uint64_t v,
       const std::vector<uint64_t>& i64_constants,
       const std::vector<double>& f64_constants) = 0;
-  virtual void TranslateFuncDecl(bool external, std::string_view name,
+  virtual void TranslateFuncDecl(bool pub, bool external, std::string_view name,
                                  Type function_type) = 0;
   virtual void TranslateFuncBody(
       int func_idx, const std::vector<uint64_t>& i64_constants,
@@ -197,7 +197,7 @@ class KHIRProgramBuilder {
   class Function {
    public:
     Function(std::string_view name, Type function_type, Type result_type,
-             absl::Span<const Type> arg_types, bool external);
+             absl::Span<const Type> arg_types, bool external, bool p);
     absl::Span<const Value> GetFunctionArguments() const;
 
     void InitBody();
@@ -213,6 +213,7 @@ class KHIRProgramBuilder {
     khir::Type ReturnType() const;
     khir::Type Type() const;
     bool External() const;
+    bool Public() const;
     std::string_view Name() const;
     const std::vector<int>& BasicBlockOrder() const;
     const std::vector<std::pair<int, int>>& BasicBlocks() const;
@@ -231,6 +232,7 @@ class KHIRProgramBuilder {
 
     int current_basic_block_;
     bool external_;
+    bool public_;
   };
 
   TypeManager type_manager_;

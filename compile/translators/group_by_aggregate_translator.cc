@@ -191,13 +191,13 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
 
                   case plan::AggregateType::AVG: {
                     auto next = expr_translator_.Compute(agg.Child());
-                    auto as_float = this->IntToFloat(*next);
+                    auto as_float = this->ToFloat(*next);
 
                     auto sub = as_float.EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::SUB, current_value);
 
                     auto record_count_as_float =
-                        this->IntToFloat(record_count_field);
+                        this->ToFloat(record_count_field);
                     auto to_add = sub->EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::DIV,
                         record_count_as_float);
@@ -256,7 +256,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
           switch (agg.get().AggType()) {
             case plan::AggregateType::AVG: {
               auto v = expr_translator_.Compute(agg.get().Child());
-              values.push_back(this->IntToFloat(*v).ToPointer());
+              values.push_back(this->ToFloat(*v).ToPointer());
               break;
             }
 
@@ -277,7 +277,11 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
       []() -> std::vector<khir::Value> { return {}; });
 }
 
-proxy::Float64 GroupByAggregateTranslator::IntToFloat(proxy::Value& v) {
+proxy::Float64 GroupByAggregateTranslator::ToFloat(proxy::Value& v) {
+  if (auto x = dynamic_cast<proxy::Float64*>(&v)) {
+    return proxy::Float64(*x);
+  }
+
   if (auto x = dynamic_cast<proxy::Int8*>(&v)) {
     return proxy::Float64(program_, *x);
   }

@@ -17,12 +17,13 @@ KHIRProgramBuilder::Function::Function(std::string_view name,
                                        khir::Type function_type,
                                        khir::Type result_type,
                                        absl::Span<const khir::Type> arg_types,
-                                       bool external)
+                                       bool external, bool p)
     : name_(name),
       return_type_(result_type),
       arg_types_(arg_types.begin(), arg_types.end()),
       function_type_(function_type),
-      external_(external) {}
+      external_(external),
+      public_(p) {}
 
 void KHIRProgramBuilder::Function::InitBody() {
   GenerateBasicBlock();
@@ -52,6 +53,8 @@ khir::Type KHIRProgramBuilder::Function::ReturnType() const {
 khir::Type KHIRProgramBuilder::Function::Type() const { return function_type_; }
 
 bool KHIRProgramBuilder::Function::External() const { return external_; }
+
+bool KHIRProgramBuilder::Function::Public() const { return public_; }
 
 std::string_view KHIRProgramBuilder::Function::Name() const { return name_; }
 
@@ -493,7 +496,7 @@ FunctionRef KHIRProgramBuilder::CreateFunction(
   auto idx = functions_.size();
   functions_.emplace_back("_func" + std::to_string(idx),
                           type_manager_.FunctionType(result_type, arg_types),
-                          result_type, arg_types, false);
+                          result_type, arg_types, false, false);
 
   current_function_ = idx;
   functions_.back().InitBody();
@@ -506,7 +509,7 @@ FunctionRef KHIRProgramBuilder::CreatePublicFunction(
   auto idx = functions_.size();
   functions_.emplace_back(name,
                           type_manager_.FunctionType(result_type, arg_types),
-                          result_type, arg_types, false);
+                          result_type, arg_types, false, true);
 
   current_function_ = idx;
   functions_.back().InitBody();
@@ -518,10 +521,14 @@ FunctionRef KHIRProgramBuilder::CreatePublicFunction(
 
 FunctionRef KHIRProgramBuilder::DeclareExternalFunction(
     std::string_view name, Type result_type, absl::Span<const Type> arg_types) {
+  if (name_to_function_.contains(name)) {
+    return name_to_function_[name];
+  }
+
   auto idx = functions_.size();
   functions_.emplace_back(name,
                           type_manager_.FunctionType(result_type, arg_types),
-                          result_type, arg_types, true);
+                          result_type, arg_types, true, false);
   auto ref = static_cast<FunctionRef>(idx);
   name_to_function_[name] = ref;
   return static_cast<FunctionRef>(idx);
@@ -1180,7 +1187,7 @@ void KHIRProgramBuilder::Translate(KhirBackend& backend) {
   }
 
   for (const auto& f : functions_) {
-    backend.TranslateFuncDecl(f.External(), f.Name(), f.Type());
+    backend.TranslateFuncDecl(f.Public(), f.External(), f.Name(), f.Type());
   }
 
   for (int i = 0; i < functions_.size(); i++) {
