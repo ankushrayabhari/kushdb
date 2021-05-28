@@ -1,7 +1,6 @@
 #include "compile/proxy/float.h"
 
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/numeric.h"
@@ -10,169 +9,129 @@
 
 namespace kush::compile::proxy {
 
-template <typename T>
-Float64<T>::Float64(ProgramBuilder<T>& program,
-                    const typename ProgramBuilder<T>::Value& value)
+Float64::Float64(khir::KHIRProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-template <typename T>
-Float64<T>::Float64(ProgramBuilder<T>& program, double value)
+Float64::Float64(khir::KHIRProgramBuilder& program, double value)
     : program_(program), value_(program.ConstF64(value)) {}
 
-template <typename T>
-Float64<T>::Float64(ProgramBuilder<T>& program, const proxy::Int8<T>& v)
-    : program_(program), value_(program_.CastSignedIntToF64(v.Get())) {}
+Float64::Float64(khir::KHIRProgramBuilder& program, const proxy::Int8& v)
+    : program_(program), value_(program_.F64ConvI8(v.Get())) {}
 
-template <typename T>
-Float64<T>::Float64(ProgramBuilder<T>& program, const proxy::Int16<T>& v)
-    : program_(program), value_(program_.CastSignedIntToF64(v.Get())) {}
+Float64::Float64(khir::KHIRProgramBuilder& program, const proxy::Int16& v)
+    : program_(program), value_(program_.F64ConvI16(v.Get())) {}
 
-template <typename T>
-Float64<T>::Float64(ProgramBuilder<T>& program, const proxy::Int32<T>& v)
-    : program_(program), value_(program_.CastSignedIntToF64(v.Get())) {}
+Float64::Float64(khir::KHIRProgramBuilder& program, const proxy::Int32& v)
+    : program_(program), value_(program_.F64ConvI32(v.Get())) {}
 
-template <typename T>
-Float64<T>::Float64(ProgramBuilder<T>& program, const proxy::Int64<T>& v)
-    : program_(program), value_(program_.CastSignedIntToF64(v.Get())) {}
+Float64::Float64(khir::KHIRProgramBuilder& program, const proxy::Int64& v)
+    : program_(program), value_(program_.F64ConvI64(v.Get())) {}
 
-template <typename T>
-typename ProgramBuilder<T>::Value Float64<T>::Get() const {
-  return value_;
+khir::Value Float64::Get() const { return value_; }
+
+Float64 Float64::operator+(const Float64& rhs) {
+  return Float64(program_, program_.AddF64(value_, rhs.value_));
 }
 
-template <typename T>
-Float64<T> Float64<T>::operator+(const Float64<T>& rhs) {
-  return Float64<T>(program_, program_.AddF64(value_, rhs.value_));
+Float64 Float64::operator+(double rhs) {
+  return Float64(program_, program_.AddF64(value_, program_.ConstF64(rhs)));
 }
 
-template <typename T>
-Float64<T> Float64<T>::operator+(double rhs) {
-  return Float64<T>(program_, program_.AddF64(value_, program_.ConstF64(rhs)));
+Float64 Float64::operator-(const Float64& rhs) {
+  return Float64(program_, program_.SubF64(value_, rhs.value_));
 }
 
-template <typename T>
-Float64<T> Float64<T>::operator-(const Float64<T>& rhs) {
-  return Float64<T>(program_, program_.SubF64(value_, rhs.value_));
+Float64 Float64::operator-(double rhs) {
+  return Float64(program_, program_.SubF64(value_, program_.ConstF64(rhs)));
 }
 
-template <typename T>
-Float64<T> Float64<T>::operator-(double rhs) {
-  return Float64<T>(program_, program_.SubF64(value_, program_.ConstF64(rhs)));
+Float64 Float64::operator*(const Float64& rhs) {
+  return Float64(program_, program_.MulF64(value_, rhs.value_));
 }
 
-template <typename T>
-Float64<T> Float64<T>::operator*(const Float64<T>& rhs) {
-  return Float64<T>(program_, program_.MulF64(value_, rhs.value_));
+Float64 Float64::operator*(double rhs) {
+  return Float64(program_, program_.MulF64(value_, program_.ConstF64(rhs)));
 }
 
-template <typename T>
-Float64<T> Float64<T>::operator*(double rhs) {
-  return Float64<T>(program_, program_.MulF64(value_, program_.ConstF64(rhs)));
+Float64 Float64::operator/(const Float64& rhs) {
+  return Float64(program_, program_.DivF64(value_, rhs.value_));
 }
 
-template <typename T>
-Float64<T> Float64<T>::operator/(const Float64<T>& rhs) {
-  return Float64<T>(program_, program_.DivF64(value_, rhs.value_));
+Float64 Float64::operator/(double rhs) {
+  return Float64(program_, program_.DivF64(value_, program_.ConstF64(rhs)));
 }
 
-template <typename T>
-Float64<T> Float64<T>::operator/(double rhs) {
-  return Float64<T>(program_, program_.DivF64(value_, program_.ConstF64(rhs)));
+Bool Float64::operator==(const Float64& rhs) {
+  return Bool(program_,
+              program_.CmpF64(khir::CompType::EQ, value_, rhs.value_));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator==(const Float64<T>& rhs) {
-  return Bool<T>(program_,
-                 program_.CmpF64(T::CompType::FCMP_OEQ, value_, rhs.value_));
+Bool Float64::operator==(double rhs) {
+  return Bool(program_, program_.CmpF64(khir::CompType::EQ, value_,
+                                        program_.ConstF64(rhs)));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator==(double rhs) {
-  return Bool<T>(program_, program_.CmpF64(T::CompType::FCMP_OEQ, value_,
-                                           program_.ConstF64(rhs)));
+Bool Float64::operator!=(const Float64& rhs) {
+  return Bool(program_,
+              program_.CmpF64(khir::CompType::NE, value_, rhs.value_));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator!=(const Float64<T>& rhs) {
-  return Bool<T>(program_,
-                 program_.CmpF64(T::CompType::FCMP_ONE, value_, rhs.value_));
+Bool Float64::operator!=(double rhs) {
+  return Bool(program_, program_.CmpF64(khir::CompType::NE, value_,
+                                        program_.ConstF64(rhs)));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator!=(double rhs) {
-  return Bool<T>(program_, program_.CmpF64(T::CompType::FCMP_ONE, value_,
-                                           program_.ConstF64(rhs)));
+Bool Float64::operator<(const Float64& rhs) {
+  return Bool(program_,
+              program_.CmpF64(khir::CompType::LT, value_, rhs.value_));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator<(const Float64<T>& rhs) {
-  return Bool<T>(program_,
-                 program_.CmpF64(T::CompType::FCMP_OLT, value_, rhs.value_));
+Bool Float64::operator<(double rhs) {
+  return Bool(program_, program_.CmpF64(khir::CompType::LT, value_,
+                                        program_.ConstF64(rhs)));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator<(double rhs) {
-  return Bool<T>(program_, program_.CmpF64(T::CompType::FCMP_OLT, value_,
-                                           program_.ConstF64(rhs)));
+Bool Float64::operator<=(const Float64& rhs) {
+  return Bool(program_,
+              program_.CmpF64(khir::CompType::LE, value_, rhs.value_));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator<=(const Float64<T>& rhs) {
-  return Bool<T>(program_,
-                 program_.CmpF64(T::CompType::FCMP_OLE, value_, rhs.value_));
+Bool Float64::operator<=(double rhs) {
+  return Bool(program_, program_.CmpF64(khir::CompType::LE, value_,
+                                        program_.ConstF64(rhs)));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator<=(double rhs) {
-  return Bool<T>(program_, program_.CmpF64(T::CompType::FCMP_OLE, value_,
-                                           program_.ConstF64(rhs)));
+Bool Float64::operator>(const Float64& rhs) {
+  return Bool(program_,
+              program_.CmpF64(khir::CompType::GT, value_, rhs.value_));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator>(const Float64<T>& rhs) {
-  return Bool<T>(program_,
-                 program_.CmpF64(T::CompType::FCMP_OGT, value_, rhs.value_));
+Bool Float64::operator>(double rhs) {
+  return Bool(program_, program_.CmpF64(khir::CompType::GT, value_,
+                                        program_.ConstF64(rhs)));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator>(double rhs) {
-  return Bool<T>(program_, program_.CmpF64(T::CompType::FCMP_OGT, value_,
-                                           program_.ConstF64(rhs)));
+Bool Float64::operator>=(const Float64& rhs) {
+  return Bool(program_,
+              program_.CmpF64(khir::CompType::GE, value_, rhs.value_));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator>=(const Float64<T>& rhs) {
-  return Bool<T>(program_,
-                 program_.CmpF64(T::CompType::FCMP_OGE, value_, rhs.value_));
+Bool Float64::operator>=(double rhs) {
+  return Bool(program_, program_.CmpF64(khir::CompType::GE, value_,
+                                        program_.ConstF64(rhs)));
 }
 
-template <typename T>
-Bool<T> Float64<T>::operator>=(double rhs) {
-  return Bool<T>(program_, program_.CmpF64(T::CompType::FCMP_OGE, value_,
-                                           program_.ConstF64(rhs)));
+std::unique_ptr<Float64> Float64::ToPointer() {
+  return std::make_unique<Float64>(program_, value_);
 }
 
-template <typename T>
-std::unique_ptr<Float64<T>> Float64<T>::ToPointer() {
-  return std::make_unique<Float64<T>>(program_, value_);
+std::unique_ptr<Value> Float64::EvaluateBinary(
+    plan::BinaryArithmeticOperatorType op_type, Value& rhs) {
+  return EvaluateBinaryNumeric<Float64>(op_type, *this, rhs);
 }
 
-template <typename T>
-std::unique_ptr<Value<T>> Float64<T>::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, Value<T>& rhs) {
-  return EvaluateBinaryNumeric<Float64<T>, T>(op_type, *this, rhs);
-}
+void Float64::Print(proxy::Printer& printer) { printer.Print(*this); }
 
-template <typename T>
-void Float64<T>::Print(proxy::Printer<T>& printer) {
-  printer.Print(*this);
-}
-
-template <typename T>
-typename ProgramBuilder<T>::Value Float64<T>::Hash() {
-  return program_.F64ConversionI64(value_);
-}
-
-INSTANTIATE_ON_IR(Float64);
+khir::Value Float64::Hash() { return program_.I64ConvF64(value_); }
 
 }  // namespace kush::compile::proxy

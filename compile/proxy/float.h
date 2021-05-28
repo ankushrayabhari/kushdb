@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/printer.h"
@@ -11,50 +11,47 @@
 
 namespace kush::compile::proxy {
 
-template <typename T>
-class Float64 : public Value<T> {
+class Float64 : public Value {
  public:
-  Float64(ProgramBuilder<T>& program,
-          const typename ProgramBuilder<T>::Value& value);
-  Float64(ProgramBuilder<T>& program, double value);
-  Float64(ProgramBuilder<T>& program, const proxy::Int8<T>& v);
-  Float64(ProgramBuilder<T>& program, const proxy::Int16<T>& v);
-  Float64(ProgramBuilder<T>& program, const proxy::Int32<T>& v);
-  Float64(ProgramBuilder<T>& program, const proxy::Int64<T>& v);
+  Float64(khir::KHIRProgramBuilder& program, const khir::Value& value);
+  Float64(khir::KHIRProgramBuilder& program, double value);
+  Float64(khir::KHIRProgramBuilder& program, const proxy::Int8& v);
+  Float64(khir::KHIRProgramBuilder& program, const proxy::Int16& v);
+  Float64(khir::KHIRProgramBuilder& program, const proxy::Int32& v);
+  Float64(khir::KHIRProgramBuilder& program, const proxy::Int64& v);
 
-  typename ProgramBuilder<T>::Value Get() const override;
+  khir::Value Get() const override;
 
-  Float64<T> operator+(const Float64<T>& rhs);
-  Float64<T> operator+(double value);
-  Float64<T> operator-(const Float64<T>& rhs);
-  Float64<T> operator-(double value);
-  Float64<T> operator*(const Float64<T>& rhs);
-  Float64<T> operator*(double value);
-  Float64<T> operator/(const Float64<T>& rhs);
-  Float64<T> operator/(double value);
-  Bool<T> operator==(const Float64<T>& rhs);
-  Bool<T> operator==(double value);
-  Bool<T> operator!=(const Float64<T>& rhs);
-  Bool<T> operator!=(double value);
-  Bool<T> operator<(const Float64<T>& rhs);
-  Bool<T> operator<(double value);
-  Bool<T> operator<=(const Float64<T>& rhs);
-  Bool<T> operator<=(double value);
-  Bool<T> operator>(const Float64<T>& rhs);
-  Bool<T> operator>(double value);
-  Bool<T> operator>=(const Float64<T>& rhs);
-  Bool<T> operator>=(double value);
+  Float64 operator+(const Float64& rhs);
+  Float64 operator+(double value);
+  Float64 operator-(const Float64& rhs);
+  Float64 operator-(double value);
+  Float64 operator*(const Float64& rhs);
+  Float64 operator*(double value);
+  Float64 operator/(const Float64& rhs);
+  Float64 operator/(double value);
+  Bool operator==(const Float64& rhs);
+  Bool operator==(double value);
+  Bool operator!=(const Float64& rhs);
+  Bool operator!=(double value);
+  Bool operator<(const Float64& rhs);
+  Bool operator<(double value);
+  Bool operator<=(const Float64& rhs);
+  Bool operator<=(double value);
+  Bool operator>(const Float64& rhs);
+  Bool operator>(double value);
+  Bool operator>=(const Float64& rhs);
+  Bool operator>=(double value);
 
-  std::unique_ptr<Float64<T>> ToPointer();
-  std::unique_ptr<Value<T>> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      Value<T>& right_value) override;
-  void Print(proxy::Printer<T>& printer) override;
-  typename ProgramBuilder<T>::Value Hash() override;
+  std::unique_ptr<Float64> ToPointer();
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
+  void Print(proxy::Printer& printer) override;
+  khir::Value Hash() override;
 
  private:
-  ProgramBuilder<T>& program_;
-  typename ProgramBuilder<T>::Value value_;
+  khir::KHIRProgramBuilder& program_;
+  khir::Value value_;
 };
 
 }  // namespace kush::compile::proxy

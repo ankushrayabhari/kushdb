@@ -115,6 +115,7 @@ class KHIRProgramBuilder {
   Value CmpI8(CompType cmp, Value v1, Value v2);
   Value ConstI8(uint8_t v);
   Value ZextI8(Value v);
+  Value F64ConvI8(Value v);
 
   // I16
   Value AddI16(Value v1, Value v2);
@@ -124,6 +125,7 @@ class KHIRProgramBuilder {
   Value CmpI16(CompType cmp, Value v1, Value v2);
   Value ConstI16(uint16_t v);
   Value ZextI16(Value v);
+  Value F64ConvI16(Value v);
 
   // I32
   Value AddI32(Value v1, Value v2);
@@ -133,6 +135,7 @@ class KHIRProgramBuilder {
   Value CmpI32(CompType cmp, Value v1, Value v2);
   Value ConstI32(uint32_t v);
   Value ZextI32(Value v);
+  Value F64ConvI32(Value v);
 
   // I64
   Value AddI64(Value v1, Value v2);

@@ -505,6 +505,8 @@ void KhirLLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I16_CONV_F64:
+    case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64: {
       Type2InstructionReader reader(instr);
       auto v = values[reader.Arg0()];

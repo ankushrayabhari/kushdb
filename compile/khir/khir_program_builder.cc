@@ -358,6 +358,8 @@ Type KHIRProgramBuilder::TypeOf(Value value) {
     case Opcode::F64_MUL:
     case Opcode::F64_SUB:
     case Opcode::F64_DIV:
+    case Opcode::I16_CONV_F64:
+    case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
       return type_manager_.F64Type();
 
@@ -696,6 +698,13 @@ Value KHIRProgramBuilder::ZextI16(Value v) {
                                          .Build());
 }
 
+Value KHIRProgramBuilder::F64ConvI16(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I16_CONV_F64)
+                                         .SetArg0(v.GetID())
+                                         .Build());
+}
+
 // I32
 Value KHIRProgramBuilder::AddI32(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
@@ -774,6 +783,13 @@ Value KHIRProgramBuilder::ConstI32(uint32_t v) {
 Value KHIRProgramBuilder::ZextI32(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I32_ZEXT_I64)
+                                         .SetArg0(v.GetID())
+                                         .Build());
+}
+
+Value KHIRProgramBuilder::F64ConvI32(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I32_CONV_F64)
                                          .SetArg0(v.GetID())
                                          .Build());
 }
