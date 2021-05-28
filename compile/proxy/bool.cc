@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "compile/ir_registry.h"
 #include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/value.h"
 #include "plan/expression/binary_arithmetic_expression.h"

@@ -3,8 +3,7 @@
 #include <functional>
 #include <vector>
 
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"

@@ -3,7 +3,7 @@
 #include <functional>
 #include <vector>
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
 

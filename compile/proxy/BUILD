@@ -16,7 +16,6 @@ cc_library(
     name = "printer_h",
     hdrs = ["printer.h"],
     deps = [
-        "//compile:ir_registry",
         "//compile/khir:khir_program_builder",
     ],
 )
@@ -30,7 +29,6 @@ cc_library(
         ":int",
         ":printer_h",
         ":string",
-        "//compile:ir_registry",
         "//compile/khir:khir_program_builder",
     ],
 )
@@ -58,8 +56,7 @@ cc_library(
         ":loop",
         ":struct",
         ":vector",
-        "//compile:ir_registry",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
         "//util:vector_util",
     ],
 )
