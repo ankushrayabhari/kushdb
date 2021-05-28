@@ -190,6 +190,7 @@ cc_library(
         ":scan_translator",
         ":select_translator",
         ":skinner_join_translator",
+        "//compile/khir:khir_program_builder",
         "//compile/proxy:hash_table",
         "//compile/proxy:vector",
         "//plan:hash_join_operator",
