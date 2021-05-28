@@ -4,8 +4,7 @@
 #include <memory>
 
 #include "catalog/sql_type.h"
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -104,8 +103,9 @@ std::string_view StructName() {
   }
 }
 
-template <typename T, catalog::SqlType S>
-ColumnData<T, S>::ColumnData(ProgramBuilder<T>& program, std::string_view path)
+template <catalog::SqlType S>
+ColumnData<S>::ColumnData(khir::KHIRProgramBuilder& program,
+                          std::string_view path)
     : program_(program) {
   auto path_value = program_.GlobalConstCharArray(path);
   value_ = program_.Alloca(program.GetStructType(StructName<S>()));
@@ -113,51 +113,50 @@ ColumnData<T, S>::ColumnData(ProgramBuilder<T>& program, std::string_view path)
                 {value_.value(), path_value});
 
   if constexpr (S == catalog::SqlType::TEXT) {
-    result_ =
-        program_.Alloca(program_.GetStructType(String<T>::StringStructName));
+    result_ = program_.Alloca(program_.GetStructType(String::StringStructName));
   }
 }
 
-template <typename T, catalog::SqlType S>
-ColumnData<T, S>::~ColumnData() {
+template <catalog::SqlType S>
+ColumnData<S>::~ColumnData() {
   program_.Call(program_.GetFunction(CloseFnName<S>()), {value_.value()});
 }
 
-template <typename T, catalog::SqlType S>
-Int32<T> ColumnData<T, S>::Size() {
-  return Int32<T>(program_, program_.Call(program_.GetFunction(SizeFnName<S>()),
-                                          {value_.value()}));
+template <catalog::SqlType S>
+Int32 ColumnData<S>::Size() {
+  return Int32(program_, program_.Call(program_.GetFunction(SizeFnName<S>()),
+                                       {value_.value()}));
 }
 
-template <typename T, catalog::SqlType S>
-std::unique_ptr<Value<T>> ColumnData<T, S>::operator[](Int32<T>& idx) {
+template <catalog::SqlType S>
+std::unique_ptr<Value> ColumnData<S>::operator[](Int32& idx) {
   if constexpr (catalog::SqlType::TEXT == S) {
     program_.Call(program_.GetFunction(GetFnName<S>()),
                   {value_.value(), idx.Get(), result_.value()});
-    return std::make_unique<String<T>>(program_, result_.value());
+    return std::make_unique<String>(program_, result_.value());
   }
 
   auto elem = program_.Call(program_.GetFunction(GetFnName<S>()),
                             {value_.value(), idx.Get()});
 
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return std::make_unique<Int16<T>>(program_, elem);
+    return std::make_unique<Int16>(program_, elem);
   } else if constexpr (catalog::SqlType::INT == S) {
-    return std::make_unique<Int32<T>>(program_, elem);
+    return std::make_unique<Int32>(program_, elem);
   } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return std::make_unique<Int64<T>>(program_, elem);
+    return std::make_unique<Int64>(program_, elem);
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return std::make_unique<Float64<T>>(program_, elem);
+    return std::make_unique<Float64>(program_, elem);
   } else if constexpr (catalog::SqlType::DATE == S) {
-    return std::make_unique<Int64<T>>(program_, elem);
+    return std::make_unique<Int64>(program_, elem);
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return std::make_unique<Bool<T>>(program_, elem);
+    return std::make_unique<Bool>(program_, elem);
   }
 }
 
-template <typename T, catalog::SqlType S>
-void ColumnData<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
-  std::optional<typename ProgramBuilder<T>::Type> elem_type;
+template <catalog::SqlType S>
+void ColumnData<S>::ForwardDeclare(khir::KHIRProgramBuilder& program) {
+  std::optional<typename khir::Type> elem_type;
 
   // Initialize all the mangled names and the corresponding data type
   if constexpr (catalog::SqlType::SMALLINT == S) {
@@ -190,22 +189,14 @@ void ColumnData<T, S>::ForwardDeclare(ProgramBuilder<T>& program) {
                                   {struct_ptr});
 
   if constexpr (catalog::SqlType::TEXT == S) {
-    program.DeclareExternalFunction(GetFnName<S>(), program.VoidType(),
-                                    {struct_ptr, program.I32Type(),
-                                     program.PointerType(program.GetStructType(
-                                         String<T>::StringStructName))});
+    program.DeclareExternalFunction(
+        GetFnName<S>(), program.VoidType(),
+        {struct_ptr, program.I32Type(),
+         program.PointerType(program.GetStructType(String::StringStructName))});
   } else {
     program.DeclareExternalFunction(GetFnName<S>(), elem_type.value(),
                                     {struct_ptr, program.I32Type()});
   }
 }
-
-INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::SMALLINT);
-INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::INT);
-INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::BIGINT);
-INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::REAL);
-INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::DATE);
-INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::BOOLEAN);
-INSTANTIATE_ON_IR(ColumnData, catalog::SqlType::TEXT);
 
 }  // namespace kush::compile::proxy

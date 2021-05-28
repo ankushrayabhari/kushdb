@@ -59,10 +59,10 @@ class KHIRProgramBuilder {
   Type I32Type();
   Type I64Type();
   Type F64Type();
-  Type StructType(absl::Span<const Type> types, std::string_view name);
+  Type StructType(absl::Span<const Type> types, std::string_view name = "");
   Type GetStructType(std::string_view name);
   Type PointerType(Type type);
-  Type ArrayType(Type type, int len);
+  Type ArrayType(Type type, int len = 0);
   Type FunctionType(Type result, absl::Span<const Type> args);
   Type TypeOf(Value value);
 

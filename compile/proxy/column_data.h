@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "catalog/sql_type.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -11,29 +11,28 @@
 
 namespace kush::compile::proxy {
 
-template <typename T>
 class Iterable {
  public:
   virtual ~Iterable() = default;
-  virtual Int32<T> Size() = 0;
-  virtual std::unique_ptr<Value<T>> operator[](Int32<T>& idx) = 0;
+  virtual Int32 Size() = 0;
+  virtual std::unique_ptr<Value> operator[](Int32& idx) = 0;
 };
 
-template <typename T, catalog::SqlType S>
-class ColumnData : public Iterable<T> {
+template <catalog::SqlType S>
+class ColumnData : public Iterable {
  public:
-  ColumnData(ProgramBuilder<T>& program, std::string_view path);
+  ColumnData(khir::KHIRProgramBuilder& program, std::string_view path);
   virtual ~ColumnData();
 
-  Int32<T> Size() override;
-  std::unique_ptr<Value<T>> operator[](Int32<T>& idx) override;
+  Int32 Size() override;
+  std::unique_ptr<Value> operator[](Int32& idx) override;
 
-  static void ForwardDeclare(ProgramBuilder<T>& program);
+  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
 
  private:
-  ProgramBuilder<T>& program_;
-  std::optional<typename ProgramBuilder<T>::Value> value_;
-  std::optional<typename ProgramBuilder<T>::Value> result_;
+  khir::KHIRProgramBuilder& program_;
+  std::optional<khir::Value> value_;
+  std::optional<khir::Value> result_;
 };
 
 }  // namespace kush::compile::proxy

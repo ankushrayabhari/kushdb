@@ -138,7 +138,7 @@ cc_library(
         ":string",
         ":value",
         "//catalog:sql_type",
-        "//compile:program_builder",
+        "//compile/khir:khir_program_builder",
     ],
 )
 
