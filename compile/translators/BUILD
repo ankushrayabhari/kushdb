@@ -94,7 +94,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile:ir_registry",
+        "//compile/khir:khir_program_builder",
         "//plan:cross_product_operator",
     ],
 )

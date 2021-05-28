@@ -1,29 +1,23 @@
 #include "compile/translators/cross_product_translator.h"
 
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/cross_product_operator.h"
 
 namespace kush::compile {
 
-template <typename T>
-CrossProductTranslator<T>::CrossProductTranslator(
-    const plan::CrossProductOperator& cross_product, ProgramBuilder<T>& program,
-    std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(cross_product, std::move(children)),
+CrossProductTranslator::CrossProductTranslator(
+    const plan::CrossProductOperator& cross_product,
+    khir::KHIRProgramBuilder& program,
+    std::vector<std::unique_ptr<OperatorTranslator>> children)
+    : OperatorTranslator(cross_product, std::move(children)),
       cross_product_(cross_product),
-      program_(program),
       expr_translator_(program, *this) {}
 
-template <typename T>
-void CrossProductTranslator<T>::Produce() {
-  this->LeftChild().Produce();
-}
+void CrossProductTranslator::Produce() { this->LeftChild().Produce(); }
 
-template <typename T>
-void CrossProductTranslator<T>::Consume(OperatorTranslator<T>& src) {
+void CrossProductTranslator::Consume(OperatorTranslator& src) {
   auto& left_child = this->LeftChild();
   auto& right_child = this->RightChild();
 
@@ -40,7 +34,5 @@ void CrossProductTranslator<T>::Consume(OperatorTranslator<T>& src) {
     }
   }
 }
-
-INSTANTIATE_ON_IR(CrossProductTranslator);
 
 }  // namespace kush::compile

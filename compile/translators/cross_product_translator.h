@@ -4,29 +4,27 @@
 #include <utility>
 #include <vector>
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/cross_product_operator.h"
 
 namespace kush::compile {
 
-template <typename T>
-class CrossProductTranslator : public OperatorTranslator<T> {
+class CrossProductTranslator : public OperatorTranslator {
  public:
   CrossProductTranslator(
       const plan::CrossProductOperator& cross_product,
-      ProgramBuilder<T>& program,
-      std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
+      khir::KHIRProgramBuilder& program,
+      std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~CrossProductTranslator() = default;
 
   void Produce() override;
-  void Consume(OperatorTranslator<T>& src) override;
+  void Consume(OperatorTranslator& src) override;
 
  private:
   const plan::CrossProductOperator& cross_product_;
-  ProgramBuilder<T>& program_;
-  ExpressionTranslator<T> expr_translator_;
+  ExpressionTranslator expr_translator_;
 };
 
 }  // namespace kush::compile
