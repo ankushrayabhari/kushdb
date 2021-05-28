@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/ir_registry.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/loop.h"
@@ -18,23 +18,21 @@
 
 namespace kush::compile {
 
-template <typename T>
-GroupByAggregateTranslator<T>::GroupByAggregateTranslator(
+GroupByAggregateTranslator::GroupByAggregateTranslator(
     const plan::GroupByAggregateOperator& group_by_agg,
-    ProgramBuilder<T>& program,
-    std::vector<std::unique_ptr<OperatorTranslator<T>>> children)
-    : OperatorTranslator<T>(group_by_agg, std::move(children)),
+    khir::KHIRProgramBuilder& program,
+    std::vector<std::unique_ptr<OperatorTranslator>> children)
+    : OperatorTranslator(group_by_agg, std::move(children)),
       group_by_agg_(group_by_agg),
       program_(program),
       expr_translator_(program, *this) {}
 
-template <typename T>
-void GroupByAggregateTranslator<T>::Produce() {
+void GroupByAggregateTranslator::Produce() {
   auto group_by_exprs = group_by_agg_.GroupByExprs();
   auto agg_exprs = group_by_agg_.AggExprs();
 
   // Struct for hash table
-  proxy::StructBuilder<T> packed(program_);
+  proxy::StructBuilder packed(program_);
   {
     // Include a field for counting # of records per group
     packed.Add(catalog::SqlType::BIGINT);
@@ -52,17 +50,17 @@ void GroupByAggregateTranslator<T>::Produce() {
   packed.Build();
 
   // Declare the hash table from group by keys -> struct list
-  buffer_ = std::make_unique<proxy::HashTable<T>>(program_, packed);
+  buffer_ = std::make_unique<proxy::HashTable>(program_, packed);
 
   // Declare the found variable
-  found_ = std::make_unique<proxy::Ptr<T, proxy::Bool<T>>>(
+  found_ = std::make_unique<proxy::Ptr<proxy::Bool>>(
       program_, program_.Alloca(program_.I1Type()));
 
   // Populate hash table
   this->Child().Produce();
 
   // Loop over elements of HT and output row
-  buffer_->ForEach([&](proxy::Struct<T>& packed) {
+  buffer_->ForEach([&](proxy::Struct& packed) {
     auto values = packed.Unpack();
 
     // everything except the group row counter is a virtual column
@@ -84,10 +82,10 @@ void GroupByAggregateTranslator<T>::Produce() {
   buffer_.reset();
 }
 
-template <typename T>
 void CheckEquality(
-    int i, ProgramBuilder<T>& program, ExpressionTranslator<T>& expr_translator,
-    std::vector<std::reference_wrapper<proxy::Value<T>>>& values,
+    int i, khir::KHIRProgramBuilder& program,
+    ExpressionTranslator& expr_translator,
+    std::vector<std::reference_wrapper<proxy::Value>>& values,
     std::vector<std::reference_wrapper<const kush::plan::Expression>>&
         group_by_exprs,
     std::function<void()> true_case) {
@@ -101,46 +99,49 @@ void CheckEquality(
   auto rhs = expr_translator.Compute(group_by_exprs[i]);
   auto cond = lhs.EvaluateBinary(plan::BinaryArithmeticOperatorType::EQ, *rhs);
 
-  proxy::If<T>(program, static_cast<proxy::Bool<T>&>(*cond), [&]() {
-    CheckEquality(i + 1, program, expr_translator, values, group_by_exprs,
-                  true_case);
-  });
+  proxy::If(
+      program, static_cast<proxy::Bool&>(*cond),
+      [&]() -> std::vector<khir::Value> {
+        CheckEquality(i + 1, program, expr_translator, values, group_by_exprs,
+                      true_case);
+        return {};
+      },
+      []() -> std::vector<khir::Value> { return {}; });
 }
 
-template <typename T>
-void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
+void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
   auto group_by_exprs = group_by_agg_.GroupByExprs();
   auto agg_exprs = group_by_agg_.AggExprs();
 
   // keys = all group by exprs
-  std::vector<std::unique_ptr<proxy::Value<T>>> keys;
+  std::vector<std::unique_ptr<proxy::Value>> keys;
   for (const auto& group_by : group_by_exprs) {
     keys.push_back(expr_translator_.Compute(group_by.get()));
   }
 
-  found_->Store(proxy::Bool<T>(program_, false));
+  found_->Store(proxy::Bool(program_, false));
 
   // Loop over bucket if exists
   auto bucket = buffer_->Get(util::ReferenceVector(keys));
   auto size = bucket.Size();
 
-  proxy::Loop<T>(
+  proxy::Loop(
       program_,
-      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32<T>(program_, 0)); },
+      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
         return i < size;
       },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32<T>>(0);
+        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
 
         auto packed = bucket[i];
         auto values = packed.Unpack();
 
         auto values_ref = util::ReferenceVector(values);
-        CheckEquality<T>(
+        CheckEquality(
             0, program_, expr_translator_, values_ref, group_by_exprs, [&]() {
-              found_->Store(proxy::Bool<T>(program_, true));
+              found_->Store(proxy::Bool(program_, true));
 
               auto& record_count_field = *values[0];
 
@@ -163,8 +164,13 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
                     auto cond = next->EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::LT, current_value);
 
-                    proxy::If<T>(program_, static_cast<proxy::Bool<T>&>(*cond),
-                                 [&]() { packed.Update(i, *next); });
+                    proxy::If(
+                        program_, static_cast<proxy::Bool&>(*cond),
+                        [&]() -> std::vector<khir::Value> {
+                          packed.Update(i, *next);
+                          return {};
+                        },
+                        []() -> std::vector<khir::Value> { return {}; });
                     break;
                   }
 
@@ -173,22 +179,25 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
                     auto cond = next->EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::GT, current_value);
 
-                    proxy::If<T>(program_, static_cast<proxy::Bool<T>&>(*cond),
-                                 [&]() { packed.Update(i, *next); });
+                    proxy::If(
+                        program_, static_cast<proxy::Bool&>(*cond),
+                        [&]() -> std::vector<khir::Value> {
+                          packed.Update(i, *next);
+                          return {};
+                        },
+                        []() -> std::vector<khir::Value> { return {}; });
                     break;
                   }
 
                   case plan::AggregateType::AVG: {
                     auto next = expr_translator_.Compute(agg.Child());
-                    auto as_float = proxy::Float64<T>(
-                        program_, program_.CastSignedIntToF64(next->Get()));
+                    auto as_float = this->IntToFloat(*next);
 
                     auto sub = as_float.EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::SUB, current_value);
 
-                    auto record_count_as_float = proxy::Float64<T>(
-                        program_,
-                        program_.CastSignedIntToF64(record_count_field.Get()));
+                    auto record_count_as_float =
+                        this->IntToFloat(record_count_field);
                     auto to_add = sub->EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::DIV,
                         record_count_as_float);
@@ -199,7 +208,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
                   }
 
                   case plan::AggregateType::COUNT: {
-                    auto one = proxy::Int64<T>(program_, 1);
+                    auto one = proxy::Int64(program_, 1);
                     auto sum = current_value.EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::ADD, one);
                     packed.Update(i, *sum);
@@ -209,7 +218,7 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
               }
 
               // increment record counter field
-              auto one = proxy::Int64<T>(program_, 1);
+              auto one = proxy::Int64(program_, 1);
               auto sum = record_count_field.EvaluateBinary(
                   plan::BinaryArithmeticOperatorType::ADD, one);
               packed.Update(0, *sum);
@@ -217,50 +226,75 @@ void GroupByAggregateTranslator<T>::Consume(OperatorTranslator<T>& src) {
 
         // If we didn't find, move to next element
         // Else, break out of loop
-        std::unique_ptr<proxy::Int32<T>> next_index;
-        proxy::If<T> check(program_, !found_->Load(),
-                           [&]() { next_index = (i + 1).ToPointer(); });
-        return loop.Continue(check.Phi(size, *next_index));
+        std::unique_ptr<proxy::Int32> next_index;
+        proxy::Int32 next(
+            program_,
+            proxy::If(
+                program_, !found_->Load(),
+                [&]() -> std::vector<khir::Value> { return {(i + 1).Get()}; },
+                [&]() -> std::vector<khir::Value> { return {size.Get()}; })[0]);
+        return loop.Continue(next);
       });
 
-  proxy::If<T>(program_, !found_->Load(), [&]() {
-    auto inserted = buffer_->Insert(util::ReferenceVector(keys));
+  proxy::If(
+      program_, !found_->Load(),
+      [&]() -> std::vector<khir::Value> {
+        auto inserted = buffer_->Insert(util::ReferenceVector(keys));
 
-    std::vector<std::unique_ptr<proxy::Value<T>>> values;
+        std::vector<std::unique_ptr<proxy::Value>> values;
 
-    // Record Counter
-    values.push_back(std::make_unique<proxy::Int64<T>>(program_, 2));
+        // Record Counter
+        values.push_back(std::make_unique<proxy::Int64>(program_, 2));
 
-    // Group By Values
-    for (auto& group_by : group_by_exprs) {
-      values.push_back(expr_translator_.Compute(group_by.get()));
-    }
-
-    // Aggregates
-    for (auto& agg : agg_exprs) {
-      switch (agg.get().AggType()) {
-        case plan::AggregateType::AVG: {
-          auto v = expr_translator_.Compute(agg.get().Child());
-          values.push_back(std::make_unique<proxy::Float64<T>>(
-              program_, program_.CastSignedIntToF64(v->Get())));
-          break;
+        // Group By Values
+        for (auto& group_by : group_by_exprs) {
+          values.push_back(expr_translator_.Compute(group_by.get()));
         }
 
-        case plan::AggregateType::SUM:
-        case plan::AggregateType::MAX:
-        case plan::AggregateType::MIN:
-          values.push_back(expr_translator_.Compute(agg.get().Child()));
-          break;
-        case plan::AggregateType::COUNT:
-          values.push_back(std::make_unique<proxy::Int64<T>>(program_, 1));
-          break;
-      }
-    }
+        // Aggregates
+        for (auto& agg : agg_exprs) {
+          switch (agg.get().AggType()) {
+            case plan::AggregateType::AVG: {
+              auto v = expr_translator_.Compute(agg.get().Child());
+              values.push_back(this->IntToFloat(*v).ToPointer());
+              break;
+            }
 
-    inserted.Pack(util::ReferenceVector(values));
-  });
+            case plan::AggregateType::SUM:
+            case plan::AggregateType::MAX:
+            case plan::AggregateType::MIN:
+              values.push_back(expr_translator_.Compute(agg.get().Child()));
+              break;
+            case plan::AggregateType::COUNT:
+              values.push_back(std::make_unique<proxy::Int64>(program_, 1));
+              break;
+          }
+        }
+
+        inserted.Pack(util::ReferenceVector(values));
+        return {};
+      },
+      []() -> std::vector<khir::Value> { return {}; });
 }
 
-INSTANTIATE_ON_IR(GroupByAggregateTranslator);
+proxy::Float64 GroupByAggregateTranslator::IntToFloat(proxy::Value& v) {
+  if (auto x = dynamic_cast<proxy::Int8*>(&v)) {
+    return proxy::Float64(program_, *x);
+  }
+
+  if (auto x = dynamic_cast<proxy::Int16*>(&v)) {
+    return proxy::Float64(program_, *x);
+  }
+
+  if (auto x = dynamic_cast<proxy::Int32*>(&v)) {
+    return proxy::Float64(program_, *x);
+  }
+
+  if (auto x = dynamic_cast<proxy::Int64*>(&v)) {
+    return proxy::Float64(program_, *x);
+  }
+
+  throw std::runtime_error("Can't convert non-integral type to float.");
+}
 
 }  // namespace kush::compile

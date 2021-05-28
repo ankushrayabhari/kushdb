@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/ptr.h"
 #include "compile/translators/expression_translator.h"
@@ -12,24 +13,25 @@
 
 namespace kush::compile {
 
-template <typename T>
-class GroupByAggregateTranslator : public OperatorTranslator<T> {
+class GroupByAggregateTranslator : public OperatorTranslator {
  public:
   GroupByAggregateTranslator(
       const plan::GroupByAggregateOperator& group_by_agg,
-      ProgramBuilder<T>& program,
-      std::vector<std::unique_ptr<OperatorTranslator<T>>> children);
+      khir::KHIRProgramBuilder& program,
+      std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~GroupByAggregateTranslator() = default;
 
   void Produce() override;
-  void Consume(OperatorTranslator<T>& src) override;
+  void Consume(OperatorTranslator& src) override;
 
  private:
+  proxy::Float64 IntToFloat(proxy::Value& v);
+
   const plan::GroupByAggregateOperator& group_by_agg_;
-  ProgramBuilder<T>& program_;
-  ExpressionTranslator<T> expr_translator_;
-  std::unique_ptr<proxy::HashTable<T>> buffer_;
-  std::unique_ptr<proxy::Ptr<T, proxy::Bool<T>>> found_;
+  khir::KHIRProgramBuilder& program_;
+  ExpressionTranslator expr_translator_;
+  std::unique_ptr<proxy::HashTable> buffer_;
+  std::unique_ptr<proxy::Ptr<proxy::Bool>> found_;
 };
 
 }  // namespace kush::compile
