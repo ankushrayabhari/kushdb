@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/value.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/expression/expression.h"
@@ -12,13 +12,12 @@
 
 namespace kush::compile {
 
-template <typename T>
 class ExpressionTranslator
     : public util::Visitor<plan::ImmutableExpressionVisitor,
-                           const plan::Expression&, proxy::Value<T>> {
+                           const plan::Expression&, proxy::Value> {
  public:
-  ExpressionTranslator(ProgramBuilder<T>& program_,
-                       OperatorTranslator<T>& source);
+  ExpressionTranslator(khir::KHIRProgramBuilder& program_,
+                       OperatorTranslator& source);
   virtual ~ExpressionTranslator() = default;
 
   void Visit(const plan::AggregateExpression& agg) override;
@@ -42,8 +41,8 @@ class ExpressionTranslator
   template <typename S>
   std::unique_ptr<S> Ternary(const plan::CaseExpression& case_expr);
 
-  ProgramBuilder<T>& program_;
-  OperatorTranslator<T>& source_;
+  khir::KHIRProgramBuilder& program_;
+  OperatorTranslator& source_;
 };
 
 }  // namespace kush::compile

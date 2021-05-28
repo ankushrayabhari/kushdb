@@ -23,6 +23,32 @@ cc_library(
 )
 
 cc_library(
+    name = "expression_translator",
+    srcs = ["expression_translator.cc"],
+    hdrs = ["expression_translator.h"],
+    deps = [
+        ":operator_translator",
+        "//compile/khir:khir_program_builder",
+        "//compile/proxy:bool",
+        "//compile/proxy:float",
+        "//compile/proxy:if",
+        "//compile/proxy:int",
+        "//compile/proxy:string",
+        "//compile/proxy:value",
+        "//plan/expression",
+        "//plan/expression:aggregate_expression",
+        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:case_expression",
+        "//plan/expression:column_ref_expression",
+        "//plan/expression:conversion_expression",
+        "//plan/expression:expression_visitor",
+        "//plan/expression:literal_expression",
+        "//plan/expression:virtual_column_ref_expression",
+        "//util:visitor",
+    ],
+)
+
+cc_library(
     name = "scan_translator",
     srcs = ["scan_translator.cc"],
     hdrs = ["scan_translator.h"],
@@ -173,32 +199,5 @@ cc_library(
         "//plan:scan_operator",
         "//plan:select_operator",
         "//plan:skinner_join_operator",
-    ],
-)
-
-cc_library(
-    name = "expression_translator",
-    srcs = ["expression_translator.cc"],
-    hdrs = ["expression_translator.h"],
-    deps = [
-        ":operator_translator",
-        "//compile:ir_registry",
-        "//compile:program_builder",
-        "//compile/proxy:bool",
-        "//compile/proxy:float",
-        "//compile/proxy:if",
-        "//compile/proxy:int",
-        "//compile/proxy:string",
-        "//compile/proxy:value",
-        "//plan/expression",
-        "//plan/expression:aggregate_expression",
-        "//plan/expression:binary_arithmetic_expression",
-        "//plan/expression:case_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:conversion_expression",
-        "//plan/expression:expression_visitor",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//util:visitor",
     ],
 )

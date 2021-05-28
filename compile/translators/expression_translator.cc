@@ -4,8 +4,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "compile/ir_registry.h"
-#include "compile/program_builder.h"
+#include "compile/khir/khir_program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/if.h"
@@ -22,38 +21,43 @@
 
 namespace kush::compile {
 
-template <typename T>
-ExpressionTranslator<T>::ExpressionTranslator(ProgramBuilder<T>& program,
-                                              OperatorTranslator<T>& source)
+ExpressionTranslator::ExpressionTranslator(khir::KHIRProgramBuilder& program,
+                                           OperatorTranslator& source)
     : program_(program), source_(source) {}
 
-template <typename T>
-void ExpressionTranslator<T>::Visit(
+void ExpressionTranslator::Visit(
     const plan::BinaryArithmeticExpression& arith) {
   using OpType = plan::BinaryArithmeticOperatorType;
   switch (arith.OpType()) {
     // Special handling for AND/OR for short circuiting
     case OpType::AND: {
-      std::unique_ptr<proxy::Bool<T>> th, el;
-      auto left_value = ComputeAs<proxy::Bool<T>>(arith.LeftChild());
-      this->Return(
-          proxy::Ternary<T, proxy::Bool<T>>(
-              program_, left_value,
-              [&]() { return ComputeAs<proxy::Bool<T>>(arith.RightChild()); },
-              [&] { return proxy::Bool<T>(program_, false); })
-              .ToPointer());
+      std::unique_ptr<proxy::Bool> th, el;
+      auto left_value = ComputeAs<proxy::Bool>(arith.LeftChild());
+
+      auto ret_val = proxy::If(
+          program_, left_value,
+          [&]() -> std::vector<khir::Value> {
+            return {Compute(arith.RightChild())->Get()};
+          },
+          [&]() -> std::vector<khir::Value> {
+            return {proxy::Bool(program_, false).Get()};
+          })[0];
+      this->Return(proxy::Bool(program_, ret_val).ToPointer());
       break;
     }
 
     case OpType::OR: {
-      std::unique_ptr<proxy::Bool<T>> th, el;
-      auto left_value = ComputeAs<proxy::Bool<T>>(arith.LeftChild());
-      this->Return(
-          proxy::Ternary<T, proxy::Bool<T>>(
-              program_, left_value,
-              [&]() { return proxy::Bool<T>(program_, true); },
-              [&]() { return ComputeAs<proxy::Bool<T>>(arith.RightChild()); })
-              .ToPointer());
+      std::unique_ptr<proxy::Bool> th, el;
+      auto left_value = ComputeAs<proxy::Bool>(arith.LeftChild());
+      auto ret_val = proxy::If(
+          program_, left_value,
+          [&]() -> std::vector<khir::Value> {
+            return {proxy::Bool(program_, true).Get()};
+          },
+          [&]() -> std::vector<khir::Value> {
+            return {Compute(arith.RightChild())->Get()};
+          })[0];
+      this->Return(proxy::Bool(program_, ret_val).ToPointer());
       break;
     }
 
@@ -65,77 +69,72 @@ void ExpressionTranslator<T>::Visit(
   }
 }
 
-template <typename T>
-void ExpressionTranslator<T>::Visit(const plan::AggregateExpression& agg) {
+void ExpressionTranslator::Visit(const plan::AggregateExpression& agg) {
   throw std::runtime_error("Aggregate expression can't be derived");
 }
 
-template <typename T>
-void ExpressionTranslator<T>::Visit(const plan::LiteralExpression& literal) {
+void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
   switch (literal.Type()) {
     case catalog::SqlType::SMALLINT:
-      this->Return(std::make_unique<proxy::Int16<T>>(
-          program_, literal.GetSmallintValue()));
+      this->Return(
+          std::make_unique<proxy::Int16>(program_, literal.GetSmallintValue()));
       break;
     case catalog::SqlType::INT:
       this->Return(
-          std::make_unique<proxy::Int32<T>>(program_, literal.GetIntValue()));
+          std::make_unique<proxy::Int32>(program_, literal.GetIntValue()));
       break;
     case catalog::SqlType::BIGINT:
-      this->Return(std::make_unique<proxy::Int64<T>>(program_,
-                                                     literal.GetBigintValue()));
+      this->Return(
+          std::make_unique<proxy::Int64>(program_, literal.GetBigintValue()));
       break;
     case catalog::SqlType::DATE:
       this->Return(
-          std::make_unique<proxy::Int64<T>>(program_, literal.GetDateValue()));
+          std::make_unique<proxy::Int64>(program_, literal.GetDateValue()));
       break;
     case catalog::SqlType::REAL:
-      this->Return(std::make_unique<proxy::Float64<T>>(program_,
-                                                       literal.GetRealValue()));
+      this->Return(
+          std::make_unique<proxy::Float64>(program_, literal.GetRealValue()));
       break;
     case catalog::SqlType::TEXT:
-      this->Return(proxy::String<T>::Constant(program_, literal.GetTextValue())
+      this->Return(proxy::String::Constant(program_, literal.GetTextValue())
                        .ToPointer());
       break;
     case catalog::SqlType::BOOLEAN:
-      this->Return(std::make_unique<proxy::Bool<T>>(program_,
-                                                    literal.GetBooleanValue()));
+      this->Return(
+          std::make_unique<proxy::Bool>(program_, literal.GetBooleanValue()));
       break;
   }
 }
 
-template <typename T>
-std::unique_ptr<proxy::Value<T>> CopyProxyValue(
-    ProgramBuilder<T>& program, catalog::SqlType type,
-    const typename ProgramBuilder<T>::Value& value) {
+std::unique_ptr<proxy::Value> CopyProxyValue(khir::KHIRProgramBuilder& program,
+                                             catalog::SqlType type,
+                                             const khir::Value& value) {
   switch (type) {
     case catalog::SqlType::SMALLINT:
-      return std::make_unique<proxy::Int16<T>>(program, value);
+      return std::make_unique<proxy::Int16>(program, value);
     case catalog::SqlType::INT:
-      return std::make_unique<proxy::Int32<T>>(program, value);
+      return std::make_unique<proxy::Int32>(program, value);
     case catalog::SqlType::BIGINT:
-      return std::make_unique<proxy::Int64<T>>(program, value);
+      return std::make_unique<proxy::Int64>(program, value);
     case catalog::SqlType::DATE:
-      return std::make_unique<proxy::Int64<T>>(program, value);
+      return std::make_unique<proxy::Int64>(program, value);
     case catalog::SqlType::REAL:
-      return std::make_unique<proxy::Float64<T>>(program, value);
+      return std::make_unique<proxy::Float64>(program, value);
     case catalog::SqlType::TEXT:
-      return std::make_unique<proxy::String<T>>(program, value);
+      return std::make_unique<proxy::String>(program, value);
     case catalog::SqlType::BOOLEAN:
-      return std::make_unique<proxy::Bool<T>>(program, value);
+      return std::make_unique<proxy::Bool>(program, value);
   }
 }
 
-template <typename T>
-void ExpressionTranslator<T>::Visit(const plan::ColumnRefExpression& col_ref) {
+void ExpressionTranslator::Visit(const plan::ColumnRefExpression& col_ref) {
   auto& values = source_.Children()[col_ref.GetChildIdx()].get().SchemaValues();
   auto type = col_ref.Type();
   auto& value = values.Value(col_ref.GetColumnIdx());
   this->Return(CopyProxyValue(program_, type, value.Get()));
 }
 
-template <typename T>
-void ExpressionTranslator<T>::Visit(
+void ExpressionTranslator::Visit(
     const plan::VirtualColumnRefExpression& col_ref) {
   auto& values = source_.VirtualSchemaValues();
   auto type = col_ref.Type();
@@ -143,80 +142,80 @@ void ExpressionTranslator<T>::Visit(
   this->Return(CopyProxyValue(program_, type, value.Get()));
 }
 
-template <typename T>
 template <typename S>
-std::unique_ptr<S> ExpressionTranslator<T>::Ternary(
+std::unique_ptr<S> ExpressionTranslator::Ternary(
     const plan::CaseExpression& case_expr) {
   std::unique_ptr<S> th, el;
-  auto cond = ComputeAs<proxy::Bool<T>>(case_expr.Cond());
-  return proxy::Ternary<T, S>(
-             program_, cond, [&]() { return ComputeAs<S>(case_expr.Then()); },
-             [&]() { return ComputeAs<S>(case_expr.Else()); })
-      .ToPointer();
+  auto cond = ComputeAs<proxy::Bool>(case_expr.Cond());
+  auto ret_val = proxy::If(
+      program_, cond,
+      [&]() -> std::vector<khir::Value> {
+        return {this->Compute(case_expr.Then())->Get()};
+      },
+      [&]() -> std::vector<khir::Value> {
+        return {this->Compute(case_expr.Else())->Get()};
+      })[0];
+  return S(program_, ret_val).ToPointer();
 }
 
-template <typename T>
-void ExpressionTranslator<T>::Visit(const plan::CaseExpression& case_expr) {
+void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {
   switch (case_expr.Type()) {
     case catalog::SqlType::SMALLINT: {
-      this->Return(Ternary<proxy::Int16<T>>(case_expr));
+      this->Return(Ternary<proxy::Int16>(case_expr));
       break;
     }
     case catalog::SqlType::INT: {
-      this->Return(Ternary<proxy::Int32<T>>(case_expr));
+      this->Return(Ternary<proxy::Int32>(case_expr));
       break;
     }
     case catalog::SqlType::BIGINT: {
-      this->Return(Ternary<proxy::Int64<T>>(case_expr));
+      this->Return(Ternary<proxy::Int64>(case_expr));
       break;
     }
     case catalog::SqlType::DATE: {
-      this->Return(Ternary<proxy::Int64<T>>(case_expr));
+      this->Return(Ternary<proxy::Int64>(case_expr));
       break;
     }
     case catalog::SqlType::REAL: {
-      this->Return(Ternary<proxy::Float64<T>>(case_expr));
+      this->Return(Ternary<proxy::Float64>(case_expr));
       break;
     }
     case catalog::SqlType::TEXT: {
-      this->Return(Ternary<proxy::String<T>>(case_expr));
+      this->Return(Ternary<proxy::String>(case_expr));
       break;
     }
     case catalog::SqlType::BOOLEAN: {
-      this->Return(Ternary<proxy::Bool<T>>(case_expr));
+      this->Return(Ternary<proxy::Bool>(case_expr));
       break;
     }
   }
 }
 
-template <typename T>
-void ExpressionTranslator<T>::Visit(
+void ExpressionTranslator::Visit(
     const plan::IntToFloatConversionExpression& conv_expr) {
   auto v = this->Compute(conv_expr.Child());
 
-  if (auto i = dynamic_cast<proxy::Int8<T>*>(v.get())) {
-    this->Return(proxy::Float64<T>(program_, *i).ToPointer());
+  if (auto i = dynamic_cast<proxy::Int8*>(v.get())) {
+    this->Return(proxy::Float64(program_, *i).ToPointer());
     return;
   }
 
-  if (auto i = dynamic_cast<proxy::Int16<T>*>(v.get())) {
-    this->Return(proxy::Float64<T>(program_, *i).ToPointer());
+  if (auto i = dynamic_cast<proxy::Int16*>(v.get())) {
+    this->Return(proxy::Float64(program_, *i).ToPointer());
     return;
   }
 
-  if (auto i = dynamic_cast<proxy::Int32<T>*>(v.get())) {
-    this->Return(proxy::Float64<T>(program_, *i).ToPointer());
+  if (auto i = dynamic_cast<proxy::Int32*>(v.get())) {
+    this->Return(proxy::Float64(program_, *i).ToPointer());
     return;
   }
 
-  if (auto i = dynamic_cast<proxy::Int64<T>*>(v.get())) {
-    this->Return(proxy::Float64<T>(program_, *i).ToPointer());
+  if (auto i = dynamic_cast<proxy::Int64*>(v.get())) {
+    this->Return(proxy::Float64(program_, *i).ToPointer());
     return;
   }
 
   throw std::runtime_error("Not an integer input.");
 }
-
-INSTANTIATE_ON_IR(ExpressionTranslator);
 
 }  // namespace kush::compile
