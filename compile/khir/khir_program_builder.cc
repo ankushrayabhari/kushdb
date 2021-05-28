@@ -20,6 +20,7 @@ KHIRProgramBuilder::Function::Function(std::string_view name,
                                        bool external)
     : name_(name), function_type_(function_type), external_(external) {
   if (!external_) {
+    GenerateBasicBlock();
     for (int i = 0; i < arg_types.size(); i++) {
       arg_values_.push_back(Append(Type3InstructionBuilder()
                                        .SetOpcode(Opcode::FUNC_ARG)
@@ -64,6 +65,49 @@ const std::vector<uint64_t>& KHIRProgramBuilder::Function::Instructions()
   return instructions_;
 }
 
+KHIRProgramBuilder::GlobalArrayImpl::GlobalArrayImpl(
+    bool constant, khir::Type type, absl::Span<const uint64_t> init)
+    : constant_(constant), type_(type), init_(init.begin(), init.end()) {}
+
+bool KHIRProgramBuilder::GlobalArrayImpl::Constant() const { return constant_; }
+
+Type KHIRProgramBuilder::GlobalArrayImpl::Type() const { return type_; }
+
+absl::Span<const uint64_t> KHIRProgramBuilder::GlobalArrayImpl::InitialValue()
+    const {
+  return init_;
+}
+
+KHIRProgramBuilder::GlobalPointerImpl::GlobalPointerImpl(bool constant,
+                                                         khir::Type type,
+                                                         uint64_t init)
+    : constant_(constant), type_(type), init_(init) {}
+
+bool KHIRProgramBuilder::GlobalPointerImpl::Constant() const {
+  return constant_;
+}
+
+Type KHIRProgramBuilder::GlobalPointerImpl::Type() const { return type_; }
+
+uint64_t KHIRProgramBuilder::GlobalPointerImpl::InitialValue() const {
+  return init_;
+}
+
+KHIRProgramBuilder::GlobalStructImpl::GlobalStructImpl(
+    bool constant, khir::Type type, absl::Span<const uint64_t> init)
+    : constant_(constant), type_(type), init_(init.begin(), init.end()) {}
+
+bool KHIRProgramBuilder::GlobalStructImpl::Constant() const {
+  return constant_;
+}
+
+Type KHIRProgramBuilder::GlobalStructImpl::Type() const { return type_; }
+
+absl::Span<const uint64_t> KHIRProgramBuilder::GlobalStructImpl::InitialValue()
+    const {
+  return init_;
+}
+
 bool IsTerminatingInstr(Opcode opcode) {
   switch (opcode) {
     case Opcode::BR:
@@ -85,7 +129,7 @@ Value KHIRProgramBuilder::Function::Append(uint64_t instr) {
   auto idx = instructions_.size();
   instructions_.push_back(instr);
 
-  if (basic_blocks_[current_basic_block_].second > 0) {
+  if (basic_blocks_[current_basic_block_].second >= 0) {
     throw std::runtime_error("Cannot append to terminated basic block.");
   }
 
@@ -134,11 +178,6 @@ void KHIRProgramBuilder::Function::SetCurrentBasicBlock(int basic_block_id) {
     throw std::runtime_error("Cannot update body of external function");
   }
 
-  if (!IsTerminated(current_basic_block_)) {
-    throw std::runtime_error(
-        "Cannot switch from current block unless it is terminated.");
-  }
-
   current_basic_block_ = basic_block_id;
 }
 int KHIRProgramBuilder::Function::GetCurrentBasicBlock() {
@@ -154,7 +193,7 @@ bool KHIRProgramBuilder::Function::IsTerminated(int basic_block_id) {
     throw std::runtime_error("Cannot get body of external function");
   }
 
-  return basic_blocks_[current_basic_block_].second < 0;
+  return basic_blocks_[current_basic_block_].second >= 0;
 }
 
 KHIRProgramBuilder::Function& KHIRProgramBuilder::GetCurrentFunction() {
@@ -178,6 +217,14 @@ bool KHIRProgramBuilder::IsTerminated(BasicBlockRef b) {
 }
 
 void KHIRProgramBuilder::SetCurrentBlock(BasicBlockRef b) {
+  // Switching within a function, not allowed unless terminated
+  // Switching between functions is fine
+  if (current_function_ == b.GetFunctionID() &&
+      !GetCurrentFunction().IsTerminated(b.GetBasicBlockID())) {
+    throw std::runtime_error(
+        "Cannot switch from current block unless it is terminated.");
+  }
+
   current_function_ = b.GetFunctionID();
   GetCurrentFunction().SetCurrentBasicBlock(b.GetBasicBlockID());
 }
@@ -223,11 +270,10 @@ void KHIRProgramBuilder::UpdatePhiMember(Value phi, Value phi_member) {
 
 // Memory
 Value KHIRProgramBuilder::Alloca(Type t) {
-  return GetCurrentFunction().Append(
-      Type3InstructionBuilder()
-          .SetOpcode(Opcode::ALLOCA)
-          .SetTypeID(type_manager_.PointerType(t).GetID())
-          .Build());
+  return GetCurrentFunction().Append(Type3InstructionBuilder()
+                                         .SetOpcode(Opcode::ALLOCA)
+                                         .SetTypeID(t.GetID())
+                                         .Build());
 }
 
 Value KHIRProgramBuilder::NullPtr(Type t) {
@@ -276,7 +322,7 @@ Type KHIRProgramBuilder::I32Type() { return type_manager_.I32Type(); }
 
 Type KHIRProgramBuilder::I64Type() { return type_manager_.I64Type(); }
 
-Type KHIRProgramBuilder::F64Type() { return type_manager_.I64Type(); }
+Type KHIRProgramBuilder::F64Type() { return type_manager_.F64Type(); }
 
 Type KHIRProgramBuilder::StructType(absl::Span<const Type> types,
                                     std::string_view name) {
@@ -383,6 +429,7 @@ Type KHIRProgramBuilder::TypeOf(Value value) {
     case Opcode::F64_MUL:
     case Opcode::F64_SUB:
     case Opcode::F64_DIV:
+    case Opcode::I8_CONV_F64:
     case Opcode::I16_CONV_F64:
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
@@ -399,8 +446,11 @@ Type KHIRProgramBuilder::TypeOf(Value value) {
       return type_manager_.GetFunctionReturnType(
           static_cast<Type>(Type3InstructionReader(instr).TypeID()));
 
-    case Opcode::PHI:
     case Opcode::ALLOCA:
+      return type_manager_.PointerType(
+          static_cast<Type>(Type3InstructionReader(instr).TypeID()));
+
+    case Opcode::PHI:
     case Opcode::CALL:
     case Opcode::LOAD:
     case Opcode::PTR_CAST:
@@ -446,7 +496,12 @@ FunctionRef KHIRProgramBuilder::CreateFunction(
 
 FunctionRef KHIRProgramBuilder::CreatePublicFunction(
     Type result_type, absl::Span<const Type> arg_types, std::string_view name) {
-  auto ref = CreateFunction(result_type, arg_types);
+  auto idx = functions_.size();
+  functions_.emplace_back(name,
+                          type_manager_.FunctionType(result_type, arg_types),
+                          result_type, arg_types, false);
+  current_function_ = idx;
+  auto ref = static_cast<FunctionRef>(idx);
   name_to_function_[name] = ref;
   return ref;
 }
@@ -457,6 +512,8 @@ FunctionRef KHIRProgramBuilder::DeclareExternalFunction(
   functions_.emplace_back(name,
                           type_manager_.FunctionType(result_type, arg_types),
                           result_type, arg_types, true);
+  auto ref = static_cast<FunctionRef>(idx);
+  name_to_function_[name] = ref;
   return static_cast<FunctionRef>(idx);
 }
 
@@ -648,6 +705,13 @@ Value KHIRProgramBuilder::ConstI8(uint8_t v) {
 Value KHIRProgramBuilder::ZextI8(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_ZEXT_I64)
+                                         .SetArg0(v.GetID())
+                                         .Build());
+}
+
+Value KHIRProgramBuilder::F64ConvI8(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I8_CONV_F64)
                                          .SetArg0(v.GetID())
                                          .Build());
 }

@@ -20,6 +20,8 @@ const std::string_view FreeFnName("_ZN4kush4data4FreeEPNS0_6VectorE");
 
 const std::string_view SortFnName("_ZN4kush4data4SortEPNS0_6VectorEPFbPaS3_E");
 
+const std::string_view Vector::VectorStructName("kush::data::Vector");
+
 Vector::Vector(khir::KHIRProgramBuilder& program, StructBuilder& content,
                bool global)
     : program_(program),

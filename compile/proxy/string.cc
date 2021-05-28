@@ -21,6 +21,8 @@ constexpr std::string_view LessThanFnName(
     "_ZN4kush4data8LessThanEPNS0_6StringES2_");
 constexpr std::string_view HashFnName("_ZN4kush4data4HashEPNS0_6StringE");
 
+const std::string_view String::StringStructName("kush::data::String");
+
 String::String(khir::KHIRProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 

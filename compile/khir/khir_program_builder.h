@@ -76,7 +76,7 @@ class KhirBackend : public TypeTranslator, public compile::Program {
 
 class KHIRProgramBuilder {
  public:
-  KHIRProgramBuilder();
+  KHIRProgramBuilder() = default;
 
   // Types
   Type VoidType();
@@ -241,41 +241,43 @@ class KHIRProgramBuilder {
 
   class GlobalArrayImpl {
    public:
-    GlobalArrayImpl(bool constant, Type type, absl::Span<const uint64_t> init);
+    GlobalArrayImpl(bool constant, khir::Type type,
+                    absl::Span<const uint64_t> init);
     bool Constant() const;
-    Type Type() const;
+    khir::Type Type() const;
     absl::Span<const uint64_t> InitialValue() const;
 
    private:
     bool constant_;
     khir::Type type_;
-    std::vector<uint64_t> init;
+    std::vector<uint64_t> init_;
   };
 
   class GlobalPointerImpl {
    public:
-    GlobalPointerImpl(bool constant, Type type, uint64_t init);
+    GlobalPointerImpl(bool constant, khir::Type type, uint64_t init);
     bool Constant() const;
-    Type Type() const;
+    khir::Type Type() const;
     uint64_t InitialValue() const;
 
    private:
     bool constant_;
     khir::Type type_;
-    uint64_t init;
+    uint64_t init_;
   };
 
   class GlobalStructImpl {
    public:
-    GlobalStructImpl(bool constant, Type type, absl::Span<const uint64_t> init);
+    GlobalStructImpl(bool constant, khir::Type type,
+                     absl::Span<const uint64_t> init);
     bool Constant() const;
-    Type Type() const;
+    khir::Type Type() const;
     absl::Span<const uint64_t> InitialValue() const;
 
    private:
     bool constant_;
     khir::Type type_;
-    std::vector<uint64_t> init;
+    std::vector<uint64_t> init_;
   };
 
   std::vector<uint64_t> i64_constants_;

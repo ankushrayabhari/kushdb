@@ -64,6 +64,8 @@ Type TypeManager::ArrayTypeImpl::Get() { return type_; }
 
 Type TypeManager::ArrayTypeImpl::ElementType() { return elem_; }
 
+int TypeManager::ArrayTypeImpl::Length() { return len_; }
+
 TypeManager::FunctionTypeImpl::FunctionTypeImpl(
     Type result, absl::Span<const Type> arg_types, Type type,
     llvm::Type* type_impl)
@@ -150,12 +152,12 @@ Type TypeManager::StructType(absl::Span<const Type> field_type_id) {
   return output;
 }
 
-Type TypeManager::PointerType(Type type) {
+Type TypeManager::PointerType(Type elem) {
   auto output = static_cast<Type>(type_id_to_impl_.size());
   auto impl =
-      llvm::PointerType::get(type_id_to_impl_[type.GetID()]->GetLLVM(), 0);
+      llvm::PointerType::get(type_id_to_impl_[elem.GetID()]->GetLLVM(), 0);
   type_id_to_impl_.push_back(
-      std::make_unique<PointerTypeImpl>(type, output, impl));
+      std::make_unique<PointerTypeImpl>(elem, output, impl));
   return output;
 }
 
@@ -206,17 +208,18 @@ std::pair<int64_t, Type> TypeManager::GetPointerOffset(
   for (int i = 1; i < idx.size(); i++) {
     if (auto ptr_type = dynamic_cast<PointerTypeImpl*>(result_type)) {
       // nothing changes
+      result_type = type_id_to_impl_[ptr_type->ElementType().GetID()].get();
     } else if (auto array_type = dynamic_cast<ArrayTypeImpl*>(result_type)) {
-      // nothing changes
+      result_type = type_id_to_impl_[array_type->ElementType().GetID()].get();
     } else if (auto struct_type = dynamic_cast<StructTypeImpl*>(result_type)) {
       result_type =
           type_id_to_impl_[struct_type->ElementTypes()[idx[i]].GetID()].get();
+    } else {
+      throw std::runtime_error("Cannot index into type.");
     }
-
-    throw std::runtime_error("Cannot index into type.");
   }
 
-  return {offset, result_type->Get()};
+  return {offset, PointerType(result_type->Get())};
 }
 
 void TypeManager::Translate(TypeTranslator& translator) {
@@ -253,9 +256,13 @@ void TypeManager::Translate(TypeTranslator& translator) {
                                     array_type->Length());
     } else if (auto struct_type = dynamic_cast<StructTypeImpl*>(type_impl)) {
       translator.TranslateStructType(struct_type->ElementTypes());
+    } else if (auto function_type =
+                   dynamic_cast<FunctionTypeImpl*>(type_impl)) {
+      translator.TranslateFunctionType(function_type->ResultType(),
+                                       function_type->ArgTypes());
+    } else {
+      throw std::runtime_error("Unreachable.");
     }
-
-    throw std::runtime_error("Cannot index into type.");
   }
 }
 

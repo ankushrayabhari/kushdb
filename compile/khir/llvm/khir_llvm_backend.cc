@@ -157,7 +157,8 @@ llvm::Constant* KhirLLVMBackend::GetConstantFromInstr(
 }
 
 void KhirLLVMBackend::TranslateGlobalConstCharArray(std::string_view s) {
-  global_char_arrays_.push_back(builder_->CreateGlobalStringPtr(s));
+  global_char_arrays_.push_back(
+      builder_->CreateGlobalStringPtr(s, "", 0, module_.get()));
 }
 
 void KhirLLVMBackend::TranslateGlobalStruct(
@@ -504,6 +505,7 @@ void KhirLLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I8_CONV_F64:
     case Opcode::I16_CONV_F64:
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64: {
@@ -543,9 +545,9 @@ void KhirLLVMBackend::TranslateInstr(
 
     case Opcode::STORE: {
       Type2InstructionReader reader(instr);
-      auto v0 = values[reader.Arg0()];
-      auto v1 = values[reader.Arg1()];
-      values[instr_idx] = builder_->CreateStore(v0, v1);
+      auto ptr = values[reader.Arg0()];
+      auto val = values[reader.Arg1()];
+      values[instr_idx] = builder_->CreateStore(val, ptr);
       return;
     }
 
@@ -586,8 +588,8 @@ void KhirLLVMBackend::TranslateInstr(
       auto ptr_as_int = builder_->CreatePtrToInt(ptr, builder_->getInt64Ty());
       auto ptr_plus_offset = builder_->CreateAdd(ptr_as_int, offset);
 
-      values[instr_idx] = builder_->CreateIntToPtr(
-          ptr_plus_offset, llvm::PointerType::get(builder_->getVoidTy(), 0));
+      values[instr_idx] =
+          builder_->CreateIntToPtr(ptr_plus_offset, builder_->getInt8PtrTy());
       return;
     }
 
@@ -698,7 +700,7 @@ void KhirLLVMBackend::TranslateInstr(
 void KhirLLVMBackend::Compile() const {
   gen = std::chrono::system_clock::now();
   llvm::verifyModule(*module_, &llvm::errs());
-  // module_->print(llvm::errs(), nullptr);
+  module_->print(llvm::errs(), nullptr);
 
   llvm::legacy::PassManager pass;
 

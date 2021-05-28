@@ -38,6 +38,4 @@ class String : public Value {
   khir::Value value_;
 };
 
-const std::string_view String::StringStructName("kush::data::String");
-
 }  // namespace kush::compile::proxy

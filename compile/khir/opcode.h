@@ -31,6 +31,7 @@ enum class Opcode : uint8_t {
   I8_CMP_GT,
   I8_CMP_GE,
   I8_ZEXT_I64,
+  I8_CONV_F64,
   I16_ADD,
   I16_MUL,
   I16_SUB,

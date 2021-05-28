@@ -32,6 +32,4 @@ class Vector {
   typename khir::Value value_;
 };
 
-const std::string_view Vector::VectorStructName("kush::data::Vector");
-
 }  // namespace kush::compile::proxy
