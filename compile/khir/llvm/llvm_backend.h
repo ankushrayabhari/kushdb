@@ -9,10 +9,10 @@
 
 namespace kush::khir {
 
-class KhirLLVMBackend : public KhirBackend {
+class LLVMBackend : public Backend {
  public:
-  KhirLLVMBackend();
-  virtual ~KhirLLVMBackend() = default;
+  LLVMBackend();
+  virtual ~LLVMBackend() = default;
 
   // Types
   void TranslateVoidType() override;

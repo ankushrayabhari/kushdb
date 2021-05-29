@@ -1153,7 +1153,7 @@ Value ProgramBuilder::GetElementPtr(Type t, Value ptr,
   return PointerCast(untyped_location_v, result_type);
 }
 
-void ProgramBuilder::Translate(KhirBackend& backend) {
+void ProgramBuilder::Translate(Backend& backend) {
   type_manager_.Translate(backend);
 
   for (const auto& x : global_char_arrays_) {

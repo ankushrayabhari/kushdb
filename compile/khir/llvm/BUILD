@@ -3,9 +3,9 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "khir_llvm_backend",
-    srcs = ["khir_llvm_backend.cc"],
-    hdrs = ["khir_llvm_backend.h"],
+    name = "llvm_backend",
+    srcs = ["llvm_backend.cc"],
+    hdrs = ["llvm_backend.h"],
     deps = [
         "//compile/khir:program_builder",
         "@absl//absl/types:span",

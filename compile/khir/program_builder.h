@@ -48,9 +48,9 @@ struct BasicBlockRef
 
 enum class CompType { EQ, NE, LT, LE, GT, GE };
 
-class KhirBackend : public TypeTranslator, public compile::Program {
+class Backend : public TypeTranslator, public compile::Program {
  public:
-  virtual ~KhirBackend() = default;
+  virtual ~Backend() = default;
   virtual void TranslateGlobalConstCharArray(std::string_view s) = 0;
   virtual void TranslateGlobalStruct(
       bool constant, Type t, absl::Span<const uint64_t> v,
@@ -191,7 +191,7 @@ class ProgramBuilder {
                                      absl::Span<const Value> v);
   std::function<Value()> GlobalPointer(bool constant, Type t, Value v);
 
-  void Translate(KhirBackend& backend);
+  void Translate(Backend& backend);
 
  private:
   class Function {

@@ -1,4 +1,4 @@
-#include "compile/khir/llvm/khir_llvm_backend.h"
+#include "compile/khir/llvm/llvm_backend.h"
 
 #include <dlfcn.h>
 #include <iostream>
@@ -29,46 +29,42 @@
 
 namespace kush::khir {
 
-KhirLLVMBackend::KhirLLVMBackend()
+LLVMBackend::LLVMBackend()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("query", *context_)),
       builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {
   start = std::chrono::system_clock::now();
 }
 
-void KhirLLVMBackend::TranslateVoidType() {
+void LLVMBackend::TranslateVoidType() {
   types_.push_back(builder_->getVoidTy());
 }
 
-void KhirLLVMBackend::TranslateI1Type() {
-  types_.push_back(builder_->getInt1Ty());
-}
+void LLVMBackend::TranslateI1Type() { types_.push_back(builder_->getInt1Ty()); }
 
-void KhirLLVMBackend::TranslateI8Type() {
-  types_.push_back(builder_->getInt8Ty());
-}
+void LLVMBackend::TranslateI8Type() { types_.push_back(builder_->getInt8Ty()); }
 
-void KhirLLVMBackend::TranslateI16Type() {
+void LLVMBackend::TranslateI16Type() {
   types_.push_back(builder_->getInt16Ty());
 }
 
-void KhirLLVMBackend::TranslateI32Type() {
+void LLVMBackend::TranslateI32Type() {
   types_.push_back(builder_->getInt32Ty());
 }
 
-void KhirLLVMBackend::TranslateI64Type() {
+void LLVMBackend::TranslateI64Type() {
   types_.push_back(builder_->getInt64Ty());
 }
 
-void KhirLLVMBackend::TranslateF64Type() {
+void LLVMBackend::TranslateF64Type() {
   types_.push_back(builder_->getDoubleTy());
 }
 
-void KhirLLVMBackend::TranslatePointerType(Type elem) {
+void LLVMBackend::TranslatePointerType(Type elem) {
   types_.push_back(llvm::PointerType::get(types_[elem.GetID()], 0));
 }
 
-void KhirLLVMBackend::TranslateArrayType(Type elem, int len) {
+void LLVMBackend::TranslateArrayType(Type elem, int len) {
   types_.push_back(llvm::ArrayType::get(types_[elem.GetID()], len));
 }
 
@@ -81,18 +77,18 @@ std::vector<llvm::Type*> GetTypeArray(const std::vector<llvm::Type*>& types,
   return result;
 }
 
-void KhirLLVMBackend::TranslateFunctionType(Type result,
-                                            absl::Span<const Type> arg_types) {
+void LLVMBackend::TranslateFunctionType(Type result,
+                                        absl::Span<const Type> arg_types) {
   types_.push_back(llvm::FunctionType::get(
       types_[result.GetID()], GetTypeArray(types_, arg_types), false));
 }
 
-void KhirLLVMBackend::TranslateStructType(absl::Span<const Type> elem_types) {
+void LLVMBackend::TranslateStructType(absl::Span<const Type> elem_types) {
   types_.push_back(
       llvm::StructType::create(*context_, GetTypeArray(types_, elem_types)));
 }
 
-llvm::Constant* KhirLLVMBackend::GetConstantFromInstr(
+llvm::Constant* LLVMBackend::GetConstantFromInstr(
     uint64_t instr, const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants) {
   auto opcode = GenericInstructionReader(instr).Opcode();
@@ -158,12 +154,12 @@ llvm::Constant* KhirLLVMBackend::GetConstantFromInstr(
   }
 }
 
-void KhirLLVMBackend::TranslateGlobalConstCharArray(std::string_view s) {
+void LLVMBackend::TranslateGlobalConstCharArray(std::string_view s) {
   global_char_arrays_.push_back(
       builder_->CreateGlobalStringPtr(s, "", 0, module_.get()));
 }
 
-void KhirLLVMBackend::TranslateGlobalStruct(
+void LLVMBackend::TranslateGlobalStruct(
     bool constant, Type t, absl::Span<const uint64_t> value,
     const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants) {
@@ -180,7 +176,7 @@ void KhirLLVMBackend::TranslateGlobalStruct(
   global_structs_.push_back(ptr);
 }
 
-void KhirLLVMBackend::TranslateGlobalArray(
+void LLVMBackend::TranslateGlobalArray(
     bool constant, Type t, absl::Span<const uint64_t> value,
     const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants) {
@@ -197,7 +193,7 @@ void KhirLLVMBackend::TranslateGlobalArray(
   global_arrays_.push_back(ptr);
 }
 
-void KhirLLVMBackend::TranslateGlobalPointer(
+void LLVMBackend::TranslateGlobalPointer(
     bool constant, Type t, uint64_t v,
     const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants) {
@@ -209,8 +205,8 @@ void KhirLLVMBackend::TranslateGlobalPointer(
   global_pointers_.push_back(ptr);
 }
 
-void KhirLLVMBackend::TranslateFuncDecl(bool pub, bool external,
-                                        std::string_view name, Type func_type) {
+void LLVMBackend::TranslateFuncDecl(bool pub, bool external,
+                                    std::string_view name, Type func_type) {
   std::string fn_name(name);
   auto type = llvm::dyn_cast<llvm::FunctionType>(types_[func_type.GetID()]);
   functions_.push_back(llvm::Function::Create(
@@ -220,7 +216,7 @@ void KhirLLVMBackend::TranslateFuncDecl(bool pub, bool external,
       fn_name.c_str(), *module_));
 }
 
-void KhirLLVMBackend::TranslateFuncBody(
+void LLVMBackend::TranslateFuncBody(
     int func_idx, const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
     const std::vector<int>& basic_block_order,
@@ -320,7 +316,7 @@ LLVMCmp GetLLVMCompType(Opcode opcode) {
   }
 }
 
-void KhirLLVMBackend::TranslateInstr(
+void LLVMBackend::TranslateInstr(
     const std::vector<llvm::Value*>& func_args,
     const std::vector<llvm::BasicBlock*>& basic_blocks,
     const std::vector<uint64_t>& i64_constants,
@@ -702,7 +698,7 @@ void KhirLLVMBackend::TranslateInstr(
   }
 }
 
-void KhirLLVMBackend::Compile() const {
+void LLVMBackend::Compile() const {
   gen = std::chrono::system_clock::now();
   llvm::verifyModule(*module_, &llvm::errs());
   // module_->print(llvm::errs(), nullptr);
@@ -774,7 +770,7 @@ void KhirLLVMBackend::Compile() const {
   comp = std::chrono::system_clock::now();
 }
 
-void KhirLLVMBackend::Execute() const {
+void LLVMBackend::Execute() const {
   void* handle = dlopen("/tmp/query.so", RTLD_LAZY);
 
   if (!handle) {

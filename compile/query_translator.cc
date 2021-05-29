@@ -6,7 +6,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "compile/khir/llvm/khir_llvm_backend.h"
+#include "compile/khir/llvm/llvm_backend.h"
 #include "compile/khir/program_builder.h"
 #include "compile/program.h"
 #include "compile/proxy/column_data.h"
@@ -71,7 +71,7 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   // terminate last basic block
   program.Return();
 
-  auto llvm_program = std::make_unique<khir::KhirLLVMBackend>();
+  auto llvm_program = std::make_unique<khir::LLVMBackend>();
   program.Translate(*llvm_program);
   return std::move(llvm_program);
 }

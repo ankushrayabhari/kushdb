@@ -16,7 +16,7 @@ cc_library(
         "//catalog",
         "//compile:program",
         "//compile/khir:program_builder",
-        "//compile/khir/llvm:khir_llvm_backend",
+        "//compile/khir/llvm:llvm_backend",
         "//compile/proxy:column_data",
         "//compile/proxy:column_index",
         "//compile/proxy:hash_table",
