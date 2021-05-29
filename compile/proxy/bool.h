@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/value.h"
 #include "plan/expression/binary_arithmetic_expression.h"
@@ -11,8 +11,8 @@ namespace kush::compile::proxy {
 
 class Bool : public Value {
  public:
-  Bool(khir::KHIRProgramBuilder& program, const khir::Value& value);
-  Bool(khir::KHIRProgramBuilder& program, bool value);
+  Bool(khir::ProgramBuilder& program, const khir::Value& value);
+  Bool(khir::ProgramBuilder& program, bool value);
 
   khir::Value Get() const override;
 
@@ -27,7 +27,7 @@ class Bool : public Value {
   khir::Value Hash() override;
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   khir::Value value_;
 };
 

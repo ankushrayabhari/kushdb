@@ -1,6 +1,6 @@
 #include "compile/proxy/vector.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/if.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -22,7 +22,7 @@ const std::string_view SortFnName("_ZN4kush4data4SortEPNS0_6VectorEPFbPaS3_E");
 
 const std::string_view Vector::VectorStructName("kush::data::Vector");
 
-Vector::Vector(khir::KHIRProgramBuilder& program, StructBuilder& content,
+Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content,
                bool global)
     : program_(program),
       content_(content),
@@ -44,7 +44,7 @@ Vector::Vector(khir::KHIRProgramBuilder& program, StructBuilder& content,
                 {value_, element_size, initial_capacity});
 }
 
-Vector::Vector(khir::KHIRProgramBuilder& program, StructBuilder& content,
+Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content,
                const khir::Value& value)
     : program_(program),
       content_(content),
@@ -78,7 +78,7 @@ Int32 Vector::Size() {
                program_.Call(program_.GetFunction(SizeFnName), {value_}));
 }
 
-void Vector::ForwardDeclare(khir::KHIRProgramBuilder& program) {
+void Vector::ForwardDeclare(khir::ProgramBuilder& program) {
   auto struct_type = program.StructType(
       {
           program.I64Type(),

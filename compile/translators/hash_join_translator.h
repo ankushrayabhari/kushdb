@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
@@ -15,7 +15,7 @@ namespace kush::compile {
 class HashJoinTranslator : public OperatorTranslator {
  public:
   HashJoinTranslator(const plan::HashJoinOperator& hash_join,
-                     khir::KHIRProgramBuilder& program,
+                     khir::ProgramBuilder& program,
                      std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~HashJoinTranslator() = default;
   void Produce() override;
@@ -23,7 +23,7 @@ class HashJoinTranslator : public OperatorTranslator {
 
  private:
   const plan::HashJoinOperator& hash_join_;
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   ExpressionTranslator expr_translator_;
   std::unique_ptr<proxy::HashTable> buffer_;
 };

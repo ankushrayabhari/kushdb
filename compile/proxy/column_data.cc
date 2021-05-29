@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "catalog/sql_type.h"
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -104,8 +104,7 @@ std::string_view StructName() {
 }
 
 template <catalog::SqlType S>
-ColumnData<S>::ColumnData(khir::KHIRProgramBuilder& program,
-                          std::string_view path)
+ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
     : program_(program) {
   auto path_value = program_.GlobalConstCharArray(path);
   value_ = program_.Alloca(program.GetStructType(StructName<S>()));
@@ -155,7 +154,7 @@ std::unique_ptr<Value> ColumnData<S>::operator[](Int32& idx) {
 }
 
 template <catalog::SqlType S>
-void ColumnData<S>::ForwardDeclare(khir::KHIRProgramBuilder& program) {
+void ColumnData<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   std::optional<typename khir::Type> elem_type;
 
   // Initialize all the mangled names and the corresponding data type

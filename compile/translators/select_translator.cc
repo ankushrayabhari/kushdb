@@ -1,6 +1,6 @@
 #include "compile/translators/select_translator.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/if.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
@@ -9,7 +9,7 @@
 namespace kush::compile {
 
 SelectTranslator::SelectTranslator(
-    const plan::SelectOperator& select, khir::KHIRProgramBuilder& program,
+    const plan::SelectOperator& select, khir::ProgramBuilder& program,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(select, std::move(children)),
       select_(select),

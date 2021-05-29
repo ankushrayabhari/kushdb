@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/value.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/expression/expression.h"
@@ -16,7 +16,7 @@ class ExpressionTranslator
     : public util::Visitor<plan::ImmutableExpressionVisitor,
                            const plan::Expression&, proxy::Value> {
  public:
-  ExpressionTranslator(khir::KHIRProgramBuilder& program_,
+  ExpressionTranslator(khir::ProgramBuilder& program_,
                        OperatorTranslator& source);
   virtual ~ExpressionTranslator() = default;
 
@@ -41,7 +41,7 @@ class ExpressionTranslator
   template <typename S>
   std::unique_ptr<S> Ternary(const plan::CaseExpression& case_expr);
 
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   OperatorTranslator& source_;
 };
 

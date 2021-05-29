@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/ptr.h"
 #include "compile/translators/expression_translator.h"
@@ -17,7 +17,7 @@ class GroupByAggregateTranslator : public OperatorTranslator {
  public:
   GroupByAggregateTranslator(
       const plan::GroupByAggregateOperator& group_by_agg,
-      khir::KHIRProgramBuilder& program,
+      khir::ProgramBuilder& program,
       std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~GroupByAggregateTranslator() = default;
 
@@ -28,7 +28,7 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   proxy::Float64 ToFloat(proxy::Value& v);
 
   const plan::GroupByAggregateOperator& group_by_agg_;
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   ExpressionTranslator expr_translator_;
   std::unique_ptr<proxy::HashTable> buffer_;
   std::unique_ptr<proxy::Ptr<proxy::Bool>> found_;

@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/printer.h"
@@ -13,12 +13,12 @@ namespace kush::compile::proxy {
 
 class Float64 : public Value {
  public:
-  Float64(khir::KHIRProgramBuilder& program, const khir::Value& value);
-  Float64(khir::KHIRProgramBuilder& program, double value);
-  Float64(khir::KHIRProgramBuilder& program, const proxy::Int8& v);
-  Float64(khir::KHIRProgramBuilder& program, const proxy::Int16& v);
-  Float64(khir::KHIRProgramBuilder& program, const proxy::Int32& v);
-  Float64(khir::KHIRProgramBuilder& program, const proxy::Int64& v);
+  Float64(khir::ProgramBuilder& program, const khir::Value& value);
+  Float64(khir::ProgramBuilder& program, double value);
+  Float64(khir::ProgramBuilder& program, const proxy::Int8& v);
+  Float64(khir::ProgramBuilder& program, const proxy::Int16& v);
+  Float64(khir::ProgramBuilder& program, const proxy::Int32& v);
+  Float64(khir::ProgramBuilder& program, const proxy::Int64& v);
 
   khir::Value Get() const override;
 
@@ -50,7 +50,7 @@ class Float64 : public Value {
   khir::Value Hash() override;
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   khir::Value value_;
 };
 

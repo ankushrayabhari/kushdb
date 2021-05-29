@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/value.h"
@@ -21,7 +21,7 @@ class Loop {
     Continuation() = default;
   };
 
-  Loop(khir::KHIRProgramBuilder& program, std::function<void(Loop&)> init,
+  Loop(khir::ProgramBuilder& program, std::function<void(Loop&)> init,
        std::function<Bool(Loop&)> cond,
        std::function<Continuation(Loop&)> body);
 
@@ -51,7 +51,7 @@ class Loop {
   }
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   std::vector<khir::Value> phi_nodes_;
   std::vector<khir::Value> phi_nodes_initial_values_;
   khir::BasicBlockRef header_;

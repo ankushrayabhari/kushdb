@@ -1,6 +1,6 @@
 #include "compile/proxy/float.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/numeric.h"
@@ -9,22 +9,22 @@
 
 namespace kush::compile::proxy {
 
-Float64::Float64(khir::KHIRProgramBuilder& program, const khir::Value& value)
+Float64::Float64(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-Float64::Float64(khir::KHIRProgramBuilder& program, double value)
+Float64::Float64(khir::ProgramBuilder& program, double value)
     : program_(program), value_(program.ConstF64(value)) {}
 
-Float64::Float64(khir::KHIRProgramBuilder& program, const proxy::Int8& v)
+Float64::Float64(khir::ProgramBuilder& program, const proxy::Int8& v)
     : program_(program), value_(program_.F64ConvI8(v.Get())) {}
 
-Float64::Float64(khir::KHIRProgramBuilder& program, const proxy::Int16& v)
+Float64::Float64(khir::ProgramBuilder& program, const proxy::Int16& v)
     : program_(program), value_(program_.F64ConvI16(v.Get())) {}
 
-Float64::Float64(khir::KHIRProgramBuilder& program, const proxy::Int32& v)
+Float64::Float64(khir::ProgramBuilder& program, const proxy::Int32& v)
     : program_(program), value_(program_.F64ConvI32(v.Get())) {}
 
-Float64::Float64(khir::KHIRProgramBuilder& program, const proxy::Int64& v)
+Float64::Float64(khir::ProgramBuilder& program, const proxy::Int64& v)
     : program_(program), value_(program_.F64ConvI64(v.Get())) {}
 
 khir::Value Float64::Get() const { return value_; }

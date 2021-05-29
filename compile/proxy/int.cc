@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/numeric.h"
 #include "compile/proxy/value.h"
@@ -11,10 +11,10 @@
 
 namespace kush::compile::proxy {
 
-Int8::Int8(khir::KHIRProgramBuilder& program, const khir::Value& value)
+Int8::Int8(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-Int8::Int8(khir::KHIRProgramBuilder& program, int8_t value)
+Int8::Int8(khir::ProgramBuilder& program, int8_t value)
     : program_(program), value_(program.ConstI8(value)) {}
 
 khir::Value Int8::Get() const { return value_; }
@@ -118,10 +118,10 @@ void Int8::Print(proxy::Printer& printer) { printer.Print(*this); }
 
 khir::Value Int8::Hash() { return program_.ZextI8(value_); }
 
-Int16::Int16(khir::KHIRProgramBuilder& program, const khir::Value& value)
+Int16::Int16(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-Int16::Int16(khir::KHIRProgramBuilder& program, int16_t value)
+Int16::Int16(khir::ProgramBuilder& program, int16_t value)
     : program_(program), value_(program.ConstI16(value)) {}
 
 khir::Value Int16::Get() const { return value_; }
@@ -231,10 +231,10 @@ void Int16::Print(proxy::Printer& printer) { printer.Print(*this); }
 
 khir::Value Int16::Hash() { return program_.ZextI16(value_); }
 
-Int32::Int32(khir::KHIRProgramBuilder& program, const khir::Value& value)
+Int32::Int32(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-Int32::Int32(khir::KHIRProgramBuilder& program, int32_t value)
+Int32::Int32(khir::ProgramBuilder& program, int32_t value)
     : program_(program), value_(program.ConstI32(value)) {}
 
 khir::Value Int32::Get() const { return value_; }
@@ -344,10 +344,10 @@ void Int32::Print(proxy::Printer& printer) { printer.Print(*this); }
 
 khir::Value Int32::Hash() { return program_.ZextI32(value_); }
 
-Int64::Int64(khir::KHIRProgramBuilder& program, const khir::Value& value)
+Int64::Int64(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-Int64::Int64(khir::KHIRProgramBuilder& program, int64_t value)
+Int64::Int64(khir::ProgramBuilder& program, int64_t value)
     : program_(program), value_(program.ConstI64(value)) {}
 
 khir::Value Int64::Get() const { return value_; }

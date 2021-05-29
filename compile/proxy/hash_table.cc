@@ -3,7 +3,7 @@
 #include <functional>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
@@ -15,7 +15,7 @@ constexpr std::string_view BucketListStructName("kush::data::BucketList");
 
 class BucketList {
  public:
-  BucketList(khir::KHIRProgramBuilder& program, StructBuilder& content,
+  BucketList(khir::ProgramBuilder& program, StructBuilder& content,
              khir::Value& value)
       : program_(program), content_(content), value_(value) {}
 
@@ -35,7 +35,7 @@ class BucketList {
     program_.Call(program_.GetFunction(BucketListFreeFnName), {value_});
   }
 
-  static void ForwardDeclare(khir::KHIRProgramBuilder& program) {
+  static void ForwardDeclare(khir::ProgramBuilder& program) {
     auto vector_ptr_type =
         program.PointerType(program.GetStructType(Vector::VectorStructName));
 
@@ -63,7 +63,7 @@ class BucketList {
   static constexpr std::string_view BucketListGetBucketIdxFnName =
       "_ZN4kush4data12GetBucketIdxEPNS0_10BucketListEi";
 
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   StructBuilder& content_;
   khir::Value& value_;
 };
@@ -80,7 +80,7 @@ constexpr std::string_view GetAllBucketsFnName(
 constexpr std::string_view FreeFnName("_ZN4kush4data4FreeEPNS0_9HashTableE");
 constexpr std::string_view HashCombineFnName("_ZN4kush4data11HashCombineEPil");
 
-HashTable::HashTable(khir::KHIRProgramBuilder& program, StructBuilder& content)
+HashTable::HashTable(khir::ProgramBuilder& program, StructBuilder& content)
     : program_(program),
       content_(content),
       content_type_(content_.Type()),
@@ -123,7 +123,7 @@ Vector HashTable::Get(std::vector<std::reference_wrapper<proxy::Value>> keys) {
   return Vector(program_, content_, bucket_ptr);
 }
 
-void HashTable::ForwardDeclare(khir::KHIRProgramBuilder& program) {
+void HashTable::ForwardDeclare(khir::ProgramBuilder& program) {
   BucketList::ForwardDeclare(program);
 
   auto vector_ptr_type =

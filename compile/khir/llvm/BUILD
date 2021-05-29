@@ -7,7 +7,7 @@ cc_library(
     srcs = ["khir_llvm_backend.cc"],
     hdrs = ["khir_llvm_backend.h"],
     deps = [
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
         "@absl//absl/types:span",
         "@llvm-project//llvm:BitWriter",
         "@llvm-project//llvm:Core",

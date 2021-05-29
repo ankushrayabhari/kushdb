@@ -1,6 +1,6 @@
 #include "compile/translators/translator_factory.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/translators/cross_product_translator.h"
 #include "compile/translators/group_by_aggregate_translator.h"
 #include "compile/translators/hash_join_translator.h"
@@ -20,7 +20,7 @@
 
 namespace kush::compile {
 
-TranslatorFactory::TranslatorFactory(khir::KHIRProgramBuilder& program)
+TranslatorFactory::TranslatorFactory(khir::ProgramBuilder& program)
     : program_(program) {}
 
 std::vector<std::unique_ptr<OperatorTranslator>>

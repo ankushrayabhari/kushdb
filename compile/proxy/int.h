@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/value.h"
@@ -13,8 +13,8 @@ namespace kush::compile::proxy {
 
 class Int8 : public Value {
  public:
-  Int8(khir::KHIRProgramBuilder& program, const khir::Value& value);
-  Int8(khir::KHIRProgramBuilder& program, int8_t value);
+  Int8(khir::ProgramBuilder& program, const khir::Value& value);
+  Int8(khir::ProgramBuilder& program, int8_t value);
 
   khir::Value Get() const override;
 
@@ -46,14 +46,14 @@ class Int8 : public Value {
   khir::Value Hash() override;
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   khir::Value value_;
 };
 
 class Int16 : public Value {
  public:
-  Int16(khir::KHIRProgramBuilder& program, const khir::Value& value);
-  Int16(khir::KHIRProgramBuilder& program, int16_t value);
+  Int16(khir::ProgramBuilder& program, const khir::Value& value);
+  Int16(khir::ProgramBuilder& program, int16_t value);
 
   khir::Value Get() const override;
 
@@ -85,14 +85,14 @@ class Int16 : public Value {
   khir::Value Hash() override;
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   khir::Value value_;
 };
 
 class Int32 : public Value {
  public:
-  Int32(khir::KHIRProgramBuilder& program, const khir::Value& value);
-  Int32(khir::KHIRProgramBuilder& program, int32_t value);
+  Int32(khir::ProgramBuilder& program, const khir::Value& value);
+  Int32(khir::ProgramBuilder& program, int32_t value);
 
   khir::Value Get() const override;
 
@@ -124,14 +124,14 @@ class Int32 : public Value {
   khir::Value Hash() override;
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   khir::Value value_;
 };
 
 class Int64 : public Value {
  public:
-  Int64(khir::KHIRProgramBuilder& program, const khir::Value& value);
-  Int64(khir::KHIRProgramBuilder& program, int64_t value);
+  Int64(khir::ProgramBuilder& program, const khir::Value& value);
+  Int64(khir::ProgramBuilder& program, int64_t value);
 
   khir::Value Get() const override;
 
@@ -163,7 +163,7 @@ class Int64 : public Value {
   khir::Value Hash() override;
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   khir::Value value_;
 };
 

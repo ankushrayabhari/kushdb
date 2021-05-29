@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/cross_product_operator.h"
@@ -15,7 +15,7 @@ class CrossProductTranslator : public OperatorTranslator {
  public:
   CrossProductTranslator(
       const plan::CrossProductOperator& cross_product,
-      khir::KHIRProgramBuilder& program,
+      khir::ProgramBuilder& program,
       std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~CrossProductTranslator() = default;
 

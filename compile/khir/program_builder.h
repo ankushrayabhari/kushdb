@@ -74,9 +74,9 @@ class KhirBackend : public TypeTranslator, public compile::Program {
       const std::vector<uint64_t>& instructions) = 0;
 };
 
-class KHIRProgramBuilder {
+class ProgramBuilder {
  public:
-  KHIRProgramBuilder() = default;
+  ProgramBuilder() = default;
 
   // Types
   Type VoidType();

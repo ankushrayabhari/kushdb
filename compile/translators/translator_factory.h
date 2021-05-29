@@ -5,7 +5,7 @@
 
 #include "absl/container/flat_hash_map.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/printer.h"
@@ -21,7 +21,7 @@ class TranslatorFactory
     : public util::Visitor<plan::ImmutableOperatorVisitor,
                            const plan::Operator&, OperatorTranslator> {
  public:
-  TranslatorFactory(khir::KHIRProgramBuilder& program);
+  TranslatorFactory(khir::ProgramBuilder& program);
   virtual ~TranslatorFactory() = default;
 
   void Visit(const plan::ScanOperator& scan) override;
@@ -36,7 +36,7 @@ class TranslatorFactory
  private:
   std::vector<std::unique_ptr<OperatorTranslator>> GetChildTranslators(
       const plan::Operator& current);
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
 };
 
 }  // namespace kush::compile

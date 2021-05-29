@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "catalog/sql_type.h"
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -117,8 +117,7 @@ std::string_view InsertFnName() {
 }
 
 template <catalog::SqlType S>
-ColumnIndexImpl<S>::ColumnIndexImpl(khir::KHIRProgramBuilder& program,
-                                    bool global)
+ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program, bool global)
     : program_(program),
       value_(global
                  ? program_.GlobalPointer(
@@ -152,7 +151,7 @@ proxy::Int32 ColumnIndexImpl<S>::GetNextGreater(
 }
 
 template <catalog::SqlType S>
-void ColumnIndexImpl<S>::ForwardDeclare(khir::KHIRProgramBuilder& program) {
+void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   auto index_type = program.I8Type();
   auto index_ptr_type = program.PointerType(index_type);
 

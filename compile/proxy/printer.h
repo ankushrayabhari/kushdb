@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 
 namespace kush::compile::proxy {
 
@@ -15,7 +15,7 @@ class String;
 
 class Printer {
  public:
-  Printer(khir::KHIRProgramBuilder& program);
+  Printer(khir::ProgramBuilder& program);
 
   void Print(const Int8& t);
   void Print(const Bool& t);
@@ -26,10 +26,10 @@ class Printer {
   void Print(const String& t);
   void PrintNewline();
 
-  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
+  static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
 };
 
 }  // namespace kush::compile::proxy

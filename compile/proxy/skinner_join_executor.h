@@ -5,14 +5,14 @@
 
 #include "absl/types/span.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/int.h"
 
 namespace kush::compile::proxy {
 
 class TableFunction {
  public:
-  TableFunction(khir::KHIRProgramBuilder& program,
+  TableFunction(khir::ProgramBuilder& program,
                 std::function<proxy::Int32(proxy::Int32&, proxy::Int8&)> body);
 
   khir::FunctionRef Get();
@@ -23,14 +23,14 @@ class TableFunction {
 
 class SkinnerJoinExecutor {
  public:
-  SkinnerJoinExecutor(khir::KHIRProgramBuilder& program);
+  SkinnerJoinExecutor(khir::ProgramBuilder& program);
 
   void Execute(absl::Span<const khir::Value> args);
 
-  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
+  static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
 };
 
 }  // namespace kush::compile::proxy

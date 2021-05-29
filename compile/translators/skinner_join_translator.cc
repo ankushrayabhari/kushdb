@@ -8,7 +8,7 @@
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_set.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/function.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/printer.h"
@@ -96,7 +96,7 @@ class PredicateColumnCollector : public plan::ImmutableExpressionVisitor {
 };
 
 SkinnerJoinTranslator::SkinnerJoinTranslator(
-    const plan::SkinnerJoinOperator& join, khir::KHIRProgramBuilder& program,
+    const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(join, std::move(children)),
       join_(join),

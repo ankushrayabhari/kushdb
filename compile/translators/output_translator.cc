@@ -1,6 +1,6 @@
 #include "compile/translators/output_translator.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/printer.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/output_operator.h"
@@ -8,7 +8,7 @@
 namespace kush::compile {
 
 OutputTranslator::OutputTranslator(
-    const plan::OutputOperator& output, khir::KHIRProgramBuilder& program,
+    const plan::OutputOperator& output, khir::ProgramBuilder& program,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(output, std::move(children)), program_(program) {}
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/if.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -10,9 +10,9 @@ namespace kush::compile::proxy {
 
 class Vector {
  public:
-  Vector(khir::KHIRProgramBuilder& program, StructBuilder& content,
+  Vector(khir::ProgramBuilder& program, StructBuilder& content,
          bool global = false);
-  Vector(khir::KHIRProgramBuilder& program, StructBuilder& content,
+  Vector(khir::ProgramBuilder& program, StructBuilder& content,
          const khir::Value& value);
 
   Struct operator[](const proxy::Int32& idx);
@@ -21,12 +21,12 @@ class Vector {
   void Reset();
   void Sort(const khir::FunctionRef& comp);
 
-  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
+  static void ForwardDeclare(khir::ProgramBuilder& program);
 
   static const std::string_view VectorStructName;
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   StructBuilder& content_;
   typename khir::Type content_type_;
   typename khir::Value value_;

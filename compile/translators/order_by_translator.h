@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
@@ -15,7 +15,7 @@ namespace kush::compile {
 class OrderByTranslator : public OperatorTranslator {
  public:
   OrderByTranslator(const plan::OrderByOperator& order_by,
-                    khir::KHIRProgramBuilder& program,
+                    khir::ProgramBuilder& program,
                     std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~OrderByTranslator() = default;
 
@@ -24,7 +24,7 @@ class OrderByTranslator : public OperatorTranslator {
 
  private:
   const plan::OrderByOperator& order_by_;
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   ExpressionTranslator expr_translator_;
   std::unique_ptr<proxy::Vector> buffer_;
 };

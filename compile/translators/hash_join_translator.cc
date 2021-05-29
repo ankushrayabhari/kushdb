@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/if.h"
 #include "compile/proxy/loop.h"
@@ -17,7 +17,7 @@
 namespace kush::compile {
 
 HashJoinTranslator::HashJoinTranslator(
-    const plan::HashJoinOperator& hash_join, khir::KHIRProgramBuilder& program,
+    const plan::HashJoinOperator& hash_join, khir::ProgramBuilder& program,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(hash_join, std::move(children)),
       hash_join_(hash_join),

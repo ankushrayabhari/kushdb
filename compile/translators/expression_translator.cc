@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/if.h"
@@ -21,7 +21,7 @@
 
 namespace kush::compile {
 
-ExpressionTranslator::ExpressionTranslator(khir::KHIRProgramBuilder& program,
+ExpressionTranslator::ExpressionTranslator(khir::ProgramBuilder& program,
                                            OperatorTranslator& source)
     : program_(program), source_(source) {}
 
@@ -106,7 +106,7 @@ void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
   }
 }
 
-std::unique_ptr<proxy::Value> CopyProxyValue(khir::KHIRProgramBuilder& program,
+std::unique_ptr<proxy::Value> CopyProxyValue(khir::ProgramBuilder& program,
                                              catalog::SqlType type,
                                              const khir::Value& value) {
   switch (type) {

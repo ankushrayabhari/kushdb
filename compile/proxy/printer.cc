@@ -1,6 +1,6 @@
 #include "compile/proxy/printer.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
@@ -18,7 +18,7 @@ constexpr std::string_view newline_fn_name("_ZN4kush4util12PrintNewlineEv");
 constexpr std::string_view string_fn_name(
     "_ZN4kush4util11PrintStringEPNS_4data6StringE");
 
-Printer::Printer(khir::KHIRProgramBuilder& program) : program_(program) {}
+Printer::Printer(khir::ProgramBuilder& program) : program_(program) {}
 
 void Printer::Print(const Int8& t) {
   program_.Call(program_.GetFunction(i8_fn_name), {t.Get()});
@@ -52,7 +52,7 @@ void Printer::PrintNewline() {
   program_.Call(program_.GetFunction(newline_fn_name), {});
 }
 
-void Printer::ForwardDeclare(khir::KHIRProgramBuilder& program) {
+void Printer::ForwardDeclare(khir::ProgramBuilder& program) {
   program.DeclareExternalFunction(i1_fn_name, program.VoidType(),
                                   {program.I1Type()});
   program.DeclareExternalFunction(i8_fn_name, program.VoidType(),

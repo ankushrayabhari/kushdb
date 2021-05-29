@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/loop.h"
@@ -20,7 +20,7 @@ namespace kush::compile {
 
 GroupByAggregateTranslator::GroupByAggregateTranslator(
     const plan::GroupByAggregateOperator& group_by_agg,
-    khir::KHIRProgramBuilder& program,
+    khir::ProgramBuilder& program,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(group_by_agg, std::move(children)),
       group_by_agg_(group_by_agg),
@@ -83,8 +83,7 @@ void GroupByAggregateTranslator::Produce() {
 }
 
 void CheckEquality(
-    int i, khir::KHIRProgramBuilder& program,
-    ExpressionTranslator& expr_translator,
+    int i, khir::ProgramBuilder& program, ExpressionTranslator& expr_translator,
     std::vector<std::reference_wrapper<proxy::Value>>& values,
     std::vector<std::reference_wrapper<const kush::plan::Expression>>&
         group_by_exprs,

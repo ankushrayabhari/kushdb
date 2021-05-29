@@ -9,9 +9,9 @@ cc_library(
 )
 
 cc_library(
-    name = "khir_program_builder",
-    srcs = ["khir_program_builder.cc"],
-    hdrs = ["khir_program_builder.h"],
+    name = "program_builder",
+    srcs = ["program_builder.cc"],
+    hdrs = ["program_builder.h"],
     deps = [
         ":instruction",
         ":opcode",

@@ -1,6 +1,6 @@
 #include "compile/proxy/string.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 
 namespace kush::compile::proxy {
@@ -23,7 +23,7 @@ constexpr std::string_view HashFnName("_ZN4kush4data4HashEPNS0_6StringE");
 
 const std::string_view String::StringStructName("kush::data::String");
 
-String::String(khir::KHIRProgramBuilder& program, const khir::Value& value)
+String::String(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
 void String::Copy(const String& rhs) {
@@ -103,8 +103,7 @@ khir::Value String::Hash() {
 
 khir::Value String::Get() const { return value_; }
 
-String String::Constant(khir::KHIRProgramBuilder& program,
-                        std::string_view value) {
+String String::Constant(khir::ProgramBuilder& program, std::string_view value) {
   auto char_ptr = program.GlobalConstCharArray(value);
   auto len = program.ConstI32(value.size());
   auto str_struct = program.GlobalStruct(
@@ -112,7 +111,7 @@ String String::Constant(khir::KHIRProgramBuilder& program,
   return String(program, str_struct());
 }
 
-void String::ForwardDeclare(khir::KHIRProgramBuilder& program) {
+void String::ForwardDeclare(khir::ProgramBuilder& program) {
   auto struct_type = program.StructType(
       {
           program.PointerType(program.I8Type()),

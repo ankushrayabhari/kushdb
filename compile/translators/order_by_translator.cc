@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "catalog/sql_type.h"
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/function.h"
@@ -21,7 +21,7 @@
 namespace kush::compile {
 
 OrderByTranslator::OrderByTranslator(
-    const plan::OrderByOperator& order_by, khir::KHIRProgramBuilder& program,
+    const plan::OrderByOperator& order_by, khir::ProgramBuilder& program,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(order_by, std::move(children)),
       order_by_(order_by),

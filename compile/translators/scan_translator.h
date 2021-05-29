@@ -2,7 +2,7 @@
 
 #include "absl/container/flat_hash_map.h"
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/column_data.h"
 #include "compile/translators/operator_translator.h"
 #include "plan/scan_operator.h"
@@ -11,8 +11,7 @@ namespace kush::compile {
 
 class ScanTranslator : public OperatorTranslator {
  public:
-  ScanTranslator(const plan::ScanOperator& scan,
-                 khir::KHIRProgramBuilder& program,
+  ScanTranslator(const plan::ScanOperator& scan, khir::ProgramBuilder& program,
                  std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~ScanTranslator() = default;
 
@@ -21,7 +20,7 @@ class ScanTranslator : public OperatorTranslator {
 
  private:
   const plan::ScanOperator& scan_;
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
 };
 
 }  // namespace kush::compile

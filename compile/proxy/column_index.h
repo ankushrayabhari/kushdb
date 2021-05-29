@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "catalog/sql_type.h"
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -24,7 +24,7 @@ class ColumnIndex {
 template <catalog::SqlType S>
 class ColumnIndexImpl : public ColumnIndex {
  public:
-  ColumnIndexImpl(khir::KHIRProgramBuilder& program, bool global);
+  ColumnIndexImpl(khir::ProgramBuilder& program, bool global);
   virtual ~ColumnIndexImpl();
 
   void Insert(const proxy::Value& v, const proxy::Int32& tuple_idx) override;
@@ -32,10 +32,10 @@ class ColumnIndexImpl : public ColumnIndex {
                               const proxy::Int32& tuple_idx,
                               const proxy::Int32& cardinality) override;
 
-  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
+  static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   khir::Value value_;
 };
 

@@ -7,7 +7,7 @@ cc_library(
     hdrs = ["value.h"],
     deps = [
         ":printer_h",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
         "//plan/expression:binary_arithmetic_expression",
     ],
 )
@@ -16,7 +16,7 @@ cc_library(
     name = "printer_h",
     hdrs = ["printer.h"],
     deps = [
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -29,7 +29,7 @@ cc_library(
         ":int",
         ":printer_h",
         ":string",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -44,7 +44,7 @@ cc_library(
         ":string",
         ":value",
         "//catalog:sql_type",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -56,7 +56,7 @@ cc_library(
         ":loop",
         ":struct",
         ":vector",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
         "//util:vector_util",
     ],
 )
@@ -71,7 +71,7 @@ cc_library(
         ":ptr",
         ":struct",
         "//catalog:sql_type",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -82,7 +82,7 @@ cc_library(
     deps = [
         ":int",
         ":loop",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
         "//util:vector_util",
     ],
 )
@@ -94,7 +94,7 @@ cc_library(
     deps = [
         ":bool",
         ":struct",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -104,7 +104,7 @@ cc_library(
     hdrs = ["skinner_join_executor.h"],
     deps = [
         ":int",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -113,7 +113,7 @@ cc_library(
     hdrs = ["ptr.h"],
     deps = [
         ":value",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
         "//plan/expression:binary_arithmetic_expression",
     ],
 )
@@ -130,7 +130,7 @@ cc_library(
         ":string",
         ":value",
         "//catalog:sql_type",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -146,7 +146,7 @@ cc_library(
         ":string",
         ":value",
         "//catalog:sql_type",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -167,7 +167,7 @@ cc_library(
         ":bool",
         ":printer_h",
         ":value",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
         "//plan/expression:binary_arithmetic_expression",
     ],
 )
@@ -179,7 +179,7 @@ cc_library(
     deps = [
         ":printer_h",
         ":value",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
         "//plan/expression:binary_arithmetic_expression",
     ],
 )
@@ -194,7 +194,7 @@ cc_library(
         ":numeric",
         ":printer_h",
         ":value",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -204,7 +204,7 @@ cc_library(
     hdrs = ["if.h"],
     deps = [
         ":bool",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -217,7 +217,7 @@ cc_library(
         ":numeric",
         ":printer_h",
         ":value",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )
 
@@ -228,6 +228,6 @@ cc_library(
     deps = [
         ":bool",
         ":int",
-        "//compile/khir:khir_program_builder",
+        "//compile/khir:program_builder",
     ],
 )

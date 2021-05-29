@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/value.h"
 
@@ -8,10 +8,9 @@ namespace kush::compile::proxy {
 
 class String : public Value {
  public:
-  String(khir::KHIRProgramBuilder& program, const khir::Value& value);
+  String(khir::ProgramBuilder& program, const khir::Value& value);
 
-  static String Constant(khir::KHIRProgramBuilder& program,
-                         std::string_view value);
+  static String Constant(khir::ProgramBuilder& program, std::string_view value);
 
   void Copy(const String& rhs);
   void Reset();
@@ -30,11 +29,11 @@ class String : public Value {
   khir::Value Hash() override;
   khir::Value Get() const override;
 
-  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
+  static void ForwardDeclare(khir::ProgramBuilder& program);
   static const std::string_view StringStructName;
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   khir::Value value_;
 };
 

@@ -7,7 +7,7 @@
 #include "absl/container/flat_hash_map.h"
 
 #include "catalog/sql_type.h"
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/loop.h"
 #include "compile/translators/operator_translator.h"
@@ -17,7 +17,7 @@
 namespace kush::compile {
 
 ScanTranslator::ScanTranslator(
-    const plan::ScanOperator& scan, khir::KHIRProgramBuilder& program,
+    const plan::ScanOperator& scan, khir::ProgramBuilder& program,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(scan, std::move(children)),
       scan_(scan),

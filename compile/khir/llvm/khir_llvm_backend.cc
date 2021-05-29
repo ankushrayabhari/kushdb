@@ -24,7 +24,7 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 
 #include "compile/khir/instruction.h"
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/khir/type_manager.h"
 
 namespace kush::khir {
@@ -32,7 +32,9 @@ namespace kush::khir {
 KhirLLVMBackend::KhirLLVMBackend()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("query", *context_)),
-      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {}
+      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {
+  start = std::chrono::system_clock::now();
+}
 
 void KhirLLVMBackend::TranslateVoidType() {
   types_.push_back(builder_->getVoidTy());

@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/loop.h"
 #include "util/vector_util.h"
@@ -34,7 +34,7 @@ constexpr std::string_view free_it_fn_name(
     "_ZN4kush4data4FreeEPPNSt8__detail20_Node_const_"
     "iteratorISt6vectorIiSaIiEELb1ELb1EEE");
 
-TupleIdxTable::TupleIdxTable(khir::KHIRProgramBuilder& program)
+TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program)
     : program_(program),
       value_(program_.GlobalPointer(
           false, program_.PointerType(program_.I8Type()),
@@ -88,7 +88,7 @@ void TupleIdxTable::ForEach(std::function<void(const khir::Value&)> handler) {
   program_.Call(program_.GetFunction(free_it_fn_name), {tuple_it});
 }
 
-void TupleIdxTable::ForwardDeclare(khir::KHIRProgramBuilder& program) {
+void TupleIdxTable::ForwardDeclare(khir::ProgramBuilder& program) {
   auto tuple_idx_table_type = program.PointerType(program.I8Type());
   program.DeclareExternalFunction(create_fn_name, tuple_idx_table_type, {});
   program.DeclareExternalFunction(

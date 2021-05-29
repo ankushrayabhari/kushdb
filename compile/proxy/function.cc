@@ -4,14 +4,14 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/struct.h"
 
 namespace kush::compile::proxy {
 
 ComparisonFunction::ComparisonFunction(
-    khir::KHIRProgramBuilder& program, StructBuilder element,
+    khir::ProgramBuilder& program, StructBuilder element,
     std::function<void(Struct&, Struct&, std::function<void(Bool)>)> body) {
   auto current_block = program.CurrentBlock();
 

@@ -4,14 +4,14 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile::proxy {
 
-Loop::Loop(khir::KHIRProgramBuilder& program, std::function<void(Loop&)> init,
+Loop::Loop(khir::ProgramBuilder& program, std::function<void(Loop&)> init,
            std::function<Bool(Loop&)> cond,
            std::function<Loop::Continuation(Loop&)> body)
     : program_(program),

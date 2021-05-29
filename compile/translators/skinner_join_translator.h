@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
@@ -17,7 +17,7 @@ namespace kush::compile {
 class SkinnerJoinTranslator : public OperatorTranslator {
  public:
   SkinnerJoinTranslator(
-      const plan::SkinnerJoinOperator& join, khir::KHIRProgramBuilder& program,
+      const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
       std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~SkinnerJoinTranslator() = default;
   void Produce() override;
@@ -25,7 +25,7 @@ class SkinnerJoinTranslator : public OperatorTranslator {
 
  private:
   const plan::SkinnerJoinOperator& join_;
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   ExpressionTranslator expr_translator_;
   std::vector<std::unique_ptr<proxy::Vector>> buffers_;
   std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes_;

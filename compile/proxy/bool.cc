@@ -2,16 +2,16 @@
 
 #include <memory>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/value.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
-Bool::Bool(khir::KHIRProgramBuilder& program, const khir::Value& value)
+Bool::Bool(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-Bool::Bool(khir::KHIRProgramBuilder& program, bool value)
+Bool::Bool(khir::ProgramBuilder& program, bool value)
     : program_(program), value_(program_.ConstI1(value)) {}
 
 khir::Value Bool::Get() const { return value_; }

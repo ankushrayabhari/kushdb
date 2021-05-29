@@ -6,14 +6,14 @@
 #include "absl/types/span.h"
 
 #include "catalog/sql_type.h"
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/value.h"
 
 namespace kush::compile::proxy {
 
 class StructBuilder {
  public:
-  StructBuilder(khir::KHIRProgramBuilder& program);
+  StructBuilder(khir::ProgramBuilder& program);
   void Add(catalog::SqlType type);
   void Build();
   khir::Type Type();
@@ -21,7 +21,7 @@ class StructBuilder {
   absl::Span<const khir::Value> DefaultValues();
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   std::vector<khir::Type> fields_;
   std::vector<catalog::SqlType> types_;
   std::vector<khir::Value> values_;
@@ -30,7 +30,7 @@ class StructBuilder {
 
 class Struct {
  public:
-  Struct(khir::KHIRProgramBuilder& program, StructBuilder& fields,
+  Struct(khir::ProgramBuilder& program, StructBuilder& fields,
          const khir::Value& value);
 
   void Pack(std::vector<std::reference_wrapper<proxy::Value>> value);
@@ -39,7 +39,7 @@ class Struct {
   std::vector<std::unique_ptr<Value>> Unpack();
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   StructBuilder& fields_;
   khir::Value value_;
 };

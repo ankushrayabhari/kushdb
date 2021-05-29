@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/printer.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 

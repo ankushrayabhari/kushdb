@@ -6,8 +6,8 @@
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "compile/khir/khir_program_builder.h"
 #include "compile/khir/llvm/khir_llvm_backend.h"
+#include "compile/khir/program_builder.h"
 #include "compile/program.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/column_index.h"
@@ -25,7 +25,7 @@ namespace kush::compile {
 QueryTranslator::QueryTranslator(const plan::Operator& op) : op_(op) {}
 
 std::unique_ptr<Program> QueryTranslator::Translate() {
-  khir::KHIRProgramBuilder program;
+  khir::ProgramBuilder program;
 
   // Forward declare string functions
   proxy::String::ForwardDeclare(program);

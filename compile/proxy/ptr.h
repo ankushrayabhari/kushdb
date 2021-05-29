@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/value.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
@@ -11,8 +11,7 @@ namespace kush::compile::proxy {
 template <typename S>
 class Ptr {
  public:
-  Ptr(khir::KHIRProgramBuilder& program,
-      const khir::Value& value)
+  Ptr(khir::ProgramBuilder& program, const khir::Value& value)
       : program_(program), value_(value) {}
 
   khir::Value Get() const { return value_; }
@@ -22,7 +21,7 @@ class Ptr {
   S Load() { return S(program_, program_.Load(value_)); }
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   khir::Value value_;
 };
 

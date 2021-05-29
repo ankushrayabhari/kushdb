@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "catalog/sql_type.h"
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/ptr.h"
@@ -21,16 +21,16 @@ class Iterable {
 template <catalog::SqlType S>
 class ColumnData : public Iterable {
  public:
-  ColumnData(khir::KHIRProgramBuilder& program, std::string_view path);
+  ColumnData(khir::ProgramBuilder& program, std::string_view path);
   virtual ~ColumnData();
 
   Int32 Size() override;
   std::unique_ptr<Value> operator[](Int32& idx) override;
 
-  static void ForwardDeclare(khir::KHIRProgramBuilder& program);
+  static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
-  khir::KHIRProgramBuilder& program_;
+  khir::ProgramBuilder& program_;
   std::optional<khir::Value> value_;
   std::optional<khir::Value> result_;
 };

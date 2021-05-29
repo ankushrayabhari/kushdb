@@ -6,7 +6,7 @@
 #include "absl/types/span.h"
 
 #include "catalog/sql_type.h"
-#include "compile/khir/khir_program_builder.h"
+#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
@@ -15,7 +15,7 @@
 
 namespace kush::compile::proxy {
 
-StructBuilder::StructBuilder(khir::KHIRProgramBuilder& program)
+StructBuilder::StructBuilder(khir::ProgramBuilder& program)
     : program_(program) {}
 
 void StructBuilder::Add(catalog::SqlType type) {
@@ -60,7 +60,7 @@ absl::Span<const catalog::SqlType> StructBuilder::Types() { return types_; }
 
 absl::Span<const khir::Value> StructBuilder::DefaultValues() { return values_; }
 
-Struct::Struct(khir::KHIRProgramBuilder& program, StructBuilder& fields,
+Struct::Struct(khir::ProgramBuilder& program, StructBuilder& fields,
                const khir::Value& value)
     : program_(program), fields_(fields), value_(value) {}
 
