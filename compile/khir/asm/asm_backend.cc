@@ -1,5 +1,7 @@
 #include "compile/khir/asm/asm_backend.h"
 
+#include <stdexcept>
+
 #include "absl/types/span.h"
 
 #include "asmjit/x86.h"
@@ -10,15 +12,18 @@
 
 namespace kush::khir {
 
-// Instructions
-void ASMBackend::TranslateFuncDecl(bool pub, bool external,
-                                   std::string_view name, Type function_type) {}
+void ExceptionErrorHandler::handleError(asmjit::Error err, const char* message,
+                                        asmjit::BaseEmitter* origin) {
+  throw std::runtime_error(message);
+}
 
-void ASMBackend::TranslateFuncBody(
-    int func_idx, const std::vector<uint64_t>& i64_constants,
-    const std::vector<double>& f64_constants,
-    const std::vector<int>& basic_block_order,
-    const std::vector<std::pair<int, int>>& basic_blocks,
-    const std::vector<uint64_t>& instructions) {}
+ASMBackend::ASMBackend() {
+  code_.init(rt_.environment());
+  asm_ = std::make_unique<asmjit::x86::Assembler>(&code_);
+  text_section_ = code_.textSection();
+  code_.newSection(&data_section_, ".data", SIZE_MAX, 0, 8, 0);
+}
+
+void ASMBackend::TranslateGlobalConstCharArray(std::string_view s) {}
 
 }  // namespace kush::khir

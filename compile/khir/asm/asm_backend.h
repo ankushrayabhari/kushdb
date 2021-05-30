@@ -1,9 +1,17 @@
 #pragma once
 
+#include "asmjit/x86.h"
+
 #include "compile/khir/program_builder.h"
 #include "compile/khir/type_manager.h"
 
 namespace kush::khir {
+
+class ExceptionErrorHandler : public asmjit::ErrorHandler {
+ public:
+  void handleError(asmjit::Error err, const char* message,
+                   asmjit::BaseEmitter* origin) override;
+};
 
 class ASMBackend : public Backend {
  public:
@@ -53,6 +61,13 @@ class ASMBackend : public Backend {
   void Execute() const override;
 
  private:
+  asmjit::JitRuntime rt_;
+  asmjit::CodeHolder code_;
+  ExceptionErrorHandler err_handler_;
+  std::unique_ptr<asmjit::x86::Assembler> asm_;
+  asmjit::Section *text_section_, *data_section_;
+
+  std::vector<asmjit::Label> global_char_arrays_;
   mutable std::chrono::time_point<std::chrono::system_clock> start, gen, comp,
       link, end;
 };
