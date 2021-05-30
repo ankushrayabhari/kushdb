@@ -27,6 +27,17 @@ void ASMBackend::Init(const TypeManager& manager,
   asm_ = std::make_unique<asmjit::x86::Assembler>(&code_);
   text_section_ = code_.textSection();
   code_.newSection(&data_section_, ".data", SIZE_MAX, 0, 8, 0);
+
+  asm_->section(data_section_);
+
+  // Write out all string constants
+  for (const auto& str : char_array_constants) {
+    char_array_constants_.push_back(asm_->newLabel());
+    asm_->bind(char_array_constants_.back());
+    for (char c : str) {
+      asm_->embedUInt8(static_cast<uint8_t>(c));
+    }
+  }
 }
 
 void ASMBackend::Translate(const std::vector<Global>& globals,

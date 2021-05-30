@@ -39,6 +39,8 @@ class ASMBackend : public Backend {
   std::unique_ptr<asmjit::x86::Assembler> asm_;
   asmjit::Section *text_section_, *data_section_;
 
+  std::vector<asmjit::Label> char_array_constants_;
+
   mutable std::chrono::time_point<std::chrono::system_clock> start, gen, comp,
       link, end;
 };

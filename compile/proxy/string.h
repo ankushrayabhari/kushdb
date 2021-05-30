@@ -10,7 +10,8 @@ class String : public Value {
  public:
   String(khir::ProgramBuilder& program, const khir::Value& value);
 
-  static String Constant(khir::ProgramBuilder& program, std::string_view value);
+  static String Global(khir::ProgramBuilder& program, std::string_view value);
+  static khir::Value Constant(khir::ProgramBuilder& program, std::string_view value);
 
   void Copy(const String& rhs);
   void Reset();

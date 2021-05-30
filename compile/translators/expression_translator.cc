@@ -96,8 +96,8 @@ void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
           std::make_unique<proxy::Float64>(program_, literal.GetRealValue()));
       break;
     case catalog::SqlType::TEXT:
-      this->Return(proxy::String::Constant(program_, literal.GetTextValue())
-                       .ToPointer());
+      this->Return(
+          proxy::String::Global(program_, literal.GetTextValue()).ToPointer());
       break;
     case catalog::SqlType::BOOLEAN:
       this->Return(

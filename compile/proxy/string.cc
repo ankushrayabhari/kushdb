@@ -103,7 +103,15 @@ khir::Value String::Hash() {
 
 khir::Value String::Get() const { return value_; }
 
-String String::Constant(khir::ProgramBuilder& program, std::string_view value) {
+khir::Value String::Constant(khir::ProgramBuilder& program,
+                             std::string_view value) {
+  auto char_ptr = program.ConstCharArray(value);
+  auto len = program.ConstI32(value.size());
+  return program.ConstantStruct(program.GetStructType(StringStructName),
+                                {char_ptr(), len})();
+}
+
+String String::Global(khir::ProgramBuilder& program, std::string_view value) {
   auto char_ptr = program.ConstCharArray(value);
   auto len = program.ConstI32(value.size());
   auto str_struct = program.Global(
