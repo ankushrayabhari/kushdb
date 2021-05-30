@@ -270,6 +270,8 @@ void LLVMBackend::Translate(
       k++;
       continue;
     }
+
+    throw std::runtime_error("Invalid constant dependency graph.");
   }
 
   // Translate all func decls
