@@ -130,15 +130,14 @@ class Backend : public compile::Program {
  public:
   virtual ~Backend() = default;
 
-  virtual void Init(const TypeManager& manager,
-                    const std::vector<uint64_t>& i64_constants,
-                    const std::vector<double>& f64_constants,
-                    const std::vector<std::string>& char_array_constants,
-                    const std::vector<StructConstant>& struct_constants,
-                    const std::vector<ArrayConstant>& array_constants,
-                    const std::vector<Global>& globals) = 0;
-
-  virtual void Translate(const std::vector<Function>& functions) = 0;
+  virtual void Translate(const TypeManager& manager,
+                         const std::vector<uint64_t>& i64_constants,
+                         const std::vector<double>& f64_constants,
+                         const std::vector<std::string>& char_array_constants,
+                         const std::vector<StructConstant>& struct_constants,
+                         const std::vector<ArrayConstant>& array_constants,
+                         const std::vector<Global>& globals,
+                         const std::vector<Function>& functions) = 0;
 };
 
 class ProgramBuilder {

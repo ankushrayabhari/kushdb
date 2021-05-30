@@ -18,15 +18,14 @@ class ASMBackend : public Backend {
   ASMBackend() = default;
   virtual ~ASMBackend() = default;
 
-  void Init(const TypeManager& manager,
-            const std::vector<uint64_t>& i64_constants,
-            const std::vector<double>& f64_constants,
-            const std::vector<std::string>& char_array_constants,
-            const std::vector<StructConstant>& struct_constants,
-            const std::vector<ArrayConstant>& array_constants,
-            const std::vector<Global>& globals) override;
-
-  void Translate(const std::vector<Function>& functions) override;
+  void Translate(const TypeManager& manager,
+                 const std::vector<uint64_t>& i64_constants,
+                 const std::vector<double>& f64_constants,
+                 const std::vector<std::string>& char_array_constants,
+                 const std::vector<StructConstant>& struct_constants,
+                 const std::vector<ArrayConstant>& array_constants,
+                 const std::vector<Global>& globals,
+                 const std::vector<Function>& functions) override;
 
   // Program
   void Compile() const override;

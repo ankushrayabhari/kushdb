@@ -196,13 +196,14 @@ bool LLVMBackend::CanComputeGlobal(const Global& x) {
   return CanComputeConstant(x.InitialValue());
 }
 
-void LLVMBackend::Init(const TypeManager& manager,
-                       const std::vector<uint64_t>& i64_constants,
-                       const std::vector<double>& f64_constants,
-                       const std::vector<std::string>& char_array_constants,
-                       const std::vector<StructConstant>& struct_constants,
-                       const std::vector<ArrayConstant>& array_constants,
-                       const std::vector<Global>& globals) {
+void LLVMBackend::Translate(
+    const TypeManager& manager, const std::vector<uint64_t>& i64_constants,
+    const std::vector<double>& f64_constants,
+    const std::vector<std::string>& char_array_constants,
+    const std::vector<StructConstant>& struct_constants,
+    const std::vector<ArrayConstant>& array_constants,
+    const std::vector<Global>& globals,
+    const std::vector<Function>& functions) {
   start = std::chrono::system_clock::now();
 
   // Populate types_ array
@@ -270,9 +271,7 @@ void LLVMBackend::Init(const TypeManager& manager,
       continue;
     }
   }
-}
 
-void LLVMBackend::Translate(const std::vector<Function>& functions) {
   // Translate all func decls
   for (const auto& func : functions) {
     std::string fn_name(func.Name());

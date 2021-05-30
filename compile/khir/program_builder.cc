@@ -1139,10 +1139,9 @@ Value ProgramBuilder::GetElementPtr(Type t, Value ptr,
 }
 
 void ProgramBuilder::Translate(Backend& backend) {
-  backend.Init(type_manager_, i64_constants_, f64_constants_,
-               char_array_constants_, struct_constants_, array_constants_,
-               globals_);
-  backend.Translate(functions_);
+  backend.Translate(type_manager_, i64_constants_, f64_constants_,
+                    char_array_constants_, struct_constants_, array_constants_,
+                    globals_, functions_);
 }
 
 }  // namespace kush::khir
