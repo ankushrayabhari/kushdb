@@ -27,17 +27,19 @@ Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content,
     : program_(program),
       content_(content),
       content_type_(content_.Type()),
-      value_(
-          global
-              ? program_.GlobalStruct(
-                    false, program_.GetStructType(VectorStructName),
-                    {
-                        program.ConstI64(0),
-                        program.ConstI32(0),
-                        program.ConstI32(0),
-                        program.NullPtr(program.PointerType(program.I8Type())),
-                    })()
-              : program_.Alloca(program_.GetStructType(VectorStructName))) {
+      value_(global
+                 ? program_.Global(
+                       false, true, program_.GetStructType(VectorStructName),
+                       program_.ConstantStruct(
+                           program_.GetStructType(VectorStructName),
+                           {
+                               program.ConstI64(0),
+                               program.ConstI32(0),
+                               program.ConstI32(0),
+                               program.NullPtr(
+                                   program.PointerType(program.I8Type())),
+                           })())()
+                 : program_.Alloca(program_.GetStructType(VectorStructName))) {
   auto element_size = program_.SizeOf(content_type_);
   auto initial_capacity = program_.ConstI32(2);
   program_.Call(program_.GetFunction(CreateFnName),

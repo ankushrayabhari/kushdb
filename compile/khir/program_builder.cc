@@ -13,11 +13,10 @@
 
 namespace kush::khir {
 
-ProgramBuilder::Function::Function(std::string_view name,
-                                   khir::Type function_type,
-                                   khir::Type result_type,
-                                   absl::Span<const khir::Type> arg_types,
-                                   bool external, bool p)
+Function::Function(std::string_view name, khir::Type function_type,
+                   khir::Type result_type,
+                   absl::Span<const khir::Type> arg_types, bool external,
+                   bool p)
     : name_(name),
       return_type_(result_type),
       arg_types_(arg_types.begin(), arg_types.end()),
@@ -25,7 +24,7 @@ ProgramBuilder::Function::Function(std::string_view name,
       external_(external),
       public_(p) {}
 
-void ProgramBuilder::Function::InitBody() {
+void Function::InitBody() {
   GenerateBasicBlock();
   for (int i = 0; i < arg_types_.size(); i++) {
     arg_values_.push_back(Append(Type3InstructionBuilder()
@@ -36,7 +35,7 @@ void ProgramBuilder::Function::InitBody() {
   }
 }
 
-absl::Span<const Value> ProgramBuilder::Function::GetFunctionArguments() const {
+absl::Span<const Value> Function::GetFunctionArguments() const {
   if (external_) {
     throw std::runtime_error(
         "Cannot get argument registers of external function");
@@ -45,67 +44,54 @@ absl::Span<const Value> ProgramBuilder::Function::GetFunctionArguments() const {
   return arg_values_;
 }
 
-khir::Type ProgramBuilder::Function::ReturnType() const { return return_type_; }
+khir::Type Function::ReturnType() const { return return_type_; }
 
-khir::Type ProgramBuilder::Function::Type() const { return function_type_; }
+khir::Type Function::Type() const { return function_type_; }
 
-bool ProgramBuilder::Function::External() const { return external_; }
+bool Function::External() const { return external_; }
 
-bool ProgramBuilder::Function::Public() const { return public_; }
+bool Function::Public() const { return public_; }
 
-std::string_view ProgramBuilder::Function::Name() const { return name_; }
+std::string_view Function::Name() const { return name_; }
 
-const std::vector<int>& ProgramBuilder::Function::BasicBlockOrder() const {
+const std::vector<int>& Function::BasicBlockOrder() const {
   return basic_block_order_;
 }
 
-const std::vector<std::pair<int, int>>& ProgramBuilder::Function::BasicBlocks()
-    const {
+const std::vector<std::pair<int, int>>& Function::BasicBlocks() const {
   return basic_blocks_;
 }
 
-const std::vector<uint64_t>& ProgramBuilder::Function::Instructions() const {
+const std::vector<uint64_t>& Function::Instructions() const {
   return instructions_;
 }
 
-ProgramBuilder::GlobalArrayImpl::GlobalArrayImpl(
-    bool constant, khir::Type type, absl::Span<const uint64_t> init)
-    : constant_(constant), type_(type), init_(init.begin(), init.end()) {}
+StructConstant::StructConstant(khir::Type type,
+                               absl::Span<const uint64_t> fields)
+    : type_(type), fields_(fields.begin(), fields.end()) {}
 
-bool ProgramBuilder::GlobalArrayImpl::Constant() const { return constant_; }
+khir::Type StructConstant::Type() const { return type_; }
 
-Type ProgramBuilder::GlobalArrayImpl::Type() const { return type_; }
+absl::Span<const uint64_t> StructConstant::Fields() const { return fields_; }
 
-absl::Span<const uint64_t> ProgramBuilder::GlobalArrayImpl::InitialValue()
-    const {
-  return init_;
-}
+ArrayConstant::ArrayConstant(khir::Type type,
+                             absl::Span<const uint64_t> elements)
+    : type_(type), elements_(elements.begin(), elements.end()) {}
 
-ProgramBuilder::GlobalPointerImpl::GlobalPointerImpl(bool constant,
-                                                     khir::Type type,
-                                                     uint64_t init)
-    : constant_(constant), type_(type), init_(init) {}
+khir::Type ArrayConstant::Type() const { return type_; }
 
-bool ProgramBuilder::GlobalPointerImpl::Constant() const { return constant_; }
+absl::Span<const uint64_t> ArrayConstant::Elements() const { return elements_; }
 
-Type ProgramBuilder::GlobalPointerImpl::Type() const { return type_; }
+Global::Global(bool constant, bool pub, khir::Type type, uint64_t init)
+    : constant_(constant), public_(pub), type_(type), init_(init) {}
 
-uint64_t ProgramBuilder::GlobalPointerImpl::InitialValue() const {
-  return init_;
-}
+bool Global::Constant() const { return constant_; }
 
-ProgramBuilder::GlobalStructImpl::GlobalStructImpl(
-    bool constant, khir::Type type, absl::Span<const uint64_t> init)
-    : constant_(constant), type_(type), init_(init.begin(), init.end()) {}
+bool Global::Public() const { return public_; }
 
-bool ProgramBuilder::GlobalStructImpl::Constant() const { return constant_; }
+Type Global::Type() const { return type_; }
 
-Type ProgramBuilder::GlobalStructImpl::Type() const { return type_; }
-
-absl::Span<const uint64_t> ProgramBuilder::GlobalStructImpl::InitialValue()
-    const {
-  return init_;
-}
+uint64_t Global::InitialValue() const { return init_; }
 
 bool IsTerminatingInstr(Opcode opcode) {
   switch (opcode) {
@@ -120,7 +106,7 @@ bool IsTerminatingInstr(Opcode opcode) {
   }
 }
 
-Value ProgramBuilder::Function::Append(uint64_t instr) {
+Value Function::Append(uint64_t instr) {
   if (external_) {
     throw std::runtime_error("Cannot get add body to external function");
   }
@@ -145,7 +131,7 @@ Value ProgramBuilder::Function::Append(uint64_t instr) {
   return static_cast<Value>(idx);
 }
 
-void ProgramBuilder::Function::Update(Value pos, uint64_t instr) {
+void Function::Update(Value pos, uint64_t instr) {
   if (external_) {
     throw std::runtime_error("Cannot mutate body of external function");
   }
@@ -154,7 +140,7 @@ void ProgramBuilder::Function::Update(Value pos, uint64_t instr) {
   instructions_[idx] = instr;
 }
 
-uint64_t ProgramBuilder::Function::GetInstruction(Value v) {
+uint64_t Function::GetInstruction(Value v) {
   if (external_) {
     throw std::runtime_error("Cannot get body of external function");
   }
@@ -162,7 +148,7 @@ uint64_t ProgramBuilder::Function::GetInstruction(Value v) {
   return instructions_[v.GetID()];
 }
 
-int ProgramBuilder::Function::GenerateBasicBlock() {
+int Function::GenerateBasicBlock() {
   if (external_) {
     throw std::runtime_error("Cannot update body of external function");
   }
@@ -172,14 +158,14 @@ int ProgramBuilder::Function::GenerateBasicBlock() {
   return idx;
 }
 
-void ProgramBuilder::Function::SetCurrentBasicBlock(int basic_block_id) {
+void Function::SetCurrentBasicBlock(int basic_block_id) {
   if (external_) {
     throw std::runtime_error("Cannot update body of external function");
   }
 
   current_basic_block_ = basic_block_id;
 }
-int ProgramBuilder::Function::GetCurrentBasicBlock() {
+int Function::GetCurrentBasicBlock() {
   if (external_) {
     throw std::runtime_error("Cannot get body of external function");
   }
@@ -187,7 +173,7 @@ int ProgramBuilder::Function::GetCurrentBasicBlock() {
   return current_basic_block_;
 }
 
-bool ProgramBuilder::Function::IsTerminated(int basic_block_id) {
+bool Function::IsTerminated(int basic_block_id) {
   if (external_) {
     throw std::runtime_error("Cannot get body of external function");
   }
@@ -195,7 +181,7 @@ bool ProgramBuilder::Function::IsTerminated(int basic_block_id) {
   return basic_blocks_[current_basic_block_].second >= 0;
 }
 
-ProgramBuilder::Function& ProgramBuilder::GetCurrentFunction() {
+Function& ProgramBuilder::GetCurrentFunction() {
   return functions_[current_function_];
 }
 
@@ -456,20 +442,18 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::FUNC_PTR:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
-    case Opcode::CHAR_ARRAY_GLOBAL_CONST:
+    case Opcode::CHAR_ARRAY_CONST:
       return type_manager_.PointerType(type_manager_.I8Type());
 
-    case Opcode::STRUCT_GLOBAL:
-      return type_manager_.PointerType(
-          global_structs_[Type1InstructionReader(instr).Constant()].Type());
+    case Opcode::STRUCT_CONST:
+      return struct_constants_[Type1InstructionReader(instr).Constant()].Type();
 
-    case Opcode::ARRAY_GLOBAL:
-      return type_manager_.PointerType(
-          global_arrays_[Type1InstructionReader(instr).Constant()].Type());
+    case Opcode::ARRAY_CONST:
+      return array_constants_[Type1InstructionReader(instr).Constant()].Type();
 
-    case Opcode::PTR_GLOBAL:
+    case Opcode::GLOBAL_REF:
       return type_manager_.PointerType(
-          global_pointers_[Type1InstructionReader(instr).Constant()].Type());
+          globals_[Type1InstructionReader(instr).Constant()].Type());
 
     case Opcode::PTR_ADD:
       throw std::runtime_error("PTR_ADD needs to be casted.");
@@ -1069,63 +1053,63 @@ Value ProgramBuilder::I64ConvF64(Value v) {
 }
 
 // Globals
-std::function<Value()> ProgramBuilder::GlobalConstCharArray(
-    std::string_view s) {
-  uint32_t idx = global_char_arrays_.size();
-  global_char_arrays_.emplace_back(s);
+std::function<Value()> ProgramBuilder::ConstCharArray(std::string_view s) {
+  uint32_t idx = char_array_constants_.size();
+  char_array_constants_.emplace_back(s);
   return [idx, this]() {
     return this->GetCurrentFunction().Append(
         Type1InstructionBuilder()
-            .SetOpcode(Opcode::CHAR_ARRAY_GLOBAL_CONST)
+            .SetOpcode(Opcode::CHAR_ARRAY_CONST)
             .SetConstant(idx)
             .Build());
   };
 }
 
-std::function<Value()> ProgramBuilder::GlobalStruct(
-    bool constant, Type t, absl::Span<const Value> init) {
-  std::vector<uint64_t> instrs;
-  for (const Value v : init) {
-    instrs.push_back(GetCurrentFunction().GetInstruction(v));
+std::function<Value()> ProgramBuilder::ConstantStruct(
+    Type t, absl::Span<const Value> init) {
+  uint32_t idx = struct_constants_.size();
+
+  std::vector<uint64_t> init_instrs;
+  for (auto v : init) {
+    init_instrs.push_back(GetCurrentFunction().GetInstruction(v));
   }
+  struct_constants_.emplace_back(t, init_instrs);
 
-  uint32_t idx = global_structs_.size();
-  global_structs_.emplace_back(constant, t, instrs);
   return [idx, this]() {
     return this->GetCurrentFunction().Append(
         Type1InstructionBuilder()
-            .SetOpcode(Opcode::STRUCT_GLOBAL)
+            .SetOpcode(Opcode::STRUCT_CONST)
             .SetConstant(idx)
             .Build());
   };
 }
 
-std::function<Value()> ProgramBuilder::GlobalArray(
-    bool constant, Type t, absl::Span<const Value> init) {
-  std::vector<uint64_t> instrs;
-  for (const Value v : init) {
-    instrs.push_back(GetCurrentFunction().GetInstruction(v));
+std::function<Value()> ProgramBuilder::ConstantArray(
+    Type t, absl::Span<const Value> init) {
+  uint32_t idx = array_constants_.size();
+
+  std::vector<uint64_t> init_instrs;
+  for (auto v : init) {
+    init_instrs.push_back(GetCurrentFunction().GetInstruction(v));
   }
+  array_constants_.emplace_back(t, init_instrs);
 
-  uint32_t idx = global_arrays_.size();
-  global_arrays_.emplace_back(constant, t, instrs);
-  return [idx, this]() {
-    return this->GetCurrentFunction().Append(
-        Type1InstructionBuilder()
-            .SetOpcode(Opcode::ARRAY_GLOBAL)
-            .SetConstant(idx)
-            .Build());
-  };
-}
-
-std::function<Value()> ProgramBuilder::GlobalPointer(bool constant, Type t,
-                                                     Value init) {
-  uint32_t idx = global_pointers_.size();
-  global_pointers_.emplace_back(constant, t,
-                                GetCurrentFunction().GetInstruction(init));
   return [idx, this]() {
     return this->GetCurrentFunction().Append(Type1InstructionBuilder()
-                                                 .SetOpcode(Opcode::PTR_GLOBAL)
+                                                 .SetOpcode(Opcode::ARRAY_CONST)
+                                                 .SetConstant(idx)
+                                                 .Build());
+  };
+}
+
+std::function<Value()> ProgramBuilder::Global(bool constant, bool pub, Type t,
+                                              Value init) {
+  uint32_t idx = globals_.size();
+  globals_.emplace_back(constant, pub, t,
+                        GetCurrentFunction().GetInstruction(init));
+  return [idx, this]() {
+    return this->GetCurrentFunction().Append(Type1InstructionBuilder()
+                                                 .SetOpcode(Opcode::GLOBAL_REF)
                                                  .SetConstant(idx)
                                                  .Build());
   };
@@ -1154,39 +1138,9 @@ Value ProgramBuilder::GetElementPtr(Type t, Value ptr,
 }
 
 void ProgramBuilder::Translate(Backend& backend) {
-  type_manager_.Translate(backend);
-
-  for (const auto& x : global_char_arrays_) {
-    backend.TranslateGlobalConstCharArray(x);
-  }
-
-  for (const auto& x : global_structs_) {
-    backend.TranslateGlobalStruct(x.Constant(), x.Type(), x.InitialValue(),
-                                  i64_constants_, f64_constants_);
-  }
-
-  for (const auto& x : global_arrays_) {
-    backend.TranslateGlobalArray(x.Constant(), x.Type(), x.InitialValue(),
-                                 i64_constants_, f64_constants_);
-  }
-
-  for (const auto& x : global_pointers_) {
-    backend.TranslateGlobalPointer(x.Constant(), x.Type(), x.InitialValue(),
-                                   i64_constants_, f64_constants_);
-  }
-
-  for (const auto& f : functions_) {
-    backend.TranslateFuncDecl(f.Public(), f.External(), f.Name(), f.Type());
-  }
-
-  for (int i = 0; i < functions_.size(); i++) {
-    const auto& f = functions_[i];
-    if (!f.External()) {
-      backend.TranslateFuncBody(i, i64_constants_, f64_constants_,
-                                f.BasicBlockOrder(), f.BasicBlocks(),
-                                f.Instructions());
-    }
-  }
+  backend.Init(type_manager_, i64_constants_, f64_constants_,
+               char_array_constants_, struct_constants_, array_constants_);
+  backend.Translate(globals_, functions_);
 }
 
 }  // namespace kush::khir

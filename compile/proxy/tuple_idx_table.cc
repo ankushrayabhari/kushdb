@@ -36,8 +36,8 @@ constexpr std::string_view free_it_fn_name(
 
 TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program)
     : program_(program),
-      value_(program_.GlobalPointer(
-          false, program_.PointerType(program_.I8Type()),
+      value_(program_.Global(
+          false, true, program_.PointerType(program_.I8Type()),
           program_.NullPtr(program_.PointerType(program_.I8Type())))()) {
   auto tuple_idx_table = program_.Call(program_.GetFunction(create_fn_name));
   program_.Store(value_, tuple_idx_table);

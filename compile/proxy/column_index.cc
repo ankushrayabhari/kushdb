@@ -120,8 +120,8 @@ template <catalog::SqlType S>
 ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program, bool global)
     : program_(program),
       value_(global
-                 ? program_.GlobalPointer(
-                       false, program_.PointerType(program_.I8Type()),
+                 ? program_.Global(
+                       false, false, program_.PointerType(program_.I8Type()),
                        program.NullPtr(program.PointerType(program.I8Type())))()
                  : program_.Alloca(program_.PointerType(program_.I8Type()))) {
   program_.Store(value_,

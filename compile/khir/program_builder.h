@@ -48,30 +48,97 @@ struct BasicBlockRef
 
 enum class CompType { EQ, NE, LT, LE, GT, GE };
 
-class Backend : public TypeTranslator, public compile::Program {
+class StructConstant {
+ public:
+  StructConstant(khir::Type type, absl::Span<const uint64_t> fields);
+  khir::Type Type() const;
+  absl::Span<const uint64_t> Fields() const;
+
+ private:
+  khir::Type type_;
+  std::vector<uint64_t> fields_;
+};
+
+class ArrayConstant {
+ public:
+  ArrayConstant(khir::Type type, absl::Span<const uint64_t> elements);
+  khir::Type Type() const;
+  absl::Span<const uint64_t> Elements() const;
+
+ private:
+  khir::Type type_;
+  std::vector<uint64_t> elements_;
+};
+
+class Global {
+ public:
+  Global(bool constant, bool pub, khir::Type type, uint64_t init);
+  bool Constant() const;
+  bool Public() const;
+  khir::Type Type() const;
+  uint64_t InitialValue() const;
+
+ private:
+  bool constant_;
+  bool public_;
+  khir::Type type_;
+  uint64_t init_;
+};
+
+class Function {
+ public:
+  Function(std::string_view name, Type function_type, Type result_type,
+           absl::Span<const Type> arg_types, bool external, bool p);
+  absl::Span<const Value> GetFunctionArguments() const;
+
+  void InitBody();
+  Value Append(uint64_t instr);
+  void Update(Value pos, uint64_t instr);
+  uint64_t GetInstruction(Value v);
+
+  int GenerateBasicBlock();
+  void SetCurrentBasicBlock(int basic_block_id);
+  int GetCurrentBasicBlock();
+  bool IsTerminated(int basic_block_id);
+
+  khir::Type ReturnType() const;
+  khir::Type Type() const;
+  bool External() const;
+  bool Public() const;
+  std::string_view Name() const;
+  const std::vector<int>& BasicBlockOrder() const;
+  const std::vector<std::pair<int, int>>& BasicBlocks() const;
+  const std::vector<uint64_t>& Instructions() const;
+
+ private:
+  std::string name_;
+  khir::Type return_type_;
+  std::vector<khir::Type> arg_types_;
+  std::vector<Value> arg_values_;
+  khir::Type function_type_;
+
+  std::vector<std::pair<int, int>> basic_blocks_;
+  std::vector<int> basic_block_order_;
+  std::vector<uint64_t> instructions_;
+
+  int current_basic_block_;
+  bool external_;
+  bool public_;
+};
+
+class Backend : public compile::Program {
  public:
   virtual ~Backend() = default;
-  virtual void TranslateGlobalConstCharArray(std::string_view s) = 0;
-  virtual void TranslateGlobalStruct(
-      bool constant, Type t, absl::Span<const uint64_t> v,
-      const std::vector<uint64_t>& i64_constants,
-      const std::vector<double>& f64_constants) = 0;
-  virtual void TranslateGlobalArray(
-      bool constant, Type t, absl::Span<const uint64_t> v,
-      const std::vector<uint64_t>& i64_constants,
-      const std::vector<double>& f64_constants) = 0;
-  virtual void TranslateGlobalPointer(
-      bool constant, Type t, uint64_t v,
-      const std::vector<uint64_t>& i64_constants,
-      const std::vector<double>& f64_constants) = 0;
-  virtual void TranslateFuncDecl(bool pub, bool external, std::string_view name,
-                                 Type function_type) = 0;
-  virtual void TranslateFuncBody(
-      int func_idx, const std::vector<uint64_t>& i64_constants,
-      const std::vector<double>& f64_constants,
-      const std::vector<int>& basic_block_order,
-      const std::vector<std::pair<int, int>>& basic_blocks,
-      const std::vector<uint64_t>& instructions) = 0;
+
+  virtual void Init(const TypeManager& manager,
+                    const std::vector<uint64_t>& i64_constants,
+                    const std::vector<double>& f64_constants,
+                    const std::vector<std::string>& char_array_constants,
+                    const std::vector<StructConstant>& struct_constants,
+                    const std::vector<ArrayConstant>& array_constants) = 0;
+
+  virtual void Translate(const std::vector<Global>& globals,
+                         const std::vector<Function>& functions) = 0;
 };
 
 class ProgramBuilder {
@@ -183,58 +250,15 @@ class ProgramBuilder {
   Value ConstF64(double v);
   Value I64ConvF64(Value v);
 
-  // Globals
-  std::function<Value()> GlobalConstCharArray(std::string_view s);
-  std::function<Value()> GlobalStruct(bool constant, Type t,
-                                      absl::Span<const Value> v);
-  std::function<Value()> GlobalArray(bool constant, Type t,
-                                     absl::Span<const Value> v);
-  std::function<Value()> GlobalPointer(bool constant, Type t, Value v);
+  // Constant/Global Aggregates
+  std::function<Value()> ConstCharArray(std::string_view s);
+  std::function<Value()> ConstantStruct(Type t, absl::Span<const Value> v);
+  std::function<Value()> ConstantArray(Type t, absl::Span<const Value> v);
+  std::function<Value()> Global(bool constant, bool pub, Type t, Value v);
 
   void Translate(Backend& backend);
 
  private:
-  class Function {
-   public:
-    Function(std::string_view name, Type function_type, Type result_type,
-             absl::Span<const Type> arg_types, bool external, bool p);
-    absl::Span<const Value> GetFunctionArguments() const;
-
-    void InitBody();
-    Value Append(uint64_t instr);
-    void Update(Value pos, uint64_t instr);
-    uint64_t GetInstruction(Value v);
-
-    int GenerateBasicBlock();
-    void SetCurrentBasicBlock(int basic_block_id);
-    int GetCurrentBasicBlock();
-    bool IsTerminated(int basic_block_id);
-
-    khir::Type ReturnType() const;
-    khir::Type Type() const;
-    bool External() const;
-    bool Public() const;
-    std::string_view Name() const;
-    const std::vector<int>& BasicBlockOrder() const;
-    const std::vector<std::pair<int, int>>& BasicBlocks() const;
-    const std::vector<uint64_t>& Instructions() const;
-
-   private:
-    std::string name_;
-    khir::Type return_type_;
-    std::vector<khir::Type> arg_types_;
-    std::vector<Value> arg_values_;
-    khir::Type function_type_;
-
-    std::vector<std::pair<int, int>> basic_blocks_;
-    std::vector<int> basic_block_order_;
-    std::vector<uint64_t> instructions_;
-
-    int current_basic_block_;
-    bool external_;
-    bool public_;
-  };
-
   TypeManager type_manager_;
   std::vector<Function> functions_;
 
@@ -242,53 +266,13 @@ class ProgramBuilder {
   int current_function_;
   absl::flat_hash_map<std::string, FunctionRef> name_to_function_;
 
-  class GlobalArrayImpl {
-   public:
-    GlobalArrayImpl(bool constant, khir::Type type,
-                    absl::Span<const uint64_t> init);
-    bool Constant() const;
-    khir::Type Type() const;
-    absl::Span<const uint64_t> InitialValue() const;
-
-   private:
-    bool constant_;
-    khir::Type type_;
-    std::vector<uint64_t> init_;
-  };
-
-  class GlobalPointerImpl {
-   public:
-    GlobalPointerImpl(bool constant, khir::Type type, uint64_t init);
-    bool Constant() const;
-    khir::Type Type() const;
-    uint64_t InitialValue() const;
-
-   private:
-    bool constant_;
-    khir::Type type_;
-    uint64_t init_;
-  };
-
-  class GlobalStructImpl {
-   public:
-    GlobalStructImpl(bool constant, khir::Type type,
-                     absl::Span<const uint64_t> init);
-    bool Constant() const;
-    khir::Type Type() const;
-    absl::Span<const uint64_t> InitialValue() const;
-
-   private:
-    bool constant_;
-    khir::Type type_;
-    std::vector<uint64_t> init_;
-  };
-
   std::vector<uint64_t> i64_constants_;
   std::vector<double> f64_constants_;
-  std::vector<std::string> global_char_arrays_;
-  std::vector<GlobalPointerImpl> global_pointers_;
-  std::vector<GlobalArrayImpl> global_arrays_;
-  std::vector<GlobalStructImpl> global_structs_;
+  std::vector<std::string> char_array_constants_;
+  std::vector<StructConstant> struct_constants_;
+  std::vector<ArrayConstant> array_constants_;
+
+  std::vector<khir::Global> globals_;
 };
 
 }  // namespace kush::khir

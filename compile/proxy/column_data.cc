@@ -106,7 +106,7 @@ std::string_view StructName() {
 template <catalog::SqlType S>
 ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
     : program_(program) {
-  auto path_value = program_.GlobalConstCharArray(path);
+  auto path_value = program_.ConstCharArray(path);
   value_ = program_.Alloca(program.GetStructType(StructName<S>()));
   program_.Call(program_.GetFunction(OpenFnName<S>()),
                 {value_.value(), path_value()});

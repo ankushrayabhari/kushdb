@@ -225,7 +225,7 @@ std::pair<int64_t, Type> TypeManager::GetPointerOffset(
   return {offset, PointerType(result_type->Get())};
 }
 
-void TypeManager::Translate(TypeTranslator& translator) {
+void TypeManager::Translate(TypeTranslator& translator) const {
   for (int i = 0; i < type_id_to_impl_.size(); i++) {
     auto type_impl = type_id_to_impl_[i].get();
     if (auto base_type = dynamic_cast<BaseTypeImpl*>(type_impl)) {
