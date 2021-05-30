@@ -8,3 +8,5 @@ IncludeCategories:
     Priority:        3
   - Regex:           '"llvm\/'
     Priority:        4
+  - Regex:           '"asmjit\/'
+    Priority:        5

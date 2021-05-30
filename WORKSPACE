@@ -106,3 +106,11 @@ llvm_configure(
     src_path = ".",
     src_workspace = "@llvm-project-raw//:WORKSPACE",
 )
+
+http_archive(
+    name = "asmjit",
+    build_file = "@//third_party:asmjit.BUILD",
+    sha256 = "33c1a131583850284ece021f78e945840a5183eb1b142a8b439c3ccaf963c16b",
+    strip_prefix = "asmjit-master",
+    urls = ["https://github.com/ankushrayabhari/asmjit/archive/refs/heads/master.zip"],
+)

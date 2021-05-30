@@ -2,6 +2,8 @@
 
 #include "absl/types/span.h"
 
+#include "asmjit/x86.h"
+
 #include "compile/khir/instruction.h"
 #include "compile/khir/program_builder.h"
 #include "compile/khir/type_manager.h"

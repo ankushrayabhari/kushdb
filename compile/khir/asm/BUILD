@@ -9,5 +9,6 @@ cc_library(
     deps = [
         "//compile/khir:program_builder",
         "@absl//absl/types:span",
+        "@asmjit",
     ],
 )
