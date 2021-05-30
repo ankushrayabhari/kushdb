@@ -34,6 +34,10 @@ class ASMBackend : public Backend {
 
   // Globals
   void TranslateGlobalConstCharArray(std::string_view s) override;
+  void TranslateGlobalPointer(
+      bool constant, Type t, uint64_t v,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants) override;
   void TranslateGlobalStruct(bool constant, Type t,
                              absl::Span<const uint64_t> v,
                              const std::vector<uint64_t>& i64_constants,
@@ -41,10 +45,6 @@ class ASMBackend : public Backend {
   void TranslateGlobalArray(bool constant, Type t, absl::Span<const uint64_t> v,
                             const std::vector<uint64_t>& i64_constants,
                             const std::vector<double>& f64_constants) override;
-  void TranslateGlobalPointer(
-      bool constant, Type t, uint64_t v,
-      const std::vector<uint64_t>& i64_constants,
-      const std::vector<double>& f64_constants) override;
 
   // Instructions
   void TranslateFuncDecl(bool pub, bool external, std::string_view name,
@@ -68,6 +68,9 @@ class ASMBackend : public Backend {
   asmjit::Section *text_section_, *data_section_;
 
   std::vector<asmjit::Label> global_char_arrays_;
+  std::vector<asmjit::Label> global_pointers_;
+  std::vector<asmjit::Label> global_arrays_;
+  std::vector<asmjit::Label> global_structs_;
   mutable std::chrono::time_point<std::chrono::system_clock> start, gen, comp,
       link, end;
 };
