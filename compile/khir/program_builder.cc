@@ -442,7 +442,7 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::FUNC_PTR:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
-    case Opcode::CHAR_ARRAY_CONST:
+    case Opcode::GLOBAL_CHAR_ARRAY_CONST:
       return type_manager_.PointerType(type_manager_.I8Type());
 
     case Opcode::STRUCT_CONST:
@@ -1053,13 +1053,14 @@ Value ProgramBuilder::I64ConvF64(Value v) {
 }
 
 // Globals
-std::function<Value()> ProgramBuilder::ConstCharArray(std::string_view s) {
+std::function<Value()> ProgramBuilder::GlobalConstCharArray(
+    std::string_view s) {
   uint32_t idx = char_array_constants_.size();
   char_array_constants_.emplace_back(s);
   return [idx, this]() {
     return this->GetCurrentFunction().Append(
         Type1InstructionBuilder()
-            .SetOpcode(Opcode::CHAR_ARRAY_CONST)
+            .SetOpcode(Opcode::GLOBAL_CHAR_ARRAY_CONST)
             .SetConstant(idx)
             .Build());
   };

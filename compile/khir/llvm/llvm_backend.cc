@@ -114,7 +114,7 @@ llvm::Constant* LLVMBackend::GetConstantFromInstr(uint64_t instr) {
       return f64_constants_[Type1InstructionReader(instr).Constant()];
     }
 
-    case Opcode::CHAR_ARRAY_CONST: {
+    case Opcode::GLOBAL_CHAR_ARRAY_CONST: {
       return char_array_constants_[Type1InstructionReader(instr).Constant()];
     }
 
@@ -152,7 +152,7 @@ bool LLVMBackend::CanComputeConstant(uint64_t instr) {
     case Opcode::I32_CONST:
     case Opcode::I64_CONST:
     case Opcode::F64_CONST:
-    case Opcode::CHAR_ARRAY_CONST:
+    case Opcode::GLOBAL_CHAR_ARRAY_CONST:
     case Opcode::NULLPTR:
       return true;
 
@@ -401,15 +401,20 @@ void LLVMBackend::TranslateInstr(
   auto opcode = GenericInstructionReader(instr).Opcode();
 
   switch (opcode) {
+    case Opcode::STRUCT_CONST:
+    case Opcode::ARRAY_CONST: {
+      // should only be used to initialize globals so referencing them in
+      // a normal context shouldn't do anything
+      return;
+    }
+
     case Opcode::I1_CONST:
     case Opcode::I8_CONST:
     case Opcode::I16_CONST:
     case Opcode::I32_CONST:
     case Opcode::I64_CONST:
     case Opcode::F64_CONST:
-    case Opcode::CHAR_ARRAY_CONST:
-    case Opcode::STRUCT_CONST:
-    case Opcode::ARRAY_CONST:
+    case Opcode::GLOBAL_CHAR_ARRAY_CONST:
     case Opcode::NULLPTR:
     case Opcode::GLOBAL_REF: {
       values[instr_idx] = GetConstantFromInstr(instr);

@@ -26,7 +26,7 @@ class GenericInstructionReader {
 // [MD] [32-bit constant] I32_CONST
 // [MD] [32-bit ID]       I64_CONST
 // [MD] [32-bit ID]       F64_CONST
-// [MD] [32-bit ID]       CHAR_ARRAY_CONST
+// [MD] [32-bit ID]       GLOBAL_CHAR_ARRAY_CONST
 // [MD] [32-bit ID]       STRUCT_CONST
 // [MD] [32-bit ID]       ARRAY_CONST
 // [MD] [32-bit ID]       GLOBAL

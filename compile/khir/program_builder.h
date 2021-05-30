@@ -251,7 +251,7 @@ class ProgramBuilder {
   Value I64ConvF64(Value v);
 
   // Constant/Global Aggregates
-  std::function<Value()> ConstCharArray(std::string_view s);
+  std::function<Value()> GlobalConstCharArray(std::string_view s);
   std::function<Value()> ConstantStruct(Type t, absl::Span<const Value> v);
   std::function<Value()> ConstantArray(Type t, absl::Span<const Value> v);
   std::function<Value()> Global(bool constant, bool pub, Type t, Value v);
