@@ -93,7 +93,9 @@ void ScanTranslator::Produce() {
         return loop.Continue(i + 1);
       });
 
-  column_data_vars.clear();
+  for (auto& col : column_data_vars) {
+    col->Reset();
+  }
 }
 
 void ScanTranslator::Consume(OperatorTranslator& src) {

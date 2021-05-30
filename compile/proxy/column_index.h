@@ -21,11 +21,32 @@ class ColumnIndex {
                                       const proxy::Int32& cardinality) = 0;
 };
 
+class GlobalColumnIndex {
+ public:
+  virtual ~GlobalColumnIndex() = default;
+  virtual std::unique_ptr<ColumnIndex> Get() = 0;
+};
+
+template <catalog::SqlType S>
+class GlobalColumnIndexImpl : public GlobalColumnIndex {
+ public:
+  GlobalColumnIndexImpl(khir::ProgramBuilder& program);
+  virtual ~GlobalColumnIndexImpl() = default;
+
+  void Reset();
+
+  std::unique_ptr<ColumnIndex> Get() override;
+
+ private:
+  khir::ProgramBuilder& program_;
+  std::function<khir::Value()> global_ref_generator_;
+};
+
 template <catalog::SqlType S>
 class ColumnIndexImpl : public ColumnIndex {
  public:
-  ColumnIndexImpl(khir::ProgramBuilder& program, bool global);
-  virtual ~ColumnIndexImpl();
+  ColumnIndexImpl(khir::ProgramBuilder& program, khir::Value value);
+  virtual ~ColumnIndexImpl() = default;
 
   void Insert(const proxy::Value& v, const proxy::Int32& tuple_idx) override;
   proxy::Int32 GetNextGreater(const proxy::Value& v,

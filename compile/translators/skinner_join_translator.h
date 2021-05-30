@@ -27,8 +27,8 @@ class SkinnerJoinTranslator : public OperatorTranslator {
   const plan::SkinnerJoinOperator& join_;
   khir::ProgramBuilder& program_;
   ExpressionTranslator expr_translator_;
-  std::vector<std::unique_ptr<proxy::Vector>> buffers_;
-  std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes_;
+  std::vector<proxy::GlobalVector> buffers_;
+  std::vector<std::unique_ptr<proxy::GlobalColumnIndex>> indexes_;
   std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
       predicate_columns_;
   absl::flat_hash_map<std::pair<int, int>, int> predicate_to_index_idx_;

@@ -22,7 +22,8 @@ void ASMBackend::Init(const TypeManager& manager,
                       const std::vector<double>& f64_constants,
                       const std::vector<std::string>& char_array_constants,
                       const std::vector<StructConstant>& struct_constants,
-                      const std::vector<ArrayConstant>& array_constants) {
+                      const std::vector<ArrayConstant>& array_constants,
+                      const std::vector<Global>& globals) {
   code_.init(rt_.environment());
   asm_ = std::make_unique<asmjit::x86::Assembler>(&code_);
   text_section_ = code_.textSection();
@@ -40,8 +41,7 @@ void ASMBackend::Init(const TypeManager& manager,
   }
 }
 
-void ASMBackend::Translate(const std::vector<Global>& globals,
-                           const std::vector<Function>& functions) {
+void ASMBackend::Translate(const std::vector<Function>& functions) {
   // TODO
 }
 

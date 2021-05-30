@@ -22,32 +22,43 @@ const std::string_view SortFnName("_ZN4kush4data4SortEPNS0_6VectorEPFbPaS3_E");
 
 const std::string_view Vector::VectorStructName("kush::data::Vector");
 
-Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content,
-               bool global)
+GlobalVector::GlobalVector(khir::ProgramBuilder& program,
+                           StructBuilder& content)
     : program_(program),
       content_(content),
-      content_type_(content_.Type()),
-      value_(global
-                 ? program_.Global(
-                       false, true, program_.GetStructType(VectorStructName),
-                       program_.ConstantStruct(
-                           program_.GetStructType(VectorStructName),
-                           {
-                               program.ConstI64(0),
-                               program.ConstI32(0),
-                               program.ConstI32(0),
-                               program.NullPtr(
-                                   program.PointerType(program.I8Type())),
-                           })())()
-                 : program_.Alloca(program_.GetStructType(VectorStructName))) {
+      generator_(program_.Global(
+          false, true, program_.GetStructType(Vector::VectorStructName),
+          program_.ConstantStruct(
+              program_.GetStructType(Vector::VectorStructName),
+              {
+                  program.ConstI64(0),
+                  program.ConstI32(0),
+                  program.ConstI32(0),
+                  program.NullPtr(program.PointerType(program.I8Type())),
+              })())) {
+  Vector(program_, content_, generator_()).Init();
+}
+
+Vector GlobalVector::Get() {
+  auto value = generator_();
+  return Vector(program_, content_, value);
+}
+
+void Vector::Init() {
   auto element_size = program_.SizeOf(content_type_);
   auto initial_capacity = program_.ConstI32(2);
   program_.Call(program_.GetFunction(CreateFnName),
                 {value_, element_size, initial_capacity});
 }
 
+Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content)
+    : Vector(program, content,
+             program.Alloca(program.GetStructType(VectorStructName))) {
+  Init();
+}
+
 Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content,
-               const khir::Value& value)
+               khir::Value value)
     : program_(program),
       content_(content),
       content_type_(content_.Type()),

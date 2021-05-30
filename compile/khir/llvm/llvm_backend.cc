@@ -142,12 +142,67 @@ llvm::Constant* LLVMBackend::GetConstantFromInstr(uint64_t instr) {
   }
 }
 
+bool LLVMBackend::CanComputeConstant(uint64_t instr) {
+  auto opcode = GenericInstructionReader(instr).Opcode();
+
+  switch (opcode) {
+    case Opcode::I1_CONST:
+    case Opcode::I8_CONST:
+    case Opcode::I16_CONST:
+    case Opcode::I32_CONST:
+    case Opcode::I64_CONST:
+    case Opcode::F64_CONST:
+    case Opcode::CHAR_ARRAY_CONST:
+    case Opcode::NULLPTR:
+      return true;
+
+    case Opcode::STRUCT_CONST: {
+      return Type1InstructionReader(instr).Constant() <
+             struct_constants_.size();
+    }
+
+    case Opcode::ARRAY_CONST: {
+      return Type1InstructionReader(instr).Constant() < array_constants_.size();
+    }
+
+    case Opcode::GLOBAL_REF: {
+      return Type1InstructionReader(instr).Constant() < globals_.size();
+    }
+
+    default:
+      throw std::runtime_error("Invalid constant.");
+  }
+}
+
+bool LLVMBackend::CanComputeStructConstant(const StructConstant& x) {
+  for (auto init : x.Fields()) {
+    if (!CanComputeConstant(init)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool LLVMBackend::CanComputeArrayConstant(const ArrayConstant& x) {
+  for (auto init : x.Elements()) {
+    if (!CanComputeConstant(init)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool LLVMBackend::CanComputeGlobal(const Global& x) {
+  return CanComputeConstant(x.InitialValue());
+}
+
 void LLVMBackend::Init(const TypeManager& manager,
                        const std::vector<uint64_t>& i64_constants,
                        const std::vector<double>& f64_constants,
                        const std::vector<std::string>& char_array_constants,
                        const std::vector<StructConstant>& struct_constants,
-                       const std::vector<ArrayConstant>& array_constants) {
+                       const std::vector<ArrayConstant>& array_constants,
+                       const std::vector<Global>& globals) {
   start = std::chrono::system_clock::now();
 
   // Populate types_ array
@@ -167,38 +222,57 @@ void LLVMBackend::Init(const TypeManager& manager,
         builder_->CreateGlobalStringPtr(x, "", 0, module_.get()));
   }
 
-  for (const auto& x : struct_constants) {
-    std::vector<llvm::Constant*> init;
-    for (auto field_init : x.Fields()) {
-      init.push_back(GetConstantFromInstr(field_init));
-    }
-    auto* st = llvm::dyn_cast<llvm::StructType>(types_[x.Type().GetID()]);
-    struct_constants_.push_back(llvm::ConstantStruct::get(st, init));
-  }
+  for (int i = 0, j = 0, k = 0; i < struct_constants.size() ||
+                                j < array_constants.size() ||
+                                k < globals.size();) {
+    if (i < struct_constants.size() &&
+        CanComputeStructConstant(struct_constants[i])) {
+      const auto& x = struct_constants[i];
 
-  for (const auto& x : array_constants) {
-    std::vector<llvm::Constant*> init;
-    for (auto element_init : x.Elements()) {
-      init.push_back(GetConstantFromInstr(element_init));
+      std::vector<llvm::Constant*> init;
+      for (auto field_init : x.Fields()) {
+        init.push_back(GetConstantFromInstr(field_init));
+      }
+      auto* st = llvm::dyn_cast<llvm::StructType>(types_[x.Type().GetID()]);
+      struct_constants_.push_back(llvm::ConstantStruct::get(st, init));
+
+      i++;
+      continue;
     }
-    auto* at = llvm::dyn_cast<llvm::ArrayType>(types_[x.Type().GetID()]);
-    array_constants_.push_back(llvm::ConstantArray::get(at, init));
+
+    if (j < array_constants.size() &&
+        CanComputeArrayConstant(array_constants[j])) {
+      const auto& x = array_constants[j];
+
+      std::vector<llvm::Constant*> init;
+      for (auto element_init : x.Elements()) {
+        init.push_back(GetConstantFromInstr(element_init));
+      }
+      auto* at = llvm::dyn_cast<llvm::ArrayType>(types_[x.Type().GetID()]);
+      array_constants_.push_back(llvm::ConstantArray::get(at, init));
+
+      j++;
+      continue;
+    }
+
+    if (k < globals.size() && CanComputeGlobal(globals[k])) {
+      const auto& x = globals[k];
+
+      auto type = types_[x.Type().GetID()];
+      auto init = GetConstantFromInstr(x.InitialValue());
+      globals_.push_back(new llvm::GlobalVariable(
+          *module_, type, x.Constant(),
+          x.Public() ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
+                     : llvm::GlobalValue::LinkageTypes::InternalLinkage,
+          init));
+
+      k++;
+      continue;
+    }
   }
 }
 
-void LLVMBackend::Translate(const std::vector<Global>& globals,
-                            const std::vector<Function>& functions) {
-  // Translate all globals
-  for (const auto& global : globals) {
-    auto type = types_[global.Type().GetID()];
-    auto init = GetConstantFromInstr(global.InitialValue());
-    globals_.push_back(new llvm::GlobalVariable(
-        *module_, type, global.Constant(),
-        global.Public() ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
-                        : llvm::GlobalValue::LinkageTypes::InternalLinkage,
-        init));
-  }
-
+void LLVMBackend::Translate(const std::vector<Function>& functions) {
   // Translate all func decls
   for (const auto& func : functions) {
     std::string fn_name(func.Name());
@@ -586,7 +660,7 @@ void LLVMBackend::TranslateInstr(
 
     case Opcode::CALL_INDIRECT: {
       Type3InstructionReader reader(instr);
-      auto func = functions_[reader.Arg()];
+      auto func = values[reader.Arg()];
       auto func_type = types_[reader.TypeID()];
       values[instr_idx] = llvm::CallInst::Create(
           llvm::dyn_cast<llvm::FunctionType>(func_type), func, call_args_, "",

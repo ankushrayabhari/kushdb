@@ -8,12 +8,13 @@
 
 namespace kush::compile::proxy {
 
+class GlobalVector;
+
 class Vector {
  public:
+  Vector(khir::ProgramBuilder& program, StructBuilder& content);
   Vector(khir::ProgramBuilder& program, StructBuilder& content,
-         bool global = false);
-  Vector(khir::ProgramBuilder& program, StructBuilder& content,
-         const khir::Value& value);
+         khir::Value value);
 
   Struct operator[](const proxy::Int32& idx);
   Struct PushBack();
@@ -26,10 +27,24 @@ class Vector {
   static const std::string_view VectorStructName;
 
  private:
+  void Init();
+  friend class GlobalVector;
+
   khir::ProgramBuilder& program_;
   StructBuilder& content_;
   typename khir::Type content_type_;
   typename khir::Value value_;
+};
+
+class GlobalVector {
+ public:
+  GlobalVector(khir::ProgramBuilder& program, StructBuilder& content);
+  Vector Get();
+
+ public:
+  khir::ProgramBuilder& program_;
+  StructBuilder& content_;
+  std::function<khir::Value()> generator_;
 };
 
 }  // namespace kush::compile::proxy

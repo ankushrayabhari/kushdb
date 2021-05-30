@@ -79,7 +79,7 @@ void GroupByAggregateTranslator::Produce() {
     }
   });
 
-  buffer_.reset();
+  buffer_->Reset();
 }
 
 void CheckEquality(

@@ -12,8 +12,8 @@ namespace kush::compile::proxy {
 class HashTable {
  public:
   HashTable(khir::ProgramBuilder& program, StructBuilder& content);
-  ~HashTable();
 
+  void Reset();
   Struct Insert(std::vector<std::reference_wrapper<Value>> keys);
   Vector Get(std::vector<std::reference_wrapper<Value>> keys);
   void ForEach(std::function<void(Struct&)> handler);

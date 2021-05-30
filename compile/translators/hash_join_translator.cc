@@ -38,7 +38,7 @@ void HashJoinTranslator::Produce() {
   this->LeftChild().Produce();
   this->RightChild().Produce();
 
-  buffer_.reset();
+  buffer_->Reset();
 }
 
 void HashJoinTranslator::Consume(OperatorTranslator& src) {

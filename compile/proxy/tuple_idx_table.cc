@@ -34,19 +34,27 @@ constexpr std::string_view free_it_fn_name(
     "_ZN4kush4data4FreeEPPNSt8__detail20_Node_const_"
     "iteratorISt6vectorIiSaIiEELb1ELb1EEE");
 
-TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program)
+GlobalTupleIdxTable::GlobalTupleIdxTable(khir::ProgramBuilder& program)
     : program_(program),
-      value_(program_.Global(
-          false, true, program_.PointerType(program_.I8Type()),
-          program_.NullPtr(program_.PointerType(program_.I8Type())))()) {
+      generator_(program.Global(
+          false, true, program.PointerType(program.I8Type()),
+          program.NullPtr(program.PointerType(program.I8Type())))) {
   auto tuple_idx_table = program_.Call(program_.GetFunction(create_fn_name));
-  program_.Store(value_, tuple_idx_table);
+  program_.Store(generator_(), tuple_idx_table);
 }
 
-TupleIdxTable::~TupleIdxTable() {
-  auto tuple_idx_table = program_.Load(value_);
+void GlobalTupleIdxTable::Reset() {
+  auto tuple_idx_table = program_.Load(generator_());
   program_.Call(program_.GetFunction(free_fn_name), {tuple_idx_table});
 }
+
+TupleIdxTable GlobalTupleIdxTable::Get() {
+  auto value = generator_();
+  return TupleIdxTable(program_, value);
+}
+
+TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program, khir::Value value)
+    : program_(program), value_(value) {}
 
 void TupleIdxTable::Insert(const khir::Value& idx_arr, Int32& num_tables) {
   auto tuple_idx_table = program_.Load(value_);

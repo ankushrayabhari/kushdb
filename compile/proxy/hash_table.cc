@@ -92,7 +92,7 @@ HashTable::HashTable(khir::ProgramBuilder& program, StructBuilder& content)
   program_.Call(program.GetFunction(CreateFnName), {value_, element_size});
 }
 
-HashTable::~HashTable() {
+void HashTable::Reset() {
   program_.Call(program_.GetFunction(FreeFnName), {value_});
 }
 

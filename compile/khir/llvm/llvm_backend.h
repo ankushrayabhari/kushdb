@@ -34,16 +34,20 @@ class LLVMBackend : public Backend, public TypeTranslator {
             const std::vector<double>& f64_constants,
             const std::vector<std::string>& char_array_constants,
             const std::vector<StructConstant>& struct_constants,
-            const std::vector<ArrayConstant>& array_constants) override;
+            const std::vector<ArrayConstant>& array_constants,
+            const std::vector<Global>& globals) override;
 
-  void Translate(const std::vector<Global>& globals,
-                 const std::vector<Function>& functions) override;
+  void Translate(const std::vector<Function>& functions) override;
 
   // Program
   void Compile() const override;
   void Execute() const override;
 
  private:
+  bool CanComputeConstant(uint64_t instr);
+  bool CanComputeStructConstant(const StructConstant& x);
+  bool CanComputeArrayConstant(const ArrayConstant& x);
+  bool CanComputeGlobal(const Global& x);
   void TranslateInstr(
       const std::vector<llvm::Value*>& func_args,
       const std::vector<llvm::BasicBlock*>& basic_blocks,

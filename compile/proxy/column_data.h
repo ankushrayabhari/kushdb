@@ -16,16 +16,18 @@ class Iterable {
   virtual ~Iterable() = default;
   virtual Int32 Size() = 0;
   virtual std::unique_ptr<Value> operator[](Int32& idx) = 0;
+  virtual void Reset() = 0;
 };
 
 template <catalog::SqlType S>
 class ColumnData : public Iterable {
  public:
   ColumnData(khir::ProgramBuilder& program, std::string_view path);
-  virtual ~ColumnData();
+  virtual ~ColumnData() = default;
 
   Int32 Size() override;
   std::unique_ptr<Value> operator[](Int32& idx) override;
+  void Reset() override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 

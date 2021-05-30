@@ -117,7 +117,7 @@ ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
 }
 
 template <catalog::SqlType S>
-ColumnData<S>::~ColumnData() {
+void ColumnData<S>::Reset() {
   program_.Call(program_.GetFunction(CloseFnName<S>()), {value_.value()});
 }
 
