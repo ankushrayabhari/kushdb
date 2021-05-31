@@ -16,9 +16,9 @@ struct hash<std::vector<int32_t>> {
 };
 }  // namespace std
 
-namespace kush::data {
+namespace kush::runtime::TupleIdxTable {
 
-std::unordered_set<std::vector<int32_t>>* CreateTupleIdxTable();
+std::unordered_set<std::vector<int32_t>>* Create();
 
 void Insert(std::unordered_set<std::vector<int32_t>>* ht, int32_t* arr,
             int32_t n);
@@ -36,4 +36,4 @@ void Free(std::unordered_set<std::vector<int32_t>>::const_iterator** it);
 
 void Free(std::unordered_set<std::vector<int32_t>>* ht);
 
-}  // namespace kush::data
+}  // namespace kush::runtime::TupleIdxTable

@@ -2,9 +2,9 @@
 
 #include <iostream>
 
-namespace kush::data {
+namespace kush::runtime::TupleIdxTable {
 
-std::unordered_set<std::vector<int32_t>>* CreateTupleIdxTable() {
+std::unordered_set<std::vector<int32_t>>* Create() {
   return new std::unordered_set<std::vector<int32_t>>;
 }
 
@@ -37,4 +37,4 @@ int32_t* Get(std::unordered_set<std::vector<int32_t>>::const_iterator** it) {
   return const_cast<int32_t*>((*it)->operator*().data());
 }
 
-}  // namespace kush::data
+}  // namespace kush::runtime::TupleIdxTable

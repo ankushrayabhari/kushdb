@@ -10,28 +10,28 @@
 namespace kush::compile::proxy {
 
 constexpr std::string_view create_fn_name(
-    "_ZN4kush4data19CreateTupleIdxTableEv");
+    "_ZN4kush7runtime13TupleIdxTable6CreateEv");
 constexpr std::string_view insert_fn_name(
-    "_ZN4kush4data6InsertEPSt13unordered_setISt6vectorIiSaIiEESt4hashIS4_"
-    "ESt8equal_toIS4_ESaIS4_EEPii");
+    "_ZN4kush7runtime13TupleIdxTable6InsertEPSt13unordered_"
+    "setISt6vectorIiSaIiEESt4hashIS5_ESt8equal_toIS5_ESaIS5_EEPii");
 constexpr std::string_view free_fn_name(
-    "_ZN4kush4data4FreeEPSt13unordered_setISt6vectorIiSaIiEESt4hashIS4_"
-    "ESt8equal_toIS4_ESaIS4_EE");
+    "_ZN4kush7runtime13TupleIdxTable4FreeEPSt13unordered_"
+    "setISt6vectorIiSaIiEESt4hashIS5_ESt8equal_toIS5_ESaIS5_EE");
 constexpr std::string_view size_fn_name(
-    "_ZN4kush4data4SizeEPSt13unordered_setISt6vectorIiSaIiEESt4hashIS4_"
-    "ESt8equal_toIS4_ESaIS4_EE");
+    "_ZN4kush7runtime13TupleIdxTable4SizeEPSt13unordered_"
+    "setISt6vectorIiSaIiEESt4hashIS5_ESt8equal_toIS5_ESaIS5_EE");
 constexpr std::string_view begin_fn_name(
-    "_ZN4kush4data5BeginEPSt13unordered_setISt6vectorIiSaIiEESt4hashIS4_"
-    "ESt8equal_toIS4_ESaIS4_EEPPNSt8__detail20_Node_const_iteratorIS4_"
-    "Lb1ELb1EEE");
+    "_ZN4kush7runtime13TupleIdxTable5BeginEPSt13unordered_"
+    "setISt6vectorIiSaIiEESt4hashIS5_ESt8equal_toIS5_ESaIS5_EEPPNSt8__detail20_"
+    "Node_const_iteratorIS5_Lb1ELb1EEE");
 constexpr std::string_view increment_fn_name(
-    "_ZN4kush4data9IncrementEPPNSt8__detail20_Node_const_"
+    "_ZN4kush7runtime13TupleIdxTable9IncrementEPPNSt8__detail20_Node_const_"
     "iteratorISt6vectorIiSaIiEELb1ELb1EEE");
 constexpr std::string_view get_fn_name(
-    "_ZN4kush4data3GetEPPNSt8__detail20_Node_const_"
+    "_ZN4kush7runtime13TupleIdxTable3GetEPPNSt8__detail20_Node_const_"
     "iteratorISt6vectorIiSaIiEELb1ELb1EEE");
 constexpr std::string_view free_it_fn_name(
-    "_ZN4kush4data4FreeEPPNSt8__detail20_Node_const_"
+    "_ZN4kush7runtime13TupleIdxTable4FreeEPPNSt8__detail20_Node_const_"
     "iteratorISt6vectorIiSaIiEELb1ELb1EEE");
 
 GlobalTupleIdxTable::GlobalTupleIdxTable(khir::ProgramBuilder& program)
