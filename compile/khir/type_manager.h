@@ -64,6 +64,8 @@ class TypeManager {
   Type GetPointerElementType(Type ptr_type);
   std::pair<int64_t, Type> GetPointerOffset(Type t,
                                             absl::Span<const int32_t> idx);
+  std::vector<uint64_t> GetStructFieldOffsets(Type t) const;
+  uint64_t GetTypeSize(Type t) const;
 
   void Translate(TypeTranslator& translator) const;
 

@@ -197,6 +197,23 @@ Type TypeManager::GetPointerElementType(Type ptr_type) {
       .ElementType();
 }
 
+std::vector<uint64_t> TypeManager::GetStructFieldOffsets(Type t) const {
+  auto st =
+      llvm::dyn_cast<llvm::StructType>(type_id_to_impl_[t.GetID()]->GetLLVM());
+  auto layout = module_->getDataLayout().getStructLayout(st);
+
+  std::vector<uint64_t> offsets;
+  for (int i = 0; i < st->getNumElements(); i++) {
+    offsets.push_back(layout->getElementOffset(i));
+  }
+  return offsets;
+}
+
+uint64_t TypeManager::GetTypeSize(Type t) const {
+  return module_->getDataLayout().getTypeAllocSize(
+      type_id_to_impl_[t.GetID()]->GetLLVM());
+}
+
 std::pair<int64_t, Type> TypeManager::GetPointerOffset(
     Type t, absl::Span<const int32_t> idx) {
   std::vector<llvm::Value*> values;

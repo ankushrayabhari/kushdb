@@ -18,7 +18,7 @@ class ASMBackend : public Backend {
   ASMBackend() = default;
   virtual ~ASMBackend() = default;
 
-  void Translate(const TypeManager& manager,
+  void Translate(const TypeManager& type_manager,
                  const std::vector<uint64_t>& i64_constants,
                  const std::vector<double>& f64_constants,
                  const std::vector<std::string>& char_array_constants,
@@ -32,6 +32,14 @@ class ASMBackend : public Backend {
   void Execute() const override;
 
  private:
+  uint64_t OutputConstant(uint64_t instr, const TypeManager& type_manager,
+                          const std::vector<uint64_t>& i64_constants,
+                          const std::vector<double>& f64_constants,
+                          const std::vector<std::string>& char_array_constants,
+                          const std::vector<StructConstant>& struct_constants,
+                          const std::vector<ArrayConstant>& array_constants,
+                          const std::vector<Global>& globals);
+
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   ExceptionErrorHandler err_handler_;
@@ -39,6 +47,7 @@ class ASMBackend : public Backend {
   asmjit::Section *text_section_, *data_section_;
 
   std::vector<asmjit::Label> char_array_constants_;
+  std::vector<asmjit::Label> globals_;
 
   mutable std::chrono::time_point<std::chrono::system_clock> start, gen, comp,
       link, end;
