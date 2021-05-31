@@ -5,6 +5,7 @@
 #include "runtime/vector.h"
 
 using namespace kush::data;
+using namespace kush::runtime::Vector;
 
 bool comp(int8_t* v1, int8_t* v2) {
   double* l = reinterpret_cast<double*>(v1);

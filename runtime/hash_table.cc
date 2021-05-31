@@ -8,7 +8,7 @@
 
 namespace kush::data {
 
-using map_type = std::unordered_map<int32_t, Vector>;
+using map_type = std::unordered_map<int32_t, runtime::Vector::Vector>;
 
 void Create(HashTable* ht, int64_t element_size) {
   ht->element_size_ = element_size;
@@ -18,15 +18,15 @@ void Create(HashTable* ht, int64_t element_size) {
 int8_t* Insert(HashTable* ht, int32_t hash) {
   if (ht->data_->find(hash) == ht->data_->end()) {
     auto& new_vec = (*ht->data_)[hash];
-    Create(&new_vec, ht->element_size_, 2);
+    runtime::Vector::Create(&new_vec, ht->element_size_, 2);
   }
 
   auto& bucket = (*ht->data_)[hash];
-  auto* data = PushBack(&bucket);
+  auto* data = runtime::Vector::PushBack(&bucket);
   return data;
 }
 
-Vector* GetBucket(HashTable* ht, int32_t hash) {
+runtime::Vector::Vector* GetBucket(HashTable* ht, int32_t hash) {
   if (ht->data_->find(hash) == ht->data_->end()) {
     return nullptr;
   }
@@ -38,7 +38,7 @@ Vector* GetBucket(HashTable* ht, int32_t hash) {
 void GetAllBuckets(HashTable* ht, BucketList* list) {
   map_type& bucket_map = *ht->data_;
   list->num_buckets = bucket_map.size();
-  list->buckets = new Vector*[list->num_buckets];
+  list->buckets = new runtime::Vector::Vector*[list->num_buckets];
 
   int i = 0;
   for (auto& [k, v] : bucket_map) {
@@ -46,7 +46,9 @@ void GetAllBuckets(HashTable* ht, BucketList* list) {
   }
 }
 
-Vector* GetBucketIdx(BucketList* l, int32_t i) { return l->buckets[i]; }
+runtime::Vector::Vector* GetBucketIdx(BucketList* l, int32_t i) {
+  return l->buckets[i];
+}
 
 int32_t Size(BucketList* l) { return l->num_buckets; }
 

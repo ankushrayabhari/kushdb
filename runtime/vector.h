@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace kush::data {
+namespace kush::runtime::Vector {
 
 struct Vector {
   int64_t element_size;
@@ -24,4 +24,4 @@ void Free(Vector* vec);
 
 void Sort(Vector* vec, std::add_pointer<bool(int8_t*, int8_t*)>::type comp_fn);
 
-}  // namespace kush::data
+}  // namespace kush::runtime::Vector

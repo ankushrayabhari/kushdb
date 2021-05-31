@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace kush::data {
+namespace kush::runtime::Vector {
 
 void Create(Vector* vec, int64_t element_size, int32_t initial_capacity) {
   vec->element_size = element_size;
@@ -109,4 +109,4 @@ void Sort(Vector* vec, std::add_pointer<bool(int8_t*, int8_t*)>::type comp_fn) {
   return MergeSort(vec, comp_fn, 0, vec->size - 1);
 }
 
-}  // namespace kush::data
+}  // namespace kush::runtime::Vector
