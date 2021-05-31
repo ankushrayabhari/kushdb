@@ -718,7 +718,7 @@ void LLVMBackend::TranslateInstr(
   }
 }
 
-void LLVMBackend::Execute() const {
+void LLVMBackend::Execute() {
   gen = std::chrono::system_clock::now();
   llvm::verifyModule(*module_, &llvm::errs());
   // module_->print(llvm::errs(), nullptr);

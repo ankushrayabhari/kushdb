@@ -15,8 +15,6 @@ cc_library(
     deps = [
         "//catalog",
         "//compile:program",
-        "//khir:program_builder",
-        "//khir/llvm:llvm_backend",
         "//compile/proxy:column_data",
         "//compile/proxy:column_index",
         "//compile/proxy:hash_table",
@@ -26,5 +24,8 @@ cc_library(
         "//compile/proxy:tuple_idx_table",
         "//compile/proxy:vector",
         "//compile/translators:translator_factory",
+        "//khir:program_builder",
+        "//khir/asm:asm_backend",
+        "//khir/llvm:llvm_backend",
     ],
 )

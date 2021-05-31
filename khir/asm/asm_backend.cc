@@ -1,5 +1,6 @@
 #include "khir/asm/asm_backend.h"
 
+#include <iostream>
 #include <stdexcept>
 
 #include "absl/types/span.h"
@@ -186,6 +187,10 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
     asm_->bind(internal_func_labels_[func_idx]);
 
+    if (func.Name() == "compute") {
+      compute_label_ = internal_func_labels_[func_idx];
+    }
+
     // Prologue ================================================================
     // - Save all callee saved registers
     for (auto reg : callee_saved_registers) {
@@ -200,9 +205,9 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     asm_->long_().sub(x86::rsp, 0);
     // =========================================================================
 
-    const auto& instructions = func.Instructions();
+    // const auto& instructions = func.Instructions();
     const auto& basic_blocks = func.BasicBlocks();
-    const auto& basic_block_order = func.BasicBlockOrder();
+    // const auto& basic_block_order = func.BasicBlockOrder();
 
     std::vector<Label> basic_blocks_impl;
     Label epilogue = asm_->newLabel();
@@ -249,8 +254,16 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   }
 }
 
-void ASMBackend::Execute() const {
-  // TODO
+void ASMBackend::Execute() {
+  void* buffer_start;
+  rt_.add(&buffer_start, &code_);
+
+  auto offset = code_.labelOffsetFromBase(compute_label_);
+
+  using compute_fn = std::add_pointer<void()>::type;
+  auto compute = reinterpret_cast<compute_fn>(
+      reinterpret_cast<uint64_t>(buffer_start) + offset);
+  compute();
 }
 
 }  // namespace kush::khir

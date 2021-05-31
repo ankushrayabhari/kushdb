@@ -28,7 +28,7 @@ class ASMBackend : public Backend {
                  const std::vector<Function>& functions) override;
 
   // Program
-  void Execute() const override;
+  void Execute() override;
 
  private:
   uint64_t OutputConstant(uint64_t instr, const TypeManager& type_manager,
@@ -49,9 +49,10 @@ class ASMBackend : public Backend {
 
   std::vector<void*> external_func_addr_;
   std::vector<asmjit::Label> internal_func_labels_;
+  asmjit::Label compute_label_;
 
-  mutable std::chrono::time_point<std::chrono::system_clock> start, gen, comp,
-      link, end;
+  std::chrono::time_point<std::chrono::system_clock> start, gen, comp, link,
+      end;
 };
 
 }  // namespace kush::khir
