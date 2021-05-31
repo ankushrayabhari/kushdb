@@ -44,10 +44,12 @@ class ASMBackend : public Backend {
   asmjit::CodeHolder code_;
   ExceptionErrorHandler err_handler_;
   std::unique_ptr<asmjit::x86::Assembler> asm_;
-  asmjit::Section *text_section_, *data_section_;
 
   std::vector<asmjit::Label> char_array_constants_;
   std::vector<asmjit::Label> globals_;
+
+  std::vector<void*> external_func_addr_;
+  std::vector<asmjit::Label> internal_func_labels_;
 
   mutable std::chrono::time_point<std::chrono::system_clock> start, gen, comp,
       link, end;

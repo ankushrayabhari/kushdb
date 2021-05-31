@@ -12,8 +12,10 @@
 
 namespace kush::khir {
 
-void ExceptionErrorHandler::handleError(asmjit::Error err, const char* message,
-                                        asmjit::BaseEmitter* origin) {
+using namespace asmjit;
+
+void ExceptionErrorHandler::handleError(Error err, const char* message,
+                                        BaseEmitter* origin) {
   throw std::runtime_error(message);
 }
 
@@ -138,11 +140,13 @@ void ASMBackend::Translate(const TypeManager& type_manager,
                            const std::vector<Global>& globals,
                            const std::vector<Function>& functions) {
   code_.init(rt_.environment());
-  asm_ = std::make_unique<asmjit::x86::Assembler>(&code_);
-  text_section_ = code_.textSection();
-  code_.newSection(&data_section_, ".data", SIZE_MAX, 0, 8, 0);
+  asm_ = std::make_unique<x86::Assembler>(&code_);
 
-  asm_->section(data_section_);
+  Section* text_section = code_.textSection();
+  Section* data_section;
+  code_.newSection(&data_section, ".data", SIZE_MAX, 0, 8, 0);
+
+  asm_->section(data_section);
 
   // Write out all string constants
   for (const auto& str : char_array_constants) {
@@ -160,6 +164,88 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     OutputConstant(global.InitialValue(), type_manager, i64_constants,
                    f64_constants, char_array_constants, struct_constants,
                    array_constants, globals);
+  }
+
+  asm_->section(text_section);
+
+  // Declare all functions
+  for (const auto& function : functions) {
+    external_func_addr_.push_back(function.Addr());
+    internal_func_labels_.push_back(asm_->newLabel());
+  }
+
+  const std::vector<x86::Gpq> callee_saved_registers = {
+      x86::rbx, x86::r12, x86::r13, x86::r14, x86::r15};
+
+  // Translate all function bodies
+  for (int func_idx = 0; func_idx < functions.size(); func_idx++) {
+    const auto& func = functions[func_idx];
+    if (func.External()) {
+      continue;
+    }
+
+    asm_->bind(internal_func_labels_[func_idx]);
+
+    // Prologue ================================================================
+    // - Save all callee saved registers
+    for (auto reg : callee_saved_registers) {
+      asm_->push(reg);
+    }
+    // - Save RBP and Store RSP in RBP
+    asm_->push(x86::rbp);
+    asm_->mov(x86::rbp, x86::rsp);
+
+    // - Allocate placeholder stack space.
+    auto stack_alloc_offset = asm_->offset();
+    asm_->long_().sub(x86::rsp, 0);
+    // =========================================================================
+
+    const auto& instructions = func.Instructions();
+    const auto& basic_blocks = func.BasicBlocks();
+    const auto& basic_block_order = func.BasicBlockOrder();
+
+    std::vector<Label> basic_blocks_impl;
+    Label epilogue = asm_->newLabel();
+    for (int i = 0; i < basic_blocks.size(); i++) {
+      basic_blocks_impl.push_back(asm_->newLabel());
+    }
+
+    uint64_t stack_size = 0;
+    /*
+    for (int i : basic_block_order) {
+      const auto& [i_start, i_end] = basic_blocks[i];
+      for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
+        stack_size += TranslateInstr(args, basic_blocks_impl, epilogue,
+                                     instructions, instr_idx);
+      }
+    }
+    */
+    // Clobber all registers as a test
+    for (auto reg :
+         {x86::rbx, x86::r12, x86::r13, x86::r14, x86::r15, x86::rax, x86::rcx,
+          x86::rdx, x86::rsi, x86::rdi, x86::r8, x86::r9, x86::r10, x86::r11}) {
+      asm_->xor_(reg, reg);
+    }
+
+    // Update prologue to contain stack_size
+    auto epilogue_offset = asm_->offset();
+    asm_->setOffset(stack_alloc_offset);
+    asm_->long_().sub(x86::rsp, stack_size);
+    asm_->setOffset(epilogue_offset);
+
+    // Epilogue ================================================================
+    // - Restore RBP and dealloc stack space
+    asm_->bind(epilogue);
+    asm_->leave();
+
+    // - Restore callee saved registers
+    for (int i = callee_saved_registers.size() - 1; i >= 0; i--) {
+      asm_->pop(callee_saved_registers[i]);
+    }
+
+    // - Return
+    asm_->ret();
+    // =========================================================================
   }
 }
 

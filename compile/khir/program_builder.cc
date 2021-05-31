@@ -53,6 +53,8 @@ bool Function::External() const { return external_; }
 
 bool Function::Public() const { return public_; }
 
+void* Function::Addr() const { return func_; }
+
 std::string_view Function::Name() const { return name_; }
 
 const std::vector<int>& Function::BasicBlockOrder() const {

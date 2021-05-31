@@ -106,7 +106,7 @@ class Function {
   khir::Type Type() const;
   bool External() const;
   bool Public() const;
-  void* Func() const;
+  void* Addr() const;
   std::string_view Name() const;
   const std::vector<int>& BasicBlockOrder() const;
   const std::vector<std::pair<int, int>>& BasicBlocks() const;
