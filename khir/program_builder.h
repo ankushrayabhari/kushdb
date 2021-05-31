@@ -8,8 +8,8 @@
 
 #include "type_safe/strong_typedef.hpp"
 
-#include "compile/khir/type_manager.h"
 #include "compile/program.h"
+#include "khir/type_manager.h"
 
 namespace kush::khir {
 

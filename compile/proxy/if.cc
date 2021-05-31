@@ -3,8 +3,8 @@
 #include <functional>
 #include <utility>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
+#include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
 

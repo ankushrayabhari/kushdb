@@ -6,8 +6,6 @@
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "compile/khir/llvm/llvm_backend.h"
-#include "compile/khir/program_builder.h"
 #include "compile/program.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/column_index.h"
@@ -18,6 +16,8 @@
 #include "compile/proxy/tuple_idx_table.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/translator_factory.h"
+#include "khir/llvm/llvm_backend.h"
+#include "khir/program_builder.h"
 #include "plan/operator.h"
 
 namespace kush::compile {

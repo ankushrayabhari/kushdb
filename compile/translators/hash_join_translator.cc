@@ -4,13 +4,13 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/if.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "khir/program_builder.h"
 #include "plan/hash_join_operator.h"
 #include "util/vector_util.h"
 

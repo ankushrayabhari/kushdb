@@ -1,4 +1,4 @@
-#include "compile/khir/asm/asm_backend.h"
+#include "khir/asm/asm_backend.h"
 
 #include <stdexcept>
 
@@ -6,9 +6,9 @@
 
 #include "asmjit/x86.h"
 
-#include "compile/khir/instruction.h"
-#include "compile/khir/program_builder.h"
-#include "compile/khir/type_manager.h"
+#include "khir/instruction.h"
+#include "khir/program_builder.h"
+#include "khir/type_manager.h"
 
 namespace kush::khir {
 

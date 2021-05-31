@@ -5,12 +5,12 @@
 
 #include "absl/container/flat_hash_map.h"
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/operator_translator.h"
+#include "khir/program_builder.h"
 #include "plan/operator.h"
 #include "plan/operator_visitor.h"
 #include "util/visitor.h"

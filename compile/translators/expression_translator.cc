@@ -4,12 +4,12 @@
 #include <stdexcept>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/if.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/string.h"
+#include "khir/program_builder.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/case_expression.h"

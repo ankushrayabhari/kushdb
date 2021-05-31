@@ -4,12 +4,12 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "khir/program_builder.h"
 #include "plan/skinner_join_operator.h"
 
 namespace kush::compile {

@@ -1,4 +1,4 @@
-#include "compile/khir/type_manager.h"
+#include "khir/type_manager.h"
 
 #include <cstdint>
 #include <string>

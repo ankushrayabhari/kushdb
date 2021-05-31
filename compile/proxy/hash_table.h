@@ -3,9 +3,9 @@
 #include <functional>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
+#include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
 

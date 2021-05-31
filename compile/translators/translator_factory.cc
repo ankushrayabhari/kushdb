@@ -1,6 +1,5 @@
 #include "compile/translators/translator_factory.h"
 
-#include "compile/khir/program_builder.h"
 #include "compile/translators/cross_product_translator.h"
 #include "compile/translators/group_by_aggregate_translator.h"
 #include "compile/translators/hash_join_translator.h"
@@ -10,6 +9,7 @@
 #include "compile/translators/scan_translator.h"
 #include "compile/translators/select_translator.h"
 #include "compile/translators/skinner_join_translator.h"
+#include "khir/program_builder.h"
 #include "plan/hash_join_operator.h"
 #include "plan/operator.h"
 #include "plan/operator_visitor.h"

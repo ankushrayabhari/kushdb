@@ -1,9 +1,9 @@
-#include "compile/khir/instruction.h"
+#include "khir/instruction.h"
 
 #include <cstdint>
 #include <stdexcept>
 
-#include "compile/khir/opcode.h"
+#include "khir/opcode.h"
 
 namespace kush::khir {
 

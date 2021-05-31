@@ -2,11 +2,11 @@
 
 #include <memory>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/value.h"
+#include "khir/program_builder.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {

@@ -3,10 +3,10 @@
 #include <functional>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
+#include "khir/program_builder.h"
 #include "runtime/hash_table.h"
 #include "util/vector_util.h"
 

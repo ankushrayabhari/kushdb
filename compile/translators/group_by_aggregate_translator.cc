@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/if.h"
@@ -13,6 +12,7 @@
 #include "compile/proxy/struct.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "khir/program_builder.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/group_by_aggregate_operator.h"
 #include "util/vector_util.h"

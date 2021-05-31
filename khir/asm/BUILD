@@ -7,7 +7,7 @@ cc_library(
     srcs = ["asm_backend.cc"],
     hdrs = ["asm_backend.h"],
     deps = [
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "@absl//absl/types:span",
         "@asmjit",
     ],

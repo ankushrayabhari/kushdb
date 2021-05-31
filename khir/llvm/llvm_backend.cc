@@ -1,4 +1,4 @@
-#include "compile/khir/llvm/llvm_backend.h"
+#include "khir/llvm/llvm_backend.h"
 
 #include <dlfcn.h>
 #include <iostream>
@@ -23,9 +23,9 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 
-#include "compile/khir/instruction.h"
-#include "compile/khir/program_builder.h"
-#include "compile/khir/type_manager.h"
+#include "khir/instruction.h"
+#include "khir/program_builder.h"
+#include "khir/type_manager.h"
 
 namespace kush::khir {
 

@@ -4,9 +4,9 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "khir/program_builder.h"
 #include "plan/cross_product_operator.h"
 
 namespace kush::compile {

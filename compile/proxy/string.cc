@@ -1,7 +1,7 @@
 #include "compile/proxy/string.h"
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
+#include "khir/program_builder.h"
 #include "runtime/string.h"
 
 namespace kush::compile::proxy {

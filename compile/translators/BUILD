@@ -28,7 +28,7 @@ cc_library(
     hdrs = ["expression_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "//compile/proxy:bool",
         "//compile/proxy:float",
         "//compile/proxy:if",
@@ -55,7 +55,7 @@ cc_library(
     deps = [
         ":operator_translator",
         "//catalog:sql_type",
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "//compile/proxy:column_data",
         "//compile/proxy:loop",
         "//plan:scan_operator",
@@ -68,7 +68,7 @@ cc_library(
     hdrs = ["output_translator.h"],
     deps = [
         ":operator_translator",
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "//compile/proxy:printer_impl",
         "//plan:output_operator",
     ],
@@ -81,7 +81,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "//plan:select_operator",
     ],
 )
@@ -93,7 +93,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "//plan:cross_product_operator",
     ],
 )
@@ -105,7 +105,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "//compile/proxy:hash_table",
         "//compile/proxy:loop",
         "//compile/proxy:struct",
@@ -123,7 +123,7 @@ cc_library(
         ":expression_translator",
         ":operator_translator",
         ":scan_translator",
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "//compile/proxy:column_index",
         "//compile/proxy:function",
         "//compile/proxy:if",
@@ -147,7 +147,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "//compile/proxy:hash_table",
         "//compile/proxy:if",
         "//compile/proxy:loop",
@@ -166,7 +166,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "//compile/proxy:bool",
         "//compile/proxy:float",
         "//compile/proxy:function",
@@ -193,7 +193,7 @@ cc_library(
         ":scan_translator",
         ":select_translator",
         ":skinner_join_translator",
-        "//compile/khir:program_builder",
+        "//khir:program_builder",
         "//compile/proxy:hash_table",
         "//compile/proxy:vector",
         "//plan:hash_join_operator",

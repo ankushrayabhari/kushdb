@@ -7,10 +7,10 @@
 #include "absl/container/flat_hash_map.h"
 
 #include "catalog/sql_type.h"
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/loop.h"
 #include "compile/translators/operator_translator.h"
+#include "khir/program_builder.h"
 #include "plan/scan_operator.h"
 #include "util/vector_util.h"
 

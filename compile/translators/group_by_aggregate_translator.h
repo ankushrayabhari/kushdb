@@ -4,11 +4,11 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/ptr.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "khir/program_builder.h"
 #include "plan/group_by_aggregate_operator.h"
 
 namespace kush::compile {

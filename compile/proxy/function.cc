@@ -4,9 +4,9 @@
 #include <utility>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/struct.h"
+#include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
 

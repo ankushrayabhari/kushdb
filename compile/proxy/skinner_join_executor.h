@@ -5,8 +5,8 @@
 
 #include "absl/types/span.h"
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/int.h"
+#include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
 

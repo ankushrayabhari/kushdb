@@ -4,8 +4,8 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
-#include "compile/khir/program_builder.h"
-#include "compile/khir/type_manager.h"
+#include "khir/program_builder.h"
+#include "khir/type_manager.h"
 
 namespace kush::khir {
 

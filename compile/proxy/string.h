@@ -1,8 +1,8 @@
 #pragma once
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/value.h"
+#include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
 
@@ -11,7 +11,8 @@ class String : public Value {
   String(khir::ProgramBuilder& program, const khir::Value& value);
 
   static String Global(khir::ProgramBuilder& program, std::string_view value);
-  static khir::Value Constant(khir::ProgramBuilder& program, std::string_view value);
+  static khir::Value Constant(khir::ProgramBuilder& program,
+                              std::string_view value);
 
   void Copy(const String& rhs);
   void Reset();

@@ -3,8 +3,8 @@
 #include <functional>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/int.h"
+#include "khir/program_builder.h"
 #include "runtime/skinner_join_executor.h"
 
 namespace kush::compile::proxy {

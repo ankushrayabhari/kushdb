@@ -1,8 +1,8 @@
 #include "compile/proxy/vector.h"
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/struct.h"
+#include "khir/program_builder.h"
 #include "runtime/vector.h"
 
 namespace kush::compile::proxy {

@@ -1,4 +1,4 @@
-#include "compile/khir/program_builder.h"
+#include "khir/program_builder.h"
 
 #include <cstdint>
 #include <stdexcept>
@@ -8,8 +8,8 @@
 
 #include "type_safe/strong_typedef.hpp"
 
-#include "compile/khir/instruction.h"
-#include "compile/khir/opcode.h"
+#include "khir/instruction.h"
+#include "khir/opcode.h"
 
 namespace kush::khir {
 

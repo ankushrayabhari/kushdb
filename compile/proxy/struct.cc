@@ -6,12 +6,12 @@
 #include "absl/types/span.h"
 
 #include "catalog/sql_type.h"
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/string.h"
 #include "compile/proxy/value.h"
+#include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
 

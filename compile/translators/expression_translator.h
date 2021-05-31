@@ -3,9 +3,9 @@
 #include <memory>
 #include <vector>
 
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/value.h"
 #include "compile/translators/operator_translator.h"
+#include "khir/program_builder.h"
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "util/visitor.h"

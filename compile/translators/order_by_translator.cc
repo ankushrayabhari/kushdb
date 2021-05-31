@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "catalog/sql_type.h"
-#include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/function.h"
@@ -16,6 +15,7 @@
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "khir/program_builder.h"
 #include "plan/order_by_operator.h"
 #include "util/vector_util.h"
 

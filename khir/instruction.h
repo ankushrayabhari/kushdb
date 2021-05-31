@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "compile/khir/opcode.h"
+#include "khir/opcode.h"
 
 namespace kush::khir {
 
