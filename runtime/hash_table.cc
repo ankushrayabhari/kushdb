@@ -50,7 +50,7 @@ runtime::Vector::Vector* GetBucketIdx(BucketList* l, int32_t i) {
   return l->buckets[i];
 }
 
-int32_t Size(BucketList* l) { return l->num_buckets; }
+int32_t BucketListSize(BucketList* l) { return l->num_buckets; }
 
 void Free(HashTable* ht) {
   for (auto& [k, v_list] : (*ht->data_)) {
@@ -60,7 +60,7 @@ void Free(HashTable* ht) {
   delete ht->data_;
 }
 
-void Free(BucketList* ht) { delete[] ht->buckets; }
+void BucketListFree(BucketList* ht) { delete[] ht->buckets; }
 
 void HashCombine(int32_t* hash, int64_t v) {
   *hash ^= v + 0x9e3779b9 + (*hash << 6) + (*hash >> 2);

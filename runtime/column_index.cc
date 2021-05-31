@@ -33,63 +33,65 @@ std::unordered_map<double, std::vector<int32_t>>* CreateFloat64Index() {
   return new std::unordered_map<double, std::vector<int32_t>>;
 }
 
-std::unordered_map<std::string, std::vector<int32_t>>* CreateStringIndex() {
+std::unordered_map<std::string, std::vector<int32_t>>* CreateTextIndex() {
   return new std::unordered_map<std::string, std::vector<int32_t>>;
 }
 
 // ---------- Free Index -------------
-void Free(std::unordered_map<int8_t, std::vector<int32_t>>* index) {
+void FreeInt8Index(std::unordered_map<int8_t, std::vector<int32_t>>* index) {
   delete index;
 }
 
-void Free(std::unordered_map<int16_t, std::vector<int32_t>>* index) {
+void FreeInt16Index(std::unordered_map<int16_t, std::vector<int32_t>>* index) {
   delete index;
 }
 
-void Free(std::unordered_map<int32_t, std::vector<int32_t>>* index) {
+void FreeInt32Index(std::unordered_map<int32_t, std::vector<int32_t>>* index) {
   delete index;
 }
 
-void Free(std::unordered_map<int64_t, std::vector<int32_t>>* index) {
+void FreeInt64Index(std::unordered_map<int64_t, std::vector<int32_t>>* index) {
   delete index;
 }
 
-void Free(std::unordered_map<double, std::vector<int32_t>>* index) {
+void FreeFloat64Index(std::unordered_map<double, std::vector<int32_t>>* index) {
   delete index;
 }
 
-void Free(std::unordered_map<std::string, std::vector<int32_t>>* index) {
+void FreeTextIndex(
+    std::unordered_map<std::string, std::vector<int32_t>>* index) {
   delete index;
 }
 
 // ---------- Insert -------------
-void Insert(std::unordered_map<int8_t, std::vector<int32_t>>* index,
-            int8_t value, int32_t tuple_idx) {
+void InsertInt8Index(std::unordered_map<int8_t, std::vector<int32_t>>* index,
+                     int8_t value, int32_t tuple_idx) {
   index->operator[](value).push_back(tuple_idx);
 }
 
-void Insert(std::unordered_map<int16_t, std::vector<int32_t>>* index,
-            int16_t value, int32_t tuple_idx) {
+void InsertInt16Index(std::unordered_map<int16_t, std::vector<int32_t>>* index,
+                      int16_t value, int32_t tuple_idx) {
   index->operator[](value).push_back(tuple_idx);
 }
 
-void Insert(std::unordered_map<int32_t, std::vector<int32_t>>* index,
-            int32_t value, int32_t tuple_idx) {
+void InsertInt32Index(std::unordered_map<int32_t, std::vector<int32_t>>* index,
+                      int32_t value, int32_t tuple_idx) {
   index->operator[](value).push_back(tuple_idx);
 }
 
-void Insert(std::unordered_map<int64_t, std::vector<int32_t>>* index,
-            int64_t value, int32_t tuple_idx) {
+void InsertInt64Index(std::unordered_map<int64_t, std::vector<int32_t>>* index,
+                      int64_t value, int32_t tuple_idx) {
   index->operator[](value).push_back(tuple_idx);
 }
 
-void Insert(std::unordered_map<double, std::vector<int32_t>>* index,
-            double value, int32_t tuple_idx) {
+void InsertFloat64Index(std::unordered_map<double, std::vector<int32_t>>* index,
+                        double value, int32_t tuple_idx) {
   index->operator[](value).push_back(tuple_idx);
 }
 
-void Insert(std::unordered_map<std::string, std::vector<int32_t>>* index,
-            String::String* value, int32_t tuple_idx) {
+void InsertTextIndex(
+    std::unordered_map<std::string, std::vector<int32_t>>* index,
+    String::String* value, int32_t tuple_idx) {
   index->operator[](std::string(value->data, value->length))
       .push_back(tuple_idx);
 }
@@ -127,32 +129,37 @@ inline int32_t GetNextTupleImpl(
   return next_greater;
 }
 
-int32_t GetNextTuple(std::unordered_map<int8_t, std::vector<int32_t>>* index,
-                     int8_t value, int32_t prev_tuple, int32_t cardinality) {
+int32_t GetNextTupleInt8Index(
+    std::unordered_map<int8_t, std::vector<int32_t>>* index, int8_t value,
+    int32_t prev_tuple, int32_t cardinality) {
   return GetNextTupleImpl(index, value, prev_tuple, cardinality);
 }
 
-int32_t GetNextTuple(std::unordered_map<int16_t, std::vector<int32_t>>* index,
-                     int16_t value, int32_t prev_tuple, int32_t cardinality) {
+int32_t GetNextTupleInt16Index(
+    std::unordered_map<int16_t, std::vector<int32_t>>* index, int16_t value,
+    int32_t prev_tuple, int32_t cardinality) {
   return GetNextTupleImpl(index, value, prev_tuple, cardinality);
 }
 
-int32_t GetNextTuple(std::unordered_map<int32_t, std::vector<int32_t>>* index,
-                     int32_t value, int32_t prev_tuple, int32_t cardinality) {
+int32_t GetNextTupleInt32Index(
+    std::unordered_map<int32_t, std::vector<int32_t>>* index, int32_t value,
+    int32_t prev_tuple, int32_t cardinality) {
   return GetNextTupleImpl(index, value, prev_tuple, cardinality);
 }
 
-int32_t GetNextTuple(std::unordered_map<int64_t, std::vector<int32_t>>* index,
-                     int64_t value, int32_t prev_tuple, int32_t cardinality) {
+int32_t GetNextTupleInt64Index(
+    std::unordered_map<int64_t, std::vector<int32_t>>* index, int64_t value,
+    int32_t prev_tuple, int32_t cardinality) {
   return GetNextTupleImpl(index, value, prev_tuple, cardinality);
 }
 
-int32_t GetNextTuple(std::unordered_map<double, std::vector<int32_t>>* index,
-                     double value, int32_t prev_tuple, int32_t cardinality) {
+int32_t GetNextTupleFloat64Index(
+    std::unordered_map<double, std::vector<int32_t>>* index, double value,
+    int32_t prev_tuple, int32_t cardinality) {
   return GetNextTupleImpl(index, value, prev_tuple, cardinality);
 }
 
-int32_t GetNextTuple(
+int32_t GetNextTupleTextIndex(
     std::unordered_map<std::string, std::vector<int32_t>>* index,
     String::String* value, int32_t prev_tuple, int32_t cardinality) {
   return GetNextTupleImpl(index, std::string(value->data, value->length),

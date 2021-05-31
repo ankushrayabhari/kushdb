@@ -5,6 +5,7 @@
 
 #include "compile/khir/program_builder.h"
 #include "compile/proxy/int.h"
+#include "runtime/skinner_join_executor.h"
 
 namespace kush::compile::proxy {
 
@@ -44,23 +45,25 @@ void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
       program.I32Type(), {program.I32Type(), program.I8Type()});
   auto handler_pointer_type = program.PointerType(handler_type);
 
-  program.DeclareExternalFunction(fn, program.VoidType(),
-                                  {
-                                      program.I32Type(),
-                                      program.I32Type(),
-                                      program.PointerType(handler_pointer_type),
-                                      handler_pointer_type,
-                                      program.I32Type(),
-                                      program.PointerType(program.I32Type()),
-                                      program.PointerType(program.I32Type()),
-                                      program.PointerType(program.I8Type()),
-                                      program.PointerType(program.I32Type()),
-                                      program.PointerType(program.I32Type()),
-                                      program.PointerType(program.I32Type()),
-                                      program.PointerType(program.I32Type()),
-                                      program.PointerType(program.I32Type()),
-                                      program.PointerType(program.I32Type()),
-                                  });
+  program.DeclareExternalFunction(
+      fn, program.VoidType(),
+      {
+          program.I32Type(),
+          program.I32Type(),
+          program.PointerType(handler_pointer_type),
+          handler_pointer_type,
+          program.I32Type(),
+          program.PointerType(program.I32Type()),
+          program.PointerType(program.I32Type()),
+          program.PointerType(program.I8Type()),
+          program.PointerType(program.I32Type()),
+          program.PointerType(program.I32Type()),
+          program.PointerType(program.I32Type()),
+          program.PointerType(program.I32Type()),
+          program.PointerType(program.I32Type()),
+          program.PointerType(program.I32Type()),
+      },
+      reinterpret_cast<void*>(&runtime::ExecuteSkinnerJoin));
 }
 
 }  // namespace kush::compile::proxy

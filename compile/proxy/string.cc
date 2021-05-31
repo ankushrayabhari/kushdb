@@ -2,6 +2,7 @@
 
 #include "compile/khir/program_builder.h"
 #include "compile/proxy/bool.h"
+#include "runtime/string.h"
 
 namespace kush::compile::proxy {
 
@@ -134,22 +135,33 @@ void String::ForwardDeclare(khir::ProgramBuilder& program) {
       StringStructName);
   auto struct_ptr = program.PointerType(struct_type);
 
-  program.DeclareExternalFunction(CopyFnName, program.VoidType(),
-                                  {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(FreeFnName, program.VoidType(), {struct_ptr});
-  program.DeclareExternalFunction(ContainsFnName, program.I1Type(),
-                                  {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(EndsWithFnName, program.I1Type(),
-                                  {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(StartsWithFnName, program.I1Type(),
-                                  {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(EqualsFnName, program.I1Type(),
-                                  {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(NotEqualsFnName, program.I1Type(),
-                                  {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(LessThanFnName, program.I1Type(),
-                                  {struct_ptr, struct_ptr});
-  program.DeclareExternalFunction(HashFnName, program.I64Type(), {struct_ptr});
+  program.DeclareExternalFunction(
+      CopyFnName, program.VoidType(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::Copy));
+  program.DeclareExternalFunction(
+      FreeFnName, program.VoidType(), {struct_ptr},
+      reinterpret_cast<void*>(runtime::String::Free));
+  program.DeclareExternalFunction(
+      ContainsFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::Contains));
+  program.DeclareExternalFunction(
+      EndsWithFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::EndsWith));
+  program.DeclareExternalFunction(
+      StartsWithFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::StartsWith));
+  program.DeclareExternalFunction(
+      EqualsFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::Equals));
+  program.DeclareExternalFunction(
+      NotEqualsFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::NotEquals));
+  program.DeclareExternalFunction(
+      LessThanFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::LessThan));
+  program.DeclareExternalFunction(
+      HashFnName, program.I64Type(), {struct_ptr},
+      reinterpret_cast<void*>(runtime::String::Hash));
 }
 
 }  // namespace kush::compile::proxy

@@ -1,9 +1,7 @@
 #pragma once
 
 #include "compile/khir/program_builder.h"
-#include "compile/proxy/if.h"
 #include "compile/proxy/int.h"
-#include "compile/proxy/ptr.h"
 #include "compile/proxy/struct.h"
 
 namespace kush::compile::proxy {

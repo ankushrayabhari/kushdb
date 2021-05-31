@@ -88,7 +88,8 @@ class Global {
 class Function {
  public:
   Function(std::string_view name, Type function_type, Type result_type,
-           absl::Span<const Type> arg_types, bool external, bool p);
+           absl::Span<const Type> arg_types, bool external, bool p,
+           void* func = nullptr);
   absl::Span<const Value> GetFunctionArguments() const;
 
   void InitBody();
@@ -105,6 +106,7 @@ class Function {
   khir::Type Type() const;
   bool External() const;
   bool Public() const;
+  void* Func() const;
   std::string_view Name() const;
   const std::vector<int>& BasicBlockOrder() const;
   const std::vector<std::pair<int, int>>& BasicBlocks() const;
@@ -116,6 +118,7 @@ class Function {
   std::vector<khir::Type> arg_types_;
   std::vector<Value> arg_values_;
   khir::Type function_type_;
+  void* func_;
 
   std::vector<std::pair<int, int>> basic_blocks_;
   std::vector<int> basic_block_order_;
@@ -166,7 +169,8 @@ class ProgramBuilder {
                                    absl::Span<const Type> arg_types,
                                    std::string_view name);
   FunctionRef DeclareExternalFunction(std::string_view name, Type result_type,
-                                      absl::Span<const Type> arg_types);
+                                      absl::Span<const Type> arg_types,
+                                      void* func_ptr);
   FunctionRef GetFunction(std::string_view name);
   absl::Span<const Value> GetFunctionArguments(FunctionRef func);
   Value GetFunctionPointer(FunctionRef func);

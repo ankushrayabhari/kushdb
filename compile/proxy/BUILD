@@ -30,6 +30,7 @@ cc_library(
         ":printer_h",
         ":string",
         "//compile/khir:program_builder",
+        "//runtime:printer",
     ],
 )
 
@@ -57,6 +58,7 @@ cc_library(
         ":struct",
         ":vector",
         "//compile/khir:program_builder",
+        "//runtime:hash_table",
         "//util:vector_util",
     ],
 )
@@ -72,6 +74,7 @@ cc_library(
         ":struct",
         "//catalog:sql_type",
         "//compile/khir:program_builder",
+        "//runtime:vector",
     ],
 )
 
@@ -83,6 +86,7 @@ cc_library(
         ":int",
         ":loop",
         "//compile/khir:program_builder",
+        "//runtime:tuple_idx_table",
         "//util:vector_util",
     ],
 )
@@ -105,6 +109,7 @@ cc_library(
     deps = [
         ":int",
         "//compile/khir:program_builder",
+        "//runtime:skinner_join_executor",
     ],
 )
 
@@ -131,6 +136,7 @@ cc_library(
         ":value",
         "//catalog:sql_type",
         "//compile/khir:program_builder",
+        "//runtime:column_data",
     ],
 )
 
@@ -147,6 +153,7 @@ cc_library(
         ":value",
         "//catalog:sql_type",
         "//compile/khir:program_builder",
+        "//runtime:column_index",
     ],
 )
 
@@ -169,6 +176,7 @@ cc_library(
         ":value",
         "//compile/khir:program_builder",
         "//plan/expression:binary_arithmetic_expression",
+        "//runtime:string",
     ],
 )
 

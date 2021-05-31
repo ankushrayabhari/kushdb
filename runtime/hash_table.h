@@ -31,9 +31,9 @@ void Free(HashTable* ht);
 
 runtime::Vector::Vector* GetBucketIdx(BucketList* l, int32_t i);
 
-int32_t Size(BucketList* l);
+int32_t BucketListSize(BucketList* l);
 
-void Free(BucketList* bl);
+void BucketListFree(BucketList* bl);
 
 void HashCombine(int32_t* hash, int64_t v);
 

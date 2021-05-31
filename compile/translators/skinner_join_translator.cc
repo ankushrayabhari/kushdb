@@ -10,6 +10,7 @@
 
 #include "compile/khir/program_builder.h"
 #include "compile/proxy/function.h"
+#include "compile/proxy/if.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/printer.h"
 #include "compile/proxy/skinner_join_executor.h"

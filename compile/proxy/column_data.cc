@@ -10,79 +10,156 @@
 #include "compile/proxy/ptr.h"
 #include "compile/proxy/string.h"
 #include "compile/proxy/value.h"
+#include "runtime/column_data.h"
 
 namespace kush::compile::proxy {
 
 template <catalog::SqlType S>
 std::string_view OpenFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_15Int16ColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData9OpenInt16EPNS1_15Int16ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_15Int32ColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData9OpenInt32EPNS1_15Int32ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_15Int64ColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData9OpenInt64EPNS1_15Int64ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_17Float64ColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData11OpenFloat64EPNS1_"
+           "17Float64ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_14Int8ColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData8OpenInt8EPNS1_14Int8ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_14TextColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData8OpenTextEPNS1_14TextColumnDataEPKc";
+  }
+}
+
+template <catalog::SqlType S>
+void* OpenFn() {
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::OpenInt16);
+  } else if constexpr (catalog::SqlType::INT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::OpenInt32);
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::OpenInt64);
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::OpenFloat64);
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::OpenInt8);
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::OpenText);
   }
 }
 
 template <catalog::SqlType S>
 std::string_view CloseFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_15Int16ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData10CloseInt16EPNS1_15Int16ColumnDataE";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_15Int32ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData10CloseInt32EPNS1_15Int32ColumnDataE";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_15Int64ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData10CloseInt64EPNS1_15Int64ColumnDataE";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_17Float64ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData12CloseFloat64EPNS1_"
+           "17Float64ColumnDataE";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_14Int8ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData9CloseInt8EPNS1_14Int8ColumnDataE";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_14TextColumnDataE";
+    return "_ZN4kush7runtime10ColumnData9CloseTextEPNS1_14TextColumnDataE";
+  }
+}
+
+template <catalog::SqlType S>
+void* CloseFn() {
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::CloseInt16);
+  } else if constexpr (catalog::SqlType::INT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::CloseInt32);
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::CloseInt64);
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::CloseFloat64);
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::CloseInt8);
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::CloseText);
   }
 }
 
 template <catalog::SqlType S>
 std::string_view GetFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime10ColumnData3GetEPNS1_15Int16ColumnDataEi";
+    return "_ZN4kush7runtime10ColumnData8GetInt16EPNS1_15Int16ColumnDataEi";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime10ColumnData3GetEPNS1_15Int32ColumnDataEi";
+    return "_ZN4kush7runtime10ColumnData8GetInt32EPNS1_15Int32ColumnDataEi";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime10ColumnData3GetEPNS1_15Int64ColumnDataEi";
+    return "_ZN4kush7runtime10ColumnData8GetInt64EPNS1_15Int64ColumnDataEi";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime10ColumnData3GetEPNS1_17Float64ColumnDataEi";
+    return "_ZN4kush7runtime10ColumnData10GetFloat64EPNS1_"
+           "17Float64ColumnDataEi";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime10ColumnData3GetEPNS1_14Int8ColumnDataEi";
+    return "_ZN4kush7runtime10ColumnData7GetInt8EPNS1_14Int8ColumnDataEi";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime10ColumnData3GetEPNS1_14TextColumnDataEiPNS0_"
+    return "_ZN4kush7runtime10ColumnData7GetTextEPNS1_14TextColumnDataEiPNS0_"
            "6String6StringE";
+  }
+}
+
+template <catalog::SqlType S>
+void* GetFn() {
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::GetInt16);
+  } else if constexpr (catalog::SqlType::INT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::GetInt32);
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::GetInt64);
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::GetFloat64);
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::GetInt8);
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::GetText);
   }
 }
 
 template <catalog::SqlType S>
 std::string_view SizeFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_15Int16ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData9SizeInt16EPNS1_15Int16ColumnDataE";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_15Int32ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData9SizeInt32EPNS1_15Int32ColumnDataE";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_15Int64ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData9SizeInt64EPNS1_15Int64ColumnDataE";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_17Float64ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData11SizeFloat64EPNS1_"
+           "17Float64ColumnDataE";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_14Int8ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData8SizeInt8EPNS1_14Int8ColumnDataE";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_14TextColumnDataE";
+    return "_ZN4kush7runtime10ColumnData8SizeTextEPNS1_14TextColumnDataE";
+  }
+}
+
+template <catalog::SqlType S>
+void* SizeFn() {
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::SizeInt16);
+  } else if constexpr (catalog::SqlType::INT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::SizeInt32);
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::SizeInt64);
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::SizeFloat64);
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::SizeInt8);
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    return reinterpret_cast<void*>(&runtime::ColumnData::SizeText);
   }
 }
 
@@ -182,20 +259,22 @@ void ColumnData<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   auto struct_ptr = program.PointerType(struct_type);
 
   program.DeclareExternalFunction(OpenFnName<S>(), program.VoidType(),
-                                  {struct_ptr, string_type});
+                                  {struct_ptr, string_type}, OpenFn<S>());
   program.DeclareExternalFunction(CloseFnName<S>(), program.VoidType(),
-                                  {struct_ptr});
+                                  {struct_ptr}, CloseFn<S>());
   program.DeclareExternalFunction(SizeFnName<S>(), program.I32Type(),
-                                  {struct_ptr});
+                                  {struct_ptr}, SizeFn<S>());
 
   if constexpr (catalog::SqlType::TEXT == S) {
     program.DeclareExternalFunction(
         GetFnName<S>(), program.VoidType(),
         {struct_ptr, program.I32Type(),
-         program.PointerType(program.GetStructType(String::StringStructName))});
+         program.PointerType(program.GetStructType(String::StringStructName))},
+        GetFn<S>());
   } else {
     program.DeclareExternalFunction(GetFnName<S>(), elem_type.value(),
-                                    {struct_ptr, program.I32Type()});
+                                    {struct_ptr, program.I32Type()},
+                                    GetFn<S>());
   }
 }
 

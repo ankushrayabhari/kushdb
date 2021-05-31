@@ -32,7 +32,7 @@ void Increment(std::unordered_set<std::vector<int32_t>>::const_iterator** it);
 
 int32_t* Get(std::unordered_set<std::vector<int32_t>>::const_iterator** it);
 
-void Free(std::unordered_set<std::vector<int32_t>>::const_iterator** it);
+void FreeIt(std::unordered_set<std::vector<int32_t>>::const_iterator** it);
 
 void Free(std::unordered_set<std::vector<int32_t>>* ht);
 

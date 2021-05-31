@@ -25,7 +25,7 @@ void Begin(std::unordered_set<std::vector<int32_t>>* ht,
       ht->cbegin());
 }
 
-void Free(std::unordered_set<std::vector<int32_t>>::const_iterator** it) {
+void FreeIt(std::unordered_set<std::vector<int32_t>>::const_iterator** it) {
   delete *it;
 }
 

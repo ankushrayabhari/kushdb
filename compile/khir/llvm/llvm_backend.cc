@@ -777,7 +777,7 @@ void LLVMBackend::Compile() const {
 
   // Link
   if (system(
-          "clang++ -shared -fpic bazel-bin/runtime/libprint_util.so "
+          "clang++ -shared -fpic bazel-bin/runtime/libprinter.so "
           "bazel-bin/runtime/libstring.so "
           "bazel-bin/runtime/libcolumn_data.so "
           "bazel-bin/runtime/libvector.so bazel-bin/runtime/libhash_table.so "

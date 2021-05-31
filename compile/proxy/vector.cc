@@ -1,10 +1,9 @@
 #include "compile/proxy/vector.h"
 
 #include "compile/khir/program_builder.h"
-#include "compile/proxy/if.h"
 #include "compile/proxy/int.h"
-#include "compile/proxy/ptr.h"
 #include "compile/proxy/struct.h"
+#include "runtime/vector.h"
 
 namespace kush::compile::proxy {
 
@@ -108,25 +107,33 @@ void Vector::ForwardDeclare(khir::ProgramBuilder& program) {
 
   program.DeclareExternalFunction(
       CreateFnName, program.VoidType(),
-      {struct_ptr, program.I64Type(), program.I32Type()});
+      {struct_ptr, program.I64Type(), program.I32Type()},
+      reinterpret_cast<void*>(&kush::runtime::Vector::Create));
 
   program.DeclareExternalFunction(
-      PushBackFnName, program.PointerType(program.I8Type()), {struct_ptr});
+      PushBackFnName, program.PointerType(program.I8Type()), {struct_ptr},
+      reinterpret_cast<void*>(&kush::runtime::Vector::PushBack));
 
-  program.DeclareExternalFunction(GetFnName,
-                                  program.PointerType(program.I8Type()),
-                                  {struct_ptr, program.I32Type()});
+  program.DeclareExternalFunction(
+      GetFnName, program.PointerType(program.I8Type()),
+      {struct_ptr, program.I32Type()},
+      reinterpret_cast<void*>(&kush::runtime::Vector::Get));
 
-  program.DeclareExternalFunction(SizeFnName, program.I32Type(), {struct_ptr});
+  program.DeclareExternalFunction(
+      SizeFnName, program.I32Type(), {struct_ptr},
+      reinterpret_cast<void*>(&kush::runtime::Vector::Size));
 
-  program.DeclareExternalFunction(FreeFnName, program.VoidType(), {struct_ptr});
+  program.DeclareExternalFunction(
+      FreeFnName, program.VoidType(), {struct_ptr},
+      reinterpret_cast<void*>(&kush::runtime::Vector::Free));
 
   program.DeclareExternalFunction(
       SortFnName, program.VoidType(),
       {struct_ptr,
        program.PointerType(program.FunctionType(
            program.I1Type(), {program.PointerType(program.I8Type()),
-                              program.PointerType(program.I8Type())}))});
+                              program.PointerType(program.I8Type())}))},
+      reinterpret_cast<void*>(&kush::runtime::Vector::Sort));
 }
 
 }  // namespace kush::compile::proxy

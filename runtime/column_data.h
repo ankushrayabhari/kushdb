@@ -56,80 +56,35 @@ struct TextColumnData {
 };
 
 // Open column data file
-void Open(Int8ColumnData* col, const char* path);
-void Open(Int16ColumnData* col, const char* path);
-void Open(Int32ColumnData* col, const char* path);
-void Open(Int64ColumnData* col, const char* path);
-void Open(Float64ColumnData* col, const char* path);
-void Open(TextColumnData* col, const char* path);
+void OpenInt8(Int8ColumnData* col, const char* path);
+void OpenInt16(Int16ColumnData* col, const char* path);
+void OpenInt32(Int32ColumnData* col, const char* path);
+void OpenInt64(Int64ColumnData* col, const char* path);
+void OpenFloat64(Float64ColumnData* col, const char* path);
+void OpenText(TextColumnData* col, const char* path);
 
 // Close column data file
-void Close(Int8ColumnData* col);
-void Close(Int16ColumnData* col);
-void Close(Int32ColumnData* col);
-void Close(Int64ColumnData* col);
-void Close(Float64ColumnData* col);
-void Close(TextColumnData* col);
+void CloseInt8(Int8ColumnData* col);
+void CloseInt16(Int16ColumnData* col);
+void CloseInt32(Int32ColumnData* col);
+void CloseInt64(Int64ColumnData* col);
+void CloseFloat64(Float64ColumnData* col);
+void CloseText(TextColumnData* col);
 
 // Size implementations
-int32_t Size(Int8ColumnData* col);
-int32_t Size(Int16ColumnData* col);
-int32_t Size(Int32ColumnData* col);
-int32_t Size(Int64ColumnData* col);
-int32_t Size(Float64ColumnData* col);
-int32_t Size(TextColumnData* col);
+int32_t SizeInt8(Int8ColumnData* col);
+int32_t SizeInt16(Int16ColumnData* col);
+int32_t SizeInt32(Int32ColumnData* col);
+int32_t SizeInt64(Int64ColumnData* col);
+int32_t SizeFloat64(Float64ColumnData* col);
+int32_t SizeText(TextColumnData* col);
 
 // Get the ith element of the column
-int8_t Get(Int8ColumnData* col, int32_t idx);
-int16_t Get(Int16ColumnData* col, int32_t idx);
-int32_t Get(Int32ColumnData* col, int32_t idx);
-int64_t Get(Int64ColumnData* col, int32_t idx);
-double Get(Float64ColumnData* col, int32_t idx);
-void Get(TextColumnData* col, int32_t idx, String::String* dest);
-
-// Create the column index
-std::unordered_map<int8_t, std::vector<int32_t>>* CreateInt8Index();
-std::unordered_map<int16_t, std::vector<int32_t>>* CreateInt16Index();
-std::unordered_map<int32_t, std::vector<int32_t>>* CreateInt32Index();
-std::unordered_map<int64_t, std::vector<int32_t>>* CreateInt64Index();
-std::unordered_map<double, std::vector<int32_t>>* CreateFloat64Index();
-std::unordered_map<std::string, std::vector<int32_t>>* CreateStringIndex();
-
-// Free the column index
-void Free(std::unordered_map<int8_t, std::vector<int32_t>>* index);
-void Free(std::unordered_map<int16_t, std::vector<int32_t>>* index);
-void Free(std::unordered_map<int32_t, std::vector<int32_t>>* index);
-void Free(std::unordered_map<int64_t, std::vector<int32_t>>* index);
-void Free(std::unordered_map<double, std::vector<int32_t>>* index);
-void Free(std::unordered_map<std::string, std::vector<int32_t>>* index);
-
-// Insert tuple idx
-void Insert(std::unordered_map<int8_t, std::vector<int32_t>>* index,
-            int8_t value, int32_t tuple_idx);
-void Insert(std::unordered_map<int16_t, std::vector<int32_t>>* index,
-            int16_t value, int32_t tuple_idx);
-void Insert(std::unordered_map<int32_t, std::vector<int32_t>>* index,
-            int32_t value, int32_t tuple_idx);
-void Insert(std::unordered_map<int64_t, std::vector<int32_t>>* index,
-            int64_t value, int32_t tuple_idx);
-void Insert(std::unordered_map<double, std::vector<int32_t>>* index,
-            double value, int32_t tuple_idx);
-void Insert(std::unordered_map<std::string, std::vector<int32_t>>* index,
-            String::String* value, int32_t tuple_idx);
-
-// Get the next tuple from index
-int32_t GetNextTuple(std::unordered_map<int8_t, std::vector<int32_t>>* index,
-                     int8_t value, int32_t prev_tuple, int32_t cardinality);
-int32_t GetNextTuple(std::unordered_map<int16_t, std::vector<int32_t>>* index,
-                     int16_t value, int32_t prev_tuple, int32_t cardinality);
-int32_t GetNextTuple(std::unordered_map<int32_t, std::vector<int32_t>>* index,
-                     int32_t value, int32_t prev_tuple, int32_t cardinality);
-int32_t GetNextTuple(std::unordered_map<int64_t, std::vector<int32_t>>* index,
-                     int64_t value, int32_t prev_tuple, int32_t cardinality);
-int32_t GetNextTuple(std::unordered_map<double, std::vector<int32_t>>* index,
-                     double value, int32_t prev_tuple, int32_t cardinality);
-int32_t GetNextTuple(
-    std::unordered_map<std::string, std::vector<int32_t>>* index,
-    String::String* value, int32_t prev_tuple, int32_t cardinality);
+int8_t GetInt8(Int8ColumnData* col, int32_t idx);
+int16_t GetInt16(Int16ColumnData* col, int32_t idx);
+int32_t GetInt32(Int32ColumnData* col, int32_t idx);
+int64_t GetInt64(Int64ColumnData* col, int32_t idx);
+double GetFloat64(Float64ColumnData* col, int32_t idx);
+void GetText(TextColumnData* col, int32_t idx, String::String* dest);
 
 }  // namespace kush::runtime::ColumnData

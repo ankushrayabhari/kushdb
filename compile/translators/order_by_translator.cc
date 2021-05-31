@@ -10,6 +10,7 @@
 #include "compile/proxy/bool.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/function.h"
+#include "compile/proxy/if.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/vector.h"

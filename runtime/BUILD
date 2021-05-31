@@ -75,8 +75,9 @@ cc_library(
 )
 
 cc_library(
-    name = "print_util",
-    srcs = ["print_util.cpp"],
+    name = "printer",
+    srcs = ["printer.cc"],
+    hdrs = ["printer.h"],
     deps = [
         ":string",
     ],

@@ -16,11 +16,12 @@ namespace kush::khir {
 Function::Function(std::string_view name, khir::Type function_type,
                    khir::Type result_type,
                    absl::Span<const khir::Type> arg_types, bool external,
-                   bool p)
+                   bool p, void* func)
     : name_(name),
       return_type_(result_type),
       arg_types_(arg_types.begin(), arg_types.end()),
       function_type_(function_type),
+      func_(func),
       external_(external),
       public_(p) {}
 
@@ -494,7 +495,8 @@ FunctionRef ProgramBuilder::CreatePublicFunction(
 }
 
 FunctionRef ProgramBuilder::DeclareExternalFunction(
-    std::string_view name, Type result_type, absl::Span<const Type> arg_types) {
+    std::string_view name, Type result_type, absl::Span<const Type> arg_types,
+    void* func) {
   if (name_to_function_.contains(name)) {
     return name_to_function_[name];
   }
@@ -502,7 +504,7 @@ FunctionRef ProgramBuilder::DeclareExternalFunction(
   auto idx = functions_.size();
   functions_.emplace_back(name,
                           type_manager_.FunctionType(result_type, arg_types),
-                          result_type, arg_types, true, false);
+                          result_type, arg_types, true, false, func);
   auto ref = static_cast<FunctionRef>(idx);
   name_to_function_[name] = ref;
   return static_cast<FunctionRef>(idx);

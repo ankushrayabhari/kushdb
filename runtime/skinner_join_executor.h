@@ -15,6 +15,7 @@ void ExecuteSkinnerJoin(
     int32_t table_predicate_to_flag_idx_len,
     int32_t* table_predicate_to_flag_idx_arr, int32_t* tables_per_predicate_arr,
     int8_t* flag_arr, int32_t* progress_arr, int32_t* table_ctr,
-    int32_t* idx_arr, int32_t* last_table);
+    int32_t* idx_arr, int32_t* last_table, int32_t* num_result_tuples,
+    int32_t* offset_arr);
 
 }  // namespace kush::runtime

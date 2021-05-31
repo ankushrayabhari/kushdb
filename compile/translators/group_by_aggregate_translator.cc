@@ -8,6 +8,7 @@
 #include "compile/khir/program_builder.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/hash_table.h"
+#include "compile/proxy/if.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/struct.h"
 #include "compile/translators/expression_translator.h"

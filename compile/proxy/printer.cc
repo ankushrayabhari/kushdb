@@ -5,15 +5,20 @@
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
 #include "compile/proxy/string.h"
+#include "runtime/printer.h"
 
 namespace kush::compile::proxy {
 
-constexpr std::string_view i1_fn_name("_ZN4kush7runtime7Printer5PrintEb");
-constexpr std::string_view i8_fn_name("_ZN4kush7runtime7Printer5PrintEa");
-constexpr std::string_view i16_fn_name("_ZN4kush7runtime7Printer5PrintEs");
-constexpr std::string_view i32_fn_name("_ZN4kush7runtime7Printer5PrintEi");
-constexpr std::string_view i64_fn_name("_ZN4kush7runtime7Printer5PrintEl");
-constexpr std::string_view f64_fn_name("_ZN4kush7runtime7Printer5PrintEd");
+constexpr std::string_view i1_fn_name("_ZN4kush7runtime7Printer9PrintBoolEb");
+constexpr std::string_view i8_fn_name("_ZN4kush7runtime7Printer9PrintInt8Ea");
+constexpr std::string_view i16_fn_name(
+    "_ZN4kush7runtime7Printer10PrintInt16Es");
+constexpr std::string_view i32_fn_name(
+    "_ZN4kush7runtime7Printer10PrintInt32Ei");
+constexpr std::string_view i64_fn_name(
+    "_ZN4kush7runtime7Printer10PrintInt64El");
+constexpr std::string_view f64_fn_name(
+    "_ZN4kush7runtime7Printer12PrintFloat64Ed");
 constexpr std::string_view newline_fn_name(
     "_ZN4kush7runtime7Printer12PrintNewlineEv");
 constexpr std::string_view string_fn_name(
@@ -54,22 +59,31 @@ void Printer::PrintNewline() {
 }
 
 void Printer::ForwardDeclare(khir::ProgramBuilder& program) {
-  program.DeclareExternalFunction(i1_fn_name, program.VoidType(),
-                                  {program.I1Type()});
-  program.DeclareExternalFunction(i8_fn_name, program.VoidType(),
-                                  {program.I8Type()});
-  program.DeclareExternalFunction(i16_fn_name, program.VoidType(),
-                                  {program.I16Type()});
-  program.DeclareExternalFunction(i32_fn_name, program.VoidType(),
-                                  {program.I32Type()});
-  program.DeclareExternalFunction(i64_fn_name, program.VoidType(),
-                                  {program.I64Type()});
-  program.DeclareExternalFunction(f64_fn_name, program.VoidType(),
-                                  {program.F64Type()});
+  program.DeclareExternalFunction(
+      i1_fn_name, program.VoidType(), {program.I1Type()},
+      reinterpret_cast<void*>(&runtime::Printer::PrintBool));
+  program.DeclareExternalFunction(
+      i8_fn_name, program.VoidType(), {program.I8Type()},
+      reinterpret_cast<void*>(&runtime::Printer::PrintInt8));
+  program.DeclareExternalFunction(
+      i16_fn_name, program.VoidType(), {program.I16Type()},
+      reinterpret_cast<void*>(&runtime::Printer::PrintInt16));
+  program.DeclareExternalFunction(
+      i32_fn_name, program.VoidType(), {program.I32Type()},
+      reinterpret_cast<void*>(&runtime::Printer::PrintInt32));
+  program.DeclareExternalFunction(
+      i64_fn_name, program.VoidType(), {program.I64Type()},
+      reinterpret_cast<void*>(&runtime::Printer::PrintInt64));
+  program.DeclareExternalFunction(
+      f64_fn_name, program.VoidType(), {program.F64Type()},
+      reinterpret_cast<void*>(&runtime::Printer::PrintFloat64));
   program.DeclareExternalFunction(
       string_fn_name, program.VoidType(),
-      {program.PointerType(program.GetStructType(String::StringStructName))});
-  program.DeclareExternalFunction(newline_fn_name, program.VoidType(), {});
+      {program.PointerType(program.GetStructType(String::StringStructName))},
+      reinterpret_cast<void*>(&runtime::Printer::PrintString));
+  program.DeclareExternalFunction(
+      newline_fn_name, program.VoidType(), {},
+      reinterpret_cast<void*>(&runtime::Printer::PrintNewline));
 }
 
 }  // namespace kush::compile::proxy

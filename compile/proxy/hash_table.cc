@@ -7,6 +7,7 @@
 #include "compile/proxy/loop.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
+#include "runtime/hash_table.h"
 #include "util/vector_util.h"
 
 namespace kush::compile::proxy {
@@ -47,19 +48,22 @@ class BucketList {
 
     program.DeclareExternalFunction(
         BucketListGetBucketIdxFnName, vector_ptr_type,
-        {bucket_list_struct_ptr, program.I32Type()});
-    program.DeclareExternalFunction(BucketListSizeFnName, program.I32Type(),
-                                    {bucket_list_struct_ptr});
-    program.DeclareExternalFunction(BucketListFreeFnName, program.VoidType(),
-                                    {bucket_list_struct_ptr});
+        {bucket_list_struct_ptr, program.I32Type()},
+        reinterpret_cast<void*>(&runtime::HashTable::GetBucketIdx));
+    program.DeclareExternalFunction(
+        BucketListSizeFnName, program.I32Type(), {bucket_list_struct_ptr},
+        reinterpret_cast<void*>(&runtime::HashTable::BucketListSize));
+    program.DeclareExternalFunction(
+        BucketListFreeFnName, program.VoidType(), {bucket_list_struct_ptr},
+        reinterpret_cast<void*>(&runtime::HashTable::BucketListFree));
   }
 
  private:
   static constexpr std::string_view BucketListSizeFnName =
-      "_ZN4kush7runtime9HashTable4SizeEPNS1_10BucketListE";
+      "_ZN4kush7runtime9HashTable14BucketListSizeEPNS1_10BucketListE";
 
   static constexpr std::string_view BucketListFreeFnName =
-      "_ZN4kush7runtime9HashTable4FreeEPNS1_10BucketListE";
+      "_ZN4kush7runtime9HashTable14BucketListFreeEPNS1_10BucketListE";
 
   static constexpr std::string_view BucketListGetBucketIdxFnName =
       "_ZN4kush7runtime9HashTable12GetBucketIdxEPNS1_10BucketListEi";
@@ -144,24 +148,32 @@ void HashTable::ForwardDeclare(khir::ProgramBuilder& program) {
       HashTableStructName);
   auto struct_ptr = program.PointerType(struct_type);
 
-  program.DeclareExternalFunction(CreateFnName, program.VoidType(),
-                                  {struct_ptr, program.I64Type()});
+  program.DeclareExternalFunction(
+      CreateFnName, program.VoidType(), {struct_ptr, program.I64Type()},
+      reinterpret_cast<void*>(&runtime::HashTable::Create));
 
-  program.DeclareExternalFunction(InsertFnName,
-                                  program.PointerType(program.I8Type()),
-                                  {struct_ptr, program.I32Type()});
+  program.DeclareExternalFunction(
+      InsertFnName, program.PointerType(program.I8Type()),
+      {struct_ptr, program.I32Type()},
+      reinterpret_cast<void*>(&runtime::HashTable::Insert));
 
-  program.DeclareExternalFunction(GetBucketFnName, vector_ptr_type,
-                                  {struct_ptr, program.I32Type()});
+  program.DeclareExternalFunction(
+      GetBucketFnName, vector_ptr_type, {struct_ptr, program.I32Type()},
+      reinterpret_cast<void*>(&runtime::HashTable::GetBucket));
 
-  program.DeclareExternalFunction(FreeFnName, program.VoidType(), {struct_ptr});
+  program.DeclareExternalFunction(
+      FreeFnName, program.VoidType(), {struct_ptr},
+      reinterpret_cast<void*>(&runtime::HashTable::Free));
 
-  program.DeclareExternalFunction(GetAllBucketsFnName, program.VoidType(),
-                                  {struct_ptr, bucket_list_struct_ptr});
+  program.DeclareExternalFunction(
+      GetAllBucketsFnName, program.VoidType(),
+      {struct_ptr, bucket_list_struct_ptr},
+      reinterpret_cast<void*>(&runtime::HashTable::GetAllBuckets));
 
   program.DeclareExternalFunction(
       HashCombineFnName, program.VoidType(),
-      {program.PointerType(program.I32Type()), program.I64Type()});
+      {program.PointerType(program.I32Type()), program.I64Type()},
+      reinterpret_cast<void*>(&runtime::HashTable::HashCombine));
 }
 
 void HashTable::ForEach(std::function<void(Struct&)> handler) {
