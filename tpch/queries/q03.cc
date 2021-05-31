@@ -178,7 +178,6 @@ int main() {
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();
-  prog->Compile();
   prog->Execute();
   return 0;
 }

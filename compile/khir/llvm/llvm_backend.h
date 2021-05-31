@@ -39,7 +39,6 @@ class LLVMBackend : public Backend, public TypeTranslator {
                  const std::vector<Function>& functions) override;
 
   // Program
-  void Compile() const override;
   void Execute() const override;
 
  private:

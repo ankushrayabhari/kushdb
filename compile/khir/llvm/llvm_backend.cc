@@ -718,7 +718,7 @@ void LLVMBackend::TranslateInstr(
   }
 }
 
-void LLVMBackend::Compile() const {
+void LLVMBackend::Execute() const {
   gen = std::chrono::system_clock::now();
   llvm::verifyModule(*module_, &llvm::errs());
   // module_->print(llvm::errs(), nullptr);
@@ -789,9 +789,7 @@ void LLVMBackend::Compile() const {
   }
 
   comp = std::chrono::system_clock::now();
-}
 
-void LLVMBackend::Execute() const {
   void* handle = dlopen("/tmp/query.so", RTLD_LAZY);
 
   if (!handle) {

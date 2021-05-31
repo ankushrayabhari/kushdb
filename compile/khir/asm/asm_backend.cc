@@ -249,10 +249,6 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   }
 }
 
-void ASMBackend::Compile() const {
-  // TODO
-}
-
 void ASMBackend::Execute() const {
   // TODO
 }
