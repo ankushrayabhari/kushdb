@@ -4,7 +4,7 @@
 
 #include "runtime/string.h"
 
-namespace kush::util {
+namespace kush::runtime::Printer {
 
 void Print(bool v) { std::cout << v << "|"; }
 
@@ -20,8 +20,8 @@ void Print(double v) { std::cout << v << "|"; }
 
 void PrintNewline() { std::cout << "\n"; }
 
-void PrintString(kush::data::String* str) {
+void PrintString(kush::runtime::String::String* str) {
   std::cout << std::string_view(str->data, str->length) << "|";
 }
 
-}  // namespace kush::util
+}  // namespace kush::runtime

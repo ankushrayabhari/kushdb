@@ -6,7 +6,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace kush::data {
+namespace kush::runtime::String {
 
 void Copy(String* dest, String* src) {
   auto* cpy = (char*)malloc(sizeof(char) * src->length);
@@ -63,4 +63,4 @@ int64_t Hash(String* s1) {
   return std::hash<std::string_view>{}(sv1);
 }
 
-}  // namespace kush::data
+}  // namespace kush::runtime::String

@@ -10,7 +10,7 @@
 #include <system_error>
 #include <vector>
 
-namespace kush::data {
+namespace kush::runtime::ColumnIndex {
 
 // ---------- Create Index -------------
 std::unordered_map<int8_t, std::vector<int32_t>>* CreateInt8Index() {
@@ -89,7 +89,7 @@ void Insert(std::unordered_map<double, std::vector<int32_t>>* index,
 }
 
 void Insert(std::unordered_map<std::string, std::vector<int32_t>>* index,
-            String* value, int32_t tuple_idx) {
+            String::String* value, int32_t tuple_idx) {
   index->operator[](std::string(value->data, value->length))
       .push_back(tuple_idx);
 }
@@ -153,10 +153,10 @@ int32_t GetNextTuple(std::unordered_map<double, std::vector<int32_t>>* index,
 }
 
 int32_t GetNextTuple(
-    std::unordered_map<std::string, std::vector<int32_t>>* index, String* value,
-    int32_t prev_tuple, int32_t cardinality) {
+    std::unordered_map<std::string, std::vector<int32_t>>* index,
+    String::String* value, int32_t prev_tuple, int32_t cardinality) {
   return GetNextTupleImpl(index, std::string(value->data, value->length),
                           prev_tuple, cardinality);
 }
 
-}  // namespace kush::data
+}  // namespace kush::runtime::ColumnIndex

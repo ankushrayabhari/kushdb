@@ -10,7 +10,7 @@
 
 #include "runtime/string.h"
 
-namespace kush::data {
+namespace kush::runtime::ColumnIndex {
 
 // Create the column index
 std::unordered_map<int8_t, std::vector<int32_t>>* CreateInt8Index();
@@ -40,7 +40,7 @@ void Insert(std::unordered_map<int64_t, std::vector<int32_t>>* index,
 void Insert(std::unordered_map<double, std::vector<int32_t>>* index,
             double value, int32_t tuple_idx);
 void Insert(std::unordered_map<std::string, std::vector<int32_t>>* index,
-            String* value, int32_t tuple_idx);
+            String::String* value, int32_t tuple_idx);
 
 // Get the next tuple from index
 int32_t GetNextTuple(std::unordered_map<int8_t, std::vector<int32_t>>* index,
@@ -54,7 +54,7 @@ int32_t GetNextTuple(std::unordered_map<int64_t, std::vector<int32_t>>* index,
 int32_t GetNextTuple(std::unordered_map<double, std::vector<int32_t>>* index,
                      double value, int32_t prev_tuple, int32_t cardinality);
 int32_t GetNextTuple(
-    std::unordered_map<std::string, std::vector<int32_t>>* index, String* value,
-    int32_t prev_tuple, int32_t cardinality);
+    std::unordered_map<std::string, std::vector<int32_t>>* index,
+    String::String* value, int32_t prev_tuple, int32_t cardinality);
 
-}  // namespace kush::data
+}  // namespace kush::runtime::ColumnIndex

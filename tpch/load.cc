@@ -54,9 +54,12 @@ void Region() {
     r_comment.push_back(data[2]);
   }
 
-  kush::data::Serialize<int32_t>("tpch/data/r_regionkey.kdb", r_regionkey);
-  kush::data::Serialize<std::string>("tpch/data/r_name.kdb", r_name);
-  kush::data::Serialize<std::string>("tpch/data/r_comment.kdb", r_comment);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/r_regionkey.kdb",
+                                                r_regionkey);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/r_name.kdb",
+                                                    r_name);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/r_comment.kdb",
+                                                    r_comment);
 }
 
 void Nation() {
@@ -84,10 +87,14 @@ void Nation() {
     n_comment.push_back(data[3]);
   }
 
-  kush::data::Serialize<int32_t>("tpch/data/n_nationkey.kdb", n_nationkey);
-  kush::data::Serialize<std::string>("tpch/data/n_name.kdb", n_name);
-  kush::data::Serialize<int32_t>("tpch/data/n_regionkey.kdb", n_regionkey);
-  kush::data::Serialize<std::string>("tpch/data/n_comment.kdb", n_comment);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/n_nationkey.kdb",
+                                                n_nationkey);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/n_name.kdb",
+                                                    n_name);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/n_regionkey.kdb",
+                                                n_regionkey);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/n_comment.kdb",
+                                                    n_comment);
 }
 
 void Lineitem() {
@@ -151,26 +158,37 @@ void Lineitem() {
     l_comment.push_back(data[15]);
   }
 
-  kush::data::Serialize<int32_t>("tpch/data/l_orderkey.kdb", l_orderkey);
-  kush::data::Serialize<int32_t>("tpch/data/l_partkey.kdb", l_partkey);
-  kush::data::Serialize<int32_t>("tpch/data/l_suppkey.kdb", l_suppkey);
-  kush::data::Serialize<int32_t>("tpch/data/l_linenumber.kdb", l_linenumber);
-  kush::data::Serialize<double>("tpch/data/l_quantity.kdb", l_quantity);
-  kush::data::Serialize<double>("tpch/data/l_extendedprice.kdb",
-                                l_extendedprice);
-  kush::data::Serialize<double>("tpch/data/l_discount.kdb", l_discount);
-  kush::data::Serialize<double>("tpch/data/l_tax.kdb", l_tax);
-  kush::data::Serialize<std::string>("tpch/data/l_returnflag.kdb",
-                                     l_returnflag);
-  kush::data::Serialize<std::string>("tpch/data/l_linestatus.kdb",
-                                     l_linestatus);
-  kush::data::Serialize<int64_t>("tpch/data/l_shipdate.kdb", l_shipdate);
-  kush::data::Serialize<int64_t>("tpch/data/l_commitdate.kdb", l_commitdate);
-  kush::data::Serialize<int64_t>("tpch/data/l_receiptdate.kdb", l_receiptdate);
-  kush::data::Serialize<std::string>("tpch/data/l_shipinstruct.kdb",
-                                     l_shipinstruct);
-  kush::data::Serialize<std::string>("tpch/data/l_shipmode.kdb", l_shipmode);
-  kush::data::Serialize<std::string>("tpch/data/l_comment.kdb", l_comment);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/l_orderkey.kdb",
+                                                l_orderkey);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/l_partkey.kdb",
+                                                l_partkey);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/l_suppkey.kdb",
+                                                l_suppkey);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/l_linenumber.kdb",
+                                                l_linenumber);
+  kush::runtime::ColumnData::Serialize<double>("tpch/data/l_quantity.kdb",
+                                               l_quantity);
+  kush::runtime::ColumnData::Serialize<double>("tpch/data/l_extendedprice.kdb",
+                                               l_extendedprice);
+  kush::runtime::ColumnData::Serialize<double>("tpch/data/l_discount.kdb",
+                                               l_discount);
+  kush::runtime::ColumnData::Serialize<double>("tpch/data/l_tax.kdb", l_tax);
+  kush::runtime::ColumnData::Serialize<std::string>(
+      "tpch/data/l_returnflag.kdb", l_returnflag);
+  kush::runtime::ColumnData::Serialize<std::string>(
+      "tpch/data/l_linestatus.kdb", l_linestatus);
+  kush::runtime::ColumnData::Serialize<int64_t>("tpch/data/l_shipdate.kdb",
+                                                l_shipdate);
+  kush::runtime::ColumnData::Serialize<int64_t>("tpch/data/l_commitdate.kdb",
+                                                l_commitdate);
+  kush::runtime::ColumnData::Serialize<int64_t>("tpch/data/l_receiptdate.kdb",
+                                                l_receiptdate);
+  kush::runtime::ColumnData::Serialize<std::string>(
+      "tpch/data/l_shipinstruct.kdb", l_shipinstruct);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/l_shipmode.kdb",
+                                                    l_shipmode);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/l_comment.kdb",
+                                                    l_comment);
 }
 
 void Orders() {
@@ -213,18 +231,24 @@ void Orders() {
     o_comment.push_back(data[8]);
   }
 
-  kush::data::Serialize<int32_t>("tpch/data/o_orderkey.kdb", o_orderkey);
-  kush::data::Serialize<int32_t>("tpch/data/o_custkey.kdb", o_custkey);
-  kush::data::Serialize<std::string>("tpch/data/o_orderstatus.kdb",
-                                     o_orderstatus);
-  kush::data::Serialize<double>("tpch/data/o_totalprice.kdb", o_totalprice);
-  kush::data::Serialize<int64_t>("tpch/data/o_orderdate.kdb", o_orderdate);
-  kush::data::Serialize<std::string>("tpch/data/o_orderpriority.kdb",
-                                     o_orderpriority);
-  kush::data::Serialize<std::string>("tpch/data/o_clerk.kdb", o_clerk);
-  kush::data::Serialize<int32_t>("tpch/data/o_shippriority.kdb",
-                                 o_shippriority);
-  kush::data::Serialize<std::string>("tpch/data/o_comment.kdb", o_comment);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/o_orderkey.kdb",
+                                                o_orderkey);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/o_custkey.kdb",
+                                                o_custkey);
+  kush::runtime::ColumnData::Serialize<std::string>(
+      "tpch/data/o_orderstatus.kdb", o_orderstatus);
+  kush::runtime::ColumnData::Serialize<double>("tpch/data/o_totalprice.kdb",
+                                               o_totalprice);
+  kush::runtime::ColumnData::Serialize<int64_t>("tpch/data/o_orderdate.kdb",
+                                                o_orderdate);
+  kush::runtime::ColumnData::Serialize<std::string>(
+      "tpch/data/o_orderpriority.kdb", o_orderpriority);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/o_clerk.kdb",
+                                                    o_clerk);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/o_shippriority.kdb",
+                                                o_shippriority);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/o_comment.kdb",
+                                                    o_comment);
 }
 
 void Customer() {
@@ -264,15 +288,22 @@ void Customer() {
     c_comment.push_back(data[7]);
   }
 
-  kush::data::Serialize<int32_t>("tpch/data/c_custkey.kdb", c_custkey);
-  kush::data::Serialize<std::string>("tpch/data/c_name.kdb", c_name);
-  kush::data::Serialize<std::string>("tpch/data/c_address.kdb", c_address);
-  kush::data::Serialize<int32_t>("tpch/data/c_nationkey.kdb", c_nationkey);
-  kush::data::Serialize<std::string>("tpch/data/c_phone.kdb", c_phone);
-  kush::data::Serialize<double>("tpch/data/c_acctbal.kdb", c_acctbal);
-  kush::data::Serialize<std::string>("tpch/data/c_mktsegment.kdb",
-                                     c_mktsegment);
-  kush::data::Serialize<std::string>("tpch/data/c_comment.kdb", c_comment);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/c_custkey.kdb",
+                                                c_custkey);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/c_name.kdb",
+                                                    c_name);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/c_address.kdb",
+                                                    c_address);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/c_nationkey.kdb",
+                                                c_nationkey);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/c_phone.kdb",
+                                                    c_phone);
+  kush::runtime::ColumnData::Serialize<double>("tpch/data/c_acctbal.kdb",
+                                               c_acctbal);
+  kush::runtime::ColumnData::Serialize<std::string>(
+      "tpch/data/c_mktsegment.kdb", c_mktsegment);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/c_comment.kdb",
+                                                    c_comment);
 }
 
 void Partsupp() {
@@ -303,11 +334,16 @@ void Partsupp() {
     ps_comment.push_back(data[4]);
   }
 
-  kush::data::Serialize<int32_t>("tpch/data/ps_partkey.kdb", ps_partkey);
-  kush::data::Serialize<int32_t>("tpch/data/ps_suppkey.kdb", ps_suppkey);
-  kush::data::Serialize<int32_t>("tpch/data/ps_availqty.kdb", ps_availqty);
-  kush::data::Serialize<double>("tpch/data/ps_supplycost.kdb", ps_supplycost);
-  kush::data::Serialize<std::string>("tpch/data/ps_comment.kdb", ps_comment);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/ps_partkey.kdb",
+                                                ps_partkey);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/ps_suppkey.kdb",
+                                                ps_suppkey);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/ps_availqty.kdb",
+                                                ps_availqty);
+  kush::runtime::ColumnData::Serialize<double>("tpch/data/ps_supplycost.kdb",
+                                               ps_supplycost);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/ps_comment.kdb",
+                                                    ps_comment);
 }
 
 void Part() {
@@ -350,15 +386,23 @@ void Part() {
     p_comment.push_back(data[8]);
   }
 
-  kush::data::Serialize<int32_t>("tpch/data/p_partkey.kdb", p_partkey);
-  kush::data::Serialize<std::string>("tpch/data/p_name.kdb", p_name);
-  kush::data::Serialize<std::string>("tpch/data/p_mfgr.kdb", p_mfgr);
-  kush::data::Serialize<std::string>("tpch/data/p_brand.kdb", p_brand);
-  kush::data::Serialize<std::string>("tpch/data/p_type.kdb", p_type);
-  kush::data::Serialize<int32_t>("tpch/data/p_size.kdb", p_size);
-  kush::data::Serialize<std::string>("tpch/data/p_container.kdb", p_container);
-  kush::data::Serialize<double>("tpch/data/p_retailprice.kdb", p_retailprice);
-  kush::data::Serialize<std::string>("tpch/data/p_comment.kdb", p_comment);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/p_partkey.kdb",
+                                                p_partkey);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/p_name.kdb",
+                                                    p_name);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/p_mfgr.kdb",
+                                                    p_mfgr);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/p_brand.kdb",
+                                                    p_brand);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/p_type.kdb",
+                                                    p_type);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/p_size.kdb", p_size);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/p_container.kdb",
+                                                    p_container);
+  kush::runtime::ColumnData::Serialize<double>("tpch/data/p_retailprice.kdb",
+                                               p_retailprice);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/p_comment.kdb",
+                                                    p_comment);
 }
 
 void Supplier() {
@@ -395,13 +439,20 @@ void Supplier() {
     s_comment.push_back(data[6]);
   }
 
-  kush::data::Serialize<int32_t>("tpch/data/s_suppkey.kdb", s_suppkey);
-  kush::data::Serialize<std::string>("tpch/data/s_name.kdb", s_name);
-  kush::data::Serialize<std::string>("tpch/data/s_address.kdb", s_address);
-  kush::data::Serialize<int32_t>("tpch/data/s_nationkey.kdb", s_nationkey);
-  kush::data::Serialize<std::string>("tpch/data/s_phone.kdb", s_phone);
-  kush::data::Serialize<double>("tpch/data/s_acctbal.kdb", s_acctbal);
-  kush::data::Serialize<std::string>("tpch/data/s_comment.kdb", s_comment);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/s_suppkey.kdb",
+                                                s_suppkey);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/s_name.kdb",
+                                                    s_name);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/s_address.kdb",
+                                                    s_address);
+  kush::runtime::ColumnData::Serialize<int32_t>("tpch/data/s_nationkey.kdb",
+                                                s_nationkey);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/s_phone.kdb",
+                                                    s_phone);
+  kush::runtime::ColumnData::Serialize<double>("tpch/data/s_acctbal.kdb",
+                                               s_acctbal);
+  kush::runtime::ColumnData::Serialize<std::string>("tpch/data/s_comment.kdb",
+                                                    s_comment);
 }
 
 int main() {

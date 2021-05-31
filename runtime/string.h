@@ -6,7 +6,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace kush::data {
+namespace kush::runtime::String {
 
 struct String {
   const char* data;
@@ -23,4 +23,4 @@ bool NotEquals(String* s1, String* s2);
 bool LessThan(String* s1, String* s2);
 int64_t Hash(String* s1);
 
-}  // namespace kush::data
+}  // namespace kush::runtime::String

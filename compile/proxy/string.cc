@@ -5,23 +5,27 @@
 
 namespace kush::compile::proxy {
 
-constexpr std::string_view CopyFnName("_ZN4kush4data4CopyEPNS0_6StringES2_");
-constexpr std::string_view FreeFnName("_ZN4kush4data4FreeEPNS0_6StringE");
+constexpr std::string_view CopyFnName(
+    "_ZN4kush7runtime6String4CopyEPNS1_6StringES3_");
+constexpr std::string_view FreeFnName(
+    "_ZN4kush7runtime6String4FreeEPNS1_6StringE");
 constexpr std::string_view ContainsFnName(
-    "_ZN4kush4data8ContainsEPNS0_6StringES2_");
+    "_ZN4kush7runtime6String8ContainsEPNS1_6StringES3_");
 constexpr std::string_view EndsWithFnName(
-    "_ZN4kush4data8EndsWithEPNS0_6StringES2_");
+    "_ZN4kush7runtime6String8EndsWithEPNS1_6StringES3_");
 constexpr std::string_view StartsWithFnName(
-    "_ZN4kush4data10StartsWithEPNS0_6StringES2_");
+    "_ZN4kush7runtime6String10StartsWithEPNS1_6StringES3_");
 constexpr std::string_view EqualsFnName(
-    "_ZN4kush4data6EqualsEPNS0_6StringES2_");
+    "_ZN4kush7runtime6String6EqualsEPNS1_6StringES3_");
 constexpr std::string_view NotEqualsFnName(
-    "_ZN4kush4data9NotEqualsEPNS0_6StringES2_");
+    "_ZN4kush7runtime6String9NotEqualsEPNS1_6StringES3_");
 constexpr std::string_view LessThanFnName(
-    "_ZN4kush4data8LessThanEPNS0_6StringES2_");
-constexpr std::string_view HashFnName("_ZN4kush4data4HashEPNS0_6StringE");
+    "_ZN4kush7runtime6String8LessThanEPNS1_6StringES3_");
+constexpr std::string_view HashFnName(
+    "_ZN4kush7runtime6String4HashEPNS1_6StringE");
 
-const std::string_view String::StringStructName("kush::data::String");
+const std::string_view String::StringStructName(
+    "kush::runtime::String::String");
 
 String::String(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}

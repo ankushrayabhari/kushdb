@@ -6,7 +6,7 @@
 
 #include "runtime/vector.h"
 
-namespace kush::data {
+namespace kush::runtime::HashTable {
 
 using map_type = std::unordered_map<int32_t, runtime::Vector::Vector>;
 
@@ -66,4 +66,4 @@ void HashCombine(int32_t* hash, int64_t v) {
   *hash ^= v + 0x9e3779b9 + (*hash << 6) + (*hash >> 2);
 }
 
-}  // namespace kush::data
+}  // namespace kush::runtime::HashTable

@@ -16,90 +16,91 @@ namespace kush::compile::proxy {
 template <catalog::SqlType S>
 std::string_view OpenFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush4data4OpenEPNS0_15Int16ColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_15Int16ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush4data4OpenEPNS0_15Int32ColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_15Int32ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush4data4OpenEPNS0_15Int64ColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_15Int64ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush4data4OpenEPNS0_17Float64ColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_17Float64ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush4data4OpenEPNS0_14Int8ColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_14Int8ColumnDataEPKc";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush4data4OpenEPNS0_14TextColumnDataEPKc";
+    return "_ZN4kush7runtime10ColumnData4OpenEPNS1_14TextColumnDataEPKc";
   }
 }
 
 template <catalog::SqlType S>
 std::string_view CloseFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush4data5CloseEPNS0_15Int16ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_15Int16ColumnDataE";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush4data5CloseEPNS0_15Int32ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_15Int32ColumnDataE";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush4data5CloseEPNS0_15Int64ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_15Int64ColumnDataE";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush4data5CloseEPNS0_17Float64ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_17Float64ColumnDataE";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush4data5CloseEPNS0_14Int8ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_14Int8ColumnDataE";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush4data5CloseEPNS0_14TextColumnDataE";
+    return "_ZN4kush7runtime10ColumnData5CloseEPNS1_14TextColumnDataE";
   }
 }
 
 template <catalog::SqlType S>
 std::string_view GetFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush4data3GetEPNS0_15Int16ColumnDataEi";
+    return "_ZN4kush7runtime10ColumnData3GetEPNS1_15Int16ColumnDataEi";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush4data3GetEPNS0_15Int32ColumnDataEi";
+    return "_ZN4kush7runtime10ColumnData3GetEPNS1_15Int32ColumnDataEi";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush4data3GetEPNS0_15Int64ColumnDataEi";
+    return "_ZN4kush7runtime10ColumnData3GetEPNS1_15Int64ColumnDataEi";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush4data3GetEPNS0_17Float64ColumnDataEi";
+    return "_ZN4kush7runtime10ColumnData3GetEPNS1_17Float64ColumnDataEi";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush4data3GetEPNS0_14Int8ColumnDataEi";
+    return "_ZN4kush7runtime10ColumnData3GetEPNS1_14Int8ColumnDataEi";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush4data3GetEPNS0_14TextColumnDataEiPNS0_6StringE";
+    return "_ZN4kush7runtime10ColumnData3GetEPNS1_14TextColumnDataEiPNS0_"
+           "6String6StringE";
   }
 }
 
 template <catalog::SqlType S>
 std::string_view SizeFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush4data4SizeEPNS0_15Int16ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_15Int16ColumnDataE";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush4data4SizeEPNS0_15Int32ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_15Int32ColumnDataE";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush4data4SizeEPNS0_15Int64ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_15Int64ColumnDataE";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush4data4SizeEPNS0_17Float64ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_17Float64ColumnDataE";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush4data4SizeEPNS0_14Int8ColumnDataE";
+    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_14Int8ColumnDataE";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush4data4SizeEPNS0_14TextColumnDataE";
+    return "_ZN4kush7runtime10ColumnData4SizeEPNS1_14TextColumnDataE";
   }
 }
 
 template <catalog::SqlType S>
 std::string_view StructName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "kush::data::Int16ColumnData";
+    return "kush::runtime::ColumnData::Int16ColumnData";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "kush::data::Int32ColumnData";
+    return "kush::runtime::ColumnData::Int32ColumnData";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "kush::data::Int64ColumnData";
+    return "kush::runtime::ColumnData::Int64ColumnData";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "kush::data::Float64ColumnData";
+    return "kush::runtime::ColumnData::Float64ColumnData";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "kush::data::Int8ColumnData";
+    return "kush::runtime::ColumnData::Int8ColumnData";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "kush::data::TextColumnData";
+    return "kush::runtime::ColumnData::TextColumnData";
   }
 }
 

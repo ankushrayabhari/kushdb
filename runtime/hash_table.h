@@ -6,7 +6,7 @@
 
 #include "runtime/vector.h"
 
-namespace kush::data {
+namespace kush::runtime::HashTable {
 
 // Represents a hash table of tuples, i.e. map<key, vector<tuple>>
 struct HashTable {
@@ -37,4 +37,4 @@ void Free(BucketList* bl);
 
 void HashCombine(int32_t* hash, int64_t v);
 
-}  // namespace kush::data
+}  // namespace kush::runtime::HashTable

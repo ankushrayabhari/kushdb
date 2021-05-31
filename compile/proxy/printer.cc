@@ -8,15 +8,16 @@
 
 namespace kush::compile::proxy {
 
-constexpr std::string_view i1_fn_name("_ZN4kush4util5PrintEb");
-constexpr std::string_view i8_fn_name("_ZN4kush4util5PrintEa");
-constexpr std::string_view i16_fn_name("_ZN4kush4util5PrintEs");
-constexpr std::string_view i32_fn_name("_ZN4kush4util5PrintEi");
-constexpr std::string_view i64_fn_name("_ZN4kush4util5PrintEl");
-constexpr std::string_view f64_fn_name("_ZN4kush4util5PrintEd");
-constexpr std::string_view newline_fn_name("_ZN4kush4util12PrintNewlineEv");
+constexpr std::string_view i1_fn_name("_ZN4kush7runtime7Printer5PrintEb");
+constexpr std::string_view i8_fn_name("_ZN4kush7runtime7Printer5PrintEa");
+constexpr std::string_view i16_fn_name("_ZN4kush7runtime7Printer5PrintEs");
+constexpr std::string_view i32_fn_name("_ZN4kush7runtime7Printer5PrintEi");
+constexpr std::string_view i64_fn_name("_ZN4kush7runtime7Printer5PrintEl");
+constexpr std::string_view f64_fn_name("_ZN4kush7runtime7Printer5PrintEd");
+constexpr std::string_view newline_fn_name(
+    "_ZN4kush7runtime7Printer12PrintNewlineEv");
 constexpr std::string_view string_fn_name(
-    "_ZN4kush4util11PrintStringEPNS_4data6StringE");
+    "_ZN4kush7runtime7Printer11PrintStringEPNS0_6String6StringE");
 
 Printer::Printer(khir::ProgramBuilder& program) : program_(program) {}
 

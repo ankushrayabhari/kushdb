@@ -16,7 +16,7 @@
 
 #include "runtime/column_data.h"
 
-namespace kush::data {
+namespace kush::runtime::ColumnData {
 
 // Helper functions to serialize a vector of data to disk in the correct column
 // format.
@@ -70,7 +70,7 @@ void Serialize(std::string_view path,
     throw std::system_error(errno, std::generic_category());
   }
 
-  auto data = reinterpret_cast<StringMetadata*>(
+  auto data = reinterpret_cast<runtime::ColumnData::StringMetadata*>(
       mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   if (data == MAP_FAILED) {
     throw std::system_error(errno, std::generic_category());
@@ -97,4 +97,4 @@ void Serialize(std::string_view path,
   }
 }
 
-}  // namespace kush::data
+}  // namespace kush::runtime

@@ -4,8 +4,7 @@
 #include "runtime/column_data.h"
 #include "runtime/vector.h"
 
-using namespace kush::data;
-using namespace kush::runtime::Vector;
+using namespace kush::runtime;
 
 bool comp(int8_t* v1, int8_t* v2) {
   double* l = reinterpret_cast<double*>(v1);
@@ -27,7 +26,7 @@ int main() {
     std::cout << val << "|\n";
   } */
 
-  Vector vec;
+  Vector::Vector vec;
   Create(&vec, sizeof(double), 5);
   *reinterpret_cast<double*>(PushBack(&vec)) = 1.5;
   *reinterpret_cast<double*>(PushBack(&vec)) = 3.2;

@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <vector>
 
-namespace kush::data {
+namespace kush::runtime::ColumnData {
 
 // ------ Open --------
 
@@ -120,10 +120,10 @@ int64_t Get(Int64ColumnData* col, int32_t idx) { return col->data[idx]; }
 
 double Get(Float64ColumnData* col, int32_t idx) { return col->data[idx]; }
 
-void Get(TextColumnData* col, int32_t idx, String* dest) {
+void Get(TextColumnData* col, int32_t idx, String::String* dest) {
   const auto& slot = col->data->slot[idx];
   dest->data = reinterpret_cast<const char*>(col->data) + slot.offset;
   dest->length = slot.length;
 }
 
-}  // namespace kush::data
+}  // namespace kush::runtime::ColumnData

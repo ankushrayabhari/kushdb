@@ -11,7 +11,8 @@
 
 namespace kush::compile::proxy {
 
-constexpr std::string_view BucketListStructName("kush::data::BucketList");
+constexpr std::string_view BucketListStructName(
+    "kush::runtime::HashTable::BucketList");
 
 class BucketList {
  public:
@@ -55,30 +56,34 @@ class BucketList {
 
  private:
   static constexpr std::string_view BucketListSizeFnName =
-      "_ZN4kush4data4SizeEPNS0_10BucketListE";
+      "_ZN4kush7runtime9HashTable4SizeEPNS1_10BucketListE";
 
   static constexpr std::string_view BucketListFreeFnName =
-      "_ZN4kush4data4FreeEPNS0_10BucketListE";
+      "_ZN4kush7runtime9HashTable4FreeEPNS1_10BucketListE";
 
   static constexpr std::string_view BucketListGetBucketIdxFnName =
-      "_ZN4kush4data12GetBucketIdxEPNS0_10BucketListEi";
+      "_ZN4kush7runtime9HashTable12GetBucketIdxEPNS1_10BucketListEi";
 
   khir::ProgramBuilder& program_;
   StructBuilder& content_;
   khir::Value& value_;
 };
 
-constexpr std::string_view HashTableStructName("kush::data::Struct");
+constexpr std::string_view HashTableStructName(
+    "kush::runtime::HashTable::HashTable");
 constexpr std::string_view CreateFnName(
-    "_ZN4kush4data6CreateEPNS0_9HashTableEl");
+    "_ZN4kush7runtime9HashTable6CreateEPNS1_9HashTableEl");
 constexpr std::string_view InsertFnName(
-    "_ZN4kush4data6InsertEPNS0_9HashTableEi");
+    "_ZN4kush7runtime9HashTable6InsertEPNS1_9HashTableEi");
 constexpr std::string_view GetBucketFnName(
-    "_ZN4kush4data9GetBucketEPNS0_9HashTableEi");
+    "_ZN4kush7runtime9HashTable9GetBucketEPNS1_9HashTableEi");
 constexpr std::string_view GetAllBucketsFnName(
-    "_ZN4kush4data13GetAllBucketsEPNS0_9HashTableEPNS0_10BucketListE");
-constexpr std::string_view FreeFnName("_ZN4kush4data4FreeEPNS0_9HashTableE");
-constexpr std::string_view HashCombineFnName("_ZN4kush4data11HashCombineEPil");
+    "_ZN4kush7runtime9HashTable13GetAllBucketsEPNS1_9HashTableEPNS1_"
+    "10BucketListE");
+constexpr std::string_view FreeFnName(
+    "_ZN4kush7runtime9HashTable4FreeEPNS1_9HashTableE");
+constexpr std::string_view HashCombineFnName(
+    "_ZN4kush7runtime9HashTable11HashCombineEPil");
 
 HashTable::HashTable(khir::ProgramBuilder& program, StructBuilder& content)
     : program_(program),
