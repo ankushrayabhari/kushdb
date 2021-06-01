@@ -233,8 +233,8 @@ void ASMBackend::Translate(const TypeManager& type_manager,
                        instructions, instr_idx, static_stack_alloc);
       }
     }
-    static_stack_alloc += (8 - (static_stack_alloc % 8)) % 8;
-    assert(static_stack_alloc % 8 == 0);
+    static_stack_alloc += (16 - (static_stack_alloc % 16)) % 16;
+    assert(static_stack_alloc % 16 == 0);
 
     // Update prologue to contain stack_size
     auto epilogue_offset = asm_->offset();
@@ -383,9 +383,14 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       return;
     }
 
+    case Opcode::NULLPTR:
     case Opcode::I64_CONST: {
-      auto i64_id = Type1InstructionReader(instr).Constant();
-      asm_->mov(x86::rax, i64_constants[i64_id]);
+      if (opcode == Opcode::NULLPTR) {
+        asm_->mov(x86::rax, 0);
+      } else {
+        auto i64_id = Type1InstructionReader(instr).Constant();
+        asm_->mov(x86::rax, i64_constants[i64_id]);
+      }
 
       static_stack_alloc += 8;
       asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
@@ -416,15 +421,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
 
       static_stack_alloc += 8;
       asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
-    case Opcode::NULLPTR: {
-      uint64_t addr = 0;
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), addr);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -1199,7 +1195,7 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
 
         static_stack_alloc += 8;
         asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
-        offsets[phi] = static_stack_alloc;
+        offsets[phi] = -static_stack_alloc;
         return;
       } else {
         asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[phi_member]));
