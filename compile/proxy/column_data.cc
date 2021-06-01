@@ -6,7 +6,6 @@
 #include "catalog/sql_type.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
-#include "compile/proxy/ptr.h"
 #include "compile/proxy/string.h"
 #include "compile/proxy/value.h"
 #include "khir/program_builder.h"

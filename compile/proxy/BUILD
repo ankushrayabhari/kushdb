@@ -70,7 +70,6 @@ cc_library(
     deps = [
         ":if",
         ":int",
-        ":ptr",
         ":struct",
         "//catalog:sql_type",
         "//khir:program_builder",
@@ -114,16 +113,6 @@ cc_library(
 )
 
 cc_library(
-    name = "ptr",
-    hdrs = ["ptr.h"],
-    deps = [
-        ":value",
-        "//khir:program_builder",
-        "//plan/expression:binary_arithmetic_expression",
-    ],
-)
-
-cc_library(
     name = "column_data",
     srcs = ["column_data.cc"],
     hdrs = ["column_data.h"],
@@ -131,7 +120,6 @@ cc_library(
         ":bool",
         ":float",
         ":int",
-        ":ptr",
         ":string",
         ":value",
         "//catalog:sql_type",
@@ -148,7 +136,6 @@ cc_library(
         ":bool",
         ":float",
         ":int",
-        ":ptr",
         ":string",
         ":value",
         "//catalog:sql_type",

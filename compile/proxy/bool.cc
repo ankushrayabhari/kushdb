@@ -48,6 +48,6 @@ std::unique_ptr<Value> Bool::EvaluateBinary(
 
 void Bool::Print(proxy::Printer& printer) { printer.Print(*this); }
 
-khir::Value Bool::Hash() { return program_.ZextI1(value_); }
+khir::Value Bool::Hash() { return program_.I64ZextI1(value_); }
 
 }  // namespace kush::compile::proxy

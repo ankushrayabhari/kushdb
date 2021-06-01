@@ -278,20 +278,95 @@ Value ProgramBuilder::PointerCast(Value v, Type t) {
                                          .Build());
 }
 
-void ProgramBuilder::Store(Value ptr, Value v) {
+void ProgramBuilder::StoreI8(Value ptr, Value v) {
   GetCurrentFunction().Append(Type2InstructionBuilder()
-                                  .SetOpcode(Opcode::STORE)
+                                  .SetOpcode(Opcode::I8_STORE)
                                   .SetArg0(ptr.GetID())
                                   .SetArg1(v.GetID())
                                   .Build());
 }
 
-Value ProgramBuilder::Load(Value ptr) {
+void ProgramBuilder::StoreI16(Value ptr, Value v) {
+  GetCurrentFunction().Append(Type2InstructionBuilder()
+                                  .SetOpcode(Opcode::I16_STORE)
+                                  .SetArg0(ptr.GetID())
+                                  .SetArg1(v.GetID())
+                                  .Build());
+}
+
+void ProgramBuilder::StoreI32(Value ptr, Value v) {
+  GetCurrentFunction().Append(Type2InstructionBuilder()
+                                  .SetOpcode(Opcode::I32_STORE)
+                                  .SetArg0(ptr.GetID())
+                                  .SetArg1(v.GetID())
+                                  .Build());
+}
+
+void ProgramBuilder::StoreI64(Value ptr, Value v) {
+  GetCurrentFunction().Append(Type2InstructionBuilder()
+                                  .SetOpcode(Opcode::I64_STORE)
+                                  .SetArg0(ptr.GetID())
+                                  .SetArg1(v.GetID())
+                                  .Build());
+}
+
+void ProgramBuilder::StoreF64(Value ptr, Value v) {
+  GetCurrentFunction().Append(Type2InstructionBuilder()
+                                  .SetOpcode(Opcode::F64_STORE)
+                                  .SetArg0(ptr.GetID())
+                                  .SetArg1(v.GetID())
+                                  .Build());
+}
+
+void ProgramBuilder::StorePtr(Value ptr, Value v) {
+  GetCurrentFunction().Append(Type2InstructionBuilder()
+                                  .SetOpcode(Opcode::PTR_STORE)
+                                  .SetArg0(ptr.GetID())
+                                  .SetArg1(v.GetID())
+                                  .Build());
+}
+
+Value ProgramBuilder::LoadI8(Value ptr) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I8_LOAD)
+                                         .SetArg0(ptr.GetID())
+                                         .Build());
+}
+
+Value ProgramBuilder::LoadI16(Value ptr) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I16_LOAD)
+                                         .SetArg0(ptr.GetID())
+                                         .Build());
+}
+
+Value ProgramBuilder::LoadI32(Value ptr) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I32_LOAD)
+                                         .SetArg0(ptr.GetID())
+                                         .Build());
+}
+
+Value ProgramBuilder::LoadI64(Value ptr) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I64_LOAD)
+                                         .SetArg0(ptr.GetID())
+                                         .Build());
+}
+
+Value ProgramBuilder::LoadF64(Value ptr) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::F64_LOAD)
+                                         .SetArg0(ptr.GetID())
+                                         .Build());
+}
+
+Value ProgramBuilder::LoadPtr(Value ptr) {
   auto ptr_type = TypeOf(ptr);
 
   return GetCurrentFunction().Append(
       Type3InstructionBuilder()
-          .SetOpcode(Opcode::LOAD)
+          .SetOpcode(Opcode::PTR_LOAD)
           .SetTypeID(type_manager_.GetPointerElementType(ptr_type).GetID())
           .SetArg(ptr.GetID())
           .Build());
@@ -382,6 +457,8 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::I8_MUL:
     case Opcode::I8_SUB:
     case Opcode::I8_DIV:
+    case Opcode::I8_LOAD:
+    case Opcode::I1_ZEXT_I8:
       return type_manager_.I8Type();
 
     case Opcode::I16_CONST:
@@ -389,6 +466,7 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::I16_MUL:
     case Opcode::I16_SUB:
     case Opcode::I16_DIV:
+    case Opcode::I16_LOAD:
       return type_manager_.I16Type();
 
     case Opcode::I32_CONST:
@@ -396,6 +474,7 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::I32_MUL:
     case Opcode::I32_SUB:
     case Opcode::I32_DIV:
+    case Opcode::I32_LOAD:
       return type_manager_.I32Type();
 
     case Opcode::I64_CONST:
@@ -408,6 +487,7 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::I16_ZEXT_I64:
     case Opcode::I32_ZEXT_I64:
     case Opcode::F64_CONV_I64:
+    case Opcode::I64_LOAD:
       return type_manager_.I64Type();
 
     case Opcode::F64_CONST:
@@ -419,10 +499,16 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::I16_CONV_F64:
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
+    case Opcode::F64_LOAD:
       return type_manager_.F64Type();
 
     case Opcode::RETURN:
-    case Opcode::STORE:
+    case Opcode::I8_STORE:
+    case Opcode::I16_STORE:
+    case Opcode::I32_STORE:
+    case Opcode::I64_STORE:
+    case Opcode::F64_STORE:
+    case Opcode::PTR_STORE:
     case Opcode::RETURN_VALUE:
     case Opcode::CONDBR:
     case Opcode::BR:
@@ -438,7 +524,7 @@ Type ProgramBuilder::TypeOf(Value value) {
 
     case Opcode::PHI:
     case Opcode::CALL:
-    case Opcode::LOAD:
+    case Opcode::PTR_LOAD:
     case Opcode::PTR_CAST:
     case Opcode::FUNC_ARG:
     case Opcode::NULLPTR:
@@ -615,9 +701,16 @@ Value ProgramBuilder::ConstI1(bool v) {
                                          .Build());
 }
 
-Value ProgramBuilder::ZextI1(Value v) {
+Value ProgramBuilder::I64ZextI1(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I1_ZEXT_I64)
+                                         .SetArg0(v.GetID())
+                                         .Build());
+}
+
+Value ProgramBuilder::I8ZextI1(Value v) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(Opcode::I1_ZEXT_I8)
                                          .SetArg0(v.GetID())
                                          .Build());
 }
@@ -696,7 +789,7 @@ Value ProgramBuilder::ConstI8(uint8_t v) {
                                          .Build());
 }
 
-Value ProgramBuilder::ZextI8(Value v) {
+Value ProgramBuilder::I64ZextI8(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I8_ZEXT_I64)
                                          .SetArg0(v.GetID())
@@ -785,7 +878,7 @@ Value ProgramBuilder::ConstI16(uint16_t v) {
                                          .Build());
 }
 
-Value ProgramBuilder::ZextI16(Value v) {
+Value ProgramBuilder::I64ZextI16(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I16_ZEXT_I64)
                                          .SetArg0(v.GetID())
@@ -874,7 +967,7 @@ Value ProgramBuilder::ConstI32(uint32_t v) {
                                          .Build());
 }
 
-Value ProgramBuilder::ZextI32(Value v) {
+Value ProgramBuilder::I64ZextI32(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(Opcode::I32_ZEXT_I64)
                                          .SetArg0(v.GetID())

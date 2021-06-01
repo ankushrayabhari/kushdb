@@ -119,7 +119,17 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] F64_CMP_LT
 // [MD] [ARG0] [ARG1] F64_CMP_LE
 // [MD] [ARG0] [0]    F64_CONV_I64
-// [MD] [ARG0] [ARG1] STORE
+// [MD] [ARG0] [ARG1] I8_STORE
+// [MD] [ARG0] [ARG1] I16_STORE
+// [MD] [ARG0] [ARG1] I32_STORE
+// [MD] [ARG0] [ARG1] I64_STORE
+// [MD] [ARG0] [ARG1] F64_STORE
+// [MD] [ARG0] [ARG1] PTR_STORE
+// [MD] [ARG0] [0]    I8_LOAD
+// [MD] [ARG0] [0]    I16_LOAD
+// [MD] [ARG0] [0]    I32_LOAD
+// [MD] [ARG0] [0]    I64_LOAD
+// [MD] [ARG0] [0]    F64_LOAD
 // [MD] [ARG0] [0]    RETURN_VALUE
 // [MD] [ARG0] [ARG1] PHI_MEMBER
 // [MD] [ARG0] [ARG1] PTR_ADD
@@ -163,7 +173,7 @@ class Type2InstructionReader {
 // [MD] [ID] [0]    [ARG] PTR_CAST
 // [MD] [ID] [0]          NULLPTR
 // [MD] [ID] [SARG] [0]   FUNC_ARG
-// [MD] [ID] [0]    [ARG] LOAD
+// [MD] [ID] [0]    [ARG] PTR_LOAD
 // [MD] [ID] [0]          ALLOCA
 // [MD] [ID] [0]          PHI
 

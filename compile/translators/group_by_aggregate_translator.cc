@@ -54,8 +54,7 @@ void GroupByAggregateTranslator::Produce() {
   buffer_ = std::make_unique<proxy::HashTable>(program_, packed);
 
   // Declare the found variable
-  found_ = std::make_unique<proxy::Ptr<proxy::Bool>>(
-      program_, program_.Alloca(program_.I1Type()));
+  found_ = program_.Alloca(program_.I8Type());
 
   // Populate hash table
   this->Child().Produce();
@@ -119,7 +118,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
     keys.push_back(expr_translator_.Compute(group_by.get()));
   }
 
-  found_->Store(proxy::Bool(program_, false));
+  program_.StoreI8(found_, proxy::Int8(program_, 0).Get());
 
   // Loop over bucket if exists
   auto bucket = buffer_->Get(util::ReferenceVector(keys));
@@ -141,7 +140,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         auto values_ref = util::ReferenceVector(values);
         CheckEquality(
             0, program_, expr_translator_, values_ref, group_by_exprs, [&]() {
-              found_->Store(proxy::Bool(program_, true));
+              program_.StoreI8(found_, proxy::Int8(program_, 1).Get());
 
               auto& record_count_field = *values[0];
 
@@ -230,14 +229,14 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         proxy::Int32 next(
             program_,
             proxy::If(
-                program_, !found_->Load(),
+                program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1,
                 [&]() -> std::vector<khir::Value> { return {(i + 1).Get()}; },
                 [&]() -> std::vector<khir::Value> { return {size.Get()}; })[0]);
         return loop.Continue(next);
       });
 
   proxy::If(
-      program_, !found_->Load(),
+      program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1,
       [&]() -> std::vector<khir::Value> {
         auto inserted = buffer_->Insert(util::ReferenceVector(keys));
 

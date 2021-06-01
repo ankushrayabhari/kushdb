@@ -116,7 +116,7 @@ std::unique_ptr<Value> Int8::EvaluateBinary(
 
 void Int8::Print(proxy::Printer& printer) { printer.Print(*this); }
 
-khir::Value Int8::Hash() { return program_.ZextI8(value_); }
+khir::Value Int8::Hash() { return program_.I64ZextI8(value_); }
 
 Int16::Int16(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
@@ -229,7 +229,7 @@ std::unique_ptr<Value> Int16::EvaluateBinary(
 
 void Int16::Print(proxy::Printer& printer) { printer.Print(*this); }
 
-khir::Value Int16::Hash() { return program_.ZextI16(value_); }
+khir::Value Int16::Hash() { return program_.I64ZextI16(value_); }
 
 Int32::Int32(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
@@ -342,7 +342,7 @@ std::unique_ptr<Value> Int32::EvaluateBinary(
 
 void Int32::Print(proxy::Printer& printer) { printer.Print(*this); }
 
-khir::Value Int32::Hash() { return program_.ZextI32(value_); }
+khir::Value Int32::Hash() { return program_.I64ZextI32(value_); }
 
 Int64::Int64(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}

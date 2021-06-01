@@ -46,8 +46,8 @@ void StructBuilder::Add(catalog::SqlType type) {
       values_.push_back(String::Constant(program_, ""));
       break;
     case catalog::SqlType::BOOLEAN:
-      fields_.push_back(program_.I1Type());
-      values_.push_back(program_.ConstI1(0));
+      fields_.push_back(program_.I8Type());
+      values_.push_back(program_.ConstI8(0));
       break;
   }
 }
@@ -72,15 +72,7 @@ void Struct::Pack(std::vector<std::reference_wrapper<Value>> values) {
   }
 
   for (int i = 0; i < values.size(); i++) {
-    auto ptr = program_.GetElementPtr(fields_.Type(), value_, {0, i});
-    auto v = values[i].get().Get();
-
-    if (types[i] == catalog::SqlType::TEXT) {
-      String rhs(program_, v);
-      String(program_, ptr).Copy(rhs);
-    } else {
-      program_.Store(ptr, v);
-    }
+    Update(i, values[i].get());
   }
 }
 
@@ -93,26 +85,28 @@ std::vector<std::unique_ptr<Value>> Struct::Unpack() {
 
     switch (types[i]) {
       case catalog::SqlType::SMALLINT:
-        result.push_back(std::make_unique<Int16>(program_, program_.Load(ptr)));
+        result.push_back(
+            std::make_unique<Int16>(program_, program_.LoadI16(ptr)));
         break;
       case catalog::SqlType::INT:
-        result.push_back(std::make_unique<Int32>(program_, program_.Load(ptr)));
+        result.push_back(
+            std::make_unique<Int32>(program_, program_.LoadI32(ptr)));
         break;
       case catalog::SqlType::BIGINT:
-        result.push_back(std::make_unique<Int64>(program_, program_.Load(ptr)));
-        break;
       case catalog::SqlType::DATE:
-        result.push_back(std::make_unique<Int64>(program_, program_.Load(ptr)));
+        result.push_back(
+            std::make_unique<Int64>(program_, program_.LoadI64(ptr)));
         break;
       case catalog::SqlType::REAL:
         result.push_back(
-            std::make_unique<Float64>(program_, program_.Load(ptr)));
+            std::make_unique<Float64>(program_, program_.LoadF64(ptr)));
         break;
       case catalog::SqlType::TEXT:
         result.push_back(std::make_unique<String>(program_, ptr));
         break;
       case catalog::SqlType::BOOLEAN:
-        result.push_back(std::make_unique<Bool>(program_, program_.Load(ptr)));
+        result.push_back(
+            (proxy::Int8(program_, program_.LoadI8(ptr)) == 0).ToPointer());
         break;
     }
   }
@@ -124,10 +118,26 @@ void Struct::Update(int field, const proxy::Value& v) {
 
   auto ptr = program_.GetElementPtr(fields_.Type(), value_, {0, field});
 
-  if (types[field] == catalog::SqlType::TEXT) {
-    String(program_, ptr).Copy(dynamic_cast<const String&>(v));
-  } else {
-    program_.Store(ptr, v.Get());
+  switch (types[field]) {
+    case catalog::SqlType::SMALLINT:
+      program_.StoreI16(ptr, v.Get());
+      break;
+    case catalog::SqlType::INT:
+      program_.StoreI32(ptr, v.Get());
+      break;
+    case catalog::SqlType::BIGINT:
+    case catalog::SqlType::DATE:
+      program_.StoreI64(ptr, v.Get());
+      break;
+    case catalog::SqlType::REAL:
+      program_.StoreF64(ptr, v.Get());
+      break;
+    case catalog::SqlType::TEXT:
+      String(program_, ptr).Copy(dynamic_cast<const String&>(v));
+      break;
+    case catalog::SqlType::BOOLEAN:
+      program_.StoreI8(ptr, program_.I8ZextI1(v.Get()));
+      break;
   }
 }
 

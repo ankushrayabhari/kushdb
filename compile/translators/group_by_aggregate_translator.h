@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "compile/proxy/hash_table.h"
-#include "compile/proxy/ptr.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
@@ -31,7 +30,7 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   khir::ProgramBuilder& program_;
   ExpressionTranslator expr_translator_;
   std::unique_ptr<proxy::HashTable> buffer_;
-  std::unique_ptr<proxy::Ptr<proxy::Bool>> found_;
+  khir::Value found_;
 };
 
 }  // namespace kush::compile

@@ -2,6 +2,7 @@
 
 #include "asmjit/x86.h"
 
+#include "khir/opcode.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
 
@@ -38,6 +39,17 @@ class ASMBackend : public Backend {
                           const std::vector<StructConstant>& struct_constants,
                           const std::vector<ArrayConstant>& array_constants,
                           const std::vector<Global>& globals);
+  void ComparisonInRax(khir::Opcode op);
+
+  enum RawType { I1, I8, I16, I32, I64, F64, PTR };
+  int64_t TranslateInstr(const TypeManager& type_manager,
+                         const std::vector<uint64_t>& i64_constants,
+                         const std::vector<double>& f64_constants,
+                         const std::vector<asmjit::Label>& basic_blocks,
+                         const asmjit::Label& epilogue,
+                         std::vector<int64_t>& offsets,
+                         const std::vector<uint64_t>& instructions,
+                         int instr_idx, int64_t current_stack_bottom);
 
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;

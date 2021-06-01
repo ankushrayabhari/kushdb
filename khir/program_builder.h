@@ -194,8 +194,18 @@ class ProgramBuilder {
   Value Alloca(Type size);
   Value NullPtr(Type t);
   Value PointerCast(Value v, Type t);
-  void Store(Value ptr, Value v);
-  Value Load(Value ptr);
+  void StoreI8(Value ptr, Value v);
+  void StoreI16(Value ptr, Value v);
+  void StoreI32(Value ptr, Value v);
+  void StoreI64(Value ptr, Value v);
+  void StoreF64(Value ptr, Value v);
+  void StorePtr(Value ptr, Value v);
+  Value LoadI8(Value ptr);
+  Value LoadI16(Value ptr);
+  Value LoadI32(Value ptr);
+  Value LoadI64(Value ptr);
+  Value LoadF64(Value ptr);
+  Value LoadPtr(Value ptr);
   Value SizeOf(Type type);
   Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
 
@@ -203,7 +213,8 @@ class ProgramBuilder {
   Value LNotI1(Value v);
   Value CmpI1(CompType cmp, Value v1, Value v2);
   Value ConstI1(bool v);
-  Value ZextI1(Value v);
+  Value I64ZextI1(Value v);
+  Value I8ZextI1(Value v);
 
   // I8
   Value AddI8(Value v1, Value v2);
@@ -212,7 +223,7 @@ class ProgramBuilder {
   Value SubI8(Value v1, Value v2);
   Value CmpI8(CompType cmp, Value v1, Value v2);
   Value ConstI8(uint8_t v);
-  Value ZextI8(Value v);
+  Value I64ZextI8(Value v);
   Value F64ConvI8(Value v);
 
   // I16
@@ -222,7 +233,7 @@ class ProgramBuilder {
   Value SubI16(Value v1, Value v2);
   Value CmpI16(CompType cmp, Value v1, Value v2);
   Value ConstI16(uint16_t v);
-  Value ZextI16(Value v);
+  Value I64ZextI16(Value v);
   Value F64ConvI16(Value v);
 
   // I32
@@ -232,7 +243,7 @@ class ProgramBuilder {
   Value SubI32(Value v1, Value v2);
   Value CmpI32(CompType cmp, Value v1, Value v2);
   Value ConstI32(uint32_t v);
-  Value ZextI32(Value v);
+  Value I64ZextI32(Value v);
   Value F64ConvI32(Value v);
 
   // I64

@@ -6,7 +6,6 @@
 #include "catalog/sql_type.h"
 #include "compile/proxy/float.h"
 #include "compile/proxy/int.h"
-#include "compile/proxy/ptr.h"
 #include "compile/proxy/string.h"
 #include "compile/proxy/value.h"
 #include "khir/program_builder.h"
@@ -204,14 +203,14 @@ GlobalColumnIndexImpl<S>::GlobalColumnIndexImpl(khir::ProgramBuilder& program)
       global_ref_generator_(program.Global(
           false, false, program.PointerType(program.I8Type()),
           program.NullPtr(program.PointerType(program.I8Type())))) {
-  program_.Store(global_ref_generator_(),
-                 program_.Call(program_.GetFunction(CreateFnName<S>()), {}));
+  program_.StorePtr(global_ref_generator_(),
+                    program_.Call(program_.GetFunction(CreateFnName<S>()), {}));
 }
 
 template <catalog::SqlType S>
 void GlobalColumnIndexImpl<S>::Reset() {
   program_.Call(program_.GetFunction(FreeFnName<S>()),
-                {program_.Load(global_ref_generator_())});
+                {program_.LoadPtr(global_ref_generator_())});
 }
 
 template <catalog::SqlType S>
@@ -237,7 +236,7 @@ template <catalog::SqlType S>
 void ColumnIndexImpl<S>::Insert(const proxy::Value& v,
                                 const proxy::Int32& tuple_idx) {
   program_.Call(program_.GetFunction(InsertFnName<S>()),
-                {program_.Load(value_), v.Get(), tuple_idx.Get()});
+                {program_.LoadPtr(value_), v.Get(), tuple_idx.Get()});
 }
 
 template <catalog::SqlType S>
@@ -246,8 +245,8 @@ proxy::Int32 ColumnIndexImpl<S>::GetNextGreater(
     const proxy::Int32& cardinality) {
   return proxy::Int32(
       program_, program_.Call(program_.GetFunction(GetNextGreaterFnName<S>()),
-                              {program_.Load(value_), v.Get(), tuple_idx.Get(),
-                               cardinality.Get()}));
+                              {program_.LoadPtr(value_), v.Get(),
+                               tuple_idx.Get(), cardinality.Get()}));
 }
 
 template <catalog::SqlType S>

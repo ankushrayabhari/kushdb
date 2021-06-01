@@ -506,6 +506,13 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I1_ZEXT_I8: {
+      Type2InstructionReader reader(instr);
+      auto v = values[reader.Arg0()];
+      values[instr_idx] = builder_->CreateZExt(v, builder_->getInt8Ty());
+      return;
+    }
+
     case Opcode::I1_ZEXT_I64:
     case Opcode::I8_ZEXT_I64:
     case Opcode::I16_ZEXT_I64:
@@ -600,7 +607,12 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::STORE: {
+    case Opcode::I8_STORE:
+    case Opcode::I16_STORE:
+    case Opcode::I32_STORE:
+    case Opcode::I64_STORE:
+    case Opcode::F64_STORE:
+    case Opcode::PTR_STORE: {
       Type2InstructionReader reader(instr);
       auto ptr = values[reader.Arg0()];
       auto val = values[reader.Arg1()];
@@ -608,7 +620,18 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::LOAD: {
+    case Opcode::I8_LOAD:
+    case Opcode::I16_LOAD:
+    case Opcode::I32_LOAD:
+    case Opcode::I64_LOAD:
+    case Opcode::F64_LOAD: {
+      Type2InstructionReader reader(instr);
+      auto v = values[reader.Arg0()];
+      values[instr_idx] = builder_->CreateLoad(v);
+      return;
+    }
+
+    case Opcode::PTR_LOAD: {
       Type3InstructionReader reader(instr);
       auto v = values[reader.Arg()];
       values[instr_idx] = builder_->CreateLoad(v);
