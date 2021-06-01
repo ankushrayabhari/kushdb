@@ -130,7 +130,6 @@ class Type1InstructionReader {
 // [MD] [ARG0] [0]    I32_LOAD
 // [MD] [ARG0] [0]    I64_LOAD
 // [MD] [ARG0] [0]    F64_LOAD
-// [MD] [ARG0] [0]    RETURN_VALUE
 // [MD] [ARG0] [ARG1] PHI_MEMBER
 // [MD] [ARG0] [ARG1] PTR_ADD
 
@@ -176,6 +175,7 @@ class Type2InstructionReader {
 // [MD] [ID] [0]    [ARG] PTR_LOAD
 // [MD] [ID] [0]          ALLOCA
 // [MD] [ID] [0]          PHI
+// [MD] [ID] [0]    [ARG] RETURN_VALUE
 
 class Type3InstructionBuilder {
  public:

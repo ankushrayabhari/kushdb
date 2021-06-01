@@ -655,9 +655,10 @@ Value ProgramBuilder::Call(Value func, Type type,
 }
 
 void ProgramBuilder::Return(Value v) {
-  GetCurrentFunction().Append(Type2InstructionBuilder()
+  GetCurrentFunction().Append(Type3InstructionBuilder()
                                   .SetOpcode(Opcode::RETURN_VALUE)
-                                  .SetArg0(v.GetID())
+                                  .SetArg(v.GetID())
+                                  .SetTypeID(TypeOf(v).GetID())
                                   .Build());
 }
 

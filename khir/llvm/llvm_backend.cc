@@ -601,8 +601,8 @@ void LLVMBackend::TranslateInstr(
     }
 
     case Opcode::RETURN_VALUE: {
-      Type2InstructionReader reader(instr);
-      auto v = values[reader.Arg0()];
+      Type3InstructionReader reader(instr);
+      auto v = values[reader.Arg()];
       values[instr_idx] = builder_->CreateRet(v);
       return;
     }
