@@ -676,7 +676,8 @@ int64_t ASMBackend::TranslateInstr(
       return 8;
     }
 
-    case Opcode::I64_ADD: {
+    case Opcode::I64_ADD:
+    case Opcode::PTR_ADD: {
       Type2InstructionReader reader(instr);
       asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
@@ -725,6 +726,7 @@ int64_t ASMBackend::TranslateInstr(
       return 8;
     }
 
+    case Opcode::I1_ZEXT_I8:
     case Opcode::I1_ZEXT_I64:
     case Opcode::I8_ZEXT_I64:
     case Opcode::I16_ZEXT_I64:
@@ -865,52 +867,124 @@ int64_t ASMBackend::TranslateInstr(
       asm_->jmp(epilogue);
       return 0;
     }
+
+    case Opcode::FUNC_PTR: {
+      Type3InstructionReader reader(instr);
+      asm_->lea(x86::rax, x86::ptr(internal_func_labels_[reader.Arg()]));
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
+      offsets[instr_idx] = -current_stack_bottom;
+      return 8;
+    }
+
+    case Opcode::PTR_CAST: {
+      Type3InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg()]));
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
+      offsets[instr_idx] = -current_stack_bottom;
+      return 8;
+    }
+
+    case Opcode::ALLOCA: {
+      Type3InstructionReader reader(instr);
+      auto size =
+          type_manager.GetTypeSize(static_cast<khir::Type>(reader.TypeID()));
+      asm_->mov(x86::rax, x86::rsp);
+      size += (16 - (size % 16)) % 16;
+      asm_->sub(x86::rsp, size);
+
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
+      offsets[instr_idx] = -current_stack_bottom;
+      return 8;
+    }
+
+    case Opcode::I8_STORE: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      asm_->mov(x86::ptr(x86::rax), x86::cl);
+      return 0;
+    }
+
+    case Opcode::I16_STORE: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      asm_->mov(x86::ptr(x86::rax), x86::cx);
+      return 0;
+    }
+
+    case Opcode::I32_STORE: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      asm_->mov(x86::ptr(x86::rax), x86::ecx);
+      return 0;
+    }
+
+    case Opcode::I64_STORE:
+    case Opcode::F64_STORE:
+    case Opcode::PTR_STORE: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      asm_->mov(x86::ptr(x86::rax), x86::rcx);
+      return 0;
+    }
+
+    case Opcode::I8_LOAD: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+
+      asm_->mov(x86::cl, x86::ptr(x86::rax));
+      asm_->movzx(x86::rcx, x86::cl);
+
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rcx);
+      offsets[instr_idx] = -current_stack_bottom;
+      return 8;
+    }
+
+    case Opcode::I16_LOAD: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+
+      asm_->mov(x86::cx, x86::ptr(x86::rax));
+      asm_->movzx(x86::rcx, x86::cx);
+
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rcx);
+      offsets[instr_idx] = -current_stack_bottom;
+      return 8;
+    }
+
+    case Opcode::I32_LOAD: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+
+      asm_->mov(x86::ecx, x86::ptr(x86::rax));
+      asm_->movzx(x86::rcx, x86::ecx);
+
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rcx);
+      offsets[instr_idx] = -current_stack_bottom;
+      return 8;
+    }
+
+    case Opcode::I64_LOAD:
+    case Opcode::F64_LOAD:
+    case Opcode::PTR_LOAD: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+
+      asm_->mov(x86::rcx, x86::ptr(x86::rax));
+
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rcx);
+      offsets[instr_idx] = -current_stack_bottom;
+      return 8;
+    }
+
       /*
-          case Opcode::STORE:
-          case Opcode::LOAD: {
-            // TODO
-            return 0;
-          }
-
-          case Opcode::FUNC_PTR: {
-            Type3InstructionReader reader(instr);
-            asm_->movabs(x86::rax, internal_func_labels_[reader.Arg()]);
-            asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
-            offsets[instr_idx] = -current_stack_bottom;
-            return 8;
-          }
-
-          case Opcode::PTR_CAST: {
-            Type3InstructionReader reader(instr);
-            asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg()]));
-            asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
-            offsets[instr_idx] = -current_stack_bottom;
-            return 8;
-          }
-
-          case Opcode::PTR_ADD: {
-            Type2InstructionReader reader(instr);
-            asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-            asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
-            asm_->add(x86::rax, x86::rcx);
-            asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
-            offsets[instr_idx] = -current_stack_bottom;
-            return 8;
-          }
-
-          case Opcode::ALLOCA: {
-            Type3InstructionReader reader(instr);
-            auto size =
-                type_manager.GetTypeSize(static_cast<khir::Type>(reader.TypeID()));
-            asm_->mov(x86::rax, x86::rsp);
-            size += (16 - (size % 16)) % 16;
-            asm_->sub(x86::rsp, size);
-
-            asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
-            offsets[instr_idx] = -current_stack_bottom;
-            return 8;
-          }
-
           case Opcode::CALL_ARG: {
             Type3InstructionReader reader(instr);
             auto v = values[reader.Arg()];
