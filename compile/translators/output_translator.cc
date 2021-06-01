@@ -16,8 +16,9 @@ void OutputTranslator::Produce() { this->Child().Produce(); }
 
 void OutputTranslator::Consume(OperatorTranslator& src) {
   auto values = this->Child().SchemaValues().Values();
-
   proxy::Printer printer(program_);
+  printer.PrintNewline();
+
   for (auto& value : values) {
     value.get().Print(printer);
   }

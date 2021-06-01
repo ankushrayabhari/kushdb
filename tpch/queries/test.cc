@@ -40,23 +40,37 @@ std::unique_ptr<Operator> ScanRegion() {
   return std::make_unique<ScanOperator>(std::move(schema), db["region"]);
 }
 
-// Select(r_name = 'MIDDLE EAST')
-std::unique_ptr<Operator> SelectRegion() {
+// Group By l_returnflag, l_linestatus -> Aggregate
+std::unique_ptr<Operator> GroupByAgg() {
   auto base = ScanRegion();
 
-  auto s_acctbal = ColRef(base, "r_name");
+  // aggregate
+  auto sum_regionkey = Sum(ColRef(base, "r_regionkey"));
+  auto min_regionkey = Min(ColRef(base, "r_regionkey"));
+  auto max_regionkey = Max(ColRef(base, "r_regionkey"));
+  auto avg_regionkey = Avg(ColRef(base, "r_regionkey"));
+  auto cnt = Count();
 
+  // output
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*base, {"r_name", "r_regionkey"});
+  schema.AddDerivedColumn("sum", VirtColRef(sum_regionkey, 1));
+  schema.AddDerivedColumn("min", VirtColRef(min_regionkey, 2));
+  schema.AddDerivedColumn("max", VirtColRef(max_regionkey, 3));
+  schema.AddDerivedColumn("avg", VirtColRef(avg_regionkey, 4));
+  schema.AddDerivedColumn("count", VirtColRef(cnt, 5));
 
-  return std::make_unique<OrderByOperator>(
-      std::move(schema), std::move(base),
-      util::MakeVector(std::move(s_acctbal)), std::vector<bool>{true});
+  std::unique_ptr<Expression> asdf = Literal(1.0);
+
+  return std::make_unique<GroupByAggregateOperator>(
+      std::move(schema), std::move(base), util::MakeVector(std::move(asdf)),
+      util::MakeVector(std::move(sum_regionkey), std::move(min_regionkey),
+                       std::move(max_regionkey), std::move(avg_regionkey),
+                       std::move(cnt)));
 }
 
 int main() {
   std::unique_ptr<Operator> query =
-      std::make_unique<OutputOperator>(SelectRegion());
+      std::make_unique<OutputOperator>(GroupByAgg());
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();

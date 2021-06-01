@@ -233,8 +233,11 @@ void ASMBackend::Translate(const TypeManager& type_manager,
                        instructions, instr_idx, static_stack_alloc);
       }
     }
-    static_stack_alloc += (16 - (static_stack_alloc % 16)) % 16;
-    assert(static_stack_alloc % 16 == 0);
+
+    int static_stack_frame_size =
+        8 + 8 + 8 * callee_saved_registers.size() + static_stack_alloc;
+    static_stack_alloc += (16 - (static_stack_frame_size % 16)) % 16;
+    assert(static_stack_alloc % 16 == 8);
 
     // Update prologue to contain stack_size
     auto epilogue_offset = asm_->offset();
@@ -848,7 +851,7 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->cvtsi2sd(x86::xmm0, x86::rax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->movsd(x86::ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -861,10 +864,11 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->cvtsi2sd(x86::xmm0, x86::rax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->movsd(x86::ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
+
     case Opcode::I32_CONV_F64: {
       Type2InstructionReader reader(instr);
       asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
@@ -873,10 +877,11 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->cvtsi2sd(x86::xmm0, x86::rax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->movsd(x86::ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
+
     case Opcode::I64_CONV_F64: {
       Type2InstructionReader reader(instr);
       asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
@@ -884,7 +889,7 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->cvtsi2sd(x86::xmm0, x86::rax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->movsd(x86::ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
