@@ -40,12 +40,11 @@ class ASMBackend : public Backend {
                           const std::vector<ArrayConstant>& array_constants,
                           const std::vector<Global>& globals);
   void ComparisonInRax(khir::Opcode op);
-
-  enum RawType { I1, I8, I16, I32, I64, F64, PTR };
   int64_t TranslateInstr(const TypeManager& type_manager,
                          const std::vector<uint64_t>& i64_constants,
                          const std::vector<double>& f64_constants,
                          const std::vector<asmjit::Label>& basic_blocks,
+                         const std::vector<Function>& functions,
                          const asmjit::Label& epilogue,
                          std::vector<int64_t>& offsets,
                          const std::vector<uint64_t>& instructions,
@@ -62,6 +61,7 @@ class ASMBackend : public Backend {
   std::vector<void*> external_func_addr_;
   std::vector<asmjit::Label> internal_func_labels_;
   asmjit::Label compute_label_;
+  int num_args_;
 
   std::chrono::time_point<std::chrono::system_clock> start, gen, comp, link,
       end;
