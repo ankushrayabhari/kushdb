@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdio>
+
 #include "asmjit/x86.h"
 
 #include "khir/opcode.h"
@@ -49,7 +51,6 @@ class ASMBackend : public Backend {
                          std::vector<int64_t>& offsets,
                          const std::vector<uint64_t>& instructions,
                          int instr_idx, int64_t current_stack_bottom);
-
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   ExceptionErrorHandler err_handler_;
@@ -61,7 +62,9 @@ class ASMBackend : public Backend {
   std::vector<void*> external_func_addr_;
   std::vector<asmjit::Label> internal_func_labels_;
   asmjit::Label compute_label_;
-  int num_args_;
+  int num_floating_point_args_ = 0;
+  int num_regular_args_ = 0;
+  int num_stack_args_ = 0;
 
   std::chrono::time_point<std::chrono::system_clock> start, gen, comp, link,
       end;

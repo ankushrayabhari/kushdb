@@ -187,12 +187,12 @@ Type TypeManager::GetNamedStructType(std::string_view name) {
   return struct_name_to_type_id_.at(name);
 }
 
-Type TypeManager::GetFunctionReturnType(Type func_type) {
+Type TypeManager::GetFunctionReturnType(Type func_type) const {
   return dynamic_cast<FunctionTypeImpl&>(*type_id_to_impl_[func_type.GetID()])
       .ResultType();
 }
 
-Type TypeManager::GetPointerElementType(Type ptr_type) {
+Type TypeManager::GetPointerElementType(Type ptr_type) const {
   return dynamic_cast<PointerTypeImpl&>(*type_id_to_impl_[ptr_type.GetID()])
       .ElementType();
 }
@@ -285,5 +285,9 @@ void TypeManager::Translate(TypeTranslator& translator) const {
     }
   }
 }
+
+bool TypeManager::IsVoid(Type t) const { return t.GetID() == 0; }
+
+bool TypeManager::IsF64Type(Type t) const { return t.GetID() == 6; }
 
 }  // namespace kush::khir

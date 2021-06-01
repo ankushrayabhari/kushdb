@@ -60,14 +60,17 @@ class TypeManager {
   Type FunctionType(Type result, absl::Span<const Type> args);
 
   Type GetNamedStructType(std::string_view name);
-  Type GetFunctionReturnType(Type func_type);
-  Type GetPointerElementType(Type ptr_type);
+  Type GetFunctionReturnType(Type func_type) const;
+  Type GetPointerElementType(Type ptr_type) const;
   std::pair<int64_t, Type> GetPointerOffset(Type t,
                                             absl::Span<const int32_t> idx);
   std::vector<uint64_t> GetStructFieldOffsets(Type t) const;
   uint64_t GetTypeSize(Type t) const;
 
   void Translate(TypeTranslator& translator) const;
+
+  bool IsVoid(Type t) const;
+  bool IsF64Type(Type t) const;
 
  private:
   class TypeImpl {

@@ -27,6 +27,31 @@ cc_library(
 )
 
 cc_binary(
+    name = "test",
+    srcs = ["test.cc"],
+    deps = [
+        ":builder",
+        "//catalog",
+        "//compile:query_translator",
+        "//plan:group_by_aggregate_operator",
+        "//plan:hash_join_operator",
+        "//plan:operator",
+        "//plan:order_by_operator",
+        "//plan:output_operator",
+        "//plan:scan_operator",
+        "//plan:select_operator",
+        "//plan:skinner_join_operator",
+        "//plan/expression",
+        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:column_ref_expression",
+        "//plan/expression:literal_expression",
+        "//plan/expression:virtual_column_ref_expression",
+        "//tpch:schema",
+        "//util:vector_util",
+    ],
+)
+
+cc_binary(
     name = "q01",
     srcs = ["q01.cc"],
     deps = [

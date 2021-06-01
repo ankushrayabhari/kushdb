@@ -623,6 +623,7 @@ Value ProgramBuilder::Call(FunctionRef func,
   for (uint8_t i = 0; i < arguments.size(); i++) {
     GetCurrentFunction().Append(Type3InstructionBuilder()
                                     .SetOpcode(Opcode::CALL_ARG)
+                                    .SetTypeID(TypeOf(arguments[i]).GetID())
                                     .SetSarg(i)
                                     .SetArg(arguments[i].GetID())
                                     .Build());
@@ -640,6 +641,7 @@ Value ProgramBuilder::Call(Value func, Type type,
   for (uint8_t i = 0; i < arguments.size(); i++) {
     GetCurrentFunction().Append(Type3InstructionBuilder()
                                     .SetOpcode(Opcode::CALL_ARG)
+                                    .SetTypeID(TypeOf(arguments[i]).GetID())
                                     .SetSarg(i)
                                     .SetArg(arguments[i].GetID())
                                     .Build());

@@ -156,6 +156,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     for (char c : str) {
       asm_->embedUInt8(static_cast<uint8_t>(c));
     }
+    asm_->embedUInt8(0);
   }
 
   // Write out all global variables
@@ -196,6 +197,10 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     for (auto reg : callee_saved_registers) {
       asm_->push(reg);
     }
+
+    // Push rax for alignment
+    asm_->push(x86::rax);
+
     // - Save RBP and Store RSP in RBP
     asm_->push(x86::rbp);
     asm_->mov(x86::rbp, x86::rsp);
@@ -215,10 +220,9 @@ void ASMBackend::Translate(const TypeManager& type_manager,
       basic_blocks_impl.push_back(asm_->newLabel());
     }
 
-    std::vector<int64_t> value_offsets(instructions.size(), 0);
+    std::vector<int64_t> value_offsets(instructions.size(), INT64_MAX);
 
-    int64_t stack_size = 0;
-    num_args_ = 0;
+    int64_t stack_size = 8;
     for (int i : basic_block_order) {
       asm_->bind(basic_blocks_impl[i]);
       const auto& [i_start, i_end] = basic_blocks[i];
@@ -229,6 +233,8 @@ void ASMBackend::Translate(const TypeManager& type_manager,
                            value_offsets, instructions, instr_idx, stack_size);
       }
     }
+    stack_size += (16 - (stack_size % 16)) % 16;
+    std::cout << func.Name() << ' ' << stack_size << std::endl;
 
     // Update prologue to contain stack_size
     auto epilogue_offset = asm_->offset();
@@ -239,7 +245,10 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     // Epilogue ================================================================
     // - Restore RBP and dealloc stack space
     asm_->bind(epilogue);
-    asm_->leave();
+    asm_->mov(x86::rsp, x86::rbp);
+    asm_->pop(x86::rbp);
+
+    asm_->pop(x86::rax);
 
     // - Restore callee saved registers
     for (int i = callee_saved_registers.size() - 1; i >= 0; i--) {
@@ -365,29 +374,32 @@ int64_t ASMBackend::TranslateInstr(
     case Opcode::I8_CONST:
     case Opcode::I1_CONST: {
       auto constant = Type1InstructionReader(instr).Constant();
-      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), constant);
+      asm_->mov(x86::rax, constant);
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
       offsets[instr_idx] = -current_stack_bottom;
-      return 1;
+      return 8;
     }
 
     case Opcode::I16_CONST: {
       auto constant = Type1InstructionReader(instr).Constant();
-      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), constant);
+      asm_->mov(x86::rax, constant);
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
       offsets[instr_idx] = -current_stack_bottom;
-      return 2;
+      return 8;
     }
 
     case Opcode::I32_CONST: {
       auto constant = Type1InstructionReader(instr).Constant();
-      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), constant);
+      asm_->mov(x86::rax, constant);
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
       offsets[instr_idx] = -current_stack_bottom;
-      return 4;
+      return 8;
     }
 
     case Opcode::I64_CONST: {
       auto i64_id = Type1InstructionReader(instr).Constant();
-      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom),
-                i64_constants[i64_id]);
+      asm_->mov(x86::rax, i64_constants[i64_id]);
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
       offsets[instr_idx] = -current_stack_bottom;
       return 8;
     }
@@ -399,7 +411,8 @@ int64_t ASMBackend::TranslateInstr(
       uint64_t value_as_int;
       std::memcpy(&value_as_int, &value, sizeof(value_as_int));
 
-      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), value_as_int);
+      asm_->mov(x86::rax, value_as_int);
+      asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
       offsets[instr_idx] = -current_stack_bottom;
       return 8;
     }
@@ -975,7 +988,8 @@ int64_t ASMBackend::TranslateInstr(
     }
 
     case Opcode::I64_LOAD:
-    case Opcode::F64_LOAD: {
+    case Opcode::F64_LOAD:
+    case Opcode::PTR_LOAD: {
       Type2InstructionReader reader(instr);
       asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
 
@@ -998,7 +1012,7 @@ int64_t ASMBackend::TranslateInstr(
         offsets[instr_idx] = -current_stack_bottom;
         return 8;
       } else {
-        asm_->mov(x86::rax, x86::ptr(x86::rbp, 56 + 8 * arg_idx));
+        asm_->mov(x86::rax, x86::ptr(x86::rbp, 64 + 8 * arg_idx));
         asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
         offsets[instr_idx] = -current_stack_bottom;
         return 8;
@@ -1007,18 +1021,30 @@ int64_t ASMBackend::TranslateInstr(
 
     case Opcode::CALL_ARG: {
       Type3InstructionReader reader(instr);
-      auto idx = reader.Sarg();
-      num_args_++;
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg()]));
+      auto type = static_cast<Type>(reader.TypeID());
 
-      const std::vector<x86::Gpq> arg_registers = {x86::rdi, x86::rsi, x86::rdx,
-                                                   x86::rcx, x86::r8,  x86::r9};
-      if (idx < 6) {
-        asm_->mov(arg_registers[idx], x86::rax);
+      if (type_manager.IsF64Type(type)) {
+        if (num_floating_point_args_ >= 1) {
+          throw std::runtime_error("Not supported");
+        }
+
+        num_floating_point_args_++;
+        asm_->movsd(x86::xmm0, x86::ptr(x86::rbp, offsets[reader.Arg()]));
         return 0;
       } else {
-        asm_->push(x86::rax);
-        return 8;
+        asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg()]));
+
+        const std::vector<x86::Gpq> arg_registers = {
+            x86::rdi, x86::rsi, x86::rdx, x86::rcx, x86::r8, x86::r9};
+        if (num_regular_args_ < 6) {
+          asm_->mov(arg_registers[num_regular_args_], x86::rax);
+          num_regular_args_++;
+          return 0;
+        } else {
+          num_stack_args_++;
+          asm_->push(x86::rax);
+          return 0;
+        }
       }
     }
 
@@ -1027,11 +1053,13 @@ int64_t ASMBackend::TranslateInstr(
       const auto& func = functions[reader.Arg()];
 
       bool should_pop = false;
-      if (num_args_ > 6 && num_args_ % 2 == 1) {
+      if (num_stack_args_ % 2 == 1) {
         asm_->push(x86::rax);
         should_pop = true;
       }
-      num_args_ = 0;
+      num_stack_args_ = 0;
+      num_regular_args_ = 0;
+      num_floating_point_args_ = 0;
 
       if (func.External()) {
         asm_->call(func.Addr());
@@ -1040,9 +1068,21 @@ int64_t ASMBackend::TranslateInstr(
       }
 
       if (should_pop) {
-        asm_->pop(x86::rax);
+        asm_->pop(x86::rcx);
       }
-      return 0;
+
+      auto return_type = func.ReturnType();
+      if (type_manager.IsVoid(return_type)) {
+        return 0;
+      } else if (type_manager.IsF64Type(return_type)) {
+        asm_->movsd(x86::ptr(x86::rbp, -current_stack_bottom), x86::xmm0);
+        offsets[instr_idx] = -current_stack_bottom;
+        return 8;
+      } else {
+        asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
+        offsets[instr_idx] = -current_stack_bottom;
+        return 8;
+      }
     }
 
     case Opcode::CALL_INDIRECT: {
@@ -1050,61 +1090,56 @@ int64_t ASMBackend::TranslateInstr(
       asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg()]));
 
       bool should_pop = false;
-      if (num_args_ > 6 && num_args_ % 2 == 1) {
+      if (num_stack_args_ % 2 == 1) {
         asm_->push(x86::rax);
         should_pop = true;
       }
-      num_args_ = 0;
-      num_args_ = 0;
+      num_stack_args_ = 0;
+      num_regular_args_ = 0;
+      num_floating_point_args_ = 0;
 
       asm_->call(x86::rax);
 
       if (should_pop) {
-        asm_->pop(x86::rax);
+        asm_->pop(x86::rcx);
       }
-      return 0;
+
+      auto return_type = type_manager.GetFunctionReturnType(
+          static_cast<Type>(reader.TypeID()));
+      if (type_manager.IsVoid(return_type)) {
+        return 0;
+      } else if (type_manager.IsF64Type(return_type)) {
+        asm_->movsd(x86::ptr(x86::rbp, -current_stack_bottom), x86::xmm0);
+        offsets[instr_idx] = -current_stack_bottom;
+        return 8;
+      } else {
+        asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
+        offsets[instr_idx] = -current_stack_bottom;
+        return 8;
+      }
     }
 
-      /*
-          case Opcode::PHI_MEMBER: {
-            Type2InstructionReader reader(instr);
-            auto phi = values[reader.Arg0()];
-            auto phi_member = values[reader.Arg1()];
+    case Opcode::PHI_MEMBER: {
+      Type2InstructionReader reader(instr);
+      auto phi = reader.Arg0();
+      auto phi_member = reader.Arg1();
 
-            if (phi == nullptr) {
-              phi_member_list[reader.Arg0()].emplace_back(phi_member,
-                                                          builder_->GetInsertBlock());
-            } else {
-              llvm::dyn_cast<llvm::PHINode>(phi)->addIncoming(
-                  phi_member, builder_->GetInsertBlock());
-            }
-            return;
-          }
+      if (offsets[phi] == INT64_MAX) {
+        asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[phi_member]));
+        asm_->mov(x86::ptr(x86::rbp, -current_stack_bottom), x86::rax);
+        offsets[phi] = -current_stack_bottom;
+        return 8;
+      } else {
+        asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[phi_member]));
+        asm_->mov(x86::ptr(x86::rbp, offsets[phi]), x86::rax);
+        return 0;
+      }
+    }
 
-          case Opcode::PHI: {
-            Type3InstructionReader reader(instr);
-            auto t = types_[reader.TypeID()];
-
-            auto phi = builder_->CreatePHI(t, 2);
-            values[instr_idx] = phi;
-
-            if (phi_member_list.contains(instr_idx)) {
-              for (const auto& [phi_member, basic_block] :
-                   phi_member_list[instr_idx]) {
-                phi->addIncoming(phi_member, basic_block);
-              }
-
-              phi_member_list.erase(instr_idx);
-            }
-
-            return;
-          }
-      */
-
-    case Opcode::PHI_MEMBER:
-    case Opcode::PHI:
-    case Opcode::PTR_LOAD:
-      throw std::runtime_error("Unimplemented.");
+    case Opcode::PHI: {
+      // Noop since all handling is done in the phi member
+      return 0;
+    }
   }
 }
 
