@@ -254,18 +254,15 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     asm_->setOffset(epilogue_offset);
 
     // Epilogue ================================================================
-    // - Dealloc stack space
     asm_->bind(epilogue);
-    asm_->mov(x86::rax, x86::rbp);
-    asm_->sub(x86::rax, 8 * callee_saved_registers.size());
-    asm_->mov(x86::rsp, x86::rax);
 
     // - Restore callee saved registers
     for (int i = callee_saved_registers.size() - 1; i >= 0; i--) {
-      asm_->pop(callee_saved_registers[i]);
+      asm_->mov(callee_saved_registers[i], x86::ptr(x86::rbp, -8 * (i + 1)));
     }
 
-    // - Restore RBP
+    // - Restore RSP into RBP and Restore RBP and Store RSP in RBP
+    asm_->mov(x86::rsp, x86::rbp);
     asm_->pop(x86::rbp);
 
     // - Return
@@ -1242,16 +1239,6 @@ void ASMBackend::Execute() {
   rt_.add(&buffer_start, &code_);
 
   auto offset = code_.labelOffsetFromBase(compute_label_);
-
-  std::cerr << "Breakpoints:" << std::endl;
-  for (const auto& [name, b_label] : breakpoints_) {
-    auto b_offset = code_.labelOffsetFromBase(b_label);
-    std::cerr << name << ": "
-              << reinterpret_cast<void*>(
-                     reinterpret_cast<uint64_t>(buffer_start) + b_offset)
-              << std::endl;
-  }
-
   using compute_fn = std::add_pointer<void()>::type;
   auto compute = reinterpret_cast<compute_fn>(
       reinterpret_cast<uint64_t>(buffer_start) + offset);

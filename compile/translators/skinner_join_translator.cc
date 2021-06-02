@@ -430,11 +430,6 @@ void SkinnerJoinTranslator::Produce() {
 
                 auto next_tuple = (last_tuple + 1).ToPointer();
 
-                proxy::Printer printer(program_);
-                printer.Print(proxy::Int32(program_, table_idx));
-                printer.Print(*next_tuple);
-                printer.PrintNewline();
-
                 // Get next_tuple from active equality predicates
                 absl::flat_hash_set<int> index_evaluated_predicates;
                 for (int predicate_idx : predicates_per_table[table_idx]) {
@@ -673,10 +668,6 @@ void SkinnerJoinTranslator::Produce() {
   // Setup function for each valid tuple
   proxy::TableFunction valid_tuple_handler(
       program_, [&](const auto& budget, const auto& resume_progress) {
-        proxy::Printer printer(program_);
-        printer.Print(proxy::String::Global(program_, "valid"));
-        printer.PrintNewline();
-
         // Insert tuple idx into hash table
         auto tuple_idx_arr = program_.GetElementPtr(
             idx_array_type, idx_array_ref_generator(), {0, 0});
