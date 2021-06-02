@@ -742,7 +742,6 @@ void LLVMBackend::TranslateInstr(
 }
 
 void LLVMBackend::Execute() {
-  gen = std::chrono::system_clock::now();
   llvm::verifyModule(*module_, &llvm::errs());
   // module_->print(llvm::errs(), nullptr);
 
@@ -811,8 +810,6 @@ void LLVMBackend::Execute() {
     throw std::runtime_error("Failed to link file.");
   }
 
-  comp = std::chrono::system_clock::now();
-
   void* handle = dlopen("/tmp/query.so", RTLD_LAZY);
 
   if (!handle) {
@@ -825,20 +822,16 @@ void LLVMBackend::Execute() {
     dlclose(handle);
     throw std::runtime_error("Failed to get compute fn.");
   }
-  link = std::chrono::system_clock::now();
+  comp = std::chrono::system_clock::now();
 
   process_query();
   dlclose(handle);
-
   end = std::chrono::system_clock::now();
+
   std::cerr << "Performance stats (ms):" << std::endl;
-  std::chrono::duration<double, std::milli> elapsed_seconds = gen - start;
-  std::cerr << "Code generation: " << elapsed_seconds.count() << std::endl;
-  elapsed_seconds = comp - gen;
+  std::chrono::duration<double, std::milli> elapsed_seconds = comp - start;
   std::cerr << "Compilation: " << elapsed_seconds.count() << std::endl;
-  elapsed_seconds = link - comp;
-  std::cerr << "Linking: " << elapsed_seconds.count() << std::endl;
-  elapsed_seconds = end - link;
+  elapsed_seconds = end - comp;
   std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
 }
 

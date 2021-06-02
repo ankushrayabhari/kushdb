@@ -140,6 +140,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
                            const std::vector<ArrayConstant>& array_constants,
                            const std::vector<Global>& globals,
                            const std::vector<Function>& functions) {
+  start = std::chrono::system_clock::now();
   code_.init(rt_.environment());
   asm_ = std::make_unique<x86::Assembler>(&code_);
 
@@ -1242,7 +1243,18 @@ void ASMBackend::Execute() {
   using compute_fn = std::add_pointer<void()>::type;
   auto compute = reinterpret_cast<compute_fn>(
       reinterpret_cast<uint64_t>(buffer_start) + offset);
+
+  comp = std::chrono::system_clock::now();
+
   compute();
+
+  end = std::chrono::system_clock::now();
+
+  std::cerr << "Performance stats (ms):" << std::endl;
+  std::chrono::duration<double, std::milli> elapsed_seconds = comp - start;
+  std::cerr << "Compilation: " << elapsed_seconds.count() << std::endl;
+  elapsed_seconds = end - comp;
+  std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
 }
 
 }  // namespace kush::khir

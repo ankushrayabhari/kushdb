@@ -71,8 +71,7 @@ class ASMBackend : public Backend {
 
   absl::flat_hash_map<std::string, asmjit::Label> breakpoints_;
 
-  std::chrono::time_point<std::chrono::system_clock> start, gen, comp, link,
-      end;
+  std::chrono::time_point<std::chrono::system_clock> start, comp, end;
 };
 
 }  // namespace kush::khir

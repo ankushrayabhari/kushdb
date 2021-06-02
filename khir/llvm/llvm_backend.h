@@ -70,8 +70,7 @@ class LLVMBackend : public Backend, public TypeTranslator {
   std::vector<llvm::Function*> functions_;
   std::vector<llvm::Value*> call_args_;
   std::vector<llvm::Value*> globals_;
-  std::chrono::time_point<std::chrono::system_clock> start, gen, comp, link,
-      end;
+  std::chrono::time_point<std::chrono::system_clock> start, comp, end;
 };
 
 }  // namespace kush::khir
