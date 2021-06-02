@@ -41,7 +41,7 @@ class ASMBackend : public Backend {
                           const std::vector<StructConstant>& struct_constants,
                           const std::vector<ArrayConstant>& array_constants,
                           const std::vector<Global>& globals);
-  void ComparisonInRax(khir::Opcode op);
+  void ComparisonInRdx(khir::Opcode op);
   void TranslateInstr(const TypeManager& type_manager,
                       const std::vector<uint64_t>& i64_constants,
                       const std::vector<double>& f64_constants,
@@ -68,6 +68,9 @@ class ASMBackend : public Backend {
 
   std::vector<int64_t> regular_call_args_;
   std::vector<int64_t> floating_point_call_args_;
+
+  absl::flat_hash_map<std::string, asmjit::Label> breakpoints_;
+
   std::chrono::time_point<std::chrono::system_clock> start, gen, comp, link,
       end;
 };

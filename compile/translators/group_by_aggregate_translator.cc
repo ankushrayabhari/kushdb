@@ -56,13 +56,8 @@ void GroupByAggregateTranslator::Produce() {
   // Declare the found variable
   found_ = program_.Alloca(program_.I8Type());
 
-  proxy::Printer printer(program_);
-  printer.PrintNewline();
-
   // Populate hash table
   this->Child().Produce();
-
-  printer.PrintNewline();
 
   // Loop over elements of HT and output row
   buffer_->ForEach([&](proxy::Struct& packed) {

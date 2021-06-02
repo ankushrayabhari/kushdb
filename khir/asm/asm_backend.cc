@@ -192,6 +192,10 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
     asm_->bind(internal_func_labels_[func_idx]);
 
+    auto bpoint = asm_->newLabel();
+    breakpoints_[func.Name()] = bpoint;
+    asm_->bind(bpoint);
+
     if (func.Name() == "compute") {
       compute_label_ = internal_func_labels_[func_idx];
     }
@@ -223,26 +227,30 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
     std::vector<int64_t> value_offsets(instructions.size(), INT64_MAX);
 
-    int64_t static_stack_alloc = 0;
+    // initially, after rbp is all callee saved registers
+    int64_t static_stack_frame_size = 8 * callee_saved_registers.size();
     for (int i : basic_block_order) {
       asm_->bind(basic_blocks_impl[i]);
       const auto& [i_start, i_end] = basic_blocks[i];
       for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
         TranslateInstr(type_manager, i64_constants, f64_constants,
                        basic_blocks_impl, functions, epilogue, value_offsets,
-                       instructions, instr_idx, static_stack_alloc);
+                       instructions, instr_idx, static_stack_frame_size);
       }
     }
 
-    int static_stack_frame_size =
-        8 + 8 + 8 * callee_saved_registers.size() + static_stack_alloc;
-    static_stack_alloc += (16 - (static_stack_frame_size % 16)) % 16;
-    assert(static_stack_alloc % 16 == 8);
+    // we need to ensure that it is aligned to 16 bytes so if we call any
+    // function, stack is 16 byte aligned
+    static_stack_frame_size += (16 - (static_stack_frame_size % 16)) % 16;
+    assert(static_stack_frame_size % 16 == 0);
 
     // Update prologue to contain stack_size
+    // Already pushed callee saved registers so don't double allocate space
+    int64_t stack_alloc_size =
+        static_stack_frame_size - 8 * callee_saved_registers.size();
     auto epilogue_offset = asm_->offset();
     asm_->setOffset(stack_alloc_offset);
-    asm_->long_().sub(x86::rsp, static_stack_alloc);
+    asm_->long_().sub(x86::rsp, stack_alloc_size);
     asm_->setOffset(epilogue_offset);
 
     // Epilogue ================================================================
@@ -266,7 +274,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   }
 }
 
-void ASMBackend::ComparisonInRax(Opcode op) {
+void ASMBackend::ComparisonInRdx(Opcode op) {
   switch (op) {
     case Opcode::I1_CMP_EQ:
     case Opcode::I8_CMP_EQ:
@@ -274,8 +282,8 @@ void ASMBackend::ComparisonInRax(Opcode op) {
     case Opcode::I32_CMP_EQ:
     case Opcode::I64_CMP_EQ:
     case Opcode::F64_CMP_EQ: {
-      asm_->sete(x86::al);
-      asm_->movzx(x86::rax, x86::al);
+      asm_->sete(x86::dil);
+      asm_->movzx(x86::rdx, x86::dil);
       return;
     }
 
@@ -285,8 +293,8 @@ void ASMBackend::ComparisonInRax(Opcode op) {
     case Opcode::I32_CMP_NE:
     case Opcode::I64_CMP_NE:
     case Opcode::F64_CMP_NE: {
-      asm_->setne(x86::al);
-      asm_->movzx(x86::rax, x86::al);
+      asm_->setne(x86::dil);
+      asm_->movzx(x86::rdx, x86::dil);
       return;
     }
 
@@ -295,8 +303,8 @@ void ASMBackend::ComparisonInRax(Opcode op) {
     case Opcode::I32_CMP_LT:
     case Opcode::I64_CMP_LT:
     case Opcode::F64_CMP_LT: {
-      asm_->setl(x86::al);
-      asm_->movzx(x86::rax, x86::al);
+      asm_->setl(x86::dil);
+      asm_->movzx(x86::rdx, x86::dil);
       return;
     }
 
@@ -305,8 +313,8 @@ void ASMBackend::ComparisonInRax(Opcode op) {
     case Opcode::I32_CMP_LE:
     case Opcode::I64_CMP_LE:
     case Opcode::F64_CMP_LE: {
-      asm_->setle(x86::al);
-      asm_->movzx(x86::rax, x86::al);
+      asm_->setle(x86::dil);
+      asm_->movzx(x86::rdx, x86::dil);
       return;
     }
 
@@ -315,8 +323,8 @@ void ASMBackend::ComparisonInRax(Opcode op) {
     case Opcode::I32_CMP_GT:
     case Opcode::I64_CMP_GT:
     case Opcode::F64_CMP_GT: {
-      asm_->setg(x86::al);
-      asm_->movzx(x86::rax, x86::al);
+      asm_->setg(x86::dil);
+      asm_->movzx(x86::rdx, x86::dil);
       return;
     }
 
@@ -325,8 +333,8 @@ void ASMBackend::ComparisonInRax(Opcode op) {
     case Opcode::I32_CMP_GE:
     case Opcode::I64_CMP_GE:
     case Opcode::F64_CMP_GE: {
-      asm_->setge(x86::al);
-      asm_->movzx(x86::rax, x86::al);
+      asm_->setge(x86::dil);
+      asm_->movzx(x86::rdx, x86::dil);
       return;
     }
 
@@ -453,10 +461,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->cmp(x86::al, x86::cl);
-      ComparisonInRax(opcode);
+      ComparisonInRdx(opcode);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -472,10 +480,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->cmp(x86::ax, x86::cx);
-      ComparisonInRax(opcode);
+      ComparisonInRdx(opcode);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -491,10 +499,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->cmp(x86::eax, x86::ecx);
-      ComparisonInRax(opcode);
+      ComparisonInRdx(opcode);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -510,10 +518,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->cmp(x86::rax, x86::rcx);
-      ComparisonInRax(opcode);
+      ComparisonInRdx(opcode);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -528,9 +536,9 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->movsd(x86::xmm0, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
       asm_->movsd(x86::xmm1, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
       asm_->ucomisd(x86::xmm0, x86::xmm1);
-      ComparisonInRax(opcode);
+      ComparisonInRdx(opcode);
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -541,10 +549,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->add(x86::al, x86::cl);
-      asm_->movzx(x86::rax, x86::al);
+      asm_->movzx(x86::rdx, x86::al);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -555,10 +563,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->sub(x86::al, x86::cl);
-      asm_->movzx(x86::rax, x86::al);
+      asm_->movzx(x86::rdx, x86::al);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -569,10 +577,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->imul(x86::cl);
-      asm_->movzx(x86::rax, x86::al);
+      asm_->movzx(x86::rdx, x86::al);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -583,10 +591,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->idiv(x86::cl);
-      asm_->movzx(x86::rax, x86::al);
+      asm_->movzx(x86::rdx, x86::al);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -597,10 +605,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->add(x86::ax, x86::cx);
-      asm_->movzx(x86::rax, x86::ax);
+      asm_->movzx(x86::rdx, x86::ax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -611,10 +619,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->sub(x86::ax, x86::cx);
-      asm_->movzx(x86::rax, x86::ax);
+      asm_->movzx(x86::rdx, x86::ax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -625,10 +633,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->imul(x86::cx);
-      asm_->movzx(x86::rax, x86::ax);
+      asm_->movzx(x86::rdx, x86::ax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -640,10 +648,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
 
       asm_->cwd();
       asm_->idiv(x86::cx);
-      asm_->movzx(x86::rax, x86::ax);
+      asm_->movzx(x86::rdx, x86::ax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -654,10 +662,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->add(x86::eax, x86::ecx);
-      asm_->movzx(x86::rax, x86::eax);
+      asm_->movzx(x86::rdx, x86::eax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -668,10 +676,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->sub(x86::eax, x86::ecx);
-      asm_->movzx(x86::rax, x86::eax);
+      asm_->movzx(x86::rdx, x86::eax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -682,10 +690,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->imul(x86::ecx);
-      asm_->movzx(x86::rax, x86::eax);
+      asm_->movzx(x86::rdx, x86::eax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -697,10 +705,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
 
       asm_->cdq();
       asm_->idiv(x86::ecx);
-      asm_->movzx(x86::rax, x86::eax);
+      asm_->movzx(x86::rdx, x86::eax);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -1005,10 +1013,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
 
       asm_->mov(x86::cl, x86::ptr(x86::rax));
-      asm_->movzx(x86::rcx, x86::cl);
+      asm_->movzx(x86::rdx, x86::cl);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rcx);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -1018,10 +1026,10 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
 
       asm_->mov(x86::cx, x86::ptr(x86::rax));
-      asm_->movzx(x86::rcx, x86::cx);
+      asm_->movzx(x86::rdx, x86::cx);
 
       static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rcx);
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -1031,7 +1039,20 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
 
       asm_->mov(x86::ecx, x86::ptr(x86::rax));
-      asm_->movzx(x86::rcx, x86::ecx);
+      asm_->movzx(x86::rdx, x86::ecx);
+
+      static_stack_alloc += 8;
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I64_LOAD:
+    case Opcode::F64_LOAD: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+
+      asm_->mov(x86::rcx, x86::ptr(x86::rax));
 
       static_stack_alloc += 8;
       asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rcx);
@@ -1039,11 +1060,9 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       return;
     }
 
-    case Opcode::I64_LOAD:
-    case Opcode::F64_LOAD:
     case Opcode::PTR_LOAD: {
-      Type2InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+      Type3InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg()]));
 
       asm_->mov(x86::rcx, x86::ptr(x86::rax));
 
@@ -1135,6 +1154,7 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       // if remaining args exist, pass them right to left
       int num_remaining_args = regular_call_args_.size() - regular_arg_idx;
       if (num_remaining_args > 0) {
+        // add align space to remain 16 byte aligned
         if (num_remaining_args % 2 == 1) {
           asm_->push(x86::rax);
           dynamic_stack_alloc += 8;
@@ -1148,6 +1168,7 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       }
       regular_call_args_.clear();
       floating_point_call_args_.clear();
+      assert(dynamic_stack_alloc % 16 == 0);
 
       khir::Type return_type;
       if (opcode == Opcode::CALL) {
@@ -1221,6 +1242,15 @@ void ASMBackend::Execute() {
   rt_.add(&buffer_start, &code_);
 
   auto offset = code_.labelOffsetFromBase(compute_label_);
+
+  std::cerr << "Breakpoints:" << std::endl;
+  for (const auto& [name, b_label] : breakpoints_) {
+    auto b_offset = code_.labelOffsetFromBase(b_label);
+    std::cerr << name << ": "
+              << reinterpret_cast<void*>(
+                     reinterpret_cast<uint64_t>(buffer_start) + b_offset)
+              << std::endl;
+  }
 
   using compute_fn = std::add_pointer<void()>::type;
   auto compute = reinterpret_cast<compute_fn>(
