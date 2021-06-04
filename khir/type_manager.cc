@@ -290,4 +290,19 @@ bool TypeManager::IsVoid(Type t) const { return t.GetID() == 0; }
 
 bool TypeManager::IsF64Type(Type t) const { return t.GetID() == 6; }
 
+bool TypeManager::IsI1Type(Type t) const { return t.GetID() == 1; }
+
+bool TypeManager::IsI8Type(Type t) const { return t.GetID() == 2; }
+
+bool TypeManager::IsI16Type(Type t) const { return t.GetID() == 3; }
+
+bool TypeManager::IsI32Type(Type t) const { return t.GetID() == 4; }
+
+bool TypeManager::IsI64Type(Type t) const { return t.GetID() == 5; }
+
+bool TypeManager::IsPtrType(Type t) const {
+  return dynamic_cast<PointerTypeImpl*>(type_id_to_impl_[t.GetID()].get()) !=
+         nullptr;
+}
+
 }  // namespace kush::khir

@@ -71,6 +71,12 @@ class TypeManager {
 
   bool IsVoid(Type t) const;
   bool IsF64Type(Type t) const;
+  bool IsI1Type(Type t) const;
+  bool IsI8Type(Type t) const;
+  bool IsI16Type(Type t) const;
+  bool IsI32Type(Type t) const;
+  bool IsI64Type(Type t) const;
+  bool IsPtrType(Type t) const;
 
  private:
   class TypeImpl {
