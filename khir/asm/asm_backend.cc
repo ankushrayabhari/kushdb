@@ -274,7 +274,6 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
 void ASMBackend::ComparisonInRdx(Opcode op) {
   switch (op) {
-    case Opcode::I16_CMP_EQ:
     case Opcode::I32_CMP_EQ:
     case Opcode::I64_CMP_EQ:
     case Opcode::F64_CMP_EQ: {
@@ -283,7 +282,6 @@ void ASMBackend::ComparisonInRdx(Opcode op) {
       return;
     }
 
-    case Opcode::I16_CMP_NE:
     case Opcode::I32_CMP_NE:
     case Opcode::I64_CMP_NE:
     case Opcode::F64_CMP_NE: {
@@ -292,7 +290,6 @@ void ASMBackend::ComparisonInRdx(Opcode op) {
       return;
     }
 
-    case Opcode::I16_CMP_LT:
     case Opcode::I32_CMP_LT:
     case Opcode::I64_CMP_LT:
     case Opcode::F64_CMP_LT: {
@@ -301,7 +298,6 @@ void ASMBackend::ComparisonInRdx(Opcode op) {
       return;
     }
 
-    case Opcode::I16_CMP_LE:
     case Opcode::I32_CMP_LE:
     case Opcode::I64_CMP_LE:
     case Opcode::F64_CMP_LE: {
@@ -310,7 +306,6 @@ void ASMBackend::ComparisonInRdx(Opcode op) {
       return;
     }
 
-    case Opcode::I16_CMP_GT:
     case Opcode::I32_CMP_GT:
     case Opcode::I64_CMP_GT:
     case Opcode::F64_CMP_GT: {
@@ -319,7 +314,6 @@ void ASMBackend::ComparisonInRdx(Opcode op) {
       return;
     }
 
-    case Opcode::I16_CMP_GE:
     case Opcode::I32_CMP_GE:
     case Opcode::I64_CMP_GE:
     case Opcode::F64_CMP_GE: {
@@ -545,8 +539,130 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
 
     // I16 =====================================================================
     case Opcode::I16_CONST: {
-      auto constant = Type1InstructionReader(instr).Constant();
-      asm_->mov(x86::rax, constant);
+      uint16_t constant = Type1InstructionReader(instr).Constant();
+
+      static_stack_alloc += 8;
+      asm_->mov(x86::word_ptr(x86::rbp, -static_stack_alloc), constant);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_ADD: {
+      Type2InstructionReader reader(instr);
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->add(x86::ax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      static_stack_alloc += 8;
+      asm_->mov(x86::word_ptr(x86::rbp, -static_stack_alloc), x86::ax);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_SUB: {
+      Type2InstructionReader reader(instr);
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->sub(x86::ax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      static_stack_alloc += 8;
+      asm_->mov(x86::word_ptr(x86::rbp, -static_stack_alloc), x86::ax);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_MUL: {
+      Type2InstructionReader reader(instr);
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->imul(x86::ax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      static_stack_alloc += 8;
+      asm_->mov(x86::word_ptr(x86::rbp, -static_stack_alloc), x86::ax);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_DIV: {
+      Type2InstructionReader reader(instr);
+      asm_->movsx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->movsx(x86::ecx, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      asm_->cdq();
+      asm_->idiv(x86::ecx);
+
+      static_stack_alloc += 8;
+      asm_->mov(x86::word_ptr(x86::rbp, -static_stack_alloc), x86::ax);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_CMP_EQ: {
+      Type2InstructionReader reader(instr);
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->cmp(x86::ax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      static_stack_alloc += 8;
+      asm_->sete(x86::byte_ptr(x86::rbp, -static_stack_alloc));
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_CMP_NE: {
+      Type2InstructionReader reader(instr);
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->cmp(x86::ax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      static_stack_alloc += 8;
+      asm_->setne(x86::byte_ptr(x86::rbp, -static_stack_alloc));
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_CMP_LT: {
+      Type2InstructionReader reader(instr);
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->cmp(x86::ax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      static_stack_alloc += 8;
+      asm_->setl(x86::byte_ptr(x86::rbp, -static_stack_alloc));
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_CMP_LE: {
+      Type2InstructionReader reader(instr);
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->cmp(x86::ax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      static_stack_alloc += 8;
+      asm_->setle(x86::byte_ptr(x86::rbp, -static_stack_alloc));
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_CMP_GT: {
+      Type2InstructionReader reader(instr);
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->cmp(x86::ax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      static_stack_alloc += 8;
+      asm_->setg(x86::byte_ptr(x86::rbp, -static_stack_alloc));
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_CMP_GE: {
+      Type2InstructionReader reader(instr);
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->cmp(x86::ax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      static_stack_alloc += 8;
+      asm_->setge(x86::byte_ptr(x86::rbp, -static_stack_alloc));
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_ZEXT_I64: {
+      Type2InstructionReader reader(instr);
+      asm_->movsx(x86::rax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
 
       static_stack_alloc += 8;
       asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
@@ -554,6 +670,37 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       return;
     }
 
+    case Opcode::I16_CONV_F64: {
+      Type2InstructionReader reader(instr);
+      asm_->movsx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->cvtsi2sd(x86::xmm0, x86::rax);
+
+      static_stack_alloc += 8;
+      asm_->movsd(x86::ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::I16_STORE: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+      asm_->mov(x86::word_ptr(x86::rcx), x86::ax);
+      return;
+    }
+
+    case Opcode::I16_LOAD: {
+      Type2InstructionReader reader(instr);
+      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
+      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
+
+      static_stack_alloc += 8;
+      asm_->mov(x86::word_ptr(x86::rbp, -static_stack_alloc), x86::ax);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    // I32 =====================================================================
     case Opcode::I32_CONST: {
       auto constant = Type1InstructionReader(instr).Constant();
       asm_->mov(x86::rax, constant);
@@ -618,25 +765,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       return;
     }
 
-    case Opcode::I16_CMP_EQ:
-    case Opcode::I16_CMP_NE:
-    case Opcode::I16_CMP_LT:
-    case Opcode::I16_CMP_LE:
-    case Opcode::I16_CMP_GT:
-    case Opcode::I16_CMP_GE: {
-      Type2InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
-
-      asm_->cmp(x86::ax, x86::cx);
-      ComparisonInRdx(opcode);
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
     case Opcode::I32_CMP_EQ:
     case Opcode::I32_CMP_NE:
     case Opcode::I32_CMP_LT:
@@ -686,63 +814,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->movsd(x86::xmm1, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
       asm_->ucomisd(x86::xmm0, x86::xmm1);
       ComparisonInRdx(opcode);
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
-    case Opcode::I16_ADD: {
-      Type2InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
-
-      asm_->add(x86::ax, x86::cx);
-      asm_->movzx(x86::rdx, x86::ax);
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
-    case Opcode::I16_SUB: {
-      Type2InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
-
-      asm_->sub(x86::ax, x86::cx);
-      asm_->movzx(x86::rdx, x86::ax);
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
-    case Opcode::I16_MUL: {
-      Type2InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
-
-      asm_->imul(x86::cx);
-      asm_->movzx(x86::rdx, x86::ax);
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
-    case Opcode::I16_DIV: {
-      Type2InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
-
-      asm_->cwd();
-      asm_->idiv(x86::cx);
-      asm_->movzx(x86::rdx, x86::ax);
-
       static_stack_alloc += 8;
       asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
       offsets[instr_idx] = -static_stack_alloc;
@@ -860,7 +931,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       return;
     }
 
-    case Opcode::I16_ZEXT_I64:
     case Opcode::I32_ZEXT_I64: {
       Type2InstructionReader reader(instr);
       asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
@@ -926,19 +996,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
 
       static_stack_alloc += 8;
       asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
-    case Opcode::I16_CONV_F64: {
-      Type2InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-
-      asm_->movsx(x86::rax, x86::ax);
-      asm_->cvtsi2sd(x86::xmm0, x86::rax);
-
-      static_stack_alloc += 8;
-      asm_->movsd(x86::ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
       offsets[instr_idx] = -static_stack_alloc;
       return;
     }
@@ -1034,15 +1091,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       return;
     }
 
-    case Opcode::I16_STORE: {
-      Type2InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
-
-      asm_->mov(x86::ptr(x86::rax), x86::cx);
-      return;
-    }
-
     case Opcode::I32_STORE: {
       Type2InstructionReader reader(instr);
       asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
@@ -1060,19 +1108,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg1()]));
 
       asm_->mov(x86::ptr(x86::rax), x86::rcx);
-      return;
-    }
-
-    case Opcode::I16_LOAD: {
-      Type2InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-
-      asm_->mov(x86::cx, x86::ptr(x86::rax));
-      asm_->movzx(x86::rdx, x86::cx);
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rdx);
-      offsets[instr_idx] = -static_stack_alloc;
       return;
     }
 
