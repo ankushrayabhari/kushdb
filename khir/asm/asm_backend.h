@@ -41,7 +41,6 @@ class ASMBackend : public Backend {
                           const std::vector<StructConstant>& struct_constants,
                           const std::vector<ArrayConstant>& array_constants,
                           const std::vector<Global>& globals);
-  void ComparisonInRdx(khir::Opcode op);
   void TranslateInstr(const TypeManager& type_manager,
                       const std::vector<uint64_t>& i64_constants,
                       const std::vector<double>& f64_constants,

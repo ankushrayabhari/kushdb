@@ -272,49 +272,6 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   }
 }
 
-void ASMBackend::ComparisonInRdx(Opcode op) {
-  switch (op) {
-    case Opcode::F64_CMP_EQ: {
-      asm_->sete(x86::dil);
-      asm_->movzx(x86::rdx, x86::dil);
-      return;
-    }
-
-    case Opcode::F64_CMP_NE: {
-      asm_->setne(x86::dil);
-      asm_->movzx(x86::rdx, x86::dil);
-      return;
-    }
-
-    case Opcode::F64_CMP_LT: {
-      asm_->setl(x86::dil);
-      asm_->movzx(x86::rdx, x86::dil);
-      return;
-    }
-
-    case Opcode::F64_CMP_LE: {
-      asm_->setle(x86::dil);
-      asm_->movzx(x86::rdx, x86::dil);
-      return;
-    }
-
-    case Opcode::F64_CMP_GT: {
-      asm_->setg(x86::dil);
-      asm_->movzx(x86::rdx, x86::dil);
-      return;
-    }
-
-    case Opcode::F64_CMP_GE: {
-      asm_->setge(x86::dil);
-      asm_->movzx(x86::rdx, x86::dil);
-      return;
-    }
-
-    default:
-      throw std::runtime_error("Invalid comparison.");
-  }
-}
-
 void ASMBackend::TranslateInstr(const TypeManager& type_manager,
                                 const std::vector<uint64_t>& i64_constants,
                                 const std::vector<double>& f64_constants,
