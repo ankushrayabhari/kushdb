@@ -13,15 +13,30 @@
 
 namespace kush::khir {
 
-struct Value : type_safe::strong_typedef<Value, uint32_t>,
-               type_safe::strong_typedef_op::equality_comparison<Value> {
-  using strong_typedef::strong_typedef;
+class Value {
+ public:
+  Value() : idx_(UINT32_MAX) {}
 
-  uint32_t GetID() const { return static_cast<uint32_t>(*this); }
+  Value(uint32_t idx) : idx_(idx) {}
 
-  Value GetAdjacentInstruction(uint32_t offset) const {
-    return static_cast<Value>(static_cast<uint32_t>(*this) + offset);
+  Value(uint32_t idx, bool constant_global) : idx_(idx) {
+    if (idx > 0x7FFFFF) {
+      throw std::runtime_error("Invalid idx");
+    }
+
+    if (constant_global) {
+      idx_ = idx_ | (1 << 23);
+    }
   }
+
+  uint32_t Serialize() const { return idx_; }
+
+  uint32_t GetIdx() const { return idx_ & 0x7FFFFF; }
+
+  bool IsConstantGlobal() const { return (idx_ & (1 << 23)) != 0; }
+
+ private:
+  uint32_t idx_;
 };
 
 struct FunctionRef
@@ -50,44 +65,47 @@ enum class CompType { EQ, NE, LT, LE, GT, GE };
 
 class StructConstant {
  public:
-  StructConstant(khir::Type type, absl::Span<const uint64_t> fields);
+  StructConstant(khir::Type type, absl::Span<const Value> fields);
   khir::Type Type() const;
-  absl::Span<const uint64_t> Fields() const;
+  absl::Span<const Value> Fields() const;
 
  private:
   khir::Type type_;
-  std::vector<uint64_t> fields_;
+  std::vector<Value> fields_;
 };
 
 class ArrayConstant {
  public:
-  ArrayConstant(khir::Type type, absl::Span<const uint64_t> elements);
+  ArrayConstant(khir::Type type, absl::Span<const Value> elements);
   khir::Type Type() const;
-  absl::Span<const uint64_t> Elements() const;
+  absl::Span<const Value> Elements() const;
 
  private:
   khir::Type type_;
-  std::vector<uint64_t> elements_;
+  std::vector<Value> elements_;
 };
 
 class Global {
  public:
-  Global(bool constant, bool pub, khir::Type type, uint64_t init);
+  Global(bool constant, bool pub, khir::Type type, Value init);
   bool Constant() const;
   bool Public() const;
   khir::Type Type() const;
-  uint64_t InitialValue() const;
+  Value InitialValue() const;
 
  private:
   bool constant_;
   bool public_;
   khir::Type type_;
-  uint64_t init_;
+  Value init_;
 };
+
+class ProgramBuilder;
 
 class Function {
  public:
-  Function(std::string_view name, Type function_type, Type result_type,
+  Function(ProgramBuilder& program_builder, std::string_view name,
+           Type function_type, Type result_type,
            absl::Span<const Type> arg_types, bool external, bool p,
            void* func = nullptr);
   absl::Span<const Value> GetFunctionArguments() const;
@@ -113,6 +131,7 @@ class Function {
   const std::vector<uint64_t>& Instructions() const;
 
  private:
+  ProgramBuilder& program_builder_;
   std::string name_;
   khir::Type return_type_;
   std::vector<khir::Type> arg_types_;
@@ -140,6 +159,7 @@ class Backend : public compile::Program {
                          const std::vector<StructConstant>& struct_constants,
                          const std::vector<ArrayConstant>& array_constants,
                          const std::vector<Global>& globals,
+                         const std::vector<uint64_t>& constant_instrs,
                          const std::vector<Function>& functions) = 0;
 };
 
@@ -265,21 +285,25 @@ class ProgramBuilder {
   Value I64ConvF64(Value v);
 
   // Constant/Global Aggregates
-  std::function<Value()> GlobalConstCharArray(std::string_view s);
-  std::function<Value()> ConstantStruct(Type t, absl::Span<const Value> v);
-  std::function<Value()> ConstantArray(Type t, absl::Span<const Value> v);
-  std::function<Value()> Global(bool constant, bool pub, Type t, Value v);
+  Value GlobalConstCharArray(std::string_view s);
+  Value ConstantStruct(Type t, absl::Span<const Value> v);
+  Value ConstantArray(Type t, absl::Span<const Value> v);
+  Value Global(bool constant, bool pub, Type t, Value v);
 
   void Translate(Backend& backend);
 
  private:
   TypeManager type_manager_;
-  std::vector<Function> functions_;
 
+  friend class Function;
+  std::vector<Function> functions_;
   Function& GetCurrentFunction();
   int current_function_;
   absl::flat_hash_map<std::string, FunctionRef> name_to_function_;
 
+  Value AppendConstantGlobal(uint64_t);
+  uint64_t GetConstantGlobalInstr(Value v);
+  std::vector<uint64_t> constant_instrs_;
   std::vector<uint64_t> i64_constants_;
   std::vector<double> f64_constants_;
   std::vector<std::string> char_array_constants_;

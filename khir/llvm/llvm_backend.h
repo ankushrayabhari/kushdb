@@ -36,40 +36,39 @@ class LLVMBackend : public Backend, public TypeTranslator {
                  const std::vector<StructConstant>& struct_constants,
                  const std::vector<ArrayConstant>& array_constants,
                  const std::vector<Global>& globals,
+                 const std::vector<uint64_t>& constant_instrs,
                  const std::vector<Function>& functions) override;
 
   // Program
   void Execute() override;
 
  private:
-  bool CanComputeConstant(uint64_t instr);
-  bool CanComputeStructConstant(const StructConstant& x);
-  bool CanComputeArrayConstant(const ArrayConstant& x);
-  bool CanComputeGlobal(const Global& x);
+  llvm::Constant* ConvertConstantInstr(
+      uint64_t instr, std::vector<llvm::Constant*>& constant_values,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants,
+      const std::vector<std::string>& char_array_constants,
+      const std::vector<StructConstant>& struct_constants,
+      const std::vector<ArrayConstant>& array_constants,
+      const std::vector<Global>& globals);
+
   void TranslateInstr(
       const std::vector<llvm::Value*>& func_args,
       const std::vector<llvm::BasicBlock*>& basic_blocks,
       std::vector<llvm::Value*>& values,
+      const std::vector<llvm::Constant*>& constant_values,
       absl::flat_hash_map<
           uint32_t, std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>&
           phi_member_list,
       const std::vector<uint64_t>& instructions, int instr_idx);
-  llvm::Constant* GetConstantFromInstr(uint64_t t);
 
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> module_;
   std::unique_ptr<llvm::IRBuilder<>> builder_;
   std::vector<llvm::Type*> types_;
-
-  std::vector<llvm::Constant*> i64_constants_;
-  std::vector<llvm::Constant*> f64_constants_;
-  std::vector<llvm::Constant*> char_array_constants_;
-  std::vector<llvm::Constant*> struct_constants_;
-  std::vector<llvm::Constant*> array_constants_;
-
   std::vector<llvm::Function*> functions_;
   std::vector<llvm::Value*> call_args_;
-  std::vector<llvm::Value*> globals_;
+
   std::chrono::time_point<std::chrono::system_clock> start, comp, end;
 };
 

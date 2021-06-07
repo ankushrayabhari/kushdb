@@ -86,114 +86,98 @@ void LLVMBackend::TranslateStructType(absl::Span<const Type> elem_types) {
       llvm::StructType::create(*context_, GetTypeArray(types_, elem_types)));
 }
 
-llvm::Constant* LLVMBackend::GetConstantFromInstr(uint64_t instr) {
-  auto opcode = GenericInstructionReader(instr).Opcode();
+llvm::Constant* LLVMBackend::ConvertConstantInstr(
+    uint64_t instr, std::vector<llvm::Constant*>& constant_values,
+    const std::vector<uint64_t>& i64_constants,
+    const std::vector<double>& f64_constants,
+    const std::vector<std::string>& char_array_constants,
+    const std::vector<StructConstant>& struct_constants,
+    const std::vector<ArrayConstant>& array_constants,
+    const std::vector<Global>& globals) {
+  auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
-    case Opcode::I1_CONST: {
+    case ConstantOpcode::I1_CONST: {
       return builder_->getInt1(Type1InstructionReader(instr).Constant() == 1);
     }
 
-    case Opcode::I8_CONST: {
+    case ConstantOpcode::I8_CONST: {
       return builder_->getInt8(Type1InstructionReader(instr).Constant());
     }
 
-    case Opcode::I16_CONST: {
+    case ConstantOpcode::I16_CONST: {
       return builder_->getInt16(Type1InstructionReader(instr).Constant());
     }
 
-    case Opcode::I32_CONST: {
+    case ConstantOpcode::I32_CONST: {
       return builder_->getInt32(Type1InstructionReader(instr).Constant());
     }
 
-    case Opcode::I64_CONST: {
-      return i64_constants_[Type1InstructionReader(instr).Constant()];
+    case ConstantOpcode::I64_CONST: {
+      return builder_->getInt64(
+          i64_constants[Type1InstructionReader(instr).Constant()]);
     }
 
-    case Opcode::F64_CONST: {
-      return f64_constants_[Type1InstructionReader(instr).Constant()];
+    case ConstantOpcode::F64_CONST: {
+      return llvm::ConstantFP::get(
+          builder_->getDoubleTy(),
+          f64_constants[Type1InstructionReader(instr).Constant()]);
     }
 
-    case Opcode::GLOBAL_CHAR_ARRAY_CONST: {
-      return char_array_constants_[Type1InstructionReader(instr).Constant()];
+    case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST: {
+      return builder_->CreateGlobalStringPtr(
+          char_array_constants[Type1InstructionReader(instr).Constant()], "", 0,
+          module_.get());
     }
 
-    case Opcode::STRUCT_CONST: {
-      return struct_constants_[Type1InstructionReader(instr).Constant()];
+    case ConstantOpcode::STRUCT_CONST: {
+      const auto& x =
+          struct_constants[Type1InstructionReader(instr).Constant()];
+      std::vector<llvm::Constant*> init;
+      for (auto field_init : x.Fields()) {
+        assert(field_init.IsConstantGlobal());
+        init.push_back(constant_values[field_init.GetIdx()]);
+      }
+      auto* st = llvm::dyn_cast<llvm::StructType>(types_[x.Type().GetID()]);
+      return llvm::ConstantStruct::get(st, init);
     }
 
-    case Opcode::ARRAY_CONST: {
-      return array_constants_[Type1InstructionReader(instr).Constant()];
+    case ConstantOpcode::ARRAY_CONST: {
+      const auto& x = array_constants[Type1InstructionReader(instr).Constant()];
+
+      std::vector<llvm::Constant*> init;
+      for (auto element_init : x.Elements()) {
+        assert(element_init.IsConstantGlobal());
+        init.push_back(constant_values[element_init.GetIdx()]);
+      }
+      auto* at = llvm::dyn_cast<llvm::ArrayType>(types_[x.Type().GetID()]);
+      return llvm::ConstantArray::get(at, init);
     }
 
-    case Opcode::NULLPTR: {
+    case ConstantOpcode::NULLPTR: {
       auto t = types_[Type3InstructionReader(instr).TypeID()];
       return llvm::ConstantPointerNull::get(
           llvm::dyn_cast<llvm::PointerType>(t));
     }
 
-    case Opcode::GLOBAL_REF: {
-      return llvm::dyn_cast<llvm::Constant>(
-          globals_[Type1InstructionReader(instr).Constant()]);
+    case ConstantOpcode::GLOBAL_REF: {
+      const auto& x = globals[Type1InstructionReader(instr).Constant()];
+
+      auto type = types_[x.Type().GetID()];
+
+      assert(x.InitialValue().IsConstantGlobal());
+      auto init = constant_values[x.InitialValue().GetIdx()];
+
+      return new llvm::GlobalVariable(
+          *module_, type, x.Constant(),
+          x.Public() ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
+                     : llvm::GlobalValue::LinkageTypes::InternalLinkage,
+          init);
     }
 
     default:
       throw std::runtime_error("Invalid constant.");
   }
-}
-
-bool LLVMBackend::CanComputeConstant(uint64_t instr) {
-  auto opcode = GenericInstructionReader(instr).Opcode();
-
-  switch (opcode) {
-    case Opcode::I1_CONST:
-    case Opcode::I8_CONST:
-    case Opcode::I16_CONST:
-    case Opcode::I32_CONST:
-    case Opcode::I64_CONST:
-    case Opcode::F64_CONST:
-    case Opcode::GLOBAL_CHAR_ARRAY_CONST:
-    case Opcode::NULLPTR:
-      return true;
-
-    case Opcode::STRUCT_CONST: {
-      return Type1InstructionReader(instr).Constant() <
-             struct_constants_.size();
-    }
-
-    case Opcode::ARRAY_CONST: {
-      return Type1InstructionReader(instr).Constant() < array_constants_.size();
-    }
-
-    case Opcode::GLOBAL_REF: {
-      return Type1InstructionReader(instr).Constant() < globals_.size();
-    }
-
-    default:
-      throw std::runtime_error("Invalid constant.");
-  }
-}
-
-bool LLVMBackend::CanComputeStructConstant(const StructConstant& x) {
-  for (auto init : x.Fields()) {
-    if (!CanComputeConstant(init)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool LLVMBackend::CanComputeArrayConstant(const ArrayConstant& x) {
-  for (auto init : x.Elements()) {
-    if (!CanComputeConstant(init)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool LLVMBackend::CanComputeGlobal(const Global& x) {
-  return CanComputeConstant(x.InitialValue());
 }
 
 void LLVMBackend::Translate(
@@ -203,6 +187,7 @@ void LLVMBackend::Translate(
     const std::vector<StructConstant>& struct_constants,
     const std::vector<ArrayConstant>& array_constants,
     const std::vector<Global>& globals,
+    const std::vector<uint64_t>& constant_instrs,
     const std::vector<Function>& functions) {
   start = std::chrono::system_clock::now();
 
@@ -210,68 +195,11 @@ void LLVMBackend::Translate(
   manager.Translate(*this);
 
   // Convert all constants
-  for (auto x : i64_constants) {
-    i64_constants_.push_back(builder_->getInt64(x));
-  }
-
-  for (auto x : f64_constants) {
-    f64_constants_.push_back(llvm::ConstantFP::get(builder_->getDoubleTy(), x));
-  }
-
-  for (const auto& x : char_array_constants) {
-    char_array_constants_.push_back(
-        builder_->CreateGlobalStringPtr(x, "", 0, module_.get()));
-  }
-
-  for (int i = 0, j = 0, k = 0; i < struct_constants.size() ||
-                                j < array_constants.size() ||
-                                k < globals.size();) {
-    if (i < struct_constants.size() &&
-        CanComputeStructConstant(struct_constants[i])) {
-      const auto& x = struct_constants[i];
-
-      std::vector<llvm::Constant*> init;
-      for (auto field_init : x.Fields()) {
-        init.push_back(GetConstantFromInstr(field_init));
-      }
-      auto* st = llvm::dyn_cast<llvm::StructType>(types_[x.Type().GetID()]);
-      struct_constants_.push_back(llvm::ConstantStruct::get(st, init));
-
-      i++;
-      continue;
-    }
-
-    if (j < array_constants.size() &&
-        CanComputeArrayConstant(array_constants[j])) {
-      const auto& x = array_constants[j];
-
-      std::vector<llvm::Constant*> init;
-      for (auto element_init : x.Elements()) {
-        init.push_back(GetConstantFromInstr(element_init));
-      }
-      auto* at = llvm::dyn_cast<llvm::ArrayType>(types_[x.Type().GetID()]);
-      array_constants_.push_back(llvm::ConstantArray::get(at, init));
-
-      j++;
-      continue;
-    }
-
-    if (k < globals.size() && CanComputeGlobal(globals[k])) {
-      const auto& x = globals[k];
-
-      auto type = types_[x.Type().GetID()];
-      auto init = GetConstantFromInstr(x.InitialValue());
-      globals_.push_back(new llvm::GlobalVariable(
-          *module_, type, x.Constant(),
-          x.Public() ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
-                     : llvm::GlobalValue::LinkageTypes::InternalLinkage,
-          init));
-
-      k++;
-      continue;
-    }
-
-    throw std::runtime_error("Invalid constant dependency graph.");
+  std::vector<llvm::Constant*> constant_values(constant_instrs.size(), nullptr);
+  for (auto instr : constant_instrs) {
+    constant_values.push_back(ConvertConstantInstr(
+        instr, constant_values, i64_constants, f64_constants,
+        char_array_constants, struct_constants, array_constants, globals));
   }
 
   // Translate all func decls
@@ -318,8 +246,8 @@ void LLVMBackend::Translate(
 
       builder_->SetInsertPoint(basic_blocks_impl[i]);
       for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
-        TranslateInstr(args, basic_blocks_impl, values, phi_member_list,
-                       instructions, instr_idx);
+        TranslateInstr(args, basic_blocks_impl, values, constant_values,
+                       phi_member_list, instructions, instr_idx);
       }
     }
   }
@@ -390,38 +318,29 @@ LLVMCmp GetLLVMCompType(Opcode opcode) {
   }
 }
 
+llvm::Value* GetValue(khir::Value v,
+                      const std::vector<llvm::Constant*>& constant_values,
+                      const std::vector<llvm::Value*>& values) {
+  if (v.IsConstantGlobal()) {
+    return constant_values[v.GetIdx()];
+  } else {
+    return values[v.GetIdx()];
+  }
+}
+
 void LLVMBackend::TranslateInstr(
     const std::vector<llvm::Value*>& func_args,
     const std::vector<llvm::BasicBlock*>& basic_blocks,
     std::vector<llvm::Value*>& values,
+    const std::vector<llvm::Constant*>& constant_values,
     absl::flat_hash_map<
         uint32_t, std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>&
         phi_member_list,
     const std::vector<uint64_t>& instructions, int instr_idx) {
   auto instr = instructions[instr_idx];
-  auto opcode = GenericInstructionReader(instr).Opcode();
+  auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
-    case Opcode::STRUCT_CONST:
-    case Opcode::ARRAY_CONST: {
-      // should only be used to initialize globals so referencing them in
-      // a normal context shouldn't do anything
-      return;
-    }
-
-    case Opcode::I1_CONST:
-    case Opcode::I8_CONST:
-    case Opcode::I16_CONST:
-    case Opcode::I32_CONST:
-    case Opcode::I64_CONST:
-    case Opcode::F64_CONST:
-    case Opcode::GLOBAL_CHAR_ARRAY_CONST:
-    case Opcode::NULLPTR:
-    case Opcode::GLOBAL_REF: {
-      values[instr_idx] = GetConstantFromInstr(instr);
-      return;
-    }
-
     case Opcode::I1_CMP_EQ:
     case Opcode::I1_CMP_NE:
     case Opcode::I8_CMP_EQ:
@@ -455,8 +374,8 @@ void LLVMBackend::TranslateInstr(
     case Opcode::F64_CMP_GT:
     case Opcode::F64_CMP_GE: {
       Type2InstructionReader reader(instr);
-      auto v0 = values[reader.Arg0()];
-      auto v1 = values[reader.Arg1()];
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       auto comp_type = GetLLVMCompType(opcode);
       values[instr_idx] = builder_->CreateCmp(comp_type, v0, v1);
       return;
@@ -467,8 +386,8 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I32_ADD:
     case Opcode::I64_ADD: {
       Type2InstructionReader reader(instr);
-      auto v0 = values[reader.Arg0()];
-      auto v1 = values[reader.Arg1()];
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       values[instr_idx] = builder_->CreateAdd(v0, v1);
       return;
     }
@@ -478,8 +397,8 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I32_MUL:
     case Opcode::I64_MUL: {
       Type2InstructionReader reader(instr);
-      auto v0 = values[reader.Arg0()];
-      auto v1 = values[reader.Arg1()];
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       values[instr_idx] = builder_->CreateMul(v0, v1);
       return;
     }
@@ -489,8 +408,8 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I32_SUB:
     case Opcode::I64_SUB: {
       Type2InstructionReader reader(instr);
-      auto v0 = values[reader.Arg0()];
-      auto v1 = values[reader.Arg1()];
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       values[instr_idx] = builder_->CreateSub(v0, v1);
       return;
     }
@@ -500,15 +419,15 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I32_DIV:
     case Opcode::I64_DIV: {
       Type2InstructionReader reader(instr);
-      auto v0 = values[reader.Arg0()];
-      auto v1 = values[reader.Arg1()];
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       values[instr_idx] = builder_->CreateSDiv(v0, v1);
       return;
     }
 
     case Opcode::I1_ZEXT_I8: {
       Type2InstructionReader reader(instr);
-      auto v = values[reader.Arg0()];
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
       values[instr_idx] = builder_->CreateZExt(v, builder_->getInt8Ty());
       return;
     }
@@ -518,53 +437,53 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I16_ZEXT_I64:
     case Opcode::I32_ZEXT_I64: {
       Type2InstructionReader reader(instr);
-      auto v = values[reader.Arg0()];
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
       values[instr_idx] = builder_->CreateZExt(v, builder_->getInt64Ty());
       return;
     }
 
     case Opcode::I1_LNOT: {
       Type2InstructionReader reader(instr);
-      auto v = values[reader.Arg0()];
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
       values[instr_idx] = builder_->CreateXor(v, builder_->getInt1(true));
       return;
     }
 
     case Opcode::F64_ADD: {
       Type2InstructionReader reader(instr);
-      auto v0 = values[reader.Arg0()];
-      auto v1 = values[reader.Arg1()];
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       values[instr_idx] = builder_->CreateFAdd(v0, v1);
       return;
     }
 
     case Opcode::F64_MUL: {
       Type2InstructionReader reader(instr);
-      auto v0 = values[reader.Arg0()];
-      auto v1 = values[reader.Arg1()];
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       values[instr_idx] = builder_->CreateFMul(v0, v1);
       return;
     }
 
     case Opcode::F64_SUB: {
       Type2InstructionReader reader(instr);
-      auto v0 = values[reader.Arg0()];
-      auto v1 = values[reader.Arg1()];
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       values[instr_idx] = builder_->CreateFSub(v0, v1);
       return;
     }
 
     case Opcode::F64_DIV: {
       Type2InstructionReader reader(instr);
-      auto v0 = values[reader.Arg0()];
-      auto v1 = values[reader.Arg1()];
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       values[instr_idx] = builder_->CreateFDiv(v0, v1);
       return;
     }
 
     case Opcode::F64_CONV_I64: {
       Type2InstructionReader reader(instr);
-      auto v = values[reader.Arg0()];
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
       values[instr_idx] = builder_->CreateFPToSI(v, builder_->getInt64Ty());
       return;
     }
@@ -574,7 +493,7 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64: {
       Type2InstructionReader reader(instr);
-      auto v = values[reader.Arg0()];
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
       values[instr_idx] = builder_->CreateSIToFP(v, builder_->getDoubleTy());
       return;
     }
@@ -588,7 +507,7 @@ void LLVMBackend::TranslateInstr(
 
     case Opcode::CONDBR: {
       Type5InstructionReader reader(instr);
-      auto v = values[reader.Arg()];
+      auto v = GetValue(Value(reader.Arg()), constant_values, values);
       auto bb0 = basic_blocks[reader.Marg0()];
       auto bb1 = basic_blocks[reader.Marg1()];
       values[instr_idx] = builder_->CreateCondBr(v, bb0, bb1);
@@ -602,7 +521,7 @@ void LLVMBackend::TranslateInstr(
 
     case Opcode::RETURN_VALUE: {
       Type3InstructionReader reader(instr);
-      auto v = values[reader.Arg()];
+      auto v = GetValue(Value(reader.Arg()), constant_values, values);
       values[instr_idx] = builder_->CreateRet(v);
       return;
     }
@@ -614,8 +533,8 @@ void LLVMBackend::TranslateInstr(
     case Opcode::F64_STORE:
     case Opcode::PTR_STORE: {
       Type2InstructionReader reader(instr);
-      auto ptr = values[reader.Arg0()];
-      auto val = values[reader.Arg1()];
+      auto ptr = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto val = GetValue(Value(reader.Arg1()), constant_values, values);
       values[instr_idx] = builder_->CreateStore(val, ptr);
       return;
     }
@@ -626,14 +545,14 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I64_LOAD:
     case Opcode::F64_LOAD: {
       Type2InstructionReader reader(instr);
-      auto v = values[reader.Arg0()];
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
       values[instr_idx] = builder_->CreateLoad(v);
       return;
     }
 
     case Opcode::PTR_LOAD: {
       Type3InstructionReader reader(instr);
-      auto v = values[reader.Arg()];
+      auto v = GetValue(Value(reader.Arg()), constant_values, values);
       values[instr_idx] = builder_->CreateLoad(v);
       return;
     }
@@ -647,15 +566,15 @@ void LLVMBackend::TranslateInstr(
     case Opcode::PTR_CAST: {
       Type3InstructionReader reader(instr);
       auto t = types_[reader.TypeID()];
-      auto v = values[reader.Arg()];
+      auto v = GetValue(Value(reader.Arg()), constant_values, values);
       values[instr_idx] = builder_->CreatePointerCast(v, t);
       return;
     }
 
     case Opcode::PTR_ADD: {
       Type2InstructionReader reader(instr);
-      auto ptr = values[reader.Arg0()];
-      auto offset = values[reader.Arg1()];
+      auto ptr = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto offset = GetValue(Value(reader.Arg1()), constant_values, values);
 
       auto ptr_as_int = builder_->CreatePtrToInt(ptr, builder_->getInt64Ty());
       auto ptr_plus_offset = builder_->CreateAdd(ptr_as_int, offset);
@@ -674,7 +593,7 @@ void LLVMBackend::TranslateInstr(
 
     case Opcode::CALL_ARG: {
       Type3InstructionReader reader(instr);
-      auto v = values[reader.Arg()];
+      auto v = GetValue(Value(reader.Arg()), constant_values, values);
       call_args_.push_back(v);
       return;
     }
@@ -689,7 +608,7 @@ void LLVMBackend::TranslateInstr(
 
     case Opcode::CALL_INDIRECT: {
       Type3InstructionReader reader(instr);
-      auto func = values[reader.Arg()];
+      auto func = GetValue(Value(reader.Arg()), constant_values, values);
       auto func_type = types_[reader.TypeID()];
       values[instr_idx] = llvm::CallInst::Create(
           llvm::dyn_cast<llvm::FunctionType>(func_type), func, call_args_, "",
@@ -707,8 +626,8 @@ void LLVMBackend::TranslateInstr(
 
     case Opcode::PHI_MEMBER: {
       Type2InstructionReader reader(instr);
-      auto phi = values[reader.Arg0()];
-      auto phi_member = values[reader.Arg1()];
+      auto phi = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto phi_member = GetValue(Value(reader.Arg1()), constant_values, values);
 
       if (phi == nullptr) {
         phi_member_list[reader.Arg0()].emplace_back(phi_member,

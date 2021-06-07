@@ -10,18 +10,14 @@ namespace kush::khir {
 GenericInstructionReader::GenericInstructionReader(uint64_t instr)
     : instr_(instr) {}
 
-Opcode GenericInstructionReader::Opcode() const {
-  uint8_t opcode_repr = instr_ & 0xFFll;
-  return static_cast<khir::Opcode>(opcode_repr);
-}
+uint8_t GenericInstructionReader::Opcode() const { return instr_ & 0xFFll; }
 
 void SetMetadataImpl(uint64_t& value, uint8_t metadata) {
   value = (value & ~(0xFFll << 56)) | static_cast<uint64_t>(metadata) << 56;
 }
 
-void SetOpcodeImpl(uint64_t& value, Opcode opcode) {
-  uint8_t opcode_repr = static_cast<uint8_t>(opcode);
-  value = (value & ~0xFFll) | static_cast<uint64_t>(opcode_repr);
+void SetOpcodeImpl(uint64_t& value, uint8_t opcode) {
+  value = (value & ~0xFFll) | static_cast<uint64_t>(opcode);
 }
 
 Type1InstructionBuilder::Type1InstructionBuilder(uint64_t initial_instr)
@@ -40,7 +36,7 @@ Type1InstructionBuilder& Type1InstructionBuilder::SetConstant(
   return *this;
 }
 
-Type1InstructionBuilder& Type1InstructionBuilder::SetOpcode(Opcode opcode) {
+Type1InstructionBuilder& Type1InstructionBuilder::SetOpcode(uint8_t opcode) {
   SetOpcodeImpl(value_, opcode);
   return *this;
 }
@@ -56,10 +52,7 @@ uint64_t Type1InstructionReader::Constant() const {
   return (instr_ >> 8) & 0xFFFFFFFFFFFFll;
 }
 
-Opcode Type1InstructionReader::Opcode() const {
-  uint8_t opcode_repr = instr_ & 0xFFll;
-  return static_cast<khir::Opcode>(opcode_repr);
-}
+uint8_t Type1InstructionReader::Opcode() const { return instr_ & 0xFFll; }
 
 Type2InstructionBuilder::Type2InstructionBuilder(uint64_t initial_instr)
     : value_(initial_instr) {}
@@ -84,7 +77,7 @@ Type2InstructionBuilder& Type2InstructionBuilder::SetArg1(uint32_t arg1) {
   return *this;
 }
 
-Type2InstructionBuilder& Type2InstructionBuilder::SetOpcode(Opcode opcode) {
+Type2InstructionBuilder& Type2InstructionBuilder::SetOpcode(uint8_t opcode) {
   SetOpcodeImpl(value_, opcode);
   return *this;
 }
@@ -104,10 +97,7 @@ uint32_t Type2InstructionReader::Arg1() const {
   return (instr_ >> 8) & 0xFFFFFFll;
 }
 
-Opcode Type2InstructionReader::Opcode() const {
-  uint8_t opcode_repr = instr_ & 0xFFll;
-  return static_cast<khir::Opcode>(opcode_repr);
-}
+uint8_t Type2InstructionReader::Opcode() const { return instr_ & 0xFFll; }
 
 Type3InstructionBuilder::Type3InstructionBuilder(uint64_t initial_instr)
     : value_(initial_instr) {}
@@ -139,7 +129,7 @@ Type3InstructionBuilder& Type3InstructionBuilder::SetArg(uint32_t arg) {
   return *this;
 }
 
-Type3InstructionBuilder& Type3InstructionBuilder::SetOpcode(Opcode opcode) {
+Type3InstructionBuilder& Type3InstructionBuilder::SetOpcode(uint8_t opcode) {
   SetOpcodeImpl(value_, opcode);
   return *this;
 }
@@ -161,10 +151,7 @@ uint32_t Type3InstructionReader::Arg() const {
   return (instr_ >> 8) & 0xFFFFFFll;
 }
 
-Opcode Type3InstructionReader::Opcode() const {
-  uint8_t opcode_repr = instr_ & 0xFFll;
-  return static_cast<khir::Opcode>(opcode_repr);
-}
+uint8_t Type3InstructionReader::Opcode() const { return instr_ & 0xFFll; }
 
 Type5InstructionBuilder::Type5InstructionBuilder(uint64_t initial_instr)
     : value_(initial_instr) {}
@@ -196,7 +183,7 @@ Type5InstructionBuilder& Type5InstructionBuilder::SetMarg1(uint16_t marg1) {
   return *this;
 }
 
-Type5InstructionBuilder& Type5InstructionBuilder::SetOpcode(Opcode opcode) {
+Type5InstructionBuilder& Type5InstructionBuilder::SetOpcode(uint8_t opcode) {
   SetOpcodeImpl(value_, opcode);
   return *this;
 }
@@ -217,9 +204,6 @@ uint16_t Type5InstructionReader::Marg0() const {
 }
 uint16_t Type5InstructionReader::Marg1() const { return (instr_ >> 8) & 0xFFF; }
 
-Opcode Type5InstructionReader::Opcode() const {
-  uint8_t opcode_repr = instr_ & 0xFFll;
-  return static_cast<khir::Opcode>(opcode_repr);
-}
+uint8_t Type5InstructionReader::Opcode() const { return instr_ & 0xFFll; }
 
 }  // namespace kush::khir

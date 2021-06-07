@@ -9,7 +9,7 @@ namespace kush::khir {
 class GenericInstructionReader {
  public:
   GenericInstructionReader(uint64_t instr);
-  Opcode Opcode() const;
+  uint8_t Opcode() const;
 
  private:
   uint64_t instr_;
@@ -37,7 +37,7 @@ class Type1InstructionBuilder {
   Type1InstructionBuilder(uint64_t initial_instr = 0);
   Type1InstructionBuilder& SetMetadata(uint8_t metadata);
   Type1InstructionBuilder& SetConstant(uint64_t constant);
-  Type1InstructionBuilder& SetOpcode(Opcode opcode);
+  Type1InstructionBuilder& SetOpcode(uint8_t opcode);
   uint64_t Build();
 
  private:
@@ -49,7 +49,7 @@ class Type1InstructionReader {
   Type1InstructionReader(uint64_t instr);
   uint8_t Metadata() const;
   uint64_t Constant() const;
-  Opcode Opcode() const;
+  uint8_t Opcode() const;
 
  private:
   uint64_t instr_;
@@ -139,7 +139,7 @@ class Type2InstructionBuilder {
   Type2InstructionBuilder& SetMetadata(uint8_t metadata);
   Type2InstructionBuilder& SetArg0(uint32_t arg0);
   Type2InstructionBuilder& SetArg1(uint32_t arg1);
-  Type2InstructionBuilder& SetOpcode(Opcode opcode);
+  Type2InstructionBuilder& SetOpcode(uint8_t opcode);
   uint64_t Build();
 
  private:
@@ -152,7 +152,7 @@ class Type2InstructionReader {
   uint8_t Metadata() const;
   uint32_t Arg0() const;
   uint32_t Arg1() const;
-  Opcode Opcode() const;
+  uint8_t Opcode() const;
 
  private:
   uint64_t instr_;
@@ -184,7 +184,7 @@ class Type3InstructionBuilder {
   Type3InstructionBuilder& SetTypeID(uint16_t type_id);
   Type3InstructionBuilder& SetSarg(uint8_t sarg);
   Type3InstructionBuilder& SetArg(uint32_t arg);
-  Type3InstructionBuilder& SetOpcode(Opcode opcode);
+  Type3InstructionBuilder& SetOpcode(uint8_t opcode);
   uint64_t Build();
 
  private:
@@ -198,7 +198,7 @@ class Type3InstructionReader {
   uint16_t TypeID() const;
   uint8_t Sarg() const;
   uint32_t Arg() const;
-  Opcode Opcode() const;
+  uint8_t Opcode() const;
 
  private:
   uint64_t instr_;
@@ -221,7 +221,7 @@ class Type5InstructionBuilder {
   Type5InstructionBuilder& SetArg(uint32_t arg);
   Type5InstructionBuilder& SetMarg0(uint16_t marg0);
   Type5InstructionBuilder& SetMarg1(uint16_t marg1);
-  Type5InstructionBuilder& SetOpcode(Opcode opcode);
+  Type5InstructionBuilder& SetOpcode(uint8_t opcode);
   uint64_t Build();
 
  private:
@@ -235,7 +235,7 @@ class Type5InstructionReader {
   uint32_t Arg() const;
   uint16_t Marg0() const;
   uint16_t Marg1() const;
-  Opcode Opcode() const;
+  uint8_t Opcode() const;
 
  private:
   uint64_t instr_;

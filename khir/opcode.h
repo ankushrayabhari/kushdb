@@ -4,7 +4,7 @@
 
 namespace kush::khir {
 
-enum class Opcode : uint8_t {
+enum class ConstantOpcode : uint8_t {
   I1_CONST,
   I8_CONST,
   I16_CONST,
@@ -14,7 +14,19 @@ enum class Opcode : uint8_t {
   GLOBAL_CHAR_ARRAY_CONST,
   STRUCT_CONST,
   ARRAY_CONST,
+  NULLPTR,
   GLOBAL_REF,
+};
+
+ConstantOpcode ConstantOpcodeFrom(uint8_t t) {
+  return static_cast<ConstantOpcode>(t);
+}
+
+uint8_t ConstantOpcodeTo(ConstantOpcode opcode) {
+  return static_cast<uint8_t>(opcode);
+}
+
+enum class Opcode : uint8_t {
   RETURN,
   I1_CMP_EQ,
   I1_CMP_NE,
@@ -99,12 +111,15 @@ enum class Opcode : uint8_t {
   PHI,
   PTR_CAST,
   FUNC_ARG,
-  NULLPTR,
   ALLOCA,
   CALL_ARG,
   CALL_INDIRECT,
   PTR_ADD,
   FUNC_PTR
 };
+
+Opcode OpcodeFrom(uint8_t t) { return static_cast<Opcode>(t); }
+
+uint8_t OpcodeTo(Opcode opcode) { return static_cast<uint8_t>(opcode); }
 
 }  // namespace kush::khir
