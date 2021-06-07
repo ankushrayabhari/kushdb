@@ -4,6 +4,7 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "opcode",
+    srcs = ["opcode.cc"],
     hdrs = ["opcode.h"],
     deps = [],
 )

@@ -16,7 +16,6 @@
 #include "compile/proxy/tuple_idx_table.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/translator_factory.h"
-#include "khir/asm/asm_backend.h"
 #include "khir/llvm/llvm_backend.h"
 #include "khir/program_builder.h"
 #include "plan/operator.h"
@@ -72,7 +71,7 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   // terminate last basic block
   program.Return();
 
-  auto backend = std::make_unique<khir::ASMBackend>();
+  auto backend = std::make_unique<khir::LLVMBackend>();
   program.Translate(*backend);
   return std::move(backend);
 }

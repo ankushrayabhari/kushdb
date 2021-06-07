@@ -195,7 +195,7 @@ void LLVMBackend::Translate(
   manager.Translate(*this);
 
   // Convert all constants
-  std::vector<llvm::Constant*> constant_values(constant_instrs.size(), nullptr);
+  std::vector<llvm::Constant*> constant_values;
   for (auto instr : constant_instrs) {
     constant_values.push_back(ConvertConstantInstr(
         instr, constant_values, i64_constants, f64_constants,

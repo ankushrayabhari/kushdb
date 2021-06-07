@@ -17,10 +17,10 @@ class Value {
  public:
   Value() : idx_(UINT32_MAX) {}
 
-  Value(uint32_t idx) : idx_(idx) {}
+  explicit Value(uint32_t idx) : idx_(idx) {}
 
   Value(uint32_t idx, bool constant_global) : idx_(idx) {
-    if (idx > 0x7FFFFF) {
+    if (idx_ > 0x7FFFFF) {
       throw std::runtime_error("Invalid idx");
     }
 

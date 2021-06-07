@@ -1226,12 +1226,7 @@ Value ProgramBuilder::GlobalConstCharArray(std::string_view s) {
 
 Value ProgramBuilder::ConstantStruct(Type t, absl::Span<const Value> init) {
   uint32_t idx = struct_constants_.size();
-
-  std::vector<Value> init_instrs;
-  for (auto v : init) {
-    init_instrs.push_back(GetConstantGlobalInstr(v));
-  }
-  struct_constants_.emplace_back(t, init_instrs);
+  struct_constants_.emplace_back(t, init);
 
   return AppendConstantGlobal(
       Type1InstructionBuilder()
@@ -1242,12 +1237,7 @@ Value ProgramBuilder::ConstantStruct(Type t, absl::Span<const Value> init) {
 
 Value ProgramBuilder::ConstantArray(Type t, absl::Span<const Value> init) {
   uint32_t idx = array_constants_.size();
-
-  std::vector<Value> init_instrs;
-  for (auto v : init) {
-    init_instrs.push_back(GetConstantGlobalInstr(v));
-  }
-  array_constants_.emplace_back(t, init_instrs);
+  array_constants_.emplace_back(t, init);
 
   return AppendConstantGlobal(
       Type1InstructionBuilder()

@@ -198,39 +198,22 @@ void* InsertFn() {
 }
 
 template <catalog::SqlType S>
-GlobalColumnIndexImpl<S>::GlobalColumnIndexImpl(khir::ProgramBuilder& program)
+void ColumnIndexImpl<S>::Reset() {
+  program_.Call(program_.GetFunction(FreeFnName<S>()),
+                {program_.LoadPtr(value_)});
+}
+
+template <catalog::SqlType S>
+ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program, bool global)
     : program_(program),
-      global_ref_generator_(program.Global(
-          false, false, program.PointerType(program.I8Type()),
-          program.NullPtr(program.PointerType(program.I8Type())))) {
-  program_.StorePtr(global_ref_generator_(),
+      value_(global
+                 ? program.Global(
+                       false, false, program.PointerType(program.I8Type()),
+                       program.NullPtr(program.PointerType(program.I8Type())))
+                 : program_.Alloca(program.PointerType(program.I8Type()))) {
+  program_.StorePtr(value_,
                     program_.Call(program_.GetFunction(CreateFnName<S>()), {}));
 }
-
-template <catalog::SqlType S>
-void GlobalColumnIndexImpl<S>::Reset() {
-  program_.Call(program_.GetFunction(FreeFnName<S>()),
-                {program_.LoadPtr(global_ref_generator_())});
-}
-
-template <catalog::SqlType S>
-std::unique_ptr<ColumnIndex> GlobalColumnIndexImpl<S>::Get() {
-  auto local_v = global_ref_generator_();
-  return std::make_unique<ColumnIndexImpl<S>>(program_, local_v);
-}
-
-template class GlobalColumnIndexImpl<catalog::SqlType::SMALLINT>;
-template class GlobalColumnIndexImpl<catalog::SqlType::INT>;
-template class GlobalColumnIndexImpl<catalog::SqlType::BIGINT>;
-template class GlobalColumnIndexImpl<catalog::SqlType::REAL>;
-template class GlobalColumnIndexImpl<catalog::SqlType::DATE>;
-template class GlobalColumnIndexImpl<catalog::SqlType::BOOLEAN>;
-template class GlobalColumnIndexImpl<catalog::SqlType::TEXT>;
-
-template <catalog::SqlType S>
-ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program,
-                                    khir::Value value)
-    : program_(program), value_(value) {}
 
 template <catalog::SqlType S>
 void ColumnIndexImpl<S>::Insert(const proxy::Value& v,

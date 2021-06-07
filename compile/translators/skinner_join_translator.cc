@@ -143,7 +143,7 @@ void SkinnerJoinTranslator::Produce() {
     structs.back()->Build();
 
     // Init vector of structs
-    buffers_.emplace_back(program_, *structs.back());
+    buffers_.emplace_back(program_, *structs.back(), true);
 
     // For each predicate column on this table, declare an index.
     for (auto& predicate_column : predicate_columns_) {
@@ -159,44 +159,38 @@ void SkinnerJoinTranslator::Produce() {
         case catalog::SqlType::SMALLINT:
           indexes_.push_back(
               std::make_unique<
-                  proxy::GlobalColumnIndexImpl<catalog::SqlType::SMALLINT>>(
-                  program_));
+                  proxy::ColumnIndexImpl<catalog::SqlType::SMALLINT>>(program_,
+                                                                      true));
           break;
         case catalog::SqlType::INT:
           indexes_.push_back(
-              std::make_unique<
-                  proxy::GlobalColumnIndexImpl<catalog::SqlType::INT>>(
-                  program_));
+              std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::INT>>(
+                  program_, true));
           break;
         case catalog::SqlType::BIGINT:
-          indexes_.push_back(
-              std::make_unique<
-                  proxy::GlobalColumnIndexImpl<catalog::SqlType::BIGINT>>(
-                  program_));
+          indexes_.push_back(std::make_unique<
+                             proxy::ColumnIndexImpl<catalog::SqlType::BIGINT>>(
+              program_, true));
           break;
         case catalog::SqlType::REAL:
           indexes_.push_back(
-              std::make_unique<
-                  proxy::GlobalColumnIndexImpl<catalog::SqlType::REAL>>(
-                  program_));
+              std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::REAL>>(
+                  program_, true));
           break;
         case catalog::SqlType::DATE:
           indexes_.push_back(
-              std::make_unique<
-                  proxy::GlobalColumnIndexImpl<catalog::SqlType::DATE>>(
-                  program_));
+              std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::DATE>>(
+                  program_, true));
           break;
         case catalog::SqlType::TEXT:
           indexes_.push_back(
-              std::make_unique<
-                  proxy::GlobalColumnIndexImpl<catalog::SqlType::TEXT>>(
-                  program_));
+              std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::TEXT>>(
+                  program_, true));
           break;
         case catalog::SqlType::BOOLEAN:
-          indexes_.push_back(
-              std::make_unique<
-                  proxy::GlobalColumnIndexImpl<catalog::SqlType::BOOLEAN>>(
-                  program_));
+          indexes_.push_back(std::make_unique<
+                             proxy::ColumnIndexImpl<catalog::SqlType::BOOLEAN>>(
+              program_, true));
           break;
       }
     }
@@ -218,55 +212,57 @@ void SkinnerJoinTranslator::Produce() {
   }
   predicate_struct->Build();
 
-  auto global_predicate_struct_ref_generator = program_.Global(
-      false, true, predicate_struct->Type(),
-      program_.ConstantStruct(predicate_struct->Type(),
-                              predicate_struct->DefaultValues())());
+  proxy::Struct global_predicate_struct(
+      program_, *predicate_struct,
+      program_.Global(
+          false, true, predicate_struct->Type(),
+          program_.ConstantStruct(predicate_struct->Type(),
+                                  predicate_struct->DefaultValues())));
 
   // Setup idx array.
   std::vector<khir::Value> initial_idx_values(child_operators.size(),
                                               program_.ConstI32(0));
   auto idx_array_type =
       program_.ArrayType(program_.I32Type(), child_operators.size());
-  auto idx_array_ref_generator = program_.Global(
+  auto idx_array = program_.Global(
       false, true, idx_array_type,
-      program_.ConstantArray(idx_array_type, initial_idx_values)());
+      program_.ConstantArray(idx_array_type, initial_idx_values));
 
   // Setup progress array
   std::vector<khir::Value> initial_progress_values(child_operators.size(),
                                                    program_.ConstI32(-1));
   auto progress_array_type =
       program_.ArrayType(program_.I32Type(), child_operators.size());
-  auto progress_array_ref_generator = program_.Global(
+  auto progress_array = program_.Global(
       false, true, progress_array_type,
-      program_.ConstantArray(progress_array_type, initial_progress_values)());
+      program_.ConstantArray(progress_array_type, initial_progress_values));
 
   // Setup offset array
   std::vector<khir::Value> initial_offset_values(child_operators.size(),
                                                  program_.ConstI32(-1));
   auto offset_array_type =
       program_.ArrayType(program_.I32Type(), child_operators.size());
-  auto offset_array_ref_generator = program_.Global(
+  auto offset_array = program_.Global(
       false, true, offset_array_type,
-      program_.ConstantArray(offset_array_type, initial_offset_values)());
+      program_.ConstantArray(offset_array_type, initial_offset_values));
 
   // Setup table_ctr
   auto table_ctr_type = program_.ArrayType(program_.I32Type(), 1);
-  auto table_ctr_ptr_ref_generator = program_.Global(
+  auto table_ctr_ptr = program_.Global(
       false, true, table_ctr_type,
-      program_.ConstantArray(table_ctr_type, {program_.ConstI32(0)})());
+      program_.ConstantArray(table_ctr_type, {program_.ConstI32(0)}));
 
   // Setup last_table
   auto last_table_type = program_.ArrayType(program_.I32Type(), 1);
-  auto last_table_ptr_ref_generator = program_.Global(
+  auto last_table_ptr = program_.Global(
       false, true, last_table_type,
-      program_.ConstantArray(last_table_type, {program_.ConstI32(0)})());
+      program_.ConstantArray(last_table_type, {program_.ConstI32(0)}));
 
   // Setup # of result_tuples
   auto num_result_tuples_type = program_.ArrayType(program_.I32Type(), 1);
-  auto num_result_tuples_ptr_ref_generator = program_.Global(
+  auto num_result_tuples_ptr = program_.Global(
       false, true, num_result_tuples_type,
-      program_.ConstantArray(num_result_tuples_type, {program_.ConstI32(0)})());
+      program_.ConstantArray(num_result_tuples_type, {program_.ConstI32(0)}));
 
   // Setup flag array for each table.
   int total_flags = 0;
@@ -281,11 +277,11 @@ void SkinnerJoinTranslator::Produce() {
 
   auto flag_type = program_.I8Type();
   auto flag_array_type = program_.ArrayType(flag_type, total_flags);
-  auto flag_array_ref_generator = program_.Global(
+  auto flag_array = program_.Global(
       false, true, flag_array_type,
       program_.ConstantArray(
           flag_array_type,
-          std::vector<khir::Value>(total_flags, program_.ConstI8(0)))());
+          std::vector<khir::Value>(total_flags, program_.ConstI8(0))));
 
   // Setup table handlers
   auto handler_type = program_.FunctionType(
@@ -296,8 +292,8 @@ void SkinnerJoinTranslator::Produce() {
   auto handler_pointer_init = program_.ConstantArray(
       handler_pointer_array_type,
       std::vector<khir::Value>(child_translators.size(),
-                               program_.NullPtr(handler_pointer_type)))();
-  auto handler_pointer_array_ref_generator = program_.Global(
+                               program_.NullPtr(handler_pointer_type)));
+  auto handler_pointer_array = program_.Global(
       false, true, handler_pointer_array_type, handler_pointer_init);
 
   std::vector<proxy::TableFunction> table_functions;
@@ -306,16 +302,6 @@ void SkinnerJoinTranslator::Produce() {
 
     table_functions.push_back(proxy::TableFunction(
         program_, [&](auto& initial_budget, auto& resume_progress) {
-          proxy::Struct global_predicate_struct(
-              program_, *predicate_struct,
-              global_predicate_struct_ref_generator());
-          auto handler_pointer_array = handler_pointer_array_ref_generator();
-          auto progress_array = progress_array_ref_generator();
-          auto idx_array = idx_array_ref_generator();
-          auto last_table_ptr = last_table_ptr_ref_generator();
-          auto flag_array = flag_array_ref_generator();
-          auto table_ctr_ptr = table_ctr_ptr_ref_generator();
-
           auto handler_ptr =
               program_.GetElementPtr(handler_pointer_array_type,
                                      handler_pointer_array, {0, table_idx});
@@ -340,7 +326,7 @@ void SkinnerJoinTranslator::Produce() {
           }
 
           // Loop over tuples in buffer
-          auto buffer = buffers_[table_idx].Get();
+          auto& buffer = buffers_[table_idx];
           auto cardinality = buffer.Size();
 
           // Get progress
@@ -472,7 +458,7 @@ void SkinnerJoinTranslator::Produce() {
                                               ? *right_column
                                               : *left_column);
                                   auto next_greater_in_index =
-                                      indexes_[idx]->Get()->GetNextGreater(
+                                      indexes_[idx]->GetNextGreater(
                                           *other_side_value, last_tuple,
                                           cardinality);
 
@@ -663,21 +649,20 @@ void SkinnerJoinTranslator::Produce() {
   }
 
   // Setup global hash table that contains tuple idx
-  proxy::GlobalTupleIdxTable tuple_idx_table(program_);
+  proxy::TupleIdxTable tuple_idx_table(program_, true);
 
   // Setup function for each valid tuple
   proxy::TableFunction valid_tuple_handler(
       program_, [&](const auto& budget, const auto& resume_progress) {
         // Insert tuple idx into hash table
-        auto tuple_idx_arr = program_.GetElementPtr(
-            idx_array_type, idx_array_ref_generator(), {0, 0});
+        auto tuple_idx_arr =
+            program_.GetElementPtr(idx_array_type, idx_array, {0, 0});
 
         proxy::Int32 num_tables(program_, child_translators.size());
-        tuple_idx_table.Get().Insert(tuple_idx_arr, num_tables);
+        tuple_idx_table.Insert(tuple_idx_arr, num_tables);
 
-        auto result_ptr = program_.GetElementPtr(
-            num_result_tuples_type, num_result_tuples_ptr_ref_generator(),
-            {0, 0});
+        auto result_ptr = program_.GetElementPtr(num_result_tuples_type,
+                                                 num_result_tuples_ptr, {0, 0});
         proxy::Int32 num_result_tuples(program_, program_.LoadI32(result_ptr));
         program_.StoreI32(result_ptr, (num_result_tuples + 1).Get());
 
@@ -687,9 +672,8 @@ void SkinnerJoinTranslator::Produce() {
   // 3. Execute join
   // Initialize handler array with the corresponding functions for each table
   for (int i = 0; i < child_operators.size(); i++) {
-    auto handler_ptr =
-        program_.GetElementPtr(handler_pointer_array_type,
-                               handler_pointer_array_ref_generator(), {0, i});
+    auto handler_ptr = program_.GetElementPtr(handler_pointer_array_type,
+                                              handler_pointer_array, {0, i});
     program_.StorePtr(handler_ptr,
                       {program_.GetFunctionPointer(table_functions[i].Get())});
   }
@@ -707,9 +691,9 @@ void SkinnerJoinTranslator::Produce() {
       program_.I32Type(), table_predicate_to_flag_idx_values.size());
   auto table_predicate_to_flag_idx_arr_init = program_.ConstantArray(
       table_predicate_to_flag_idx_arr_type, table_predicate_to_flag_idx_values);
-  auto table_predicate_to_flag_idx_arr_ref_generator =
+  auto table_predicate_to_flag_idx_arr =
       program_.Global(true, true, table_predicate_to_flag_idx_arr_type,
-                      table_predicate_to_flag_idx_arr_init());
+                      table_predicate_to_flag_idx_arr_init);
 
   // Serialize the tables_per_predicate map.
   std::vector<khir::Value> tables_per_predicate_arr_values;
@@ -726,16 +710,14 @@ void SkinnerJoinTranslator::Produce() {
       program_.I32Type(), tables_per_predicate_arr_values.size());
   auto tables_per_predicate_arr_init = program_.ConstantArray(
       tables_per_predicate_arr_type, tables_per_predicate_arr_values);
-  auto tables_per_predicate_arr_ref_generator =
-      program_.Global(true, true, tables_per_predicate_arr_type,
-                      tables_per_predicate_arr_init());
+  auto tables_per_predicate_arr = program_.Global(
+      true, true, tables_per_predicate_arr_type, tables_per_predicate_arr_init);
 
   // Write out cardinalities to idx_array
   for (int i = 0; i < child_operators.size(); i++) {
-    auto buffer = buffers_[i].Get();
+    auto& buffer = buffers_[i];
     auto cardinality = buffer.Size();
-    program_.StoreI32(program_.GetElementPtr(idx_array_type,
-                                             idx_array_ref_generator(), {0, i}),
+    program_.StoreI32(program_.GetElementPtr(idx_array_type, idx_array, {0, i}),
                       cardinality.Get());
   }
 
@@ -745,32 +727,26 @@ void SkinnerJoinTranslator::Produce() {
   executor.Execute({
       program_.ConstI32(child_operators.size()),
       program_.ConstI32(conditions.size()),
-      program_.GetElementPtr(handler_pointer_array_type,
-                             handler_pointer_array_ref_generator(), {0, 0}),
+      program_.GetElementPtr(handler_pointer_array_type, handler_pointer_array,
+                             {0, 0}),
       program_.GetFunctionPointer(valid_tuple_handler.Get()),
       program_.ConstI32(table_predicate_to_flag_idx_values.size()),
       program_.GetElementPtr(table_predicate_to_flag_idx_arr_type,
-                             table_predicate_to_flag_idx_arr_ref_generator(),
-                             {0, 0}),
+                             table_predicate_to_flag_idx_arr, {0, 0}),
       program_.GetElementPtr(tables_per_predicate_arr_type,
-                             tables_per_predicate_arr_ref_generator(), {0, 0}),
-      program_.GetElementPtr(flag_array_type, flag_array_ref_generator(),
+                             tables_per_predicate_arr, {0, 0}),
+      program_.GetElementPtr(flag_array_type, flag_array, {0, 0}),
+      program_.GetElementPtr(progress_array_type, progress_array, {0, 0}),
+      program_.GetElementPtr(table_ctr_type, table_ctr_ptr, {0, 0}),
+      program_.GetElementPtr(idx_array_type, idx_array, {0, 0}),
+      program_.GetElementPtr(last_table_type, last_table_ptr, {0, 0}),
+      program_.GetElementPtr(num_result_tuples_type, num_result_tuples_ptr,
                              {0, 0}),
-      program_.GetElementPtr(progress_array_type,
-                             progress_array_ref_generator(), {0, 0}),
-      program_.GetElementPtr(table_ctr_type, table_ctr_ptr_ref_generator(),
-                             {0, 0}),
-      program_.GetElementPtr(idx_array_type, idx_array_ref_generator(), {0, 0}),
-      program_.GetElementPtr(last_table_type, last_table_ptr_ref_generator(),
-                             {0, 0}),
-      program_.GetElementPtr(num_result_tuples_type,
-                             num_result_tuples_ptr_ref_generator(), {0, 0}),
-      program_.GetElementPtr(offset_array_type, offset_array_ref_generator(),
-                             {0, 0}),
+      program_.GetElementPtr(offset_array_type, offset_array, {0, 0}),
   });
 
   // Loop over tuple idx table and then output tuples from each table.
-  tuple_idx_table.Get().ForEach([&](const auto& tuple_idx_arr) {
+  tuple_idx_table.ForEach([&](const auto& tuple_idx_arr) {
     int current_buffer = 0;
     for (int i = 0; i < child_translators.size(); i++) {
       auto& child_translator = child_translators[i].get();
@@ -779,7 +755,7 @@ void SkinnerJoinTranslator::Produce() {
           program_.GetElementPtr(program_.I32Type(), tuple_idx_arr, {i});
       auto tuple_idx = proxy::Int32(program_, program_.LoadI32(tuple_idx_ptr));
 
-      auto buffer = buffers_[current_buffer++].Get();
+      auto& buffer = buffers_[current_buffer++];
       // set the schema values of child to be the tuple_idx'th tuple of
       // current table.
       child_translator.SchemaValues().SetValues(buffer[tuple_idx].Unpack());
@@ -802,8 +778,7 @@ void SkinnerJoinTranslator::Produce() {
 
 void SkinnerJoinTranslator::Consume(OperatorTranslator& src) {
   auto values = src.SchemaValues().Values();
-  auto buffer = buffers_[child_idx_].Get();
-
+  auto& buffer = buffers_[child_idx_];
   auto tuple_idx = buffer.Size();
 
   // for each predicate column on this table, insert tuple idx into
@@ -817,8 +792,8 @@ void SkinnerJoinTranslator::Consume(OperatorTranslator& src) {
         {child_idx_, predicate_column.get().GetColumnIdx()});
     if (it != predicate_to_index_idx_.end()) {
       auto idx = it->second;
-      indexes_[idx]->Get()->Insert(
-          values[predicate_column.get().GetColumnIdx()].get(), tuple_idx);
+      indexes_[idx]->Insert(values[predicate_column.get().GetColumnIdx()].get(),
+                            tuple_idx);
     }
   }
 

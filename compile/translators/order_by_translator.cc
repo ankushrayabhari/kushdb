@@ -39,7 +39,7 @@ void OrderByTranslator::Produce() {
   packed.Build();
 
   // init vector
-  buffer_ = std::make_unique<proxy::Vector>(program_, packed);
+  buffer_ = std::make_unique<proxy::Vector>(program_, packed, false);
 
   // populate vector
   this->Child().Produce();

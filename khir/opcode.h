@@ -18,13 +18,8 @@ enum class ConstantOpcode : uint8_t {
   GLOBAL_REF,
 };
 
-ConstantOpcode ConstantOpcodeFrom(uint8_t t) {
-  return static_cast<ConstantOpcode>(t);
-}
-
-uint8_t ConstantOpcodeTo(ConstantOpcode opcode) {
-  return static_cast<uint8_t>(opcode);
-}
+ConstantOpcode ConstantOpcodeFrom(uint8_t t);
+uint8_t ConstantOpcodeTo(ConstantOpcode opcode);
 
 enum class Opcode : uint8_t {
   RETURN,
@@ -118,8 +113,7 @@ enum class Opcode : uint8_t {
   FUNC_PTR
 };
 
-Opcode OpcodeFrom(uint8_t t) { return static_cast<Opcode>(t); }
-
-uint8_t OpcodeTo(Opcode opcode) { return static_cast<uint8_t>(opcode); }
+Opcode OpcodeFrom(uint8_t t);
+uint8_t OpcodeTo(Opcode opcode);
 
 }  // namespace kush::khir

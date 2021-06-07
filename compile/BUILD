@@ -25,7 +25,6 @@ cc_library(
         "//compile/proxy:vector",
         "//compile/translators:translator_factory",
         "//khir:program_builder",
-        "//khir/asm:asm_backend",
         "//khir/llvm:llvm_backend",
     ],
 )

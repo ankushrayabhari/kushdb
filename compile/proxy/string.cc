@@ -113,7 +113,7 @@ khir::Value String::Constant(khir::ProgramBuilder& program,
   auto char_ptr = program.GlobalConstCharArray(value);
   auto len = program.ConstI32(value.size());
   return program.ConstantStruct(program.GetStructType(StringStructName),
-                                {char_ptr(), len})();
+                                {char_ptr, len});
 }
 
 String String::Global(khir::ProgramBuilder& program, std::string_view value) {
@@ -122,8 +122,8 @@ String String::Global(khir::ProgramBuilder& program, std::string_view value) {
   auto str_struct = program.Global(
       true, false, program.GetStructType(StringStructName),
       program.ConstantStruct(program.GetStructType(StringStructName),
-                             {char_ptr(), len})());
-  return String(program, str_struct());
+                             {char_ptr, len}));
+  return String(program, str_struct);
 }
 
 void String::ForwardDeclare(khir::ProgramBuilder& program) {

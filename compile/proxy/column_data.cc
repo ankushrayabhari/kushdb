@@ -186,7 +186,7 @@ ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
   auto path_value = program_.GlobalConstCharArray(path);
   value_ = program_.Alloca(program.GetStructType(StructName<S>()));
   program_.Call(program_.GetFunction(OpenFnName<S>()),
-                {value_.value(), path_value()});
+                {value_.value(), path_value});
 
   if constexpr (S == catalog::SqlType::TEXT) {
     result_ = program_.Alloca(program_.GetStructType(String::StringStructName));
