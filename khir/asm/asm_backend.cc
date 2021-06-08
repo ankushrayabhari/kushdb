@@ -22,65 +22,66 @@ void ExceptionErrorHandler::handleError(Error err, const char* message,
 
 uint64_t ASMBackend::OutputConstant(
     uint64_t instr, const TypeManager& type_manager,
+    const std::vector<uint64_t>& constant_instrs,
     const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
     const std::vector<std::string>& char_array_constants,
     const std::vector<StructConstant>& struct_constants,
     const std::vector<ArrayConstant>& array_constants,
     const std::vector<Global>& globals) {
-  auto opcode = GenericInstructionReader(instr).Opcode();
+  auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
-    case Opcode::I1_CONST:
-    case Opcode::I8_CONST: {
+    case ConstantOpcode::I1_CONST:
+    case ConstantOpcode::I8_CONST: {
       // treat I1 as I8
       uint8_t constant = Type1InstructionReader(instr).Constant();
       asm_->embedUInt8(constant);
       return 1;
     }
 
-    case Opcode::I16_CONST: {
+    case ConstantOpcode::I16_CONST: {
       uint16_t constant = Type1InstructionReader(instr).Constant();
       asm_->embedUInt16(constant);
       return 2;
     }
 
-    case Opcode::I32_CONST: {
+    case ConstantOpcode::I32_CONST: {
       uint32_t constant = Type1InstructionReader(instr).Constant();
       asm_->embedUInt32(constant);
       return 4;
     }
 
-    case Opcode::I64_CONST: {
+    case ConstantOpcode::I64_CONST: {
       auto i64_id = Type1InstructionReader(instr).Constant();
       asm_->embedUInt64(i64_constants[i64_id]);
       return 8;
     }
 
-    case Opcode::F64_CONST: {
+    case ConstantOpcode::F64_CONST: {
       auto f64_id = Type1InstructionReader(instr).Constant();
       asm_->embedDouble(f64_constants[f64_id]);
       return 8;
     }
 
-    case Opcode::GLOBAL_CHAR_ARRAY_CONST: {
+    case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST: {
       auto str_id = Type1InstructionReader(instr).Constant();
       asm_->embedLabel(char_array_constants_[str_id]);
       return 8;
     }
 
-    case Opcode::NULLPTR: {
+    case ConstantOpcode::NULLPTR: {
       asm_->embedUInt64(0);
       return 8;
     }
 
-    case Opcode::GLOBAL_REF: {
+    case ConstantOpcode::GLOBAL_REF: {
       auto global_id = Type1InstructionReader(instr).Constant();
       asm_->embedLabel(globals_[global_id]);
       return 8;
     }
 
-    case Opcode::STRUCT_CONST: {
+    case ConstantOpcode::STRUCT_CONST: {
       auto struct_id = Type1InstructionReader(instr).Constant();
       const auto& struct_const = struct_constants[struct_id];
 
@@ -100,9 +101,12 @@ uint64_t ASMBackend::OutputConstant(
           bytes_written++;
         }
 
-        bytes_written += OutputConstant(
-            field_const, type_manager, i64_constants, f64_constants,
-            char_array_constants, struct_constants, array_constants, globals);
+        auto field_const_instr = constant_instrs[field_const.GetIdx()];
+
+        bytes_written +=
+            OutputConstant(field_const_instr, type_manager, constant_instrs,
+                           i64_constants, f64_constants, char_array_constants,
+                           struct_constants, array_constants, globals);
       }
 
       while (bytes_written < type_size) {
@@ -113,22 +117,21 @@ uint64_t ASMBackend::OutputConstant(
       return bytes_written;
     }
 
-    case Opcode::ARRAY_CONST: {
+    case ConstantOpcode::ARRAY_CONST: {
       auto arr_id = Type1InstructionReader(instr).Constant();
       const auto& arr_const = array_constants[arr_id];
 
       uint64_t bytes_written = 0;
       for (auto elem_const : arr_const.Elements()) {
+        auto elem_const_instr = constant_instrs[elem_const.GetIdx()];
         // arrays have no padding
-        bytes_written += OutputConstant(
-            elem_const, type_manager, i64_constants, f64_constants,
-            char_array_constants, struct_constants, array_constants, globals);
+        bytes_written +=
+            OutputConstant(elem_const_instr, type_manager, constant_instrs,
+                           i64_constants, f64_constants, char_array_constants,
+                           struct_constants, array_constants, globals);
       }
       return bytes_written;
     }
-
-    default:
-      throw std::runtime_error("Invalid constant.");
   }
 }
 
@@ -139,6 +142,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
                            const std::vector<StructConstant>& struct_constants,
                            const std::vector<ArrayConstant>& array_constants,
                            const std::vector<Global>& globals,
+                           const std::vector<uint64_t>& constant_instrs,
                            const std::vector<Function>& functions) {
   start = std::chrono::system_clock::now();
   code_.init(rt_.environment());
@@ -164,9 +168,10 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   for (const auto& global : globals) {
     globals_.push_back(asm_->newLabel());
     asm_->bind(globals_.back());
-    OutputConstant(global.InitialValue(), type_manager, i64_constants,
-                   f64_constants, char_array_constants, struct_constants,
-                   array_constants, globals);
+    auto v = global.InitialValue();
+    OutputConstant(constant_instrs[v.GetIdx()], type_manager, constant_instrs,
+                   i64_constants, f64_constants, char_array_constants,
+                   struct_constants, array_constants, globals);
   }
 
   asm_->section(text_section);
@@ -236,7 +241,8 @@ void ASMBackend::Translate(const TypeManager& type_manager,
       for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
         TranslateInstr(type_manager, i64_constants, f64_constants,
                        basic_blocks_impl, functions, epilogue, value_offsets,
-                       instructions, instr_idx, static_stack_frame_size);
+                       instructions, constant_instrs, instr_idx,
+                       static_stack_frame_size);
       }
     }
 
@@ -280,18 +286,12 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
                                 const Label& epilogue,
                                 std::vector<int64_t>& offsets,
                                 const std::vector<uint64_t>& instructions,
+                                const std::vector<uint64_t>& constant_instrs,
                                 int instr_idx, int64_t& static_stack_alloc) {
   auto instr = instructions[instr_idx];
-  auto opcode = GenericInstructionReader(instr).Opcode();
+  auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
-    case Opcode::STRUCT_CONST:
-    case Opcode::ARRAY_CONST: {
-      // should only be used to initialize globals so referencing them in
-      // a normal context shouldn't do anything
-      return;
-    }
-
     // I1
     // ======================================================================
     case Opcode::I1_ZEXT_I8: {
@@ -316,15 +316,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
     }
 
     // I8 ======================================================================
-    case Opcode::I1_CONST:
-    case Opcode::I8_CONST: {
-      uint8_t constant = Type1InstructionReader(instr).Constant();
-      static_stack_alloc += 8;
-      asm_->mov(x86::byte_ptr(x86::rbp, -static_stack_alloc), constant);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
     case Opcode::I8_ADD: {
       Type2InstructionReader reader(instr);
       asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[reader.Arg0()]));
@@ -482,15 +473,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
     }
 
     // I16 =====================================================================
-    case Opcode::I16_CONST: {
-      uint16_t constant = Type1InstructionReader(instr).Constant();
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::word_ptr(x86::rbp, -static_stack_alloc), constant);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
     case Opcode::I16_ADD: {
       Type2InstructionReader reader(instr);
       asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
@@ -645,15 +627,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
     }
 
     // I32 =====================================================================
-    case Opcode::I32_CONST: {
-      uint32_t constant = Type1InstructionReader(instr).Constant();
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::dword_ptr(x86::rbp, -static_stack_alloc), constant);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
     case Opcode::I32_ADD: {
       Type2InstructionReader reader(instr);
       asm_->mov(x86::eax, x86::dword_ptr(x86::rbp, offsets[reader.Arg0()]));
@@ -806,24 +779,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
     }
 
     // I64/PTR =================================================================
-    case Opcode::NULLPTR:
-    case Opcode::I64_CONST: {
-      uint64_t constant =
-          (opcode == Opcode::NULLPTR)
-              ? 0
-              : i64_constants[Type1InstructionReader(instr).Constant()];
-
-      static_stack_alloc += 8;
-      if ((constant >> 32) != 0) {
-        asm_->mov(x86::rax, constant);
-        asm_->mov(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      } else {
-        asm_->mov(x86::qword_ptr(x86::rbp, -static_stack_alloc), constant);
-      }
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
     case Opcode::I64_ADD:
     case Opcode::PTR_ADD: {
       Type2InstructionReader reader(instr);
@@ -989,19 +944,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
     }
 
     // F64 =====================================================================
-    case Opcode::F64_CONST: {
-      double constant = f64_constants[Type1InstructionReader(instr).Constant()];
-      uint64_t constant_bytes;
-      std::memcpy(&constant_bytes, &constant, sizeof(constant_bytes));
-
-      asm_->mov(x86::rax, constant_bytes);
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
     case Opcode::F64_ADD: {
       Type2InstructionReader reader(instr);
       asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[reader.Arg0()]));
@@ -1154,31 +1096,7 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       return;
     }
 
-    // Memory ==================================================================
-    case Opcode::GLOBAL_CHAR_ARRAY_CONST: {
-      auto char_id = Type1InstructionReader(instr).Constant();
-      auto label = char_array_constants_[char_id];
-
-      asm_->lea(x86::rax, x86::ptr(label));
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
-    case Opcode::GLOBAL_REF: {
-      auto glob_id = Type1InstructionReader(instr).Constant();
-      auto label = globals_[glob_id];
-
-      asm_->lea(x86::rax, x86::ptr(label));
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
+    // Control Flow ============================================================
     case Opcode::BR: {
       asm_->jmp(basic_blocks[Type5InstructionReader(instr).Marg0()]);
       return;
@@ -1192,6 +1110,57 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       return;
     }
 
+    case Opcode::PHI_MEMBER: {
+      Type2InstructionReader reader(instr);
+      auto phi = reader.Arg0();
+      auto phi_member = reader.Arg1();
+
+      if (offsets[phi] == INT64_MAX) {
+        asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[phi_member]));
+
+        static_stack_alloc += 8;
+        asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+        offsets[phi] = -static_stack_alloc;
+        return;
+      } else {
+        asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[phi_member]));
+        asm_->mov(x86::ptr(x86::rbp, offsets[phi]), x86::rax);
+        return;
+      }
+    }
+
+    case Opcode::PHI: {
+      // Noop since all handling is done in the phi member
+      return;
+    }
+
+    // Memory ==================================================================
+    case Opcode::FUNC_PTR: {
+      Type3InstructionReader reader(instr);
+      asm_->lea(x86::rax, x86::ptr(internal_func_labels_[reader.Arg()]));
+
+      static_stack_alloc += 8;
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    case Opcode::ALLOCA: {
+      Type3InstructionReader reader(instr);
+      auto size =
+          type_manager.GetTypeSize(static_cast<khir::Type>(reader.TypeID()));
+      size += (16 - (size % 16)) % 16;
+      assert(size % 16 == 0);
+
+      asm_->sub(x86::rsp, size);
+
+      static_stack_alloc += 8;
+      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rsp);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
+    // Calls ===================================================================
     case Opcode::RETURN: {
       asm_->jmp(epilogue);
       return;
@@ -1216,31 +1185,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
       }
 
       asm_->jmp(epilogue);
-      return;
-    }
-
-    case Opcode::FUNC_PTR: {
-      Type3InstructionReader reader(instr);
-      asm_->lea(x86::rax, x86::ptr(internal_func_labels_[reader.Arg()]));
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
-    case Opcode::ALLOCA: {
-      Type3InstructionReader reader(instr);
-      auto size =
-          type_manager.GetTypeSize(static_cast<khir::Type>(reader.TypeID()));
-      size += (16 - (size % 16)) % 16;
-      assert(size % 16 == 0);
-
-      asm_->sub(x86::rsp, size);
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rsp);
-      offsets[instr_idx] = -static_stack_alloc;
       return;
     }
 
@@ -1443,30 +1387,6 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
         throw std::runtime_error("Invalid return type.");
       }
       offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
-    case Opcode::PHI_MEMBER: {
-      Type2InstructionReader reader(instr);
-      auto phi = reader.Arg0();
-      auto phi_member = reader.Arg1();
-
-      if (offsets[phi] == INT64_MAX) {
-        asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[phi_member]));
-
-        static_stack_alloc += 8;
-        asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
-        offsets[phi] = -static_stack_alloc;
-        return;
-      } else {
-        asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[phi_member]));
-        asm_->mov(x86::ptr(x86::rbp, offsets[phi]), x86::rax);
-        return;
-      }
-    }
-
-    case Opcode::PHI: {
-      // Noop since all handling is done in the phi member
       return;
     }
   }

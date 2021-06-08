@@ -28,6 +28,7 @@ class ASMBackend : public Backend {
                  const std::vector<StructConstant>& struct_constants,
                  const std::vector<ArrayConstant>& array_constants,
                  const std::vector<Global>& globals,
+                 const std::vector<uint64_t>& constant_instrs,
                  const std::vector<Function>& functions) override;
 
   // Program
@@ -35,6 +36,7 @@ class ASMBackend : public Backend {
 
  private:
   uint64_t OutputConstant(uint64_t instr, const TypeManager& type_manager,
+                          const std::vector<uint64_t>& constant_instrs,
                           const std::vector<uint64_t>& i64_constants,
                           const std::vector<double>& f64_constants,
                           const std::vector<std::string>& char_array_constants,
@@ -48,8 +50,9 @@ class ASMBackend : public Backend {
                       const std::vector<Function>& functions,
                       const asmjit::Label& epilogue,
                       std::vector<int64_t>& offsets,
-                      const std::vector<uint64_t>& instructions, int instr_idx,
-                      int64_t& static_stack_alloc);
+                      const std::vector<uint64_t>& instructions,
+                      const std::vector<uint64_t>& constant_instrs,
+                      int instr_idx, int64_t& static_stack_alloc);
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   ExceptionErrorHandler err_handler_;
