@@ -170,6 +170,7 @@ class Type2InstructionReader {
 // [MD] [ID] [0]    [ARG] CALL_INDIRECT
 // [MD] [0]  [SARG] [ARG] CALL_ARG
 // [MD] [ID] [0]    [ARG] PTR_CAST
+// [MD] [ID] [0]    [ARG] GEP
 // [MD] [ID] [0]          NULLPTR
 // [MD] [ID] [SARG] [0]   FUNC_ARG
 // [MD] [ID] [0]    [ARG] PTR_LOAD

@@ -563,6 +563,14 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::GEP: {
+      Type3InstructionReader reader(instr);
+      auto t = types_[reader.TypeID()];
+      auto v = GetValue(Value(reader.Arg()), constant_values, values);
+      values[instr_idx] = builder_->CreatePointerCast(v, t);
+      return;
+    }
+
     case Opcode::PTR_CAST: {
       Type3InstructionReader reader(instr);
       auto t = types_[reader.TypeID()];

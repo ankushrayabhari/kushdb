@@ -584,6 +584,7 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::CALL:
     case Opcode::PTR_LOAD:
     case Opcode::PTR_CAST:
+    case Opcode::GEP:
     case Opcode::FUNC_ARG:
     case Opcode::FUNC_PTR:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
@@ -1257,10 +1258,8 @@ Value ProgramBuilder::Global(bool constant, bool pub, Type t, Value init) {
 }
 
 Value ProgramBuilder::SizeOf(Type type) {
-  auto pointer_type = PointerType(type);
-  auto null = NullPtr(pointer_type);
-  auto size_ptr = GetElementPtr(type, null, {1});
-  return PointerCast(size_ptr, I64Type());
+  auto [offset, result_type] = type_manager_.GetPointerOffset(type, {1});
+  return ConstI64(offset);
 }
 
 Value ProgramBuilder::GetElementPtr(Type t, Value ptr,
@@ -1275,7 +1274,11 @@ Value ProgramBuilder::GetElementPtr(Type t, Value ptr,
                                       .SetArg1(offset_v.Serialize())
                                       .Build());
 
-  return PointerCast(untyped_location_v, result_type);
+  return GetCurrentFunction().Append(Type3InstructionBuilder()
+                                         .SetOpcode(OpcodeTo(Opcode::GEP))
+                                         .SetArg(untyped_location_v.Serialize())
+                                         .SetTypeID(result_type.GetID())
+                                         .Build());
 }
 
 void ProgramBuilder::Translate(Backend& backend) {
