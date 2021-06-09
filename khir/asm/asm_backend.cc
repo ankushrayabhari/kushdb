@@ -308,18 +308,16 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
 
+      auto offset = stack_allocator.AllocateSlot();
       if (v.IsConstantGlobal()) {
-        auto offset = stack_allocator.AllocateSlot();
         int8_t constant =
             Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
         asm_->mov(x86::byte_ptr(x86::rbp, offset), constant);
-        offsets[instr_idx] = offset;
       } else {
-        auto offset = stack_allocator.AllocateSlot();
         asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
         asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
-        offsets[instr_idx] = offset;
       }
+      offsets[instr_idx] = offset;
       return;
     }
 
@@ -327,31 +325,51 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
 
+      auto offset = stack_allocator.AllocateSlot();
       if (v.IsConstantGlobal()) {
-        auto offset = stack_allocator.AllocateSlot();
         int8_t constant =
             Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
         asm_->mov(x86::byte_ptr(x86::rbp, offset), constant ^ 1);
-        offsets[instr_idx] = offset;
       } else {
-        auto offset = stack_allocator.AllocateSlot();
         asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
         asm_->xor_(x86::al, 1);
         asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
-        offsets[instr_idx] = offset;
       }
+      offsets[instr_idx] = offset;
       return;
     }
 
     // I8 ======================================================================
     case Opcode::I8_ADD: {
       Type2InstructionReader reader(instr);
-      asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->add(x86::al, x86::byte_ptr(x86::rbp, offsets[reader.Arg1()]));
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
 
-      static_stack_alloc += 8;
-      asm_->mov(x86::byte_ptr(x86::rbp, -static_stack_alloc), x86::al);
-      offsets[instr_idx] = -static_stack_alloc;
+      auto offset = stack_allocator.AllocateSlot();
+      if (v0.IsConstantGlobal() && v1.IsConstantGlobal()) {
+        int8_t c0 =
+            Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant();
+        int8_t c1 =
+            Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), c0 + c1);
+      } else if (v0.IsConstantGlobal() || v1.IsConstantGlobal()) {
+        int8_t c = v0.IsConstantGlobal()
+                       ? Type1InstructionReader(constant_instrs[v0.GetIdx()])
+                             .Constant()
+                       : Type1InstructionReader(constant_instrs[v1.GetIdx()])
+                             .Constant();
+
+        auto offset =
+            v0.IsConstantGlobal() ? offsets[v1.GetIdx()] : offsets[v0.GetIdx()];
+        asm_->mov(x86::al, c);
+        asm_->add(x86::al, x86::byte_ptr(x86::rbp, offset));
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
+      } else {
+        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->add(x86::al, x86::byte_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
+      }
+      offsets[instr_idx] = offset;
       return;
     }
 
