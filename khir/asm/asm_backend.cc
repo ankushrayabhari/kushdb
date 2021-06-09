@@ -325,12 +325,21 @@ void ASMBackend::TranslateInstr(
 
     case Opcode::I1_LNOT: {
       Type2InstructionReader reader(instr);
-      asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->xor_(x86::al, 1);
+      Value v(reader.Arg0());
 
-      static_stack_alloc += 8;
-      asm_->mov(x86::byte_ptr(x86::rbp, -static_stack_alloc), x86::al);
-      offsets[instr_idx] = -static_stack_alloc;
+      if (v.IsConstantGlobal()) {
+        auto offset = stack_allocator.AllocateSlot();
+        int8_t constant =
+            Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), constant ^ 1);
+        offsets[instr_idx] = offset;
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->xor_(x86::al, 1);
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
+        offsets[instr_idx] = offset;
+      }
       return;
     }
 
