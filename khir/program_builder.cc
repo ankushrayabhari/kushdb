@@ -589,8 +589,8 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::FUNC_PTR:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
-    case Opcode::PTR_ADD:
-      throw std::runtime_error("PTR_ADD needs to be casted.");
+    case Opcode::GEP_OFFSET:
+      throw std::runtime_error("GEP_OFFSET needs to be under a GEP.");
       break;
 
     case Opcode::PHI_MEMBER:
@@ -1269,7 +1269,7 @@ Value ProgramBuilder::GetElementPtr(Type t, Value ptr,
 
   auto untyped_location_v =
       GetCurrentFunction().Append(Type2InstructionBuilder()
-                                      .SetOpcode(OpcodeTo(Opcode::PTR_ADD))
+                                      .SetOpcode(OpcodeTo(Opcode::GEP_OFFSET))
                                       .SetArg0(ptr.Serialize())
                                       .SetArg1(offset_v.Serialize())
                                       .Build());

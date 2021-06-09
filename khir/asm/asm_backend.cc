@@ -780,7 +780,7 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
 
     // I64/PTR =================================================================
     case Opcode::I64_ADD:
-    case Opcode::PTR_ADD: {
+    case Opcode::GEP_OFFSET: {
       Type2InstructionReader reader(instr);
       asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[reader.Arg0()]));
       asm_->add(x86::rax, x86::qword_ptr(x86::rbp, offsets[reader.Arg1()]));

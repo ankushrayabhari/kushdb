@@ -110,7 +110,7 @@ enum class Opcode : uint8_t {
   ALLOCA,
   CALL_ARG,
   CALL_INDIRECT,
-  PTR_ADD,
+  GEP_OFFSET,
   FUNC_PTR
 };
 
