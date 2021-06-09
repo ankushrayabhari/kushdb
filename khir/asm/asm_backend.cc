@@ -13,6 +13,16 @@
 
 namespace kush::khir {
 
+StackSlotAllocator::StackSlotAllocator(int64_t initial_size)
+    : size_(initial_size) {}
+
+int64_t StackSlotAllocator::AllocateSlot() {
+  size_ += 8;
+  return -size_;
+}
+
+int64_t StackSlotAllocator::GetSize() { return size_; }
+
 using namespace asmjit;
 
 void ExceptionErrorHandler::handleError(Error err, const char* message,
@@ -234,7 +244,8 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     std::vector<int64_t> value_offsets(instructions.size(), INT64_MAX);
 
     // initially, after rbp is all callee saved registers
-    int64_t static_stack_frame_size = 8 * callee_saved_registers.size();
+    StackSlotAllocator static_stack_allocator(8 *
+                                              callee_saved_registers.size());
     for (int i : basic_block_order) {
       asm_->bind(basic_blocks_impl[i]);
       const auto& [i_start, i_end] = basic_blocks[i];
@@ -242,12 +253,13 @@ void ASMBackend::Translate(const TypeManager& type_manager,
         TranslateInstr(type_manager, i64_constants, f64_constants,
                        basic_blocks_impl, functions, epilogue, value_offsets,
                        instructions, constant_instrs, instr_idx,
-                       static_stack_frame_size);
+                       static_stack_allocator);
       }
     }
 
     // we need to ensure that it is aligned to 16 bytes so if we call any
     // function, stack is 16 byte aligned
+    auto static_stack_frame_size = static_stack_allocator.GetSize();
     static_stack_frame_size += (16 - (static_stack_frame_size % 16)) % 16;
     assert(static_stack_frame_size % 16 == 0);
 
@@ -278,16 +290,14 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   }
 }
 
-void ASMBackend::TranslateInstr(const TypeManager& type_manager,
-                                const std::vector<uint64_t>& i64_constants,
-                                const std::vector<double>& f64_constants,
-                                const std::vector<Label>& basic_blocks,
-                                const std::vector<Function>& functions,
-                                const Label& epilogue,
-                                std::vector<int64_t>& offsets,
-                                const std::vector<uint64_t>& instructions,
-                                const std::vector<uint64_t>& constant_instrs,
-                                int instr_idx, int64_t& static_stack_alloc) {
+void ASMBackend::TranslateInstr(
+    const TypeManager& type_manager, const std::vector<uint64_t>& i64_constants,
+    const std::vector<double>& f64_constants,
+    const std::vector<Label>& basic_blocks,
+    const std::vector<Function>& functions, const Label& epilogue,
+    std::vector<int64_t>& offsets, const std::vector<uint64_t>& instructions,
+    const std::vector<uint64_t>& constant_instrs, int instr_idx,
+    StackSlotAllocator& stack_allocator) {
   auto instr = instructions[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
@@ -296,11 +306,20 @@ void ASMBackend::TranslateInstr(const TypeManager& type_manager,
     // ======================================================================
     case Opcode::I1_ZEXT_I8: {
       Type2InstructionReader reader(instr);
-      asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[reader.Arg0()]));
+      Value v(reader.Arg0());
 
-      static_stack_alloc += 8;
-      asm_->mov(x86::byte_ptr(x86::rbp, -static_stack_alloc), x86::al);
-      offsets[instr_idx] = -static_stack_alloc;
+      if (v.IsConstantGlobal()) {
+        auto offset = stack_allocator.AllocateSlot();
+        int8_t constant =
+            Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), constant);
+        offsets[instr_idx] = offset;
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
+        offsets[instr_idx] = offset;
+      }
       return;
     }
 

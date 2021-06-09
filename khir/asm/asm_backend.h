@@ -16,6 +16,16 @@ class ExceptionErrorHandler : public asmjit::ErrorHandler {
                    asmjit::BaseEmitter* origin) override;
 };
 
+class StackSlotAllocator {
+ public:
+  StackSlotAllocator(int64_t initial_size);
+  int64_t AllocateSlot();
+  int64_t GetSize();
+
+ private:
+  int64_t size_;
+};
+
 class ASMBackend : public Backend {
  public:
   ASMBackend() = default;
@@ -52,7 +62,7 @@ class ASMBackend : public Backend {
                       std::vector<int64_t>& offsets,
                       const std::vector<uint64_t>& instructions,
                       const std::vector<uint64_t>& constant_instrs,
-                      int instr_idx, int64_t& static_stack_alloc);
+                      int instr_idx, StackSlotAllocator& stack_allocator);
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   ExceptionErrorHandler err_handler_;
