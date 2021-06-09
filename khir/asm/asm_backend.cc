@@ -277,7 +277,8 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
     // - Restore callee saved registers
     for (int i = callee_saved_registers.size() - 1; i >= 0; i--) {
-      asm_->mov(callee_saved_registers[i], x86::ptr(x86::rbp, -8 * (i + 1)));
+      asm_->mov(callee_saved_registers[i],
+                x86::qword_ptr(x86::rbp, -8 * (i + 1)));
     }
 
     // - Restore RSP into RBP and Restore RBP and Store RSP in RBP
@@ -679,23 +680,42 @@ void ASMBackend::TranslateInstr(
     case Opcode::I1_ZEXT_I64:
     case Opcode::I8_ZEXT_I64: {
       Type2InstructionReader reader(instr);
-      asm_->movsx(x86::rax, x86::byte_ptr(x86::rbp, offsets[reader.Arg0()]));
+      Value v0(reader.Arg0());
 
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
+      auto offset = stack_allocator.AllocateSlot();
+      if (v0.IsConstantGlobal()) {
+        uint8_t c =
+            Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant();
+        uint32_t res = c;
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), res);
+      } else {
+        asm_->movsx(x86::rax, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
+      }
+      offsets[instr_idx] = offset;
       return;
     }
 
     case Opcode::I8_CONV_F64: {
       Type2InstructionReader reader(instr);
-      asm_->movsx(x86::eax, x86::byte_ptr(x86::rbp, offsets[reader.Arg0()]));
+      Value v0(reader.Arg0());
 
-      asm_->cvtsi2sd(x86::xmm0, x86::eax);
+      auto offset = stack_allocator.AllocateSlot();
+      if (v0.IsConstantGlobal()) {
+        int8_t c =
+            Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant();
+        double res = c;
+        uint64_t res_as_int;
+        std::memcpy(&res_as_int, &res, sizeof(res_as_int));
 
-      static_stack_alloc += 8;
-      asm_->movsd(x86::ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
-      offsets[instr_idx] = -static_stack_alloc;
+        asm_->mov(x86::rax, res_as_int);
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
+      } else {
+        asm_->movsx(x86::eax, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->cvtsi2sd(x86::xmm0, x86::eax);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+      }
+      offsets[instr_idx] = offset;
       return;
     }
 
