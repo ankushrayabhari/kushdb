@@ -76,7 +76,6 @@ class ASMBackend : public Backend {
   std::unique_ptr<asmjit::x86::Assembler> asm_;
 
   std::vector<asmjit::Label> char_array_constants_;
-  std::vector<asmjit::Label> f64_constants_;
   std::vector<asmjit::Label> globals_;
   asmjit::Label GetConstantGlobal(uint64_t instr);
 
