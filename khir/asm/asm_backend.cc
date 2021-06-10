@@ -91,6 +91,12 @@ uint64_t ASMBackend::OutputConstant(
       return 8;
     }
 
+    case ConstantOpcode::FUNC_PTR: {
+      asm_->embedLabel(
+          internal_func_labels_[Type3InstructionReader(instr).Arg()]);
+      return 8;
+    }
+
     case ConstantOpcode::STRUCT_CONST: {
       auto struct_id = Type1InstructionReader(instr).Constant();
       const auto& struct_const = struct_constants[struct_id];
@@ -164,6 +170,12 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
   asm_->section(data_section);
 
+  // Declare all functions
+  for (const auto& function : functions) {
+    external_func_addr_.push_back(function.Addr());
+    internal_func_labels_.push_back(asm_->newLabel());
+  }
+
   // Write out all string constants
   for (const auto& str : char_array_constants) {
     char_array_constants_.push_back(asm_->newLabel());
@@ -185,12 +197,6 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   }
 
   asm_->section(text_section);
-
-  // Declare all functions
-  for (const auto& function : functions) {
-    external_func_addr_.push_back(function.Addr());
-    internal_func_labels_.push_back(asm_->newLabel());
-  }
 
   const std::vector<x86::Gpq> callee_saved_registers = {
       x86::rbx, x86::r12, x86::r13, x86::r14, x86::r15};
@@ -302,6 +308,11 @@ asmjit::Label ASMBackend::GetConstantGlobal(uint64_t instr) {
     case ConstantOpcode::GLOBAL_REF: {
       auto id = Type1InstructionReader(instr).Constant();
       return globals_[id];
+    }
+
+    case ConstantOpcode::FUNC_PTR: {
+      auto id = Type3InstructionReader(instr).Arg();
+      return internal_func_labels_[id];
     }
 
     default:
@@ -2198,13 +2209,9 @@ void ASMBackend::TranslateInstr(
     }
 
     // PTR =====================================================================
-    case Opcode::FUNC_PTR: {
-      Type3InstructionReader reader(instr);
-      asm_->lea(x86::rax, x86::ptr(internal_func_labels_[reader.Arg()]));
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
+    case Opcode::GEP:
+    case Opcode::GEP_OFFSET: {
+      // do nothing since we lazily compute GEPs
       return;
     }
 
@@ -2223,6 +2230,16 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::PTR_CAST: {
+      Type3InstructionReader reader(instr);
+      asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[reader.Arg()]));
+
+      static_stack_alloc += 8;
+      asm_->mov(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::rax);
+      offsets[instr_idx] = -static_stack_alloc;
+      return;
+    }
+
     case Opcode::PTR_LOAD: {
       Type3InstructionReader reader(instr);
       asm_->mov(x86::rcx, x86::qword_ptr(x86::rbp, offsets[reader.Arg()]));
@@ -2234,9 +2251,10 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::PTR_CAST: {
+    case Opcode::PTR_STORE: {
       Type3InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[reader.Arg()]));
+      asm_->mov(x86::rcx, x86::qword_ptr(x86::rbp, offsets[reader.Arg()]));
+      asm_->mov(x86::rax, x86::qword_ptr(x86::rcx));
 
       static_stack_alloc += 8;
       asm_->mov(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::rax);
