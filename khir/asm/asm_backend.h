@@ -53,6 +53,10 @@ class ASMBackend : public Backend {
                           const std::vector<StructConstant>& struct_constants,
                           const std::vector<ArrayConstant>& array_constants,
                           const std::vector<Global>& globals);
+  bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions);
+  std::pair<khir::Value, int64_t> Gep(
+      khir::Value v, const std::vector<uint64_t>& instructions,
+      const std::vector<uint64_t>& i64_constants);
   void TranslateInstr(const TypeManager& type_manager,
                       const std::vector<uint64_t>& i64_constants,
                       const std::vector<double>& f64_constants,
@@ -70,6 +74,7 @@ class ASMBackend : public Backend {
 
   std::vector<asmjit::Label> char_array_constants_;
   std::vector<asmjit::Label> globals_;
+  asmjit::Label GetConstantGlobal(uint64_t instr);
 
   std::vector<void*> external_func_addr_;
   std::vector<asmjit::Label> internal_func_labels_;
