@@ -2240,25 +2240,78 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::PTR_LOAD: {
-      Type3InstructionReader reader(instr);
-      asm_->mov(x86::rcx, x86::qword_ptr(x86::rbp, offsets[reader.Arg()]));
-      asm_->mov(x86::rax, x86::qword_ptr(x86::rcx));
+    case Opcode::PTR_STORE: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+      int64_t ptr_offset = 0;
 
-      static_stack_alloc += 8;
-      asm_->mov(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
+      if (IsGep(v0, instructions)) {
+        auto [ptr, o] = Gep(v0, instructions, i64_constants);
+        v0 = ptr;
+        ptr_offset = o;
+      }
+
+      if (v0.IsConstantGlobal()) {
+        auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
+
+        if (v1.IsConstantGlobal()) {
+          if (ConstantOpcodeFrom(
+                  GenericInstructionReader(constant_instrs[v1.GetIdx()])
+                      .Opcode()) == ConstantOpcode::NULLPTR) {
+            asm_->mov(x86::qword_ptr(label, ptr_offset), 0);
+          } else {
+            auto label = GetConstantGlobal(constant_instrs[v1.GetIdx()]);
+            asm_->lea(x86::rax, x86::ptr(label));
+            asm_->mov(x86::qword_ptr(label, ptr_offset), x86::rax);
+          }
+        } else {
+          asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+          asm_->mov(x86::qword_ptr(label, ptr_offset), x86::rax);
+        }
+      } else {
+        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+
+        if (v1.IsConstantGlobal()) {
+          if (ConstantOpcodeFrom(
+                  GenericInstructionReader(constant_instrs[v1.GetIdx()])
+                      .Opcode()) == ConstantOpcode::NULLPTR) {
+            asm_->mov(x86::qword_ptr(x86::rax, ptr_offset), 0);
+          } else {
+            auto label = GetConstantGlobal(constant_instrs[v1.GetIdx()]);
+            asm_->lea(x86::rcx, x86::ptr(label));
+            asm_->mov(x86::qword_ptr(x86::rax, ptr_offset), x86::rcx);
+          }
+        } else {
+          asm_->mov(x86::rcx, x86::qword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+          asm_->mov(x86::qword_ptr(x86::rax, ptr_offset), x86::rcx);
+        }
+      }
       return;
     }
 
-    case Opcode::PTR_STORE: {
-      Type3InstructionReader reader(instr);
-      asm_->mov(x86::rcx, x86::qword_ptr(x86::rbp, offsets[reader.Arg()]));
-      asm_->mov(x86::rax, x86::qword_ptr(x86::rcx));
+    case Opcode::PTR_LOAD: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      int64_t ptr_offset = 0;
 
-      static_stack_alloc += 8;
-      asm_->mov(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
+      if (IsGep(v0, instructions)) {
+        auto [ptr, o] = Gep(v0, instructions, i64_constants);
+        v0 = ptr;
+        ptr_offset = o;
+      }
+
+      auto offset = stack_allocator.AllocateSlot();
+      if (v0.IsConstantGlobal()) {
+        auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
+        asm_->mov(x86::rax, x86::qword_ptr(label, ptr_offset));
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
+      } else {
+        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::rcx, x86::qword_ptr(x86::rax, ptr_offset));
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rcx);
+      }
+      offsets[instr_idx] = offset;
       return;
     }
 
