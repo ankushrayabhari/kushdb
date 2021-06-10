@@ -69,10 +69,14 @@ class ASMBackend : public Backend {
                       int instr_idx, StackSlotAllocator& stack_allocator);
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
+  asmjit::Section* text_section_;
+  asmjit::Section* data_section_;
+
   ExceptionErrorHandler err_handler_;
   std::unique_ptr<asmjit::x86::Assembler> asm_;
 
   std::vector<asmjit::Label> char_array_constants_;
+  std::vector<asmjit::Label> f64_constants_;
   std::vector<asmjit::Label> globals_;
   asmjit::Label GetConstantGlobal(uint64_t instr);
 

@@ -164,11 +164,10 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   code_.init(rt_.environment());
   asm_ = std::make_unique<x86::Assembler>(&code_);
 
-  Section* text_section = code_.textSection();
-  Section* data_section;
-  code_.newSection(&data_section, ".data", SIZE_MAX, 0, 8, 0);
+  text_section_ = code_.textSection();
+  code_.newSection(&data_section_, ".data", SIZE_MAX, 0, 8, 0);
 
-  asm_->section(data_section);
+  asm_->section(data_section_);
 
   // Declare all functions
   for (const auto& function : functions) {
@@ -196,7 +195,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
                    struct_constants, array_constants, globals);
   }
 
-  asm_->section(text_section);
+  asm_->section(text_section_);
 
   const std::vector<x86::Gpq> callee_saved_registers = {
       x86::rbx, x86::r12, x86::r13, x86::r14, x86::r15};
@@ -2318,12 +2317,117 @@ void ASMBackend::TranslateInstr(
     // F64 =====================================================================
     case Opcode::F64_ADD: {
       Type2InstructionReader reader(instr);
-      asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->addsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[reader.Arg1()]));
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
 
-      static_stack_alloc += 8;
-      asm_->movsd(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
-      offsets[instr_idx] = -static_stack_alloc;
+      auto offset = stack_allocator.AllocateSlot();
+      if (v0.IsConstantGlobal() && v1.IsConstantGlobal()) {
+        double c0 =
+            f64_constants[Type1InstructionReader(constant_instrs[v0.GetIdx()])
+                              .Constant()];
+        double c1 =
+            f64_constants[Type1InstructionReader(constant_instrs[v1.GetIdx()])
+                              .Constant()];
+        double res = c0 + c1;
+
+        uint64_t res_as_int;
+        std::memcpy(&res_as_int, &res, sizeof(res_as_int));
+        asm_->mov(x86::rax, res_as_int);
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
+      } else if (v0.IsConstantGlobal()) {
+        double c =
+            f64_constants[Type1InstructionReader(constant_instrs[v0.GetIdx()])
+                              .Constant()];
+        auto v_offset = offsets[v1.GetIdx()];
+
+        auto label = asm_->newLabel();
+        asm_->section(data_section_);
+        asm_->bind(label);
+        asm_->embedDouble(c);
+        asm_->section(text_section_);
+
+        asm_->movsd(x86::xmm0, x86::qword_ptr(label));
+        asm_->addsd(x86::xmm0, x86::qword_ptr(x86::rbp, v_offset));
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+      } else if (v1.IsConstantGlobal()) {
+        auto v_offset = offsets[v0.GetIdx()];
+        double c =
+            f64_constants[Type1InstructionReader(constant_instrs[v1.GetIdx()])
+                              .Constant()];
+
+        auto label = asm_->newLabel();
+        asm_->section(data_section_);
+        asm_->bind(label);
+        asm_->embedDouble(c);
+        asm_->section(text_section_);
+
+        asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, v_offset));
+        asm_->addsd(x86::xmm0, x86::qword_ptr(label));
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+      } else {
+        asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->addsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+      }
+      offsets[instr_idx] = offset;
+      return;
+    }
+
+    case Opcode::F64_SUB: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      auto offset = stack_allocator.AllocateSlot();
+      if (v0.IsConstantGlobal() && v1.IsConstantGlobal()) {
+        double c0 =
+            f64_constants[Type1InstructionReader(constant_instrs[v0.GetIdx()])
+                              .Constant()];
+        double c1 =
+            f64_constants[Type1InstructionReader(constant_instrs[v1.GetIdx()])
+                              .Constant()];
+        double res = c0 - c1;
+
+        uint64_t res_as_int;
+        std::memcpy(&res_as_int, &res, sizeof(res_as_int));
+        asm_->mov(x86::rax, res_as_int);
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
+      } else if (v0.IsConstantGlobal()) {
+        double c =
+            f64_constants[Type1InstructionReader(constant_instrs[v0.GetIdx()])
+                              .Constant()];
+        auto v_offset = offsets[v1.GetIdx()];
+
+        auto label = asm_->newLabel();
+        asm_->section(data_section_);
+        asm_->bind(label);
+        asm_->embedDouble(c);
+        asm_->section(text_section_);
+
+        asm_->movsd(x86::xmm0, x86::qword_ptr(label));
+        asm_->subsd(x86::xmm0, x86::qword_ptr(x86::rbp, v_offset));
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+      } else if (v1.IsConstantGlobal()) {
+        auto v_offset = offsets[v0.GetIdx()];
+        double c =
+            f64_constants[Type1InstructionReader(constant_instrs[v1.GetIdx()])
+                              .Constant()];
+
+        auto label = asm_->newLabel();
+        asm_->section(data_section_);
+        asm_->bind(label);
+        asm_->embedDouble(c);
+        asm_->section(text_section_);
+
+        asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, v_offset));
+        asm_->subsd(x86::xmm0, x86::qword_ptr(label));
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+      } else {
+        asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->subsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+      }
+      offsets[instr_idx] = offset;
       return;
     }
 
@@ -2331,17 +2435,6 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[reader.Arg0()]));
       asm_->mulsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[reader.Arg1()]));
-
-      static_stack_alloc += 8;
-      asm_->movsd(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
-      offsets[instr_idx] = -static_stack_alloc;
-      return;
-    }
-
-    case Opcode::F64_SUB: {
-      Type2InstructionReader reader(instr);
-      asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->subsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[reader.Arg1()]));
 
       static_stack_alloc += 8;
       asm_->movsd(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
