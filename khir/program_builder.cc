@@ -457,6 +457,7 @@ Type ProgramBuilder::TypeOf(Value value) {
         return type_manager_.F64Type();
 
       case ConstantOpcode::NULLPTR:
+      case ConstantOpcode::FUNC_PTR:
         return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
       case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST:
@@ -586,7 +587,6 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::PTR_CAST:
     case Opcode::GEP:
     case Opcode::FUNC_ARG:
-    case Opcode::FUNC_PTR:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
     case Opcode::GEP_OFFSET:
@@ -652,9 +652,9 @@ absl::Span<const Value> ProgramBuilder::GetFunctionArguments(FunctionRef func) {
 }
 
 Value ProgramBuilder::GetFunctionPointer(FunctionRef func) {
-  return GetCurrentFunction().Append(
+  return AppendConstantGlobal(
       Type3InstructionBuilder()
-          .SetOpcode(OpcodeTo(Opcode::FUNC_PTR))
+          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::FUNC_PTR))
           .SetArg(func.GetID())
           .SetTypeID(type_manager_.PointerType(functions_[func.GetID()].Type())
                          .GetID())

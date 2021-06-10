@@ -175,6 +175,10 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
           init);
     }
 
+    case ConstantOpcode::FUNC_PTR: {
+      return functions_[Type3InstructionReader(instr).Arg()];
+    }
+
     default:
       throw std::runtime_error("Invalid constant.");
   }
@@ -194,14 +198,6 @@ void LLVMBackend::Translate(
   // Populate types_ array
   manager.Translate(*this);
 
-  // Convert all constants
-  std::vector<llvm::Constant*> constant_values;
-  for (auto instr : constant_instrs) {
-    constant_values.push_back(ConvertConstantInstr(
-        instr, constant_values, i64_constants, f64_constants,
-        char_array_constants, struct_constants, array_constants, globals));
-  }
-
   // Translate all func decls
   for (const auto& func : functions) {
     std::string fn_name(func.Name());
@@ -211,6 +207,14 @@ void LLVMBackend::Translate(
                        : llvm::GlobalValue::LinkageTypes::InternalLinkage;
     functions_.push_back(
         llvm::Function::Create(type, linkage, fn_name.c_str(), *module_));
+  }
+
+  // Convert all constants
+  std::vector<llvm::Constant*> constant_values;
+  for (auto instr : constant_instrs) {
+    constant_values.push_back(ConvertConstantInstr(
+        instr, constant_values, i64_constants, f64_constants,
+        char_array_constants, struct_constants, array_constants, globals));
   }
 
   // Translate all func bodies
@@ -554,12 +558,6 @@ void LLVMBackend::TranslateInstr(
       Type3InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg()), constant_values, values);
       values[instr_idx] = builder_->CreateLoad(v);
-      return;
-    }
-
-    case Opcode::FUNC_PTR: {
-      Type3InstructionReader reader(instr);
-      values[instr_idx] = functions_[reader.Arg()];
       return;
     }
 

@@ -16,6 +16,7 @@ enum class ConstantOpcode : uint8_t {
   ARRAY_CONST,
   NULLPTR,
   GLOBAL_REF,
+  FUNC_PTR
 };
 
 ConstantOpcode ConstantOpcodeFrom(uint8_t t);
@@ -110,8 +111,7 @@ enum class Opcode : uint8_t {
   ALLOCA,
   CALL_ARG,
   CALL_INDIRECT,
-  GEP_OFFSET,
-  FUNC_PTR
+  GEP_OFFSET
 };
 
 Opcode OpcodeFrom(uint8_t t);
