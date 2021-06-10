@@ -86,8 +86,8 @@ class ASMBackend : public Backend {
   int num_regular_args_;
   int num_stack_args_;
 
-  std::vector<std::pair<int64_t, khir::Type>> regular_call_args_;
-  std::vector<int64_t> floating_point_call_args_;
+  std::vector<std::pair<khir::Value, khir::Type>> regular_call_args_;
+  std::vector<khir::Value> floating_point_call_args_;
 
   absl::flat_hash_map<std::string, asmjit::Label> breakpoints_;
 

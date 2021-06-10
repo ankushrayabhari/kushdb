@@ -2983,9 +2983,9 @@ void ASMBackend::TranslateInstr(
       if (offsets[phi] == INT64_MAX) {
         asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[phi_member]));
 
-        static_stack_alloc += 8;
-        asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rax);
-        offsets[phi] = -static_stack_alloc;
+        auto offset = stack_allocator.AllocateSlot();
+        asm_->mov(x86::ptr(x86::rbp, offset), x86::rax);
+        offsets[phi] = offset;
         return;
       } else {
         asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[phi_member]));
@@ -3042,44 +3042,41 @@ void ASMBackend::TranslateInstr(
       const std::vector<x86::Xmm> float_arg_regs = {
           x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3, x86::xmm4, x86::xmm5};
 
+      auto offset = stack_allocator.AllocateSlot();
       if (type_manager.IsF64Type(type)) {
         if (num_floating_point_args_ >= float_arg_regs.size()) {
           throw std::runtime_error(
               "Unsupported. Too many floating point args.");
         }
 
-        static_stack_alloc += 8;
-        asm_->movsd(x86::qword_ptr(x86::rbp, -static_stack_alloc),
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset),
                     float_arg_regs[num_floating_point_args_]);
-        offsets[instr_idx] = -static_stack_alloc;
-
         num_floating_point_args_++;
       } else {
         if (num_regular_args_ >= qword_arg_regs.size()) {
           throw std::runtime_error("Unsupported. Too many regular args.");
         }
 
-        static_stack_alloc += 8;
         if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
-          asm_->mov(x86::byte_ptr(x86::rbp, -static_stack_alloc),
+          asm_->mov(x86::byte_ptr(x86::rbp, offset),
                     byte_arg_regs[num_regular_args_]);
         } else if (type_manager.IsI16Type(type)) {
-          asm_->mov(x86::word_ptr(x86::rbp, -static_stack_alloc),
+          asm_->mov(x86::word_ptr(x86::rbp, offset),
                     word_arg_regs[num_regular_args_]);
         } else if (type_manager.IsI32Type(type)) {
-          asm_->mov(x86::dword_ptr(x86::rbp, -static_stack_alloc),
+          asm_->mov(x86::dword_ptr(x86::rbp, offset),
                     dword_arg_regs[num_regular_args_]);
         } else if (type_manager.IsI64Type(type) ||
                    type_manager.IsPtrType(type)) {
-          asm_->mov(x86::qword_ptr(x86::rbp, -static_stack_alloc),
+          asm_->mov(x86::qword_ptr(x86::rbp, offset),
                     qword_arg_regs[num_regular_args_]);
         } else {
           throw std::runtime_error("Invalid argument type.");
         }
 
-        offsets[instr_idx] = -static_stack_alloc;
         num_regular_args_++;
       }
+      offsets[instr_idx] = offset;
       return;
     }
 
@@ -3088,9 +3085,9 @@ void ASMBackend::TranslateInstr(
       auto type = static_cast<Type>(reader.TypeID());
 
       if (type_manager.IsF64Type(type)) {
-        floating_point_call_args_.emplace_back(offsets[reader.Arg()]);
+        floating_point_call_args_.emplace_back(reader.Arg());
       } else {
-        regular_call_args_.emplace_back(offsets[reader.Arg()], type);
+        regular_call_args_.emplace_back(khir::Value(reader.Arg()), type);
       }
       return;
     }
@@ -3113,9 +3110,22 @@ void ASMBackend::TranslateInstr(
       int float_arg_idx = 0;
       while (float_arg_idx < floating_point_call_args_.size() &&
              float_arg_idx < float_arg_regs.size()) {
-        asm_->movsd(
-            float_arg_regs[float_arg_idx],
-            x86::ptr(x86::rbp, floating_point_call_args_[float_arg_idx]));
+        auto v = floating_point_call_args_[float_arg_idx];
+
+        if (v.IsConstantGlobal()) {
+          double c =
+              f64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
+                                .Constant()];
+          auto label = asm_->newLabel();
+          asm_->section(data_section_);
+          asm_->bind(label);
+          asm_->embedDouble(c);
+          asm_->section(text_section_);
+          asm_->movsd(float_arg_regs[float_arg_idx], x86::qword_ptr(label));
+        } else {
+          asm_->movsd(float_arg_regs[float_arg_idx],
+                      x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+        }
         float_arg_idx++;
       }
       if (float_arg_idx < floating_point_call_args_.size()) {
@@ -3126,21 +3136,54 @@ void ASMBackend::TranslateInstr(
       int regular_arg_idx = 0;
       while (regular_arg_idx < qword_arg_regs.size() &&
              regular_arg_idx < regular_call_args_.size()) {
-        auto [offset, type] = regular_call_args_[regular_arg_idx];
+        auto [v, type] = regular_call_args_[regular_arg_idx];
 
         if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
-          asm_->mov(byte_arg_regs[regular_arg_idx],
-                    x86::byte_ptr(x86::rbp, offset));
+          if (v.IsConstantGlobal()) {
+            int8_t c =
+                Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+            asm_->mov(byte_arg_regs[regular_arg_idx], c);
+          } else {
+            asm_->mov(byte_arg_regs[regular_arg_idx],
+                      x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+          }
         } else if (type_manager.IsI16Type(type)) {
-          asm_->mov(word_arg_regs[regular_arg_idx],
-                    x86::word_ptr(x86::rbp, offset));
+          if (v.IsConstantGlobal()) {
+            int16_t c =
+                Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+            asm_->mov(word_arg_regs[regular_arg_idx], c);
+          } else {
+            asm_->mov(word_arg_regs[regular_arg_idx],
+                      x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+          }
         } else if (type_manager.IsI32Type(type)) {
-          asm_->mov(dword_arg_regs[regular_arg_idx],
-                    x86::dword_ptr(x86::rbp, offset));
-        } else if (type_manager.IsI64Type(type) ||
-                   type_manager.IsPtrType(type)) {
-          asm_->mov(qword_arg_regs[regular_arg_idx],
-                    x86::qword_ptr(x86::rbp, offset));
+          if (v.IsConstantGlobal()) {
+            int32_t c =
+                Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+            asm_->mov(dword_arg_regs[regular_arg_idx], c);
+          } else {
+            asm_->mov(dword_arg_regs[regular_arg_idx],
+                      x86::dword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          }
+        } else if (type_manager.IsI64Type(type)) {
+          if (v.IsConstantGlobal()) {
+            int64_t c = i64_constants[Type1InstructionReader(
+                                          constant_instrs[v.GetIdx()])
+                                          .Constant()];
+            asm_->mov(qword_arg_regs[regular_arg_idx], c);
+          } else {
+            asm_->mov(qword_arg_regs[regular_arg_idx],
+                      x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          }
+        } else if (type_manager.IsPtrType(type)) {
+          if (ConstantOpcodeFrom(
+                  GenericInstructionReader(constant_instrs[v.GetIdx()])
+                      .Opcode()) == ConstantOpcode::NULLPTR) {
+            asm_->mov(qword_arg_regs[regular_arg_idx], 0);
+          } else {
+            auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+            asm_->lea(qword_arg_regs[regular_arg_idx], x86::ptr(label));
+          }
         } else {
           throw std::runtime_error("Invalid argument type.");
         }
@@ -3158,19 +3201,58 @@ void ASMBackend::TranslateInstr(
         }
 
         for (int i = regular_call_args_.size() - 1; i >= regular_arg_idx; i--) {
-          auto [offset, type] = regular_call_args_[i];
+          auto [v, type] = regular_call_args_[i];
+
           if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
-            asm_->movzx(x86::rax, x86::byte_ptr(x86::rbp, offset));
+            if (v.IsConstantGlobal()) {
+              int8_t c = Type1InstructionReader(constant_instrs[v.GetIdx()])
+                             .Constant();
+              asm_->mov(x86::rax, c);
+            } else {
+              asm_->movzx(x86::rax,
+                          x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+            }
           } else if (type_manager.IsI16Type(type)) {
-            asm_->movzx(x86::rax, x86::word_ptr(x86::rbp, offset));
+            if (v.IsConstantGlobal()) {
+              int16_t c = Type1InstructionReader(constant_instrs[v.GetIdx()])
+                              .Constant();
+              asm_->mov(x86::rax, c);
+            } else {
+              asm_->movzx(x86::rax,
+                          x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+            }
           } else if (type_manager.IsI32Type(type)) {
-            asm_->movzx(x86::rax, x86::dword_ptr(x86::rbp, offset));
-          } else if (type_manager.IsI64Type(type) ||
-                     type_manager.IsPtrType(type)) {
-            asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offset));
+            if (v.IsConstantGlobal()) {
+              int32_t c = Type1InstructionReader(constant_instrs[v.GetIdx()])
+                              .Constant();
+              asm_->mov(x86::rax, c);
+            } else {
+              asm_->movzx(x86::rax,
+                          x86::dword_ptr(x86::rbp, offsets[v.GetIdx()]));
+            }
+          } else if (type_manager.IsI64Type(type)) {
+            if (v.IsConstantGlobal()) {
+              int64_t c = i64_constants[Type1InstructionReader(
+                                            constant_instrs[v.GetIdx()])
+                                            .Constant()];
+              asm_->mov(x86::rax, c);
+            } else {
+              asm_->mov(x86::rax,
+                        x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+            }
+          } else if (type_manager.IsPtrType(type)) {
+            if (ConstantOpcodeFrom(
+                    GenericInstructionReader(constant_instrs[v.GetIdx()])
+                        .Opcode()) == ConstantOpcode::NULLPTR) {
+              asm_->mov(x86::rax, 0);
+            } else {
+              auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+              asm_->lea(x86::rax, x86::ptr(label));
+            }
           } else {
             throw std::runtime_error("Invalid argument type.");
           }
+
           asm_->push(x86::rax);
           dynamic_stack_alloc += 8;
         }
@@ -3209,23 +3291,23 @@ void ASMBackend::TranslateInstr(
         return;
       }
 
-      static_stack_alloc += 8;
+      auto offset = stack_allocator.AllocateSlot();
       if (type_manager.IsF64Type(return_type)) {
-        asm_->movsd(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
       } else if (type_manager.IsI1Type(return_type) ||
                  type_manager.IsI8Type(return_type)) {
-        asm_->mov(x86::byte_ptr(x86::rbp, -static_stack_alloc), x86::al);
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
       } else if (type_manager.IsI16Type(return_type)) {
-        asm_->mov(x86::word_ptr(x86::rbp, -static_stack_alloc), x86::ax);
+        asm_->mov(x86::word_ptr(x86::rbp, offset), x86::ax);
       } else if (type_manager.IsI32Type(return_type)) {
-        asm_->mov(x86::dword_ptr(x86::rbp, -static_stack_alloc), x86::eax);
+        asm_->mov(x86::dword_ptr(x86::rbp, offset), x86::eax);
       } else if (type_manager.IsI64Type(return_type) ||
                  type_manager.IsPtrType(return_type)) {
-        asm_->mov(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::rax);
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
       } else {
         throw std::runtime_error("Invalid return type.");
       }
-      offsets[instr_idx] = -static_stack_alloc;
+      offsets[instr_idx] = offset;
       return;
     }
   }
