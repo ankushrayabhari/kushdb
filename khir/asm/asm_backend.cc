@@ -2897,6 +2897,27 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::F64_CONV_I64: {
+      Type2InstructionReader reader(instr);
+      Value v(reader.Arg0());
+
+      auto offset = stack_allocator.AllocateSlot();
+      if (v.IsConstantGlobal()) {
+        double c =
+            f64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
+                              .Constant()];
+        int64_t conv = c;
+        asm_->mov(x86::rax, conv);
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
+      } else {
+        asm_->cvttsd2si(x86::rax,
+                        x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
+      }
+      offsets[instr_idx] = offset;
+      return;
+    }
+
     case Opcode::F64_STORE: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
