@@ -2222,21 +2222,21 @@ void ASMBackend::TranslateInstr(
       size += (16 - (size % 16)) % 16;
       assert(size % 16 == 0);
 
+      auto offset = stack_allocator.AllocateSlot();
       asm_->sub(x86::rsp, size);
-
-      static_stack_alloc += 8;
-      asm_->mov(x86::ptr(x86::rbp, -static_stack_alloc), x86::rsp);
-      offsets[instr_idx] = -static_stack_alloc;
+      asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rsp);
+      offsets[instr_idx] = offset;
       return;
     }
 
     case Opcode::PTR_CAST: {
       Type3InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[reader.Arg()]));
+      Value v(reader.Arg());
 
-      static_stack_alloc += 8;
-      asm_->mov(x86::qword_ptr(x86::rbp, -static_stack_alloc), x86::rax);
-      offsets[instr_idx] = -static_stack_alloc;
+      auto offset = stack_allocator.AllocateSlot();
+      asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+      asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
+      offsets[instr_idx] = offset;
       return;
     }
 
