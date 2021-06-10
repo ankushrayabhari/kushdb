@@ -1203,31 +1203,87 @@ void ASMBackend::TranslateInstr(
 
     case Opcode::I16_CONV_F64: {
       Type2InstructionReader reader(instr);
-      asm_->movsx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->cvtsi2sd(x86::xmm0, x86::rax);
+      Value v0(reader.Arg0());
 
-      static_stack_alloc += 8;
-      asm_->movsd(x86::ptr(x86::rbp, -static_stack_alloc), x86::xmm0);
-      offsets[instr_idx] = -static_stack_alloc;
+      auto offset = stack_allocator.AllocateSlot();
+      if (v0.IsConstantGlobal()) {
+        int16_t c =
+            Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant();
+        double res = c;
+        uint64_t res_as_int;
+        std::memcpy(&res_as_int, &res, sizeof(res_as_int));
+
+        asm_->mov(x86::rax, res_as_int);
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
+      } else {
+        asm_->movsx(x86::eax, x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->cvtsi2sd(x86::xmm0, x86::eax);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+      }
+      offsets[instr_idx] = offset;
       return;
     }
 
     case Opcode::I16_STORE: {
       Type2InstructionReader reader(instr);
-      asm_->mov(x86::rcx, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[reader.Arg1()]));
-      asm_->mov(x86::word_ptr(x86::rcx), x86::ax);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+      int64_t ptr_offset = 0;
+
+      if (IsGep(v0, instructions)) {
+        auto [ptr, o] = Gep(v0, instructions, i64_constants);
+        v0 = ptr;
+        ptr_offset = o;
+      }
+
+      if (v0.IsConstantGlobal()) {
+        auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
+
+        if (v1.IsConstantGlobal()) {
+          int16_t c =
+              Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
+          asm_->mov(x86::word_ptr(label, ptr_offset), c);
+        } else {
+          asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[v1.GetIdx()]));
+          asm_->mov(x86::word_ptr(label, ptr_offset), x86::ax);
+        }
+      } else {
+        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+
+        if (v1.IsConstantGlobal()) {
+          int16_t c =
+              Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
+          asm_->mov(x86::word_ptr(x86::rax, ptr_offset), c);
+        } else {
+          asm_->movzx(x86::ecx, x86::word_ptr(x86::rbp, offsets[v1.GetIdx()]));
+          asm_->mov(x86::word_ptr(x86::rax, ptr_offset), x86::cx);
+        }
+      }
       return;
     }
 
     case Opcode::I16_LOAD: {
       Type2InstructionReader reader(instr);
-      asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[reader.Arg0()]));
-      asm_->mov(x86::ax, x86::word_ptr(x86::rax));
+      Value v0(reader.Arg0());
+      int64_t ptr_offset = 0;
 
-      static_stack_alloc += 8;
-      asm_->mov(x86::word_ptr(x86::rbp, -static_stack_alloc), x86::ax);
-      offsets[instr_idx] = -static_stack_alloc;
+      if (IsGep(v0, instructions)) {
+        auto [ptr, o] = Gep(v0, instructions, i64_constants);
+        v0 = ptr;
+        ptr_offset = o;
+      }
+
+      auto offset = stack_allocator.AllocateSlot();
+      if (v0.IsConstantGlobal()) {
+        auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
+        asm_->mov(x86::ax, x86::word_ptr(label, ptr_offset));
+        asm_->mov(x86::word_ptr(x86::rbp, offset), x86::ax);
+      } else {
+        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::ax, x86::word_ptr(x86::rax, ptr_offset));
+        asm_->mov(x86::word_ptr(x86::rbp, offset), x86::ax);
+      }
+      offsets[instr_idx] = offset;
       return;
     }
 
