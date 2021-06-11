@@ -128,6 +128,7 @@ class Function {
   std::string_view Name() const;
   const std::vector<int>& BasicBlockOrder() const;
   const std::vector<std::pair<int, int>>& BasicBlocks() const;
+  const std::vector<std::vector<int>>& BasicBlockSuccessors() const;
   const std::vector<uint64_t>& Instructions() const;
 
  private:
@@ -140,6 +141,7 @@ class Function {
   void* func_;
 
   std::vector<std::pair<int, int>> basic_blocks_;
+  std::vector<std::vector<int>> basic_block_successors_;
   std::vector<int> basic_block_order_;
   std::vector<uint64_t> instructions_;
 

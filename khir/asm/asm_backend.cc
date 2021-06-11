@@ -7,6 +7,7 @@
 
 #include "asmjit/x86.h"
 
+#include "khir/asm/live_intervals.h"
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
@@ -219,6 +220,8 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
     if (func.Name() == "compute") {
       compute_label_ = internal_func_labels_[func_idx];
+
+      ComputeLiveIntervals(func);
     }
 
     // Prologue ================================================================

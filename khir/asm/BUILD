@@ -25,6 +25,7 @@ cc_library(
     srcs = ["asm_backend.cc"],
     hdrs = ["asm_backend.h"],
     deps = [
+        ":live_intervals",
         "//khir:opcode",
         "//khir:program_builder",
         "//khir:type_manager",
