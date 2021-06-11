@@ -2269,8 +2269,8 @@ void ASMBackend::TranslateInstr(
                       .Opcode()) == ConstantOpcode::NULLPTR) {
             asm_->mov(x86::qword_ptr(label, ptr_offset), 0);
           } else {
-            auto label = GetConstantGlobal(constant_instrs[v1.GetIdx()]);
-            asm_->lea(x86::rax, x86::ptr(label));
+            auto v_label = GetConstantGlobal(constant_instrs[v1.GetIdx()]);
+            asm_->lea(x86::rax, x86::ptr(v_label));
             asm_->mov(x86::qword_ptr(label, ptr_offset), x86::rax);
           }
         } else {
@@ -2299,8 +2299,8 @@ void ASMBackend::TranslateInstr(
     }
 
     case Opcode::PTR_LOAD: {
-      Type2InstructionReader reader(instr);
-      Value v0(reader.Arg0());
+      Type3InstructionReader reader(instr);
+      Value v0(reader.Arg());
       int64_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
@@ -3083,6 +3083,14 @@ void ASMBackend::TranslateInstr(
           asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
         }
       } else if (type_manager.IsPtrType(type)) {
+        int64_t ptr_offset = 0;
+
+        if (IsGep(v, instructions)) {
+          auto [ptr, o] = Gep(v, instructions, constant_instrs, i64_constants);
+          v = ptr;
+          ptr_offset = o;
+        }
+
         if (v.IsConstantGlobal()) {
           if (ConstantOpcodeFrom(
                   GenericInstructionReader(constant_instrs[v.GetIdx()])
@@ -3090,11 +3098,15 @@ void ASMBackend::TranslateInstr(
             asm_->mov(x86::qword_ptr(x86::rbp, offset), 0);
           } else {
             auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
-            asm_->lea(x86::rcx, x86::ptr(label));
+            asm_->lea(x86::rcx, x86::ptr(label, ptr_offset));
             asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rcx);
           }
         } else {
           asm_->mov(x86::rcx, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          if (ptr_offset != 0) {
+            asm_->mov(x86::rdx, ptr_offset);
+            asm_->add(x86::rcx, x86::rdx);
+          }
           asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rcx);
         }
       } else {
@@ -3166,6 +3178,14 @@ void ASMBackend::TranslateInstr(
           asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
         }
       } else if (type_manager.IsPtrType(type)) {
+        int64_t ptr_offset = 0;
+
+        if (IsGep(v, instructions)) {
+          auto [ptr, o] = Gep(v, instructions, constant_instrs, i64_constants);
+          v = ptr;
+          ptr_offset = o;
+        }
+
         if (v.IsConstantGlobal()) {
           if (ConstantOpcodeFrom(
                   GenericInstructionReader(constant_instrs[v.GetIdx()])
@@ -3173,10 +3193,14 @@ void ASMBackend::TranslateInstr(
             asm_->mov(x86::rax, 0);
           } else {
             auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
-            asm_->lea(x86::rax, x86::ptr(label));
+            asm_->lea(x86::rax, x86::ptr(label, ptr_offset));
           }
         } else {
           asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          if (ptr_offset != 0) {
+            asm_->mov(x86::rdx, ptr_offset);
+            asm_->add(x86::rax, x86::rdx);
+          }
         }
       } else {
         throw std::runtime_error("Invalid return value type.");
@@ -3334,6 +3358,15 @@ void ASMBackend::TranslateInstr(
                       x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
           }
         } else if (type_manager.IsPtrType(type)) {
+          int64_t ptr_offset = 0;
+
+          if (IsGep(v, instructions)) {
+            auto [ptr, o] =
+                Gep(v, instructions, constant_instrs, i64_constants);
+            v = ptr;
+            ptr_offset = o;
+          }
+
           if (v.IsConstantGlobal()) {
             if (ConstantOpcodeFrom(
                     GenericInstructionReader(constant_instrs[v.GetIdx()])
@@ -3341,11 +3374,16 @@ void ASMBackend::TranslateInstr(
               asm_->mov(qword_arg_regs[regular_arg_idx], 0);
             } else {
               auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
-              asm_->lea(qword_arg_regs[regular_arg_idx], x86::ptr(label));
+              asm_->lea(qword_arg_regs[regular_arg_idx],
+                        x86::ptr(label, ptr_offset));
             }
           } else {
             asm_->mov(qword_arg_regs[regular_arg_idx],
                       x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+            if (ptr_offset != 0) {
+              asm_->mov(x86::rdx, ptr_offset);
+              asm_->add(qword_arg_regs[regular_arg_idx], x86::rdx);
+            }
           }
         } else {
           throw std::runtime_error("Invalid argument type.");
@@ -3404,6 +3442,15 @@ void ASMBackend::TranslateInstr(
                         x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
             }
           } else if (type_manager.IsPtrType(type)) {
+            int64_t ptr_offset = 0;
+
+            if (IsGep(v, instructions)) {
+              auto [ptr, o] =
+                  Gep(v, instructions, constant_instrs, i64_constants);
+              v = ptr;
+              ptr_offset = o;
+            }
+
             if (v.IsConstantGlobal()) {
               if (ConstantOpcodeFrom(
                       GenericInstructionReader(constant_instrs[v.GetIdx()])
@@ -3411,11 +3458,15 @@ void ASMBackend::TranslateInstr(
                 asm_->mov(x86::rax, 0);
               } else {
                 auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
-                asm_->lea(x86::rax, x86::ptr(label));
+                asm_->lea(x86::rax, x86::ptr(label, ptr_offset));
               }
             } else {
               asm_->mov(x86::rax,
                         x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+              if (ptr_offset != 0) {
+                asm_->mov(x86::rdx, ptr_offset);
+                asm_->add(x86::rax, x86::rdx);
+              }
             }
           } else {
             throw std::runtime_error("Invalid argument type.");
@@ -3449,7 +3500,7 @@ void ASMBackend::TranslateInstr(
           throw std::runtime_error("Not possible.");
         }
 
-        asm_->mov(x86::rax, x86::ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
         asm_->call(x86::rax);
 
         return_type = type_manager.GetFunctionReturnType(

@@ -67,7 +67,21 @@ std::unique_ptr<Operator> OrderBy() {
                                            std::vector<bool>{true});
 }
 
-std::unique_ptr<Operator> Join() {
+std::unique_ptr<Operator> HashJoin() {
+  auto r1 = OrderBy();
+  auto r2 = Scan();
+
+  auto c1 = ColRef(r1, "r_name", 0);
+  auto c2 = ColRef(r2, "r_name", 1);
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(*r1, {"r_regionkey", "r_name"}, 0);
+  return std::make_unique<HashJoinOperator>(
+      std::move(schema), std::move(r1), std::move(r2),
+      util::MakeVector(std::move(c1)), util::MakeVector(std::move(c2)));
+}
+
+std::unique_ptr<Operator> SkinnerJoin() {
   auto r1 = OrderBy();
   auto r2 = Scan();
 
@@ -82,7 +96,7 @@ std::unique_ptr<Operator> Join() {
 }
 
 std::unique_ptr<Operator> GroupByAgg() {
-  auto base = Join();
+  auto base = SkinnerJoin();
 
   // aggregate
   auto sum_regionkey = Sum(ColRef(base, "r_regionkey"));
