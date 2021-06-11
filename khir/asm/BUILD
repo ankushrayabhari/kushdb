@@ -3,6 +3,15 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "register",
+    srcs = ["register.cc"],
+    hdrs = ["register.h"],
+    deps = [
+        "@asmjit",
+    ],
+)
+
+cc_library(
     name = "asm_backend",
     srcs = ["asm_backend.cc"],
     hdrs = ["asm_backend.h"],
