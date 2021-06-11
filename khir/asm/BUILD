@@ -3,6 +3,15 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "live_intervals",
+    srcs = ["live_intervals.cc"],
+    hdrs = ["live_intervals.h"],
+    deps = [
+        "//khir:program_builder",
+    ],
+)
+
+cc_library(
     name = "register",
     srcs = ["register.cc"],
     hdrs = ["register.h"],

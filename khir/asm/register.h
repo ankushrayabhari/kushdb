@@ -2,7 +2,7 @@
 
 #include "asmjit/x86.h"
 
-namespace khir::khir {
+namespace kush::khir {
 
 class Register {
  public:
@@ -37,4 +37,4 @@ class Register {
   asmjit::x86::Gpb byte_;
 };
 
-}  // namespace khir::khir
+}  // namespace kush::khir

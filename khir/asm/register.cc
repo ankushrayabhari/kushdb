@@ -2,7 +2,7 @@
 
 #include "asmjit/x86.h"
 
-namespace khir::khir {
+namespace kush::khir {
 
 using namespace asmjit;
 
@@ -35,4 +35,4 @@ Register Register::R13(x86::r13, x86::r13d, x86::r13w, x86::r13b);
 Register Register::R14(x86::r14, x86::r14d, x86::r14w, x86::r14b);
 Register Register::R15(x86::r15, x86::r15d, x86::r15w, x86::r15b);
 
-}  // namespace khir::khir
+}  // namespace kush::khir
