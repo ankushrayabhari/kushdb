@@ -56,6 +56,7 @@ class ASMBackend : public Backend {
   bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions);
   std::pair<khir::Value, int64_t> Gep(
       khir::Value v, const std::vector<uint64_t>& instructions,
+      const std::vector<uint64_t>& constant_instrs,
       const std::vector<uint64_t>& i64_constants);
   void TranslateInstr(const TypeManager& type_manager,
                       const std::vector<uint64_t>& i64_constants,
