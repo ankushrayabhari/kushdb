@@ -16,6 +16,7 @@ int LiveInterval::Start() const { return start_; }
 
 int LiveInterval::End() const { return end_; }
 
+// TODO: replace with better union find impl
 int Find(std::vector<int>& parent, int i) {
   if (parent[i] == i) return i;
   parent[i] = Find(parent, parent[i]);
@@ -155,22 +156,57 @@ std::vector<int> FindLoops(const Function& func) {
   return loop_parent;
 }
 
-std::vector<LiveInterval> ComputeLiveIntervals(const Function& func) {
+void LabelBlocks(int curr, const std::vector<std::vector<int>>& bb_succ,
+                 std::stack<int>& output, std::vector<bool>& visited,
+                 const std::vector<int>& loop_parent) {
+  visited[curr] = true;
+
+  for (auto succ : bb_succ[curr]) {
+    if (loop_parent[succ] == curr) {
+      continue;
+    }
+
+    if (!visited[succ]) {
+      LabelBlocks(succ, bb_succ, output, visited, loop_parent);
+    }
+  }
+
+  for (auto succ : bb_succ[curr]) {
+    if (!visited[succ]) {
+      LabelBlocks(succ, bb_succ, output, visited, loop_parent);
+    }
+  }
+
+  output.push(curr);
+}
+
+std::vector<int> LabelBlocks(const Function& func,
+                             const std::vector<int>& loop_parent) {
   const auto& bb = func.BasicBlocks();
   const auto& bb_succ = func.BasicBlockSuccessors();
 
-  std::cerr << "digraph {\n";
-  for (int i = 0; i < bb.size(); i++) {
-    for (int j : bb_succ[i]) {
-      std::cerr << "  " << i << " -> " << j << "\n";
-    }
-  }
-  std::cerr << "}\n";
+  std::stack<int> temp;
+  std::vector<bool> visited(bb.size(), false);
+  visited[0] = true;
+  LabelBlocks(0, bb_succ, temp, visited, loop_parent);
 
-  auto loop_parent = FindLoops(func);
-  for (int i = 0; i < bb.size(); i++) {
-    std::cerr << i << ":  " << loop_parent[i] << std::endl;
+  std::vector<int> label(bb.size(), -1);
+  int i = 0;
+  while (!temp.empty()) {
+    label[temp.top()] = i++;
+    temp.pop();
   }
+
+  return label;
+}
+
+std::vector<LiveInterval> ComputeLiveIntervals(const Function& func) {
+  const auto& bb = func.BasicBlocks();
+  const auto& bb_succ = func.BasicBlockSuccessors();
+  auto loop_parent = FindLoops(func);
+
+  // label blocks properly
+  auto labels = LabelBlocks(func, loop_parent);
 
   return {};
 }
