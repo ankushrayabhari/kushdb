@@ -70,6 +70,10 @@ const std::vector<std::vector<int>>& Function::BasicBlockSuccessors() const {
   return basic_block_successors_;
 }
 
+const std::vector<std::vector<int>>& Function::BasicBlockPredecessors() const {
+  return basic_block_predecessors_;
+}
+
 const std::vector<uint64_t>& Function::Instructions() const {
   return instructions_;
 }
@@ -112,19 +116,24 @@ bool IsTerminatingInstr(Opcode opcode) {
   }
 }
 
-void UpdateSuccessors(std::vector<int>& succ, uint64_t instr) {
+void UpdateSuccessors(std::vector<std::vector<int>>& pred,
+                      std::vector<std::vector<int>>& succ, int curr,
+                      uint64_t instr) {
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
   switch (opcode) {
     case Opcode::BR: {
       Type5InstructionReader reader(instr);
-      succ.push_back(reader.Marg0());
+      succ[curr].push_back(reader.Marg0());
+      pred[reader.Marg0()].push_back(curr);
       return;
     }
 
     case Opcode::CONDBR: {
       Type5InstructionReader reader(instr);
-      succ.push_back(reader.Marg0());
-      succ.push_back(reader.Marg1());
+      succ[curr].push_back(reader.Marg0());
+      pred[reader.Marg0()].push_back(curr);
+      succ[curr].push_back(reader.Marg1());
+      pred[reader.Marg1()].push_back(curr);
       return;
     }
 
@@ -153,7 +162,8 @@ Value Function::Append(uint64_t instr) {
       IsTerminatingInstr(
           OpcodeFrom(GenericInstructionReader(instr).Opcode()))) {
     basic_blocks_[current_basic_block_].second = idx;
-    UpdateSuccessors(basic_block_successors_[current_basic_block_], instr);
+    UpdateSuccessors(basic_block_predecessors_, basic_block_successors_,
+                     current_basic_block_, instr);
     basic_block_order_.push_back(current_basic_block_);
   }
 
@@ -189,6 +199,7 @@ int Function::GenerateBasicBlock() {
   auto idx = basic_blocks_.size();
   basic_blocks_.push_back({-1, -1});
   basic_block_successors_.emplace_back();
+  basic_block_predecessors_.emplace_back();
   return idx;
 }
 
