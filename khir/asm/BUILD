@@ -27,8 +27,10 @@ cc_library(
     hdrs = ["asm_backend.h"],
     deps = [
         ":live_intervals",
+        "//compile:program",
         "//khir:opcode",
         "//khir:program_builder",
+        "//khir:program_printer",
         "//khir:type_manager",
         "@absl//absl/types:span",
         "@asmjit",

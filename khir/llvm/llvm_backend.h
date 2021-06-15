@@ -4,12 +4,15 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
+#include "compile/program.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
 
 namespace kush::khir {
 
-class LLVMBackend : public Backend, public TypeTranslator {
+class LLVMBackend : public Backend,
+                    public TypeTranslator,
+                    public compile::Program {
  public:
   LLVMBackend();
   virtual ~LLVMBackend() = default;

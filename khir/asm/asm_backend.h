@@ -4,6 +4,7 @@
 
 #include "asmjit/x86.h"
 
+#include "compile/program.h"
 #include "khir/opcode.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
@@ -26,7 +27,7 @@ class StackSlotAllocator {
   int64_t size_;
 };
 
-class ASMBackend : public Backend {
+class ASMBackend : public Backend, public compile::Program {
  public:
   ASMBackend() = default;
   virtual ~ASMBackend() = default;

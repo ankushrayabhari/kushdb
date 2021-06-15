@@ -19,6 +19,7 @@
 #include "khir/asm/asm_backend.h"
 #include "khir/llvm/llvm_backend.h"
 #include "khir/program_builder.h"
+#include "khir/program_printer.h"
 #include "plan/operator.h"
 
 namespace kush::compile {
@@ -71,6 +72,9 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
 
   // terminate last basic block
   program.Return();
+
+  khir::ProgramPrinter printer;
+  program.Translate(printer);
 
   auto backend = std::make_unique<khir::ASMBackend>();
   program.Translate(*backend);

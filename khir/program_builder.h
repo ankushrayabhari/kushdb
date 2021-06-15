@@ -152,7 +152,7 @@ class Function {
   bool public_;
 };
 
-class Backend : public compile::Program {
+class Backend {
  public:
   virtual ~Backend() = default;
 

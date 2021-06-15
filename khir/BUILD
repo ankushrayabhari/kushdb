@@ -10,6 +10,18 @@ cc_library(
 )
 
 cc_library(
+    name = "program_printer",
+    srcs = ["program_printer.cc"],
+    hdrs = ["program_printer.h"],
+    deps = [
+        ":instruction",
+        ":opcode",
+        ":program_builder",
+        "@magic_enum",
+    ],
+)
+
+cc_library(
     name = "program_builder",
     srcs = ["program_builder.cc"],
     hdrs = ["program_builder.h"],
