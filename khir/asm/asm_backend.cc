@@ -332,7 +332,7 @@ bool ASMBackend::IsGep(khir::Value v,
          Opcode::GEP;
 }
 
-std::pair<khir::Value, int64_t> ASMBackend::Gep(
+std::pair<khir::Value, int32_t> ASMBackend::Gep(
     khir::Value v, const std::vector<uint64_t>& instructions,
     const std::vector<uint64_t>& constant_instrs,
     const std::vector<uint64_t>& i64_constants) {
@@ -353,9 +353,10 @@ std::pair<khir::Value, int64_t> ASMBackend::Gep(
   if (!constant_value.IsConstantGlobal()) {
     throw std::runtime_error("Invalid GEP offset");
   }
-  auto idx = Type1InstructionReader(constant_instrs[constant_value.GetIdx()])
-                 .Constant();
-  return {ptr, i64_constants[idx]};
+  int32_t offset =
+      Type1InstructionReader(constant_instrs[constant_value.GetIdx()])
+          .Constant();
+  return {ptr, offset};
 }
 
 void ASMBackend::TranslateInstr(
@@ -800,7 +801,7 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -837,7 +838,7 @@ void ASMBackend::TranslateInstr(
     case Opcode::I8_LOAD: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -1242,7 +1243,7 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -1279,7 +1280,7 @@ void ASMBackend::TranslateInstr(
     case Opcode::I16_LOAD: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -1680,7 +1681,7 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -1717,7 +1718,7 @@ void ASMBackend::TranslateInstr(
     case Opcode::I32_LOAD: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -2152,7 +2153,7 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -2193,7 +2194,7 @@ void ASMBackend::TranslateInstr(
     case Opcode::I64_LOAD: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -2251,7 +2252,7 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -2300,7 +2301,7 @@ void ASMBackend::TranslateInstr(
     case Opcode::PTR_LOAD: {
       Type3InstructionReader reader(instr);
       Value v0(reader.Arg());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -2922,7 +2923,7 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -2967,7 +2968,7 @@ void ASMBackend::TranslateInstr(
     case Opcode::F64_LOAD: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
-      int64_t ptr_offset = 0;
+      int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
         auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
@@ -3082,7 +3083,7 @@ void ASMBackend::TranslateInstr(
           asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
         }
       } else if (type_manager.IsPtrType(type)) {
-        int64_t ptr_offset = 0;
+        int32_t ptr_offset = 0;
 
         if (IsGep(v, instructions)) {
           auto [ptr, o] = Gep(v, instructions, constant_instrs, i64_constants);
@@ -3177,7 +3178,7 @@ void ASMBackend::TranslateInstr(
           asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
         }
       } else if (type_manager.IsPtrType(type)) {
-        int64_t ptr_offset = 0;
+        int32_t ptr_offset = 0;
 
         if (IsGep(v, instructions)) {
           auto [ptr, o] = Gep(v, instructions, constant_instrs, i64_constants);

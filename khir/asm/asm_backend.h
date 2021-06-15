@@ -55,7 +55,7 @@ class ASMBackend : public Backend, public compile::Program {
                           const std::vector<ArrayConstant>& array_constants,
                           const std::vector<Global>& globals);
   bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions);
-  std::pair<khir::Value, int64_t> Gep(
+  std::pair<khir::Value, int32_t> Gep(
       khir::Value v, const std::vector<uint64_t>& instructions,
       const std::vector<uint64_t>& constant_instrs,
       const std::vector<uint64_t>& i64_constants);

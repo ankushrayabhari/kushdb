@@ -1303,7 +1303,7 @@ Value ProgramBuilder::SizeOf(Type type) {
 Value ProgramBuilder::GetElementPtr(Type t, Value ptr,
                                     absl::Span<const int32_t> idx) {
   auto [offset, result_type] = type_manager_.GetPointerOffset(t, idx);
-  auto offset_v = ConstI64(offset);
+  auto offset_v = ConstI32(offset);
 
   auto untyped_location_v =
       GetCurrentFunction().Append(Type2InstructionBuilder()
