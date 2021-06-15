@@ -9,8 +9,7 @@ namespace kush::khir {
 class LiveInterval {
  public:
   LiveInterval(int start, int end);
-  void SetStart(int);
-  void SetEnd(int);
+  void Extend(int);
   int Start() const;
   int End() const;
 
@@ -19,6 +18,7 @@ class LiveInterval {
   int end_;
 };
 
-std::vector<LiveInterval> ComputeLiveIntervals(const Function& func);
+std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
+                                               const TypeManager& manager);
 
 }  // namespace kush::khir

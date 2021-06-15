@@ -24,19 +24,19 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
 
     switch (opcode) {
       case ConstantOpcode::I1_CONST: {
-        int8_t v = Type1InstructionReader(instr).Constant();
+        int32_t v = Type1InstructionReader(instr).Constant();
         std::cerr << "i1:" << v;
         return;
       }
 
       case ConstantOpcode::I8_CONST: {
-        int8_t v = Type1InstructionReader(instr).Constant();
+        int32_t v = Type1InstructionReader(instr).Constant();
         std::cerr << "i8:" << v;
         return;
       }
 
       case ConstantOpcode::I16_CONST: {
-        int16_t v = Type1InstructionReader(instr).Constant();
+        int32_t v = Type1InstructionReader(instr).Constant();
         std::cerr << "i16:" << v;
         return;
       }
@@ -60,7 +60,8 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
       }
 
       case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST: {
-        std::cerr << "$" << v.GetIdx();
+        int v = Type1InstructionReader(instr).Constant();
+        std::cerr << "$" << v;
         return;
       }
 
@@ -75,7 +76,8 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
       }
 
       case ConstantOpcode::GLOBAL_REF: {
-        std::cerr << "#" << v.GetIdx();
+        int v = Type1InstructionReader(instr).Constant();
+        std::cerr << "#" << v;
         return;
       }
 
@@ -96,14 +98,15 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
   std::cerr << "%" << v.GetIdx();
 }
 
-void OutputInstr(int idx, const std::vector<uint64_t>& i64_constants,
-                 const std::vector<double>& f64_constants,
-                 const std::vector<std::string>& char_array_constants,
-                 const std::vector<StructConstant>& struct_constants,
-                 const std::vector<ArrayConstant>& array_constants,
-                 const std::vector<Global>& globals,
-                 const std::vector<uint64_t>& constant_instrs,
-                 const std::vector<Function>& functions, const Function& func) {
+void ProgramPrinter::OutputInstr(
+    int idx, const std::vector<uint64_t>& i64_constants,
+    const std::vector<double>& f64_constants,
+    const std::vector<std::string>& char_array_constants,
+    const std::vector<StructConstant>& struct_constants,
+    const std::vector<ArrayConstant>& array_constants,
+    const std::vector<Global>& globals,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<Function>& functions, const Function& func) {
   auto instrs = func.Instructions();
 
   auto opcode = OpcodeFrom(GenericInstructionReader(instrs[idx]).Opcode());
@@ -279,13 +282,27 @@ void OutputInstr(int idx, const std::vector<uint64_t>& i64_constants,
     }
 
     case Opcode::PHI:
-    case Opcode::ALLOCA:
-    case Opcode::CALL: {
+    case Opcode::ALLOCA: {
       Type3InstructionReader reader(instrs[idx]);
       Value v0(reader.Arg());
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << "\n";
+      return;
+    }
+
+    case Opcode::CALL: {
+      Type3InstructionReader reader(instrs[idx]);
+      Value v0(reader.Arg());
+
+      if (!manager_->IsVoid(static_cast<Type>(reader.TypeID()))) {
+        std::cerr << "   %" << idx << " = ";
+      } else {
+        std::cerr << "   ";
+      }
+
+      std::cerr << magic_enum::enum_name(opcode) << " "
+                << functions[reader.Arg()].Name() << "\n";
       return;
     }
   }

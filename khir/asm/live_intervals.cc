@@ -13,9 +13,19 @@ namespace kush::khir {
 
 LiveInterval::LiveInterval(int start, int end) : start_(start), end_(end) {}
 
-void LiveInterval::SetStart(int x) { start_ = x; }
+void LiveInterval::Extend(int x) {
+  if (start_ == -1) {
+    start_ = x;
+  } else {
+    start_ = std::min(x, start_);
+  }
 
-void LiveInterval::SetEnd(int x) { end_ = x; }
+  if (end_ == -1) {
+    end_ = x;
+  } else {
+    end_ = std::max(x, end_);
+  }
+}
 
 int LiveInterval::Start() const { return start_; }
 
@@ -272,8 +282,7 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     case Opcode::I32_STORE:
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
-    case Opcode::PTR_STORE:
-    case Opcode::PHI_MEMBER: {
+    case Opcode::PTR_STORE: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
@@ -282,6 +291,19 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
       if (!v0.IsConstantGlobal()) {
         result.push_back(v0);
       }
+
+      if (!v1.IsConstantGlobal()) {
+        result.push_back(v1);
+      }
+
+      return result;
+    }
+
+    case Opcode::PHI_MEMBER: {
+      Type2InstructionReader reader(instr);
+      Value v1(reader.Arg1());
+
+      std::vector<Value> result;
 
       if (!v1.IsConstantGlobal()) {
         result.push_back(v1);
@@ -378,7 +400,113 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
   }
 }
 
-std::vector<LiveInterval> ComputeLiveIntervals(const Function& func) {
+bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
+  auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
+
+  switch (opcode) {
+    case Opcode::I1_CMP_EQ:
+    case Opcode::I1_CMP_NE:
+    case Opcode::I8_ADD:
+    case Opcode::I8_MUL:
+    case Opcode::I8_SUB:
+    case Opcode::I8_DIV:
+    case Opcode::I8_CMP_EQ:
+    case Opcode::I8_CMP_NE:
+    case Opcode::I8_CMP_LT:
+    case Opcode::I8_CMP_LE:
+    case Opcode::I8_CMP_GT:
+    case Opcode::I8_CMP_GE:
+    case Opcode::I16_ADD:
+    case Opcode::I16_MUL:
+    case Opcode::I16_SUB:
+    case Opcode::I16_DIV:
+    case Opcode::I16_CMP_EQ:
+    case Opcode::I16_CMP_NE:
+    case Opcode::I16_CMP_LT:
+    case Opcode::I16_CMP_LE:
+    case Opcode::I16_CMP_GT:
+    case Opcode::I16_CMP_GE:
+    case Opcode::I32_ADD:
+    case Opcode::I32_MUL:
+    case Opcode::I32_SUB:
+    case Opcode::I32_DIV:
+    case Opcode::I32_CMP_EQ:
+    case Opcode::I32_CMP_NE:
+    case Opcode::I32_CMP_LT:
+    case Opcode::I32_CMP_LE:
+    case Opcode::I32_CMP_GT:
+    case Opcode::I32_CMP_GE:
+    case Opcode::I64_ADD:
+    case Opcode::I64_MUL:
+    case Opcode::I64_SUB:
+    case Opcode::I64_DIV:
+    case Opcode::I64_CMP_EQ:
+    case Opcode::I64_CMP_NE:
+    case Opcode::I64_CMP_LT:
+    case Opcode::I64_CMP_LE:
+    case Opcode::I64_CMP_GT:
+    case Opcode::I64_CMP_GE:
+    case Opcode::F64_ADD:
+    case Opcode::F64_MUL:
+    case Opcode::F64_SUB:
+    case Opcode::F64_DIV:
+    case Opcode::F64_CMP_EQ:
+    case Opcode::F64_CMP_NE:
+    case Opcode::F64_CMP_LT:
+    case Opcode::F64_CMP_LE:
+    case Opcode::F64_CMP_GT:
+    case Opcode::F64_CMP_GE:
+    case Opcode::I1_LNOT:
+    case Opcode::I1_ZEXT_I8:
+    case Opcode::I1_ZEXT_I64:
+    case Opcode::I8_ZEXT_I64:
+    case Opcode::I8_CONV_F64:
+    case Opcode::I16_ZEXT_I64:
+    case Opcode::I16_CONV_F64:
+    case Opcode::I32_ZEXT_I64:
+    case Opcode::I32_CONV_F64:
+    case Opcode::I64_CONV_F64:
+    case Opcode::F64_CONV_I64:
+    case Opcode::I8_LOAD:
+    case Opcode::I16_LOAD:
+    case Opcode::I32_LOAD:
+    case Opcode::I64_LOAD:
+    case Opcode::F64_LOAD:
+    case Opcode::FUNC_ARG:
+    case Opcode::GEP:
+    case Opcode::PTR_CAST:
+    case Opcode::PTR_LOAD:
+    case Opcode::GEP_OFFSET:
+    case Opcode::ALLOCA: {
+      return true;
+    }
+
+    case Opcode::I8_STORE:
+    case Opcode::I16_STORE:
+    case Opcode::I32_STORE:
+    case Opcode::I64_STORE:
+    case Opcode::F64_STORE:
+    case Opcode::PTR_STORE:
+    case Opcode::PHI_MEMBER:
+    case Opcode::RETURN:
+    case Opcode::BR:
+    case Opcode::CONDBR:
+    case Opcode::RETURN_VALUE:
+    case Opcode::CALL_ARG:
+    case Opcode::PHI: {
+      return false;
+    }
+
+    case Opcode::CALL:  // call arg must be in same bb as call so we are good
+    case Opcode::CALL_INDIRECT: {
+      return !manager.IsVoid(
+          static_cast<Type>(Type3InstructionReader(instr).TypeID()));
+    }
+  }
+}
+
+std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
+                                               const TypeManager& manager) {
   auto [loop_parent, loop_header] = FindLoops(func);
   auto [labels, order] = LabelBlocks(func, loop_parent);
   std::vector<int> loop_depth(loop_parent.size(), 0);
@@ -416,7 +544,7 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func) {
   std::vector<int> instr_to_bb(instrs.size(), -1);
   for (auto bb_idx : order) {
     const auto& [bb_begin, bb_end] = bb[bb_idx];
-    for (int i = bb_begin; i < bb_end; i++) {
+    for (int i = bb_begin; i <= bb_end; i++) {
       instr_to_bb[i] = bb_idx;
     }
   }
@@ -425,56 +553,12 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func) {
 
   for (auto bb_idx : order) {
     const auto& [bb_begin, bb_end] = bb[bb_idx];
-    for (int i = bb_begin; i < bb_end; i++) {
+    for (int i = bb_begin; i <= bb_end; i++) {
       auto instr = instrs[i];
       auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
       if (opcode == Opcode::PHI || opcode == Opcode::GEP_OFFSET) {
         // do nothing
-      } else if (opcode == Opcode::PHI_MEMBER) {
-        Type2InstructionReader reader(instr);
-        Value phi(reader.Arg0());
-        Value arg(reader.Arg1());
-
-        // read the arg
-        {
-          auto v = arg;
-          auto def_bb = instr_to_bb[v.GetIdx()];
-          auto use_bb = bb_idx;
-
-          if (loop_depth[def_bb] == loop_depth[use_bb]) {
-            live_intervals[v.GetIdx()].SetEnd(
-                std::max(live_intervals[v.GetIdx()].End(), use_bb));
-          } else {
-            if (!(loop_depth[use_bb] > loop_depth[def_bb])) {
-              throw std::runtime_error("Invalid def/use situation.");
-            }
-
-            if (!loop_header[use_bb]) {
-              use_bb = loop_parent[use_bb];
-            }
-
-            while (loop_depth[use_bb] > loop_depth[def_bb] + 1) {
-              use_bb = loop_parent[use_bb];
-            }
-
-            assert(loop_header[use_bb]);
-            live_intervals[v.GetIdx()].SetEnd(
-                std::max(live_intervals[v.GetIdx()].End(), loop_end[use_bb]));
-          }
-        }
-
-        // we write the phi here
-        if (live_intervals[phi.GetIdx()].Start() == -1) {
-          live_intervals[phi.GetIdx()].SetStart(bb_idx);
-        } else {
-          live_intervals[phi.GetIdx()].SetStart(
-              std::min(live_intervals[phi.GetIdx()].Start(), bb_idx));
-        }
-
-        // read the phi here
-        live_intervals[phi.GetIdx()].SetEnd(
-            std::max(live_intervals[phi.GetIdx()].End(), bb_idx));
       } else {
         std::vector<Value> values = ComputeReadValues(instr, instrs);
         for (auto v : values) {
@@ -482,8 +566,7 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func) {
           auto use_bb = bb_idx;
 
           if (loop_depth[def_bb] == loop_depth[use_bb]) {
-            live_intervals[v.GetIdx()].SetEnd(
-                std::max(live_intervals[v.GetIdx()].End(), use_bb));
+            live_intervals[v.GetIdx()].Extend(labels[use_bb]);
           } else {
             if (!(loop_depth[use_bb] > loop_depth[def_bb])) {
               throw std::runtime_error("Invalid def/use situation.");
@@ -498,15 +581,42 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func) {
             }
 
             assert(loop_header[use_bb]);
-            live_intervals[v.GetIdx()].SetEnd(
-                std::max(live_intervals[v.GetIdx()].End(), loop_end[use_bb]));
+            live_intervals[v.GetIdx()].Extend(labels[loop_end[use_bb]]);
           }
         }
 
-        live_intervals[i].SetStart(bb_idx);
+        if (opcode == Opcode::PHI_MEMBER) {
+          // phi is read/written here
+          Type2InstructionReader reader(instr);
+          Value v0(reader.Arg0());
+          auto phi = v0.GetIdx();
+
+          live_intervals[phi].Extend(labels[bb_idx]);
+        } else {
+          if (DoesWriteValue(instr, manager)) {
+            live_intervals[i].Extend(labels[bb_idx]);
+          }
+        }
       }
     }
   }
+
+  /*
+  for (int i = 0; i < live_intervals.size(); i++) {
+    std::cerr << "%" << i << " " << live_intervals[i].Start() << " "
+              << live_intervals[i].End() << "\n";
+  }
+
+  std::cerr << "digraph G {\n";
+  for (int i = 0; i < labels.size(); i++) {
+    for (auto j : func.BasicBlockSuccessors()[i]) {
+      std::cerr << " \"" << i << "," << labels[i] << "\" -> \"" << j << ","
+                << labels[j] << "\"" << std::endl;
+    }
+  }
+  std::cerr << "}\n";
+  */
+
   return live_intervals;
 }
 

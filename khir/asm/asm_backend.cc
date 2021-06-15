@@ -221,7 +221,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     if (func.Name() == "compute") {
       compute_label_ = internal_func_labels_[func_idx];
 
-      // ComputeLiveIntervals(func);
+      ComputeLiveIntervals(func, type_manager);
     }
 
     // Prologue ================================================================
