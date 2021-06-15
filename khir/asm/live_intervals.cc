@@ -220,6 +220,30 @@ std::pair<std::vector<int>, std::vector<int>> LabelBlocks(
   return {label, order};
 }
 
+bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions) {
+  if (v.IsConstantGlobal()) {
+    return false;
+  }
+  return OpcodeFrom(
+             GenericInstructionReader(instructions[v.GetIdx()]).Opcode()) ==
+         Opcode::GEP;
+}
+
+khir::Value Gep(khir::Value v, const std::vector<uint64_t>& instructions) {
+  Type3InstructionReader gep_reader(instructions[v.GetIdx()]);
+  if (OpcodeFrom(gep_reader.Opcode()) != Opcode::GEP) {
+    throw std::runtime_error("Invalid GEP");
+  }
+
+  auto gep_offset_instr = instructions[khir::Value(gep_reader.Arg()).GetIdx()];
+  Type2InstructionReader gep_offset_reader(gep_offset_instr);
+  if (OpcodeFrom(gep_offset_reader.Opcode()) != Opcode::GEP_OFFSET) {
+    throw std::runtime_error("Invalid GEP Offset");
+  }
+
+  return khir::Value(gep_offset_reader.Arg0());
+}
+
 std::vector<Value> ComputeReadValues(uint64_t instr,
                                      const std::vector<uint64_t>& instrs) {
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
@@ -276,13 +300,7 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     case Opcode::F64_CMP_LT:
     case Opcode::F64_CMP_LE:
     case Opcode::F64_CMP_GT:
-    case Opcode::F64_CMP_GE:
-    case Opcode::I8_STORE:
-    case Opcode::I16_STORE:
-    case Opcode::I32_STORE:
-    case Opcode::I64_STORE:
-    case Opcode::F64_STORE:
-    case Opcode::PTR_STORE: {
+    case Opcode::F64_CMP_GE: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
@@ -322,12 +340,7 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     case Opcode::I32_ZEXT_I64:
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
-    case Opcode::F64_CONV_I64:
-    case Opcode::I8_LOAD:
-    case Opcode::I16_LOAD:
-    case Opcode::I32_LOAD:
-    case Opcode::I64_LOAD:
-    case Opcode::F64_LOAD: {
+    case Opcode::F64_CONV_I64: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
 
@@ -339,9 +352,55 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
       return result;
     }
 
+    case Opcode::I8_LOAD:
+    case Opcode::I16_LOAD:
+    case Opcode::I32_LOAD:
+    case Opcode::I64_LOAD:
+    case Opcode::F64_LOAD: {
+      Type2InstructionReader reader(instr);
+      Value v(reader.Arg0());
+
+      if (IsGep(v, instrs)) {
+        v = Gep(v, instrs);
+      }
+
+      std::vector<Value> result;
+      if (!v.IsConstantGlobal()) {
+        result.push_back(v);
+      }
+      return result;
+    }
+
+    case Opcode::I8_STORE:
+    case Opcode::I16_STORE:
+    case Opcode::I32_STORE:
+    case Opcode::I64_STORE:
+    case Opcode::F64_STORE:
+    case Opcode::PTR_STORE: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      if (IsGep(v0, instrs)) {
+        v0 = Gep(v0, instrs);
+      }
+
+      std::vector<Value> result;
+      if (!v0.IsConstantGlobal()) {
+        result.push_back(v0);
+      }
+
+      if (!v1.IsConstantGlobal()) {
+        result.push_back(v1);
+      }
+
+      return result;
+    }
+
     case Opcode::RETURN:
     case Opcode::BR:
-    case Opcode::FUNC_ARG: {
+    case Opcode::FUNC_ARG:
+    case Opcode::GEP: {
       return {};
     }
 
@@ -352,24 +411,6 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
       std::vector<Value> result;
       if (!v0.IsConstantGlobal()) {
         result.push_back(v0);
-      }
-
-      return result;
-    }
-
-    case Opcode::GEP: {
-      Type2InstructionReader reader(
-          instrs[Value(Type3InstructionReader(instr).Arg()).GetIdx()]);
-      Value v0(reader.Arg0());
-      Value v1(reader.Arg1());
-
-      std::vector<Value> result;
-      if (!v0.IsConstantGlobal()) {
-        result.push_back(v0);
-      }
-
-      if (!v1.IsConstantGlobal()) {
-        result.push_back(v1);
       }
 
       return result;

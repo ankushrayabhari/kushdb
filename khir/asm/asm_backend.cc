@@ -2240,9 +2240,32 @@ void ASMBackend::TranslateInstr(
     case Opcode::PTR_CAST: {
       Type3InstructionReader reader(instr);
       Value v(reader.Arg());
+      int32_t ptr_offset = 0;
+
+      if (IsGep(v, instructions)) {
+        auto [ptr, o] = Gep(v, instructions, constant_instrs, i64_constants);
+        v = ptr;
+        ptr_offset = o;
+      }
 
       auto offset = stack_allocator.AllocateSlot();
-      asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+      if (v.IsConstantGlobal()) {
+        if (ConstantOpcodeFrom(
+                GenericInstructionReader(constant_instrs[v.GetIdx()])
+                    .Opcode()) == ConstantOpcode::NULLPTR) {
+          asm_->mov(x86::rax, 0);
+        } else {
+          auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+          asm_->lea(x86::rax, x86::ptr(label, ptr_offset));
+        }
+      } else {
+        if (ptr_offset != 0) {
+          asm_->mov(x86::rdx, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->lea(x86::rax, x86::ptr(x86::rdx, ptr_offset));
+        } else {
+          asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+        }
+      }
       asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
       offsets[instr_idx] = offset;
       return;
@@ -3358,7 +3381,7 @@ void ASMBackend::TranslateInstr(
                       x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
           }
         } else if (type_manager.IsPtrType(type)) {
-          int64_t ptr_offset = 0;
+          int32_t ptr_offset = 0;
 
           if (IsGep(v, instructions)) {
             auto [ptr, o] =
@@ -3378,11 +3401,14 @@ void ASMBackend::TranslateInstr(
                         x86::ptr(label, ptr_offset));
             }
           } else {
-            asm_->mov(qword_arg_regs[regular_arg_idx],
-                      x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
             if (ptr_offset != 0) {
-              asm_->mov(x86::rdx, ptr_offset);
-              asm_->add(qword_arg_regs[regular_arg_idx], x86::rdx);
+              asm_->mov(x86::rdx,
+                        x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+              asm_->lea(qword_arg_regs[regular_arg_idx],
+                        x86::ptr(x86::rdx, ptr_offset));
+            } else {
+              asm_->mov(qword_arg_regs[regular_arg_idx],
+                        x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
             }
           }
         } else {
