@@ -9,6 +9,8 @@ namespace kush::khir {
 class LiveInterval {
  public:
   LiveInterval(int start, int end);
+  void SetStart(int);
+  void SetEnd(int);
   int Start() const;
   int End() const;
 

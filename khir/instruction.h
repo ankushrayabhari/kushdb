@@ -63,6 +63,7 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I1_CMP_EQ
 // [MD] [ARG0] [ARG1] I1_CMP_NE
 // [MD] [ARG0] [0]    I1_LNOT
+// [MD] [ARG0] [0]    I1_ZEXT_I8
 // [MD] [ARG0] [0]    I1_ZEXT_I64
 // [MD] [ARG0] [ARG1] I8_ADD
 // [MD] [ARG0] [ARG1] I8_MUL
@@ -75,6 +76,7 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I8_CMP_LT
 // [MD] [ARG0] [ARG1] I8_CMP_LE
 // [MD] [ARG0] [0]    I8_ZEXT_I64
+// [MD] [ARG0] [0]    I8_CONV_F64
 // [MD] [ARG0] [ARG1] I16_ADD
 // [MD] [ARG0] [ARG1] I16_MUL
 // [MD] [ARG0] [ARG1] I16_SUB
@@ -86,6 +88,7 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I16_CMP_LT
 // [MD] [ARG0] [ARG1] I16_CMP_LE
 // [MD] [ARG0] [0]    I16_ZEXT_I64
+// [MD] [ARG0] [0]    I16_CONV_F64
 // [MD] [ARG0] [ARG1] I32_ADD
 // [MD] [ARG0] [ARG1] I32_MUL
 // [MD] [ARG0] [ARG1] I32_SUB
@@ -97,6 +100,7 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I32_CMP_LT
 // [MD] [ARG0] [ARG1] I32_CMP_LE
 // [MD] [ARG0] [0]    I32_ZEXT_I64
+// [MD] [ARG0] [0]    I32_CONV_F64
 // [MD] [ARG0] [ARG1] I64_ADD
 // [MD] [ARG0] [ARG1] I64_MUL
 // [MD] [ARG0] [ARG1] I64_SUB
