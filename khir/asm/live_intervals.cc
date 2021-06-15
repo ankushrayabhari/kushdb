@@ -371,6 +371,23 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
       return result;
     }
 
+    case Opcode::PTR_CAST:
+    case Opcode::PTR_LOAD: {
+      Type3InstructionReader reader(instr);
+      Value v0(reader.Arg());
+
+      if (IsGep(v0, instrs)) {
+        v0 = Gep(v0, instrs);
+      }
+
+      std::vector<Value> result;
+      if (!v0.IsConstantGlobal()) {
+        result.push_back(v0);
+      }
+
+      return result;
+    }
+
     case Opcode::I8_STORE:
     case Opcode::I16_STORE:
     case Opcode::I32_STORE:
@@ -397,13 +414,6 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
       return result;
     }
 
-    case Opcode::RETURN:
-    case Opcode::BR:
-    case Opcode::FUNC_ARG:
-    case Opcode::GEP: {
-      return {};
-    }
-
     case Opcode::CONDBR: {
       Type5InstructionReader reader(instr);
       Value v0(reader.Arg());
@@ -416,12 +426,14 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
       return result;
     }
 
-    case Opcode::PTR_CAST:
-    case Opcode::PTR_LOAD:
     case Opcode::RETURN_VALUE:
     case Opcode::CALL_ARG: {
       Type3InstructionReader reader(instr);
       Value v0(reader.Arg());
+
+      if (IsGep(v0, instrs)) {
+        v0 = Gep(v0, instrs);
+      }
 
       std::vector<Value> result;
       if (!v0.IsConstantGlobal()) {
@@ -431,6 +443,10 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
       return result;
     }
 
+    case Opcode::RETURN:
+    case Opcode::BR:
+    case Opcode::FUNC_ARG:
+    case Opcode::GEP:
     case Opcode::GEP_OFFSET:
     case Opcode::PHI:
     case Opcode::ALLOCA:
@@ -514,10 +530,8 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
     case Opcode::I64_LOAD:
     case Opcode::F64_LOAD:
     case Opcode::FUNC_ARG:
-    case Opcode::GEP:
     case Opcode::PTR_CAST:
     case Opcode::PTR_LOAD:
-    case Opcode::GEP_OFFSET:
     case Opcode::ALLOCA: {
       return true;
     }
@@ -528,6 +542,8 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
     case Opcode::PTR_STORE:
+    case Opcode::GEP:
+    case Opcode::GEP_OFFSET:
     case Opcode::PHI_MEMBER:
     case Opcode::RETURN:
     case Opcode::BR:
@@ -642,7 +658,6 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
     }
   }
 
-  /*
   for (int i = 0; i < live_intervals.size(); i++) {
     std::cerr << "%" << i << " " << live_intervals[i].Start() << " "
               << live_intervals[i].End() << "\n";
@@ -656,7 +671,6 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
     }
   }
   std::cerr << "}\n";
-  */
 
   return live_intervals;
 }

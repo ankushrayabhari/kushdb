@@ -91,7 +91,8 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
   auto instr = instrs[v.GetIdx()];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
   if (opcode == Opcode::FUNC_ARG) {
-    std::cerr << "%a" << Type3InstructionReader(instr).Sarg();
+    int idx = Type3InstructionReader(instr).Sarg();
+    std::cerr << "%a" << idx;
     return;
   }
 
@@ -236,8 +237,9 @@ void ProgramPrinter::OutputInstr(
 
     case Opcode::BR: {
       Type5InstructionReader reader(instrs[idx]);
-      std::cerr << "   " << magic_enum::enum_name(opcode) << " ."
-                << reader.Marg0() << "\n";
+      auto label = reader.Marg0();
+      std::cerr << "   " << magic_enum::enum_name(opcode) << " ." << label
+                << "\n";
       return;
     }
 
@@ -254,7 +256,9 @@ void ProgramPrinter::OutputInstr(
       OutputValue(v0, instrs, constant_instrs, i64_constants, f64_constants,
                   char_array_constants, struct_constants, array_constants,
                   globals, functions);
-      std::cerr << " ." << reader.Marg0() << " ." << reader.Marg1() << "\n";
+      int label0 = reader.Marg0();
+      int label1 = reader.Marg1();
+      std::cerr << " ." << label0 << " ." << label1 << "\n";
       return;
     }
 
@@ -377,7 +381,7 @@ void ProgramPrinter::Translate(
   manager.Translate(*this);
 
   for (int i = 0; i < char_array_constants.size(); i++) {
-    std::cerr << "$" << i << " = " << char_array_constants[i] << ";\n\n";
+    std::cerr << "$" << i << " = \"" << char_array_constants[i] << "\";\n\n";
   }
 
   for (int i = 0; i < globals.size(); i++) {
