@@ -19,13 +19,20 @@ class ExceptionErrorHandler : public asmjit::ErrorHandler {
 
 class StackSlotAllocator {
  public:
-  StackSlotAllocator(int64_t initial_size);
-  int64_t AllocateSlot();
-  int64_t GetSize();
+  StackSlotAllocator(int32_t initial_size);
+  int32_t AllocateSlot();
+  int32_t GetSize();
 
  private:
-  int64_t size_;
+  int32_t size_;
 };
+
+class Operand {
+ public:
+ private:
+};
+
+enum class ASMInst { MOV, XOR, ADD, SUB };
 
 class ASMBackend : public Backend, public compile::Program {
  public:
@@ -68,7 +75,8 @@ class ASMBackend : public Backend, public compile::Program {
                       std::vector<int64_t>& offsets,
                       const std::vector<uint64_t>& instructions,
                       const std::vector<uint64_t>& constant_instrs,
-                      int instr_idx, StackSlotAllocator& stack_allocator);
+                      int instr_idx, StackSlotAllocator& stack_allocator,
+                      const std::vector<int>& register_assign);
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   asmjit::Section* text_section_;

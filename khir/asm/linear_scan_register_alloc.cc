@@ -51,7 +51,7 @@ std::vector<int> AssignRegisters(
   for (int i = 0; i < 13; i++) {
     free_normal_regs.insert(i);
   }
-  for (int i = 14; i < 14 + 7; i++) {
+  for (int i = 0; i < 7; i++) {
     free_floating_point_regs.insert(i);
   }
 

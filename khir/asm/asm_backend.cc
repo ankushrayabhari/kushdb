@@ -15,15 +15,15 @@
 
 namespace kush::khir {
 
-StackSlotAllocator::StackSlotAllocator(int64_t initial_size)
+StackSlotAllocator::StackSlotAllocator(int32_t initial_size)
     : size_(initial_size) {}
 
-int64_t StackSlotAllocator::AllocateSlot() {
+int32_t StackSlotAllocator::AllocateSlot() {
   size_ += 8;
   return -size_;
 }
 
-int64_t StackSlotAllocator::GetSize() { return size_; }
+int32_t StackSlotAllocator::GetSize() { return size_; }
 
 using namespace asmjit;
 
@@ -221,10 +221,10 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
     if (func.Name() == "compute") {
       compute_label_ = internal_func_labels_[func_idx];
-
-      auto live_intervals = ComputeLiveIntervals(func, type_manager);
-      auto registers = AssignRegisters(live_intervals);
     }
+
+    auto live_intervals = ComputeLiveIntervals(func, type_manager);
+    auto register_assign = AssignRegisters(live_intervals);
 
     // Prologue ================================================================
     // - Save RBP and Store RSP in RBP
@@ -263,7 +263,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
         TranslateInstr(type_manager, i64_constants, f64_constants,
                        basic_blocks_impl, functions, epilogue, value_offsets,
                        instructions, constant_instrs, instr_idx,
-                       static_stack_allocator);
+                       static_stack_allocator, register_assign);
       }
     }
 
@@ -368,9 +368,29 @@ void ASMBackend::TranslateInstr(
     const std::vector<Function>& functions, const Label& epilogue,
     std::vector<int64_t>& offsets, const std::vector<uint64_t>& instructions,
     const std::vector<uint64_t>& constant_instrs, int instr_idx,
-    StackSlotAllocator& stack_allocator) {
+    StackSlotAllocator& stack_allocator,
+    const std::vector<int>& register_assign) {
   auto instr = instructions[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
+
+  /*
+Available for allocation:
+ RBX, RCX, RDX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
+ XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7
+
+// Reserved/Scratch
+ RSP, RBP, RAX, XMM0
+*/
+  static std::vector<Register> normal_registers{
+      Register::RBX, Register::RCX, Register::RDX, Register::RSI, Register::RDI,
+      Register::R8,  Register::R9,  Register::R10, Register::R11, Register::R12,
+      Register::R13, Register::R14, Register::R15};
+  static std::vector<x86::Xmm> fp_registers{x86::xmm1, x86::xmm2, x86::xmm3,
+                                            x86::xmm4, x86::xmm5, x86::xmm6,
+                                            x86::xmm7};
+
+  bool dest_is_reg = register_assign[instr_idx] >= 0;
+  int dest_reg = register_assign[instr_idx];
 
   switch (opcode) {
     // I1
@@ -379,16 +399,35 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
 
-      auto offset = stack_allocator.AllocateSlot();
-      if (v.IsConstantGlobal()) {
-        int8_t constant =
-            Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+      bool v_is_reg = !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
+      int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
+      int8_t constant =
+          v.IsConstantGlobal()
+              ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
+              : 0;
+      int32_t offset;
+      if (!dest_is_reg) {
+        offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+      }
+
+      if (v.IsConstantGlobal() && dest_is_reg) {
+        asm_->mov(normal_registers[dest_reg].GetB(), constant);
+      } else if (v.IsConstantGlobal() && !dest_is_reg) {
         asm_->mov(x86::byte_ptr(x86::rbp, offset), constant);
-      } else {
+      } else if (v_is_reg && dest_is_reg) {
+        asm_->mov(normal_registers[dest_reg].GetB(),
+                  normal_registers[v_reg].GetB());
+      } else if (v_is_reg && !dest_is_reg) {
+        asm_->mov(x86::byte_ptr(x86::rbp, offset),
+                  normal_registers[v_reg].GetB());
+      } else if (dest_is_reg) {  // v on stack
+        asm_->mov(normal_registers[dest_reg].GetB(),
+                  (x86::byte_ptr(x86::rbp, offsets[v.GetIdx()])));
+      } else {  // v on stack, dest on stack
         asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
         asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
       }
-      offsets[instr_idx] = offset;
       return;
     }
 
