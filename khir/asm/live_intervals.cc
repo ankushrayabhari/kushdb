@@ -11,7 +11,8 @@
 
 namespace kush::khir {
 
-LiveInterval::LiveInterval(int start, int end) : start_(start), end_(end) {}
+LiveInterval::LiveInterval(int start, int end, bool floating)
+    : start_(start), end_(end), floating_(floating) {}
 
 void LiveInterval::Extend(int x) {
   if (start_ == -1) {
@@ -30,6 +31,12 @@ void LiveInterval::Extend(int x) {
 int LiveInterval::Start() const { return start_; }
 
 int LiveInterval::End() const { return end_; }
+
+bool LiveInterval::Undef() const { return start_ == -1 && end_ == -1; }
+
+bool LiveInterval::IsFloatingPoint() const { return floating_; }
+
+void LiveInterval::SetFloatingPoint(bool x) { floating_ = x; }
 
 // TODO: replace with better union find impl
 int Find(std::vector<int>& parent, int i) {
@@ -562,6 +569,34 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
   }
 }
 
+bool IsFloatingPoint(int idx, const std::vector<uint64_t>& instrs,
+                     const TypeManager& manager) {
+  auto opcode = OpcodeFrom(GenericInstructionReader(instrs[idx]).Opcode());
+
+  switch (opcode) {
+    case Opcode::F64_ADD:
+    case Opcode::F64_MUL:
+    case Opcode::F64_SUB:
+    case Opcode::F64_DIV:
+    case Opcode::I8_CONV_F64:
+    case Opcode::I16_CONV_F64:
+    case Opcode::I32_CONV_F64:
+    case Opcode::I64_CONV_F64:
+    case Opcode::F64_LOAD:
+      return true;
+
+    case Opcode::PHI:
+    case Opcode::CALL:
+    case Opcode::CALL_INDIRECT: {
+      return manager.IsF64Type(
+          static_cast<Type>(Type3InstructionReader(instrs[idx]).TypeID()));
+    }
+
+    default:
+      return false;
+  }
+}
+
 std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
                                                const TypeManager& manager) {
   auto [loop_parent, loop_header] = FindLoops(func);
@@ -599,14 +634,15 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
   const auto& instrs = func.Instructions();
 
   std::vector<int> instr_to_bb(instrs.size(), -1);
+  std::vector<LiveInterval> live_intervals(instrs.size(),
+                                           LiveInterval(-1, -1, false));
   for (auto bb_idx : order) {
     const auto& [bb_begin, bb_end] = bb[bb_idx];
     for (int i = bb_begin; i <= bb_end; i++) {
       instr_to_bb[i] = bb_idx;
+      live_intervals[i].SetFloatingPoint(IsFloatingPoint(i, instrs, manager));
     }
   }
-
-  std::vector<LiveInterval> live_intervals(instrs.size(), LiveInterval(-1, -1));
 
   for (auto bb_idx : order) {
     const auto& [bb_begin, bb_end] = bb[bb_idx];
@@ -658,6 +694,7 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
     }
   }
 
+  /*
   for (int i = 0; i < live_intervals.size(); i++) {
     std::cerr << "%" << i << " " << live_intervals[i].Start() << " "
               << live_intervals[i].End() << "\n";
@@ -671,6 +708,7 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
     }
   }
   std::cerr << "}\n";
+  */
 
   return live_intervals;
 }
