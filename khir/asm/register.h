@@ -7,11 +7,11 @@ namespace kush::khir {
 class Register {
  public:
   Register(asmjit::x86::Gpq, asmjit::x86::Gpd, asmjit::x86::Gpw,
-           asmjit::x86::Gpb);
+           asmjit::x86::GpbLo);
   asmjit::x86::Gpq GetQ();
   asmjit::x86::Gpd GetD();
   asmjit::x86::Gpw GetW();
-  asmjit::x86::Gpb GetB();
+  asmjit::x86::GpbLo GetB();
 
   static Register RAX;
   static Register RBX;
@@ -34,7 +34,7 @@ class Register {
   asmjit::x86::Gpq qword_;
   asmjit::x86::Gpd dword_;
   asmjit::x86::Gpw word_;
-  asmjit::x86::Gpb byte_;
+  asmjit::x86::GpbLo byte_;
 };
 
 }  // namespace kush::khir

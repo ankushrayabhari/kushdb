@@ -7,7 +7,7 @@ namespace kush::khir {
 using namespace asmjit;
 
 Register::Register(asmjit::x86::Gpq qword, asmjit::x86::Gpd dword,
-                   asmjit::x86::Gpw word, asmjit::x86::Gpb byt)
+                   asmjit::x86::Gpw word, asmjit::x86::GpbLo byt)
     : qword_(qword), dword_(dword), word_(word), byte_(byt) {}
 
 asmjit::x86::Gpq Register::GetQ() { return qword_; }
@@ -16,7 +16,7 @@ asmjit::x86::Gpd Register::GetD() { return dword_; }
 
 asmjit::x86::Gpw Register::GetW() { return word_; }
 
-asmjit::x86::Gpb Register::GetB() { return byte_; }
+asmjit::x86::GpbLo Register::GetB() { return byte_; }
 
 Register Register::RAX(x86::rax, x86::eax, x86::ax, x86::al);
 Register Register::RBX(x86::rbx, x86::ebx, x86::bx, x86::bl);
