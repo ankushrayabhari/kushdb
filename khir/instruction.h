@@ -68,7 +68,6 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I8_ADD
 // [MD] [ARG0] [ARG1] I8_MUL
 // [MD] [ARG0] [ARG1] I8_SUB
-// [MD] [ARG0] [ARG1] I8_DIV
 // [MD] [ARG0] [ARG1] I8_CMP_EQ
 // [MD] [ARG0] [ARG1] I8_CMP_NE
 // [MD] [ARG0] [ARG1] I8_CMP_GT
@@ -80,7 +79,6 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I16_ADD
 // [MD] [ARG0] [ARG1] I16_MUL
 // [MD] [ARG0] [ARG1] I16_SUB
-// [MD] [ARG0] [ARG1] I16_DIV
 // [MD] [ARG0] [ARG1] I16_CMP_EQ
 // [MD] [ARG0] [ARG1] I16_CMP_NE
 // [MD] [ARG0] [ARG1] I16_CMP_GT
@@ -92,7 +90,6 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I32_ADD
 // [MD] [ARG0] [ARG1] I32_MUL
 // [MD] [ARG0] [ARG1] I32_SUB
-// [MD] [ARG0] [ARG1] I32_DIV
 // [MD] [ARG0] [ARG1] I32_CMP_EQ
 // [MD] [ARG0] [ARG1] I32_CMP_NE
 // [MD] [ARG0] [ARG1] I32_CMP_GT
@@ -104,7 +101,6 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I64_ADD
 // [MD] [ARG0] [ARG1] I64_MUL
 // [MD] [ARG0] [ARG1] I64_SUB
-// [MD] [ARG0] [ARG1] I64_DIV
 // [MD] [ARG0] [ARG1] I64_CMP_EQ
 // [MD] [ARG0] [ARG1] I64_CMP_NE
 // [MD] [ARG0] [ARG1] I64_CMP_GT

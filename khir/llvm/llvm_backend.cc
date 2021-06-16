@@ -418,17 +418,6 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::I8_DIV:
-    case Opcode::I16_DIV:
-    case Opcode::I32_DIV:
-    case Opcode::I64_DIV: {
-      Type2InstructionReader reader(instr);
-      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
-      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateSDiv(v0, v1);
-      return;
-    }
-
     case Opcode::I1_ZEXT_I8: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
@@ -583,7 +572,8 @@ void LLVMBackend::TranslateInstr(
       auto offset = GetValue(Value(reader.Arg1()), constant_values, values);
 
       auto ptr_as_int = builder_->CreatePtrToInt(ptr, builder_->getInt64Ty());
-      auto ptr_plus_offset = builder_->CreateAdd(ptr_as_int, offset);
+      auto ptr_plus_offset = builder_->CreateAdd(
+          ptr_as_int, builder_->CreateZExt(offset, builder_->getInt64Ty()));
 
       values[instr_idx] =
           builder_->CreateIntToPtr(ptr_plus_offset, builder_->getInt8PtrTy());

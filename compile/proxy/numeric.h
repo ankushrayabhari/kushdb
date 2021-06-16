@@ -23,7 +23,11 @@ std::unique_ptr<Value> EvaluateBinaryNumeric(
       return (lhs * rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::DIV:
-      return (lhs / rhs).ToPointer();
+      if constexpr (std::is_same_v<V, Float64>) {
+        return (lhs / rhs).ToPointer();
+      } else {
+        throw std::runtime_error("Invalid operator on numeric");
+      }
 
     case plan::BinaryArithmeticOperatorType::EQ:
       return (lhs == rhs).ToPointer();

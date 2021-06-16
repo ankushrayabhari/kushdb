@@ -261,7 +261,6 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     case Opcode::I8_ADD:
     case Opcode::I8_MUL:
     case Opcode::I8_SUB:
-    case Opcode::I8_DIV:
     case Opcode::I8_CMP_EQ:
     case Opcode::I8_CMP_NE:
     case Opcode::I8_CMP_LT:
@@ -271,7 +270,6 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     case Opcode::I16_ADD:
     case Opcode::I16_MUL:
     case Opcode::I16_SUB:
-    case Opcode::I16_DIV:
     case Opcode::I16_CMP_EQ:
     case Opcode::I16_CMP_NE:
     case Opcode::I16_CMP_LT:
@@ -281,7 +279,6 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     case Opcode::I32_ADD:
     case Opcode::I32_MUL:
     case Opcode::I32_SUB:
-    case Opcode::I32_DIV:
     case Opcode::I32_CMP_EQ:
     case Opcode::I32_CMP_NE:
     case Opcode::I32_CMP_LT:
@@ -291,7 +288,6 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     case Opcode::I64_ADD:
     case Opcode::I64_MUL:
     case Opcode::I64_SUB:
-    case Opcode::I64_DIV:
     case Opcode::I64_CMP_EQ:
     case Opcode::I64_CMP_NE:
     case Opcode::I64_CMP_LT:
@@ -473,7 +469,6 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
     case Opcode::I8_ADD:
     case Opcode::I8_MUL:
     case Opcode::I8_SUB:
-    case Opcode::I8_DIV:
     case Opcode::I8_CMP_EQ:
     case Opcode::I8_CMP_NE:
     case Opcode::I8_CMP_LT:
@@ -483,7 +478,6 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
     case Opcode::I16_ADD:
     case Opcode::I16_MUL:
     case Opcode::I16_SUB:
-    case Opcode::I16_DIV:
     case Opcode::I16_CMP_EQ:
     case Opcode::I16_CMP_NE:
     case Opcode::I16_CMP_LT:
@@ -493,7 +487,6 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
     case Opcode::I32_ADD:
     case Opcode::I32_MUL:
     case Opcode::I32_SUB:
-    case Opcode::I32_DIV:
     case Opcode::I32_CMP_EQ:
     case Opcode::I32_CMP_NE:
     case Opcode::I32_CMP_LT:
@@ -503,7 +496,6 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
     case Opcode::I64_ADD:
     case Opcode::I64_MUL:
     case Opcode::I64_SUB:
-    case Opcode::I64_DIV:
     case Opcode::I64_CMP_EQ:
     case Opcode::I64_CMP_NE:
     case Opcode::I64_CMP_LT:

@@ -243,7 +243,6 @@ class ProgramBuilder {
   // I8
   Value AddI8(Value v1, Value v2);
   Value MulI8(Value v1, Value v2);
-  Value DivI8(Value v1, Value v2);
   Value SubI8(Value v1, Value v2);
   Value CmpI8(CompType cmp, Value v1, Value v2);
   Value ConstI8(uint8_t v);
@@ -253,7 +252,6 @@ class ProgramBuilder {
   // I16
   Value AddI16(Value v1, Value v2);
   Value MulI16(Value v1, Value v2);
-  Value DivI16(Value v1, Value v2);
   Value SubI16(Value v1, Value v2);
   Value CmpI16(CompType cmp, Value v1, Value v2);
   Value ConstI16(uint16_t v);
@@ -263,7 +261,6 @@ class ProgramBuilder {
   // I32
   Value AddI32(Value v1, Value v2);
   Value MulI32(Value v1, Value v2);
-  Value DivI32(Value v1, Value v2);
   Value SubI32(Value v1, Value v2);
   Value CmpI32(CompType cmp, Value v1, Value v2);
   Value ConstI32(uint32_t v);
@@ -273,7 +270,6 @@ class ProgramBuilder {
   // I64
   Value AddI64(Value v1, Value v2);
   Value MulI64(Value v1, Value v2);
-  Value DivI64(Value v1, Value v2);
   Value SubI64(Value v1, Value v2);
   Value CmpI64(CompType cmp, Value v1, Value v2);
   Value ConstI64(uint64_t v);

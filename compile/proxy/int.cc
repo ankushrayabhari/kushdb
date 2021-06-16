@@ -31,10 +31,6 @@ Int8 Int8::operator*(const Int8& rhs) {
   return Int8(program_, program_.MulI8(value_, rhs.value_));
 }
 
-Int8 Int8::operator/(const Int8& rhs) {
-  return Int8(program_, program_.DivI8(value_, rhs.value_));
-}
-
 Bool Int8::operator==(const Int8& rhs) {
   return Bool(program_, program_.CmpI8(khir::CompType::EQ, value_, rhs.value_));
 }
@@ -69,10 +65,6 @@ Int8 Int8::operator-(int8_t rhs) {
 
 Int8 Int8::operator*(int8_t rhs) {
   return Int8(program_, program_.MulI8(value_, program_.ConstI8(rhs)));
-}
-
-Int8 Int8::operator/(int8_t rhs) {
-  return Int8(program_, program_.DivI8(value_, program_.ConstI8(rhs)));
 }
 
 Bool Int8::operator==(int8_t rhs) {
@@ -138,10 +130,6 @@ Int16 Int16::operator*(const Int16& rhs) {
   return Int16(program_, program_.MulI16(value_, rhs.value_));
 }
 
-Int16 Int16::operator/(const Int16& rhs) {
-  return Int16(program_, program_.DivI16(value_, rhs.value_));
-}
-
 Bool Int16::operator==(const Int16& rhs) {
   return Bool(program_,
               program_.CmpI16(khir::CompType::EQ, value_, rhs.value_));
@@ -182,10 +170,6 @@ Int16 Int16::operator-(int16_t rhs) {
 
 Int16 Int16::operator*(int16_t rhs) {
   return Int16(program_, program_.MulI16(value_, program_.ConstI16(rhs)));
-}
-
-Int16 Int16::operator/(int16_t rhs) {
-  return Int16(program_, program_.DivI16(value_, program_.ConstI16(rhs)));
 }
 
 Bool Int16::operator==(int16_t rhs) {
@@ -251,10 +235,6 @@ Int32 Int32::operator*(const Int32& rhs) {
   return Int32(program_, program_.MulI32(value_, rhs.value_));
 }
 
-Int32 Int32::operator/(const Int32& rhs) {
-  return Int32(program_, program_.DivI32(value_, rhs.value_));
-}
-
 Bool Int32::operator==(const Int32& rhs) {
   return Bool(program_,
               program_.CmpI32(khir::CompType::EQ, value_, rhs.value_));
@@ -295,10 +275,6 @@ Int32 Int32::operator-(int32_t rhs) {
 
 Int32 Int32::operator*(int32_t rhs) {
   return Int32(program_, program_.MulI32(value_, program_.ConstI32(rhs)));
-}
-
-Int32 Int32::operator/(int32_t rhs) {
-  return Int32(program_, program_.DivI32(value_, program_.ConstI32(rhs)));
 }
 
 Bool Int32::operator==(int32_t rhs) {
@@ -364,10 +340,6 @@ Int64 Int64::operator*(const Int64& rhs) {
   return Int64(program_, program_.MulI64(value_, rhs.value_));
 }
 
-Int64 Int64::operator/(const Int64& rhs) {
-  return Int64(program_, program_.DivI64(value_, rhs.value_));
-}
-
 Bool Int64::operator==(const Int64& rhs) {
   return Bool(program_,
               program_.CmpI64(khir::CompType::EQ, value_, rhs.value_));
@@ -408,10 +380,6 @@ Int64 Int64::operator-(int64_t rhs) {
 
 Int64 Int64::operator*(int64_t rhs) {
   return Int64(program_, program_.MulI64(value_, program_.ConstI64(rhs)));
-}
-
-Int64 Int64::operator/(int64_t rhs) {
-  return Int64(program_, program_.DivI64(value_, program_.ConstI64(rhs)));
 }
 
 Bool Int64::operator==(int64_t rhs) {

@@ -557,7 +557,6 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::I8_ADD:
     case Opcode::I8_MUL:
     case Opcode::I8_SUB:
-    case Opcode::I8_DIV:
     case Opcode::I8_LOAD:
     case Opcode::I1_ZEXT_I8:
       return type_manager_.I8Type();
@@ -565,21 +564,18 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::I16_ADD:
     case Opcode::I16_MUL:
     case Opcode::I16_SUB:
-    case Opcode::I16_DIV:
     case Opcode::I16_LOAD:
       return type_manager_.I16Type();
 
     case Opcode::I32_ADD:
     case Opcode::I32_MUL:
     case Opcode::I32_SUB:
-    case Opcode::I32_DIV:
     case Opcode::I32_LOAD:
       return type_manager_.I32Type();
 
     case Opcode::I64_ADD:
     case Opcode::I64_MUL:
     case Opcode::I64_SUB:
-    case Opcode::I64_DIV:
     case Opcode::I1_ZEXT_I64:
     case Opcode::I8_ZEXT_I64:
     case Opcode::I16_ZEXT_I64:
@@ -821,14 +817,6 @@ Value ProgramBuilder::MulI8(Value v1, Value v2) {
                                          .Build());
 }
 
-Value ProgramBuilder::DivI8(Value v1, Value v2) {
-  return GetCurrentFunction().Append(Type2InstructionBuilder()
-                                         .SetOpcode(OpcodeTo(Opcode::I8_DIV))
-                                         .SetArg0(v1.Serialize())
-                                         .SetArg1(v2.Serialize())
-                                         .Build());
-}
-
 Value ProgramBuilder::SubI8(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I8_SUB))
@@ -908,14 +896,6 @@ Value ProgramBuilder::AddI16(Value v1, Value v2) {
 Value ProgramBuilder::MulI16(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I16_MUL))
-                                         .SetArg0(v1.Serialize())
-                                         .SetArg1(v2.Serialize())
-                                         .Build());
-}
-
-Value ProgramBuilder::DivI16(Value v1, Value v2) {
-  return GetCurrentFunction().Append(Type2InstructionBuilder()
-                                         .SetOpcode(OpcodeTo(Opcode::I16_DIV))
                                          .SetArg0(v1.Serialize())
                                          .SetArg1(v2.Serialize())
                                          .Build());
@@ -1005,14 +985,6 @@ Value ProgramBuilder::MulI32(Value v1, Value v2) {
                                          .Build());
 }
 
-Value ProgramBuilder::DivI32(Value v1, Value v2) {
-  return GetCurrentFunction().Append(Type2InstructionBuilder()
-                                         .SetOpcode(OpcodeTo(Opcode::I32_DIV))
-                                         .SetArg0(v1.Serialize())
-                                         .SetArg1(v2.Serialize())
-                                         .Build());
-}
-
 Value ProgramBuilder::SubI32(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I32_SUB))
@@ -1092,14 +1064,6 @@ Value ProgramBuilder::AddI64(Value v1, Value v2) {
 Value ProgramBuilder::MulI64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I64_MUL))
-                                         .SetArg0(v1.Serialize())
-                                         .SetArg1(v2.Serialize())
-                                         .Build());
-}
-
-Value ProgramBuilder::DivI64(Value v1, Value v2) {
-  return GetCurrentFunction().Append(Type2InstructionBuilder()
-                                         .SetOpcode(OpcodeTo(Opcode::I64_DIV))
                                          .SetArg0(v1.Serialize())
                                          .SetArg1(v2.Serialize())
                                          .Build());

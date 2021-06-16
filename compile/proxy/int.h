@@ -24,8 +24,6 @@ class Int8 : public Value {
   Int8 operator-(int8_t rhs);
   Int8 operator*(const Int8& rhs);
   Int8 operator*(int8_t rhs);
-  Int8 operator/(const Int8& rhs);
-  Int8 operator/(int8_t rhs);
   Bool operator==(const Int8& rhs);
   Bool operator==(int8_t rhs);
   Bool operator!=(const Int8& rhs);
@@ -63,8 +61,6 @@ class Int16 : public Value {
   Int16 operator-(int16_t rhs);
   Int16 operator*(const Int16& rhs);
   Int16 operator*(int16_t rhs);
-  Int16 operator/(const Int16& rhs);
-  Int16 operator/(int16_t rhs);
   Bool operator==(const Int16& rhs);
   Bool operator==(int16_t rhs);
   Bool operator!=(const Int16& rhs);
@@ -102,8 +98,6 @@ class Int32 : public Value {
   Int32 operator-(int32_t rhs);
   Int32 operator*(const Int32& rhs);
   Int32 operator*(int32_t rhs);
-  Int32 operator/(const Int32& rhs);
-  Int32 operator/(int32_t rhs);
   Bool operator==(const Int32& rhs);
   Bool operator==(int32_t rhs);
   Bool operator!=(const Int32& rhs);
@@ -141,8 +135,6 @@ class Int64 : public Value {
   Int64 operator-(int64_t rhs);
   Int64 operator*(const Int64& rhs);
   Int64 operator*(int64_t rhs);
-  Int64 operator/(const Int64& rhs);
-  Int64 operator/(int64_t rhs);
   Bool operator==(const Int64& rhs);
   Bool operator==(int64_t rhs);
   Bool operator!=(const Int64& rhs);
