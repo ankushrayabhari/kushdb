@@ -528,33 +528,49 @@ Available for allocation:
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
 
-      auto offset = stack_allocator.AllocateSlot();
-      if (v0.IsConstantGlobal() && v1.IsConstantGlobal()) {
-        int8_t c0 =
-            Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant();
-        int8_t c1 =
-            Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
-        asm_->mov(x86::byte_ptr(x86::rbp, offset), c0 - c1);
-      } else if (v0.IsConstantGlobal()) {
-        int8_t c =
-            Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant();
-        auto v_offset = offsets[v1.GetIdx()];
-        asm_->mov(x86::al, c);
-        asm_->sub(x86::al, x86::byte_ptr(x86::rbp, v_offset));
-        asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
-      } else if (v1.IsConstantGlobal()) {
-        auto v_offset = offsets[v0.GetIdx()];
-        int8_t c =
-            Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
-        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, v_offset));
-        asm_->sub(x86::al, c);
-        asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
+      bool v0_is_reg =
+          !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
+      int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
+      int8_t c0 =
+          v0.IsConstantGlobal()
+              ? Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant()
+              : 0;
+
+      bool v1_is_reg =
+          !v1.IsConstantGlobal() && register_assign[v1.GetIdx()] >= 0;
+      int v1_reg = v1_is_reg ? register_assign[v1.GetIdx()] : 0;
+      int8_t c1 =
+          v1.IsConstantGlobal()
+              ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
+              : 0;
+
+      int32_t offset;
+      if (!dest_is_reg) {
+        offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+      }
+
+      auto dest = dest_is_reg ? normal_registers[dest_reg].GetB() : x86::al;
+
+      if (v0.IsConstantGlobal()) {
+        asm_->mov(dest, c0);
+      } else if (v0_is_reg) {
+        asm_->mov(dest, normal_registers[v0_reg].GetB());
       } else {
-        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
-        asm_->sub(x86::al, x86::byte_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->mov(dest, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+      }
+
+      if (v1.IsConstantGlobal()) {
+        asm_->sub(dest, c1);
+      } else if (v1_is_reg) {
+        asm_->sub(dest, normal_registers[v1_reg].GetB());
+      } else {
+        asm_->sub(dest, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+      }
+
+      if (!dest_is_reg) {
         asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
       }
-      offsets[instr_idx] = offset;
       return;
     }
 
@@ -563,31 +579,49 @@ Available for allocation:
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
 
-      auto offset = stack_allocator.AllocateSlot();
-      if (v0.IsConstantGlobal() && v1.IsConstantGlobal()) {
-        int8_t c0 =
-            Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant();
-        int8_t c1 =
-            Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
-        int8_t res = c0 * c1;
-        asm_->mov(x86::byte_ptr(x86::rbp, offset), res);
-      } else if (v0.IsConstantGlobal() || v1.IsConstantGlobal()) {
-        int8_t c = v0.IsConstantGlobal()
-                       ? Type1InstructionReader(constant_instrs[v0.GetIdx()])
-                             .Constant()
-                       : Type1InstructionReader(constant_instrs[v1.GetIdx()])
-                             .Constant();
-        auto v_offset =
-            v0.IsConstantGlobal() ? offsets[v1.GetIdx()] : offsets[v0.GetIdx()];
-        asm_->mov(x86::al, c);
-        asm_->mul(x86::byte_ptr(x86::rbp, v_offset));
-        asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
+      bool v0_is_reg =
+          !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
+      int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
+      int8_t c0 =
+          v0.IsConstantGlobal()
+              ? Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant()
+              : 0;
+
+      bool v1_is_reg =
+          !v1.IsConstantGlobal() && register_assign[v1.GetIdx()] >= 0;
+      int v1_reg = v1_is_reg ? register_assign[v1.GetIdx()] : 0;
+      int8_t c1 =
+          v1.IsConstantGlobal()
+              ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
+              : 0;
+
+      int32_t offset;
+      if (!dest_is_reg) {
+        offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+      }
+
+      if (v0.IsConstantGlobal()) {
+        asm_->mov(x86::ax, c0);
+      } else if (v0_is_reg) {
+        asm_->movzx(x86::ax, normal_registers[v0_reg].GetB());
       } else {
-        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
-        asm_->mul(x86::byte_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->movzx(x86::ax, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+      }
+
+      if (v1.IsConstantGlobal()) {
+        asm_->imul(x86::ax, x86::ax, c1);
+      } else if (v1_is_reg) {
+        asm_->imul(normal_registers[v1_reg].GetB());
+      } else {
+        asm_->imul(x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+      }
+
+      if (dest_is_reg) {
+        asm_->mov(normal_registers[dest_reg].GetB(), x86::al);
+      } else {
         asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
       }
-      offsets[instr_idx] = offset;
       return;
     }
 
