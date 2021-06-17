@@ -8,10 +8,10 @@ class Register {
  public:
   Register(asmjit::x86::Gpq, asmjit::x86::Gpd, asmjit::x86::Gpw,
            asmjit::x86::GpbLo);
-  asmjit::x86::Gpq GetQ();
-  asmjit::x86::Gpd GetD();
-  asmjit::x86::Gpw GetW();
-  asmjit::x86::GpbLo GetB();
+  asmjit::x86::Gpq GetQ() const;
+  asmjit::x86::Gpd GetD() const;
+  asmjit::x86::Gpw GetW() const;
+  asmjit::x86::GpbLo GetB() const;
 
   static Register RAX;
   static Register RBX;

@@ -376,18 +376,19 @@ void ASMBackend::TranslateInstr(
   /*
   Available for allocation:
     RBX, RCX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
-    XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7
+    XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6
 
   Reserved/Scratch
-    RSP, RBP, RAX, RDX, XMM0
+    RSP, RBP, RAX, R10, XMM7
   */
   static std::vector<Register> normal_registers{
-      Register::RBX, Register::RCX, Register::RSI, Register::RDI,
-      Register::R8,  Register::R9,  Register::R10, Register::R11,
+      Register::RBX, Register::RCX, Register::RDX, Register::RSI,
+      Register::RDI, Register::R8,  Register::R9,  Register::R11,
       Register::R12, Register::R13, Register::R14, Register::R15};
-  static std::vector<x86::Xmm> fp_registers{x86::xmm1, x86::xmm2, x86::xmm3,
-                                            x86::xmm4, x86::xmm5, x86::xmm6,
-                                            x86::xmm7};
+  static std::vector<x86::Xmm> fp_registers{
+      x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3,
+      x86::xmm4, x86::xmm5, x86::xmm6,
+  };
 
   bool dest_is_reg = register_assign[instr_idx] >= 0;
   int dest_reg = register_assign[instr_idx];
@@ -797,7 +798,7 @@ void ASMBackend::TranslateInstr(
         offsets[instr_idx] = offset;
       }
 
-      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm0;
+      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm7;
       if (v.IsConstantGlobal()) {
         auto label = asm_->newLabel();
         asm_->section(data_section_);
@@ -1242,7 +1243,7 @@ void ASMBackend::TranslateInstr(
         offsets[instr_idx] = offset;
       }
 
-      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm0;
+      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm7;
       if (v.IsConstantGlobal()) {
         auto label = asm_->newLabel();
         asm_->section(data_section_);
@@ -1683,7 +1684,7 @@ void ASMBackend::TranslateInstr(
         offsets[instr_idx] = offset;
       }
 
-      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm0;
+      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm7;
       if (v.IsConstantGlobal()) {
         auto label = asm_->newLabel();
         asm_->section(data_section_);
@@ -2131,7 +2132,7 @@ void ASMBackend::TranslateInstr(
         offsets[instr_idx] = offset;
       }
 
-      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm0;
+      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm7;
       if (v.IsConstantGlobal()) {
         auto label = asm_->newLabel();
         asm_->section(data_section_);
@@ -2501,16 +2502,16 @@ void ASMBackend::TranslateInstr(
         asm_->bind(label);
         asm_->embedDouble(c0);
         asm_->section(text_section_);
-        asm_->movsd(x86::xmm0, x86::qword_ptr(label));
-        arg0 = x86::xmm0;
+        asm_->movsd(x86::xmm7, x86::qword_ptr(label));
+        arg0 = x86::xmm7;
       } else if (v0_is_reg) {
         arg0 = fp_registers[v0_reg];
       } else {
-        asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
-        arg0 = x86::xmm0;
+        asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        arg0 = x86::xmm7;
       }
 
-      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm0;
+      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm7;
       if (v1.IsConstantGlobal()) {
         auto label = asm_->newLabel();
         asm_->section(data_section_);
@@ -2525,7 +2526,7 @@ void ASMBackend::TranslateInstr(
                      x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
       }
       if (!dest_is_reg) {
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
       }
       return;
     }
@@ -2566,16 +2567,16 @@ void ASMBackend::TranslateInstr(
         asm_->bind(label);
         asm_->embedDouble(c0);
         asm_->section(text_section_);
-        asm_->movsd(x86::xmm0, x86::qword_ptr(label));
-        arg0 = x86::xmm0;
+        asm_->movsd(x86::xmm7, x86::qword_ptr(label));
+        arg0 = x86::xmm7;
       } else if (v0_is_reg) {
         arg0 = fp_registers[v0_reg];
       } else {
-        asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
-        arg0 = x86::xmm0;
+        asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        arg0 = x86::xmm7;
       }
 
-      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm0;
+      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm7;
       if (v1.IsConstantGlobal()) {
         auto label = asm_->newLabel();
         asm_->section(data_section_);
@@ -2590,7 +2591,7 @@ void ASMBackend::TranslateInstr(
                      x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
       }
       if (!dest_is_reg) {
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
       }
       return;
     }
@@ -2631,16 +2632,16 @@ void ASMBackend::TranslateInstr(
         asm_->bind(label);
         asm_->embedDouble(c0);
         asm_->section(text_section_);
-        asm_->movsd(x86::xmm0, x86::qword_ptr(label));
-        arg0 = x86::xmm0;
+        asm_->movsd(x86::xmm7, x86::qword_ptr(label));
+        arg0 = x86::xmm7;
       } else if (v0_is_reg) {
         arg0 = fp_registers[v0_reg];
       } else {
-        asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
-        arg0 = x86::xmm0;
+        asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        arg0 = x86::xmm7;
       }
 
-      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm0;
+      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm7;
       if (v1.IsConstantGlobal()) {
         auto label = asm_->newLabel();
         asm_->section(data_section_);
@@ -2655,7 +2656,7 @@ void ASMBackend::TranslateInstr(
                      x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
       }
       if (!dest_is_reg) {
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
       }
       return;
     }
@@ -2696,16 +2697,16 @@ void ASMBackend::TranslateInstr(
         asm_->bind(label);
         asm_->embedDouble(c0);
         asm_->section(text_section_);
-        asm_->movsd(x86::xmm0, x86::qword_ptr(label));
-        arg0 = x86::xmm0;
+        asm_->movsd(x86::xmm7, x86::qword_ptr(label));
+        arg0 = x86::xmm7;
       } else if (v0_is_reg) {
         arg0 = fp_registers[v0_reg];
       } else {
-        asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
-        arg0 = x86::xmm0;
+        asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        arg0 = x86::xmm7;
       }
 
-      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm0;
+      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm7;
       if (v1.IsConstantGlobal()) {
         auto label = asm_->newLabel();
         asm_->section(data_section_);
@@ -2720,7 +2721,7 @@ void ASMBackend::TranslateInstr(
                      x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
       }
       if (!dest_is_reg) {
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
       }
       return;
     }
@@ -2770,13 +2771,13 @@ void ASMBackend::TranslateInstr(
         asm_->bind(label);
         asm_->embedDouble(c0);
         asm_->section(text_section_);
-        asm_->movsd(x86::xmm0, x86::qword_ptr(label));
-        arg0 = x86::xmm0;
+        asm_->movsd(x86::xmm7, x86::qword_ptr(label));
+        arg0 = x86::xmm7;
       } else if (v0_is_reg) {
         arg0 = fp_registers[v0_reg];
       } else {
-        asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
-        arg0 = x86::xmm0;
+        asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        arg0 = x86::xmm7;
       }
 
       if (v1.IsConstantGlobal()) {
@@ -3053,8 +3054,8 @@ void ASMBackend::TranslateInstr(
           if (dest_is_reg) {
             asm_->movsd(fp_registers[dest_reg], x86::qword_ptr(label));
           } else {
-            asm_->movsd(x86::xmm0, x86::qword_ptr(label));
-            asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+            asm_->movsd(x86::xmm7, x86::qword_ptr(label));
+            asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
           }
         } else if (v_is_reg) {
           if (dest_is_reg) {
@@ -3067,9 +3068,9 @@ void ASMBackend::TranslateInstr(
             asm_->movsd(fp_registers[dest_reg],
                         x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
           } else {
-            asm_->movsd(x86::xmm0,
+            asm_->movsd(x86::xmm7,
                         x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
-            asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+            asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
           }
         }
         return;
@@ -3289,11 +3290,11 @@ void ASMBackend::TranslateInstr(
           asm_->bind(label);
           asm_->embedDouble(c);
           asm_->section(text_section_);
-          asm_->movsd(x86::xmm0, x86::qword_ptr(label));
+          asm_->movsd(x86::xmm7, x86::qword_ptr(label));
         } else if (v_is_reg) {
-          asm_->movsd(x86::xmm0, fp_registers[v.GetIdx()]);
+          asm_->movsd(x86::xmm7, fp_registers[v.GetIdx()]);
         } else {
-          asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
         }
         return;
       }
@@ -3386,52 +3387,60 @@ void ASMBackend::TranslateInstr(
       Type3InstructionReader reader(instr);
       auto type = static_cast<Type>(reader.TypeID());
 
-      const std::vector<x86::Gpb> byte_arg_regs = {
-          x86::dil, x86::sil, x86::dl, x86::cl, x86::r8b, x86::r9b};
-      const std::vector<x86::Gpw> word_arg_regs = {x86::di, x86::si,  x86::dx,
-                                                   x86::cx, x86::r8w, x86::r9w};
-      const std::vector<x86::Gpd> dword_arg_regs = {
-          x86::edi, x86::esi, x86::edx, x86::ecx, x86::r8d, x86::r9d};
-      const std::vector<x86::Gpq> qword_arg_regs = {
-          x86::rdi, x86::rsi, x86::rdx, x86::rcx, x86::r8, x86::r9};
-      const std::vector<x86::Xmm> float_arg_regs = {
+      const std::vector<Register> normal_arg_regs = {
+          Register::RDI, Register::RSI, Register::RDX,
+          Register::RCX, Register::R8,  Register::R9};
+      const std::vector<x86::Xmm> fp_arg_regs = {
           x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3, x86::xmm4, x86::xmm5};
 
-      auto offset = stack_allocator.AllocateSlot();
-      if (type_manager.IsF64Type(type)) {
-        if (num_floating_point_args_ >= float_arg_regs.size()) {
-          throw std::runtime_error(
-              "Unsupported. Too many floating point args.");
-        }
-
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset),
-                    float_arg_regs[num_floating_point_args_]);
-        num_floating_point_args_++;
-      } else {
-        if (num_regular_args_ >= qword_arg_regs.size()) {
-          throw std::runtime_error("Unsupported. Too many regular args.");
-        }
-
-        if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
-          asm_->mov(x86::byte_ptr(x86::rbp, offset),
-                    byte_arg_regs[num_regular_args_]);
-        } else if (type_manager.IsI16Type(type)) {
-          asm_->mov(x86::word_ptr(x86::rbp, offset),
-                    word_arg_regs[num_regular_args_]);
-        } else if (type_manager.IsI32Type(type)) {
-          asm_->mov(x86::dword_ptr(x86::rbp, offset),
-                    dword_arg_regs[num_regular_args_]);
-        } else if (type_manager.IsI64Type(type) ||
-                   type_manager.IsPtrType(type)) {
-          asm_->mov(x86::qword_ptr(x86::rbp, offset),
-                    qword_arg_regs[num_regular_args_]);
-        } else {
-          throw std::runtime_error("Invalid argument type.");
-        }
-
-        num_regular_args_++;
+      if (num_floating_point_args_ >= fp_arg_regs.size()) {
+        throw std::runtime_error("Unsupported. Too many floating point args.");
       }
-      offsets[instr_idx] = offset;
+
+      if (num_regular_args_ >= normal_arg_regs.size()) {
+        throw std::runtime_error("Unsupported. Too many regular args.");
+      }
+
+      if (dest_is_reg) {
+        // assume register allocator has preassigned the correct slot for
+        // FUNC_ARG
+        if (type_manager.IsF64Type(type)) {
+          assert(fp_registers[dest_reg] ==
+                 fp_arg_regs[num_floating_point_args_]);
+          num_floating_point_args_++;
+        } else {
+          assert(normal_registers[dest_reg].GetQ() ==
+                 normal_arg_regs[num_regular_args_].GetQ());
+          num_regular_args_++;
+        }
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+
+        if (type_manager.IsF64Type(type)) {
+          asm_->movsd(x86::qword_ptr(x86::rbp, offset),
+                      fp_arg_regs[num_floating_point_args_]);
+          num_floating_point_args_++;
+        } else {
+          if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
+            asm_->mov(x86::byte_ptr(x86::rbp, offset),
+                      normal_arg_regs[num_regular_args_].GetB());
+          } else if (type_manager.IsI16Type(type)) {
+            asm_->mov(x86::word_ptr(x86::rbp, offset),
+                      normal_arg_regs[num_regular_args_].GetW());
+          } else if (type_manager.IsI32Type(type)) {
+            asm_->mov(x86::dword_ptr(x86::rbp, offset),
+                      normal_arg_regs[num_regular_args_].GetD());
+          } else if (type_manager.IsI64Type(type) ||
+                     type_manager.IsPtrType(type)) {
+            asm_->mov(x86::qword_ptr(x86::rbp, offset),
+                      normal_arg_regs[num_regular_args_].GetQ());
+          } else {
+            throw std::runtime_error("Invalid argument type.");
+          }
+          num_regular_args_++;
+        }
+      }
       return;
     }
 

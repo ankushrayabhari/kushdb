@@ -9,6 +9,8 @@ cc_library(
     deps = [
         ":live_intervals",
         ":register",
+        "//khir:instruction",
+        "//khir:opcode",
     ],
 )
 

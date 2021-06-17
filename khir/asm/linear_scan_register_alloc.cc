@@ -6,11 +6,17 @@
 
 #include "khir/asm/live_intervals.h"
 #include "khir/asm/register.h"
+#include "khir/instruction.h"
+#include "khir/opcode.h"
 
 namespace kush::khir {
 
 std::vector<int> AssignRegisters(
-    const std::vector<LiveInterval>& live_intervals) {
+    const std::vector<LiveInterval>& live_intervals,
+    const std::vector<uint64_t>& instrs) {
+  int num_fp_args = 0;
+  int num_normal_args = 0;
+
   std::vector<int> order(live_intervals.size(), -1);
   for (int i = 0; i < order.size(); i++) {
     order[i] = i;
@@ -57,11 +63,11 @@ std::vector<int> AssignRegisters(
 
   /*
   Available for allocation:
-    RBX, RCX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
-    XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7
+    RBX, RCX, RDX, RSI, RDI, R8, R9, R11, R12, R13, R14, R15
+    XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6
 
   Reserved/Scratch
-    RSP, RBP, RAX, RDX, XMM0
+    RSP, RBP, RAX, R10, XMM7
   */
   for (int i : order) {
     assert(free_normal_regs.size() + active_normal.size() == 12);
@@ -118,7 +124,22 @@ std::vector<int> AssignRegisters(
           assignments[i] = -1;
         }
       } else {
-        auto reg = *free_floating_point_regs.begin();
+        int reg;
+        if (OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode()) ==
+            Opcode::FUNC_ARG) {
+          const std::vector<int> fp_arg_regs = {0, 1, 2, 3, 4, 5};
+          if (num_fp_args >= fp_arg_regs.size()) {
+            throw std::runtime_error(
+                "Unsupported. Too many floating point args.");
+          }
+
+          reg = fp_arg_regs[num_fp_args];
+          num_fp_args++;
+          assert(free_floating_point_regs.find(reg) !=
+                 free_floating_point_regs.end());
+        } else {
+          reg = *free_floating_point_regs.begin();
+        }
         free_floating_point_regs.erase(reg);
         active_floating_point.insert(i);
         assignments[i] = reg;
@@ -136,7 +157,21 @@ std::vector<int> AssignRegisters(
           assignments[i] = -1;
         }
       } else {
-        auto reg = *free_normal_regs.begin();
+        int reg;
+        if (OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode()) ==
+            Opcode::FUNC_ARG) {
+          const std::vector<int> normal_arg_regs = {4, 3, 2, 1, 5, 6};
+          if (num_normal_args >= normal_arg_regs.size()) {
+            throw std::runtime_error("Unsupported. Too many normal args.");
+          }
+
+          reg = normal_arg_regs[num_normal_args];
+          num_normal_args++;
+          assert(free_normal_regs.find(reg) != free_normal_regs.end());
+        } else {
+          reg = *free_normal_regs.begin();
+        }
+
         free_normal_regs.erase(reg);
         active_normal.insert(i);
         assignments[i] = reg;
