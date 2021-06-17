@@ -642,7 +642,8 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
       auto instr = instrs[i];
       auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
-      if (opcode == Opcode::PHI || opcode == Opcode::GEP_OFFSET) {
+      if (opcode == Opcode::PHI || opcode == Opcode::GEP_OFFSET ||
+          opcode == Opcode::RETURN_VALUE) {
         // do nothing
       } else {
         std::vector<Value> values = ComputeReadValues(instr, instrs);

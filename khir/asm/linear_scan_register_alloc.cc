@@ -14,9 +14,6 @@ namespace kush::khir {
 std::vector<int> AssignRegisters(
     const std::vector<LiveInterval>& live_intervals,
     const std::vector<uint64_t>& instrs) {
-  int num_fp_args = 0;
-  int num_normal_args = 0;
-
   std::vector<int> order(live_intervals.size(), -1);
   for (int i = 0; i < order.size(); i++) {
     order[i] = i;
@@ -70,9 +67,6 @@ std::vector<int> AssignRegisters(
     RSP, RBP, RAX, R10, XMM7
   */
   for (int i : order) {
-    assert(free_normal_regs.size() + active_normal.size() == 12);
-    assert(free_floating_point_regs.size() + active_floating_point.size() == 7);
-
     if (live_intervals[i].Undef()) {
       break;
     }
@@ -114,10 +108,10 @@ std::vector<int> AssignRegisters(
     if (live_intervals[i].IsFloatingPoint()) {
       if (free_floating_point_regs.empty()) {
         // Spill one of the floating point regs
-        auto spill = *active_floating_point.cbegin();
-        if (live_intervals[spill].End() > live_intervals[i].End()) {
-          assignments[i] = assignments[spill];
-          assignments[spill] = -1;
+        auto spill = active_floating_point.cbegin();
+        if (live_intervals[*spill].End() > live_intervals[i].End()) {
+          assignments[i] = assignments[*spill];
+          assignments[*spill] = -1;
           active_floating_point.erase(spill);
           active_floating_point.insert(i);
         } else {
@@ -128,18 +122,17 @@ std::vector<int> AssignRegisters(
         if (OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode()) ==
             Opcode::FUNC_ARG) {
           const std::vector<int> fp_arg_regs = {0, 1, 2, 3, 4, 5};
-          if (num_fp_args >= fp_arg_regs.size()) {
+          if (i >= fp_arg_regs.size()) {
             throw std::runtime_error(
                 "Unsupported. Too many floating point args.");
           }
 
-          reg = fp_arg_regs[num_fp_args];
-          num_fp_args++;
-          assert(free_floating_point_regs.find(reg) !=
-                 free_floating_point_regs.end());
+          reg = fp_arg_regs[i];
         } else {
           reg = *free_floating_point_regs.begin();
         }
+        assert(free_floating_point_regs.find(reg) !=
+               free_floating_point_regs.end());
         free_floating_point_regs.erase(reg);
         active_floating_point.insert(i);
         assignments[i] = reg;
@@ -147,10 +140,10 @@ std::vector<int> AssignRegisters(
     } else {
       if (free_normal_regs.empty()) {
         // Spill one of the normal regs
-        auto spill = *active_normal.cbegin();
-        if (live_intervals[spill].End() > live_intervals[i].End()) {
-          assignments[i] = assignments[spill];
-          assignments[spill] = -1;
+        auto spill = active_normal.cbegin();
+        if (live_intervals[*spill].End() > live_intervals[i].End()) {
+          assignments[i] = assignments[*spill];
+          assignments[*spill] = -1;
           active_normal.erase(spill);
           active_normal.insert(i);
         } else {
@@ -161,22 +154,24 @@ std::vector<int> AssignRegisters(
         if (OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode()) ==
             Opcode::FUNC_ARG) {
           const std::vector<int> normal_arg_regs = {4, 3, 2, 1, 5, 6};
-          if (num_normal_args >= normal_arg_regs.size()) {
+          if (i >= normal_arg_regs.size()) {
             throw std::runtime_error("Unsupported. Too many normal args.");
           }
 
-          reg = normal_arg_regs[num_normal_args];
-          num_normal_args++;
-          assert(free_normal_regs.find(reg) != free_normal_regs.end());
+          reg = normal_arg_regs[i];
         } else {
           reg = *free_normal_regs.begin();
         }
+        assert(free_normal_regs.find(reg) != free_normal_regs.end());
 
         free_normal_regs.erase(reg);
         active_normal.insert(i);
         assignments[i] = reg;
       }
     }
+
+    assert(free_normal_regs.size() + active_normal.size() == 12);
+    assert(free_floating_point_regs.size() + active_floating_point.size() == 7);
   }
 
   /*

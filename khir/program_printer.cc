@@ -262,9 +262,21 @@ void ProgramPrinter::OutputInstr(
       return;
     }
 
+    case Opcode::RETURN_VALUE: {
+      Type3InstructionReader reader(instrs[idx]);
+      Value v0(reader.Arg());
+
+      std::cerr << "   " << magic_enum::enum_name(opcode) << " ";
+      OutputValue(v0, instrs, constant_instrs, i64_constants, f64_constants,
+                  char_array_constants, struct_constants, array_constants,
+                  globals, functions);
+      std::cerr << "\n";
+
+      return;
+    }
+
     case Opcode::PTR_CAST:
     case Opcode::PTR_LOAD:
-    case Opcode::RETURN_VALUE:
     case Opcode::CALL_ARG:
     case Opcode::GEP:
     case Opcode::CALL_INDIRECT: {

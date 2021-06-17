@@ -208,6 +208,8 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     if (func.External()) {
       continue;
     }
+    const auto& instructions = func.Instructions();
+    const auto& basic_blocks = func.BasicBlocks();
 
     num_floating_point_args_ = 0;
     num_regular_args_ = 0;
@@ -224,7 +226,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     }
 
     auto [live_intervals, order] = ComputeLiveIntervals(func, type_manager);
-    auto register_assign = AssignRegisters(live_intervals);
+    auto register_assign = AssignRegisters(live_intervals, instructions);
 
     // Prologue ================================================================
     // - Save RBP and Store RSP in RBP
@@ -240,9 +242,6 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     auto stack_alloc_offset = asm_->offset();
     asm_->long_().sub(x86::rsp, 0);
     // =========================================================================
-
-    const auto& instructions = func.Instructions();
-    const auto& basic_blocks = func.BasicBlocks();
 
     std::vector<Label> basic_blocks_impl;
     Label epilogue = asm_->newLabel();
@@ -360,6 +359,15 @@ std::pair<khir::Value, int32_t> ASMBackend::Gep(
   return {ptr, offset};
 }
 
+int32_t Get(std::vector<int32_t>& offsets, int i) {
+  auto offset = offsets[i];
+  if (offset == INT32_MAX) {
+    throw std::runtime_error("Undefined offset.");
+  }
+
+  return offset;
+}
+
 void ASMBackend::TranslateInstr(
     const TypeManager& type_manager, const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
@@ -423,9 +431,9 @@ void ASMBackend::TranslateInstr(
                   normal_registers[v_reg].GetB());
       } else if (dest_is_reg) {  // v on stack
         asm_->mov(normal_registers[dest_reg].GetB(),
-                  (x86::byte_ptr(x86::rbp, offsets[v.GetIdx()])));
+                  (x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx()))));
       } else {  // v on stack, dest on stack
-        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
       }
       return;
@@ -461,10 +469,10 @@ void ASMBackend::TranslateInstr(
         asm_->xor_(x86::byte_ptr(x86::rbp, offset), 1);
       } else if (dest_is_reg) {  // v on stack
         asm_->mov(normal_registers[dest_reg].GetB(),
-                  (x86::byte_ptr(x86::rbp, offsets[v.GetIdx()])));
+                  (x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx()))));
         asm_->xor_(normal_registers[dest_reg].GetB(), 1);
       } else {  // v on stack, dest on stack
-        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         asm_->xor_(x86::al, 1);
         asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
       }
@@ -506,7 +514,7 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->mov(dest, normal_registers[v0_reg].GetB());
       } else {
-        asm_->mov(dest, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(dest, x86::byte_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -514,7 +522,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->add(dest, normal_registers[v1_reg].GetB());
       } else {
-        asm_->add(dest, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->add(dest, x86::byte_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -557,7 +565,7 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->mov(dest, normal_registers[v0_reg].GetB());
       } else {
-        asm_->mov(dest, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(dest, x86::byte_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -565,7 +573,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->sub(dest, normal_registers[v1_reg].GetB());
       } else {
-        asm_->sub(dest, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->sub(dest, x86::byte_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -606,7 +614,8 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->movzx(x86::ax, normal_registers[v0_reg].GetB());
       } else {
-        asm_->movzx(x86::ax, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->movzx(x86::ax,
+                    x86::byte_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -614,7 +623,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->imul(normal_registers[v1_reg].GetB());
       } else {
-        asm_->imul(x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->imul(x86::byte_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (dest_is_reg) {
@@ -667,7 +676,8 @@ void ASMBackend::TranslateInstr(
         arg0 = normal_registers[v0_reg].GetB();
       } else {
         arg0 = x86::al;
-        asm_->movzx(x86::eax, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->movzx(x86::eax,
+                    x86::byte_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -675,7 +685,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->cmp(arg0, normal_registers[v1_reg].GetB());
       } else {
-        asm_->cmp(arg0, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->cmp(arg0, x86::byte_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
       }
 
       switch (opcode) {
@@ -770,7 +780,7 @@ void ASMBackend::TranslateInstr(
       } else if (v_is_reg) {
         asm_->movzx(dest, normal_registers[v_reg].GetB());
       } else {
-        asm_->movzx(dest, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->movzx(dest, x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -809,7 +819,8 @@ void ASMBackend::TranslateInstr(
         asm_->movsx(x86::eax, normal_registers[v_reg].GetB());
         asm_->cvtsi2sd(dest, x86::eax);
       } else {
-        asm_->movsx(x86::eax, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->movsx(x86::eax,
+                    x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         asm_->cvtsi2sd(dest, x86::eax);
       }
 
@@ -851,7 +862,8 @@ void ASMBackend::TranslateInstr(
           asm_->mov(x86::byte_ptr(label, ptr_offset),
                     normal_registers[v1_reg].GetB());
         } else {
-          asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v1.GetIdx()]));
+          asm_->mov(x86::al,
+                    x86::byte_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
           asm_->mov(x86::byte_ptr(label, ptr_offset), x86::al);
         }
         return;
@@ -859,7 +871,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -868,7 +881,7 @@ void ASMBackend::TranslateInstr(
         asm_->mov(x86::byte_ptr(ptr_reg, ptr_offset),
                   normal_registers[v1_reg].GetB());
       } else {
-        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
         asm_->mov(x86::byte_ptr(ptr_reg, ptr_offset), x86::al);
       }
       return;
@@ -909,7 +922,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (dest_is_reg) {
@@ -957,7 +971,7 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->mov(dest, normal_registers[v0_reg].GetW());
       } else {
-        asm_->mov(dest, x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(dest, x86::word_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -965,7 +979,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->add(dest, normal_registers[v1_reg].GetW());
       } else {
-        asm_->add(dest, x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->add(dest, x86::word_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -1008,7 +1022,7 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->mov(dest, normal_registers[v0_reg].GetW());
       } else {
-        asm_->mov(dest, x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(dest, x86::word_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1016,7 +1030,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->sub(dest, normal_registers[v1_reg].GetW());
       } else {
-        asm_->sub(dest, x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->sub(dest, x86::word_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -1056,7 +1070,8 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->movzx(x86::eax, normal_registers[v0_reg].GetW());
       } else {
-        asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->movzx(x86::eax,
+                    x86::word_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1064,7 +1079,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->imul(normal_registers[v1_reg].GetW());
       } else {
-        asm_->imul(x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->imul(x86::word_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (dest_is_reg) {
@@ -1115,7 +1130,8 @@ void ASMBackend::TranslateInstr(
         arg0 = normal_registers[v0_reg].GetW();
       } else {
         arg0 = x86::ax;
-        asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->movzx(x86::eax,
+                    x86::word_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1123,7 +1139,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->cmp(arg0, normal_registers[v1_reg].GetW());
       } else {
-        asm_->cmp(arg0, x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->cmp(arg0, x86::word_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
       }
 
       switch (opcode) {
@@ -1215,7 +1231,7 @@ void ASMBackend::TranslateInstr(
       } else if (v_is_reg) {
         asm_->movzx(dest, normal_registers[v_reg].GetW());
       } else {
-        asm_->movzx(dest, x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->movzx(dest, x86::word_ptr(x86::rbp, Get(offsets, v.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -1254,7 +1270,8 @@ void ASMBackend::TranslateInstr(
         asm_->movsx(x86::eax, normal_registers[v_reg].GetW());
         asm_->cvtsi2sd(dest, x86::eax);
       } else {
-        asm_->movsx(x86::eax, x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->movsx(x86::eax,
+                    x86::word_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         asm_->cvtsi2sd(dest, x86::eax);
       }
 
@@ -1296,7 +1313,8 @@ void ASMBackend::TranslateInstr(
           asm_->mov(x86::word_ptr(label, ptr_offset),
                     normal_registers[v1_reg].GetW());
         } else {
-          asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[v1.GetIdx()]));
+          asm_->movzx(x86::eax,
+                      x86::word_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
           asm_->mov(x86::word_ptr(label, ptr_offset), x86::ax);
         }
         return;
@@ -1304,7 +1322,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1313,7 +1332,8 @@ void ASMBackend::TranslateInstr(
         asm_->mov(x86::word_ptr(ptr_reg, ptr_offset),
                   normal_registers[v1_reg].GetW());
       } else {
-        asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->movzx(x86::eax,
+                    x86::word_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
         asm_->mov(x86::word_ptr(ptr_reg, ptr_offset), x86::eax);
       }
       return;
@@ -1354,7 +1374,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (dest_is_reg) {
@@ -1402,7 +1423,7 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->mov(dest, normal_registers[v0_reg].GetD());
       } else {
-        asm_->mov(dest, x86::dword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(dest, x86::dword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1410,7 +1431,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->add(dest, normal_registers[v1_reg].GetD());
       } else {
-        asm_->add(dest, x86::dword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->add(dest, x86::dword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -1453,7 +1474,7 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->sub(dest, normal_registers[v0_reg].GetD());
       } else {
-        asm_->sub(dest, x86::dword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->sub(dest, x86::dword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1461,7 +1482,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->add(dest, normal_registers[v1_reg].GetD());
       } else {
-        asm_->add(dest, x86::dword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->add(dest, x86::dword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -1502,7 +1523,8 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->mov(x86::eax, normal_registers[v0_reg].GetD());
       } else {
-        asm_->mov(x86::eax, x86::dword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::eax,
+                  x86::dword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1510,7 +1532,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->imul(normal_registers[v1_reg].GetD());
       } else {
-        asm_->imul(x86::dword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->imul(x86::dword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (dest_is_reg) {
@@ -1561,7 +1583,8 @@ void ASMBackend::TranslateInstr(
         arg0 = normal_registers[v0_reg].GetD();
       } else {
         arg0 = x86::eax;
-        asm_->mov(x86::eax, x86::dword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::eax,
+                  x86::dword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1569,7 +1592,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->cmp(arg0, normal_registers[v1_reg].GetD());
       } else {
-        asm_->cmp(arg0, x86::dword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->cmp(arg0, x86::dword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
       }
 
       switch (opcode) {
@@ -1656,7 +1679,7 @@ void ASMBackend::TranslateInstr(
       } else if (v_is_reg) {
         asm_->movzx(dest, normal_registers[v_reg].GetD());
       } else {
-        asm_->movzx(dest, x86::dword_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->movzx(dest, x86::dword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -1694,7 +1717,8 @@ void ASMBackend::TranslateInstr(
       } else if (v_is_reg) {
         asm_->cvtsi2sd(dest, normal_registers[v_reg].GetD());
       } else {
-        asm_->cvtsi2sd(dest, x86::dword_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->cvtsi2sd(dest,
+                       x86::dword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -1735,7 +1759,8 @@ void ASMBackend::TranslateInstr(
           asm_->mov(x86::dword_ptr(label, ptr_offset),
                     normal_registers[v1_reg].GetD());
         } else {
-          asm_->mov(x86::eax, x86::dword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+          asm_->mov(x86::eax,
+                    x86::dword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
           asm_->mov(x86::dword_ptr(label, ptr_offset), x86::eax);
         }
         return;
@@ -1743,7 +1768,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1752,7 +1778,8 @@ void ASMBackend::TranslateInstr(
         asm_->mov(x86::dword_ptr(ptr_reg, ptr_offset),
                   normal_registers[v1_reg].GetW());
       } else {
-        asm_->mov(x86::eax, x86::dword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->mov(x86::eax,
+                  x86::dword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
         asm_->mov(x86::dword_ptr(ptr_reg, ptr_offset), x86::eax);
       }
       return;
@@ -1793,7 +1820,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (dest_is_reg) {
@@ -1843,7 +1871,7 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->mov(dest, normal_registers[v0_reg].GetQ());
       } else {
-        asm_->mov(dest, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(dest, x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1859,7 +1887,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->add(dest, normal_registers[v1_reg].GetQ());
       } else {
-        asm_->add(dest, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->add(dest, x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -1904,7 +1932,7 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->mov(dest, normal_registers[v0_reg].GetQ());
       } else {
-        asm_->mov(dest, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(dest, x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1920,7 +1948,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->sub(dest, normal_registers[v1_reg].GetQ());
       } else {
-        asm_->sub(dest, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->sub(dest, x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -1963,7 +1991,8 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->mov(x86::rax, normal_registers[v0_reg].GetQ());
       } else {
-        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::rax,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -1979,7 +2008,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->imul(normal_registers[v1_reg].GetQ());
       } else {
-        asm_->imul(x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->imul(x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (dest_is_reg) {
@@ -2032,7 +2061,8 @@ void ASMBackend::TranslateInstr(
         arg0 = normal_registers[v0_reg].GetQ();
       } else {
         arg0 = x86::rax;
-        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::rax,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -2048,7 +2078,7 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->cmp(arg0, normal_registers[v1_reg].GetQ());
       } else {
-        asm_->cmp(arg0, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->cmp(arg0, x86::qword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
       }
 
       switch (opcode) {
@@ -2142,7 +2172,8 @@ void ASMBackend::TranslateInstr(
       } else if (v_is_reg) {
         asm_->cvtsi2sd(dest, normal_registers[v_reg].GetQ());
       } else {
-        asm_->cvtsi2sd(dest, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->cvtsi2sd(dest,
+                       x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -2192,7 +2223,8 @@ void ASMBackend::TranslateInstr(
           asm_->mov(x86::qword_ptr(label, ptr_offset),
                     normal_registers[v1_reg].GetQ());
         } else {
-          asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+          asm_->mov(x86::rax,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
           asm_->mov(x86::qword_ptr(label, ptr_offset), x86::rax);
         }
         return;
@@ -2200,7 +2232,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -2217,7 +2250,8 @@ void ASMBackend::TranslateInstr(
         asm_->mov(x86::qword_ptr(ptr_reg, ptr_offset),
                   normal_registers[v1_reg].GetQ());
       } else {
-        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->mov(x86::rax,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
         asm_->mov(x86::qword_ptr(ptr_reg, ptr_offset), x86::rax);
       }
       return;
@@ -2258,7 +2292,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (dest_is_reg) {
@@ -2335,10 +2370,11 @@ void ASMBackend::TranslateInstr(
         }
       } else {
         if (ptr_offset != 0) {
-          asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->mov(x86::r10,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           asm_->lea(dest, x86::ptr(x86::r10, ptr_offset));
         } else {
-          asm_->mov(dest, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->mov(dest, x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         }
       }
 
@@ -2385,7 +2421,8 @@ void ASMBackend::TranslateInstr(
           asm_->mov(x86::qword_ptr(label, ptr_offset),
                     normal_registers[v1_reg].GetQ());
         } else {
-          asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+          asm_->mov(x86::rax,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
           asm_->mov(x86::qword_ptr(label, ptr_offset), x86::rax);
         }
         return;
@@ -2393,7 +2430,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -2410,15 +2448,16 @@ void ASMBackend::TranslateInstr(
         asm_->mov(x86::qword_ptr(ptr_reg, ptr_offset),
                   normal_registers[v1_reg].GetQ());
       } else {
-        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->mov(x86::rax,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
         asm_->mov(x86::qword_ptr(ptr_reg, ptr_offset), x86::rax);
       }
       return;
     }
 
     case Opcode::PTR_LOAD: {
-      Type2InstructionReader reader(instr);
-      Value v0(reader.Arg0());
+      Type3InstructionReader reader(instr);
+      Value v0(reader.Arg());
       int32_t ptr_offset = 0;
 
       if (IsGep(v0, instructions)) {
@@ -2451,7 +2490,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (dest_is_reg) {
@@ -2506,7 +2546,8 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         arg0 = fp_registers[v0_reg];
       } else {
-        asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->movsd(x86::xmm7,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
         arg0 = x86::xmm7;
       }
 
@@ -2522,7 +2563,7 @@ void ASMBackend::TranslateInstr(
         asm_->vaddsd(dest, arg0, fp_registers[v1_reg]);
       } else {
         asm_->vaddsd(dest, arg0,
-                     x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+                     x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
       if (!dest_is_reg) {
         asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
@@ -2571,7 +2612,8 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         arg0 = fp_registers[v0_reg];
       } else {
-        asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->movsd(x86::xmm7,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
         arg0 = x86::xmm7;
       }
 
@@ -2587,7 +2629,7 @@ void ASMBackend::TranslateInstr(
         asm_->vsubsd(dest, arg0, fp_registers[v1_reg]);
       } else {
         asm_->vsubsd(dest, arg0,
-                     x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+                     x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
       if (!dest_is_reg) {
         asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
@@ -2636,7 +2678,8 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         arg0 = fp_registers[v0_reg];
       } else {
-        asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->movsd(x86::xmm7,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
         arg0 = x86::xmm7;
       }
 
@@ -2652,7 +2695,7 @@ void ASMBackend::TranslateInstr(
         asm_->vmulsd(dest, arg0, fp_registers[v1_reg]);
       } else {
         asm_->vmulsd(dest, arg0,
-                     x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+                     x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
       if (!dest_is_reg) {
         asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
@@ -2701,7 +2744,8 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         arg0 = fp_registers[v0_reg];
       } else {
-        asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->movsd(x86::xmm7,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
         arg0 = x86::xmm7;
       }
 
@@ -2717,7 +2761,7 @@ void ASMBackend::TranslateInstr(
         asm_->vdivsd(dest, arg0, fp_registers[v1_reg]);
       } else {
         asm_->vdivsd(dest, arg0,
-                     x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+                     x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
       if (!dest_is_reg) {
         asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
@@ -2775,7 +2819,8 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         arg0 = fp_registers[v0_reg];
       } else {
-        asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->movsd(x86::xmm7,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
         arg0 = x86::xmm7;
       }
 
@@ -2789,7 +2834,8 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->vucomisd(arg0, fp_registers[v1_reg]);
       } else {
-        asm_->vucomisd(arg0, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->vucomisd(arg0,
+                       x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       switch (opcode) {
@@ -2867,7 +2913,8 @@ void ASMBackend::TranslateInstr(
       } else if (v0_is_reg) {
         asm_->cvttsd2si(dest, fp_registers[v0_reg]);
       } else {
-        asm_->cvttsd2si(dest, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->cvttsd2si(dest,
+                        x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (!dest_is_reg) {
@@ -2912,7 +2959,8 @@ void ASMBackend::TranslateInstr(
         } else if (v1_is_reg) {
           asm_->movsd(x86::qword_ptr(label, ptr_offset), fp_registers[v1_reg]);
         } else {
-          asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+          asm_->mov(x86::rax,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
           asm_->mov(x86::qword_ptr(label, ptr_offset), x86::rax);
         }
         return;
@@ -2920,7 +2968,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (v1.IsConstantGlobal()) {
@@ -2929,7 +2978,8 @@ void ASMBackend::TranslateInstr(
       } else if (v1_is_reg) {
         asm_->movsd(x86::qword_ptr(ptr_reg, ptr_offset), fp_registers[v1_reg]);
       } else {
-        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->mov(x86::rax,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
         asm_->mov(x86::qword_ptr(ptr_reg, ptr_offset), x86::rax);
       }
       return;
@@ -2970,7 +3020,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
       if (!v0_is_reg) {
-        asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->mov(x86::r10,
+                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
       }
 
       if (dest_is_reg) {
@@ -3011,7 +3062,7 @@ void ASMBackend::TranslateInstr(
         asm_->je(basic_blocks[reader.Marg0()]);
         asm_->jmp(basic_blocks[reader.Marg1()]);
       } else {
-        asm_->cmp(x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]), 1);
+        asm_->cmp(x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())), 1);
         asm_->je(basic_blocks[reader.Marg0()]);
         asm_->jmp(basic_blocks[reader.Marg1()]);
       }
@@ -3033,7 +3084,7 @@ void ASMBackend::TranslateInstr(
       int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
 
       int32_t offset;
-      if (dest_is_reg && offsets[phi.GetIdx()] == INT32_MAX) {
+      if (!dest_is_reg && offsets[phi.GetIdx()] == INT32_MAX) {
         offset = stack_allocator.AllocateSlot();
         offsets[phi.GetIdx()] = offset;
       }
@@ -3065,10 +3116,10 @@ void ASMBackend::TranslateInstr(
         } else {
           if (dest_is_reg) {
             asm_->movsd(fp_registers[dest_reg],
-                        x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                        x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           } else {
             asm_->movsd(x86::xmm7,
-                        x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                        x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
             asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
           }
         }
@@ -3095,9 +3146,10 @@ void ASMBackend::TranslateInstr(
         } else {
           if (dest_is_reg) {
             asm_->mov(normal_registers[dest_reg].GetB(),
-                      x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+                      x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           } else {
-            asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+            asm_->mov(x86::al,
+                      x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
             asm_->mov(x86::byte_ptr(x86::rbp, offset), x86::al);
           }
         }
@@ -3124,9 +3176,10 @@ void ASMBackend::TranslateInstr(
         } else {
           if (dest_is_reg) {
             asm_->mov(normal_registers[dest_reg].GetW(),
-                      x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+                      x86::word_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           } else {
-            asm_->mov(x86::ax, x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+            asm_->mov(x86::ax,
+                      x86::word_ptr(x86::rbp, Get(offsets, v.GetIdx())));
             asm_->mov(x86::word_ptr(x86::rbp, offset), x86::ax);
           }
         }
@@ -3153,9 +3206,10 @@ void ASMBackend::TranslateInstr(
         } else {
           if (dest_is_reg) {
             asm_->mov(normal_registers[dest_reg].GetD(),
-                      x86::dword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                      x86::dword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           } else {
-            asm_->mov(x86::eax, x86::dword_ptr(x86::rbp, offsets[v.GetIdx()]));
+            asm_->mov(x86::eax,
+                      x86::dword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
             asm_->mov(x86::dword_ptr(x86::rbp, offset), x86::eax);
           }
         }
@@ -3192,9 +3246,10 @@ void ASMBackend::TranslateInstr(
         } else {
           if (dest_is_reg) {
             asm_->mov(normal_registers[dest_reg].GetQ(),
-                      x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                      x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           } else {
-            asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+            asm_->mov(x86::rax,
+                      x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
             asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
           }
         }
@@ -3244,7 +3299,8 @@ void ASMBackend::TranslateInstr(
             asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
           }
         } else {
-          asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->mov(x86::rax,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
 
           if (dest_is_reg) {
             asm_->lea(normal_registers[dest_reg].GetQ(),
@@ -3293,7 +3349,8 @@ void ASMBackend::TranslateInstr(
         } else if (v_is_reg) {
           asm_->movsd(x86::xmm7, fp_registers[v.GetIdx()]);
         } else {
-          asm_->movsd(x86::xmm7, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->movsd(x86::xmm7,
+                      x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         }
         return;
       }
@@ -3306,7 +3363,7 @@ void ASMBackend::TranslateInstr(
         } else if (v_is_reg) {
           asm_->mov(x86::al, normal_registers[v_reg].GetB());
         } else {
-          asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->mov(x86::al, x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         }
         return;
       }
@@ -3319,7 +3376,7 @@ void ASMBackend::TranslateInstr(
         } else if (v_is_reg) {
           asm_->mov(x86::ax, normal_registers[v_reg].GetW());
         } else {
-          asm_->mov(x86::ax, x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->mov(x86::ax, x86::word_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         }
         return;
       }
@@ -3332,7 +3389,8 @@ void ASMBackend::TranslateInstr(
         } else if (v_is_reg) {
           asm_->mov(x86::eax, normal_registers[v_reg].GetD());
         } else {
-          asm_->mov(x86::eax, x86::dword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->mov(x86::eax,
+                    x86::dword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         }
         return;
       }
@@ -3346,7 +3404,8 @@ void ASMBackend::TranslateInstr(
         } else if (v_is_reg) {
           asm_->mov(x86::rax, normal_registers[v_reg].GetQ());
         } else {
-          asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->mov(x86::rax,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         }
         return;
       }
@@ -3373,7 +3432,8 @@ void ASMBackend::TranslateInstr(
           asm_->lea(x86::rax,
                     x86::ptr(normal_registers[v_reg].GetQ(), ptr_offset));
         } else {
-          asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+          asm_->mov(x86::rax,
+                    x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           asm_->lea(x86::rax, x86::ptr(x86::rax, ptr_offset));
         }
       }
@@ -3516,7 +3576,7 @@ void ASMBackend::TranslateInstr(
               x86::qword_ptr(x86::rsp, caller_saved_fp_reg_offset[v_reg]));
         } else {
           asm_->movsd(float_arg_regs[float_arg_idx],
-                      x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                      x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         }
         float_arg_idx++;
       }
@@ -3554,7 +3614,7 @@ void ASMBackend::TranslateInstr(
             }
           } else {
             asm_->mov(normal_arg_regs[regular_arg_idx].GetB(),
-                      x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+                      x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           }
 
           regular_arg_idx++;
@@ -3582,7 +3642,7 @@ void ASMBackend::TranslateInstr(
             }
           } else {
             asm_->mov(normal_arg_regs[regular_arg_idx].GetW(),
-                      x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+                      x86::word_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           }
 
           regular_arg_idx++;
@@ -3610,7 +3670,7 @@ void ASMBackend::TranslateInstr(
             }
           } else {
             asm_->mov(normal_arg_regs[regular_arg_idx].GetD(),
-                      x86::dword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                      x86::dword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           }
 
           regular_arg_idx++;
@@ -3639,7 +3699,7 @@ void ASMBackend::TranslateInstr(
             }
           } else {
             asm_->mov(normal_arg_regs[regular_arg_idx].GetQ(),
-                      x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                      x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
           }
 
           regular_arg_idx++;
@@ -3671,7 +3731,6 @@ void ASMBackend::TranslateInstr(
                         x86::ptr(label, ptr_offset));
             }
           } else if (v_is_reg) {
-            asm_->mov(x86::r10, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
             // check to see if its in a caller saved register
             // if so, we need to read it from the stack
             // else, we can just read it from the normal place
@@ -3690,12 +3749,12 @@ void ASMBackend::TranslateInstr(
           } else {
             if (ptr_offset != 0) {
               asm_->mov(x86::r10,
-                        x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                        x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
               asm_->lea(normal_arg_regs[regular_arg_idx].GetQ(),
                         x86::ptr(x86::r10, ptr_offset));
             } else {
               asm_->mov(normal_arg_regs[regular_arg_idx].GetQ(),
-                        x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                        x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
             }
           }
           regular_arg_idx++;
@@ -3741,7 +3800,7 @@ void ASMBackend::TranslateInstr(
               }
             } else {
               asm_->movzx(x86::rax,
-                          x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+                          x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
             }
 
             asm_->push(x86::rax);
@@ -3769,7 +3828,7 @@ void ASMBackend::TranslateInstr(
               }
             } else {
               asm_->movzx(x86::rax,
-                          x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+                          x86::word_ptr(x86::rbp, Get(offsets, v.GetIdx())));
             }
 
             asm_->push(x86::rax);
@@ -3797,7 +3856,7 @@ void ASMBackend::TranslateInstr(
               }
             } else {
               asm_->movzx(x86::rax,
-                          x86::dword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                          x86::dword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
             }
 
             asm_->push(x86::rax);
@@ -3826,7 +3885,7 @@ void ASMBackend::TranslateInstr(
               }
             } else {
               asm_->mov(x86::rax,
-                        x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                        x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
             }
 
             asm_->push(x86::rax);
@@ -3859,7 +3918,7 @@ void ASMBackend::TranslateInstr(
               }
             } else if (v_is_reg) {
               asm_->mov(x86::r10,
-                        x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                        x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
               // check to see if its in a caller saved register
               // if so, we need to read it from the stack
               // else, we can just read it from the normal place
@@ -3877,11 +3936,11 @@ void ASMBackend::TranslateInstr(
             } else {
               if (ptr_offset != 0) {
                 asm_->mov(x86::r10,
-                          x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                          x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
                 asm_->lea(x86::rax, x86::ptr(x86::r10, ptr_offset));
               } else {
                 asm_->mov(x86::rax,
-                          x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+                          x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
               }
             }
 
@@ -3917,7 +3976,7 @@ void ASMBackend::TranslateInstr(
           throw std::runtime_error("Not possible.");
         }
 
-        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
         asm_->call(x86::rax);
 
         return_type = type_manager.GetFunctionReturnType(
