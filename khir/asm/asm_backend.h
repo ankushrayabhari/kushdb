@@ -72,7 +72,7 @@ class ASMBackend : public Backend, public compile::Program {
                       const std::vector<asmjit::Label>& basic_blocks,
                       const std::vector<Function>& functions,
                       const asmjit::Label& epilogue,
-                      std::vector<int64_t>& offsets,
+                      std::vector<int32_t>& offsets,
                       const std::vector<uint64_t>& instructions,
                       const std::vector<uint64_t>& constant_instrs,
                       int instr_idx, StackSlotAllocator& stack_allocator,
