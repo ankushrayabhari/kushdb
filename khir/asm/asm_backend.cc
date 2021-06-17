@@ -781,24 +781,41 @@ Available for allocation:
 
     case Opcode::I8_CONV_F64: {
       Type2InstructionReader reader(instr);
-      Value v0(reader.Arg0());
+      Value v(reader.Arg0());
 
-      auto offset = stack_allocator.AllocateSlot();
-      if (v0.IsConstantGlobal()) {
-        int8_t c =
-            Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant();
-        double res = c;
-        uint64_t res_as_int;
-        std::memcpy(&res_as_int, &res, sizeof(res_as_int));
+      bool v_is_reg = !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
+      int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
+      int8_t c =
+          v.IsConstantGlobal()
+              ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
+              : 0;
+      double constant = c;
 
-        asm_->mov(x86::rax, res_as_int);
-        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
-      } else {
-        asm_->movsx(x86::eax, x86::byte_ptr(x86::rbp, offsets[v0.GetIdx()]));
-        asm_->cvtsi2sd(x86::xmm0, x86::eax);
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+      int32_t offset;
+      if (!dest_is_reg) {
+        offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
       }
-      offsets[instr_idx] = offset;
+
+      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm0;
+      if (v.IsConstantGlobal()) {
+        auto label = asm_->newLabel();
+        asm_->section(data_section_);
+        asm_->bind(label);
+        asm_->embedDouble(constant);
+        asm_->section(text_section_);
+        asm_->movsd(dest, x86::qword_ptr(label));
+      } else if (v_is_reg) {
+        asm_->movsx(x86::eax, normal_registers[v_reg].GetB());
+        asm_->cvtsi2sd(dest, x86::eax);
+      } else {
+        asm_->movsx(x86::eax, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->cvtsi2sd(dest, x86::eax);
+      }
+
+      if (!dest_is_reg) {
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), dest);
+      }
       return;
     }
 
