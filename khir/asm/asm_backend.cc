@@ -1194,42 +1194,73 @@ void ASMBackend::TranslateInstr(
 
     case Opcode::I16_ZEXT_I64: {
       Type2InstructionReader reader(instr);
-      Value v0(reader.Arg0());
+      Value v(reader.Arg0());
 
-      auto offset = stack_allocator.AllocateSlot();
-      if (v0.IsConstantGlobal()) {
-        uint16_t c =
-            Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant();
-        uint32_t res = c;
-        asm_->mov(x86::qword_ptr(x86::rbp, offset), res);
+      bool v_is_reg = !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
+      int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
+      uint16_t c =
+          v.IsConstantGlobal()
+              ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
+              : 0;
+      uint32_t constant = c;
+      int32_t offset;
+      if (!dest_is_reg) {
+        offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+      }
+
+      auto dest = dest_is_reg ? normal_registers[dest_reg].GetQ() : x86::rax;
+      if (v.IsConstantGlobal()) {
+        asm_->mov(dest, constant);
+      } else if (v_is_reg) {
+        asm_->movzx(dest, normal_registers[v_reg].GetW());
       } else {
-        asm_->movzx(x86::rax, x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        asm_->movzx(dest, x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+      }
+
+      if (!dest_is_reg) {
         asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
       }
-      offsets[instr_idx] = offset;
       return;
     }
 
     case Opcode::I16_CONV_F64: {
       Type2InstructionReader reader(instr);
-      Value v0(reader.Arg0());
+      Value v(reader.Arg0());
 
-      auto offset = stack_allocator.AllocateSlot();
-      if (v0.IsConstantGlobal()) {
-        int16_t c =
-            Type1InstructionReader(constant_instrs[v0.GetIdx()]).Constant();
-        double res = c;
-        uint64_t res_as_int;
-        std::memcpy(&res_as_int, &res, sizeof(res_as_int));
+      bool v_is_reg = !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
+      int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
+      int16_t c =
+          v.IsConstantGlobal()
+              ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
+              : 0;
+      double constant = c;
 
-        asm_->mov(x86::rax, res_as_int);
-        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
-      } else {
-        asm_->movsx(x86::eax, x86::word_ptr(x86::rbp, offsets[v0.GetIdx()]));
-        asm_->cvtsi2sd(x86::xmm0, x86::eax);
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+      int32_t offset;
+      if (!dest_is_reg) {
+        offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
       }
-      offsets[instr_idx] = offset;
+
+      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm0;
+      if (v.IsConstantGlobal()) {
+        auto label = asm_->newLabel();
+        asm_->section(data_section_);
+        asm_->bind(label);
+        asm_->embedDouble(constant);
+        asm_->section(text_section_);
+        asm_->movsd(dest, x86::qword_ptr(label));
+      } else if (v_is_reg) {
+        asm_->movsx(x86::eax, normal_registers[v_reg].GetW());
+        asm_->cvtsi2sd(dest, x86::eax);
+      } else {
+        asm_->movsx(x86::eax, x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
+        asm_->cvtsi2sd(dest, x86::eax);
+      }
+
+      if (!dest_is_reg) {
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), dest);
+      }
       return;
     }
 
@@ -1245,28 +1276,45 @@ void ASMBackend::TranslateInstr(
         ptr_offset = o;
       }
 
+      bool v0_is_reg =
+          !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
+      int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
+
+      bool v1_is_reg =
+          !v1.IsConstantGlobal() && register_assign[v1.GetIdx()] >= 0;
+      int v1_reg = v1_is_reg ? register_assign[v1.GetIdx()] : 0;
+      int16_t c1 =
+          v1.IsConstantGlobal()
+              ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
+              : 0;
+
       if (v0.IsConstantGlobal()) {
         auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
-
         if (v1.IsConstantGlobal()) {
-          int16_t c =
-              Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
-          asm_->mov(x86::word_ptr(label, ptr_offset), c);
+          asm_->mov(x86::word_ptr(label, ptr_offset), c1);
+        } else if (v1_is_reg) {
+          asm_->mov(x86::word_ptr(label, ptr_offset),
+                    normal_registers[v1_reg].GetW());
         } else {
           asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[v1.GetIdx()]));
           asm_->mov(x86::word_ptr(label, ptr_offset), x86::ax);
         }
-      } else {
-        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+        return;
+      }
 
-        if (v1.IsConstantGlobal()) {
-          int16_t c =
-              Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
-          asm_->mov(x86::word_ptr(x86::rax, ptr_offset), c);
-        } else {
-          asm_->movzx(x86::ecx, x86::word_ptr(x86::rbp, offsets[v1.GetIdx()]));
-          asm_->mov(x86::word_ptr(x86::rax, ptr_offset), x86::cx);
-        }
+      auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::rdx;
+      if (!v0_is_reg) {
+        asm_->mov(x86::rdx, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+      }
+
+      if (v1.IsConstantGlobal()) {
+        asm_->mov(x86::word_ptr(ptr_reg, ptr_offset), c1);
+      } else if (v1_is_reg) {
+        asm_->mov(x86::word_ptr(ptr_reg, ptr_offset),
+                  normal_registers[v1_reg].GetW());
+      } else {
+        asm_->movzx(x86::eax, x86::word_ptr(x86::rbp, offsets[v1.GetIdx()]));
+        asm_->mov(x86::word_ptr(ptr_reg, ptr_offset), x86::eax);
       }
       return;
     }
@@ -1282,17 +1330,40 @@ void ASMBackend::TranslateInstr(
         ptr_offset = o;
       }
 
-      auto offset = stack_allocator.AllocateSlot();
+      bool v0_is_reg =
+          !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
+      int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
+
+      int32_t offset;
+      if (!dest_is_reg) {
+        offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+      }
+
       if (v0.IsConstantGlobal()) {
         auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
-        asm_->mov(x86::ax, x86::word_ptr(label, ptr_offset));
-        asm_->mov(x86::word_ptr(x86::rbp, offset), x86::ax);
+        if (dest_is_reg) {
+          asm_->mov(normal_registers[dest_reg].GetW(),
+                    x86::word_ptr(label, ptr_offset));
+        } else {
+          asm_->movzx(x86::eax, x86::word_ptr(label, ptr_offset));
+          asm_->mov(x86::word_ptr(x86::rbp, offset), x86::ax);
+        }
+        return;
+      }
+
+      auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::rdx;
+      if (!v0_is_reg) {
+        asm_->mov(x86::rdx, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
+      }
+
+      if (dest_is_reg) {
+        asm_->mov(normal_registers[dest_reg].GetW(),
+                  x86::word_ptr(ptr_reg, ptr_offset));
       } else {
-        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v0.GetIdx()]));
-        asm_->mov(x86::ax, x86::word_ptr(x86::rax, ptr_offset));
+        asm_->movzx(x86::eax, x86::word_ptr(ptr_reg, ptr_offset));
         asm_->mov(x86::word_ptr(x86::rbp, offset), x86::ax);
       }
-      offsets[instr_idx] = offset;
       return;
     }
 
