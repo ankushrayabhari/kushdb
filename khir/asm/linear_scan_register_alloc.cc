@@ -48,7 +48,7 @@ std::vector<int> AssignRegisters(
   std::unordered_set<int> free_floating_point_regs;
   std::unordered_set<int> free_normal_regs;
 
-  for (int i = 0; i < 13; i++) {
+  for (int i = 0; i < 12; i++) {
     free_normal_regs.insert(i);
   }
   for (int i = 0; i < 7; i++) {
@@ -56,15 +56,15 @@ std::vector<int> AssignRegisters(
   }
 
   /*
- Available for allocation:
-   RBX, RCX, RDX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
-   XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7
+  Available for allocation:
+    RBX, RCX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
+    XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7
 
- // Reserved/Scratch
-   RSP, RBP, RAX, XMM0
- */
+  Reserved/Scratch
+    RSP, RBP, RAX, RDX, XMM0
+  */
   for (int i : order) {
-    assert(free_normal_regs.size() + active_normal.size() == 13);
+    assert(free_normal_regs.size() + active_normal.size() == 12);
     assert(free_floating_point_regs.size() + active_floating_point.size() == 7);
 
     if (live_intervals[i].Undef()) {
