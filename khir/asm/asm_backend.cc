@@ -3276,6 +3276,9 @@ void ASMBackend::TranslateInstr(
       khir::Value v(reader.Arg());
       auto type = static_cast<khir::Type>(reader.TypeID());
 
+      bool v_is_reg = !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
+      int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
+
       if (type_manager.IsF64Type(type)) {
         if (v.IsConstantGlobal()) {
           double c =
@@ -3287,43 +3290,68 @@ void ASMBackend::TranslateInstr(
           asm_->embedDouble(c);
           asm_->section(text_section_);
           asm_->movsd(x86::xmm0, x86::qword_ptr(label));
+        } else if (v_is_reg) {
+          asm_->movsd(x86::xmm0, fp_registers[v.GetIdx()]);
         } else {
           asm_->movsd(x86::xmm0, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
         }
-      } else if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
+        return;
+      }
+
+      if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
         if (v.IsConstantGlobal()) {
           int8_t c =
               Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
           asm_->mov(x86::al, c);
+        } else if (v_is_reg) {
+          asm_->mov(x86::al, normal_registers[v_reg].GetB());
         } else {
           asm_->mov(x86::al, x86::byte_ptr(x86::rbp, offsets[v.GetIdx()]));
         }
-      } else if (type_manager.IsI16Type(type)) {
+        return;
+      }
+
+      if (type_manager.IsI16Type(type)) {
         if (v.IsConstantGlobal()) {
           int16_t c =
               Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
           asm_->mov(x86::ax, c);
+        } else if (v_is_reg) {
+          asm_->mov(x86::ax, normal_registers[v_reg].GetW());
         } else {
           asm_->mov(x86::ax, x86::word_ptr(x86::rbp, offsets[v.GetIdx()]));
         }
-      } else if (type_manager.IsI32Type(type)) {
+        return;
+      }
+
+      if (type_manager.IsI32Type(type)) {
         if (v.IsConstantGlobal()) {
           int32_t c =
               Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
           asm_->mov(x86::eax, c);
+        } else if (v_is_reg) {
+          asm_->mov(x86::eax, normal_registers[v_reg].GetD());
         } else {
           asm_->mov(x86::eax, x86::dword_ptr(x86::rbp, offsets[v.GetIdx()]));
         }
-      } else if (type_manager.IsI64Type(type)) {
+        return;
+      }
+
+      if (type_manager.IsI64Type(type)) {
         if (v.IsConstantGlobal()) {
           int64_t c =
               i64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
                                 .Constant()];
           asm_->mov(x86::rax, c);
+        } else if (v_is_reg) {
+          asm_->mov(x86::rax, normal_registers[v_reg].GetQ());
         } else {
           asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
         }
-      } else if (type_manager.IsPtrType(type)) {
+        return;
+      }
+
+      if (type_manager.IsPtrType(type)) {
         int32_t ptr_offset = 0;
 
         if (IsGep(v, instructions)) {
@@ -3341,16 +3369,15 @@ void ASMBackend::TranslateInstr(
             auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
             asm_->lea(x86::rax, x86::ptr(label, ptr_offset));
           }
+        } else if (v_is_reg) {
+          asm_->lea(x86::rax,
+                    x86::ptr(normal_registers[v_reg].GetQ(), ptr_offset));
         } else {
           asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, offsets[v.GetIdx()]));
-          if (ptr_offset != 0) {
-            asm_->mov(x86::rdx, ptr_offset);
-            asm_->add(x86::rax, x86::rdx);
-          }
+          asm_->lea(x86::rax, x86::ptr(x86::rax, ptr_offset));
         }
-      } else {
-        throw std::runtime_error("Invalid return value type.");
       }
+
       asm_->jmp(epilogue);
       return;
     }
