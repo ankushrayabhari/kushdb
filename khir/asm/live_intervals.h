@@ -22,7 +22,7 @@ class LiveInterval {
   bool floating_;
 };
 
-std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
-                                               const TypeManager& manager);
+std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
+    const Function& func, const TypeManager& manager);
 
 }  // namespace kush::khir

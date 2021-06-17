@@ -589,8 +589,8 @@ bool IsFloatingPoint(int idx, const std::vector<uint64_t>& instrs,
   }
 }
 
-std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
-                                               const TypeManager& manager) {
+std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
+    const Function& func, const TypeManager& manager) {
   auto [loop_parent, loop_header] = FindLoops(func);
   auto [labels, order] = LabelBlocks(func, loop_parent);
   std::vector<int> loop_depth(loop_parent.size(), 0);
@@ -702,7 +702,7 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
   std::cerr << "}\n";
   */
 
-  return live_intervals;
+  return {live_intervals, order};
 }
 
 }  // namespace kush::khir
