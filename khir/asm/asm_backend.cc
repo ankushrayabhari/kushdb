@@ -413,7 +413,7 @@ void ASMBackend::TranslateInstr(
           v.IsConstantGlobal()
               ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
               : 0;
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -449,7 +449,7 @@ void ASMBackend::TranslateInstr(
           v.IsConstantGlobal()
               ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
               : 0;
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -501,7 +501,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -552,7 +552,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -603,7 +603,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -662,7 +662,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -768,7 +768,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
               : 0;
       uint32_t constant = c;
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -801,7 +801,7 @@ void ASMBackend::TranslateInstr(
               : 0;
       double constant = c;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -902,7 +902,7 @@ void ASMBackend::TranslateInstr(
           !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
       int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -958,7 +958,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1009,7 +1009,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1059,7 +1059,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1116,7 +1116,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1219,7 +1219,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
               : 0;
       uint32_t constant = c;
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1252,7 +1252,7 @@ void ASMBackend::TranslateInstr(
               : 0;
       double constant = c;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1354,7 +1354,7 @@ void ASMBackend::TranslateInstr(
           !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
       int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1410,7 +1410,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1461,7 +1461,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1512,7 +1512,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1569,7 +1569,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
               : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1667,7 +1667,7 @@ void ASMBackend::TranslateInstr(
               ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
               : 0;
       uint64_t constant = c;
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1700,7 +1700,7 @@ void ASMBackend::TranslateInstr(
               : 0;
       double constant = c;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1800,7 +1800,7 @@ void ASMBackend::TranslateInstr(
           !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
       int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1858,7 +1858,7 @@ void ASMBackend::TranslateInstr(
                                            .Constant()]
                        : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1919,7 +1919,7 @@ void ASMBackend::TranslateInstr(
                                            .Constant()]
                        : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -1980,7 +1980,7 @@ void ASMBackend::TranslateInstr(
                                            .Constant()]
                        : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2047,7 +2047,7 @@ void ASMBackend::TranslateInstr(
                                            .Constant()]
                        : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2155,7 +2155,7 @@ void ASMBackend::TranslateInstr(
                       : 0;
       double constant = c;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2272,7 +2272,7 @@ void ASMBackend::TranslateInstr(
           !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
       int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2346,7 +2346,7 @@ void ASMBackend::TranslateInstr(
       bool v_is_reg = !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
       int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2470,7 +2470,7 @@ void ASMBackend::TranslateInstr(
           !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
       int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2528,7 +2528,7 @@ void ASMBackend::TranslateInstr(
                                           .Constant()]
                       : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2594,7 +2594,7 @@ void ASMBackend::TranslateInstr(
                                           .Constant()]
                       : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2660,7 +2660,7 @@ void ASMBackend::TranslateInstr(
                                           .Constant()]
                       : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2726,7 +2726,7 @@ void ASMBackend::TranslateInstr(
                                           .Constant()]
                       : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2801,7 +2801,7 @@ void ASMBackend::TranslateInstr(
                                           .Constant()]
                       : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2900,7 +2900,7 @@ void ASMBackend::TranslateInstr(
                                           .Constant()]
                       : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -3000,7 +3000,7 @@ void ASMBackend::TranslateInstr(
           !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
       int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
 
-      int32_t offset;
+      int32_t offset = INT32_MAX;
       if (!dest_is_reg) {
         offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -3536,19 +3536,17 @@ void ASMBackend::TranslateInstr(
 
       for (int i = 0; i < caller_saved_normal_registers.size(); i++) {
         auto reg = caller_saved_normal_registers[i];
-        caller_saved_normal_reg_offset[reg] = 8 * i;
-        asm_->mov(x86::qword_ptr(x86::rsp, 8 * i),
+        auto offset = 8 * i;
+        caller_saved_normal_reg_offset[reg] = offset;
+        asm_->mov(x86::qword_ptr(x86::rsp, offset),
                   normal_registers[reg].GetQ());
       }
 
       for (int i = 0; i < caller_saved_fp_registers.size(); i++) {
         auto reg = caller_saved_fp_registers[i];
-        caller_saved_fp_reg_offset[reg] =
-            8 * caller_saved_normal_registers.size() + 8 * i;
-        asm_->movsd(
-            x86::qword_ptr(x86::rsp,
-                           8 * caller_saved_normal_registers.size() + 8 * i),
-            fp_registers[caller_saved_fp_registers[i]]);
+        auto offset = 8 * caller_saved_normal_registers.size() + 8 * i;
+        caller_saved_fp_reg_offset[reg] = offset;
+        asm_->movsd(x86::qword_ptr(x86::rsp, offset), fp_registers[reg]);
       }
 
       // pass f64 args
@@ -3990,21 +3988,21 @@ void ASMBackend::TranslateInstr(
       asm_->movsd(x86::xmm7, x86::xmm0);
       for (int i = 0; i < caller_saved_normal_registers.size(); i++) {
         auto reg = caller_saved_normal_registers[i];
-        asm_->mov(
-            normal_registers[reg].GetQ(),
-            x86::qword_ptr(x86::rsp, caller_saved_normal_reg_offset[reg]));
+        auto offset = caller_saved_normal_reg_offset.at(reg);
+        asm_->mov(normal_registers[reg].GetQ(),
+                  x86::qword_ptr(x86::rsp, offset));
       }
 
       for (int i = 0; i < caller_saved_fp_registers.size(); i++) {
         auto reg = caller_saved_fp_registers[i];
-        asm_->movsd(fp_registers[reg],
-                    x86::qword_ptr(x86::rsp, caller_saved_fp_reg_offset[reg]));
+        auto offset = caller_saved_fp_reg_offset.at(reg);
+        asm_->movsd(fp_registers[reg], x86::qword_ptr(x86::rsp, offset));
       }
       asm_->add(x86::rsp, 8 * caller_saved_normal_registers.size() +
                               8 * caller_saved_fp_registers.size());
 
       if (!type_manager.IsVoid(return_type)) {
-        int32_t offset;
+        int32_t offset = INT32_MAX;
         if (!dest_is_reg) {
           offset = stack_allocator.AllocateSlot();
           offsets[instr_idx] = offset;

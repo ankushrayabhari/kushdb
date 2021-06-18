@@ -124,7 +124,7 @@ std::unique_ptr<Operator> GroupByAgg() {
 
 int main() {
   std::unique_ptr<Operator> query =
-      std::make_unique<OutputOperator>(HashJoin());
+      std::make_unique<OutputOperator>(GroupByAgg());
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();
