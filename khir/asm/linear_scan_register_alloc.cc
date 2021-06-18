@@ -180,7 +180,8 @@ std::vector<int> AssignRegisters(
   }
   */
 
-  return assignments;
+  return std::vector<int>(live_intervals.size(), -1);
+  ;
 }
 
 }  // namespace kush::khir
