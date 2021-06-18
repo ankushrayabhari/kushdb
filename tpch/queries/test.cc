@@ -96,7 +96,7 @@ std::unique_ptr<Operator> SkinnerJoin() {
 }
 
 std::unique_ptr<Operator> GroupByAgg() {
-  auto base = SkinnerJoin();
+  auto base = HashJoin();
 
   // aggregate
   auto sum_regionkey = Sum(ColRef(base, "r_regionkey"));
@@ -123,7 +123,8 @@ std::unique_ptr<Operator> GroupByAgg() {
 }
 
 int main() {
-  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(Scan());
+  std::unique_ptr<Operator> query =
+      std::make_unique<OutputOperator>(HashJoin());
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();

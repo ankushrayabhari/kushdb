@@ -1776,7 +1776,7 @@ void ASMBackend::TranslateInstr(
         asm_->mov(x86::dword_ptr(ptr_reg, ptr_offset), c1);
       } else if (v1_is_reg) {
         asm_->mov(x86::dword_ptr(ptr_reg, ptr_offset),
-                  normal_registers[v1_reg].GetW());
+                  normal_registers[v1_reg].GetD());
       } else {
         asm_->mov(x86::eax,
                   x86::dword_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
@@ -3083,8 +3083,8 @@ void ASMBackend::TranslateInstr(
       bool v_is_reg = !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
       int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
 
-      int32_t offset;
-      if (!dest_is_reg && offsets[phi.GetIdx()] == INT32_MAX) {
+      int32_t offset = offsets[phi.GetIdx()];
+      if (!dest_is_reg && offset == INT32_MAX) {
         offset = stack_allocator.AllocateSlot();
         offsets[phi.GetIdx()] = offset;
       }

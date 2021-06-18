@@ -20,7 +20,7 @@ void PrintInt64(int64_t v) { std::cout << v << "|"; }
 
 void PrintFloat64(double v) { std::cout << v << "|"; }
 
-void PrintNewline() { std::cout << "\n"; }
+void PrintNewline() { std::cout << std::endl; }
 
 void PrintString(kush::runtime::String::String* str) {
   std::cout << std::string_view(str->data, str->length) << "|";
