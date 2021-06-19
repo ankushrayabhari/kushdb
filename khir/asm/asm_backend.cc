@@ -2949,7 +2949,6 @@ void ASMBackend::TranslateInstr(
                       : 0;
       uint64_t c1_as_int;
       std::memcpy(&c1_as_int, &c1, sizeof(c1_as_int));
-      asm_->mov(x86::rax, c1_as_int);
 
       if (v0.IsConstantGlobal()) {
         auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
