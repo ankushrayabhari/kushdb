@@ -378,6 +378,22 @@ void ProgramBuilder::StoreF64(Value ptr, Value v) {
 }
 
 void ProgramBuilder::StorePtr(Value ptr, Value v) {
+  if (!v.IsConstantGlobal()) {
+    auto v_instr = GetCurrentFunction().GetInstruction(v);
+    auto v_opcode = OpcodeFrom(GenericInstructionReader(v_instr).Opcode());
+
+    if (v_opcode == Opcode::GEP) {
+      // GEPs are potentially lazily computed so add in a materialize here for
+      // the backend so each instruction has at most one lazy operand
+      v = GetCurrentFunction().Append(
+          Type3InstructionBuilder()
+              .SetOpcode(OpcodeTo(Opcode::PTR_MATERIALIZE))
+              .SetArg(v.Serialize())
+              .SetTypeID(TypeOf(v).GetID())
+              .Build());
+    }
+  }
+
   GetCurrentFunction().Append(Type2InstructionBuilder()
                                   .SetOpcode(OpcodeTo(Opcode::PTR_STORE))
                                   .SetArg0(ptr.Serialize())
@@ -618,6 +634,7 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::PHI:
     case Opcode::CALL:
     case Opcode::PTR_LOAD:
+    case Opcode::PTR_MATERIALIZE:
     case Opcode::PTR_CAST:
     case Opcode::GEP:
     case Opcode::FUNC_ARG:

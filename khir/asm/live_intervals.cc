@@ -374,6 +374,7 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
       return result;
     }
 
+    case Opcode::PTR_MATERIALIZE:
     case Opcode::PTR_CAST:
     case Opcode::PTR_LOAD: {
       Type3InstructionReader reader(instr);
@@ -530,6 +531,7 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
     case Opcode::F64_LOAD:
     case Opcode::FUNC_ARG:
     case Opcode::PTR_CAST:
+    case Opcode::PTR_MATERIALIZE:
     case Opcode::PTR_LOAD:
     case Opcode::ALLOCA: {
       return true;

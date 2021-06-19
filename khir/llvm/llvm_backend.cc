@@ -558,6 +558,13 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::PTR_MATERIALIZE: {
+      Type3InstructionReader reader(instr);
+      values[instr_idx] =
+          GetValue(Value(reader.Arg()), constant_values, values);
+      return;
+    }
+
     case Opcode::PTR_CAST: {
       Type3InstructionReader reader(instr);
       auto t = types_[reader.TypeID()];

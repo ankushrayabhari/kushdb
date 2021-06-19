@@ -276,6 +276,7 @@ void ProgramPrinter::OutputInstr(
     }
 
     case Opcode::PTR_CAST:
+    case Opcode::PTR_MATERIALIZE:
     case Opcode::PTR_LOAD:
     case Opcode::CALL_ARG:
     case Opcode::GEP:

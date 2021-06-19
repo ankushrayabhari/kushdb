@@ -2332,6 +2332,10 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::PTR_MATERIALIZE: {
+      throw std::runtime_error("Unimplemented");
+    }
+
     case Opcode::PTR_CAST: {
       Type3InstructionReader reader(instr);
       Value v(reader.Arg());
