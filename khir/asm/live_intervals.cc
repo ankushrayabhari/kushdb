@@ -583,11 +583,11 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
 
   for (int block_id : order) {
     if (loop_header[block_id]) {
-      // loop depth is loop parent's depth + 1
-      loop_depth[block_id] = loop_depth[loop_parent[block_id]] + 1;
+      // loop depth is loop parent's depth
+      loop_depth[block_id] = loop_depth[loop_parent[block_id]];
     } else {
       // loop depth is that of the loop parents depth
-      loop_depth[block_id] = loop_depth[loop_parent[block_id]];
+      loop_depth[block_id] = loop_depth[loop_parent[block_id]] + 1;
 
       int x = block_id;
       while (true) {
