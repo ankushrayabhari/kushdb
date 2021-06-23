@@ -20,6 +20,7 @@ cc_library(
     hdrs = ["live_intervals.h"],
     deps = [
         "//khir:program_builder",
+        "//util:union_find",
         "@absl//absl/container:flat_hash_set",
     ],
 )

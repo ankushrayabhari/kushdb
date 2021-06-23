@@ -8,6 +8,7 @@
 
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
+#include "util/union_find.h"
 
 namespace kush::khir {
 
@@ -37,24 +38,6 @@ bool LiveInterval::Undef() const { return start_ == -1 && end_ == -1; }
 bool LiveInterval::IsFloatingPoint() const { return floating_; }
 
 void LiveInterval::SetFloatingPoint(bool x) { floating_ = x; }
-
-// TODO: replace with better union find impl
-int Find(std::vector<int>& parent, int i) {
-  if (parent[i] == i) return i;
-  parent[i] = Find(parent, parent[i]);
-  return parent[i];
-}
-
-void Union(std::vector<int>& parent, int x, int y) {
-  int xset = Find(parent, x);
-  int yset = Find(parent, y);
-
-  if (xset == yset) {
-    return;
-  }
-
-  parent[xset] = yset;
-}
 
 std::vector<std::vector<int>> ComputeBackedges(const Function& func) {
   // TODO: replace with linear time dominator algorithm
@@ -111,7 +94,7 @@ void Collapse(std::vector<int>& loop_parent, std::vector<int>& union_find,
               const absl::flat_hash_set<int>& loop_body, int loop_header) {
   for (int z : loop_body) {
     loop_parent[z] = loop_header;
-    Union(union_find, z, loop_header);
+    util::UnionFind::Union(union_find, z, loop_header);
   }
 }
 
@@ -133,7 +116,7 @@ void FindLoopHelper(int curr, const std::vector<std::vector<int>>& bb_succ,
   absl::flat_hash_set<int> loop_body;
   absl::flat_hash_set<int> work_list;
   for (int y : backedges[curr]) {
-    work_list.insert(Find(union_find, y));
+    work_list.insert(util::UnionFind::Find(union_find, y));
   }
   work_list.erase(curr);
 
@@ -146,7 +129,7 @@ void FindLoopHelper(int curr, const std::vector<std::vector<int>>& bb_succ,
     for (int z : bb_pred[y]) {
       if (std::find(backedges[y].begin(), backedges[y].end(), z) ==
           backedges[y].end()) {
-        auto repr = Find(union_find, z);
+        auto repr = util::UnionFind::Find(union_find, z);
         if (repr != curr && !loop_body.contains(repr) &&
             !work_list.contains(repr)) {
           work_list.insert(repr);
