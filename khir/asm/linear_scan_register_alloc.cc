@@ -23,7 +23,7 @@ std::vector<int> AssignRegisters(
             [&](const int& a_idx, const int& b_idx) -> bool {
               const auto& a = live_intervals[a_idx];
               const auto& b = live_intervals[b_idx];
-              return a.Start() < b.Start();
+              return a.StartBB() < b.StartBB();
             });
 
   std::vector<int> assignments(live_intervals.size(), -1);
@@ -31,7 +31,7 @@ std::vector<int> AssignRegisters(
   auto comp = [&](const int& a_idx, const int& b_idx) -> bool {
     const auto& a = live_intervals[a_idx];
     const auto& b = live_intervals[b_idx];
-    return a.End() < b.End();
+    return a.EndBB() < b.EndBB();
   };
   auto active_normal = std::multiset<int, decltype(comp)>(comp);
   auto active_floating_point = std::multiset<int, decltype(comp)>(comp);
@@ -62,7 +62,7 @@ std::vector<int> AssignRegisters(
            it != active_floating_point.end();) {
         auto j = *it;
 
-        if (live_intervals[j].End() >= live_intervals[i].Start()) {
+        if (live_intervals[j].EndBB() >= live_intervals[i].StartBB()) {
           break;
         }
 
@@ -77,7 +77,7 @@ std::vector<int> AssignRegisters(
       for (auto it = active_normal.begin(); it != active_normal.end();) {
         auto j = *it;
 
-        if (live_intervals[j].End() >= live_intervals[i].Start()) {
+        if (live_intervals[j].EndBB() >= live_intervals[i].StartBB()) {
           break;
         }
 
@@ -95,7 +95,7 @@ std::vector<int> AssignRegisters(
       if (free_floating_point_regs.empty()) {
         // Spill one of the floating point regs
         auto spill = active_floating_point.cbegin();
-        if (live_intervals[*spill].End() > live_intervals[i].End()) {
+        if (live_intervals[*spill].EndBB() > live_intervals[i].EndBB()) {
           assignments[i] = assignments[*spill];
           assignments[*spill] = -1;
           active_floating_point.erase(spill);
@@ -127,7 +127,7 @@ std::vector<int> AssignRegisters(
       if (free_normal_regs.empty()) {
         // Spill one of the normal regs
         auto spill = active_normal.cbegin();
-        if (live_intervals[*spill].End() > live_intervals[i].End()) {
+        if (live_intervals[*spill].EndBB() > live_intervals[i].EndBB()) {
           assignments[i] = assignments[*spill];
           assignments[*spill] = -1;
           active_normal.erase(spill);

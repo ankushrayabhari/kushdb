@@ -13,27 +13,49 @@
 namespace kush::khir {
 
 LiveInterval::LiveInterval(khir::Value v, khir::Type t)
-    : start_(-1), end_(-1), value_(v), type_(t) {}
+    : undef_(true),
+      start_bb_(-1),
+      end_bb_(-1),
+      start_idx_(-1),
+      end_idx_(-1),
+      value_(v),
+      type_(t) {}
 
-void LiveInterval::Extend(int x) {
-  if (start_ == -1) {
-    start_ = x;
-  } else {
-    start_ = std::min(x, start_);
+void LiveInterval::Extend(int bb, int idx) {
+  assert(bb >= 0);
+  assert(idx >= 0);
+  undef_ = false;
+
+  if (start_bb_ == -1) {
+    start_bb_ = bb;
+    start_idx_ = idx;
+  } else if (start_bb_ == bb && idx < start_idx_) {
+    start_idx_ = idx;
+  } else if (bb < start_bb_) {
+    start_bb_ = bb;
+    start_idx_ = idx;
   }
 
-  if (end_ == -1) {
-    end_ = x;
-  } else {
-    end_ = std::max(x, end_);
+  if (end_bb_ == -1) {
+    end_bb_ = bb;
+    end_idx_ = idx;
+  } else if (end_bb_ == bb && idx > end_idx_) {
+    end_idx_ = idx;
+  } else if (bb > end_bb_) {
+    end_bb_ = bb;
+    end_idx_ = idx;
   }
 }
 
-int LiveInterval::Start() const { return start_; }
+int LiveInterval::StartBB() const { return start_bb_; }
 
-int LiveInterval::End() const { return end_; }
+int LiveInterval::EndBB() const { return end_bb_; }
 
-bool LiveInterval::Undef() const { return start_ == -1 && end_ == -1; }
+int LiveInterval::StartIdx() const { return start_idx_; }
+
+int LiveInterval::EndIdx() const { return end_idx_; }
+
+bool LiveInterval::Undef() const { return undef_; }
 
 khir::Type LiveInterval::Type() const { return type_; }
 
@@ -749,44 +771,47 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
 
       if (opcode == Opcode::PHI || opcode == Opcode::GEP_OFFSET ||
           opcode == Opcode::RETURN_VALUE) {
-        // do nothing
-      } else {
-        std::vector<Value> values = ComputeReadValues(instr, instrs);
-        for (auto v : values) {
-          auto def_bb = instr_to_bb[v.GetIdx()];
-          auto use_bb = bb_idx;
+        continue;
+      }
 
-          if (loop_depth[def_bb] == loop_depth[use_bb]) {
-            live_intervals[v.GetIdx()].Extend(labels[use_bb]);
-          } else {
-            if (!(loop_depth[use_bb] > loop_depth[def_bb])) {
-              throw std::runtime_error("Invalid def/use situation.");
-            }
+      std::vector<Value> values = ComputeReadValues(instr, instrs);
+      for (auto v : values) {
+        auto def_bb = instr_to_bb[v.GetIdx()];
+        auto use_bb = bb_idx;
 
-            if (!loop_header[use_bb]) {
-              use_bb = loop_parent[use_bb];
-            }
-
-            while (loop_depth[use_bb] > loop_depth[def_bb] + 1) {
-              use_bb = loop_parent[use_bb];
-            }
-
-            assert(loop_header[use_bb]);
-            live_intervals[v.GetIdx()].Extend(labels[loop_end[use_bb]]);
-          }
-        }
-
-        if (opcode == Opcode::PHI_MEMBER) {
-          // phi is read/written here
-          Type2InstructionReader reader(instr);
-          Value v0(reader.Arg0());
-          auto phi = v0.GetIdx();
-
-          live_intervals[phi].Extend(labels[bb_idx]);
+        if (loop_depth[def_bb] == loop_depth[use_bb]) {
+          live_intervals[v.GetIdx()].Extend(labels[use_bb], i);
         } else {
-          if (DoesWriteValue(instr, manager)) {
-            live_intervals[i].Extend(labels[bb_idx]);
+          if (!(loop_depth[use_bb] > loop_depth[def_bb])) {
+            throw std::runtime_error("Invalid def/use situation.");
           }
+
+          if (!loop_header[use_bb]) {
+            use_bb = loop_parent[use_bb];
+          }
+
+          while (loop_depth[use_bb] > loop_depth[def_bb] + 1) {
+            use_bb = loop_parent[use_bb];
+          }
+
+          assert(loop_header[use_bb]);
+          auto end_of_loop_bb = loop_end[use_bb];
+          auto end_of_loop_idx = bb[loop_end[use_bb]].second;
+          live_intervals[v.GetIdx()].Extend(labels[end_of_loop_bb],
+                                            end_of_loop_idx);
+        }
+      }
+
+      if (opcode == Opcode::PHI_MEMBER) {
+        // phi is read/written here
+        Type2InstructionReader reader(instr);
+        Value v0(reader.Arg0());
+        auto phi = v0.GetIdx();
+
+        live_intervals[phi].Extend(labels[bb_idx], i);
+      } else {
+        if (DoesWriteValue(instr, manager)) {
+          live_intervals[i].Extend(labels[bb_idx], i);
         }
       }
     }
@@ -803,18 +828,22 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
   std::cerr << "digraph G {\n";
   for (int i = 0; i < labels.size(); i++) {
     for (auto j : func.BasicBlockSuccessors()[i]) {
-      std::cerr << " \"" << i << "," << labels[i]
+      std::cerr << " \"" << i << "\\nlabel:" << labels[i]
                 << "\\nloop_parent:" << loop_parent[i]
-                << "\\nloop_depth:" << loop_depth[i] << "\" -> \"" << j << ","
-                << labels[j] << "\\nloop_parent:" << loop_parent[j]
+                << "\\nloop_depth:" << loop_depth[i] << "\" -> \"" << j
+                << "\\nlabel:" << labels[j]
+                << "\\nloop_parent:" << loop_parent[j]
                 << "\\nloop_depth:" << loop_depth[j] << "\"" << std::endl;
     }
   }
   std::cerr << "}" << std::endl;
 
   for (int i = 0; i < live_intervals.size(); i++) {
-    std::cerr << "%" << i << " " << live_intervals[i].Start() << " "
-              << live_intervals[i].End() << "\n";
+    std::cerr << "%" << i << " [" << live_intervals[i].StartBB() << ','
+              << live_intervals[i].StartIdx() << "] "
+              << " [" << live_intervals[i].EndBB() << ','
+              << live_intervals[i].EndIdx() << "]"
+              << "\n";
   }
   std::cerr << std::endl;
 

@@ -9,17 +9,23 @@ namespace kush::khir {
 class LiveInterval {
  public:
   LiveInterval(khir::Value v, khir::Type t);
-  void Extend(int);
+  void Extend(int bb, int idx);
 
-  int Start() const;
-  int End() const;
+  int StartBB() const;
+  int EndBB() const;
+  int StartIdx() const;
+  int EndIdx() const;
+
   bool Undef() const;
   khir::Type Type() const;
   khir::Value Value() const;
 
  private:
-  int start_;
-  int end_;
+  bool undef_;
+  int start_bb_;
+  int end_bb_;
+  int start_idx_;
+  int end_idx_;
   khir::Value value_;
   khir::Type type_;
 };

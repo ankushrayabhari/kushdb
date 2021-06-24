@@ -88,14 +88,6 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
     }
   }
 
-  auto instr = instrs[v.GetIdx()];
-  auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
-  if (opcode == Opcode::FUNC_ARG) {
-    int idx = Type3InstructionReader(instr).Sarg();
-    std::cerr << "%a" << idx;
-    return;
-  }
-
   std::cerr << "%" << v.GetIdx();
 }
 
@@ -259,6 +251,8 @@ void ProgramPrinter::OutputInstr(
     }
 
     case Opcode::FUNC_ARG: {
+      int arg = Type3InstructionReader(instrs[idx]).Sarg();
+      std::cerr << "   %" << idx << " = %a" << arg << "\n";
       return;
     }
 
