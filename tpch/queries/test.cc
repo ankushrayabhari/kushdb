@@ -96,7 +96,7 @@ std::unique_ptr<Operator> SkinnerJoin() {
 }
 
 std::unique_ptr<Operator> GroupByAgg() {
-  auto base = HashJoin();
+  auto base = SkinnerJoin();
 
   // aggregate
   auto sum_regionkey = Sum(ColRef(base, "r_regionkey"));
