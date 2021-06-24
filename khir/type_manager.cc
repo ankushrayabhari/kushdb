@@ -121,19 +121,19 @@ TypeManager::TypeManager()
       BaseTypeId::F64, static_cast<Type>(6), builder_->getDoubleTy()));
 }
 
-Type TypeManager::VoidType() { return static_cast<Type>(0); }
+Type TypeManager::VoidType() const { return static_cast<Type>(0); }
 
-Type TypeManager::I1Type() { return static_cast<Type>(1); }
+Type TypeManager::I1Type() const { return static_cast<Type>(1); }
 
-Type TypeManager::I8Type() { return static_cast<Type>(2); }
+Type TypeManager::I8Type() const { return static_cast<Type>(2); }
 
-Type TypeManager::I16Type() { return static_cast<Type>(3); }
+Type TypeManager::I16Type() const { return static_cast<Type>(3); }
 
-Type TypeManager::I32Type() { return static_cast<Type>(4); }
+Type TypeManager::I32Type() const { return static_cast<Type>(4); }
 
-Type TypeManager::I64Type() { return static_cast<Type>(5); }
+Type TypeManager::I64Type() const { return static_cast<Type>(5); }
 
-Type TypeManager::F64Type() { return static_cast<Type>(6); }
+Type TypeManager::F64Type() const { return static_cast<Type>(6); }
 
 Type TypeManager::NamedStructType(absl::Span<const Type> field_type_id,
                                   std::string_view name) {

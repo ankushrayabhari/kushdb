@@ -250,8 +250,9 @@ void LLVMBackend::Translate(
 
       builder_->SetInsertPoint(basic_blocks_impl[i]);
       for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
-        TranslateInstr(args, basic_blocks_impl, values, constant_values,
-                       phi_member_list, instructions, instr_idx);
+        TranslateInstr(manager, args, basic_blocks_impl, values,
+                       constant_values, phi_member_list, instructions,
+                       instr_idx);
       }
     }
   }
@@ -333,7 +334,7 @@ llvm::Value* GetValue(khir::Value v,
 }
 
 void LLVMBackend::TranslateInstr(
-    const std::vector<llvm::Value*>& func_args,
+    const TypeManager& manager, const std::vector<llvm::Value*>& func_args,
     const std::vector<llvm::BasicBlock*>& basic_blocks,
     std::vector<llvm::Value*>& values,
     const std::vector<llvm::Constant*>& constant_values,
@@ -589,7 +590,9 @@ void LLVMBackend::TranslateInstr(
 
     case Opcode::ALLOCA: {
       Type3InstructionReader reader(instr);
-      auto t = types_[reader.TypeID()];
+      auto ptr_type = static_cast<Type>(reader.TypeID());
+      auto elem_type = manager.GetPointerElementType(ptr_type);
+      auto t = types_[elem_type.GetID()];
       values[instr_idx] = builder_->CreateAlloca(t);
       return;
     }

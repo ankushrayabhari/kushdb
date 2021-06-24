@@ -13,7 +13,7 @@ namespace kush::khir {
 
 std::vector<int> AssignRegisters(
     const std::vector<LiveInterval>& live_intervals,
-    const std::vector<uint64_t>& instrs) {
+    const std::vector<uint64_t>& instrs, const TypeManager& manager) {
   std::vector<int> order(live_intervals.size(), -1);
   for (int i = 0; i < order.size(); i++) {
     order[i] = i;
@@ -67,9 +67,7 @@ std::vector<int> AssignRegisters(
     RSP, RBP, RAX, R10, XMM7
   */
   for (int i : order) {
-    if (live_intervals[i].Undef()) {
-      break;
-    }
+    assert(!live_intervals[i].Undef());
 
     {  // Expire old intervals
       for (auto it = active_floating_point.begin();
@@ -105,7 +103,7 @@ std::vector<int> AssignRegisters(
     }
 
     // free floating point registers
-    if (live_intervals[i].IsFloatingPoint()) {
+    if (manager.IsF64Type(live_intervals[i].Type())) {
       if (free_floating_point_regs.empty()) {
         // Spill one of the floating point regs
         auto spill = active_floating_point.cbegin();

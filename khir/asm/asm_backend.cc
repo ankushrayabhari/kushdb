@@ -226,7 +226,8 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     }
 
     auto [live_intervals, order] = ComputeLiveIntervals(func, type_manager);
-    auto register_assign = AssignRegisters(live_intervals, instructions);
+    auto register_assign =
+        AssignRegisters(live_intervals, instructions, type_manager);
 
     // Prologue ================================================================
     // - Save RBP and Store RSP in RBP
@@ -2315,8 +2316,10 @@ void ASMBackend::TranslateInstr(
 
     case Opcode::ALLOCA: {
       Type3InstructionReader reader(instr);
-      auto size =
-          type_manager.GetTypeSize(static_cast<khir::Type>(reader.TypeID()));
+
+      auto ptr_type = static_cast<khir::Type>(reader.TypeID());
+      auto type = type_manager.GetPointerElementType(ptr_type);
+      auto size = type_manager.GetTypeSize(type);
       size += (16 - (size % 16)) % 16;
       assert(size % 16 == 0);
 

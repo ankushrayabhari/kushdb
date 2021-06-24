@@ -10,6 +10,7 @@ namespace kush::khir {
 
 std::vector<int> AssignRegisters(
     const std::vector<LiveInterval>& live_intervals,
-    const std::vector<uint64_t>& instrs);
+    const std::vector<uint64_t>& instrs,
+    const TypeManager& manager);
 
 }  // namespace kush::khir

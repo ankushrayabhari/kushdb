@@ -8,18 +8,20 @@ namespace kush::khir {
 
 class LiveInterval {
  public:
-  LiveInterval(int start, int end, bool floating);
+  LiveInterval(khir::Value v, khir::Type t);
   void Extend(int);
-  void SetFloatingPoint(bool);
+
   int Start() const;
   int End() const;
   bool Undef() const;
-  bool IsFloatingPoint() const;
+  khir::Type Type() const;
+  khir::Value Value() const;
 
  private:
   int start_;
   int end_;
-  bool floating_;
+  khir::Value value_;
+  khir::Type type_;
 };
 
 std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(

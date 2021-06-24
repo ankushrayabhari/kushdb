@@ -331,9 +331,10 @@ void ProgramBuilder::UpdatePhiMember(Value phi, Value phi_member) {
 
 // Memory
 Value ProgramBuilder::Alloca(Type t) {
+  auto type = type_manager_.PointerType(t);
   return GetCurrentFunction().Append(Type3InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::ALLOCA))
-                                         .SetTypeID(t.GetID())
+                                         .SetTypeID(type.GetID())
                                          .Build());
 }
 
@@ -660,9 +661,6 @@ Type ProgramBuilder::TypeOf(Value value) {
           static_cast<Type>(Type3InstructionReader(instr).TypeID()));
 
     case Opcode::ALLOCA:
-      return type_manager_.PointerType(
-          static_cast<Type>(Type3InstructionReader(instr).TypeID()));
-
     case Opcode::PHI:
     case Opcode::CALL:
     case Opcode::PTR_LOAD:

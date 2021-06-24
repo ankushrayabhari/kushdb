@@ -56,7 +56,7 @@ class LLVMBackend : public Backend,
       const std::vector<Global>& globals);
 
   void TranslateInstr(
-      const std::vector<llvm::Value*>& func_args,
+      const TypeManager& manager, const std::vector<llvm::Value*>& func_args,
       const std::vector<llvm::BasicBlock*>& basic_blocks,
       std::vector<llvm::Value*>& values,
       const std::vector<llvm::Constant*>& constant_values,

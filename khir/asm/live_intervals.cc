@@ -12,8 +12,8 @@
 
 namespace kush::khir {
 
-LiveInterval::LiveInterval(int start, int end, bool floating)
-    : start_(start), end_(end), floating_(floating) {}
+LiveInterval::LiveInterval(khir::Value v, khir::Type t)
+    : start_(-1), end_(-1), value_(v), type_(t) {}
 
 void LiveInterval::Extend(int x) {
   if (start_ == -1) {
@@ -35,9 +35,9 @@ int LiveInterval::End() const { return end_; }
 
 bool LiveInterval::Undef() const { return start_ == -1 && end_ == -1; }
 
-bool LiveInterval::IsFloatingPoint() const { return floating_; }
+khir::Type LiveInterval::Type() const { return type_; }
 
-void LiveInterval::SetFloatingPoint(bool x) { floating_ = x; }
+khir::Value LiveInterval::Value() const { return value_; }
 
 std::vector<std::vector<int>> ComputeBackedges(const Function& func) {
   // TODO: replace with linear time dominator algorithm
@@ -546,11 +546,75 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
   }
 }
 
-bool IsFloatingPoint(int idx, const std::vector<uint64_t>& instrs,
-                     const TypeManager& manager) {
-  auto opcode = OpcodeFrom(GenericInstructionReader(instrs[idx]).Opcode());
+Type TypeOf(uint64_t instr, const TypeManager& manager) {
+  auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
+    case Opcode::I1_CMP_EQ:
+    case Opcode::I1_CMP_NE:
+    case Opcode::I1_LNOT:
+    case Opcode::I8_CMP_EQ:
+    case Opcode::I8_CMP_NE:
+    case Opcode::I8_CMP_LT:
+    case Opcode::I8_CMP_LE:
+    case Opcode::I8_CMP_GT:
+    case Opcode::I8_CMP_GE:
+    case Opcode::I16_CMP_EQ:
+    case Opcode::I16_CMP_NE:
+    case Opcode::I16_CMP_LT:
+    case Opcode::I16_CMP_LE:
+    case Opcode::I16_CMP_GT:
+    case Opcode::I16_CMP_GE:
+    case Opcode::I32_CMP_EQ:
+    case Opcode::I32_CMP_NE:
+    case Opcode::I32_CMP_LT:
+    case Opcode::I32_CMP_LE:
+    case Opcode::I32_CMP_GT:
+    case Opcode::I32_CMP_GE:
+    case Opcode::I64_CMP_EQ:
+    case Opcode::I64_CMP_NE:
+    case Opcode::I64_CMP_LT:
+    case Opcode::I64_CMP_LE:
+    case Opcode::I64_CMP_GT:
+    case Opcode::I64_CMP_GE:
+    case Opcode::F64_CMP_EQ:
+    case Opcode::F64_CMP_NE:
+    case Opcode::F64_CMP_LT:
+    case Opcode::F64_CMP_LE:
+    case Opcode::F64_CMP_GT:
+    case Opcode::F64_CMP_GE:
+      return manager.I1Type();
+
+    case Opcode::I8_ADD:
+    case Opcode::I8_MUL:
+    case Opcode::I8_SUB:
+    case Opcode::I8_LOAD:
+    case Opcode::I1_ZEXT_I8:
+      return manager.I8Type();
+
+    case Opcode::I16_ADD:
+    case Opcode::I16_MUL:
+    case Opcode::I16_SUB:
+    case Opcode::I16_LOAD:
+      return manager.I16Type();
+
+    case Opcode::I32_ADD:
+    case Opcode::I32_MUL:
+    case Opcode::I32_SUB:
+    case Opcode::I32_LOAD:
+      return manager.I32Type();
+
+    case Opcode::I64_ADD:
+    case Opcode::I64_MUL:
+    case Opcode::I64_SUB:
+    case Opcode::I1_ZEXT_I64:
+    case Opcode::I8_ZEXT_I64:
+    case Opcode::I16_ZEXT_I64:
+    case Opcode::I32_ZEXT_I64:
+    case Opcode::F64_CONV_I64:
+    case Opcode::I64_LOAD:
+      return manager.I64Type();
+
     case Opcode::F64_ADD:
     case Opcode::F64_MUL:
     case Opcode::F64_SUB:
@@ -560,17 +624,41 @@ bool IsFloatingPoint(int idx, const std::vector<uint64_t>& instrs,
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
     case Opcode::F64_LOAD:
-      return true;
+      return manager.F64Type();
 
+    case Opcode::RETURN:
+    case Opcode::I8_STORE:
+    case Opcode::I16_STORE:
+    case Opcode::I32_STORE:
+    case Opcode::I64_STORE:
+    case Opcode::F64_STORE:
+    case Opcode::PTR_STORE:
+    case Opcode::RETURN_VALUE:
+    case Opcode::CONDBR:
+    case Opcode::BR:
+      return manager.VoidType();
+
+    case Opcode::CALL_INDIRECT:
+      return manager.GetFunctionReturnType(
+          static_cast<Type>(Type3InstructionReader(instr).TypeID()));
+
+    case Opcode::ALLOCA:
     case Opcode::PHI:
     case Opcode::CALL:
-    case Opcode::CALL_INDIRECT: {
-      return manager.IsF64Type(
-          static_cast<Type>(Type3InstructionReader(instrs[idx]).TypeID()));
-    }
+    case Opcode::PTR_LOAD:
+    case Opcode::PTR_MATERIALIZE:
+    case Opcode::PTR_CAST:
+    case Opcode::GEP:
+    case Opcode::FUNC_ARG:
+      return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
-    default:
-      return false;
+    case Opcode::GEP_OFFSET:
+      throw std::runtime_error("GEP_OFFSET needs to be under a GEP.");
+      break;
+
+    case Opcode::PHI_MEMBER:
+    case Opcode::CALL_ARG:
+      throw std::runtime_error("Cannot call type of on an extension.");
   }
 }
 
@@ -611,14 +699,11 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
   const auto& instrs = func.Instructions();
 
   std::vector<int> instr_to_bb(instrs.size(), -1);
-  std::vector<LiveInterval> live_intervals(instrs.size(),
-                                           LiveInterval(-1, -1, false));
-  for (auto bb_idx : order) {
-    const auto& [bb_begin, bb_end] = bb[bb_idx];
-    for (int i = bb_begin; i <= bb_end; i++) {
-      instr_to_bb[i] = bb_idx;
-      live_intervals[i].SetFloatingPoint(IsFloatingPoint(i, instrs, manager));
-    }
+  std::vector<LiveInterval> live_intervals;
+  live_intervals.reserve(instrs.size());
+  for (int i = 0; i < instrs.size(); i++) {
+    auto v = Value(i);
+    live_intervals.emplace_back(v, TypeOf(instrs[i], manager));
   }
 
   for (auto bb_idx : order) {
@@ -672,6 +757,14 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
     }
   }
 
+  std::vector<LiveInterval> outputs;
+  outputs.reserve(instrs.size());
+  for (const auto& l : live_intervals) {
+    if (!l.Undef()) {
+      outputs.push_back(l);
+    }
+  }
+
   /*
   for (int i = 0; i < live_intervals.size(); i++) {
     std::cerr << "%" << i << " " << live_intervals[i].Start() << " "
@@ -688,7 +781,7 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
   std::cerr << "}\n";
   */
 
-  return {live_intervals, order};
+  return {outputs, order};
 }
 
 }  // namespace kush::khir

@@ -44,13 +44,13 @@ class TypeManager {
  public:
   TypeManager();
 
-  Type VoidType();
-  Type I1Type();
-  Type I8Type();
-  Type I16Type();
-  Type I32Type();
-  Type I64Type();
-  Type F64Type();
+  Type VoidType() const;
+  Type I1Type() const;
+  Type I8Type() const;
+  Type I16Type() const;
+  Type I32Type() const;
+  Type I64Type() const;
+  Type F64Type() const;
   Type NamedStructType(absl::Span<const Type> field_type_id,
                        std::string_view name);
   Type StructType(absl::Span<const Type> field_type_id);
