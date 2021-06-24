@@ -123,6 +123,15 @@ std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
     assert(!i.IsRegister());
     auto i_instr = i.Value().GetIdx();
 
+    if (manager.IsI1Type(i.Type())) {
+      if (i.StartBB() == i.EndBB() && i.StartIdx() + 1 == i.EndIdx() &&
+          OpcodeFrom(GenericInstructionReader(instrs[i.EndIdx()]).Opcode()) ==
+              Opcode::CONDBR) {
+        assignments[i_instr] = 100;
+        continue;
+      }
+    }
+
     if (manager.IsF64Type(i.Type())) {
       if (free_floating_point_regs.empty()) {
         // Spill one of the non-fixed floating point regs
