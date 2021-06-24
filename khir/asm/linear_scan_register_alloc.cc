@@ -23,18 +23,6 @@ std::vector<int> AssignRegisters(
             [&](const int& a_idx, const int& b_idx) -> bool {
               const auto& a = live_intervals[a_idx];
               const auto& b = live_intervals[b_idx];
-              if (a.Undef() && b.Undef()) {
-                return false;
-              }
-
-              if (a.Undef()) {
-                return false;
-              }
-
-              if (b.Undef()) {
-                return true;
-              }
-
               return a.Start() < b.Start();
             });
 
@@ -179,7 +167,6 @@ std::vector<int> AssignRegisters(
   */
 
   return std::vector<int>(live_intervals.size(), -1);
-  ;
 }
 
 }  // namespace kush::khir
