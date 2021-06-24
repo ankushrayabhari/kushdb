@@ -12,6 +12,16 @@
 
 namespace kush::khir {
 
+LiveInterval::LiveInterval(int reg)
+    : undef_(true),
+      start_bb_(-1),
+      end_bb_(-1),
+      start_idx_(-1),
+      end_idx_(-1),
+      value_(khir::Value(0)),
+      type_(static_cast<khir::Type>(0)),
+      register_(reg) {}
+
 LiveInterval::LiveInterval(khir::Value v, khir::Type t)
     : undef_(true),
       start_bb_(-1),
@@ -19,7 +29,8 @@ LiveInterval::LiveInterval(khir::Value v, khir::Type t)
       start_idx_(-1),
       end_idx_(-1),
       value_(v),
-      type_(t) {}
+      type_(t),
+      register_(-1) {}
 
 void LiveInterval::Extend(int bb, int idx) {
   assert(bb >= 0);
@@ -57,9 +68,29 @@ int LiveInterval::EndIdx() const { return end_idx_; }
 
 bool LiveInterval::Undef() const { return undef_; }
 
-khir::Type LiveInterval::Type() const { return type_; }
+khir::Type LiveInterval::Type() const {
+  if (IsRegister()) {
+    throw std::runtime_error("Not a virtual live interval");
+  }
+  return type_;
+}
 
-khir::Value LiveInterval::Value() const { return value_; }
+khir::Value LiveInterval::Value() const {
+  if (IsRegister()) {
+    throw std::runtime_error("Not a virtual live interval");
+  }
+  return value_;
+}
+
+int LiveInterval::Register() const {
+  if (IsRegister()) {
+    return register_;
+  }
+
+  throw std::runtime_error("Not a precolored live interval");
+}
+
+bool LiveInterval::IsRegister() const { return register_ >= 0; }
 
 std::vector<std::vector<int>> ComputeBackedges(const Function& func) {
   // TODO: replace with linear time dominator algorithm

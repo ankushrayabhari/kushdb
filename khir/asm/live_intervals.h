@@ -9,6 +9,7 @@ namespace kush::khir {
 class LiveInterval {
  public:
   LiveInterval(khir::Value v, khir::Type t);
+  LiveInterval(int reg);
   void Extend(int bb, int idx);
 
   int StartBB() const;
@@ -19,6 +20,8 @@ class LiveInterval {
   bool Undef() const;
   khir::Type Type() const;
   khir::Value Value() const;
+  int Register() const;
+  bool IsRegister() const;
 
  private:
   bool undef_;
@@ -26,8 +29,10 @@ class LiveInterval {
   int end_bb_;
   int start_idx_;
   int end_idx_;
+
   khir::Value value_;
   khir::Type type_;
+  int register_;
 };
 
 std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(

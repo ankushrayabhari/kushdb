@@ -11,35 +11,45 @@
 
 namespace kush::khir {
 
-std::vector<int> AssignRegisters(
-    const std::vector<LiveInterval>& live_intervals,
-    const std::vector<uint64_t>& instrs, const TypeManager& manager) {
-  std::vector<int> order(live_intervals.size(), -1);
-  for (int i = 0; i < order.size(); i++) {
-    order[i] = i;
-  }
+std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
+                                 const std::vector<uint64_t>& instrs,
+                                 const TypeManager& manager) {
+  // Sort by increasing start point order
+  std::sort(live_intervals.begin(), live_intervals.end(),
+            [](const LiveInterval& a, const LiveInterval& b) -> bool {
+              if (a.StartBB() < b.StartBB()) {
+                return true;
+              }
 
-  std::sort(order.begin(), order.end(),
-            [&](const int& a_idx, const int& b_idx) -> bool {
-              const auto& a = live_intervals[a_idx];
-              const auto& b = live_intervals[b_idx];
-              return a.StartBB() < b.StartBB();
+              if (a.StartBB() == b.StartBB()) {
+                return a.StartIdx() < b.StartIdx();
+              }
+
+              return false;
             });
 
-  std::vector<int> assignments(live_intervals.size(), -1);
+  std::vector<int> assignments(instrs.size(), -1);
 
-  auto comp = [&](const int& a_idx, const int& b_idx) -> bool {
-    const auto& a = live_intervals[a_idx];
-    const auto& b = live_intervals[b_idx];
-    return a.EndBB() < b.EndBB();
+  // Sort by increasing end point
+  auto comp = [&](const LiveInterval& a, const LiveInterval& b) -> bool {
+    if (a.EndBB() < b.EndBB()) {
+      return true;
+    }
+
+    if (a.EndBB() == b.EndBB()) {
+      return a.EndIdx() < b.EndIdx();
+    }
+
+    return false;
   };
-  auto active_normal = std::multiset<int, decltype(comp)>(comp);
-  auto active_floating_point = std::multiset<int, decltype(comp)>(comp);
+  auto active_normal = std::multiset<LiveInterval, decltype(comp)>(comp);
+  auto active_floating_point =
+      std::multiset<LiveInterval, decltype(comp)>(comp);
 
   std::unordered_set<int> free_floating_point_regs;
   std::unordered_set<int> free_normal_regs;
 
-  for (int i = 0; i < 12; i++) {
+  for (int i = 0; i < 13; i++) {
     free_normal_regs.insert(i);
   }
   for (int i = 0; i < 7; i++) {
@@ -48,125 +58,162 @@ std::vector<int> AssignRegisters(
 
   /*
   Available for allocation:
-    RBX, RCX, RDX, RSI, RDI, R8, R9, R11, R12, R13, R14, R15
+    RBX, RCX, RDX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
     XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6
 
   Reserved/Scratch
-    RSP, RBP, RAX, R10, XMM7
+    RSP, RBP, RAX, XMM7
   */
-  for (int i : order) {
-    assert(!live_intervals[i].Undef());
+  for (const auto& i : live_intervals) {
+    assert(!i.Undef());
+    assert(free_normal_regs.size() + active_normal.size() == 13);
+    assert(free_floating_point_regs.size() + active_floating_point.size() == 7);
 
     {  // Expire old intervals
-      for (auto it = active_floating_point.begin();
-           it != active_floating_point.end();) {
-        auto j = *it;
 
-        if (live_intervals[j].EndBB() >= live_intervals[i].StartBB()) {
+      // Normal Regs
+      for (auto it = active_normal.begin(); it != active_normal.end();) {
+        const auto& j = *it;
+
+        // Stop once the endpoint[j] >= startpoint[i]
+        if (j.EndBB() > i.StartBB()) {
           break;
         }
 
-        // free the register associated with this
-        assert(assignments[j] >= 0);
-        free_floating_point_regs.insert(assignments[j]);
+        if (j.EndBB() == i.StartBB() && j.EndIdx() >= i.StartIdx()) {
+          break;
+        }
+
+        // Free the register associated with this interval
+        int reg =
+            j.IsRegister() ? j.Register() : assignments[j.Value().GetIdx()];
+        assert(reg >= 0);
+        free_normal_regs.insert(reg);
+
+        // Delete live interval from active
+        it = active_normal.erase(it);
+      }
+
+      // FP Regs
+      for (auto it = active_floating_point.begin();
+           it != active_floating_point.end();) {
+        const auto& j = *it;
+
+        // Stop once the endpoint[j] >= startpoint[i]
+        if (j.EndBB() > i.StartBB()) {
+          break;
+        }
+
+        if (j.EndBB() == i.StartBB() && j.EndIdx() >= i.StartIdx()) {
+          break;
+        }
+
+        // Free the register associated with this interval
+        int reg =
+            j.IsRegister() ? j.Register() : assignments[j.Value().GetIdx()];
+        assert(reg >= 0);
+        free_floating_point_regs.insert(reg);
 
         // delete live interval from active
         it = active_floating_point.erase(it);
       }
+    }
 
-      for (auto it = active_normal.begin(); it != active_normal.end();) {
-        auto j = *it;
+    // Can't be a precolored interval. Needs to be virtual.
+    assert(!i.IsRegister());
+    auto i_instr = i.Value().GetIdx();
 
-        if (live_intervals[j].EndBB() >= live_intervals[i].StartBB()) {
+    if (manager.IsF64Type(i.Type())) {
+      if (free_floating_point_regs.empty()) {
+        // Spill one of the non-fixed floating point regs
+        auto spill = active_floating_point.begin();
+        while (spill != active_floating_point.end()) {
+          if (spill->IsRegister()) {
+            spill++;
+            continue;
+          }
+
           break;
         }
 
-        // free the register associated with this
-        assert(assignments[j] >= 0);
-        free_normal_regs.insert(assignments[j]);
+        if (spill == active_floating_point.end()) {
+          // Forced to spill the current.
+          assignments[i_instr] = -1;
+          continue;
+        }
+        assert(!spill->IsRegister());
+        auto spill_instr = spill->Value().GetIdx();
 
-        // delete live interval from active
-        it = active_normal.erase(it);
-      }
-    }
-
-    // free floating point registers
-    if (manager.IsF64Type(live_intervals[i].Type())) {
-      if (free_floating_point_regs.empty()) {
-        // Spill one of the floating point regs
-        auto spill = active_floating_point.cbegin();
-        if (live_intervals[*spill].EndBB() > live_intervals[i].EndBB()) {
-          assignments[i] = assignments[*spill];
-          assignments[*spill] = -1;
+        // Heuristic.
+        if (spill->EndBB() > i.EndBB() ||
+            (spill->EndBB() == i.EndBB() && spill->EndIdx() > i.EndIdx())) {
+          assignments[i_instr] = assignments[spill_instr];
+          assignments[spill_instr] = -1;
           active_floating_point.erase(spill);
           active_floating_point.insert(i);
         } else {
-          assignments[i] = -1;
+          assignments[i_instr] = -1;
         }
-      } else {
-        int reg;
-        if (OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode()) ==
-            Opcode::FUNC_ARG) {
-          const std::vector<int> fp_arg_regs = {0, 1, 2, 3, 4, 5};
-          if (i >= fp_arg_regs.size()) {
-            throw std::runtime_error(
-                "Unsupported. Too many floating point args.");
-          }
 
-          reg = fp_arg_regs[i];
-        } else {
-          reg = *free_floating_point_regs.begin();
-        }
-        assert(free_floating_point_regs.find(reg) !=
-               free_floating_point_regs.end());
-        free_floating_point_regs.erase(reg);
-        active_floating_point.insert(i);
-        assignments[i] = reg;
+        continue;
       }
-    } else {
-      if (free_normal_regs.empty()) {
-        // Spill one of the normal regs
-        auto spill = active_normal.cbegin();
-        if (live_intervals[*spill].EndBB() > live_intervals[i].EndBB()) {
-          assignments[i] = assignments[*spill];
-          assignments[*spill] = -1;
-          active_normal.erase(spill);
-          active_normal.insert(i);
-        } else {
-          assignments[i] = -1;
-        }
-      } else {
-        int reg;
-        if (OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode()) ==
-            Opcode::FUNC_ARG) {
-          const std::vector<int> normal_arg_regs = {4, 3, 2, 1, 5, 6};
-          if (i >= normal_arg_regs.size()) {
-            throw std::runtime_error("Unsupported. Too many normal args.");
-          }
 
-          reg = normal_arg_regs[i];
-        } else {
-          reg = *free_normal_regs.begin();
-        }
-        assert(free_normal_regs.find(reg) != free_normal_regs.end());
-
-        free_normal_regs.erase(reg);
-        active_normal.insert(i);
-        assignments[i] = reg;
-      }
+      // Free register available
+      int reg = *free_floating_point_regs.begin();
+      free_floating_point_regs.erase(reg);
+      active_floating_point.insert(i);
+      assignments[i_instr] = reg;
+      continue;
     }
 
-    assert(free_normal_regs.size() + active_normal.size() == 12);
-    assert(free_floating_point_regs.size() + active_floating_point.size() == 7);
+    // Normal Register
+    if (free_normal_regs.empty()) {
+      // Spill one of the non-fixed normal regs
+      auto spill = active_normal.begin();
+      while (spill != active_normal.end()) {
+        if (spill->IsRegister()) {
+          spill++;
+          continue;
+        }
+
+        break;
+      }
+
+      if (spill == active_normal.end()) {
+        // Forced to spill the current.
+        assignments[i_instr] = -1;
+        continue;
+      }
+      assert(!spill->IsRegister());
+      auto spill_instr = spill->Value().GetIdx();
+
+      // Heuristic.
+      if (spill->EndBB() > i.EndBB() ||
+          (spill->EndBB() == i.EndBB() && spill->EndIdx() > i.EndIdx())) {
+        assignments[i_instr] = assignments[spill_instr];
+        assignments[spill_instr] = -1;
+        active_normal.erase(spill);
+        active_normal.insert(i);
+      } else {
+        assignments[i_instr] = -1;
+      }
+      continue;
+    }
+
+    // Free register available
+    assert(!free_normal_regs.empty());
+    int reg = *free_normal_regs.begin();
+    free_normal_regs.erase(reg);
+    active_normal.insert(i);
+    assignments[i_instr] = reg;
+    continue;
   }
 
-  /*
-  for (int i = 0; i < live_intervals.size(); i++) {
+  for (int i = 0; i < instrs.size(); i++) {
     std::cerr << "%" << i << " " << assignments[i] << "\n";
   }
-  */
 
-  return std::vector<int>(live_intervals.size(), -1);
+  return assignments;
 }
 
 }  // namespace kush::khir
