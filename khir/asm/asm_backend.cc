@@ -225,6 +225,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
       compute_label_ = internal_func_labels_[func_idx];
     }
 
+    std::cerr << func.Name() << std::endl;
     auto [live_intervals, order] = ComputeLiveIntervals(func, type_manager);
     auto register_assign =
         AssignRegisters(live_intervals, instructions, type_manager);

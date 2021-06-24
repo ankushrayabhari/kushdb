@@ -76,7 +76,7 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   khir::ProgramPrinter printer;
   program.Translate(printer);
 
-  auto backend = std::make_unique<khir::LLVMBackend>();
+  auto backend = std::make_unique<khir::ASMBackend>();
   program.Translate(*backend);
   return std::move(backend);
 }

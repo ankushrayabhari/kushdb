@@ -546,7 +546,8 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
   }
 }
 
-Type TypeOf(uint64_t instr, const TypeManager& manager) {
+Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
+            const TypeManager& manager) {
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
@@ -653,29 +654,30 @@ Type TypeOf(uint64_t instr, const TypeManager& manager) {
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
     case Opcode::GEP_OFFSET:
-      throw std::runtime_error("GEP_OFFSET needs to be under a GEP.");
-      break;
-
     case Opcode::PHI_MEMBER:
     case Opcode::CALL_ARG:
-      throw std::runtime_error("Cannot call type of on an extension.");
+      return manager.VoidType();
   }
 }
 
-std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
-    const Function& func, const TypeManager& manager) {
-  auto [loop_parent, loop_header] = FindLoops(func);
-  auto [labels, order] = LabelBlocks(func, loop_parent);
+std::pair<std::vector<int>, std::vector<int>> ComputeLoopDepthEnd(
+    const std::vector<int>& loop_parent, const std::vector<bool>& loop_header,
+    const std::vector<int>& order) {
   std::vector<int> loop_depth(loop_parent.size(), 0);
   std::vector<int> loop_end(loop_parent.size(), -1);
 
   for (int block_id : order) {
+    if (block_id == 0) {
+      loop_depth[0] = 0;
+      continue;
+    }
+
     if (loop_header[block_id]) {
-      // loop depth is loop parent's depth
-      loop_depth[block_id] = loop_depth[loop_parent[block_id]];
+      // loop depth is loop parent's depth + 1
+      loop_depth[block_id] = loop_depth[loop_parent[block_id]] + 1;
     } else {
       // loop depth is that of the loop parents depth
-      loop_depth[block_id] = loop_depth[loop_parent[block_id]] + 1;
+      loop_depth[block_id] = loop_depth[loop_parent[block_id]];
 
       int x = block_id;
       while (true) {
@@ -688,6 +690,42 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
     }
   }
 
+  for (int i = 0; i < loop_parent.size(); i++) {
+    if (loop_header[i]) {
+      loop_depth[i]--;
+    }
+  }
+
+  return {loop_depth, loop_end};
+}
+
+std::vector<int> ComputeInstrToBB(const std::vector<uint64_t>& instrs,
+                                  std::vector<int>& order,
+                                  const std::vector<std::pair<int, int>>& bb) {
+  std::vector<int> instr_to_bb(instrs.size(), -1);
+
+  for (auto bb_idx : order) {
+    const auto& [bb_begin, bb_end] = bb[bb_idx];
+    for (int i = bb_begin; i <= bb_end; i++) {
+      instr_to_bb[i] = bb_idx;
+    }
+  }
+
+  return instr_to_bb;
+}
+
+std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
+    const Function& func, const TypeManager& manager) {
+  const auto& bb = func.BasicBlocks();
+  const auto& instrs = func.Instructions();
+
+  auto [loop_parent, loop_header] = FindLoops(func);
+  auto [labels, order] = LabelBlocks(func, loop_parent);
+  auto [loop_depth, loop_end] =
+      ComputeLoopDepthEnd(loop_parent, loop_header, order);
+
+  auto instr_to_bb = ComputeInstrToBB(instrs, order, bb);
+
   // for each value:
   //   for each use of that value:
   //     if value is at same depth as def:
@@ -695,15 +733,12 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
   //     else:
   //        walk up loop parent until at depth of def
   //        extend live interval to be from def to end of loop
-  const auto& bb = func.BasicBlocks();
-  const auto& instrs = func.Instructions();
 
-  std::vector<int> instr_to_bb(instrs.size(), -1);
   std::vector<LiveInterval> live_intervals;
   live_intervals.reserve(instrs.size());
   for (int i = 0; i < instrs.size(); i++) {
     auto v = Value(i);
-    live_intervals.emplace_back(v, TypeOf(instrs[i], manager));
+    live_intervals.emplace_back(v, TypeOf(instrs[i], instrs, manager));
   }
 
   for (auto bb_idx : order) {
@@ -765,21 +800,23 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
     }
   }
 
-  /*
+  std::cerr << "digraph G {\n";
+  for (int i = 0; i < labels.size(); i++) {
+    for (auto j : func.BasicBlockSuccessors()[i]) {
+      std::cerr << " \"" << i << "," << labels[i]
+                << "\\nloop_parent:" << loop_parent[i]
+                << "\\nloop_depth:" << loop_depth[i] << "\" -> \"" << j << ","
+                << labels[j] << "\\nloop_parent:" << loop_parent[j]
+                << "\\nloop_depth:" << loop_depth[j] << "\"" << std::endl;
+    }
+  }
+  std::cerr << "}" << std::endl;
+
   for (int i = 0; i < live_intervals.size(); i++) {
     std::cerr << "%" << i << " " << live_intervals[i].Start() << " "
               << live_intervals[i].End() << "\n";
   }
-
-  std::cerr << "digraph G {\n";
-  for (int i = 0; i < labels.size(); i++) {
-    for (auto j : func.BasicBlockSuccessors()[i]) {
-      std::cerr << " \"" << i << "," << labels[i] << "\" -> \"" << j << ","
-                << labels[j] << "\"" << std::endl;
-    }
-  }
-  std::cerr << "}\n";
-  */
+  std::cerr << std::endl;
 
   return {outputs, order};
 }
