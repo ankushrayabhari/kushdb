@@ -12,6 +12,8 @@ class LiveInterval {
   LiveInterval(int reg);
   void Extend(int bb, int idx);
 
+  void ChangeToFixed(int reg);
+
   int StartBB() const;
   int EndBB() const;
   int StartIdx() const;

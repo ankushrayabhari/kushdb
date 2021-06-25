@@ -58,6 +58,12 @@ void LiveInterval::Extend(int bb, int idx) {
   }
 }
 
+void LiveInterval::ChangeToFixed(int reg) {
+  value_ = khir::Value(0);
+  type_ = static_cast<khir::Type>(0);
+  register_ = reg;
+}
+
 int LiveInterval::StartBB() const { return start_bb_; }
 
 int LiveInterval::EndBB() const { return end_bb_; }
@@ -569,6 +575,7 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
     case Opcode::PTR_CAST:
     case Opcode::PTR_MATERIALIZE:
     case Opcode::PTR_LOAD:
+    case Opcode::CALL_ARG:
     case Opcode::ALLOCA: {
       return true;
     }
@@ -586,7 +593,6 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
     case Opcode::BR:
     case Opcode::CONDBR:
     case Opcode::RETURN_VALUE:
-    case Opcode::CALL_ARG:
     case Opcode::PHI: {
       return false;
     }
@@ -843,6 +849,18 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
       } else {
         if (DoesWriteValue(instr, manager)) {
           live_intervals[i].Extend(labels[bb_idx], i);
+        }
+
+        // extend the live interval to the call for each argument
+        if (opcode == Opcode::CALL_ARG) {
+          for (int j = i + 1; j <= bb_end; j++) {
+            auto opcode =
+                OpcodeFrom(GenericInstructionReader(instrs[j]).Opcode());
+            if (opcode == Opcode::CALL || opcode == Opcode::CALL_INDIRECT) {
+              live_intervals[i].Extend(labels[bb_idx], j);
+              break;
+            }
+          }
         }
       }
     }
