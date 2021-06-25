@@ -52,18 +52,68 @@ std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
   for (int i = 0; i < 13; i++) {
     free_normal_regs.insert(i);
   }
-  for (int i = 0; i < 7; i++) {
+  for (int i = 50; i < 50 + 7; i++) {
     free_floating_point_regs.insert(i);
   }
 
   /*
   Available for allocation:
-    RBX, RCX, RDX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
-    XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6
+    RBX  = 0
+    RCX  = 1
+    RDX  = 2
+    RSI  = 3
+    RDI  = 4
+    R8   = 5
+    R9   = 6
+    R10  = 7
+    R11  = 8
+    R12  = 9
+    R13  = 10
+    R14  = 11
+    R15  = 12
+
+    XMM0 = 50
+    XMM1 = 51
+    XMM2 = 52
+    XMM3 = 53
+    XMM4 = 54
+    XMM5 = 55
+    XMM6 = 56
+
+    FLAG = 100
 
   Reserved/Scratch
     RSP, RBP, RAX, XMM7
   */
+
+  // Create a precolored interval for each function argument
+  std::vector<int> normal_arg_reg{4, 3, 2, 1, 5, 6};
+  std::vector<int> fp_arg_reg{50, 51, 52, 53, 54, 55, 56};
+  for (int i = 0, normal_arg_ctr = 0, fp_arg_ctr = 0; i < instrs.size(); i++) {
+    auto opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
+    if (opcode != Opcode::FUNC_ARG) {
+      break;
+    }
+
+    Type3InstructionReader reader(instrs[i]);
+    auto type = static_cast<Type>(reader.TypeID());
+    if (manager.IsF64Type(type)) {
+      auto reg = fp_arg_reg[fp_arg_ctr++];
+      LiveInterval interval(reg);
+      interval.Extend(0, 0);
+      interval.Extend(0, i);
+      active_normal.insert(interval);
+      free_floating_point_regs.erase(reg);
+    } else {
+      auto reg = normal_arg_reg[normal_arg_ctr++];
+      LiveInterval interval(reg);
+      interval.Extend(0, 0);
+      interval.Extend(0, i);
+      active_normal.insert(interval);
+      free_normal_regs.erase(reg);
+    }
+  }
+
   for (const auto& i : live_intervals) {
     assert(!i.Undef());
     assert(free_normal_regs.size() + active_normal.size() == 13);
@@ -123,6 +173,7 @@ std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
     assert(!i.IsRegister());
     auto i_instr = i.Value().GetIdx();
 
+    // FLAG register into branch
     if (manager.IsI1Type(i.Type())) {
       if (i.StartBB() == i.EndBB() && i.StartIdx() + 1 == i.EndIdx() &&
           OpcodeFrom(GenericInstructionReader(instrs[i.EndIdx()]).Opcode()) ==
