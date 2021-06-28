@@ -25,6 +25,8 @@ class LiveInterval {
   int Register() const;
   bool IsRegister() const;
 
+  bool operator==(const LiveInterval& rhs);
+
  private:
   bool undef_;
   int start_bb_;

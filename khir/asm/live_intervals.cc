@@ -74,6 +74,14 @@ int LiveInterval::EndIdx() const { return end_idx_; }
 
 bool LiveInterval::Undef() const { return undef_; }
 
+bool LiveInterval::operator==(const LiveInterval& rhs) {
+  return undef_ == rhs.undef_ && start_bb_ == rhs.start_bb_ &&
+         end_bb_ == rhs.end_bb_ && start_idx_ == rhs.start_idx_ &&
+         end_idx_ == rhs.end_idx_ &&
+         value_.Serialize() == rhs.value_.Serialize() &&
+         type_.GetID() == rhs.type_.GetID() && register_ == rhs.register_;
+}
+
 khir::Type LiveInterval::Type() const {
   if (IsRegister()) {
     throw std::runtime_error("Not a virtual live interval");
