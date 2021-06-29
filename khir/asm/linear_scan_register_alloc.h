@@ -17,7 +17,7 @@ class RegisterAssignment {
 
   int Register() const;
   bool IsCoalesced() const;
-  bool IsSpilled() const;
+  bool IsRegister() const;
 
  private:
   int register_;

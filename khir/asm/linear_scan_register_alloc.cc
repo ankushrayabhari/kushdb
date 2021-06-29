@@ -25,7 +25,7 @@ int RegisterAssignment::Register() const { return register_; }
 
 bool RegisterAssignment::IsCoalesced() const { return coalesced_; }
 
-bool RegisterAssignment::IsSpilled() const { return register_ >= 0; }
+bool RegisterAssignment::IsRegister() const { return register_ >= 0; }
 
 template <typename ActiveSet>
 void ReplaceWithFixed(LiveInterval& to_add,
