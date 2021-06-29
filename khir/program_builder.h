@@ -35,6 +35,8 @@ class Value {
 
   bool IsConstantGlobal() const { return (idx_ & (1 << 23)) != 0; }
 
+  bool operator==(const Value& rhs) { return idx_ == rhs.idx_; }
+
  private:
   uint32_t idx_;
 };

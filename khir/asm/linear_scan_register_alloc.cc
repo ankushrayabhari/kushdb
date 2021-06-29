@@ -11,8 +11,25 @@
 
 namespace kush::khir {
 
+RegisterAssignment::RegisterAssignment(int reg, bool coalesced)
+    : register_(reg), coalesced_(coalesced) {}
+
+void RegisterAssignment::SetRegister(int r) {
+  register_ = r;
+  coalesced_ = false;
+}
+
+void RegisterAssignment::SetCoalseced(bool c) { coalesced_ = c; }
+
+int RegisterAssignment::Register() const { return register_; }
+
+bool RegisterAssignment::IsCoalesced() const { return coalesced_; }
+
+bool RegisterAssignment::IsSpilled() const { return register_ >= 0; }
+
 template <typename ActiveSet>
-void ReplaceWithFixed(LiveInterval& to_add, std::vector<int>& assignments,
+void ReplaceWithFixed(LiveInterval& to_add,
+                      std::vector<RegisterAssignment>& assignments,
                       std::unordered_set<int>& free, ActiveSet& active) {
   assert(to_add.IsRegister());
   auto reg = to_add.Register();
@@ -25,7 +42,8 @@ void ReplaceWithFixed(LiveInterval& to_add, std::vector<int>& assignments,
   // find the interval in active that is assigned to reg
   for (auto it = active.begin(); it != active.end(); it++) {
     const auto& j = *it;
-    int j_reg = j.IsRegister() ? j.Register() : assignments[j.Value().GetIdx()];
+    int j_reg = j.IsRegister() ? j.Register()
+                               : assignments[j.Value().GetIdx()].Register();
     if (reg != j_reg) {
       continue;
     }
@@ -34,16 +52,92 @@ void ReplaceWithFixed(LiveInterval& to_add, std::vector<int>& assignments,
     }
 
     // spill the old one
-    assignments[j.Value().GetIdx()] = -1;
+    assignments[j.Value().GetIdx()].SetRegister(-1);
     active.erase(it);
     active.insert(to_add);
     return;
   }
 }
 
-std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
-                                 const std::vector<uint64_t>& instrs,
-                                 const TypeManager& manager) {
+template <typename ActiveSet>
+void ExpireOldIntervals(LiveInterval& current,
+                        std::vector<RegisterAssignment>& assignments,
+                        std::unordered_set<int>& free, ActiveSet& active) {
+  // Normal Regs
+  for (auto it = active.begin(); it != active.end();) {
+    const auto& j = *it;
+
+    // Stop once the endpoint[j] >= startpoint[i]
+    if (j.EndBB() > current.StartBB()) {
+      break;
+    }
+
+    if (j.EndBB() == current.StartBB() && j.EndIdx() >= current.StartIdx()) {
+      break;
+    }
+
+    // Free the register associated with this interval
+    int reg = j.IsRegister() ? j.Register()
+                             : assignments[j.Value().GetIdx()].Register();
+    assert(reg >= 0);
+    free.insert(reg);
+
+    // Delete live interval from active
+    it = active.erase(it);
+  }
+}
+
+template <typename ActiveSet>
+void SpillAtInterval(LiveInterval& curr,
+                     std::vector<RegisterAssignment>& assignments,
+                     std::unordered_set<int>& free, ActiveSet& active) {
+  auto curr_idx = curr.Value().GetIdx();
+
+  if (free.empty()) {
+    // Spill one of the non-fixed floating point regs
+    auto spill = active.begin();
+    while (spill != active.end()) {
+      if (spill->IsRegister()) {
+        spill++;
+        continue;
+      }
+
+      break;
+    }
+
+    if (spill == active.end()) {
+      // Forced to spill the current.
+      assignments[curr_idx].SetRegister(-1);
+      return;
+    }
+
+    assert(!spill->IsRegister());
+    auto spill_idx = spill->Value().GetIdx();
+
+    // Heuristic.
+    if (spill->EndBB() > curr.EndBB() ||
+        (spill->EndBB() == curr.EndBB() && spill->EndIdx() > curr.EndIdx())) {
+      assignments[curr_idx] = assignments[spill_idx];
+      assignments[spill_idx].SetRegister(-1);
+      active.erase(spill);
+      active.insert(curr);
+    } else {
+      assignments[curr_idx].SetRegister(-1);
+    }
+
+    return;
+  }
+
+  // Free register available
+  int reg = *free.begin();
+  free.erase(reg);
+  active.insert(curr);
+  assignments[curr_idx].SetRegister(reg);
+}
+
+std::vector<RegisterAssignment> AssignRegisters(
+    std::vector<LiveInterval>& live_intervals,
+    const std::vector<uint64_t>& instrs, const TypeManager& manager) {
   // Sort by increasing start point order
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& a, const LiveInterval& b) -> bool {
@@ -58,7 +152,8 @@ std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
               return false;
             });
 
-  std::vector<int> assignments(instrs.size(), -1);
+  std::vector<RegisterAssignment> assignments(instrs.size(),
+                                              RegisterAssignment(-1, false));
 
   // Sort by increasing end point
   auto comp = [&](const LiveInterval& a, const LiveInterval& b) -> bool {
@@ -192,62 +287,17 @@ std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
       fp_arg_ctr = 0;
     }
 
-    {  // Expire old intervals
-
-      // Normal Regs
-      for (auto it = active_normal.begin(); it != active_normal.end();) {
-        const auto& j = *it;
-
-        // Stop once the endpoint[j] >= startpoint[i]
-        if (j.EndBB() > i.StartBB()) {
-          break;
-        }
-
-        if (j.EndBB() == i.StartBB() && j.EndIdx() >= i.StartIdx()) {
-          break;
-        }
-
-        // Free the register associated with this interval
-        int reg =
-            j.IsRegister() ? j.Register() : assignments[j.Value().GetIdx()];
-        assert(reg >= 0);
-        free_normal_regs.insert(reg);
-
-        // Delete live interval from active
-        it = active_normal.erase(it);
-      }
-
-      // FP Regs
-      for (auto it = active_floating_point.begin();
-           it != active_floating_point.end();) {
-        const auto& j = *it;
-
-        // Stop once the endpoint[j] >= startpoint[i]
-        if (j.EndBB() > i.StartBB()) {
-          break;
-        }
-
-        if (j.EndBB() == i.StartBB() && j.EndIdx() >= i.StartIdx()) {
-          break;
-        }
-
-        // Free the register associated with this interval
-        int reg =
-            j.IsRegister() ? j.Register() : assignments[j.Value().GetIdx()];
-        assert(reg >= 0);
-        free_floating_point_regs.insert(reg);
-
-        // delete live interval from active
-        it = active_floating_point.erase(it);
-      }
-    }
+    // Expire old intervals
+    ExpireOldIntervals(i, assignments, free_normal_regs, active_normal);
+    ExpireOldIntervals(i, assignments, free_floating_point_regs,
+                       active_floating_point);
 
     // FLAG register into branch
     if (manager.IsI1Type(i.Type())) {
       if (i.StartBB() == i.EndBB() && i.StartIdx() + 1 == i.EndIdx() &&
           OpcodeFrom(GenericInstructionReader(instrs[i.EndIdx()]).Opcode()) ==
               Opcode::CONDBR) {
-        assignments[i_instr] = 100;
+        assignments[i_instr].SetRegister(100);
         continue;
       }
     }
@@ -262,9 +312,8 @@ std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
         }
 
         int reg = fp_arg_reg[fp_arg_ctr++];
-        assignments[i_instr] = reg;
+        assignments[i_instr].SetRegister(reg);
         i.ChangeToFixed(reg);
-
         ReplaceWithFixed(i, assignments, free_floating_point_regs,
                          active_floating_point);
       } else {
@@ -275,98 +324,19 @@ std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
         }
 
         int reg = normal_arg_reg[normal_arg_ctr++];
-        assignments[i_instr] = reg;
+        assignments[i_instr].SetRegister(reg);
         i.ChangeToFixed(reg);
-
         ReplaceWithFixed(i, assignments, free_normal_regs, active_normal);
       }
       continue;
     }
 
     if (manager.IsF64Type(i.Type())) {
-      if (free_floating_point_regs.empty()) {
-        // Spill one of the non-fixed floating point regs
-        auto spill = active_floating_point.begin();
-        while (spill != active_floating_point.end()) {
-          if (spill->IsRegister()) {
-            spill++;
-            continue;
-          }
-
-          break;
-        }
-
-        if (spill == active_floating_point.end()) {
-          // Forced to spill the current.
-          assignments[i_instr] = -1;
-          continue;
-        }
-        assert(!spill->IsRegister());
-        auto spill_instr = spill->Value().GetIdx();
-
-        // Heuristic.
-        if (spill->EndBB() > i.EndBB() ||
-            (spill->EndBB() == i.EndBB() && spill->EndIdx() > i.EndIdx())) {
-          assignments[i_instr] = assignments[spill_instr];
-          assignments[spill_instr] = -1;
-          active_floating_point.erase(spill);
-          active_floating_point.insert(i);
-        } else {
-          assignments[i_instr] = -1;
-        }
-
-        continue;
-      }
-
-      // Free register available
-      int reg = *free_floating_point_regs.begin();
-      free_floating_point_regs.erase(reg);
-      active_floating_point.insert(i);
-      assignments[i_instr] = reg;
-      continue;
+      SpillAtInterval(i, assignments, free_floating_point_regs,
+                      active_floating_point);
+    } else {
+      SpillAtInterval(i, assignments, free_normal_regs, active_normal);
     }
-
-    // Normal Register
-    if (free_normal_regs.empty()) {
-      // Spill one of the non-fixed normal regs
-      auto spill = active_normal.begin();
-      while (spill != active_normal.end()) {
-        if (spill->IsRegister()) {
-          spill++;
-          continue;
-        }
-
-        break;
-      }
-
-      if (spill == active_normal.end()) {
-        // Forced to spill the current.
-        assignments[i_instr] = -1;
-        continue;
-      }
-      assert(!spill->IsRegister());
-      auto spill_instr = spill->Value().GetIdx();
-
-      // Heuristic.
-      if (spill->EndBB() > i.EndBB() ||
-          (spill->EndBB() == i.EndBB() && spill->EndIdx() > i.EndIdx())) {
-        assignments[i_instr] = assignments[spill_instr];
-        assignments[spill_instr] = -1;
-        active_normal.erase(spill);
-        active_normal.insert(i);
-      } else {
-        assignments[i_instr] = -1;
-      }
-      continue;
-    }
-
-    // Free register available
-    assert(!free_normal_regs.empty());
-    int reg = *free_normal_regs.begin();
-    free_normal_regs.erase(reg);
-    active_normal.insert(i);
-    assignments[i_instr] = reg;
-    continue;
   }
 
   /*
@@ -407,8 +377,9 @@ std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
   });
 
   for (int i = 0; i < instrs.size(); i++) {
-    std::cerr << "%" << i << " " << assignment_to_string.at(assignments[i])
-              << "\n";
+    std::cerr << "%" << i << " "
+              << assignment_to_string.at(assignments[i].Register()) << ' '
+              << assignments[i].IsCoalesced() << "\n";
   }
 
   return assignments;

@@ -378,7 +378,7 @@ void ASMBackend::TranslateInstr(
     std::vector<int32_t>& offsets, const std::vector<uint64_t>& instructions,
     const std::vector<uint64_t>& constant_instrs, int instr_idx,
     StackSlotAllocator& stack_allocator,
-    const std::vector<int>& register_assign) {
+    const std::vector<RegisterAssignment>& register_assign) {
   auto instr = instructions[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
@@ -390,11 +390,11 @@ void ASMBackend::TranslateInstr(
   Reserved/Scratch
     RSP, RBP, RAX, R10, XMM7
   */
-  static std::vector<Register> normal_registers{
+  const std::vector<Register> normal_registers{
       Register::RBX, Register::RCX, Register::RDX, Register::RSI,
       Register::RDI, Register::R8,  Register::R9,  Register::R11,
       Register::R12, Register::R13, Register::R14, Register::R15};
-  static std::vector<x86::Xmm> fp_registers{
+  const std::vector<x86::Xmm> fp_registers{
       x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3,
       x86::xmm4, x86::xmm5, x86::xmm6,
   };

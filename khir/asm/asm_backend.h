@@ -76,7 +76,7 @@ class ASMBackend : public Backend, public compile::Program {
                       const std::vector<uint64_t>& instructions,
                       const std::vector<uint64_t>& constant_instrs,
                       int instr_idx, StackSlotAllocator& stack_allocator,
-                      const std::vector<int>& register_assign);
+                      const std::vector<RegisterAssignment>& register_assign);
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   asmjit::Section* text_section_;

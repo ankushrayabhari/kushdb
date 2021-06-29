@@ -8,8 +8,24 @@
 
 namespace kush::khir {
 
-std::vector<int> AssignRegisters(std::vector<LiveInterval>& live_intervals,
-                                 const std::vector<uint64_t>& instrs,
-                                 const TypeManager& manager);
+class RegisterAssignment {
+ public:
+  RegisterAssignment(int reg, bool coalesced);
+
+  void SetRegister(int r);
+  void SetCoalseced(bool c);
+
+  int Register() const;
+  bool IsCoalesced() const;
+  bool IsSpilled() const;
+
+ private:
+  int register_;
+  bool coalesced_;
+};
+
+std::vector<RegisterAssignment> AssignRegisters(
+    std::vector<LiveInterval>& live_intervals,
+    const std::vector<uint64_t>& instrs, const TypeManager& manager);
 
 }  // namespace kush::khir
