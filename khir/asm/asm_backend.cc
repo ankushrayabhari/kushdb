@@ -370,6 +370,82 @@ int32_t GetOffset(const std::vector<int32_t>& offsets, int i) {
   return offset;
 }
 
+x86::Xmm ASMBackend::FPRegister(int id) {
+  switch (id) {
+    case 50:
+      return x86::xmm0;
+    case 51:
+      return x86::xmm1;
+    case 52:
+      return x86::xmm2;
+    case 53:
+      return x86::xmm3;
+    case 54:
+      return x86::xmm4;
+    case 55:
+      return x86::xmm5;
+    case 56:
+      return x86::xmm6;
+    default:
+      throw std::runtime_error("Unreachable.");
+  }
+}
+
+Register ASMBackend::NormalRegister(int id) {
+  /* RBX  = 0
+    RCX  = 1
+    RDX  = 2
+    RSI  = 3
+    RDI  = 4
+    R8   = 5
+    R9   = 6
+    R10  = 7
+    R11  = 8
+    R12  = 9
+    R13  = 10
+    R14  = 11
+    R15  = 12 */
+  switch (id) {
+    case 0:
+      return Register::RBX;
+    case 1:
+      return Register::RCX;
+    case 2:
+      return Register::RDX;
+    case 3:
+      return Register::RSI;
+    case 4:
+      return Register::RDI;
+    case 5:
+      return Register::R8;
+    case 6:
+      return Register::R9;
+    case 7:
+      return Register::R10;
+    case 8:
+      return Register::R11;
+    case 9:
+      return Register::R12;
+    case 10:
+      return Register::R13;
+    case 11:
+      return Register::R14;
+    case 12:
+      return Register::R15;
+    default:
+      throw std::runtime_error("Unreachable.");
+  }
+}
+
+asmjit::Label ASMBackend::EmbedDouble(double d) {
+  auto label = asm_->newLabel();
+  asm_->section(data_section_);
+  asm_->bind(label);
+  asm_->embedDouble(d);
+  asm_->section(text_section_);
+  return label;
+}
+
 void ASMBackend::MoveByteValue(
     const Register& dest, Value v, const std::vector<uint64_t>& constant_instrs,
     const std::vector<int32_t>& offsets,
@@ -711,38 +787,28 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
 
-      bool v_is_reg = !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
-      int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
-      int8_t c =
-          v.IsConstantGlobal()
-              ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
-              : 0;
-      double constant = c;
+      auto dest = dest_assign.IsRegister() ? FPRegister(dest_assign.Register())
+                                           : x86::xmm7;
 
-      int32_t offset = INT32_MAX;
-      if (!dest_is_reg) {
-        offset = stack_allocator.AllocateSlot();
-        offsets[instr_idx] = offset;
-      }
-
-      auto dest = dest_is_reg ? fp_registers[dest_reg] : x86::xmm7;
       if (v.IsConstantGlobal()) {
-        auto label = asm_->newLabel();
-        asm_->section(data_section_);
-        asm_->bind(label);
-        asm_->embedDouble(constant);
-        asm_->section(text_section_);
+        int8_t c8 =
+            Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+        double c64 = c8;
+        auto label = EmbedDouble(c64);
         asm_->movsd(dest, x86::qword_ptr(label));
-      } else if (v_is_reg) {
-        asm_->movsx(x86::eax, normal_registers[v_reg].GetB());
+      } else if (register_assign[v.GetIdx()].IsRegister()) {
+        auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+        asm_->movsx(x86::eax, v_reg.GetB());
         asm_->cvtsi2sd(dest, x86::eax);
       } else {
         asm_->movsx(x86::eax,
-                    x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
+                    x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
         asm_->cvtsi2sd(dest, x86::eax);
       }
 
-      if (!dest_is_reg) {
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
         asm_->movsd(x86::qword_ptr(x86::rbp, offset), dest);
       }
       return;
