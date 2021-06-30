@@ -5,6 +5,7 @@
 #include "asmjit/x86.h"
 
 #include "compile/program.h"
+#include "khir/asm/linear_scan_register_alloc.h"
 #include "khir/asm/register.h"
 #include "khir/opcode.h"
 #include "khir/program_builder.h"
