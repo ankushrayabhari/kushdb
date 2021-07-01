@@ -85,6 +85,10 @@ class ASMBackend : public Backend, public compile::Program {
                      const std::vector<uint64_t>& constant_instrs,
                      const std::vector<int32_t>& offsets,
                      const std::vector<RegisterAssignment>& register_assign);
+  void MoveWordValue(const Register& dest, Value v,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<int32_t>& offsets,
+                     const std::vector<RegisterAssignment>& register_assign);
   asmjit::Label EmbedDouble(double d);
 
   asmjit::JitRuntime rt_;
