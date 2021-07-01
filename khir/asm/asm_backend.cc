@@ -826,47 +826,50 @@ void ASMBackend::TranslateInstr(
         ptr_offset = o;
       }
 
-      bool v0_is_reg =
-          !v0.IsConstantGlobal() && register_assign[v0.GetIdx()] >= 0;
-      int v0_reg = v0_is_reg ? register_assign[v0.GetIdx()] : 0;
-
-      bool v1_is_reg =
-          !v1.IsConstantGlobal() && register_assign[v1.GetIdx()] >= 0;
-      int v1_reg = v1_is_reg ? register_assign[v1.GetIdx()] : 0;
-      int8_t c1 =
-          v1.IsConstantGlobal()
-              ? Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant()
-              : 0;
-
       if (v0.IsConstantGlobal()) {
         auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
+
         if (v1.IsConstantGlobal()) {
-          asm_->mov(x86::byte_ptr(label, ptr_offset), c1);
-        } else if (v1_is_reg) {
-          asm_->mov(x86::byte_ptr(label, ptr_offset),
-                    normal_registers[v1_reg].GetB());
+          int8_t c8 =
+              Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
+          asm_->mov(x86::byte_ptr(label, ptr_offset), c8);
+        } else if (register_assign[v1.GetIdx()].IsRegister()) {
+          auto v1_reg =
+              NormalRegister(register_assign[v1.GetIdx()].Register()).GetB();
+          asm_->mov(x86::byte_ptr(label, ptr_offset), v1_reg);
         } else {
-          asm_->mov(x86::al,
-                    x86::byte_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
+          asm_->movzx(x86::eax,
+                      x86::byte_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
           asm_->mov(x86::byte_ptr(label, ptr_offset), x86::al);
         }
         return;
       }
 
-      auto ptr_reg = v0_is_reg ? normal_registers[v0_reg].GetQ() : x86::r10;
-      if (!v0_is_reg) {
-        asm_->mov(x86::r10,
-                  x86::qword_ptr(x86::rbp, Get(offsets, v0.GetIdx())));
+      x86::Gpq v0_reg;
+      if (register_assign[v0.GetIdx()].IsRegister()) {
+        v0_reg = NormalRegister(register_assign[v0.GetIdx()].Register()).GetQ();
+      } else {
+        asm_->mov(Register::RAX.GetQ(),
+                  x86::qword_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
+        v0_reg = Register::RAX.GetQ();
       }
 
       if (v1.IsConstantGlobal()) {
-        asm_->mov(x86::byte_ptr(ptr_reg, ptr_offset), c1);
-      } else if (v1_is_reg) {
-        asm_->mov(x86::byte_ptr(ptr_reg, ptr_offset),
-                  normal_registers[v1_reg].GetB());
+        int8_t c8 =
+            Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
+        asm_->mov(x86::byte_ptr(v0_reg, ptr_offset), c8);
+      } else if (register_assign[v1.GetIdx()].IsRegister()) {
+        auto v1_reg = register_assign[v0.GetIdx()].Register();
+        asm_->mov(x86::byte_ptr(v0_reg, ptr_offset),
+                  NormalRegister(v1_reg).GetB());
       } else {
-        asm_->mov(x86::al, x86::byte_ptr(x86::rbp, Get(offsets, v1.GetIdx())));
-        asm_->mov(x86::byte_ptr(ptr_reg, ptr_offset), x86::al);
+        // STORE operations from spilled operands mem need an extra scratch
+        // register
+        assert(dest_assign.IsRegister());
+        auto dest = NormalRegister(dest_assign.Register());
+        asm_->movzx(dest.GetD(),
+                    x86::byte_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
+        asm_->mov(x86::byte_ptr(v0_reg, ptr_offset), dest.GetB());
       }
       return;
     }
