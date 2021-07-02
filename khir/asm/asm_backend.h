@@ -110,12 +110,20 @@ class ASMBackend : public Backend, public compile::Program {
                      std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
-
   asmjit::x86::Mem GetBytePtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
       const std::vector<uint64_t>& constant_instrs,
       const std::vector<RegisterAssignment>& register_assign);
+
+  template <typename T>
+  void MoveWordValue(T dest, Value v, std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void AddWordValue(T dest, Value v, std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<RegisterAssignment>& register_assign);
 
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
