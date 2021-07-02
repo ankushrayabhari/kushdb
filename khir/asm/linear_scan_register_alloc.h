@@ -13,15 +13,12 @@ class RegisterAssignment {
   RegisterAssignment(int reg, bool coalesced);
 
   void SetRegister(int r);
-  void SetCoalseced(bool c);
 
   int Register() const;
-  bool IsCoalesced() const;
   bool IsRegister() const;
 
  private:
   int register_;
-  bool coalesced_;
 };
 
 std::vector<RegisterAssignment> AssignRegisters(
