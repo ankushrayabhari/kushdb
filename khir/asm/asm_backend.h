@@ -66,8 +66,7 @@ class ASMBackend : public Backend, public compile::Program {
   bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions);
   std::pair<khir::Value, int32_t> Gep(
       khir::Value v, const std::vector<uint64_t>& instructions,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<uint64_t>& i64_constants);
+      const std::vector<uint64_t>& constant_instrs);
   void TranslateInstr(const TypeManager& type_manager,
                       const std::vector<uint64_t>& i64_constants,
                       const std::vector<double>& f64_constants,
@@ -111,6 +110,12 @@ class ASMBackend : public Backend, public compile::Program {
                      std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
+
+  asmjit::x86::Mem GetBytePtrValue(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& instrs,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<RegisterAssignment>& register_assign);
 
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;

@@ -336,8 +336,7 @@ bool ASMBackend::IsGep(khir::Value v,
 
 std::pair<khir::Value, int32_t> ASMBackend::Gep(
     khir::Value v, const std::vector<uint64_t>& instructions,
-    const std::vector<uint64_t>& constant_instrs,
-    const std::vector<uint64_t>& i64_constants) {
+    const std::vector<uint64_t>& constant_instrs) {
   Type3InstructionReader gep_reader(instructions[v.GetIdx()]);
   if (OpcodeFrom(gep_reader.Opcode()) != Opcode::GEP) {
     throw std::runtime_error("Invalid GEP");
@@ -637,6 +636,30 @@ void ASMBackend::ZextByteValue(
   }
 }
 
+x86::Mem ASMBackend::GetBytePtrValue(
+    Value v, std::vector<int32_t>& offsets, const std::vector<uint64_t>& instrs,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<RegisterAssignment>& register_assign) {
+  int32_t offset = 0;
+  if (IsGep(v, instrs)) {
+    auto [ptr, o] = Gep(v, instrs, constant_instrs);
+    v = ptr;
+    offset = o;
+  }
+
+  if (v.IsConstantGlobal()) {
+    auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+    return x86::byte_ptr(label, offset);
+  } else if (register_assign[v.GetIdx()].IsRegister()) {
+    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    return x86::byte_ptr(v_reg.GetQ(), offset);
+  } else {
+    asm_->mov(Register::RAX.GetQ(),
+              x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+    return x86::byte_ptr(Register::RAX.GetQ(), offset);
+  }
+}
+
 void ASMBackend::TranslateInstr(
     const TypeManager& type_manager, const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
@@ -846,6 +869,24 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I8_LOAD: {
+      Type2InstructionReader reader(instr);
+      Value v(reader.Arg0());
+
+      auto loc = GetBytePtrValue(v, offsets, instructions, constant_instrs,
+                                 register_assign);
+
+      if (dest_assign.IsRegister()) {
+        asm_->mov(NormalRegister(dest_assign.Register()).GetB(), loc);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->mov(Register::RAX.GetB(), loc);
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), Register::RAX.GetB());
+      }
+      return;
+    }
+
     case Opcode::I8_STORE: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
@@ -902,39 +943,6 @@ void ASMBackend::TranslateInstr(
         asm_->movzx(dest.GetD(),
                     x86::byte_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
         asm_->mov(x86::byte_ptr(v0_reg, ptr_offset), dest.GetB());
-      }
-      return;
-    }
-
-    case Opcode::I8_LOAD: {
-      Type2InstructionReader reader(instr);
-      Value v0(reader.Arg0());
-      int32_t ptr_offset = 0;
-
-      if (IsGep(v0, instructions)) {
-        auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
-        v0 = ptr;
-        ptr_offset = o;
-      }
-
-      auto dest = dest_assign.IsRegister()
-                      ? NormalRegister(dest_assign.Register())
-                      : Register::RAX;
-
-      if (v0.IsConstantGlobal()) {
-        auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
-        asm_->movzx(dest.GetD(), x86::byte_ptr(label, ptr_offset));
-      } else {
-        if (!dest_assign.IsCoalesced()) {
-          MoveByteValue(dest, v0, constant_instrs, offsets, register_assign);
-        }
-        asm_->movzx(dest.GetD(), x86::byte_ptr(dest.GetQ(), ptr_offset));
-      }
-
-      if (!dest_assign.IsRegister()) {
-        auto offset = stack_allocator.AllocateSlot();
-        offsets[instr_idx] = offset;
-        asm_->mov(x86::byte_ptr(x86::rbp, offset), dest.GetB());
       }
       return;
     }
