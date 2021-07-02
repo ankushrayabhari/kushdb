@@ -81,7 +81,36 @@ class ASMBackend : public Backend, public compile::Program {
                       const std::vector<RegisterAssignment>& register_assign);
   Register NormalRegister(int id);
   asmjit::x86::Xmm FPRegister(int id);
-  asmjit::Label EmbedDouble(double d);
+  asmjit::Label EmbedI8(int8_t d);
+  asmjit::Label EmbedF64(double d);
+
+  template <typename T>
+  void MoveByteValue(T dest, Value v, std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void AddByteValue(T dest, Value v, std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void SubByteValue(T dest, Value v, std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<RegisterAssignment>& register_assign);
+  void MulByteValue(Value v, std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<RegisterAssignment>& register_assign);
+  asmjit::x86::GpbLo GetByteValue(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<RegisterAssignment>& register_assign);
+  void CmpByteValue(asmjit::x86::GpbLo src, Value v,
+                    std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<RegisterAssignment>& register_assign);
+  void ZextByteValue(asmjit::x86::Gpq dest, Value v,
+                     std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<RegisterAssignment>& register_assign);
 
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
