@@ -891,50 +891,17 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
-      int32_t ptr_offset = 0;
 
-      if (IsGep(v0, instructions)) {
-        auto [ptr, o] = Gep(v0, instructions, constant_instrs, i64_constants);
-        v0 = ptr;
-        ptr_offset = o;
-      }
-
-      if (v0.IsConstantGlobal()) {
-        auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
-
-        if (v1.IsConstantGlobal()) {
-          int8_t c8 =
-              Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
-          asm_->mov(x86::byte_ptr(label, ptr_offset), c8);
-        } else if (register_assign[v1.GetIdx()].IsRegister()) {
-          auto v1_reg =
-              NormalRegister(register_assign[v1.GetIdx()].Register()).GetB();
-          asm_->mov(x86::byte_ptr(label, ptr_offset), v1_reg);
-        } else {
-          asm_->movzx(x86::eax,
-                      x86::byte_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
-          asm_->mov(x86::byte_ptr(label, ptr_offset), x86::al);
-        }
-        return;
-      }
-
-      x86::Gpq v0_reg;
-      if (register_assign[v0.GetIdx()].IsRegister()) {
-        v0_reg = NormalRegister(register_assign[v0.GetIdx()].Register()).GetQ();
-      } else {
-        asm_->mov(Register::RAX.GetQ(),
-                  x86::qword_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
-        v0_reg = Register::RAX.GetQ();
-      }
+      auto loc = GetBytePtrValue(v0, offsets, instructions, constant_instrs,
+                                 register_assign);
 
       if (v1.IsConstantGlobal()) {
         int8_t c8 =
             Type1InstructionReader(constant_instrs[v1.GetIdx()]).Constant();
-        asm_->mov(x86::byte_ptr(v0_reg, ptr_offset), c8);
+        asm_->mov(loc, c8);
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg = register_assign[v0.GetIdx()].Register();
-        asm_->mov(x86::byte_ptr(v0_reg, ptr_offset),
-                  NormalRegister(v1_reg).GetB());
+        asm_->mov(loc, NormalRegister(v1_reg).GetB());
       } else {
         // STORE operations from spilled operands mem need an extra scratch
         // register
@@ -942,7 +909,7 @@ void ASMBackend::TranslateInstr(
         auto dest = NormalRegister(dest_assign.Register());
         asm_->movzx(dest.GetD(),
                     x86::byte_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
-        asm_->mov(x86::byte_ptr(v0_reg, ptr_offset), dest.GetB());
+        asm_->mov(loc, dest.GetB());
       }
       return;
     }
