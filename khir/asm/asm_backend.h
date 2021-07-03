@@ -124,6 +124,31 @@ class ASMBackend : public Backend, public compile::Program {
   void AddWordValue(T dest, Value v, std::vector<int32_t>& offsets,
                     const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void SubWordValue(T dest, Value v, std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<RegisterAssignment>& register_assign);
+  void MulWordValue(asmjit::x86::Gpw dest, Value v,
+                    std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<RegisterAssignment>& register_assign);
+  asmjit::x86::Gpw GetWordValue(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<RegisterAssignment>& register_assign);
+  void CmpWordValue(asmjit::x86::Gpw src, Value v,
+                    std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<RegisterAssignment>& register_assign);
+  void ZextWordValue(asmjit::x86::Gpq dest, Value v,
+                     std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<RegisterAssignment>& register_assign);
+  asmjit::x86::Mem GetWordPtrValue(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& instrs,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<RegisterAssignment>& register_assign);
 
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
