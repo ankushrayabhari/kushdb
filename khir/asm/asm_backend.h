@@ -150,6 +150,40 @@ class ASMBackend : public Backend, public compile::Program {
       const std::vector<uint64_t>& constant_instrs,
       const std::vector<RegisterAssignment>& register_assign);
 
+  template <typename T>
+  void MoveDWordValue(T dest, Value v, std::vector<int32_t>& offsets,
+                      const std::vector<uint64_t>& constant_instrs,
+                      const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void AddDWordValue(T dest, Value v, std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void SubDWordValue(T dest, Value v, std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<RegisterAssignment>& register_assign);
+  void MulDWordValue(asmjit::x86::Gpd dest, Value v,
+                     std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<RegisterAssignment>& register_assign);
+  asmjit::x86::Gpd GetDWordValue(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<RegisterAssignment>& register_assign);
+  void CmpDWordValue(asmjit::x86::Gpd src, Value v,
+                     std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<RegisterAssignment>& register_assign);
+  void ZextDWordValue(asmjit::x86::Gpq dest, Value v,
+                      std::vector<int32_t>& offsets,
+                      const std::vector<uint64_t>& constant_instrs,
+                      const std::vector<RegisterAssignment>& register_assign);
+  asmjit::x86::Mem GetDWordPtrValue(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& instrs,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<RegisterAssignment>& register_assign);
+
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   asmjit::Section* text_section_;
