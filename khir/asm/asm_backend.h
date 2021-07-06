@@ -82,6 +82,7 @@ class ASMBackend : public Backend, public compile::Program {
   asmjit::x86::Xmm FPRegister(int id);
   asmjit::Label EmbedI8(int8_t d);
   asmjit::Label EmbedF64(double d);
+  asmjit::Label EmbedI64(int64_t d);
 
   template <typename T>
   void MoveByteValue(T dest, Value v, std::vector<int32_t>& offsets,
@@ -179,6 +180,42 @@ class ASMBackend : public Backend, public compile::Program {
                       const std::vector<uint64_t>& constant_instrs,
                       const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetDWordPtrValue(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& instrs,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<RegisterAssignment>& register_assign);
+
+  template <typename T>
+  void MoveQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
+                      const std::vector<uint64_t>& constant_instrs,
+                      const std::vector<uint64_t>& i64_constants,
+                      const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void AddQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<uint64_t>& i64_constants,
+                     const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void SubQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<uint64_t>& i64_constants,
+                     const std::vector<RegisterAssignment>& register_assign);
+  void MulQWordValue(asmjit::x86::Gpq dest, Value v,
+                     std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<uint64_t>& i64_constants,
+                     const std::vector<RegisterAssignment>& register_assign);
+  asmjit::x86::Gpq GetQWordValue(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<RegisterAssignment>& register_assign);
+  void CmpQWordValue(asmjit::x86::Gpq src, Value v,
+                     std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<uint64_t>& i64_constants,
+                     const std::vector<RegisterAssignment>& register_assign);
+  asmjit::x86::Mem GetQWordPtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
       const std::vector<uint64_t>& constant_instrs,
