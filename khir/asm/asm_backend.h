@@ -221,6 +221,17 @@ class ASMBackend : public Backend, public compile::Program {
       const std::vector<uint64_t>& constant_instrs,
       const std::vector<RegisterAssignment>& register_assign);
 
+  void MaterializeGep(asmjit::x86::Mem dest, khir::Value v,
+                      std::vector<int32_t>& offsets,
+                      const std::vector<uint64_t>& instrs,
+                      const std::vector<uint64_t>& constant_instrs,
+                      const std::vector<RegisterAssignment>& register_assign);
+  void MaterializeGep(asmjit::x86::Gpq dest, khir::Value v,
+                      std::vector<int32_t>& offsets,
+                      const std::vector<uint64_t>& instrs,
+                      const std::vector<uint64_t>& constant_instrs,
+                      const std::vector<RegisterAssignment>& register_assign);
+
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   asmjit::Section* text_section_;
