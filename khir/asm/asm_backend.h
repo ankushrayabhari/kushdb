@@ -215,6 +215,10 @@ class ASMBackend : public Backend, public compile::Program {
                      const std::vector<uint64_t>& constant_instrs,
                      const std::vector<uint64_t>& i64_constants,
                      const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void MovePtrValue(T dest, Value v, std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetQWordPtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
@@ -231,8 +235,8 @@ class ASMBackend : public Backend, public compile::Program {
                       const std::vector<uint64_t>& instrs,
                       const std::vector<uint64_t>& constant_instrs,
                       const std::vector<RegisterAssignment>& register_assign);
-  void MoveF64Value(asmjit::x86::Xmm dest, Value v,
-                    std::vector<int32_t>& offsets,
+  template <typename T>
+  void MoveF64Value(T dest, Value v, std::vector<int32_t>& offsets,
                     const std::vector<uint64_t>& constant_instrs,
                     const std::vector<double>& f64_constants,
                     const std::vector<RegisterAssignment>& register_assign);
