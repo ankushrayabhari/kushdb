@@ -265,6 +265,11 @@ class ASMBackend : public Backend, public compile::Program {
                    const std::vector<uint64_t>& constant_instrs,
                    const std::vector<double>& f64_constants,
                    const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void F64ConvI64Value(T dest, Value v, std::vector<int32_t>& offsets,
+                       const std::vector<uint64_t>& constant_instrs,
+                       const std::vector<double>& f64_constants,
+                       const std::vector<RegisterAssignment>& register_assign);
 
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
