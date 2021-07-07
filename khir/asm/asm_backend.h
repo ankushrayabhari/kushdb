@@ -231,6 +231,40 @@ class ASMBackend : public Backend, public compile::Program {
                       const std::vector<uint64_t>& instrs,
                       const std::vector<uint64_t>& constant_instrs,
                       const std::vector<RegisterAssignment>& register_assign);
+  void MoveF64Value(asmjit::x86::Xmm dest, Value v,
+                    std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<double>& f64_constants,
+                    const std::vector<RegisterAssignment>& register_assign);
+  void AddF64Value(asmjit::x86::Xmm dest, Value v,
+                   std::vector<int32_t>& offsets,
+                   const std::vector<uint64_t>& constant_instrs,
+                   const std::vector<double>& f64_constants,
+                   const std::vector<RegisterAssignment>& register_assign);
+  void SubF64Value(asmjit::x86::Xmm dest, Value v,
+                   std::vector<int32_t>& offsets,
+                   const std::vector<uint64_t>& constant_instrs,
+                   const std::vector<double>& f64_constants,
+                   const std::vector<RegisterAssignment>& register_assign);
+  void MulF64Value(asmjit::x86::Xmm dest, Value v,
+                   std::vector<int32_t>& offsets,
+                   const std::vector<uint64_t>& constant_instrs,
+                   const std::vector<double>& f64_constants,
+                   const std::vector<RegisterAssignment>& register_assign);
+  void DivF64Value(asmjit::x86::Xmm dest, Value v,
+                   std::vector<int32_t>& offsets,
+                   const std::vector<uint64_t>& constant_instrs,
+                   const std::vector<double>& f64_constants,
+                   const std::vector<RegisterAssignment>& register_assign);
+  asmjit::x86::Xmm GetF64Value(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<double>& f64_constants,
+      const std::vector<RegisterAssignment>& register_assign);
+  void CmpF64Value(asmjit::x86::Xmm src, Value v, std::vector<int32_t>& offsets,
+                   const std::vector<uint64_t>& constant_instrs,
+                   const std::vector<double>& f64_constants,
+                   const std::vector<RegisterAssignment>& register_assign);
 
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
