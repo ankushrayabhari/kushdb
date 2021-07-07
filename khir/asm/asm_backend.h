@@ -270,7 +270,12 @@ class ASMBackend : public Backend, public compile::Program {
                        const std::vector<uint64_t>& constant_instrs,
                        const std::vector<double>& f64_constants,
                        const std::vector<RegisterAssignment>& register_assign);
-
+  void CondBrFlag(Value v, const asmjit::Label& tr, const asmjit::Label& fl,
+                  const std::vector<uint64_t>& instructions,
+                  const std::vector<RegisterAssignment>& register_assign);
+  void CondBrF64Flag(Value v, const asmjit::Label& tr, const asmjit::Label& fl,
+                     const std::vector<uint64_t>& instructions,
+                     const std::vector<RegisterAssignment>& register_assign);
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   asmjit::Section* text_section_;

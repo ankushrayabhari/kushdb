@@ -1458,6 +1458,116 @@ void ASMBackend::F64ConvI64Value(
   }
 }
 
+void ASMBackend::CondBrFlag(
+    Value v, const asmjit::Label& tr, const asmjit::Label& fl,
+    const std::vector<uint64_t>& instructions,
+    const std::vector<RegisterAssignment>& register_assign) {
+  assert(!v.IsConstantGlobal());
+  GenericInstructionReader reader(instructions[v.GetIdx()]);
+  auto opcode = OpcodeFrom(reader.Opcode());
+  switch (opcode) {
+    case Opcode::I1_CMP_EQ:
+    case Opcode::I8_CMP_EQ:
+    case Opcode::I16_CMP_EQ:
+    case Opcode::I32_CMP_EQ:
+    case Opcode::I64_CMP_EQ: {
+      asm_->je(tr);
+      asm_->jmp(fl);
+      return;
+    }
+
+    case Opcode::I1_CMP_NE:
+    case Opcode::I8_CMP_NE:
+    case Opcode::I16_CMP_NE:
+    case Opcode::I32_CMP_NE:
+    case Opcode::I64_CMP_NE: {
+      asm_->jne(tr);
+      asm_->jmp(fl);
+      return;
+    }
+
+    case Opcode::I8_CMP_LT:
+    case Opcode::I16_CMP_LT:
+    case Opcode::I32_CMP_LT:
+    case Opcode::I64_CMP_LT: {
+      asm_->jl(tr);
+      asm_->jmp(fl);
+      return;
+    }
+
+    case Opcode::I8_CMP_LE:
+    case Opcode::I16_CMP_LE:
+    case Opcode::I32_CMP_LE:
+    case Opcode::I64_CMP_LE: {
+      asm_->jle(tr);
+      asm_->jmp(fl);
+      return;
+    }
+
+    case Opcode::I8_CMP_GT:
+    case Opcode::I16_CMP_GT:
+    case Opcode::I32_CMP_GT:
+    case Opcode::I64_CMP_GT: {
+      asm_->jg(tr);
+      asm_->jmp(fl);
+      return;
+    }
+
+    case Opcode::I8_CMP_GE:
+    case Opcode::I16_CMP_GE:
+    case Opcode::I32_CMP_GE:
+    case Opcode::I64_CMP_GE: {
+      asm_->jge(tr);
+      asm_->jmp(fl);
+      return;
+    }
+
+    default:
+      throw std::runtime_error("Not possible");
+  }
+}
+
+void ASMBackend::CondBrF64Flag(
+    Value v, const asmjit::Label& tr, const asmjit::Label& fl,
+    const std::vector<uint64_t>& instructions,
+    const std::vector<RegisterAssignment>& register_assign) {
+  assert(!v.IsConstantGlobal());
+  GenericInstructionReader reader(instructions[v.GetIdx()]);
+  auto opcode = OpcodeFrom(reader.Opcode());
+  switch (opcode) {
+    case Opcode::F64_CMP_EQ: {
+      asm_->jne(fl);
+      asm_->jp(fl);
+      asm_->jmp(tr);
+      return;
+    }
+
+    case Opcode::F64_CMP_NE: {
+      asm_->jne(tr);
+      asm_->jnp(fl);
+      asm_->jmp(tr);
+      return;
+    }
+
+    case Opcode::F64_CMP_LT:
+    case Opcode::F64_CMP_GT: {
+      asm_->jbe(fl);
+      asm_->jmp(tr);
+      return;
+    }
+
+    case Opcode::F64_CMP_GE:
+    case Opcode::F64_CMP_LE: {
+      asm_->jae(tr);
+      asm_->jmp(fl);
+      return;
+    }
+
+    default:
+      throw std::runtime_error("Not possible");
+  }
+}
+
 void ASMBackend::TranslateInstr(
     const TypeManager& type_manager, const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
@@ -2591,29 +2701,34 @@ void ASMBackend::TranslateInstr(
       Type5InstructionReader reader(instr);
       khir::Value v(reader.Arg());
 
-      bool v_is_reg = !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
-      int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
-      int8_t c =
-          v.IsConstantGlobal()
-              ? Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant()
-              : 0;
-
       if (v.IsConstantGlobal()) {
+        int8_t c =
+            Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
         if (c != 0) {
           asm_->jmp(basic_blocks[reader.Marg0()]);
         } else {
           asm_->jmp(basic_blocks[reader.Marg1()]);
         }
-      } else if (v_is_reg) {
-        asm_->cmp(normal_registers[v_reg].GetB(), 1);
+        return;
+      }
+
+      if (IsFlagReg(register_assign[v.GetIdx()])) {
+        CondBrFlag(v, basic_blocks[reader.Marg0()],
+                   basic_blocks[reader.Marg1()], instructions, register_assign);
+      } else if (IsF64FlagReg(register_assign[v.GetIdx()])) {
+        CondBrF64Flag(v, basic_blocks[reader.Marg0()],
+                      basic_blocks[reader.Marg1()], instructions,
+                      register_assign);
+      } else if (register_assign[v.GetIdx()].IsRegister()) {
+        asm_->cmp(NormalRegister(register_assign[v.GetIdx()].Register()).GetB(),
+                  1);
         asm_->je(basic_blocks[reader.Marg0()]);
         asm_->jmp(basic_blocks[reader.Marg1()]);
       } else {
-        asm_->cmp(x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())), 1);
+        asm_->cmp(x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())), 1);
         asm_->je(basic_blocks[reader.Marg0()]);
         asm_->jmp(basic_blocks[reader.Marg1()]);
       }
-
       return;
     }
 
