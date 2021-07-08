@@ -21,7 +21,10 @@ class RegisterAssignment {
   int register_;
 };
 
-std::vector<RegisterAssignment> AssignRegisters(
+std::vector<RegisterAssignment> StackSpillingRegisterAlloc(
+    const std::vector<uint64_t>& instrs);
+
+std::vector<RegisterAssignment> LinearScanRegisterAlloc(
     std::vector<LiveInterval>& live_intervals,
     const std::vector<uint64_t>& instrs, const TypeManager& manager);
 

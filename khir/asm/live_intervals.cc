@@ -882,6 +882,7 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
     }
   }
 
+  /*
   std::cerr << "digraph G {\n";
   for (int i = 0; i < labels.size(); i++) {
     for (auto j : func.BasicBlockSuccessors()[i]) {
@@ -903,6 +904,7 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
               << "\n";
   }
   std::cerr << std::endl;
+  */
 
   return {outputs, order};
 }

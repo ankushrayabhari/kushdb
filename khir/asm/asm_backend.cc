@@ -7,8 +7,8 @@
 
 #include "asmjit/x86.h"
 
-#include "khir/asm/linear_scan_register_alloc.h"
 #include "khir/asm/live_intervals.h"
+#include "khir/asm/register_alloc.h"
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
@@ -225,10 +225,10 @@ void ASMBackend::Translate(const TypeManager& type_manager,
       compute_label_ = internal_func_labels_[func_idx];
     }
 
-    std::cerr << func.Name() << std::endl;
     auto [live_intervals, order] = ComputeLiveIntervals(func, type_manager);
-    auto register_assign =
-        AssignRegisters(live_intervals, instructions, type_manager);
+    // auto register_assign =
+    //    AssignRegisters(live_intervals, instructions, type_manager);
+    auto register_assign = StackSpillingRegisterAlloc(instructions);
 
     // Prologue ================================================================
     // - Save RBP and Store RSP in RBP
@@ -454,6 +454,15 @@ asmjit::Label ASMBackend::EmbedI8(int8_t c) {
   return label;
 }
 
+asmjit::Label ASMBackend::EmbedI64(int64_t c) {
+  auto label = asm_->newLabel();
+  asm_->section(data_section_);
+  asm_->bind(label);
+  asm_->embedInt64(c);
+  asm_->section(text_section_);
+  return label;
+}
+
 bool IsFlagReg(const RegisterAssignment& reg) {
   return reg.IsRegister() && reg.Register() == 100;
 }
@@ -463,7 +472,7 @@ bool IsF64FlagReg(const RegisterAssignment& reg) {
 }
 
 template <typename Dest>
-void StoreCmpFlags(Opcode opcode, Dest d) {
+void ASMBackend::StoreCmpFlags(Opcode opcode, Dest d) {
   switch (opcode) {
     case Opcode::I1_CMP_EQ:
     case Opcode::I8_CMP_EQ:
@@ -541,7 +550,7 @@ void ASMBackend::MoveByteValue(
                   x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
       asm_->mov(dest, Register::RAX.GetB());
     } else {
-      asm_->mov(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
+      asm_->mov(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
     }
   }
 }
@@ -560,10 +569,10 @@ void ASMBackend::AddByteValue(
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
       asm_->movsx(Register::RAX.GetD(),
-                  x86::byte_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
+                  x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
       asm_->add(dest, Register::RAX.GetB());
     } else {
-      asm_->add(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
+      asm_->add(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
     }
   }
 }
@@ -582,10 +591,10 @@ void ASMBackend::SubByteValue(
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
       asm_->movsx(Register::RAX.GetD(),
-                  x86::byte_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
+                  x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
       asm_->sub(dest, Register::RAX.GetB());
     } else {
-      asm_->sub(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
+      asm_->sub(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
     }
   }
 }
@@ -1383,7 +1392,7 @@ void ASMBackend::DivF64Value(
 }
 
 template <typename Dest>
-void StoreF64CmpFlags(Opcode opcode, Dest dest) {
+void ASMBackend::StoreF64CmpFlags(Opcode opcode, Dest dest) {
   switch (opcode) {
     case Opcode::F64_CMP_EQ: {
       asm_->setnp(dest);
@@ -1468,7 +1477,7 @@ void ASMBackend::F64ConvI64Value(
                           .Constant()];
     int64_t c64 = cf64;
 
-    if constexpr (std::is_same_v<x86::Mem, dest>) {
+    if constexpr (std::is_same_v<x86::Mem, T>) {
       if (c64 >= INT32_MIN && c64 <= INT32_MAX) {
         int32_t c32 = c64;
         asm_->mov(dest, c32);
@@ -1480,7 +1489,7 @@ void ASMBackend::F64ConvI64Value(
       asm_->mov(dest, c64);
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    if constexpr (std::is_same_v<x86::Mem, dest>) {
+    if constexpr (std::is_same_v<x86::Mem, T>) {
       asm_->cvttsd2si(Register::RAX.GetQ(),
                       FPRegister(register_assign[v.GetIdx()].Register()));
       asm_->mov(dest, Register::RAX.GetQ());
@@ -1488,12 +1497,13 @@ void ASMBackend::F64ConvI64Value(
       asm_->cvttsd2si(dest, FPRegister(register_assign[v.GetIdx()].Register()));
     }
   } else {
-    if constexpr (std::is_same_v<x86::Mem, dest>) {
+    if constexpr (std::is_same_v<x86::Mem, T>) {
       asm_->cvttsd2si(Register::RAX.GetQ(),
-                      x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
+                      x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
       asm_->mov(dest, Register::RAX.GetQ());
     } else {
-      asm_->cvttsd2si(dest, x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
+      asm_->cvttsd2si(dest,
+                      x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
     }
   }
 }
@@ -2696,22 +2706,18 @@ void ASMBackend::TranslateInstr(
                                   register_assign);
 
       if (v1.IsConstantGlobal()) {
-        assert(dest_assign.IsRegister());
-        auto dest = NormalRegister(dest_assign.Register());
         double cf64 =
             f64_constants[Type1InstructionReader(constant_instrs[v1.GetIdx()])
                               .Constant()];
-        int64_t c64;
-        std::memcpy(&c64, &cf64, sizeof(c64));
-        asm_->mov(dest.GetQ(), c64);
-        asm_->mov(loc, dest.GetQ());
+        asm_->movsd(x86::xmm7, x86::qword_ptr(EmbedF64(cf64)));
+        asm_->movsd(loc, x86::xmm7);
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg = FPRegister(register_assign[v1.GetIdx()].Register());
         asm_->movsd(loc, v1_reg);
       } else {
         asm_->movsd(x86::xmm7,
                     x86::qword_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
-        asm_->mov(loc, x86::xmm7);
+        asm_->movsd(loc, x86::xmm7);
       }
       return;
     }
@@ -2729,7 +2735,7 @@ void ASMBackend::TranslateInstr(
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
         asm_->movsd(x86::xmm7, loc);
-        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
       }
       return;
     }
@@ -3055,16 +3061,20 @@ void ASMBackend::TranslateInstr(
         auto reg = normal_arg_regs[regular_arg_idx++];
 
         if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
-          MoveByteValue(reg, v, offsets, constant_instrs, register_assign);
+          MoveByteValue(reg.GetB(), v, offsets, constant_instrs,
+                        register_assign);
         } else if (type_manager.IsI16Type(type)) {
-          MoveWordValue(reg, v, offsets, constant_instrs, register_assign);
+          MoveWordValue(reg.GetW(), v, offsets, constant_instrs,
+                        register_assign);
         } else if (type_manager.IsI32Type(type)) {
-          MoveDWordValue(reg, v, offsets, constant_instrs, register_assign);
+          MoveDWordValue(reg.GetD(), v, offsets, constant_instrs,
+                         register_assign);
         } else if (type_manager.IsI64Type(type)) {
-          MoveQWordValue(reg, v, offsets, constant_instrs, i64_constants,
+          MoveQWordValue(reg.GetQ(), v, offsets, constant_instrs, i64_constants,
                          register_assign);
         } else if (type_manager.IsPtrType(type)) {
-          MovePtrValue(reg, v, offsets, constant_instrs, register_assign);
+          MovePtrValue(reg.GetQ(), v, offsets, constant_instrs,
+                       register_assign);
         } else {
           throw std::runtime_error("Invalid argument type.");
         }

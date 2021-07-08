@@ -1,4 +1,4 @@
-#include "khir/asm/linear_scan_register_alloc.h"
+#include "khir/asm/register_alloc.h"
 
 #include <iostream>
 #include <optional>
@@ -128,7 +128,61 @@ void SpillAtInterval(LiveInterval& curr,
   assignments[curr_idx].SetRegister(reg);
 }
 
-std::vector<RegisterAssignment> AssignRegisters(
+/*
+Available for allocation:
+  RBX  = 0
+  RCX  = 1
+  RDX  = 2
+  RSI  = 3
+  RDI  = 4
+  R8   = 5
+  R9   = 6
+  R10  = 7
+  R11  = 8
+  R12  = 9
+  R13  = 10
+  R14  = 11
+  R15  = 12
+
+  XMM0 = 50
+  XMM1 = 51
+  XMM2 = 52
+  XMM3 = 53
+  XMM4 = 54
+  XMM5 = 55
+  XMM6 = 56
+
+  FLAG = 100
+
+Reserved/Scratch
+  RSP, RBP, RAX, XMM7
+*/
+
+std::vector<RegisterAssignment> StackSpillingRegisterAlloc(
+    const std::vector<uint64_t>& instrs) {
+  std::vector<RegisterAssignment> assignments(instrs.size(),
+                                              RegisterAssignment(-1, false));
+
+  for (int i = 0; i < instrs.size(); i++) {
+    auto opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
+    switch (opcode) {
+      case Opcode::I8_STORE:
+      case Opcode::I16_STORE:
+      case Opcode::I32_STORE:
+      case Opcode::I64_STORE:
+      case Opcode::PTR_STORE:
+        assignments[i].SetRegister(12);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  return assignments;
+}
+
+std::vector<RegisterAssignment> LinearScanRegisterAlloc(
     std::vector<LiveInterval>& live_intervals,
     const std::vector<uint64_t>& instrs, const TypeManager& manager) {
   // Sort by increasing start point order
@@ -173,36 +227,6 @@ std::vector<RegisterAssignment> AssignRegisters(
   for (int i = 50; i < 50 + 7; i++) {
     free_floating_point_regs.insert(i);
   }
-
-  /*
-  Available for allocation:
-    RBX  = 0
-    RCX  = 1
-    RDX  = 2
-    RSI  = 3
-    RDI  = 4
-    R8   = 5
-    R9   = 6
-    R10  = 7
-    R11  = 8
-    R12  = 9
-    R13  = 10
-    R14  = 11
-    R15  = 12
-
-    XMM0 = 50
-    XMM1 = 51
-    XMM2 = 52
-    XMM3 = 53
-    XMM4 = 54
-    XMM5 = 55
-    XMM6 = 56
-
-    FLAG = 100
-
-  Reserved/Scratch
-    RSP, RBP, RAX, XMM7
-  */
 
   // Create a precolored interval for each function argument
   std::vector<int> normal_arg_reg{4, 3, 2, 1, 5, 6};
@@ -330,49 +354,6 @@ std::vector<RegisterAssignment> AssignRegisters(
     } else {
       SpillAtInterval(i, assignments, free_normal_regs, active_normal);
     }
-  }
-
-  /*
-  Available for allocation:
-    RBX  = 0
-    RCX  = 1
-    RDX  = 2
-    RSI  = 3
-    RDI  = 4
-    R8   = 5
-    R9   = 6
-    R10  = 7
-    R11  = 8
-    R12  = 9
-    R13  = 10
-    R14  = 11
-    R15  = 12
-
-    XMM0 = 50
-    XMM1 = 51
-    XMM2 = 52
-    XMM3 = 53
-    XMM4 = 54
-    XMM5 = 55
-    XMM6 = 56
-
-    FLAG = 100
-
-  Reserved/Scratch
-    RSP, RBP, RAX, XMM7
-  */
-  std::unordered_map<int, std::string> assignment_to_string({
-      {-1, ""},     {0, "RBX"},    {1, "RCX"},   {2, "RDX"},   {3, "RSI"},
-      {4, "RDI"},   {5, "R8"},     {6, "R9"},    {7, "R10"},   {8, "R11"},
-      {9, "R12"},   {10, "R13"},   {11, "R14"},  {12, "R15"},  {50, "XMM0"},
-      {51, "XMM1"}, {52, "XMM2"},  {53, "XMM3"}, {54, "XMM4"}, {55, "XMM5"},
-      {56, "XMM6"}, {100, "FLAG"},
-  });
-
-  for (int i = 0; i < instrs.size(); i++) {
-    std::cerr << "%" << i << " "
-              << assignment_to_string.at(assignments[i].Register()) << ' '
-              << assignments[i].IsCoalesced() << "\n";
   }
 
   return assignments;

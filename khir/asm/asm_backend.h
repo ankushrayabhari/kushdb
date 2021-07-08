@@ -5,8 +5,8 @@
 #include "asmjit/x86.h"
 
 #include "compile/program.h"
-#include "khir/asm/linear_scan_register_alloc.h"
 #include "khir/asm/register.h"
+#include "khir/asm/register_alloc.h"
 #include "khir/opcode.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
@@ -280,6 +280,11 @@ class ASMBackend : public Backend, public compile::Program {
   void CondBrF64Flag(Value v, const asmjit::Label& tr, const asmjit::Label& fl,
                      const std::vector<uint64_t>& instructions,
                      const std::vector<RegisterAssignment>& register_assign);
+  template <typename Dest>
+  void StoreCmpFlags(Opcode opcode, Dest d);
+  template <typename Dest>
+  void StoreF64CmpFlags(Opcode opcode, Dest d);
+
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   asmjit::Section* text_section_;

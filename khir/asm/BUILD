@@ -3,9 +3,9 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "linear_scan_register_alloc",
-    srcs = ["linear_scan_register_alloc.cc"],
-    hdrs = ["linear_scan_register_alloc.h"],
+    name = "register_alloc",
+    srcs = ["register_alloc.cc"],
+    hdrs = ["register_alloc.h"],
     deps = [
         ":live_intervals",
         ":register",
@@ -39,8 +39,8 @@ cc_library(
     srcs = ["asm_backend.cc"],
     hdrs = ["asm_backend.h"],
     deps = [
-        ":linear_scan_register_alloc",
         ":live_intervals",
+        ":register_alloc",
         "//compile:program",
         "//khir:opcode",
         "//khir:program_builder",
