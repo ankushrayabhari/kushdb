@@ -2465,8 +2465,11 @@ void ASMBackend::TranslateInstr(
           auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
           asm_->lea(dest_reg, x86::qword_ptr(label));
         } else if (register_assign[v.GetIdx()].IsRegister()) {
-          auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
-          asm_->mov(dest_reg, v_reg);
+          auto v_reg =
+              NormalRegister(register_assign[v.GetIdx()].Register()).GetQ();
+          if (dest_reg != v_reg) {
+            asm_->mov(dest_reg, v_reg);
+          }
         } else {
           asm_->mov(dest_reg,
                     x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -2929,47 +2932,85 @@ void ASMBackend::TranslateInstr(
         throw std::runtime_error("Unsupported. Too many regular args.");
       }
 
-      if (dest_is_reg) {
-        // assume register allocator has preassigned the correct slot for
-        // FUNC_ARG
-        if (type_manager.IsF64Type(type)) {
-          assert(fp_registers[dest_reg] ==
-                 fp_arg_regs[num_floating_point_args_]);
-          num_floating_point_args_++;
-        } else {
-          assert(normal_registers[dest_reg].GetQ() ==
-                 normal_arg_regs[num_regular_args_].GetQ());
-          num_regular_args_++;
+      if (type_manager.IsF64Type(type)) {
+        auto src = fp_arg_regs[num_floating_point_args_++];
+
+        if (dest_assign.IsRegister()) {
+          auto dst = FPRegister(dest_assign.Register());
+          if (dst != src) {
+            asm_->movsd(dst, src);
+          }
+          return;
         }
-      } else {
+
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
-
-        if (type_manager.IsF64Type(type)) {
-          asm_->movsd(x86::qword_ptr(x86::rbp, offset),
-                      fp_arg_regs[num_floating_point_args_]);
-          num_floating_point_args_++;
-        } else {
-          if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
-            asm_->mov(x86::byte_ptr(x86::rbp, offset),
-                      normal_arg_regs[num_regular_args_].GetB());
-          } else if (type_manager.IsI16Type(type)) {
-            asm_->mov(x86::word_ptr(x86::rbp, offset),
-                      normal_arg_regs[num_regular_args_].GetW());
-          } else if (type_manager.IsI32Type(type)) {
-            asm_->mov(x86::dword_ptr(x86::rbp, offset),
-                      normal_arg_regs[num_regular_args_].GetD());
-          } else if (type_manager.IsI64Type(type) ||
-                     type_manager.IsPtrType(type)) {
-            asm_->mov(x86::qword_ptr(x86::rbp, offset),
-                      normal_arg_regs[num_regular_args_].GetQ());
-          } else {
-            throw std::runtime_error("Invalid argument type.");
-          }
-          num_regular_args_++;
-        }
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), src);
+        return;
       }
-      return;
+
+      auto src = normal_arg_regs[num_regular_args_++];
+      if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
+        if (dest_assign.IsRegister()) {
+          auto dst = NormalRegister(dest_assign.Register());
+          if (dst.GetB() != src.GetB()) {
+            asm_->mov(dst.GetB(), src.GetB());
+          }
+          return;
+        }
+
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), src.GetB());
+        return;
+      }
+
+      if (type_manager.IsI16Type(type)) {
+        if (dest_assign.IsRegister()) {
+          auto dst = NormalRegister(dest_assign.Register());
+          if (dst.GetW() != src.GetW()) {
+            asm_->mov(dst.GetW(), src.GetW());
+          }
+          return;
+        }
+
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->mov(x86::word_ptr(x86::rbp, offset), src.GetW());
+        return;
+      }
+
+      if (type_manager.IsI32Type(type)) {
+        if (dest_assign.IsRegister()) {
+          auto dst = NormalRegister(dest_assign.Register());
+          if (dst.GetD() != src.GetD()) {
+            asm_->mov(dst.GetD(), src.GetD());
+          }
+          return;
+        }
+
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->mov(x86::dword_ptr(x86::rbp, offset), src.GetD());
+        return;
+      }
+
+      if (type_manager.IsI64Type(type) || type_manager.IsPtrType(type)) {
+        if (dest_assign.IsRegister()) {
+          auto dst = NormalRegister(dest_assign.Register());
+          if (dst.GetQ() != src.GetQ()) {
+            asm_->mov(dst.GetQ(), src.GetQ());
+          }
+          return;
+        }
+
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->mov(x86::qword_ptr(x86::rbp, offset), src.GetQ());
+        return;
+      }
+
+      throw std::runtime_error("Invalid argument type.");
     }
 
     case Opcode::CALL_ARG: {
