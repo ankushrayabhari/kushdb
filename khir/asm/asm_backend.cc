@@ -3034,59 +3034,14 @@ void ASMBackend::TranslateInstr(
       const std::vector<x86::Xmm> float_arg_regs = {
           x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3, x86::xmm4, x86::xmm5};
 
-      // Save all caller save registers (except for scratch)
-      const std::vector<int> caller_saved_normal_registers = {1, 2, 3, 4,
-                                                              5, 6, 7};
-      const std::vector<int> caller_saved_fp_registers = {0, 1, 2, 3, 4, 5, 6};
-      std::unordered_map<int, int> caller_saved_normal_reg_offset;
-      std::unordered_map<int, int> caller_saved_fp_reg_offset;
-
-      asm_->sub(x86::rsp, 8 * caller_saved_normal_registers.size() +
-                              8 * caller_saved_fp_registers.size());
-
-      for (int i = 0; i < caller_saved_normal_registers.size(); i++) {
-        auto reg = caller_saved_normal_registers[i];
-        auto offset = 8 * i;
-        caller_saved_normal_reg_offset[reg] = offset;
-        asm_->mov(x86::qword_ptr(x86::rsp, offset),
-                  normal_registers[reg].GetQ());
-      }
-
-      for (int i = 0; i < caller_saved_fp_registers.size(); i++) {
-        auto reg = caller_saved_fp_registers[i];
-        auto offset = 8 * caller_saved_normal_registers.size() + 8 * i;
-        caller_saved_fp_reg_offset[reg] = offset;
-        asm_->movsd(x86::qword_ptr(x86::rsp, offset), fp_registers[reg]);
-      }
-
       // pass f64 args
       int float_arg_idx = 0;
       while (float_arg_idx < floating_point_call_args_.size() &&
              float_arg_idx < float_arg_regs.size()) {
         auto v = floating_point_call_args_[float_arg_idx];
-        bool v_is_reg =
-            !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
-        int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
-
-        if (v.IsConstantGlobal()) {
-          double c =
-              f64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
-                                .Constant()];
-          auto label = asm_->newLabel();
-          asm_->section(data_section_);
-          asm_->bind(label);
-          asm_->embedDouble(c);
-          asm_->section(text_section_);
-          asm_->movsd(float_arg_regs[float_arg_idx], x86::qword_ptr(label));
-        } else if (v_is_reg) {
-          asm_->movsd(
-              float_arg_regs[float_arg_idx],
-              x86::qword_ptr(x86::rsp, caller_saved_fp_reg_offset[v_reg]));
-        } else {
-          asm_->movsd(float_arg_regs[float_arg_idx],
-                      x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-        }
-        float_arg_idx++;
+        auto reg = float_arg_regs[float_arg_idx++];
+        MoveF64Value(reg, v, offsets, constant_instrs, f64_constants,
+                     register_assign);
       }
       if (float_arg_idx < floating_point_call_args_.size()) {
         throw std::runtime_error("Too many floating point args for the call.");
@@ -3097,368 +3052,65 @@ void ASMBackend::TranslateInstr(
       while (regular_arg_idx < normal_arg_regs.size() &&
              regular_arg_idx < regular_call_args_.size()) {
         auto [v, type] = regular_call_args_[regular_arg_idx];
-        bool v_is_reg =
-            !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
-        int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
+        auto reg = normal_arg_regs[regular_arg_idx++];
 
         if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
-          if (v.IsConstantGlobal()) {
-            int8_t c =
-                Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
-            asm_->mov(normal_arg_regs[regular_arg_idx].GetB(), c);
-          } else if (v_is_reg) {
-            // check to see if its in a caller saved register
-            // if so, we need to read it from the stack
-            // else, we can just read it from the normal place
-            if (caller_saved_normal_reg_offset.find(v_reg) ==
-                caller_saved_normal_reg_offset.end()) {
-              asm_->mov(normal_arg_regs[regular_arg_idx].GetB(),
-                        normal_registers[v_reg].GetB());
-            } else {
-              asm_->mov(
-                  normal_arg_regs[regular_arg_idx].GetQ(),
-                  x86::qword_ptr(x86::rsp,
-                                 caller_saved_normal_reg_offset.at(v_reg)));
-            }
-          } else {
-            asm_->mov(normal_arg_regs[regular_arg_idx].GetB(),
-                      x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-          }
-
-          regular_arg_idx++;
-          continue;
+          MoveByteValue(reg, v, offsets, constant_instrs, register_assign);
+        } else if (type_manager.IsI16Type(type)) {
+          MoveWordValue(reg, v, offsets, constant_instrs, register_assign);
+        } else if (type_manager.IsI32Type(type)) {
+          MoveDWordValue(reg, v, offsets, constant_instrs, register_assign);
+        } else if (type_manager.IsI64Type(type)) {
+          MoveQWordValue(reg, v, offsets, constant_instrs, i64_constants,
+                         register_assign);
+        } else if (type_manager.IsPtrType(type)) {
+          MovePtrValue(reg, v, offsets, constant_instrs, register_assign);
+        } else {
+          throw std::runtime_error("Invalid argument type.");
         }
-
-        if (type_manager.IsI16Type(type)) {
-          if (v.IsConstantGlobal()) {
-            int16_t c =
-                Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
-            asm_->mov(normal_arg_regs[regular_arg_idx].GetW(), c);
-          } else if (v_is_reg) {
-            // check to see if its in a caller saved register
-            // if so, we need to read it from the stack
-            // else, we can just read it from the normal place
-            if (caller_saved_normal_reg_offset.find(v_reg) ==
-                caller_saved_normal_reg_offset.end()) {
-              asm_->mov(normal_arg_regs[regular_arg_idx].GetW(),
-                        normal_registers[v_reg].GetW());
-            } else {
-              asm_->mov(
-                  normal_arg_regs[regular_arg_idx].GetQ(),
-                  x86::qword_ptr(x86::rsp,
-                                 caller_saved_normal_reg_offset.at(v_reg)));
-            }
-          } else {
-            asm_->mov(normal_arg_regs[regular_arg_idx].GetW(),
-                      x86::word_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-          }
-
-          regular_arg_idx++;
-          continue;
-        }
-
-        if (type_manager.IsI32Type(type)) {
-          if (v.IsConstantGlobal()) {
-            int32_t c =
-                Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
-            asm_->mov(normal_arg_regs[regular_arg_idx].GetD(), c);
-          } else if (v_is_reg) {
-            // check to see if its in a caller saved register
-            // if so, we need to read it from the stack
-            // else, we can just read it from the normal place
-            if (caller_saved_normal_reg_offset.find(v_reg) ==
-                caller_saved_normal_reg_offset.end()) {
-              asm_->mov(normal_arg_regs[regular_arg_idx].GetD(),
-                        normal_registers[v_reg].GetD());
-            } else {
-              asm_->mov(
-                  normal_arg_regs[regular_arg_idx].GetQ(),
-                  x86::qword_ptr(x86::rsp,
-                                 caller_saved_normal_reg_offset.at(v_reg)));
-            }
-          } else {
-            asm_->mov(normal_arg_regs[regular_arg_idx].GetD(),
-                      x86::dword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-          }
-
-          regular_arg_idx++;
-          continue;
-        }
-
-        if (type_manager.IsI64Type(type)) {
-          if (v.IsConstantGlobal()) {
-            int64_t c = i64_constants[Type1InstructionReader(
-                                          constant_instrs[v.GetIdx()])
-                                          .Constant()];
-            asm_->mov(normal_arg_regs[regular_arg_idx].GetQ(), c);
-          } else if (v_is_reg) {
-            // check to see if its in a caller saved register
-            // if so, we need to read it from the stack
-            // else, we can just read it from the normal place
-            if (caller_saved_normal_reg_offset.find(v_reg) ==
-                caller_saved_normal_reg_offset.end()) {
-              asm_->mov(normal_arg_regs[regular_arg_idx].GetQ(),
-                        normal_registers[v_reg].GetQ());
-            } else {
-              asm_->mov(
-                  normal_arg_regs[regular_arg_idx].GetQ(),
-                  x86::qword_ptr(x86::rsp,
-                                 caller_saved_normal_reg_offset.at(v_reg)));
-            }
-          } else {
-            asm_->mov(normal_arg_regs[regular_arg_idx].GetQ(),
-                      x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-          }
-
-          regular_arg_idx++;
-          continue;
-        }
-
-        if (type_manager.IsPtrType(type)) {
-          int32_t ptr_offset = 0;
-
-          if (IsGep(v, instructions)) {
-            auto [ptr, o] =
-                Gep(v, instructions, constant_instrs, i64_constants);
-            v = ptr;
-            ptr_offset = o;
-          }
-
-          bool v_is_reg =
-              !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
-          int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
-
-          if (v.IsConstantGlobal()) {
-            if (ConstantOpcodeFrom(
-                    GenericInstructionReader(constant_instrs[v.GetIdx()])
-                        .Opcode()) == ConstantOpcode::NULLPTR) {
-              asm_->mov(normal_arg_regs[regular_arg_idx].GetQ(), ptr_offset);
-            } else {
-              auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
-              asm_->lea(normal_arg_regs[regular_arg_idx].GetQ(),
-                        x86::ptr(label, ptr_offset));
-            }
-          } else if (v_is_reg) {
-            // check to see if its in a caller saved register
-            // if so, we need to read it from the stack
-            // else, we can just read it from the normal place
-            if (caller_saved_normal_reg_offset.find(v_reg) ==
-                caller_saved_normal_reg_offset.end()) {
-              asm_->lea(normal_arg_regs[regular_arg_idx].GetQ(),
-                        x86::ptr(normal_registers[v_reg].GetQ(), ptr_offset));
-            } else {
-              asm_->mov(
-                  x86::r10,
-                  x86::qword_ptr(x86::rsp,
-                                 caller_saved_normal_reg_offset.at(v_reg)));
-              asm_->lea(normal_arg_regs[regular_arg_idx].GetQ(),
-                        x86::ptr(x86::r10, ptr_offset));
-            }
-          } else {
-            if (ptr_offset != 0) {
-              asm_->mov(x86::r10,
-                        x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-              asm_->lea(normal_arg_regs[regular_arg_idx].GetQ(),
-                        x86::ptr(x86::r10, ptr_offset));
-            } else {
-              asm_->mov(normal_arg_regs[regular_arg_idx].GetQ(),
-                        x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-            }
-          }
-          regular_arg_idx++;
-          continue;
-        }
-
-        throw std::runtime_error("Invalid argument type.");
       }
 
       // if remaining args exist, pass them right to left
       int num_remaining_args = regular_call_args_.size() - regular_arg_idx;
       if (num_remaining_args > 0) {
+        auto stack_alloc_offset = asm_->offset();
+        asm_->long_().sub(x86::rsp, 0);
+
+        for (int i = regular_arg_idx; i < regular_call_args_.size(); i++) {
+          auto [v, type] = regular_call_args_[i];
+          auto offset = dynamic_stack_alloc;
+          dynamic_stack_alloc += 8;
+
+          if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
+            auto loc = x86::byte_ptr(x86::rsp, offset);
+            MoveByteValue(loc, v, offsets, constant_instrs, register_assign);
+          } else if (type_manager.IsI16Type(type)) {
+            auto loc = x86::word_ptr(x86::rsp, offset);
+            MoveWordValue(loc, v, offsets, constant_instrs, register_assign);
+          } else if (type_manager.IsI32Type(type)) {
+            auto loc = x86::dword_ptr(x86::rsp, offset);
+            MoveDWordValue(loc, v, offsets, constant_instrs, register_assign);
+          } else if (type_manager.IsI64Type(type)) {
+            auto loc = x86::qword_ptr(x86::rsp, offset);
+            MoveQWordValue(loc, v, offsets, constant_instrs, i64_constants,
+                           register_assign);
+          } else if (type_manager.IsPtrType(type)) {
+            auto loc = x86::qword_ptr(x86::rsp, offset);
+            MovePtrValue(loc, v, offsets, constant_instrs, register_assign);
+          } else {
+            throw std::runtime_error("Invalid argument type.");
+          }
+        }
+
         // add align space to remain 16 byte aligned
         if (num_remaining_args % 2 == 1) {
-          asm_->push(x86::rax);
           dynamic_stack_alloc += 8;
         }
 
-        for (int i = regular_call_args_.size() - 1; i >= regular_arg_idx; i--) {
-          auto [v, type] = regular_call_args_[i];
-
-          bool v_is_reg =
-              !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
-          int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
-
-          if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
-            if (v.IsConstantGlobal()) {
-              int8_t c = Type1InstructionReader(constant_instrs[v.GetIdx()])
-                             .Constant();
-              asm_->mov(x86::rax, c);
-            } else if (v_is_reg) {
-              // check to see if its in a caller saved register
-              // if so, we need to read it from the stack
-              // else, we can just read it from the normal place
-              if (caller_saved_normal_reg_offset.find(v_reg) ==
-                  caller_saved_normal_reg_offset.end()) {
-                asm_->movzx(x86::rax, normal_registers[v_reg].GetB());
-              } else {
-                asm_->mov(
-                    x86::rax,
-                    x86::qword_ptr(x86::rsp,
-                                   caller_saved_normal_reg_offset.at(v_reg)));
-              }
-            } else {
-              asm_->movzx(x86::rax,
-                          x86::byte_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-            }
-
-            asm_->push(x86::rax);
-            dynamic_stack_alloc += 8;
-            continue;
-          }
-
-          if (type_manager.IsI16Type(type)) {
-            if (v.IsConstantGlobal()) {
-              int16_t c = Type1InstructionReader(constant_instrs[v.GetIdx()])
-                              .Constant();
-              asm_->mov(x86::rax, c);
-            } else if (v_is_reg) {
-              // check to see if its in a caller saved register
-              // if so, we need to read it from the stack
-              // else, we can just read it from the normal place
-              if (caller_saved_normal_reg_offset.find(v_reg) ==
-                  caller_saved_normal_reg_offset.end()) {
-                asm_->movzx(x86::rax, normal_registers[v_reg].GetW());
-              } else {
-                asm_->mov(
-                    x86::rax,
-                    x86::qword_ptr(x86::rsp,
-                                   caller_saved_normal_reg_offset.at(v_reg)));
-              }
-            } else {
-              asm_->movzx(x86::rax,
-                          x86::word_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-            }
-
-            asm_->push(x86::rax);
-            dynamic_stack_alloc += 8;
-            continue;
-          }
-
-          if (type_manager.IsI32Type(type)) {
-            if (v.IsConstantGlobal()) {
-              int32_t c = Type1InstructionReader(constant_instrs[v.GetIdx()])
-                              .Constant();
-              asm_->mov(x86::rax, c);
-            } else if (v_is_reg) {
-              // check to see if its in a caller saved register
-              // if so, we need to read it from the stack
-              // else, we can just read it from the normal place
-              if (caller_saved_normal_reg_offset.find(v_reg) ==
-                  caller_saved_normal_reg_offset.end()) {
-                asm_->movzx(x86::rax, normal_registers[v_reg].GetD());
-              } else {
-                asm_->mov(
-                    x86::rax,
-                    x86::qword_ptr(x86::rsp,
-                                   caller_saved_normal_reg_offset.at(v_reg)));
-              }
-            } else {
-              asm_->movzx(x86::rax,
-                          x86::dword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-            }
-
-            asm_->push(x86::rax);
-            dynamic_stack_alloc += 8;
-            continue;
-          }
-
-          if (type_manager.IsI64Type(type)) {
-            if (v.IsConstantGlobal()) {
-              int64_t c = i64_constants[Type1InstructionReader(
-                                            constant_instrs[v.GetIdx()])
-                                            .Constant()];
-              asm_->mov(x86::rax, c);
-            } else if (v_is_reg) {
-              // check to see if its in a caller saved register
-              // if so, we need to read it from the stack
-              // else, we can just read it from the normal place
-              if (caller_saved_normal_reg_offset.find(v_reg) ==
-                  caller_saved_normal_reg_offset.end()) {
-                asm_->mov(x86::rax, normal_registers[v_reg].GetQ());
-              } else {
-                asm_->mov(
-                    x86::rax,
-                    x86::qword_ptr(x86::rsp,
-                                   caller_saved_normal_reg_offset.at(v_reg)));
-              }
-            } else {
-              asm_->mov(x86::rax,
-                        x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-            }
-
-            asm_->push(x86::rax);
-            dynamic_stack_alloc += 8;
-            continue;
-          }
-
-          if (type_manager.IsPtrType(type)) {
-            int32_t ptr_offset = 0;
-
-            if (IsGep(v, instructions)) {
-              auto [ptr, o] =
-                  Gep(v, instructions, constant_instrs, i64_constants);
-              v = ptr;
-              ptr_offset = o;
-            }
-
-            bool v_is_reg =
-                !v.IsConstantGlobal() && register_assign[v.GetIdx()] >= 0;
-            int v_reg = v_is_reg ? register_assign[v.GetIdx()] : 0;
-
-            if (v.IsConstantGlobal()) {
-              if (ConstantOpcodeFrom(
-                      GenericInstructionReader(constant_instrs[v.GetIdx()])
-                          .Opcode()) == ConstantOpcode::NULLPTR) {
-                asm_->mov(x86::rax, ptr_offset);
-              } else {
-                auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
-                asm_->lea(x86::rax, x86::ptr(label, ptr_offset));
-              }
-            } else if (v_is_reg) {
-              asm_->mov(x86::r10,
-                        x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-              // check to see if its in a caller saved register
-              // if so, we need to read it from the stack
-              // else, we can just read it from the normal place
-              if (caller_saved_normal_reg_offset.find(v_reg) ==
-                  caller_saved_normal_reg_offset.end()) {
-                asm_->lea(x86::rax,
-                          x86::ptr(normal_registers[v_reg].GetQ(), ptr_offset));
-              } else {
-                asm_->mov(
-                    x86::r10,
-                    x86::qword_ptr(x86::rsp,
-                                   caller_saved_normal_reg_offset.at(v_reg)));
-                asm_->lea(x86::rax, x86::ptr(x86::r10, ptr_offset));
-              }
-            } else {
-              if (ptr_offset != 0) {
-                asm_->mov(x86::r10,
-                          x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-                asm_->lea(x86::rax, x86::ptr(x86::r10, ptr_offset));
-              } else {
-                asm_->mov(x86::rax,
-                          x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-              }
-            }
-
-            asm_->push(x86::rax);
-            dynamic_stack_alloc += 8;
-            continue;
-          }
-
-          throw std::runtime_error("Invalid argument type.");
-        }
+        auto current_offset = asm_->offset();
+        asm_->setOffset(stack_alloc_offset);
+        asm_->long_().sub(x86::rsp, dynamic_stack_alloc);
+        asm_->setOffset(current_offset);
       }
       regular_call_args_.clear();
       floating_point_call_args_.clear();
@@ -3474,7 +3126,6 @@ void ASMBackend::TranslateInstr(
         } else {
           asm_->call(internal_func_labels_[reader.Arg()]);
         }
-
         return_type = func.ReturnType();
 
       } else {
@@ -3484,9 +3135,7 @@ void ASMBackend::TranslateInstr(
           throw std::runtime_error("Not possible.");
         }
 
-        asm_->mov(x86::rax, x86::qword_ptr(x86::rbp, Get(offsets, v.GetIdx())));
-        asm_->call(x86::rax);
-
+        asm_->call(x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
         return_type = type_manager.GetFunctionReturnType(
             static_cast<Type>(reader.TypeID()));
       }
@@ -3495,41 +3144,30 @@ void ASMBackend::TranslateInstr(
         asm_->add(x86::rsp, dynamic_stack_alloc);
       }
 
-      asm_->movsd(x86::xmm7, x86::xmm0);
-      for (int i = 0; i < caller_saved_normal_registers.size(); i++) {
-        auto reg = caller_saved_normal_registers[i];
-        auto offset = caller_saved_normal_reg_offset.at(reg);
-        asm_->mov(normal_registers[reg].GetQ(),
-                  x86::qword_ptr(x86::rsp, offset));
-      }
-
-      for (int i = 0; i < caller_saved_fp_registers.size(); i++) {
-        auto reg = caller_saved_fp_registers[i];
-        auto offset = caller_saved_fp_reg_offset.at(reg);
-        asm_->movsd(fp_registers[reg], x86::qword_ptr(x86::rsp, offset));
-      }
-      asm_->add(x86::rsp, 8 * caller_saved_normal_registers.size() +
-                              8 * caller_saved_fp_registers.size());
-
       if (!type_manager.IsVoid(return_type)) {
-        int32_t offset = INT32_MAX;
-        if (!dest_is_reg) {
-          offset = stack_allocator.AllocateSlot();
-          offsets[instr_idx] = offset;
+        if (type_manager.IsF64Type(return_type)) {
+          if (dest_assign.IsRegister()) {
+            auto reg = FPRegister(dest_assign.Register());
+            if (reg != x86::xmm0) {
+              asm_->movsd(reg, x86::xmm0);
+            }
+          } else {
+            auto offset = stack_allocator.AllocateSlot();
+            offsets[instr_idx] = offset;
+            asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm0);
+          }
+          return;
         }
 
-        if (type_manager.IsF64Type(return_type)) {
-          if (dest_is_reg) {
-            asm_->movsd(fp_registers[dest_reg], x86::xmm7);
-          } else {
-            asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
+        if (dest_assign.IsRegister()) {
+          auto reg = NormalRegister(dest_assign.Register());
+          if (reg.GetQ() != Register::RAX.GetQ()) {
+            asm_->mov(reg.GetQ(), Register::RAX.GetQ());
           }
         } else {
-          if (dest_is_reg) {
-            asm_->mov(normal_registers[dest_reg].GetQ(), x86::rax);
-          } else {
-            asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rax);
-          }
+          auto offset = stack_allocator.AllocateSlot();
+          offsets[instr_idx] = offset;
+          asm_->mov(x86::qword_ptr(x86::rbp, offset), Register::RAX.GetQ());
         }
       }
       return;
