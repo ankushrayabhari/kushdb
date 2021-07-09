@@ -106,9 +106,9 @@ TEST(ASMBackendTest, I8_ZEXT_I64) {
   using compute_fn = std::add_pointer<int64_t(int8_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-  EXPECT_EQ(0x000000EB, compute(0xEB));
-  EXPECT_EQ(0x000000A5, compute(0xA5));
-  EXPECT_EQ(0x000000C9, compute(0xC9));
-  EXPECT_EQ(0x000000FF, compute(0xFF));
-  EXPECT_EQ(0x00000070, compute(0x70));
+  EXPECT_EQ(int64_t(0xEB), compute(0xEB));
+  EXPECT_EQ(int64_t(0xA5), compute(0xA5));
+  EXPECT_EQ(int64_t(0xC9), compute(0xC9));
+  EXPECT_EQ(int64_t(0xFF), compute(0xFF));
+  EXPECT_EQ(int64_t(0x70), compute(0x70));
 }
