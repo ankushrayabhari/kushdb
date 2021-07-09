@@ -155,3 +155,113 @@ TEST(ASMBackendTest, I8_CMP_EQ_Return) {
   EXPECT_EQ(1, compute(-1, -1));
   EXPECT_EQ(0, compute(-1, 0));
 }
+
+TEST(ASMBackendTest, I8_CMP_NE_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpI8(khir::CompType::NE, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(0, compute(0, 0));
+  EXPECT_EQ(1, compute(0, 1));
+  EXPECT_EQ(1, compute(1, 0));
+  EXPECT_EQ(0, compute(1, 1));
+  EXPECT_EQ(0, compute(-1, -1));
+  EXPECT_EQ(1, compute(-1, 0));
+}
+
+TEST(ASMBackendTest, I8_CMP_LT_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpI8(khir::CompType::LT, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(0, compute(0, 0));
+  EXPECT_EQ(1, compute(0, 1));
+  EXPECT_EQ(0, compute(1, 0));
+  EXPECT_EQ(0, compute(1, 1));
+  EXPECT_EQ(0, compute(-1, -1));
+  EXPECT_EQ(1, compute(-1, 0));
+}
+
+TEST(ASMBackendTest, I8_CMP_GT_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpI8(khir::CompType::GT, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(0, compute(0, 0));
+  EXPECT_EQ(0, compute(0, 1));
+  EXPECT_EQ(1, compute(1, 0));
+  EXPECT_EQ(0, compute(1, 1));
+  EXPECT_EQ(0, compute(-1, -1));
+  EXPECT_EQ(0, compute(-1, 0));
+}
+
+TEST(ASMBackendTest, I8_CMP_LE_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpI8(khir::CompType::LE, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(1, compute(0, 0));
+  EXPECT_EQ(1, compute(0, 1));
+  EXPECT_EQ(0, compute(1, 0));
+  EXPECT_EQ(1, compute(1, 1));
+  EXPECT_EQ(1, compute(-1, -1));
+  EXPECT_EQ(1, compute(-1, 0));
+}
+
+TEST(ASMBackendTest, I8_CMP_GE_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpI8(khir::CompType::GE, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(1, compute(0, 0));
+  EXPECT_EQ(0, compute(0, 1));
+  EXPECT_EQ(1, compute(1, 0));
+  EXPECT_EQ(1, compute(1, 1));
+  EXPECT_EQ(1, compute(-1, -1));
+  EXPECT_EQ(0, compute(-1, 0));
+}
