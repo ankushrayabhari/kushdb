@@ -113,9 +113,9 @@ TEST(ASMBackendTest, I8_ZEXT_I64) {
   EXPECT_EQ(int64_t(0x70), compute(0x70));
 }
 
-TEST(ASMBackendTest, I8_CONV_I64) {
+TEST(ASMBackendTest, I8_CONV_F64) {
   khir::ProgramBuilder program;
-  auto func = program.CreatePublicFunction(program.I64Type(),
+  auto func = program.CreatePublicFunction(program.F64Type(),
                                            {program.I8Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.F64ConvI8(args[0]));
@@ -132,4 +132,26 @@ TEST(ASMBackendTest, I8_CONV_I64) {
   EXPECT_EQ(-128.0, compute(-128));
   EXPECT_EQ(15.0, compute(15));
   EXPECT_EQ(-1.0, compute(-1));
+}
+
+TEST(ASMBackendTest, I8_CMP_EQ_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpI8(khir::CompType::EQ, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(1, compute(0, 0));
+  EXPECT_EQ(0, compute(0, 1));
+  EXPECT_EQ(0, compute(1, 0));
+  EXPECT_EQ(1, compute(1, 1));
+  EXPECT_EQ(1, compute(-1, -1));
+  EXPECT_EQ(0, compute(-1, 0));
 }
