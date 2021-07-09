@@ -8,6 +8,13 @@ http_archive(
 )
 
 http_archive(
+    name = "com_google_googletest",
+    sha256 = "5cf189eb6847b4f8fc603a3ffff3b0771c08eec7dd4bd961bfd45477dd13eb73",
+    strip_prefix = "googletest-609281088cfefc76f9d0ce82e1ff6c30cc3591e5",
+    urls = ["https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip"],
+)
+
+http_archive(
     name = "absl",
     sha256 = "aabf6c57e3834f8dc3873a927f37eaf69975d4b28117fc7427dfb1c661542a87",
     strip_prefix = "abseil-cpp-98eb410c93ad059f9bba1bf43f5bb916fc92a5ea",

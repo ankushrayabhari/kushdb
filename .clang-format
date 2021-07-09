@@ -10,3 +10,5 @@ IncludeCategories:
     Priority:        4
   - Regex:           '"asmjit\/'
     Priority:        5
+  - Regex:           '"gtest\/'
+    Priority:        6
