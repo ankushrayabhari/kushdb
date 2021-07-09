@@ -52,7 +52,10 @@ class ASMBackend : public Backend, public compile::Program {
                  const std::vector<Function>& functions) override;
 
   // Program
+  void Compile();
   void Execute() override;
+
+  void* GetFunction(std::string_view name) const;
 
  private:
   uint64_t OutputConstant(uint64_t instr, const TypeManager& type_manager,
@@ -303,11 +306,12 @@ class ASMBackend : public Backend, public compile::Program {
   int num_floating_point_args_;
   int num_regular_args_;
   int num_stack_args_;
+  void* buffer_start_;
 
   std::vector<std::pair<khir::Value, khir::Type>> regular_call_args_;
   std::vector<khir::Value> floating_point_call_args_;
 
-  absl::flat_hash_map<std::string, asmjit::Label> breakpoints_;
+  absl::flat_hash_map<std::string, asmjit::Label> public_fns_;
 
   std::chrono::time_point<std::chrono::system_clock> start, comp, end;
 };

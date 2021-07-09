@@ -55,5 +55,9 @@ cc_test(
     name = "asm_backend_test",
     size = "small",
     srcs = ["asm_backend_test.cc"],
-    deps = ["@com_google_googletest//:gtest_main"],
+    deps = [
+        ":asm_backend",
+        "//khir:program_builder",
+        "@com_google_googletest//:gtest_main",
+    ],
 )

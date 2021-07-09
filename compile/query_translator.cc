@@ -78,6 +78,7 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
 
   auto backend = std::make_unique<khir::ASMBackend>();
   program.Translate(*backend);
+  backend->Compile();
   return std::move(backend);
 }
 

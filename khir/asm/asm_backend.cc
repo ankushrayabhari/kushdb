@@ -217,9 +217,9 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
     asm_->bind(internal_func_labels_[func_idx]);
 
-    auto bpoint = asm_->newLabel();
-    breakpoints_[func.Name()] = bpoint;
-    asm_->bind(bpoint);
+    if (func.Public()) {
+      public_fns_[func.Name()] = internal_func_labels_[func_idx];
+    }
 
     if (func.Name() == "compute") {
       compute_label_ = internal_func_labels_[func_idx];
@@ -3186,13 +3186,10 @@ void ASMBackend::TranslateInstr(
 }
 
 void ASMBackend::Execute() {
-  void* buffer_start;
-  rt_.add(&buffer_start, &code_);
-
   auto offset = code_.labelOffsetFromBase(compute_label_);
   using compute_fn = std::add_pointer<void()>::type;
   auto compute = reinterpret_cast<compute_fn>(
-      reinterpret_cast<uint64_t>(buffer_start) + offset);
+      reinterpret_cast<uint64_t>(buffer_start_) + offset);
 
   comp = std::chrono::system_clock::now();
 
@@ -3205,6 +3202,15 @@ void ASMBackend::Execute() {
   std::cerr << "Compilation: " << elapsed_seconds.count() << std::endl;
   elapsed_seconds = end - comp;
   std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
+}
+
+void ASMBackend::Compile() { rt_.add(&buffer_start_, &code_); }
+
+void* ASMBackend::GetFunction(std::string_view name) const {
+  auto label = public_fns_.at(name);
+  auto offset = code_.labelOffsetFromBase(label);
+  return reinterpret_cast<void*>(reinterpret_cast<uint64_t>(buffer_start_) +
+                                 offset);
 }
 
 }  // namespace kush::khir
