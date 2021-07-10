@@ -2200,8 +2200,8 @@ void ASMBackend::TranslateInstr(
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
-        asm_->movzx(Register::RAX.GetQ(), loc);
-        asm_->mov(x86::word_ptr(x86::rbp, offset), Register::RAX.GetD());
+        asm_->mov(Register::RAX.GetD(), loc);
+        asm_->mov(x86::dword_ptr(x86::rbp, offset), Register::RAX.GetD());
       }
       return;
     }
@@ -2226,8 +2226,8 @@ void ASMBackend::TranslateInstr(
         // register
         assert(dest_assign.IsRegister());
         auto dest = NormalRegister(dest_assign.Register());
-        asm_->movzx(dest.GetD(),
-                    x86::dword_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
+        asm_->mov(dest.GetD(),
+                  x86::dword_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
         asm_->mov(loc, dest.GetD());
       }
       return;

@@ -892,3 +892,26 @@ TEST(ASMBackendTest, I32_LOAD) {
     EXPECT_EQ(loc, compute(&loc));
   }
 }
+
+TEST(ASMBackendTest, I32_STORE) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(program.I32Type()), program.I32Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StoreI32(args[0], args[1]);
+  program.Return();
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<void(int32_t*, int32_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  int32_t loc;
+  for (int i = -10; i <= 10; i++) {
+    compute(&loc, 2 * i);
+    EXPECT_EQ(loc, 2 * i);
+  }
+}
