@@ -266,6 +266,50 @@ TEST(ASMBackendTest, I8_CMP_GE_Return) {
   EXPECT_EQ(0, compute(-1, 0));
 }
 
+TEST(ASMBackendTest, I8_LOAD) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I8Type(), {program.PointerType(program.I8Type())}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.LoadI8(args[0]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(int8_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  int8_t loc;
+  for (int i = -10; i <= 10; i++) {
+    loc = i;
+    EXPECT_EQ(loc, compute(&loc));
+  }
+}
+
+TEST(ASMBackendTest, I8_STORE) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(program.I8Type()), program.I8Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StoreI8(args[0], args[1]);
+  program.Return();
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<void(int8_t*, int8_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  int8_t loc;
+  for (int i = -10; i <= 10; i++) {
+    compute(&loc, i);
+    EXPECT_EQ(loc, i);
+  }
+}
+
 TEST(ASMBackendTest, I16_ADD) {
   khir::ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -523,4 +567,48 @@ TEST(ASMBackendTest, I16_CMP_GE_Return) {
   EXPECT_NE(0, compute(1, 1));
   EXPECT_NE(0, compute(-1, -1));
   EXPECT_EQ(0, compute(-1, 0));
+}
+
+TEST(ASMBackendTest, I16_LOAD) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I16Type(), {program.PointerType(program.I16Type())}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.LoadI16(args[0]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int16_t(int16_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  int16_t loc;
+  for (int i = -10; i <= 10; i++) {
+    loc = 2 * i;
+    EXPECT_EQ(loc, compute(&loc));
+  }
+}
+
+TEST(ASMBackendTest, I16_STORE) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(program.I16Type()), program.I16Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StoreI16(args[0], args[1]);
+  program.Return();
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<void(int16_t*, int16_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  int16_t loc;
+  for (int i = -10; i <= 10; i++) {
+    compute(&loc, 2 * i);
+    EXPECT_EQ(loc, 2 * i);
+  }
 }
