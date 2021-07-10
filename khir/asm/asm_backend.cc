@@ -2301,6 +2301,7 @@ void ASMBackend::TranslateInstr(
                       register_assign);
         asm_->mov(x86::qword_ptr(x86::rbp, offset), dest);
       }
+      return;
     }
 
     case Opcode::I64_CMP_EQ:
