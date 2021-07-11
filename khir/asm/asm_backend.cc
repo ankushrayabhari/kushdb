@@ -1402,7 +1402,7 @@ void ASMBackend::StoreF64CmpFlags(Opcode opcode, Dest dest) {
     }
 
     case Opcode::F64_CMP_NE: {
-      asm_->setnp(dest);
+      asm_->setp(dest);
       asm_->setne(x86::al);
       asm_->or_(dest, x86::al);
       return;
@@ -2562,14 +2562,14 @@ void ASMBackend::TranslateInstr(
         auto dest = FPRegister(dest_assign.Register());
         MoveF64Value(dest, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        AddF64Value(dest, v0, offsets, constant_instrs, f64_constants,
+        AddF64Value(dest, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
         MoveF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        AddF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
+        AddF64Value(x86::xmm7, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
         asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
       }
@@ -2585,14 +2585,14 @@ void ASMBackend::TranslateInstr(
         auto dest = FPRegister(dest_assign.Register());
         MoveF64Value(dest, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        SubF64Value(dest, v0, offsets, constant_instrs, f64_constants,
+        SubF64Value(dest, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
         MoveF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        SubF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
+        SubF64Value(x86::xmm7, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
         asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
       }
@@ -2608,14 +2608,14 @@ void ASMBackend::TranslateInstr(
         auto dest = FPRegister(dest_assign.Register());
         MoveF64Value(dest, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        MulF64Value(dest, v0, offsets, constant_instrs, f64_constants,
+        MulF64Value(dest, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
         MoveF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        MulF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
+        MulF64Value(x86::xmm7, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
         asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
       }
@@ -2771,12 +2771,12 @@ void ASMBackend::TranslateInstr(
                       register_assign);
       } else if (register_assign[v.GetIdx()].IsRegister()) {
         asm_->cmp(NormalRegister(register_assign[v.GetIdx()].Register()).GetB(),
-                  1);
-        asm_->je(basic_blocks[reader.Marg0()]);
+                  0);
+        asm_->jne(basic_blocks[reader.Marg0()]);
         asm_->jmp(basic_blocks[reader.Marg1()]);
       } else {
-        asm_->cmp(x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())), 1);
-        asm_->je(basic_blocks[reader.Marg0()]);
+        asm_->cmp(x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())), 0);
+        asm_->jne(basic_blocks[reader.Marg0()]);
         asm_->jmp(basic_blocks[reader.Marg1()]);
       }
       return;

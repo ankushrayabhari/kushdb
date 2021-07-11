@@ -1197,3 +1197,285 @@ TEST(ASMBackendTest, I64_STORE) {
     EXPECT_EQ(loc, 2 * i);
   }
 }
+
+TEST(ASMBackendTest, F64_ADD) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto sum = program.AddF64(args[0], args[1]);
+  program.Return(sum);
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<double(double, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(0.0 + 0.0, compute(0.0, 0.0));
+  EXPECT_EQ(-1.0 + 1.0, compute(-1.0, 1.0));
+  EXPECT_EQ(16.0 + 0.0, compute(16.0, 0.0));
+  EXPECT_EQ(-70.0 + -1000.0, compute(-70.0, -1000.0));
+  EXPECT_EQ(5.0 + 8.0, compute(5.0, 8.0));
+}
+
+TEST(ASMBackendTest, F64_SUB) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto sum = program.SubF64(args[0], args[1]);
+  program.Return(sum);
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<double(double, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(0.0 - 0.0, compute(0.0, 0.0));
+  EXPECT_EQ(-1.0 - 1.0, compute(-1.0, 1.0));
+  EXPECT_EQ(16.0 - 0.0, compute(16.0, 0.0));
+  EXPECT_EQ(-70.0 - -1000.0, compute(-70.0, -1000.0));
+  EXPECT_EQ(5.0 - 8.0, compute(5.0, 8.0));
+}
+
+TEST(ASMBackendTest, F64_MUL) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto sum = program.MulF64(args[0], args[1]);
+  program.Return(sum);
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<double(double, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(0.0 * 0.0, compute(0.0, 0.0));
+  EXPECT_EQ(-1.0 * 1.0, compute(-1.0, 1.0));
+  EXPECT_EQ(16.0 * 0.0, compute(16.0, 0.0));
+  EXPECT_EQ(-7.0 * -13.0, compute(-7.0, -13.0));
+  EXPECT_EQ(5.0 * 8.0, compute(5.0, 8.0));
+}
+
+TEST(ASMBackendTest, F64_CONST) {
+  for (auto x : {-100.0, 255.0, 17.0, 91.0, 0.0}) {
+    double c = x;
+
+    khir::ProgramBuilder program;
+    program.CreatePublicFunction(program.F64Type(), {}, "compute");
+    program.Return(program.ConstF64(c));
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<double()>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c, compute());
+  }
+}
+
+TEST(ASMBackendTest, F64_CONV_I64) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(program.I64Type(),
+                                           {program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.I64ConvF64(args[0]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int64_t(double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(0, compute(0.0));
+  EXPECT_EQ(127, compute(127.2));
+  EXPECT_EQ(-255, compute(-255.10));
+  EXPECT_EQ(15, compute(15.1230987));
+  EXPECT_EQ(3, compute(3.14159));
+}
+
+TEST(ASMBackendTest, F64_CMP_EQ_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpF64(khir::CompType::EQ, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(double, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_NE(0, compute(0.0, 0.0));
+  EXPECT_EQ(0, compute(0, 1.0));
+  EXPECT_EQ(0, compute(1.0, 0));
+  EXPECT_NE(0, compute(1.0, 1.0));
+  EXPECT_NE(0, compute(-1.0, -1.0));
+  EXPECT_EQ(0, compute(-1.0, 0.0));
+}
+
+TEST(ASMBackendTest, F64_CMP_NE_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpF64(khir::CompType::NE, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(double, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(0, compute(0.0, 0.0));
+  EXPECT_NE(0, compute(0.0, 1.0));
+  EXPECT_NE(0, compute(1.0, 0.0));
+  EXPECT_EQ(0, compute(1.0, 1.0));
+  EXPECT_EQ(0, compute(-1.0, -1.0));
+  EXPECT_NE(0, compute(-1.0, 0.0));
+}
+
+TEST(ASMBackendTest, F64_CMP_LT_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpF64(khir::CompType::LT, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(double, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(0, compute(0.0, 0.0));
+  EXPECT_NE(0, compute(0.0, 1.0));
+  EXPECT_EQ(0, compute(1.0, 0.0));
+  EXPECT_EQ(0, compute(1.0, 1.0));
+  EXPECT_EQ(0, compute(-1.0, -1.0));
+  EXPECT_NE(0, compute(-1.0, 0.0));
+}
+
+TEST(ASMBackendTest, F64_CMP_GT_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpF64(khir::CompType::GT, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(double, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(0, compute(0.0, 0.0));
+  EXPECT_EQ(0, compute(0.0, 1.0));
+  EXPECT_NE(0, compute(1.0, 0.0));
+  EXPECT_EQ(0, compute(1.0, 1.0));
+  EXPECT_EQ(0, compute(-1.0, -1.0));
+  EXPECT_EQ(0, compute(-1.0, 0.0));
+}
+
+TEST(ASMBackendTest, F64_CMP_LE_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpF64(khir::CompType::LE, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(double, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_NE(0, compute(0.0, 0.0));
+  EXPECT_NE(0, compute(0.0, 1.0));
+  EXPECT_EQ(0, compute(1.0, 0.0));
+  EXPECT_NE(0, compute(1.0, 1.0));
+  EXPECT_NE(0, compute(-1.0, -1.0));
+  EXPECT_NE(0, compute(-1.0, 0.0));
+}
+
+TEST(ASMBackendTest, F64_CMP_GE_Return) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpF64(khir::CompType::GE, args[0], args[1]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(double, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_NE(0, compute(0.0, 0.0));
+  EXPECT_EQ(0, compute(0.0, 1.0));
+  EXPECT_NE(0, compute(1.0, 0.0));
+  EXPECT_NE(0, compute(1.0, 1.0));
+  EXPECT_NE(0, compute(-1.0, -1.0));
+  EXPECT_EQ(0, compute(-1.0, 0.0));
+}
+
+TEST(ASMBackendTest, F64_LOAD) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.F64Type(), {program.PointerType(program.F64Type())}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.LoadF64(args[0]));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<double(double*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  double loc;
+  for (int i = -10; i <= 10; i++) {
+    loc = 2 * i;
+    EXPECT_EQ(loc, compute(&loc));
+  }
+}
+
+TEST(ASMBackendTest, F64_STORE) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(program.F64Type()), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StoreF64(args[0], args[1]);
+  program.Return();
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<void(double*, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  double loc;
+  for (int i = -10; i <= 10; i++) {
+    compute(&loc, 2 * i);
+    EXPECT_EQ(loc, 2 * i);
+  }
+}
