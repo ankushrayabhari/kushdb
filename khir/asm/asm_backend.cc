@@ -1056,7 +1056,12 @@ void ASMBackend::MoveQWordValue(
     int64_t c64 =
         i64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
                           .Constant()];
-    asm_->mov(dest, c64);
+    if constexpr (std::is_same_v<T, x86::Mem>) {
+      asm_->mov(Register::RAX.GetQ(), c64);
+      asm_->mov(dest, Register::RAX.GetQ());
+    } else {
+      asm_->mov(dest, c64);
+    }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
 
