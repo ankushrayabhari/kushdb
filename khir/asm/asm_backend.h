@@ -178,7 +178,7 @@ class ASMBackend : public Backend, public compile::Program {
                      std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
-  void ZextDWordValue(asmjit::x86::Gpq dest, Value v,
+  void ZextDWordValue(Register dest, Value v,
                       std::vector<int32_t>& offsets,
                       const std::vector<uint64_t>& constant_instrs,
                       const std::vector<RegisterAssignment>& register_assign);

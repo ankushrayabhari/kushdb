@@ -34,7 +34,7 @@ bool Compare(khir::CompType cmp, T a0, T a1) {
 TEST(ASMBackendTest, I8_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int8_t> distrib(-64, 64);
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   khir::ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -53,14 +53,16 @@ TEST(ASMBackendTest, I8_ADD) {
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
     int8_t a1 = distrib(gen);
-    EXPECT_EQ(a0 + a1, compute(a0, a1));
+    int8_t res = a0 + a1;
+    EXPECT_EQ(res, compute(a0, a1));
+    EXPECT_EQ(res, compute(a1, a0));
   }
 }
 
 TEST(ASMBackendTest, I8_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int8_t> distrib(-64, 64);
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
@@ -80,14 +82,15 @@ TEST(ASMBackendTest, I8_ADDConstArg0) {
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 + a1, compute(a1));
+    int8_t res = a0 + a1;
+    EXPECT_EQ(res, compute(a1));
   }
 }
 
 TEST(ASMBackendTest, I8_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int8_t> distrib(-64, 64);
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
@@ -107,14 +110,15 @@ TEST(ASMBackendTest, I8_ADDConstArg1) {
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 + a1, compute(a0));
+    int8_t res = a0 + a1;
+    EXPECT_EQ(res, compute(a0));
   }
 }
 
 TEST(ASMBackendTest, I8_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int8_t> distrib(-64, 64);
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   khir::ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -133,14 +137,15 @@ TEST(ASMBackendTest, I8_SUB) {
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
     int8_t a1 = distrib(gen);
-    EXPECT_EQ(a0 - a1, compute(a0, a1));
+    int8_t res = a0 - a1;
+    EXPECT_EQ(res, compute(a0, a1));
   }
 }
 
 TEST(ASMBackendTest, I8_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int8_t> distrib(-64, 64);
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
@@ -160,14 +165,15 @@ TEST(ASMBackendTest, I8_SubConstArg0) {
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 - a1, compute(a1));
+    int8_t res = a0 - a1;
+    EXPECT_EQ(res, compute(a1));
   }
 }
 
 TEST(ASMBackendTest, I8_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int8_t> distrib(-64, 64);
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
@@ -187,14 +193,15 @@ TEST(ASMBackendTest, I8_SubConstArg1) {
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 - a1, compute(a0));
+    int8_t res = a0 - a1;
+    EXPECT_EQ(res, compute(a0));
   }
 }
 
 TEST(ASMBackendTest, I8_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int8_t> distrib(-11, 11);
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   khir::ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -213,14 +220,15 @@ TEST(ASMBackendTest, I8_MUL) {
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
     int8_t a1 = distrib(gen);
-    EXPECT_EQ(a0 * a1, compute(a0, a1));
+    int8_t res = a0 * a1;
+    EXPECT_EQ(res, compute(a0, a1));
   }
 }
 
 TEST(ASMBackendTest, I8_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int8_t> distrib(-11, 11);
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
@@ -240,14 +248,15 @@ TEST(ASMBackendTest, I8_MULConstArg0) {
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 * a1, compute(a1));
+    int8_t res = a0 * a1;
+    EXPECT_EQ(res, compute(a1));
   }
 }
 
 TEST(ASMBackendTest, I8_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int8_t> distrib(-11, 11);
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
@@ -267,7 +276,8 @@ TEST(ASMBackendTest, I8_MULConstArg1) {
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 * a1, compute(a0));
+    int8_t res = a0 * a1;
+    EXPECT_EQ(res, compute(a0));
   }
 }
 
@@ -720,7 +730,7 @@ TEST(ASMBackendTest, I8_STOREStruct) {
 TEST(ASMBackendTest, I16_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int16_t> distrib(-16384, 16383);
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   khir::ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -739,14 +749,15 @@ TEST(ASMBackendTest, I16_ADD) {
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
     int16_t a1 = distrib(gen);
-    EXPECT_EQ(a0 + a1, compute(a0, a1));
+    int16_t res = a0 + a1;
+    EXPECT_EQ(res, compute(a0, a1));
   }
 }
 
 TEST(ASMBackendTest, I16_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int16_t> distrib(-16384, 16383);
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
@@ -766,14 +777,15 @@ TEST(ASMBackendTest, I16_ADDConstArg0) {
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 + a1, compute(a1));
+    int16_t res = a0 + a1;
+    EXPECT_EQ(res, compute(a1));
   }
 }
 
 TEST(ASMBackendTest, I16_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int16_t> distrib(-16384, 16383);
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
@@ -793,14 +805,15 @@ TEST(ASMBackendTest, I16_ADDConstArg1) {
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 + a1, compute(a0));
+    int16_t res = a0 + a1;
+    EXPECT_EQ(res, compute(a0));
   }
 }
 
 TEST(ASMBackendTest, I16_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int16_t> distrib(-16384, 16383);
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   khir::ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -819,14 +832,15 @@ TEST(ASMBackendTest, I16_SUB) {
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
     int16_t a1 = distrib(gen);
-    EXPECT_EQ(a0 - a1, compute(a0, a1));
+    int16_t res = a0 - a1;
+    EXPECT_EQ(res, compute(a0, a1));
   }
 }
 
 TEST(ASMBackendTest, I16_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int16_t> distrib(-16384, 16383);
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
@@ -846,14 +860,15 @@ TEST(ASMBackendTest, I16_SubConstArg0) {
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 - a1, compute(a1));
+    int16_t res = a0 - a1;
+    EXPECT_EQ(res, compute(a1));
   }
 }
 
 TEST(ASMBackendTest, I16_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int16_t> distrib(-16384, 16383);
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
@@ -873,14 +888,15 @@ TEST(ASMBackendTest, I16_SubConstArg1) {
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 - a1, compute(a0));
+    int16_t res = a0 - a1;
+    EXPECT_EQ(res, compute(a0));
   }
 }
 
 TEST(ASMBackendTest, I16_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int16_t> distrib(-181, 181);
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   khir::ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -899,14 +915,15 @@ TEST(ASMBackendTest, I16_MUL) {
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
     int16_t a1 = distrib(gen);
-    EXPECT_EQ(a0 * a1, compute(a0, a1));
+    int16_t res = a0 * a1;
+    EXPECT_EQ(res, compute(a0, a1));
   }
 }
 
 TEST(ASMBackendTest, I16_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int16_t> distrib(-181, 181);
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
@@ -926,14 +943,15 @@ TEST(ASMBackendTest, I16_MULConstArg0) {
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 * a1, compute(a1));
+    int16_t res = a0 * a1;
+    EXPECT_EQ(res, compute(a1));
   }
 }
 
 TEST(ASMBackendTest, I16_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int16_t> distrib(-181, 181);
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
@@ -953,7 +971,8 @@ TEST(ASMBackendTest, I16_MULConstArg1) {
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 * a1, compute(a0));
+    int16_t res = a0 * a1;
+    EXPECT_EQ(res, compute(a0));
   }
 }
 
@@ -1407,7 +1426,7 @@ TEST(ASMBackendTest, I16_STOREStruct) {
 TEST(ASMBackendTest, I32_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(-64, 64);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   khir::ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -1426,14 +1445,15 @@ TEST(ASMBackendTest, I32_ADD) {
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
     int32_t a1 = distrib(gen);
-    EXPECT_EQ(a0 + a1, compute(a0, a1));
+    int32_t res = a0 + a1;
+    EXPECT_EQ(res, compute(a0, a1));
   }
 }
 
 TEST(ASMBackendTest, I32_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(-64, 64);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
@@ -1453,14 +1473,15 @@ TEST(ASMBackendTest, I32_ADDConstArg0) {
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 + a1, compute(a1));
+    int32_t res = a0 + a1;
+    EXPECT_EQ(res, compute(a1));
   }
 }
 
 TEST(ASMBackendTest, I32_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(-16384, 16383);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
@@ -1480,14 +1501,15 @@ TEST(ASMBackendTest, I32_ADDConstArg1) {
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 + a1, compute(a0));
+    int32_t res = a0 + a1;
+    EXPECT_EQ(res, compute(a0));
   }
 }
 
 TEST(ASMBackendTest, I32_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(-16384, 16383);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   khir::ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -1506,14 +1528,15 @@ TEST(ASMBackendTest, I32_SUB) {
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
     int32_t a1 = distrib(gen);
-    EXPECT_EQ(a0 - a1, compute(a0, a1));
+    int32_t res = a0 - a1;
+    EXPECT_EQ(res, compute(a0, a1));
   }
 }
 
 TEST(ASMBackendTest, I32_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(-16384, 16383);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
@@ -1533,14 +1556,15 @@ TEST(ASMBackendTest, I32_SubConstArg0) {
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 - a1, compute(a1));
+    int32_t res = a0 - a1;
+    EXPECT_EQ(res, compute(a1));
   }
 }
 
 TEST(ASMBackendTest, I32_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(-16384, 16383);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
@@ -1560,14 +1584,15 @@ TEST(ASMBackendTest, I32_SubConstArg1) {
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 - a1, compute(a0));
+    int32_t res = a0 - a1;
+    EXPECT_EQ(res, compute(a0));
   }
 }
 
 TEST(ASMBackendTest, I32_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(-181, 181);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   khir::ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -1586,14 +1611,15 @@ TEST(ASMBackendTest, I32_MUL) {
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
     int32_t a1 = distrib(gen);
-    EXPECT_EQ(a0 * a1, compute(a0, a1));
+    int32_t res = a0 * a1;
+    EXPECT_EQ(res, compute(a0, a1));
   }
 }
 
 TEST(ASMBackendTest, I32_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(-181, 181);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
@@ -1613,14 +1639,15 @@ TEST(ASMBackendTest, I32_MULConstArg0) {
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 * a1, compute(a1));
+    int32_t res = a0 * a1;
+    EXPECT_EQ(res, compute(a1));
   }
 }
 
 TEST(ASMBackendTest, I32_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(-181, 181);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
@@ -1640,14 +1667,15 @@ TEST(ASMBackendTest, I32_MULConstArg1) {
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(a0 * a1, compute(a0));
+    int32_t res = a0 * a1;
+    EXPECT_EQ(res, compute(a0));
   }
 }
 
 TEST(ASMBackendTest, I32_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
@@ -1666,11 +1694,10 @@ TEST(ASMBackendTest, I32_CONST) {
   }
 }
 
-/*
 TEST(ASMBackendTest, I32_ZEXT_I64) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     khir::ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
@@ -1690,12 +1717,11 @@ TEST(ASMBackendTest, I32_ZEXT_I64) {
     EXPECT_EQ(zexted, compute(c));
   }
 }
-*/
 
 TEST(ASMBackendTest, I32_ZEXT_I64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
@@ -1719,7 +1745,7 @@ TEST(ASMBackendTest, I32_ZEXT_I64Const) {
 TEST(ASMBackendTest, I32_CONV_F64) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     khir::ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
@@ -1743,7 +1769,7 @@ TEST(ASMBackendTest, I32_CONV_F64) {
 TEST(ASMBackendTest, I32_CONV_F64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
@@ -1767,7 +1793,7 @@ TEST(ASMBackendTest, I32_CONV_F64Const) {
 TEST(ASMBackendTest, I32_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     for (auto cmp_type :
          {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
@@ -1819,7 +1845,7 @@ TEST(ASMBackendTest, I32_CMP_XXReturn) {
 TEST(ASMBackendTest, I32_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     for (auto cmp_type :
          {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
@@ -1859,7 +1885,7 @@ TEST(ASMBackendTest, I32_CMP_XXConstArg0) {
 TEST(ASMBackendTest, I32_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     for (auto cmp_type :
          {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
@@ -1899,7 +1925,7 @@ TEST(ASMBackendTest, I32_CMP_XXConstArg1) {
 TEST(ASMBackendTest, I32_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t loc = distrib(gen);
 
@@ -1923,7 +1949,7 @@ TEST(ASMBackendTest, I32_LOAD) {
 TEST(ASMBackendTest, I32_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
@@ -1948,7 +1974,7 @@ TEST(ASMBackendTest, I32_LOADGlobal) {
 TEST(ASMBackendTest, I32_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
@@ -1978,7 +2004,7 @@ TEST(ASMBackendTest, I32_LOADStruct) {
 TEST(ASMBackendTest, I32_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
@@ -2006,7 +2032,7 @@ TEST(ASMBackendTest, I32_STORE) {
 TEST(ASMBackendTest, I32_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
@@ -2034,7 +2060,7 @@ TEST(ASMBackendTest, I32_STOREConst) {
 TEST(ASMBackendTest, I32_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
@@ -2063,7 +2089,7 @@ TEST(ASMBackendTest, I32_STOREGlobal) {
 TEST(ASMBackendTest, I32_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int32_t> distrib(INT16_MIN, INT16_MAX);
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
