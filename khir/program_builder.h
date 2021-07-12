@@ -226,62 +226,62 @@ class ProgramBuilder {
   Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
 
   // I1
+  Value ConstI1(bool v);
   Value LNotI1(Value v);
   Value CmpI1(CompType cmp, Value v1, Value v2);
-  Value ConstI1(bool v);
   Value I64ZextI1(Value v);
   Value I8ZextI1(Value v);
 
   // I8
+  Value ConstI8(uint8_t v);
   Value AddI8(Value v1, Value v2);
   Value MulI8(Value v1, Value v2);
   Value SubI8(Value v1, Value v2);
   Value CmpI8(CompType cmp, Value v1, Value v2);
-  Value ConstI8(uint8_t v);
   Value I64ZextI8(Value v);
   Value F64ConvI8(Value v);
   Value LoadI8(Value ptr);
   void StoreI8(Value ptr, Value v);
 
   // I16
+  Value ConstI16(uint16_t v);
   Value AddI16(Value v1, Value v2);
   Value MulI16(Value v1, Value v2);
   Value SubI16(Value v1, Value v2);
   Value CmpI16(CompType cmp, Value v1, Value v2);
-  Value ConstI16(uint16_t v);
   Value I64ZextI16(Value v);
   Value F64ConvI16(Value v);
   Value LoadI16(Value ptr);
   void StoreI16(Value ptr, Value v);
 
   // I32
+  Value ConstI32(uint32_t v);
   Value AddI32(Value v1, Value v2);
   Value MulI32(Value v1, Value v2);
   Value SubI32(Value v1, Value v2);
   Value CmpI32(CompType cmp, Value v1, Value v2);
-  Value ConstI32(uint32_t v);
   Value I64ZextI32(Value v);
   Value F64ConvI32(Value v);
   Value LoadI32(Value ptr);
   void StoreI32(Value ptr, Value v);
 
   // I64
+  Value ConstI64(uint64_t v);
   Value AddI64(Value v1, Value v2);
   Value MulI64(Value v1, Value v2);
   Value SubI64(Value v1, Value v2);
   Value CmpI64(CompType cmp, Value v1, Value v2);
-  Value ConstI64(uint64_t v);
   Value F64ConvI64(Value v);
   Value LoadI64(Value ptr);
   void StoreI64(Value ptr, Value v);
 
   // F64
+  Value ConstF64(double v);
   Value AddF64(Value v1, Value v2);
   Value MulF64(Value v1, Value v2);
   Value DivF64(Value v1, Value v2);
   Value SubF64(Value v1, Value v2);
   Value CmpF64(CompType cmp, Value v1, Value v2);
-  Value ConstF64(double v);
   Value I64ConvF64(Value v);
   Value LoadF64(Value ptr);
   void StoreF64(Value ptr, Value v);
