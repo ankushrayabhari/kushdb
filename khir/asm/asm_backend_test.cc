@@ -319,156 +319,252 @@ TEST(ASMBackendTest, I8_ZEXT_I64Const) {
 }
 
 TEST(ASMBackendTest, I8_CONV_F64) {
-  khir::ProgramBuilder program;
-  auto func = program.CreatePublicFunction(program.F64Type(),
-                                           {program.I8Type()}, "compute");
-  auto args = program.GetFunctionArguments(func);
-  program.Return(program.F64ConvI8(args[0]));
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I64Type(),
+                                             {program.I8Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.F64ConvI8(args[0]));
 
-  khir::ASMBackend backend;
-  program.Translate(backend);
-  backend.Compile();
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
 
-  using compute_fn = std::add_pointer<double(int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    using compute_fn = std::add_pointer<double(int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-  EXPECT_EQ(0.0, compute(0.0));
-  EXPECT_EQ(127.0, compute(127));
-  EXPECT_EQ(-128.0, compute(-128));
-  EXPECT_EQ(15.0, compute(15));
-  EXPECT_EQ(-1.0, compute(-1));
+    int8_t c = distrib(gen);
+    double conv = c;
+    EXPECT_EQ(conv, compute(c));
+  }
 }
 
-TEST(ASMBackendTest, I8_CMP_EQ_Return) {
-  khir::ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
-      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
-  auto args = program.GetFunctionArguments(func);
-  program.Return(program.CmpI8(khir::CompType::EQ, args[0], args[1]));
+TEST(ASMBackendTest, I8_CONV_F64Const) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
 
-  khir::ASMBackend backend;
-  program.Translate(backend);
-  backend.Compile();
+    khir::ProgramBuilder program;
+    program.CreatePublicFunction(program.I64Type(), {program.I8Type()},
+                                 "compute");
+    program.Return(program.F64ConvI8(program.ConstI8(c)));
 
-  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
 
-  EXPECT_NE(0, compute(0, 0));
-  EXPECT_EQ(0, compute(0, 1));
-  EXPECT_EQ(0, compute(1, 0));
-  EXPECT_NE(0, compute(1, 1));
-  EXPECT_NE(0, compute(-1, -1));
-  EXPECT_EQ(0, compute(-1, 0));
+    using compute_fn = std::add_pointer<double(int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    double conv = c;
+    EXPECT_EQ(conv, compute(c));
+  }
 }
 
-TEST(ASMBackendTest, I8_CMP_NE_Return) {
-  khir::ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
-      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
-  auto args = program.GetFunctionArguments(func);
-  program.Return(program.CmpI8(khir::CompType::NE, args[0], args[1]));
+TEST(ASMBackendTest, I8_CMP_EQReturn) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c1 = distrib(gen);
+    int8_t c2 = distrib(gen);
 
-  khir::ASMBackend backend;
-  program.Translate(backend);
-  backend.Compile();
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.CmpI8(khir::CompType::EQ, args[0], args[1]));
 
-  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
 
-  EXPECT_EQ(0, compute(0, 0));
-  EXPECT_NE(0, compute(0, 1));
-  EXPECT_NE(0, compute(1, 0));
-  EXPECT_EQ(0, compute(1, 1));
-  EXPECT_EQ(0, compute(-1, -1));
-  EXPECT_NE(0, compute(-1, 0));
+    using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_NE(0, compute(c1, c1));
+    EXPECT_NE(0, compute(c2, c2));
+    if (c1 == c2) {
+      EXPECT_NE(0, compute(c1, c2));
+      EXPECT_NE(0, compute(c2, c1));
+    } else {
+      EXPECT_EQ(0, compute(c1, c2));
+      EXPECT_EQ(0, compute(c2, c1));
+    }
+  }
 }
 
-TEST(ASMBackendTest, I8_CMP_LT_Return) {
-  khir::ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
-      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
-  auto args = program.GetFunctionArguments(func);
-  program.Return(program.CmpI8(khir::CompType::LT, args[0], args[1]));
+TEST(ASMBackendTest, I8_CMP_NEReturn) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c1 = distrib(gen);
+    int8_t c2 = distrib(gen);
 
-  khir::ASMBackend backend;
-  program.Translate(backend);
-  backend.Compile();
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.CmpI8(khir::CompType::NE, args[0], args[1]));
 
-  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
 
-  EXPECT_EQ(0, compute(0, 0));
-  EXPECT_NE(0, compute(0, 1));
-  EXPECT_EQ(0, compute(1, 0));
-  EXPECT_EQ(0, compute(1, 1));
-  EXPECT_EQ(0, compute(-1, -1));
-  EXPECT_NE(0, compute(-1, 0));
+    using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(0, compute(c1, c1));
+    EXPECT_EQ(0, compute(c2, c2));
+    if (c1 == c2) {
+      EXPECT_EQ(0, compute(c1, c2));
+      EXPECT_EQ(0, compute(c2, c1));
+    } else {
+      EXPECT_NE(0, compute(c1, c2));
+      EXPECT_NE(0, compute(c2, c1));
+    }
+  }
 }
 
-TEST(ASMBackendTest, I8_CMP_GT_Return) {
-  khir::ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
-      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
-  auto args = program.GetFunctionArguments(func);
-  program.Return(program.CmpI8(khir::CompType::GT, args[0], args[1]));
+TEST(ASMBackendTest, I8_CMP_LTReturn) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
-  khir::ASMBackend backend;
-  program.Translate(backend);
-  backend.Compile();
+  for (int i = 0; i < 10; i++) {
+    int8_t c1 = distrib(gen);
+    int8_t c2 = distrib(gen);
 
-  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.CmpI8(khir::CompType::LT, args[0], args[1]));
 
-  EXPECT_EQ(0, compute(0, 0));
-  EXPECT_EQ(0, compute(0, 1));
-  EXPECT_NE(0, compute(1, 0));
-  EXPECT_EQ(0, compute(1, 1));
-  EXPECT_EQ(0, compute(-1, -1));
-  EXPECT_EQ(0, compute(-1, 0));
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(0, compute(c1, c1));
+    EXPECT_EQ(0, compute(c2, c2));
+    if (c1 < c2) {
+      EXPECT_NE(0, compute(c1, c2));
+      EXPECT_EQ(0, compute(c2, c1));
+    } else {
+      EXPECT_EQ(0, compute(c1, c2));
+      EXPECT_NE(0, compute(c2, c1));
+    }
+  }
 }
 
-TEST(ASMBackendTest, I8_CMP_LE_Return) {
-  khir::ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
-      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
-  auto args = program.GetFunctionArguments(func);
-  program.Return(program.CmpI8(khir::CompType::LE, args[0], args[1]));
+TEST(ASMBackendTest, I8_CMP_GTReturn) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c1 = distrib(gen);
+    int8_t c2 = distrib(gen);
 
-  khir::ASMBackend backend;
-  program.Translate(backend);
-  backend.Compile();
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.CmpI8(khir::CompType::GT, args[0], args[1]));
 
-  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
 
-  EXPECT_NE(0, compute(0, 0));
-  EXPECT_NE(0, compute(0, 1));
-  EXPECT_EQ(0, compute(1, 0));
-  EXPECT_NE(0, compute(1, 1));
-  EXPECT_NE(0, compute(-1, -1));
-  EXPECT_NE(0, compute(-1, 0));
+    using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(0, compute(c1, c1));
+    EXPECT_EQ(0, compute(c2, c2));
+    if (c1 > c2) {
+      EXPECT_NE(0, compute(c1, c2));
+      EXPECT_EQ(0, compute(c2, c1));
+    } else {
+      EXPECT_EQ(0, compute(c1, c2));
+      EXPECT_NE(0, compute(c2, c1));
+    }
+  }
 }
 
-TEST(ASMBackendTest, I8_CMP_GE_Return) {
-  khir::ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
-      program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
-  auto args = program.GetFunctionArguments(func);
-  program.Return(program.CmpI8(khir::CompType::GE, args[0], args[1]));
+TEST(ASMBackendTest, I8_CMP_LEReturn) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
-  khir::ASMBackend backend;
-  program.Translate(backend);
-  backend.Compile();
+  for (int i = 0; i < 10; i++) {
+    int8_t c1 = distrib(gen);
+    int8_t c2 = distrib(gen);
 
-  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.CmpI8(khir::CompType::LE, args[0], args[1]));
 
-  EXPECT_NE(0, compute(0, 0));
-  EXPECT_EQ(0, compute(0, 1));
-  EXPECT_NE(0, compute(1, 0));
-  EXPECT_NE(0, compute(1, 1));
-  EXPECT_NE(0, compute(-1, -1));
-  EXPECT_EQ(0, compute(-1, 0));
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_NE(0, compute(c1, c1));
+    EXPECT_NE(0, compute(c2, c2));
+    if (c1 <= c2) {
+      EXPECT_NE(0, compute(c1, c2));
+      EXPECT_EQ(0, compute(c2, c1));
+    } else {
+      EXPECT_EQ(0, compute(c1, c2));
+      EXPECT_NE(0, compute(c2, c1));
+    }
+  }
+}
+
+TEST(ASMBackendTest, I8_CMP_GEReturn) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+
+  for (int i = 0; i < 10; i++) {
+    int8_t c1 = distrib(gen);
+    int8_t c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.CmpI8(khir::CompType::GE, args[0], args[1]));
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_NE(0, compute(c1, c1));
+    EXPECT_NE(0, compute(c2, c2));
+    if (c1 >= c2) {
+      EXPECT_NE(0, compute(c1, c2));
+      EXPECT_EQ(0, compute(c2, c1));
+    } else {
+      EXPECT_EQ(0, compute(c1, c2));
+      EXPECT_NE(0, compute(c2, c1));
+    }
+  }
 }
 
 TEST(ASMBackendTest, I8_LOAD) {
