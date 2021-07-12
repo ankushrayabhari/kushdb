@@ -8,6 +8,29 @@
 
 using namespace kush;
 
+template <typename T>
+bool Compare(khir::CompType cmp, T a0, T a1) {
+  switch (cmp) {
+    case khir::CompType::EQ:
+      return a0 == a1;
+
+    case khir::CompType::NE:
+      return a0 != a1;
+
+    case khir::CompType::LT:
+      return a0 < a1;
+
+    case khir::CompType::LE:
+      return a0 <= a1;
+
+    case khir::CompType::GT:
+      return a0 > a1;
+
+    case khir::CompType::GE:
+      return a0 >= a1;
+  }
+}
+
 TEST(ASMBackendTest, I8_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -366,29 +389,6 @@ TEST(ASMBackendTest, I8_CONV_F64Const) {
   }
 }
 
-template <typename T>
-bool Compare(khir::CompType cmp, T a0, T a1) {
-  switch (cmp) {
-    case khir::CompType::EQ:
-      return a0 == a1;
-
-    case khir::CompType::NE:
-      return a0 != a1;
-
-    case khir::CompType::LT:
-      return a0 < a1;
-
-    case khir::CompType::LE:
-      return a0 <= a1;
-
-    case khir::CompType::GT:
-      return a0 > a1;
-
-    case khir::CompType::GE:
-      return a0 >= a1;
-  }
-}
-
 TEST(ASMBackendTest, I8_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -436,6 +436,86 @@ TEST(ASMBackendTest, I8_CMP_XXReturn) {
         EXPECT_NE(0, compute(c2, c1));
       } else {
         EXPECT_EQ(0, compute(c2, c1));
+      }
+    }
+  }
+}
+
+TEST(ASMBackendTest, I8_CMP_XXConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    for (auto cmp_type :
+         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
+          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+      int8_t c1 = distrib(gen);
+      int8_t c2 = distrib(gen);
+
+      khir::ProgramBuilder program;
+      auto func = program.CreatePublicFunction(program.I1Type(),
+                                               {program.I8Type()}, "compute");
+      auto args = program.GetFunctionArguments(func);
+      program.Return(program.CmpI8(cmp_type, program.ConstI8(c1), args[0]));
+
+      khir::ASMBackend backend;
+      program.Translate(backend);
+      backend.Compile();
+
+      using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
+      auto compute =
+          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+      if (Compare(cmp_type, c1, c1)) {
+        EXPECT_NE(0, compute(c1));
+      } else {
+        EXPECT_EQ(0, compute(c1));
+      }
+
+      if (Compare(cmp_type, c1, c2)) {
+        EXPECT_NE(0, compute(c2));
+      } else {
+        EXPECT_EQ(0, compute(c2));
+      }
+    }
+  }
+}
+
+TEST(ASMBackendTest, I8_CMP_XXConstArg1) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    for (auto cmp_type :
+         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
+          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+      int8_t c1 = distrib(gen);
+      int8_t c2 = distrib(gen);
+
+      khir::ProgramBuilder program;
+      auto func = program.CreatePublicFunction(program.I1Type(),
+                                               {program.I8Type()}, "compute");
+      auto args = program.GetFunctionArguments(func);
+      program.Return(program.CmpI8(cmp_type, args[0], program.ConstI8(c2)));
+
+      khir::ASMBackend backend;
+      program.Translate(backend);
+      backend.Compile();
+
+      using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
+      auto compute =
+          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+      if (Compare(cmp_type, c2, c2)) {
+        EXPECT_NE(0, compute(c2));
+      } else {
+        EXPECT_EQ(0, compute(c2));
+      }
+
+      if (Compare(cmp_type, c1, c2)) {
+        EXPECT_NE(0, compute(c1));
+      } else {
+        EXPECT_EQ(0, compute(c1));
       }
     }
   }
