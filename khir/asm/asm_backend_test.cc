@@ -522,46 +522,198 @@ TEST(ASMBackendTest, I8_CMP_XXConstArg1) {
 }
 
 TEST(ASMBackendTest, I8_LOAD) {
-  khir::ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
-      program.I8Type(), {program.PointerType(program.I8Type())}, "compute");
-  auto args = program.GetFunctionArguments(func);
-  program.Return(program.LoadI8(args[0]));
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t loc = distrib(gen);
 
-  khir::ASMBackend backend;
-  program.Translate(backend);
-  backend.Compile();
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I8Type(), {program.PointerType(program.I8Type())}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.LoadI8(args[0]));
 
-  using compute_fn = std::add_pointer<int8_t(int8_t*)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
 
-  int8_t loc;
-  for (int i = -10; i <= 10; i++) {
-    loc = i;
+    using compute_fn = std::add_pointer<int8_t(int8_t*)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
     EXPECT_EQ(loc, compute(&loc));
   }
 }
 
+TEST(ASMBackendTest, I8_LOADGlobal) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto global =
+        program.Global(true, false, program.I8Type(), program.ConstI8(c));
+    program.CreatePublicFunction(program.I8Type(), {}, "compute");
+    program.Return(
+        program.LoadI8(program.GetElementPtr(program.I8Type(), global, {0})));
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int8_t()>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c, compute());
+  }
+}
+
+TEST(ASMBackendTest, I8_LOADStruct) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
+
+    struct Test {
+      int8_t x;
+    };
+
+    khir::ProgramBuilder program;
+    auto st = program.StructType({program.I8Type()});
+    auto func = program.CreatePublicFunction(
+        program.I8Type(), {program.PointerType(st)}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.LoadI8(program.GetElementPtr(st, args[0], {0, 0})));
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int8_t(Test*)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    Test t{.x = c};
+    EXPECT_EQ(c, compute(&t));
+  }
+}
+
 TEST(ASMBackendTest, I8_STORE) {
-  khir::ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
-      program.VoidType(),
-      {program.PointerType(program.I8Type()), program.I8Type()}, "compute");
-  auto args = program.GetFunctionArguments(func);
-  program.StoreI8(args[0], args[1]);
-  program.Return();
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
 
-  khir::ASMBackend backend;
-  program.Translate(backend);
-  backend.Compile();
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.VoidType(),
+        {program.PointerType(program.I8Type()), program.I8Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.StoreI8(args[0], args[1]);
+    program.Return();
 
-  using compute_fn = std::add_pointer<void(int8_t*, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
 
-  int8_t loc;
-  for (int i = -10; i <= 10; i++) {
-    compute(&loc, i);
-    EXPECT_EQ(loc, i);
+    using compute_fn = std::add_pointer<void(int8_t*, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    int8_t loc;
+    compute(&loc, c);
+    EXPECT_EQ(loc, c);
+  }
+}
+
+TEST(ASMBackendTest, I8_STOREConst) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.PointerType(program.I8Type())}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.StoreI8(args[0], program.ConstI8(c));
+    program.Return();
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<void(int8_t*)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    int8_t loc;
+    compute(&loc);
+    EXPECT_EQ(loc, c);
+  }
+}
+
+TEST(ASMBackendTest, I8_STOREGlobal) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto global =
+        program.Global(true, false, program.I8Type(), program.ConstI8(c));
+    auto func = program.CreatePublicFunction(
+        program.PointerType(program.I8Type()), {program.I8Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.StoreI8(program.GetElementPtr(program.I8Type(), global, {0}),
+                    args[0]);
+    program.Return(global);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int8_t*(int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    auto loc = compute(c);
+    EXPECT_EQ(*loc, c);
+  }
+}
+
+TEST(ASMBackendTest, I8_STOREStruct) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
+
+    struct Test {
+      int8_t x;
+    };
+
+    khir::ProgramBuilder program;
+    auto st = program.StructType({program.I8Type()});
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.PointerType(st), program.I8Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.StoreI8(program.GetElementPtr(st, args[0], {0}), args[1]);
+    program.Return();
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<void(Test*, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    Test t;
+    compute(&t, c);
+    EXPECT_EQ(t.x, c);
   }
 }
 
