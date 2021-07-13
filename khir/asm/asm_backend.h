@@ -66,6 +66,7 @@ class ASMBackend : public Backend, public compile::Program {
                           const std::vector<StructConstant>& struct_constants,
                           const std::vector<ArrayConstant>& array_constants,
                           const std::vector<Global>& globals);
+  bool IsNullPtr(khir::Value v, const std::vector<uint64_t>& constant_instrs);
   bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions);
   std::pair<khir::Value, int32_t> Gep(
       khir::Value v, const std::vector<uint64_t>& instructions,
@@ -178,8 +179,7 @@ class ASMBackend : public Backend, public compile::Program {
                      std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
-  void ZextDWordValue(Register dest, Value v,
-                      std::vector<int32_t>& offsets,
+  void ZextDWordValue(Register dest, Value v, std::vector<int32_t>& offsets,
                       const std::vector<uint64_t>& constant_instrs,
                       const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetDWordPtrValue(
@@ -298,7 +298,7 @@ class ASMBackend : public Backend, public compile::Program {
 
   std::vector<asmjit::Label> char_array_constants_;
   std::vector<asmjit::Label> globals_;
-  asmjit::Label GetConstantGlobal(uint64_t instr);
+  asmjit::Label GetGlobalPointer(uint64_t instr);
 
   std::vector<void*> external_func_addr_;
   std::vector<asmjit::Label> internal_func_labels_;

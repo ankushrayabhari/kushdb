@@ -31,6 +31,26 @@ bool Compare(khir::CompType cmp, T a0, T a1) {
   }
 }
 
+TEST(AsmBackendTest, NULLPTR) {
+  for (auto type_func :
+       {&khir::ProgramBuilder::I1Type, &khir::ProgramBuilder::I8Type,
+        &khir::ProgramBuilder::I16Type, &khir::ProgramBuilder::I32Type,
+        &khir::ProgramBuilder::I64Type, &khir::ProgramBuilder::F64Type}) {
+    khir::ProgramBuilder program;
+    auto type = program.PointerType(std::invoke(type_func, program));
+    program.CreatePublicFunction(type, {}, "compute");
+    program.Return(program.NullPtr(type));
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int8_t*()>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    EXPECT_EQ(nullptr, compute());
+  }
+}
+
 TEST(ASMBackendTest, I1_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());

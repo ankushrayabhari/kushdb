@@ -301,7 +301,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   }
 }
 
-asmjit::Label ASMBackend::GetConstantGlobal(uint64_t instr) {
+asmjit::Label ASMBackend::GetGlobalPointer(uint64_t instr) {
   auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
   switch (opcode) {
     case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST: {
@@ -320,8 +320,19 @@ asmjit::Label ASMBackend::GetConstantGlobal(uint64_t instr) {
     }
 
     default:
-      throw std::runtime_error("Invalid constant global.");
+      throw std::runtime_error("Invalid global pointer.");
   }
+}
+
+bool ASMBackend::IsNullPtr(khir::Value v,
+                           const std::vector<uint64_t>& constant_instrs) {
+  if (!v.IsConstantGlobal()) {
+    return false;
+  }
+
+  return ConstantOpcodeFrom(
+             GenericInstructionReader(constant_instrs[v.GetIdx()]).Opcode()) ==
+         ConstantOpcode::NULLPTR;
 }
 
 bool ASMBackend::IsGep(khir::Value v,
@@ -676,7 +687,11 @@ x86::Mem ASMBackend::GetBytePtrValue(
   }
 
   if (v.IsConstantGlobal()) {
-    auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+    if (IsNullPtr(v, constant_instrs)) {
+      return x86::byte_ptr(offset);
+    }
+
+    auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
     return x86::byte_ptr(label, offset);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
@@ -842,7 +857,11 @@ x86::Mem ASMBackend::GetWordPtrValue(
   }
 
   if (v.IsConstantGlobal()) {
-    auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+    if (IsNullPtr(v, constant_instrs)) {
+      return x86::word_ptr(offset);
+    }
+
+    auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
     return x86::word_ptr(label, offset);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
@@ -1007,7 +1026,11 @@ x86::Mem ASMBackend::GetDWordPtrValue(
   }
 
   if (v.IsConstantGlobal()) {
-    auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+    if (IsNullPtr(v, constant_instrs)) {
+      return x86::dword_ptr(offset);
+    }
+
+    auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
     return x86::dword_ptr(label, offset);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
@@ -1025,7 +1048,12 @@ void ASMBackend::MovePtrValue(
     const std::vector<uint64_t>& constant_instrs,
     const std::vector<RegisterAssignment>& register_assign) {
   if (v.IsConstantGlobal()) {
-    auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+    if (IsNullPtr(v, constant_instrs)) {
+      asm_->mov(dest, 0);
+      return;
+    }
+
+    auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
     asm_->lea(Register::RAX.GetQ(), x86::ptr(label));
     asm_->mov(dest, Register::RAX.GetQ());
   } else if (register_assign[v.GetIdx()].IsRegister()) {
@@ -1231,7 +1259,11 @@ x86::Mem ASMBackend::GetQWordPtrValue(
   }
 
   if (v.IsConstantGlobal()) {
-    auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+    if (IsNullPtr(v, constant_instrs)) {
+      return x86::qword_ptr(offset);
+    }
+
+    auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
     return x86::qword_ptr(label, offset);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
@@ -1252,7 +1284,12 @@ void ASMBackend::MaterializeGep(
   auto [ptr, offset] = Gep(v, instrs, constant_instrs);
 
   if (ptr.IsConstantGlobal()) {
-    auto label = GetConstantGlobal(constant_instrs[ptr.GetIdx()]);
+    if (IsNullPtr(ptr, constant_instrs)) {
+      asm_->mov(dest, offset);
+      return;
+    }
+
+    auto label = GetGlobalPointer(constant_instrs[ptr.GetIdx()]);
     asm_->lea(Register::RAX.GetQ(), x86::ptr(label, offset));
     asm_->mov(dest, Register::RAX.GetQ());
   } else if (register_assign[ptr.GetIdx()].IsRegister()) {
@@ -1276,7 +1313,12 @@ void ASMBackend::MaterializeGep(
   auto [ptr, offset] = Gep(v, instrs, constant_instrs);
 
   if (ptr.IsConstantGlobal()) {
-    auto label = GetConstantGlobal(constant_instrs[ptr.GetIdx()]);
+    if (IsNullPtr(ptr, constant_instrs)) {
+      asm_->mov(dest, offset);
+      return;
+    }
+
+    auto label = GetGlobalPointer(constant_instrs[ptr.GetIdx()]);
     asm_->lea(dest, x86::ptr(label, offset));
   } else if (register_assign[ptr.GetIdx()].IsRegister()) {
     auto ptr_reg = NormalRegister(register_assign[ptr.GetIdx()].Register());
@@ -2478,7 +2520,12 @@ void ASMBackend::TranslateInstr(
         auto dest_reg = NormalRegister(dest_assign.Register()).GetQ();
 
         if (v.IsConstantGlobal()) {
-          auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+          if (IsNullPtr(v, constant_instrs)) {
+            asm_->mov(dest_reg, 0);
+            return;
+          }
+
+          auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
           asm_->lea(dest_reg, x86::qword_ptr(label));
         } else if (register_assign[v.GetIdx()].IsRegister()) {
           auto v_reg =
@@ -2496,7 +2543,12 @@ void ASMBackend::TranslateInstr(
       auto offset = stack_allocator.AllocateSlot();
       offsets[instr_idx] = offset;
       if (v.IsConstantGlobal()) {
-        auto label = GetConstantGlobal(constant_instrs[v.GetIdx()]);
+        if (IsNullPtr(v, constant_instrs)) {
+          asm_->mov(x86::qword_ptr(x86::rbp, offset), 0);
+          return;
+        }
+
+        auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
         asm_->lea(Register::RAX.GetQ(), x86::ptr(label));
         asm_->mov(x86::qword_ptr(x86::rbp, offset), Register::RAX.GetQ());
       } else if (register_assign[v.GetIdx()].IsRegister()) {
@@ -2538,7 +2590,13 @@ void ASMBackend::TranslateInstr(
 
       if (v1.IsConstantGlobal()) {
         assert(dest_assign.IsRegister());
-        auto label = GetConstantGlobal(constant_instrs[v0.GetIdx()]);
+
+        if (IsNullPtr(v1, constant_instrs)) {
+          asm_->mov(loc, 0);
+          return;
+        }
+
+        auto label = GetGlobalPointer(constant_instrs[v0.GetIdx()]);
         auto dest = NormalRegister(dest_assign.Register());
         asm_->lea(dest.GetQ(), x86::ptr(label));
         asm_->mov(loc, dest.GetQ());

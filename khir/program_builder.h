@@ -187,6 +187,7 @@ class ProgramBuilder {
   Type ArrayType(Type type, int len = 0);
   Type FunctionType(Type result, absl::Span<const Type> args);
   Type TypeOf(Value value);
+  Value SizeOf(Type type);
 
   // Function
   FunctionRef CreateFunction(Type result_type,
@@ -217,13 +218,12 @@ class ProgramBuilder {
   void UpdatePhiMember(Value phi, Value phi_member);
 
   // Memory
-  Value Alloca(Type size);
   Value NullPtr(Type t);
   Value PointerCast(Value v, Type t);
-  void StorePtr(Value ptr, Value v);
-  Value LoadPtr(Value ptr);
-  Value SizeOf(Type type);
+  Value Alloca(Type size);
   Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
+  Value LoadPtr(Value ptr);
+  void StorePtr(Value ptr, Value v);
 
   // I1
   Value ConstI1(bool v);
