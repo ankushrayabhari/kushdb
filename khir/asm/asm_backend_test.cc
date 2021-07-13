@@ -51,6 +51,71 @@ TEST(AsmBackendTest, NULLPTR) {
   }
 }
 
+TEST(AsmBackendTest, PTR_CAST) {
+  khir::ProgramBuilder program;
+  auto type = program.PointerType(program.I8Type());
+  auto func = program.CreatePublicFunction(
+      program.PointerType(program.F64Type()), {type}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(
+      program.PointerCast(args[0], program.PointerType(program.F64Type())));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<double*(int8_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  EXPECT_EQ(nullptr, compute(nullptr));
+
+  int8_t test;
+  EXPECT_EQ(reinterpret_cast<double*>(&test), compute(&test));
+}
+
+TEST(AsmBackendTest, PTR_CASTGlobal) {
+  khir::ProgramBuilder program;
+  auto global =
+      program.Global(false, true, program.I64Type(), program.ConstI64(5));
+  program.CreatePublicFunction(program.PointerType(program.F64Type()), {},
+                               "compute");
+  program.Return(
+      program.PointerCast(global, program.PointerType(program.F64Type())));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<double*()>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(5, *reinterpret_cast<int64_t*>(compute()));
+}
+
+TEST(AsmBackendTest, PTR_CASTStruct) {
+  struct Test {
+    int64_t x;
+  };
+
+  khir::ProgramBuilder program;
+  auto st = program.StructType({program.I64Type()});
+  auto func =
+      program.CreatePublicFunction(program.PointerType(program.F64Type()),
+                                   {program.PointerType(st)}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.PointerCast(program.GetElementPtr(st, args[0], {0, 0}),
+                                     program.PointerType(program.F64Type())));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<double*(Test*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  Test test{.x = 5};
+  EXPECT_EQ(5, *reinterpret_cast<int64_t*>(compute(&test)));
+}
+
 TEST(ASMBackendTest, I1_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -825,8 +890,7 @@ TEST(ASMBackendTest, I8_LOADGlobal) {
     auto global =
         program.Global(true, false, program.I8Type(), program.ConstI8(c));
     program.CreatePublicFunction(program.I8Type(), {}, "compute");
-    program.Return(
-        program.LoadI8(program.GetElementPtr(program.I8Type(), global, {0})));
+    program.Return(program.LoadI8(global));
 
     khir::ASMBackend backend;
     program.Translate(backend);
@@ -937,8 +1001,7 @@ TEST(ASMBackendTest, I8_STOREGlobal) {
     auto func = program.CreatePublicFunction(
         program.PointerType(program.I8Type()), {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI8(program.GetElementPtr(program.I8Type(), global, {0}),
-                    args[0]);
+    program.StoreI8(global, args[0]);
     program.Return(global);
 
     khir::ASMBackend backend;
@@ -970,7 +1033,7 @@ TEST(ASMBackendTest, I8_STOREStruct) {
         program.VoidType(), {program.PointerType(st), program.I8Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI8(program.GetElementPtr(st, args[0], {0}), args[1]);
+    program.StoreI8(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
     khir::ASMBackend backend;
@@ -1520,8 +1583,7 @@ TEST(ASMBackendTest, I16_LOADGlobal) {
     auto global =
         program.Global(true, false, program.I16Type(), program.ConstI16(c));
     program.CreatePublicFunction(program.I16Type(), {}, "compute");
-    program.Return(
-        program.LoadI16(program.GetElementPtr(program.I16Type(), global, {0})));
+    program.Return(program.LoadI16(global));
 
     khir::ASMBackend backend;
     program.Translate(backend);
@@ -1633,8 +1695,7 @@ TEST(ASMBackendTest, I16_STOREGlobal) {
     auto func = program.CreatePublicFunction(
         program.PointerType(program.I16Type()), {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI16(program.GetElementPtr(program.I16Type(), global, {0}),
-                     args[0]);
+    program.StoreI16(global, args[0]);
     program.Return(global);
 
     khir::ASMBackend backend;
@@ -1666,7 +1727,7 @@ TEST(ASMBackendTest, I16_STOREStruct) {
         program.VoidType(), {program.PointerType(st), program.I16Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI16(program.GetElementPtr(st, args[0], {0}), args[1]);
+    program.StoreI16(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
     khir::ASMBackend backend;
@@ -2216,8 +2277,7 @@ TEST(ASMBackendTest, I32_LOADGlobal) {
     auto global =
         program.Global(true, false, program.I32Type(), program.ConstI32(c));
     program.CreatePublicFunction(program.I32Type(), {}, "compute");
-    program.Return(
-        program.LoadI32(program.GetElementPtr(program.I32Type(), global, {0})));
+    program.Return(program.LoadI32(global));
 
     khir::ASMBackend backend;
     program.Translate(backend);
@@ -2329,8 +2389,7 @@ TEST(ASMBackendTest, I32_STOREGlobal) {
     auto func = program.CreatePublicFunction(
         program.PointerType(program.I32Type()), {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI32(program.GetElementPtr(program.I32Type(), global, {0}),
-                     args[0]);
+    program.StoreI32(global, args[0]);
     program.Return(global);
 
     khir::ASMBackend backend;
@@ -2362,7 +2421,7 @@ TEST(ASMBackendTest, I32_STOREStruct) {
         program.VoidType(), {program.PointerType(st), program.I32Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI32(program.GetElementPtr(st, args[0], {0}), args[1]);
+    program.StoreI32(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
     khir::ASMBackend backend;
@@ -2864,8 +2923,7 @@ TEST(ASMBackendTest, I64_LOADGlobal) {
     auto global =
         program.Global(true, false, program.I64Type(), program.ConstI64(c));
     program.CreatePublicFunction(program.I64Type(), {}, "compute");
-    program.Return(
-        program.LoadI64(program.GetElementPtr(program.I64Type(), global, {0})));
+    program.Return(program.LoadI64(global));
 
     khir::ASMBackend backend;
     program.Translate(backend);
@@ -2977,8 +3035,7 @@ TEST(ASMBackendTest, I64_STOREGlobal) {
     auto func = program.CreatePublicFunction(
         program.PointerType(program.I64Type()), {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI64(program.GetElementPtr(program.I64Type(), global, {0}),
-                     args[0]);
+    program.StoreI64(global, args[0]);
     program.Return(global);
 
     khir::ASMBackend backend;
@@ -3010,7 +3067,7 @@ TEST(ASMBackendTest, I64_STOREStruct) {
         program.VoidType(), {program.PointerType(st), program.I64Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI64(program.GetElementPtr(st, args[0], {0}), args[1]);
+    program.StoreI64(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
     khir::ASMBackend backend;
