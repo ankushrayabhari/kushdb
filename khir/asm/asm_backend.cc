@@ -2596,7 +2596,7 @@ void ASMBackend::TranslateInstr(
           return;
         }
 
-        auto label = GetGlobalPointer(constant_instrs[v0.GetIdx()]);
+        auto label = GetGlobalPointer(constant_instrs[v1.GetIdx()]);
         auto dest = NormalRegister(dest_assign.Register());
         asm_->lea(dest.GetQ(), x86::ptr(label));
         asm_->mov(loc, dest.GetQ());

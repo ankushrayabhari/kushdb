@@ -349,6 +349,161 @@ TEST(ASMBackendTest, PTR_LOADStruct) {
   EXPECT_EQ(t.x, compute(&t));
 }
 
+TEST(ASMBackendTest, PTR_STORE) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(program.PointerType(program.I64Type())),
+       program.PointerType(program.I64Type())},
+      "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StorePtr(args[0], args[1]);
+  program.Return();
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<void(int64_t**, int64_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  int64_t value = 0xDEADBEEF;
+  int64_t* ptr = reinterpret_cast<int64_t*>(value);
+  int64_t* loc;
+  compute(&loc, ptr);
+  EXPECT_EQ(ptr, loc);
+}
+
+TEST(ASMBackendTest, PTR_STORENullptr) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(program.PointerType(program.I64Type()))}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StorePtr(args[0], program.NullPtr(program.I64Type()));
+  program.Return();
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<void(int64_t**)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  int64_t value = 0xDEADBEEF;
+  int64_t* ptr = reinterpret_cast<int64_t*>(value);
+  compute(&ptr);
+  EXPECT_EQ(nullptr, ptr);
+}
+
+TEST(ASMBackendTest, PTR_STOREGlobal) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I64Type(),
+      {program.PointerType(program.PointerType(program.I64Type()))}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto global =
+      program.Global(true, false, program.I64Type(), program.ConstI64(-1));
+  program.StorePtr(args[0], global);
+  auto ptr = program.LoadPtr(args[0]);
+  program.Return(program.LoadI64(ptr));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int64_t(int64_t**)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  int64_t* loc = nullptr;
+  EXPECT_EQ(-1, compute(&loc));
+}
+
+TEST(ASMBackendTest, PTR_STOREGep) {
+  struct Test {
+    int32_t a;
+    int64_t b;
+  };
+
+  khir::ProgramBuilder program;
+  auto st = program.StructType({program.I32Type(), program.I64Type()});
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(program.PointerType(program.I64Type())),
+       program.PointerType(st)},
+      "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StorePtr(args[0], program.GetElementPtr(st, args[1], {0, 1}));
+  program.Return();
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<void(int64_t**, Test*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  Test x{.a = 100, .b = -1000};
+  int64_t* loc = nullptr;
+  compute(&loc, &x);
+  EXPECT_EQ(&x.b, loc);
+}
+
+TEST(ASMBackendTest, PTR_STOREGlobalDest) {
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.PointerType(program.I64Type()),
+      {program.PointerType(program.I64Type())}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto global =
+      program.Global(false, true, program.PointerType(program.I64Type()),
+                     program.NullPtr(program.I64Type()));
+  program.StorePtr(
+      global,
+      program.PointerCast(args[0], program.PointerType(program.I64Type())));
+  program.Return(program.LoadPtr(global));
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int64_t*(int64_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  int64_t value = 0xDEADBEEF;
+  int64_t* ptr = reinterpret_cast<int64_t*>(value);
+  EXPECT_EQ(ptr, compute(ptr));
+}
+
+TEST(ASMBackendTest, PTR_STOREGepDest) {
+  struct Test {
+    int64_t* x;
+  };
+
+  khir::ProgramBuilder program;
+  auto st = program.StructType({program.PointerType(program.I64Type())});
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(st), program.PointerType(program.I64Type())},
+      "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StorePtr(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
+  program.Return();
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<void(Test*, int64_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  Test t{.x = nullptr};
+  int64_t value = 0xDEADBEEF;
+  int64_t* ptr = reinterpret_cast<int64_t*>(value);
+  compute(&t, ptr);
+  EXPECT_EQ(ptr, t.x);
+}
+
 TEST(ASMBackendTest, I1_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
