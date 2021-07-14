@@ -3207,11 +3207,14 @@ void ASMBackend::TranslateInstr(
         khir::Value v(reader.Arg());
         if (v.IsConstantGlobal()) {
           throw std::runtime_error("Not possible.");
+        } else if (register_assign[v.GetIdx()].IsRegister()) {
+          auto reg = NormalRegister(register_assign[v.GetIdx()].Register());
+          asm_->call(reg.GetQ());
+        } else {
+          asm_->call(x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
         }
 
-        asm_->call(x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
-        return_type = type_manager.GetFunctionReturnType(
-            static_cast<Type>(reader.TypeID()));
+        return_type = static_cast<Type>(reader.TypeID());
       }
 
       if (dynamic_stack_alloc != 0) {

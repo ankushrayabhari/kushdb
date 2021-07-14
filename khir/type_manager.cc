@@ -22,6 +22,8 @@
 
 namespace kush::khir {
 
+bool TypeManager::initialized_ = false;
+
 uint16_t Type::GetID() const { return static_cast<uint16_t>(*this); }
 
 std::vector<llvm::Type*> TypeManager::GetTypeArray(
@@ -102,8 +104,30 @@ TypeManager::TypeManager()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("type_manager", *context_)),
       builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {
+  LLVMInitializeX86TargetInfo();
+  LLVMInitializeX86Target();
+  LLVMInitializeX86TargetMC();
+  LLVMInitializeX86AsmParser();
+  LLVMInitializeX86AsmPrinter();
   auto target_triple = llvm::sys::getDefaultTargetTriple();
   module_->setTargetTriple(target_triple);
+
+  std::string error;
+  auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
+  if (!target) {
+    throw std::runtime_error("Target not found: " + error);
+  }
+
+  auto cpu = "znver3";
+  auto features = "";
+
+  llvm::TargetOptions opt;
+  auto reloc_model =
+      llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
+  auto target_machine = target->createTargetMachine(target_triple, cpu,
+                                                    features, opt, reloc_model);
+
+  module_->setDataLayout(target_machine->createDataLayout());
 
   type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
       BaseTypeId::VOID, static_cast<Type>(0), builder_->getVoidTy()));
@@ -197,43 +221,45 @@ Type TypeManager::GetPointerElementType(Type ptr_type) const {
       .ElementType();
 }
 
-std::vector<uint64_t> TypeManager::GetStructFieldOffsets(Type t) const {
+std::vector<int32_t> TypeManager::GetStructFieldOffsets(Type t) const {
   auto st =
       llvm::dyn_cast<llvm::StructType>(type_id_to_impl_[t.GetID()]->GetLLVM());
   auto layout = module_->getDataLayout().getStructLayout(st);
 
-  std::vector<uint64_t> offsets;
+  std::vector<int32_t> offsets;
   for (int i = 0; i < st->getNumElements(); i++) {
     offsets.push_back(layout->getElementOffset(i));
   }
   return offsets;
 }
 
-uint64_t TypeManager::GetTypeSize(Type t) const {
+int32_t TypeManager::GetTypeSize(Type t) const {
   return module_->getDataLayout().getTypeAllocSize(
       type_id_to_impl_[t.GetID()]->GetLLVM());
 }
 
-std::pair<int64_t, Type> TypeManager::GetPointerOffset(
+std::pair<int32_t, Type> TypeManager::GetPointerOffset(
     Type t, absl::Span<const int32_t> idx) {
   std::vector<llvm::Value*> values;
   for (int32_t i : idx) {
     values.push_back(builder_->getInt32(i));
   }
-  llvm::Type* target = type_id_to_impl_[t.GetID()]->GetLLVM();
-  int64_t offset =
-      module_->getDataLayout().getIndexedOffsetInType(target, values);
+  int32_t offset = idx[0] * GetTypeSize(t);
 
   TypeImpl* result_type = type_id_to_impl_[t.GetID()].get();
   for (int i = 1; i < idx.size(); i++) {
     if (auto ptr_type = dynamic_cast<PointerTypeImpl*>(result_type)) {
       // nothing changes
       result_type = type_id_to_impl_[ptr_type->ElementType().GetID()].get();
+      offset += idx[i] * GetTypeSize(ptr_type->ElementType());
     } else if (auto array_type = dynamic_cast<ArrayTypeImpl*>(result_type)) {
       result_type = type_id_to_impl_[array_type->ElementType().GetID()].get();
+      offset += idx[i] * GetTypeSize(array_type->ElementType());
     } else if (auto struct_type = dynamic_cast<StructTypeImpl*>(result_type)) {
       result_type =
           type_id_to_impl_[struct_type->ElementTypes()[idx[i]].GetID()].get();
+      auto field_offsets = GetStructFieldOffsets(struct_type->Get());
+      offset += field_offsets[idx[i]];
     } else {
       throw std::runtime_error("Cannot index into type.");
     }
@@ -302,6 +328,11 @@ bool TypeManager::IsI64Type(Type t) const { return t.GetID() == 5; }
 
 bool TypeManager::IsPtrType(Type t) const {
   return dynamic_cast<PointerTypeImpl*>(type_id_to_impl_[t.GetID()].get()) !=
+         nullptr;
+}
+
+bool TypeManager::IsFuncType(Type t) const {
+  return dynamic_cast<FunctionTypeImpl*>(type_id_to_impl_[t.GetID()].get()) !=
          nullptr;
 }
 

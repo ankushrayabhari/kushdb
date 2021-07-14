@@ -62,10 +62,10 @@ class TypeManager {
   Type GetNamedStructType(std::string_view name);
   Type GetFunctionReturnType(Type func_type) const;
   Type GetPointerElementType(Type ptr_type) const;
-  std::pair<int64_t, Type> GetPointerOffset(Type t,
+  std::pair<int32_t, Type> GetPointerOffset(Type t,
                                             absl::Span<const int32_t> idx);
-  std::vector<uint64_t> GetStructFieldOffsets(Type t) const;
-  uint64_t GetTypeSize(Type t) const;
+  std::vector<int32_t> GetStructFieldOffsets(Type t) const;
+  int32_t GetTypeSize(Type t) const;
 
   void Translate(TypeTranslator& translator) const;
 
@@ -77,6 +77,7 @@ class TypeManager {
   bool IsI32Type(Type t) const;
   bool IsI64Type(Type t) const;
   bool IsPtrType(Type t) const;
+  bool IsFuncType(Type t) const;
 
  private:
   class TypeImpl {
@@ -178,6 +179,7 @@ class TypeManager {
   std::unique_ptr<llvm::IRBuilder<>> builder_;
   std::vector<std::unique_ptr<TypeImpl>> type_id_to_impl_;
   absl::flat_hash_map<std::string, Type> struct_name_to_type_id_;
+  static bool initialized_;
 };
 
 }  // namespace kush::khir

@@ -27,7 +27,7 @@ Function::Function(ProgramBuilder& program_builder, std::string_view name,
       public_(p) {}
 
 void Function::InitBody() {
-  GenerateBasicBlock();
+  current_basic_block_ = GenerateBasicBlock();
   for (int i = 0; i < arg_types_.size(); i++) {
     arg_values_.push_back(Append(Type3InstructionBuilder()
                                      .SetOpcode(OpcodeTo(Opcode::FUNC_ARG))
@@ -656,10 +656,6 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::BR:
       return type_manager_.VoidType();
 
-    case Opcode::CALL_INDIRECT:
-      return type_manager_.GetFunctionReturnType(
-          static_cast<Type>(Type3InstructionReader(instr).TypeID()));
-
     case Opcode::ALLOCA:
     case Opcode::PHI:
     case Opcode::CALL:
@@ -668,6 +664,7 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::PTR_CAST:
     case Opcode::GEP:
     case Opcode::FUNC_ARG:
+    case Opcode::CALL_INDIRECT:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
     case Opcode::GEP_OFFSET:
@@ -779,8 +776,7 @@ Value ProgramBuilder::Call(FunctionRef func,
                                          .Build());
 }
 
-Value ProgramBuilder::Call(Value func, Type type,
-                           absl::Span<const Value> arguments) {
+Value ProgramBuilder::Call(Value func, absl::Span<const Value> arguments) {
   for (uint8_t i = 0; i < arguments.size(); i++) {
     auto v = arguments[i];
     if (!v.IsConstantGlobal()) {
@@ -807,11 +803,21 @@ Value ProgramBuilder::Call(Value func, Type type,
                                     .Build());
   }
 
+  auto func_ptr_type = TypeOf(func);
+  if (!type_manager_.IsPtrType(func_ptr_type)) {
+    throw std::runtime_error("Must be a func ptr");
+  }
+  auto func_type = type_manager_.GetPointerElementType(func_ptr_type);
+  if (!type_manager_.IsFuncType(func_type)) {
+    throw std::runtime_error("Must be a func ptr");
+  }
+  auto return_type = type_manager_.GetFunctionReturnType(func_type);
+
   return GetCurrentFunction().Append(
       Type3InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::CALL_INDIRECT))
           .SetArg(func.Serialize())
-          .SetTypeID(type.GetID())
+          .SetTypeID(return_type.GetID())
           .Build());
 }
 

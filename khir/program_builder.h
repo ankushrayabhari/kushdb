@@ -202,7 +202,7 @@ class ProgramBuilder {
   absl::Span<const Value> GetFunctionArguments(FunctionRef func);
   Value GetFunctionPointer(FunctionRef func);
   Value Call(FunctionRef func, absl::Span<const Value> arguments = {});
-  Value Call(Value func, Type type, absl::Span<const Value> arguments = {});
+  Value Call(Value func, absl::Span<const Value> arguments = {});
   void Return(Value v);
   void Return();
 

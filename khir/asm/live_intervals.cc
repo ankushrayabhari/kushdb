@@ -707,9 +707,6 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
       return manager.VoidType();
 
     case Opcode::CALL_INDIRECT:
-      return manager.GetFunctionReturnType(
-          static_cast<Type>(Type3InstructionReader(instr).TypeID()));
-
     case Opcode::ALLOCA:
     case Opcode::PHI:
     case Opcode::CALL:
