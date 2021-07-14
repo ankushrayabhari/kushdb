@@ -370,9 +370,9 @@ void SkinnerJoinTranslator::Produce() {
                     program_, runtime_table_idx != last_table,
                     [&]() -> std::vector<khir::Value> {
                       return {
-                          proxy::Int32(program_,
-                                       program_.Call(handler, handler_type,
-                                                     {initial_budget.Get(),
+                          proxy::Int32(
+                              program_,
+                              program_.Call(handler, {initial_budget.Get(),
                                                       resume_progress.Get()}))
                               .Get()};
                     },
@@ -618,7 +618,7 @@ void SkinnerJoinTranslator::Produce() {
                       proxy::If(
                           program_, runtime_table_idx == last_table,
                           [&]() -> std::vector<khir::Value> {
-                            program_.Call(handler, handler_type,
+                            program_.Call(handler,
                                           {budget.Get(), program_.ConstI8(0)});
                             program_.Return(program_.ConstI32(-1));
                             return {};
@@ -632,9 +632,8 @@ void SkinnerJoinTranslator::Produce() {
 
                 // Valid tuple
                 auto next_budget = proxy::Int32(
-                    program_,
-                    program_.Call(handler, handler_type,
-                                  {budget.Get(), program_.ConstI8(0)}));
+                    program_, program_.Call(handler, {budget.Get(),
+                                                      program_.ConstI8(0)}));
                 proxy::If(
                     program_, next_budget < 0,
                     [&]() -> std::vector<khir::Value> {
