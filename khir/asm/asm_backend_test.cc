@@ -605,6 +605,56 @@ TEST(ASMBackendTest, I1_CMP_XXReturn) {
   }
 }
 
+TEST(ASMBackendTest, I1_CMP_XXBranch) {
+  for (auto cmp_type : {khir::CompType::EQ, khir::CompType::NE}) {
+    int8_t c1 = 0;
+    int8_t c2 = 1;
+
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I1Type(), {program.I1Type(), program.I1Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    program.Branch(program.CmpI1(cmp_type, args[0], args[1]), bb1, bb2);
+    program.SetCurrentBlock(bb1);
+    program.Return(program.ConstI1(true));
+    program.SetCurrentBlock(bb2);
+    program.Return(program.ConstI1(false));
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    if (Compare(cmp_type, c1, c1)) {
+      EXPECT_NE(0, compute(c1, c1));
+    } else {
+      EXPECT_EQ(0, compute(c1, c1));
+    }
+
+    if (Compare(cmp_type, c2, c2)) {
+      EXPECT_NE(0, compute(c2, c2));
+    } else {
+      EXPECT_EQ(0, compute(c2, c2));
+    }
+
+    if (Compare(cmp_type, c1, c2)) {
+      EXPECT_NE(0, compute(c1, c2));
+    } else {
+      EXPECT_EQ(0, compute(c1, c2));
+    }
+
+    if (Compare(cmp_type, c2, c1)) {
+      EXPECT_NE(0, compute(c2, c1));
+    } else {
+      EXPECT_EQ(0, compute(c2, c1));
+    }
+  }
+}
+
 TEST(ASMBackendTest, I1_CMP_XXReturnConstArg0) {
   for (auto cmp_type : {khir::CompType::EQ, khir::CompType::NE}) {
     int8_t c1 = 0;
@@ -1127,6 +1177,64 @@ TEST(ASMBackendTest, I8_CMP_XXReturn) {
           program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, args[0], args[1]));
+
+      khir::ASMBackend backend;
+      program.Translate(backend);
+      backend.Compile();
+
+      using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+      auto compute =
+          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+      if (Compare(cmp_type, c1, c1)) {
+        EXPECT_NE(0, compute(c1, c1));
+      } else {
+        EXPECT_EQ(0, compute(c1, c1));
+      }
+
+      if (Compare(cmp_type, c2, c2)) {
+        EXPECT_NE(0, compute(c2, c2));
+      } else {
+        EXPECT_EQ(0, compute(c2, c2));
+      }
+
+      if (Compare(cmp_type, c1, c2)) {
+        EXPECT_NE(0, compute(c1, c2));
+      } else {
+        EXPECT_EQ(0, compute(c1, c2));
+      }
+
+      if (Compare(cmp_type, c2, c1)) {
+        EXPECT_NE(0, compute(c2, c1));
+      } else {
+        EXPECT_EQ(0, compute(c2, c1));
+      }
+    }
+  }
+}
+
+TEST(ASMBackendTest, I8_CMP_XXBranch) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    for (auto cmp_type :
+         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
+          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+      int8_t c1 = distrib(gen);
+      int8_t c2 = distrib(gen);
+
+      khir::ProgramBuilder program;
+      auto func = program.CreatePublicFunction(
+          program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
+      auto args = program.GetFunctionArguments(func);
+      auto bb1 = program.GenerateBlock();
+      auto bb2 = program.GenerateBlock();
+      program.Branch(program.CmpI8(cmp_type, args[0], args[1]), bb1, bb2);
+      program.SetCurrentBlock(bb1);
+      program.Return(program.ConstI1(true));
+      program.SetCurrentBlock(bb2);
+      program.Return(program.ConstI1(false));
 
       khir::ASMBackend backend;
       program.Translate(backend);
@@ -1820,6 +1928,64 @@ TEST(ASMBackendTest, I16_CMP_XXReturn) {
           program.I1Type(), {program.I16Type(), program.I16Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, args[0], args[1]));
+
+      khir::ASMBackend backend;
+      program.Translate(backend);
+      backend.Compile();
+
+      using compute_fn = std::add_pointer<int8_t(int16_t, int16_t)>::type;
+      auto compute =
+          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+      if (Compare(cmp_type, c1, c1)) {
+        EXPECT_NE(0, compute(c1, c1));
+      } else {
+        EXPECT_EQ(0, compute(c1, c1));
+      }
+
+      if (Compare(cmp_type, c2, c2)) {
+        EXPECT_NE(0, compute(c2, c2));
+      } else {
+        EXPECT_EQ(0, compute(c2, c2));
+      }
+
+      if (Compare(cmp_type, c1, c2)) {
+        EXPECT_NE(0, compute(c1, c2));
+      } else {
+        EXPECT_EQ(0, compute(c1, c2));
+      }
+
+      if (Compare(cmp_type, c2, c1)) {
+        EXPECT_NE(0, compute(c2, c1));
+      } else {
+        EXPECT_EQ(0, compute(c2, c1));
+      }
+    }
+  }
+}
+
+TEST(ASMBackendTest, I16_CMP_XXBranch) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
+  for (int i = 0; i < 10; i++) {
+    for (auto cmp_type :
+         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
+          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+      int16_t c1 = distrib(gen);
+      int16_t c2 = distrib(gen);
+
+      khir::ProgramBuilder program;
+      auto func = program.CreatePublicFunction(
+          program.I1Type(), {program.I16Type(), program.I16Type()}, "compute");
+      auto args = program.GetFunctionArguments(func);
+      auto bb1 = program.GenerateBlock();
+      auto bb2 = program.GenerateBlock();
+      program.Branch(program.CmpI16(cmp_type, args[0], args[1]), bb1, bb2);
+      program.SetCurrentBlock(bb1);
+      program.Return(program.ConstI1(true));
+      program.SetCurrentBlock(bb2);
+      program.Return(program.ConstI1(false));
 
       khir::ASMBackend backend;
       program.Translate(backend);
@@ -2550,6 +2716,64 @@ TEST(ASMBackendTest, I32_CMP_XXReturn) {
   }
 }
 
+TEST(ASMBackendTest, I32_CMP_XXBranch) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
+  for (int i = 0; i < 10; i++) {
+    for (auto cmp_type :
+         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
+          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+      int32_t c1 = distrib(gen);
+      int32_t c2 = distrib(gen);
+
+      khir::ProgramBuilder program;
+      auto func = program.CreatePublicFunction(
+          program.I1Type(), {program.I32Type(), program.I32Type()}, "compute");
+      auto args = program.GetFunctionArguments(func);
+      auto bb1 = program.GenerateBlock();
+      auto bb2 = program.GenerateBlock();
+      program.Branch(program.CmpI32(cmp_type, args[0], args[1]), bb1, bb2);
+      program.SetCurrentBlock(bb1);
+      program.Return(program.ConstI1(true));
+      program.SetCurrentBlock(bb2);
+      program.Return(program.ConstI1(false));
+
+      khir::ASMBackend backend;
+      program.Translate(backend);
+      backend.Compile();
+
+      using compute_fn = std::add_pointer<int8_t(int32_t, int32_t)>::type;
+      auto compute =
+          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+      if (Compare(cmp_type, c1, c1)) {
+        EXPECT_NE(0, compute(c1, c1));
+      } else {
+        EXPECT_EQ(0, compute(c1, c1));
+      }
+
+      if (Compare(cmp_type, c2, c2)) {
+        EXPECT_NE(0, compute(c2, c2));
+      } else {
+        EXPECT_EQ(0, compute(c2, c2));
+      }
+
+      if (Compare(cmp_type, c1, c2)) {
+        EXPECT_NE(0, compute(c1, c2));
+      } else {
+        EXPECT_EQ(0, compute(c1, c2));
+      }
+
+      if (Compare(cmp_type, c2, c1)) {
+        EXPECT_NE(0, compute(c2, c1));
+      } else {
+        EXPECT_EQ(0, compute(c2, c1));
+      }
+    }
+  }
+}
+
 TEST(ASMBackendTest, I32_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -3196,6 +3420,65 @@ TEST(ASMBackendTest, I64_CMP_XXReturn) {
   }
 }
 
+TEST(ASMBackendTest, I64_CMP_XXBranch) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  for (int i = 0; i < 10; i++) {
+    for (auto cmp_type :
+         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
+          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+      int64_t c1 = distrib(gen);
+      int64_t c2 = distrib(gen);
+
+      khir::ProgramBuilder program;
+      auto func = program.CreatePublicFunction(
+          program.I1Type(), {program.I64Type(), program.I64Type()}, "compute");
+      auto args = program.GetFunctionArguments(func);
+
+      auto bb1 = program.GenerateBlock();
+      auto bb2 = program.GenerateBlock();
+      program.Branch(program.CmpI64(cmp_type, args[0], args[1]), bb1, bb2);
+      program.SetCurrentBlock(bb1);
+      program.Return(program.ConstI1(true));
+      program.SetCurrentBlock(bb2);
+      program.Return(program.ConstI1(false));
+
+      khir::ASMBackend backend;
+      program.Translate(backend);
+      backend.Compile();
+
+      using compute_fn = std::add_pointer<int8_t(int64_t, int64_t)>::type;
+      auto compute =
+          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+      if (Compare(cmp_type, c1, c1)) {
+        EXPECT_NE(0, compute(c1, c1));
+      } else {
+        EXPECT_EQ(0, compute(c1, c1));
+      }
+
+      if (Compare(cmp_type, c2, c2)) {
+        EXPECT_NE(0, compute(c2, c2));
+      } else {
+        EXPECT_EQ(0, compute(c2, c2));
+      }
+
+      if (Compare(cmp_type, c1, c2)) {
+        EXPECT_NE(0, compute(c1, c2));
+      } else {
+        EXPECT_EQ(0, compute(c1, c2));
+      }
+
+      if (Compare(cmp_type, c2, c1)) {
+        EXPECT_NE(0, compute(c2, c1));
+      } else {
+        EXPECT_EQ(0, compute(c2, c1));
+      }
+    }
+  }
+}
+
 TEST(ASMBackendTest, I64_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -3805,6 +4088,64 @@ TEST(ASMBackendTest, F64_CMP_XXReturn) {
           program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, args[0], args[1]));
+
+      khir::ASMBackend backend;
+      program.Translate(backend);
+      backend.Compile();
+
+      using compute_fn = std::add_pointer<int8_t(double, double)>::type;
+      auto compute =
+          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+      if (Compare(cmp_type, c1, c1)) {
+        EXPECT_NE(0, compute(c1, c1));
+      } else {
+        EXPECT_EQ(0, compute(c1, c1));
+      }
+
+      if (Compare(cmp_type, c2, c2)) {
+        EXPECT_NE(0, compute(c2, c2));
+      } else {
+        EXPECT_EQ(0, compute(c2, c2));
+      }
+
+      if (Compare(cmp_type, c1, c2)) {
+        EXPECT_NE(0, compute(c1, c2));
+      } else {
+        EXPECT_EQ(0, compute(c1, c2));
+      }
+
+      if (Compare(cmp_type, c2, c1)) {
+        EXPECT_NE(0, compute(c2, c1));
+      } else {
+        EXPECT_EQ(0, compute(c2, c1));
+      }
+    }
+  }
+}
+
+TEST(ASMBackendTest, F64_CMP_XXBranch) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> distrib(-1e100, 1e100);
+  for (int i = 0; i < 10; i++) {
+    for (auto cmp_type :
+         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
+          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+      double c1 = distrib(gen);
+      double c2 = distrib(gen);
+
+      khir::ProgramBuilder program;
+      auto func = program.CreatePublicFunction(
+          program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
+      auto args = program.GetFunctionArguments(func);
+      auto bb1 = program.GenerateBlock();
+      auto bb2 = program.GenerateBlock();
+      program.Branch(program.CmpF64(cmp_type, args[0], args[1]), bb1, bb2);
+      program.SetCurrentBlock(bb1);
+      program.Return(program.ConstI1(true));
+      program.SetCurrentBlock(bb2);
+      program.Return(program.ConstI1(false));
 
       khir::ASMBackend backend;
       program.Translate(backend);

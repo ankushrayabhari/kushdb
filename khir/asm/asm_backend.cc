@@ -2948,36 +2948,23 @@ void ASMBackend::TranslateInstr(
       if (type_manager.IsF64Type(type)) {
         MoveF64Value(x86::xmm0, v, offsets, constant_instrs, f64_constants,
                      register_assign);
-        return;
-      }
-
-      if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
+      } else if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
         MoveByteValue(Register::RAX.GetB(), v, offsets, constant_instrs,
                       register_assign);
-        return;
-      }
-
-      if (type_manager.IsI16Type(type)) {
+      } else if (type_manager.IsI16Type(type)) {
         MoveWordValue(Register::RAX.GetW(), v, offsets, constant_instrs,
                       register_assign);
-        return;
-      }
-
-      if (type_manager.IsI32Type(type)) {
+      } else if (type_manager.IsI32Type(type)) {
         MoveDWordValue(Register::RAX.GetD(), v, offsets, constant_instrs,
                        register_assign);
-        return;
-      }
-
-      if (type_manager.IsI64Type(type)) {
+      } else if (type_manager.IsI64Type(type)) {
         MoveQWordValue(Register::RAX.GetQ(), v, offsets, constant_instrs,
                        i64_constants, register_assign);
-        return;
-      }
-
-      if (type_manager.IsPtrType(type)) {
+      } else if (type_manager.IsPtrType(type)) {
         MovePtrValue(Register::RAX.GetQ(), v, offsets, constant_instrs,
                      register_assign);
+      } else {
+        throw std::runtime_error("Invalid return value type.");
       }
 
       asm_->jmp(epilogue);
