@@ -29,13 +29,6 @@ class StackSlotAllocator {
   int32_t size_;
 };
 
-class Operand {
- public:
- private:
-};
-
-enum class ASMInst { MOV, XOR, ADD, SUB };
-
 class ASMBackend : public Backend, public compile::Program {
  public:
   ASMBackend() = default;
