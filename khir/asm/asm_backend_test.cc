@@ -838,49 +838,126 @@ TEST(ASMBackendTest, I1_ZEXT_I8Const) {
 }
 
 TEST(ASMBackendTest, PHII1) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
-  for (int i = 0; i < 10; i++) {
-    int8_t c1 = distrib(gen);
-    int8_t c2 = distrib(gen);
+  bool c1 = false;
+  bool c2 = true;
 
-    khir::ProgramBuilder program;
-    auto type = program.I1Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type, type}, "compute");
-    auto args = program.GetFunctionArguments(func);
+  khir::ProgramBuilder program;
+  auto type = program.I1Type();
+  auto func = program.CreatePublicFunction(
+      program.VoidType(), {program.I1Type(), type, type}, "compute");
+  auto args = program.GetFunctionArguments(func);
 
-    auto bb1 = program.GenerateBlock();
-    auto bb2 = program.GenerateBlock();
-    auto bb3 = program.GenerateBlock();
+  auto bb1 = program.GenerateBlock();
+  auto bb2 = program.GenerateBlock();
+  auto bb3 = program.GenerateBlock();
 
-    program.Branch(args[0], bb1, bb2);
+  program.Branch(args[0], bb1, bb2);
 
-    program.SetCurrentBlock(bb1);
-    auto phi_1 = program.PhiMember(args[1]);
-    program.Branch(bb3);
+  program.SetCurrentBlock(bb1);
+  auto phi_1 = program.PhiMember(args[1]);
+  program.Branch(bb3);
 
-    program.SetCurrentBlock(bb2);
-    auto phi_2 = program.PhiMember(args[2]);
-    program.Branch(bb3);
+  program.SetCurrentBlock(bb2);
+  auto phi_2 = program.PhiMember(args[2]);
+  program.Branch(bb3);
 
-    program.SetCurrentBlock(bb3);
-    auto phi = program.Phi(type);
-    program.UpdatePhiMember(phi, phi_1);
-    program.UpdatePhiMember(phi, phi_2);
-    program.Return(phi);
+  program.SetCurrentBlock(bb3);
+  auto phi = program.Phi(type);
+  program.UpdatePhiMember(phi, phi_1);
+  program.UpdatePhiMember(phi, phi_2);
+  program.Return(phi);
 
-    khir::ASMBackend backend;
-    program.Translate(backend);
-    backend.Compile();
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
 
-    using compute_fn = std::add_pointer<int8_t(int8_t, int8_t, int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t, int8_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-    EXPECT_EQ(c1, compute(1, c1, c2));
-    EXPECT_EQ(c2, compute(0, c1, c2));
-  }
+  EXPECT_EQ(c1, compute(1, c1, c2));
+  EXPECT_EQ(c2, compute(0, c1, c2));
+}
+
+TEST(ASMBackendTest, PHII1ConstArg0) {
+  bool c1 = false;
+  bool c2 = true;
+
+  khir::ProgramBuilder program;
+  auto type = program.I1Type();
+  auto func = program.CreatePublicFunction(program.VoidType(),
+                                           {program.I1Type(), type}, "compute");
+  auto args = program.GetFunctionArguments(func);
+
+  auto bb1 = program.GenerateBlock();
+  auto bb2 = program.GenerateBlock();
+  auto bb3 = program.GenerateBlock();
+
+  program.Branch(args[0], bb1, bb2);
+
+  program.SetCurrentBlock(bb1);
+  auto phi_1 = program.PhiMember(program.ConstI1(c1));
+  program.Branch(bb3);
+
+  program.SetCurrentBlock(bb2);
+  auto phi_2 = program.PhiMember(args[1]);
+  program.Branch(bb3);
+
+  program.SetCurrentBlock(bb3);
+  auto phi = program.Phi(type);
+  program.UpdatePhiMember(phi, phi_1);
+  program.UpdatePhiMember(phi, phi_2);
+  program.Return(phi);
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(c1, compute(1, c2));
+  EXPECT_EQ(c2, compute(0, c2));
+}
+
+TEST(ASMBackendTest, PHII1ConstArg1) {
+  bool c1 = false;
+  bool c2 = true;
+
+  khir::ProgramBuilder program;
+  auto type = program.I1Type();
+  auto func = program.CreatePublicFunction(program.VoidType(),
+                                           {program.I1Type(), type}, "compute");
+  auto args = program.GetFunctionArguments(func);
+
+  auto bb1 = program.GenerateBlock();
+  auto bb2 = program.GenerateBlock();
+  auto bb3 = program.GenerateBlock();
+
+  program.Branch(args[0], bb1, bb2);
+
+  program.SetCurrentBlock(bb1);
+  auto phi_1 = program.PhiMember(args[1]);
+  program.Branch(bb3);
+
+  program.SetCurrentBlock(bb2);
+  auto phi_2 = program.PhiMember(program.ConstI1(c2));
+  program.Branch(bb3);
+
+  program.SetCurrentBlock(bb3);
+  auto phi = program.Phi(type);
+  program.UpdatePhiMember(phi, phi_1);
+  program.UpdatePhiMember(phi, phi_2);
+  program.Return(phi);
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(c1, compute(1, c1));
+  EXPECT_EQ(c2, compute(0, c1));
 }
 
 TEST(ASMBackendTest, I8_ADD) {
@@ -1678,6 +1755,98 @@ TEST(ASMBackendTest, PHII8) {
 
     EXPECT_EQ(c1, compute(1, c1, c2));
     EXPECT_EQ(c2, compute(0, c1, c2));
+  }
+}
+
+TEST(ASMBackendTest, PHII8ConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c1 = distrib(gen);
+    int8_t c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto type = program.I8Type();
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto args = program.GetFunctionArguments(func);
+
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    auto bb3 = program.GenerateBlock();
+
+    program.Branch(args[0], bb1, bb2);
+
+    program.SetCurrentBlock(bb1);
+    auto phi_1 = program.PhiMember(program.ConstI8(c1));
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb2);
+    auto phi_2 = program.PhiMember(args[1]);
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb3);
+    auto phi = program.Phi(type);
+    program.UpdatePhiMember(phi, phi_1);
+    program.UpdatePhiMember(phi, phi_2);
+    program.Return(phi);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c1, compute(1, c2));
+    EXPECT_EQ(c2, compute(0, c2));
+  }
+}
+
+TEST(ASMBackendTest, PHII8ConstArg1) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c1 = distrib(gen);
+    int8_t c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto type = program.I8Type();
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto args = program.GetFunctionArguments(func);
+
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    auto bb3 = program.GenerateBlock();
+
+    program.Branch(args[0], bb1, bb2);
+
+    program.SetCurrentBlock(bb1);
+    auto phi_1 = program.PhiMember(args[1]);
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb2);
+    auto phi_2 = program.PhiMember(program.ConstI8(c2));
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb3);
+    auto phi = program.Phi(type);
+    program.UpdatePhiMember(phi, phi_1);
+    program.UpdatePhiMember(phi, phi_2);
+    program.Return(phi);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c1, compute(1, c1));
+    EXPECT_EQ(c2, compute(0, c1));
   }
 }
 
@@ -2480,6 +2649,98 @@ TEST(ASMBackendTest, PHII16) {
   }
 }
 
+TEST(ASMBackendTest, PHII16ConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
+  for (int i = 0; i < 10; i++) {
+    int16_t c1 = distrib(gen);
+    int16_t c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto type = program.I16Type();
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto args = program.GetFunctionArguments(func);
+
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    auto bb3 = program.GenerateBlock();
+
+    program.Branch(args[0], bb1, bb2);
+
+    program.SetCurrentBlock(bb1);
+    auto phi_1 = program.PhiMember(program.ConstI16(c1));
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb2);
+    auto phi_2 = program.PhiMember(args[1]);
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb3);
+    auto phi = program.Phi(type);
+    program.UpdatePhiMember(phi, phi_1);
+    program.UpdatePhiMember(phi, phi_2);
+    program.Return(phi);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int16_t(int8_t, int16_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c1, compute(1, c2));
+    EXPECT_EQ(c2, compute(0, c2));
+  }
+}
+
+TEST(ASMBackendTest, PHII16ConstArg1) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
+  for (int i = 0; i < 10; i++) {
+    int16_t c1 = distrib(gen);
+    int16_t c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto type = program.I16Type();
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto args = program.GetFunctionArguments(func);
+
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    auto bb3 = program.GenerateBlock();
+
+    program.Branch(args[0], bb1, bb2);
+
+    program.SetCurrentBlock(bb1);
+    auto phi_1 = program.PhiMember(args[1]);
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb2);
+    auto phi_2 = program.PhiMember(program.ConstI16(c2));
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb3);
+    auto phi = program.Phi(type);
+    program.UpdatePhiMember(phi, phi_1);
+    program.UpdatePhiMember(phi, phi_2);
+    program.Return(phi);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int16_t(int8_t, int16_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c1, compute(1, c1));
+    EXPECT_EQ(c2, compute(0, c1));
+  }
+}
+
 TEST(ASMBackendTest, I32_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -3279,6 +3540,98 @@ TEST(ASMBackendTest, PHII32) {
   }
 }
 
+TEST(ASMBackendTest, PHII32ConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
+  for (int i = 0; i < 10; i++) {
+    int32_t c1 = distrib(gen);
+    int32_t c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto type = program.I32Type();
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto args = program.GetFunctionArguments(func);
+
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    auto bb3 = program.GenerateBlock();
+
+    program.Branch(args[0], bb1, bb2);
+
+    program.SetCurrentBlock(bb1);
+    auto phi_1 = program.PhiMember(program.ConstI32(c1));
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb2);
+    auto phi_2 = program.PhiMember(args[1]);
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb3);
+    auto phi = program.Phi(type);
+    program.UpdatePhiMember(phi, phi_1);
+    program.UpdatePhiMember(phi, phi_2);
+    program.Return(phi);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int32_t(int8_t, int32_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c1, compute(1, c2));
+    EXPECT_EQ(c2, compute(0, c2));
+  }
+}
+
+TEST(ASMBackendTest, PHII32ConstArg1) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
+  for (int i = 0; i < 10; i++) {
+    int32_t c1 = distrib(gen);
+    int32_t c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto type = program.I32Type();
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto args = program.GetFunctionArguments(func);
+
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    auto bb3 = program.GenerateBlock();
+
+    program.Branch(args[0], bb1, bb2);
+
+    program.SetCurrentBlock(bb1);
+    auto phi_1 = program.PhiMember(args[1]);
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb2);
+    auto phi_2 = program.PhiMember(program.ConstI32(c2));
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb3);
+    auto phi = program.Phi(type);
+    program.UpdatePhiMember(phi, phi_1);
+    program.UpdatePhiMember(phi, phi_2);
+    program.Return(phi);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int32_t(int8_t, int32_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c1, compute(1, c1));
+    EXPECT_EQ(c2, compute(0, c1));
+  }
+}
+
 TEST(ASMBackendTest, I64_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -4031,6 +4384,98 @@ TEST(ASMBackendTest, PHII64) {
   }
 }
 
+TEST(ASMBackendTest, PHII64ConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  for (int i = 0; i < 10; i++) {
+    int64_t c1 = distrib(gen);
+    int64_t c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto type = program.I64Type();
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto args = program.GetFunctionArguments(func);
+
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    auto bb3 = program.GenerateBlock();
+
+    program.Branch(args[0], bb1, bb2);
+
+    program.SetCurrentBlock(bb1);
+    auto phi_1 = program.PhiMember(program.ConstI64(c1));
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb2);
+    auto phi_2 = program.PhiMember(args[1]);
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb3);
+    auto phi = program.Phi(type);
+    program.UpdatePhiMember(phi, phi_1);
+    program.UpdatePhiMember(phi, phi_2);
+    program.Return(phi);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int64_t(int8_t, int64_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c1, compute(1, c2));
+    EXPECT_EQ(c2, compute(0, c2));
+  }
+}
+
+TEST(ASMBackendTest, PHII64ConstArg1) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  for (int i = 0; i < 10; i++) {
+    int64_t c1 = distrib(gen);
+    int64_t c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto type = program.I64Type();
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto args = program.GetFunctionArguments(func);
+
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    auto bb3 = program.GenerateBlock();
+
+    program.Branch(args[0], bb1, bb2);
+
+    program.SetCurrentBlock(bb1);
+    auto phi_1 = program.PhiMember(args[1]);
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb2);
+    auto phi_2 = program.PhiMember(program.ConstI64(c2));
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb3);
+    auto phi = program.Phi(type);
+    program.UpdatePhiMember(phi, phi_1);
+    program.UpdatePhiMember(phi, phi_2);
+    program.Return(phi);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<int64_t(int8_t, int64_t)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c1, compute(1, c1));
+    EXPECT_EQ(c2, compute(0, c1));
+  }
+}
+
 TEST(ASMBackendTest, F64_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -4779,5 +5224,97 @@ TEST(ASMBackendTest, PHIF64) {
 
     EXPECT_EQ(c1, compute(1, c1, c2));
     EXPECT_EQ(c2, compute(0, c1, c2));
+  }
+}
+
+TEST(ASMBackendTest, PHIF64ConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> distrib(-1e100, 1e100);
+  for (int i = 0; i < 10; i++) {
+    double c1 = distrib(gen);
+    double c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto type = program.F64Type();
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto args = program.GetFunctionArguments(func);
+
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    auto bb3 = program.GenerateBlock();
+
+    program.Branch(args[0], bb1, bb2);
+
+    program.SetCurrentBlock(bb1);
+    auto phi_1 = program.PhiMember(program.ConstF64(c1));
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb2);
+    auto phi_2 = program.PhiMember(args[1]);
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb3);
+    auto phi = program.Phi(type);
+    program.UpdatePhiMember(phi, phi_1);
+    program.UpdatePhiMember(phi, phi_2);
+    program.Return(phi);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<double(int8_t, double)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c1, compute(1, c2));
+    EXPECT_EQ(c2, compute(0, c2));
+  }
+}
+
+TEST(ASMBackendTest, PHIF64ConstArg1) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> distrib(-1e100, 1e100);
+  for (int i = 0; i < 10; i++) {
+    double c1 = distrib(gen);
+    double c2 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto type = program.F64Type();
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto args = program.GetFunctionArguments(func);
+
+    auto bb1 = program.GenerateBlock();
+    auto bb2 = program.GenerateBlock();
+    auto bb3 = program.GenerateBlock();
+
+    program.Branch(args[0], bb1, bb2);
+
+    program.SetCurrentBlock(bb1);
+    auto phi_1 = program.PhiMember(args[1]);
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb2);
+    auto phi_2 = program.PhiMember(program.ConstF64(c2));
+    program.Branch(bb3);
+
+    program.SetCurrentBlock(bb3);
+    auto phi = program.Phi(type);
+    program.UpdatePhiMember(phi, phi_1);
+    program.UpdatePhiMember(phi, phi_2);
+    program.Return(phi);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<double(int8_t, double)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    EXPECT_EQ(c1, compute(1, c1));
+    EXPECT_EQ(c2, compute(0, c1));
   }
 }
