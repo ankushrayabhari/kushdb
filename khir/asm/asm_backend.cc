@@ -2694,14 +2694,14 @@ void ASMBackend::TranslateInstr(
         auto dest = FPRegister(dest_assign.Register());
         MoveF64Value(dest, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        DivF64Value(dest, v0, offsets, constant_instrs, f64_constants,
+        DivF64Value(dest, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
         MoveF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        DivF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
+        DivF64Value(x86::xmm7, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
         asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
       }

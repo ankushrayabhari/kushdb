@@ -4725,6 +4725,89 @@ TEST(ASMBackendTest, F64_MULConstArg1) {
   }
 }
 
+TEST(ASMBackendTest, F64_DIV) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> distrib(-1e100, 1e100);
+
+  khir::ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto sum = program.DivF64(args[0], args[1]);
+  program.Return(sum);
+
+  khir::ASMBackend backend;
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<double(double, double)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  for (int i = 0; i < 10; i++) {
+    double a0 = distrib(gen);
+    double a1 = distrib(gen);
+    double res = a0 / a1;
+    EXPECT_EQ(res, compute(a0, a1));
+  }
+}
+
+TEST(ASMBackendTest, F64_DIVConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> distrib(-1e100, 1e100);
+
+  for (int i = 0; i < 10; i++) {
+    double a0 = distrib(gen);
+    double a1 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.F64Type(),
+                                             {program.F64Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    auto sum = program.DivF64(program.ConstF64(a0), args[0]);
+    program.Return(sum);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<double(double)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    double res = a0 / a1;
+    EXPECT_EQ(res, compute(a1));
+  }
+}
+
+TEST(ASMBackendTest, F64_DIVConstArg1) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> distrib(-1e100, 1e100);
+
+  for (int i = 0; i < 10; i++) {
+    double a0 = distrib(gen);
+    double a1 = distrib(gen);
+
+    khir::ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.F64Type(),
+                                             {program.F64Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    auto sum = program.DivF64(args[0], program.ConstF64(a1));
+    program.Return(sum);
+
+    khir::ASMBackend backend;
+    program.Translate(backend);
+    backend.Compile();
+
+    using compute_fn = std::add_pointer<double(double)>::type;
+    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+    double res = a0 / a1;
+    EXPECT_EQ(res, compute(a0));
+  }
+}
+
 TEST(ASMBackendTest, F64_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
