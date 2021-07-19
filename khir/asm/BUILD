@@ -3,12 +3,31 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "register_alloc",
-    srcs = ["register_alloc.cc"],
-    hdrs = ["register_alloc.h"],
+    name = "register_assignment",
+    srcs = ["register_assignment.cc"],
+    hdrs = ["register_assignment.h"],
+    deps = [],
+)
+
+cc_library(
+    name = "stack_spill_reg_alloc",
+    srcs = ["stack_spill_reg_alloc.cc"],
+    hdrs = ["stack_spill_reg_alloc.h"],
+    deps = [
+        ":register_assignment",
+        "//khir:instruction",
+        "//khir:opcode",
+    ],
+)
+
+cc_library(
+    name = "linear_scan_reg_alloc",
+    srcs = ["linear_scan_reg_alloc.cc"],
+    hdrs = ["linear_scan_reg_alloc.h"],
     deps = [
         ":live_intervals",
         ":register",
+        ":register_assignment",
         "//khir:instruction",
         "//khir:opcode",
     ],
@@ -39,8 +58,10 @@ cc_library(
     srcs = ["asm_backend.cc"],
     hdrs = ["asm_backend.h"],
     deps = [
+        ":linear_scan_reg_alloc",
         ":live_intervals",
-        ":register_alloc",
+        ":register_assignment",
+        ":stack_spill_reg_alloc",
         "//compile:program",
         "//khir:opcode",
         "//khir:program_builder",

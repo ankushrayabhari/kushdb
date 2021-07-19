@@ -1,24 +1,15 @@
-#include "khir/asm/register_alloc.h"
+#include "khir/asm/linear_scan_reg_alloc.h"
 
 #include <iostream>
-#include <optional>
+#include <unordered_set>
 #include <vector>
 
 #include "khir/asm/live_intervals.h"
-#include "khir/asm/register.h"
+#include "khir/asm/register_assignment.h"
 #include "khir/instruction.h"
 #include "khir/opcode.h"
 
 namespace kush::khir {
-
-RegisterAssignment::RegisterAssignment(int reg, bool coalesced)
-    : register_(reg) {}
-
-void RegisterAssignment::SetRegister(int r) { register_ = r; }
-
-int RegisterAssignment::Register() const { return register_; }
-
-bool RegisterAssignment::IsRegister() const { return register_ >= 0; }
 
 template <typename ActiveSet>
 void ReplaceWithFixed(LiveInterval& to_add,

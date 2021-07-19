@@ -8,7 +8,8 @@
 #include "asmjit/x86.h"
 
 #include "khir/asm/live_intervals.h"
-#include "khir/asm/register_alloc.h"
+#include "khir/asm/register_assignment.h"
+#include "khir/asm/stack_spill_reg_alloc.h"
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"

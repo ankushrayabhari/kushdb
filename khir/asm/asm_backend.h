@@ -6,7 +6,7 @@
 
 #include "compile/program.h"
 #include "khir/asm/register.h"
-#include "khir/asm/register_alloc.h"
+#include "khir/asm/register_assignment.h"
 #include "khir/opcode.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
