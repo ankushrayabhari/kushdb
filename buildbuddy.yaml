@@ -1,5 +1,5 @@
 actions:
-  - name: "Test all targets"
+  - name: "Build"
     triggers:
       push:
         branches:
@@ -8,4 +8,14 @@ actions:
         branches:
           - "master"
     bazel_commands:
-      - "test --config=remote --build_metadata=ROLE=CI //..."
+      - "build --config=remote --build_metadata=ROLE=CI //..."
+  - name: "Test"
+    triggers:
+      push:
+        branches:
+          - "master"
+      pull_request:
+        branches:
+          - "master"
+    bazel_commands:
+      - "build --config=remote --build_metadata=ROLE=CI //..."
