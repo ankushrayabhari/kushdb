@@ -7,7 +7,7 @@
 
 #include "asmjit/x86.h"
 
-#include "khir/asm/live_intervals.h"
+#include "khir/asm/linear_scan_reg_alloc.h"
 #include "khir/asm/register_assignment.h"
 #include "khir/asm/stack_spill_reg_alloc.h"
 #include "khir/instruction.h"
@@ -32,6 +32,8 @@ void ExceptionErrorHandler::handleError(Error err, const char* message,
                                         BaseEmitter* origin) {
   throw std::runtime_error(message);
 }
+
+ASMBackend::ASMBackend(RegAllocImpl impl) : reg_alloc_impl_(impl) {}
 
 uint64_t ASMBackend::OutputConstant(
     uint64_t instr, const TypeManager& type_manager,
@@ -226,10 +228,21 @@ void ASMBackend::Translate(const TypeManager& type_manager,
       compute_label_ = internal_func_labels_[func_idx];
     }
 
-    auto [live_intervals, order] = ComputeLiveIntervals(func, type_manager);
     // auto register_assign =
     //    AssignRegisters(live_intervals, instructions, type_manager);
-    auto register_assign = StackSpillingRegisterAlloc(instructions);
+    std::vector<RegisterAssignment> register_assign;
+    std::vector<int> order;
+    switch (reg_alloc_impl_) {
+      case RegAllocImpl::STACK_SPILL:
+        register_assign = StackSpillingRegisterAlloc(instructions);
+        order = func.BasicBlockOrder();
+        break;
+
+      case RegAllocImpl::LINEAR_SCAN:
+        std::tie(register_assign, order) =
+            LinearScanRegisterAlloc(func, type_manager);
+        break;
+    }
 
     // Prologue ================================================================
     // - Save RBP and Store RSP in RBP

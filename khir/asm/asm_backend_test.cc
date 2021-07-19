@@ -7,41 +7,43 @@
 #include "khir/program_printer.h"
 
 using namespace kush;
+using namespace kush::khir;
 
 template <typename T>
-bool Compare(khir::CompType cmp, T a0, T a1) {
+bool Compare(CompType cmp, T a0, T a1) {
   switch (cmp) {
-    case khir::CompType::EQ:
+    case CompType::EQ:
       return a0 == a1;
 
-    case khir::CompType::NE:
+    case CompType::NE:
       return a0 != a1;
 
-    case khir::CompType::LT:
+    case CompType::LT:
       return a0 < a1;
 
-    case khir::CompType::LE:
+    case CompType::LE:
       return a0 <= a1;
 
-    case khir::CompType::GT:
+    case CompType::GT:
       return a0 > a1;
 
-    case khir::CompType::GE:
+    case CompType::GE:
       return a0 >= a1;
   }
 }
 
-TEST(ASMBackendTest, NULLPTR) {
-  for (auto type_func :
-       {&khir::ProgramBuilder::I1Type, &khir::ProgramBuilder::I8Type,
-        &khir::ProgramBuilder::I16Type, &khir::ProgramBuilder::I32Type,
-        &khir::ProgramBuilder::I64Type, &khir::ProgramBuilder::F64Type}) {
-    khir::ProgramBuilder program;
+class ASMBackendTest : public testing::TestWithParam<RegAllocImpl> {};
+
+TEST_P(ASMBackendTest, NULLPTR) {
+  for (auto type_func : {&ProgramBuilder::I1Type, &ProgramBuilder::I8Type,
+                         &ProgramBuilder::I16Type, &ProgramBuilder::I32Type,
+                         &ProgramBuilder::I64Type, &ProgramBuilder::F64Type}) {
+    ProgramBuilder program;
     auto type = program.PointerType(std::invoke(type_func, program));
     program.CreatePublicFunction(type, {}, "compute");
     program.Return(program.NullPtr(type));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -51,8 +53,8 @@ TEST(ASMBackendTest, NULLPTR) {
   }
 }
 
-TEST(ASMBackendTest, PTR_CAST) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, PTR_CAST) {
+  ProgramBuilder program;
   auto type = program.PointerType(program.I8Type());
   auto func = program.CreatePublicFunction(
       program.PointerType(program.F64Type()), {type}, "compute");
@@ -60,7 +62,7 @@ TEST(ASMBackendTest, PTR_CAST) {
   program.Return(
       program.PointerCast(args[0], program.PointerType(program.F64Type())));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -72,8 +74,8 @@ TEST(ASMBackendTest, PTR_CAST) {
   EXPECT_EQ(reinterpret_cast<double*>(&test), compute(&test));
 }
 
-TEST(ASMBackendTest, PTR_CASTGlobal) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, PTR_CASTGlobal) {
+  ProgramBuilder program;
   auto global =
       program.Global(false, true, program.I64Type(), program.ConstI64(5));
   program.CreatePublicFunction(program.PointerType(program.F64Type()), {},
@@ -81,7 +83,7 @@ TEST(ASMBackendTest, PTR_CASTGlobal) {
   program.Return(
       program.PointerCast(global, program.PointerType(program.F64Type())));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -91,12 +93,12 @@ TEST(ASMBackendTest, PTR_CASTGlobal) {
   EXPECT_EQ(5, *reinterpret_cast<int64_t*>(compute()));
 }
 
-TEST(ASMBackendTest, PTR_CASTStruct) {
+TEST_P(ASMBackendTest, PTR_CASTStruct) {
   struct Test {
     int64_t x;
   };
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto st = program.StructType({program.I64Type()});
   auto func =
       program.CreatePublicFunction(program.PointerType(program.F64Type()),
@@ -105,7 +107,7 @@ TEST(ASMBackendTest, PTR_CASTStruct) {
   program.Return(program.PointerCast(program.GetElementPtr(st, args[0], {0, 0}),
                                      program.PointerType(program.F64Type())));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -116,8 +118,8 @@ TEST(ASMBackendTest, PTR_CASTStruct) {
   EXPECT_EQ(5, *reinterpret_cast<int64_t*>(compute(&test)));
 }
 
-TEST(ASMBackendTest, ALLOCAI8) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, ALLOCAI8) {
+  ProgramBuilder program;
   auto type = program.I8Type();
   auto func = program.CreatePublicFunction(type, {type}, "compute");
   auto args = program.GetFunctionArguments(func);
@@ -125,7 +127,7 @@ TEST(ASMBackendTest, ALLOCAI8) {
   program.StoreI8(ptr, args[0]);
   program.Return(program.LoadI8(ptr));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -141,8 +143,8 @@ TEST(ASMBackendTest, ALLOCAI8) {
   }
 }
 
-TEST(ASMBackendTest, ALLOCAI16) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, ALLOCAI16) {
+  ProgramBuilder program;
   auto type = program.I16Type();
   auto func = program.CreatePublicFunction(type, {type}, "compute");
   auto args = program.GetFunctionArguments(func);
@@ -150,7 +152,7 @@ TEST(ASMBackendTest, ALLOCAI16) {
   program.StoreI16(ptr, args[0]);
   program.Return(program.LoadI16(ptr));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -166,8 +168,8 @@ TEST(ASMBackendTest, ALLOCAI16) {
   }
 }
 
-TEST(ASMBackendTest, ALLOCAI32) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, ALLOCAI32) {
+  ProgramBuilder program;
   auto type = program.I32Type();
   auto func = program.CreatePublicFunction(type, {type}, "compute");
   auto args = program.GetFunctionArguments(func);
@@ -175,7 +177,7 @@ TEST(ASMBackendTest, ALLOCAI32) {
   program.StoreI32(ptr, args[0]);
   program.Return(program.LoadI32(ptr));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -191,8 +193,8 @@ TEST(ASMBackendTest, ALLOCAI32) {
   }
 }
 
-TEST(ASMBackendTest, ALLOCAI64) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, ALLOCAI64) {
+  ProgramBuilder program;
   auto type = program.I64Type();
   auto func = program.CreatePublicFunction(type, {type}, "compute");
   auto args = program.GetFunctionArguments(func);
@@ -200,7 +202,7 @@ TEST(ASMBackendTest, ALLOCAI64) {
   program.StoreI64(ptr, args[0]);
   program.Return(program.LoadI64(ptr));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -216,8 +218,8 @@ TEST(ASMBackendTest, ALLOCAI64) {
   }
 }
 
-TEST(ASMBackendTest, ALLOCAF64) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, ALLOCAF64) {
+  ProgramBuilder program;
   auto type = program.F64Type();
   auto func = program.CreatePublicFunction(type, {type}, "compute");
   auto args = program.GetFunctionArguments(func);
@@ -225,7 +227,7 @@ TEST(ASMBackendTest, ALLOCAF64) {
   program.StoreF64(ptr, args[0]);
   program.Return(program.LoadF64(ptr));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -241,14 +243,14 @@ TEST(ASMBackendTest, ALLOCAF64) {
   }
 }
 
-TEST(ASMBackendTest, ALLOCAStruct) {
+TEST_P(ASMBackendTest, ALLOCAStruct) {
   struct Test {
     int8_t x1;
     int16_t x2;
     int64_t x3;
   };
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto test_type = program.StructType(
       {program.I8Type(), program.I16Type(), program.I64Type()});
 
@@ -269,7 +271,7 @@ TEST(ASMBackendTest, ALLOCAStruct) {
   program.Call(args[0], {ptr});
   program.Return();
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -284,15 +286,15 @@ TEST(ASMBackendTest, ALLOCAStruct) {
   });
 }
 
-TEST(ASMBackendTest, PTR_LOAD) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, PTR_LOAD) {
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.PointerType(program.I64Type()),
       {program.PointerType(program.PointerType(program.I64Type()))}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LoadPtr(args[0]));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -304,8 +306,8 @@ TEST(ASMBackendTest, PTR_LOAD) {
   EXPECT_EQ(ptr, compute(&ptr));
 }
 
-TEST(ASMBackendTest, PTR_LOADGlobal) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, PTR_LOADGlobal) {
+  ProgramBuilder program;
   auto global =
       program.Global(true, false, program.PointerType(program.I64Type()),
                      program.NullPtr(program.I64Type()));
@@ -314,7 +316,7 @@ TEST(ASMBackendTest, PTR_LOADGlobal) {
       "compute");
   program.Return(program.LoadPtr(global));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -324,12 +326,12 @@ TEST(ASMBackendTest, PTR_LOADGlobal) {
   EXPECT_EQ(nullptr, compute());
 }
 
-TEST(ASMBackendTest, PTR_LOADStruct) {
+TEST_P(ASMBackendTest, PTR_LOADStruct) {
   struct Test {
     int64_t* x;
   };
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto st = program.StructType(
       {program.PointerType(program.PointerType(program.I64Type()))});
   auto func =
@@ -338,7 +340,7 @@ TEST(ASMBackendTest, PTR_LOADStruct) {
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LoadPtr(program.GetElementPtr(st, args[0], {0, 0})));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -349,8 +351,8 @@ TEST(ASMBackendTest, PTR_LOADStruct) {
   EXPECT_EQ(t.x, compute(&t));
 }
 
-TEST(ASMBackendTest, PTR_STORE) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, PTR_STORE) {
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.VoidType(),
       {program.PointerType(program.PointerType(program.I64Type())),
@@ -360,7 +362,7 @@ TEST(ASMBackendTest, PTR_STORE) {
   program.StorePtr(args[0], args[1]);
   program.Return();
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -374,8 +376,8 @@ TEST(ASMBackendTest, PTR_STORE) {
   EXPECT_EQ(ptr, loc);
 }
 
-TEST(ASMBackendTest, PTR_STORENullptr) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, PTR_STORENullptr) {
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.VoidType(),
       {program.PointerType(program.PointerType(program.I64Type()))}, "compute");
@@ -383,7 +385,7 @@ TEST(ASMBackendTest, PTR_STORENullptr) {
   program.StorePtr(args[0], program.NullPtr(program.I64Type()));
   program.Return();
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -396,8 +398,8 @@ TEST(ASMBackendTest, PTR_STORENullptr) {
   EXPECT_EQ(nullptr, ptr);
 }
 
-TEST(ASMBackendTest, PTR_STOREGlobal) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, PTR_STOREGlobal) {
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I64Type(),
       {program.PointerType(program.PointerType(program.I64Type()))}, "compute");
@@ -408,7 +410,7 @@ TEST(ASMBackendTest, PTR_STOREGlobal) {
   auto ptr = program.LoadPtr(args[0]);
   program.Return(program.LoadI64(ptr));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -419,13 +421,13 @@ TEST(ASMBackendTest, PTR_STOREGlobal) {
   EXPECT_EQ(-1, compute(&loc));
 }
 
-TEST(ASMBackendTest, PTR_STOREGep) {
+TEST_P(ASMBackendTest, PTR_STOREGep) {
   struct Test {
     int32_t a;
     int64_t b;
   };
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto st = program.StructType({program.I32Type(), program.I64Type()});
   auto func = program.CreatePublicFunction(
       program.VoidType(),
@@ -436,7 +438,7 @@ TEST(ASMBackendTest, PTR_STOREGep) {
   program.StorePtr(args[0], program.GetElementPtr(st, args[1], {0, 1}));
   program.Return();
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -449,8 +451,8 @@ TEST(ASMBackendTest, PTR_STOREGep) {
   EXPECT_EQ(&x.b, loc);
 }
 
-TEST(ASMBackendTest, PTR_STOREGlobalDest) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, PTR_STOREGlobalDest) {
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.PointerType(program.I64Type()),
       {program.PointerType(program.I64Type())}, "compute");
@@ -463,7 +465,7 @@ TEST(ASMBackendTest, PTR_STOREGlobalDest) {
       program.PointerCast(args[0], program.PointerType(program.I64Type())));
   program.Return(program.LoadPtr(global));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -475,12 +477,12 @@ TEST(ASMBackendTest, PTR_STOREGlobalDest) {
   EXPECT_EQ(ptr, compute(ptr));
 }
 
-TEST(ASMBackendTest, PTR_STOREGepDest) {
+TEST_P(ASMBackendTest, PTR_STOREGepDest) {
   struct Test {
     int64_t* x;
   };
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto st = program.StructType({program.PointerType(program.I64Type())});
   auto func = program.CreatePublicFunction(
       program.VoidType(),
@@ -490,7 +492,7 @@ TEST(ASMBackendTest, PTR_STOREGepDest) {
   program.StorePtr(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
   program.Return();
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -504,13 +506,13 @@ TEST(ASMBackendTest, PTR_STOREGepDest) {
   EXPECT_EQ(ptr, t.x);
 }
 
-TEST(ASMBackendTest, PHIPTR) {
+TEST_P(ASMBackendTest, PHIPTR) {
   int64_t c1 = 0xDEADBEEF;
   int64_t* p1 = reinterpret_cast<int64_t*>(c1);
   int64_t c2 = 0xBEAFDEAD;
   int64_t* p2 = reinterpret_cast<int64_t*>(c2);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto type = program.PointerType(program.I64Type());
   auto func = program.CreatePublicFunction(
       program.VoidType(), {program.I1Type(), type, type}, "compute");
@@ -536,7 +538,7 @@ TEST(ASMBackendTest, PHIPTR) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -548,18 +550,18 @@ TEST(ASMBackendTest, PHIPTR) {
   EXPECT_EQ(p2, compute(0, p1, p2));
 }
 
-TEST(ASMBackendTest, I1_CONST) {
+TEST_P(ASMBackendTest, I1_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(0, 1);
   for (int i = 0; i < 10; i++) {
     bool c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I1Type(), {}, "compute");
     program.Return(program.ConstI1(c));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -570,14 +572,14 @@ TEST(ASMBackendTest, I1_CONST) {
   }
 }
 
-TEST(ASMBackendTest, I1_LNOT) {
-  khir::ProgramBuilder program;
+TEST_P(ASMBackendTest, I1_LNOT) {
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(program.I1Type(), {program.I1Type()},
                                            "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LNotI1(args[0]));
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -588,13 +590,13 @@ TEST(ASMBackendTest, I1_LNOT) {
   EXPECT_EQ(true, compute(false));
 }
 
-TEST(ASMBackendTest, I1_LNOTConst) {
+TEST_P(ASMBackendTest, I1_LNOTConst) {
   for (auto c : {true, false}) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I1Type(), {}, "compute");
     program.Return(program.LNotI1(program.ConstI1(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -605,18 +607,18 @@ TEST(ASMBackendTest, I1_LNOTConst) {
   }
 }
 
-TEST(ASMBackendTest, I1_CMP_XXReturn) {
-  for (auto cmp_type : {khir::CompType::EQ, khir::CompType::NE}) {
+TEST_P(ASMBackendTest, I1_CMP_XXReturn) {
+  for (auto cmp_type : {CompType::EQ, CompType::NE}) {
     int8_t c1 = 0;
     int8_t c2 = 1;
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.I1Type(), {program.I1Type(), program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, args[0], args[1]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -649,12 +651,12 @@ TEST(ASMBackendTest, I1_CMP_XXReturn) {
   }
 }
 
-TEST(ASMBackendTest, I1_CMP_XXBranch) {
-  for (auto cmp_type : {khir::CompType::EQ, khir::CompType::NE}) {
+TEST_P(ASMBackendTest, I1_CMP_XXBranch) {
+  for (auto cmp_type : {CompType::EQ, CompType::NE}) {
     int8_t c1 = 0;
     int8_t c2 = 1;
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.I1Type(), {program.I1Type(), program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
@@ -666,7 +668,7 @@ TEST(ASMBackendTest, I1_CMP_XXBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI1(false));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -699,18 +701,18 @@ TEST(ASMBackendTest, I1_CMP_XXBranch) {
   }
 }
 
-TEST(ASMBackendTest, I1_CMP_XXReturnConstArg0) {
-  for (auto cmp_type : {khir::CompType::EQ, khir::CompType::NE}) {
+TEST_P(ASMBackendTest, I1_CMP_XXReturnConstArg0) {
+  for (auto cmp_type : {CompType::EQ, CompType::NE}) {
     int8_t c1 = 0;
     int8_t c2 = 1;
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I1Type(),
                                              {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, program.ConstI1(c1), args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -731,18 +733,18 @@ TEST(ASMBackendTest, I1_CMP_XXReturnConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I1_CMP_XXReturnConstArg1) {
-  for (auto cmp_type : {khir::CompType::EQ, khir::CompType::NE}) {
+TEST_P(ASMBackendTest, I1_CMP_XXReturnConstArg1) {
+  for (auto cmp_type : {CompType::EQ, CompType::NE}) {
     int8_t c1 = 0;
     int8_t c2 = 1;
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I1Type(),
                                              {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, args[0], program.ConstI1(c2)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -763,15 +765,15 @@ TEST(ASMBackendTest, I1_CMP_XXReturnConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I1_ZEXT_I64) {
+TEST_P(ASMBackendTest, I1_ZEXT_I64) {
   for (auto c : {true, false}) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI1(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -783,13 +785,13 @@ TEST(ASMBackendTest, I1_ZEXT_I64) {
   }
 }
 
-TEST(ASMBackendTest, I1_ZEXT_I64Const) {
+TEST_P(ASMBackendTest, I1_ZEXT_I64Const) {
   for (auto c : {true, false}) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {}, "compute");
     program.Return(program.I64ZextI1(program.ConstI1(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -801,15 +803,15 @@ TEST(ASMBackendTest, I1_ZEXT_I64Const) {
   }
 }
 
-TEST(ASMBackendTest, I1_ZEXT_I8) {
+TEST_P(ASMBackendTest, I1_ZEXT_I8) {
   for (auto c : {true, false}) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I8Type(),
                                              {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I8ZextI1(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -820,13 +822,13 @@ TEST(ASMBackendTest, I1_ZEXT_I8) {
   }
 }
 
-TEST(ASMBackendTest, I1_ZEXT_I8Const) {
+TEST_P(ASMBackendTest, I1_ZEXT_I8Const) {
   for (auto c : {true, false}) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I8Type(), {}, "compute");
     program.Return(program.I8ZextI1(program.ConstI1(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -837,11 +839,11 @@ TEST(ASMBackendTest, I1_ZEXT_I8Const) {
   }
 }
 
-TEST(ASMBackendTest, PHII1) {
+TEST_P(ASMBackendTest, PHII1) {
   bool c1 = false;
   bool c2 = true;
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto type = program.I1Type();
   auto func = program.CreatePublicFunction(
       program.VoidType(), {program.I1Type(), type, type}, "compute");
@@ -867,7 +869,7 @@ TEST(ASMBackendTest, PHII1) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -878,11 +880,11 @@ TEST(ASMBackendTest, PHII1) {
   EXPECT_EQ(c2, compute(0, c1, c2));
 }
 
-TEST(ASMBackendTest, PHII1ConstArg0) {
+TEST_P(ASMBackendTest, PHII1ConstArg0) {
   bool c1 = false;
   bool c2 = true;
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto type = program.I1Type();
   auto func = program.CreatePublicFunction(program.VoidType(),
                                            {program.I1Type(), type}, "compute");
@@ -908,7 +910,7 @@ TEST(ASMBackendTest, PHII1ConstArg0) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -919,11 +921,11 @@ TEST(ASMBackendTest, PHII1ConstArg0) {
   EXPECT_EQ(c2, compute(0, c2));
 }
 
-TEST(ASMBackendTest, PHII1ConstArg1) {
+TEST_P(ASMBackendTest, PHII1ConstArg1) {
   bool c1 = false;
   bool c2 = true;
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto type = program.I1Type();
   auto func = program.CreatePublicFunction(program.VoidType(),
                                            {program.I1Type(), type}, "compute");
@@ -949,7 +951,7 @@ TEST(ASMBackendTest, PHII1ConstArg1) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -960,19 +962,19 @@ TEST(ASMBackendTest, PHII1ConstArg1) {
   EXPECT_EQ(c2, compute(0, c1));
 }
 
-TEST(ASMBackendTest, I8_ADD) {
+TEST_P(ASMBackendTest, I8_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I8Type(), {program.I8Type(), program.I8Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AddI8(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -988,7 +990,7 @@ TEST(ASMBackendTest, I8_ADD) {
   }
 }
 
-TEST(ASMBackendTest, I8_ADDConstArg0) {
+TEST_P(ASMBackendTest, I8_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -997,14 +999,14 @@ TEST(ASMBackendTest, I8_ADDConstArg0) {
     int8_t a0 = distrib(gen);
     int8_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I8Type(),
                                              {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1016,7 +1018,7 @@ TEST(ASMBackendTest, I8_ADDConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I8_ADDConstArg1) {
+TEST_P(ASMBackendTest, I8_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1025,14 +1027,14 @@ TEST(ASMBackendTest, I8_ADDConstArg1) {
     int8_t a0 = distrib(gen);
     int8_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I8Type(),
                                              {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI8(args[0], program.ConstI8(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1044,19 +1046,19 @@ TEST(ASMBackendTest, I8_ADDConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I8_SUB) {
+TEST_P(ASMBackendTest, I8_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I8Type(), {program.I8Type(), program.I8Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.SubI8(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -1071,7 +1073,7 @@ TEST(ASMBackendTest, I8_SUB) {
   }
 }
 
-TEST(ASMBackendTest, I8_SubConstArg0) {
+TEST_P(ASMBackendTest, I8_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1080,14 +1082,14 @@ TEST(ASMBackendTest, I8_SubConstArg0) {
     int8_t a0 = distrib(gen);
     int8_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I8Type(),
                                              {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1099,7 +1101,7 @@ TEST(ASMBackendTest, I8_SubConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I8_SubConstArg1) {
+TEST_P(ASMBackendTest, I8_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1108,14 +1110,14 @@ TEST(ASMBackendTest, I8_SubConstArg1) {
     int8_t a0 = distrib(gen);
     int8_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I8Type(),
                                              {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI8(args[0], program.ConstI8(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1127,19 +1129,19 @@ TEST(ASMBackendTest, I8_SubConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I8_MUL) {
+TEST_P(ASMBackendTest, I8_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I8Type(), {program.I8Type(), program.I8Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.MulI8(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -1154,7 +1156,7 @@ TEST(ASMBackendTest, I8_MUL) {
   }
 }
 
-TEST(ASMBackendTest, I8_MULConstArg0) {
+TEST_P(ASMBackendTest, I8_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1163,14 +1165,14 @@ TEST(ASMBackendTest, I8_MULConstArg0) {
     int8_t a0 = distrib(gen);
     int8_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I8Type(),
                                              {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1182,7 +1184,7 @@ TEST(ASMBackendTest, I8_MULConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I8_MULConstArg1) {
+TEST_P(ASMBackendTest, I8_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1191,14 +1193,14 @@ TEST(ASMBackendTest, I8_MULConstArg1) {
     int8_t a0 = distrib(gen);
     int8_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I8Type(),
                                              {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI8(args[0], program.ConstI8(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1210,18 +1212,18 @@ TEST(ASMBackendTest, I8_MULConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I8_CONST) {
+TEST_P(ASMBackendTest, I8_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     int8_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I8Type(), {}, "compute");
     program.Return(program.ConstI8(c));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1232,18 +1234,18 @@ TEST(ASMBackendTest, I8_CONST) {
   }
 }
 
-TEST(ASMBackendTest, I8_ZEXT_I64) {
+TEST_P(ASMBackendTest, I8_ZEXT_I64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI8(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1256,19 +1258,19 @@ TEST(ASMBackendTest, I8_ZEXT_I64) {
   }
 }
 
-TEST(ASMBackendTest, I8_ZEXT_I64Const) {
+TEST_P(ASMBackendTest, I8_ZEXT_I64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     int8_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {program.I8Type()},
                                  "compute");
     program.Return(program.I64ZextI8(program.ConstI8(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1280,18 +1282,18 @@ TEST(ASMBackendTest, I8_ZEXT_I64Const) {
   }
 }
 
-TEST(ASMBackendTest, I8_CONV_F64) {
+TEST_P(ASMBackendTest, I8_CONV_F64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI8(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1304,19 +1306,19 @@ TEST(ASMBackendTest, I8_CONV_F64) {
   }
 }
 
-TEST(ASMBackendTest, I8_CONV_F64Const) {
+TEST_P(ASMBackendTest, I8_CONV_F64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     int8_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {program.I8Type()},
                                  "compute");
     program.Return(program.F64ConvI8(program.ConstI8(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1328,24 +1330,23 @@ TEST(ASMBackendTest, I8_CONV_F64Const) {
   }
 }
 
-TEST(ASMBackendTest, I8_CMP_XXReturn) {
+TEST_P(ASMBackendTest, I8_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int8_t c1 = distrib(gen);
       int8_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(
           program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, args[0], args[1]));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -1380,18 +1381,17 @@ TEST(ASMBackendTest, I8_CMP_XXReturn) {
   }
 }
 
-TEST(ASMBackendTest, I8_CMP_XXBranch) {
+TEST_P(ASMBackendTest, I8_CMP_XXBranch) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int8_t c1 = distrib(gen);
       int8_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(
           program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
@@ -1403,7 +1403,7 @@ TEST(ASMBackendTest, I8_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -1438,24 +1438,23 @@ TEST(ASMBackendTest, I8_CMP_XXBranch) {
   }
 }
 
-TEST(ASMBackendTest, I8_CMP_XXConstArg0) {
+TEST_P(ASMBackendTest, I8_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int8_t c1 = distrib(gen);
       int8_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(program.I1Type(),
                                                {program.I8Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, program.ConstI8(c1), args[0]));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -1478,24 +1477,23 @@ TEST(ASMBackendTest, I8_CMP_XXConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I8_CMP_XXConstArg1) {
+TEST_P(ASMBackendTest, I8_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int8_t c1 = distrib(gen);
       int8_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(program.I1Type(),
                                                {program.I8Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, args[0], program.ConstI8(c2)));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -1518,20 +1516,20 @@ TEST(ASMBackendTest, I8_CMP_XXConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I8_LOAD) {
+TEST_P(ASMBackendTest, I8_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     int8_t loc = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.I8Type(), {program.PointerType(program.I8Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI8(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1542,20 +1540,20 @@ TEST(ASMBackendTest, I8_LOAD) {
   }
 }
 
-TEST(ASMBackendTest, I8_LOADGlobal) {
+TEST_P(ASMBackendTest, I8_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     int8_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto global =
         program.Global(true, false, program.I8Type(), program.ConstI8(c));
     program.CreatePublicFunction(program.I8Type(), {}, "compute");
     program.Return(program.LoadI8(global));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1566,7 +1564,7 @@ TEST(ASMBackendTest, I8_LOADGlobal) {
   }
 }
 
-TEST(ASMBackendTest, I8_LOADStruct) {
+TEST_P(ASMBackendTest, I8_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1577,14 +1575,14 @@ TEST(ASMBackendTest, I8_LOADStruct) {
       int8_t x;
     };
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto st = program.StructType({program.I8Type()});
     auto func = program.CreatePublicFunction(
         program.I8Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI8(program.GetElementPtr(st, args[0], {0, 0})));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1596,14 +1594,14 @@ TEST(ASMBackendTest, I8_LOADStruct) {
   }
 }
 
-TEST(ASMBackendTest, I8_STORE) {
+TEST_P(ASMBackendTest, I8_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     int8_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.VoidType(),
         {program.PointerType(program.I8Type()), program.I8Type()}, "compute");
@@ -1611,7 +1609,7 @@ TEST(ASMBackendTest, I8_STORE) {
     program.StoreI8(args[0], args[1]);
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1624,21 +1622,21 @@ TEST(ASMBackendTest, I8_STORE) {
   }
 }
 
-TEST(ASMBackendTest, I8_STOREConst) {
+TEST_P(ASMBackendTest, I8_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     int8_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.PointerType(program.I8Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.StoreI8(args[0], program.ConstI8(c));
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1651,14 +1649,14 @@ TEST(ASMBackendTest, I8_STOREConst) {
   }
 }
 
-TEST(ASMBackendTest, I8_STOREGlobal) {
+TEST_P(ASMBackendTest, I8_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     int8_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto global =
         program.Global(true, false, program.I8Type(), program.ConstI8(c));
     auto func = program.CreatePublicFunction(
@@ -1667,7 +1665,7 @@ TEST(ASMBackendTest, I8_STOREGlobal) {
     program.StoreI8(global, args[0]);
     program.Return(global);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1679,7 +1677,7 @@ TEST(ASMBackendTest, I8_STOREGlobal) {
   }
 }
 
-TEST(ASMBackendTest, I8_STOREStruct) {
+TEST_P(ASMBackendTest, I8_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1690,7 +1688,7 @@ TEST(ASMBackendTest, I8_STOREStruct) {
       int8_t x;
     };
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto st = program.StructType({program.I8Type()});
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.PointerType(st), program.I8Type()},
@@ -1699,7 +1697,7 @@ TEST(ASMBackendTest, I8_STOREStruct) {
     program.StoreI8(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1712,7 +1710,7 @@ TEST(ASMBackendTest, I8_STOREStruct) {
   }
 }
 
-TEST(ASMBackendTest, PHII8) {
+TEST_P(ASMBackendTest, PHII8) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1720,7 +1718,7 @@ TEST(ASMBackendTest, PHII8) {
     int8_t c1 = distrib(gen);
     int8_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I8Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type, type}, "compute");
@@ -1746,7 +1744,7 @@ TEST(ASMBackendTest, PHII8) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1758,7 +1756,7 @@ TEST(ASMBackendTest, PHII8) {
   }
 }
 
-TEST(ASMBackendTest, PHII8ConstArg0) {
+TEST_P(ASMBackendTest, PHII8ConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1766,7 +1764,7 @@ TEST(ASMBackendTest, PHII8ConstArg0) {
     int8_t c1 = distrib(gen);
     int8_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I8Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type}, "compute");
@@ -1792,7 +1790,7 @@ TEST(ASMBackendTest, PHII8ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1804,7 +1802,7 @@ TEST(ASMBackendTest, PHII8ConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, PHII8ConstArg1) {
+TEST_P(ASMBackendTest, PHII8ConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1812,7 +1810,7 @@ TEST(ASMBackendTest, PHII8ConstArg1) {
     int8_t c1 = distrib(gen);
     int8_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I8Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type}, "compute");
@@ -1838,7 +1836,7 @@ TEST(ASMBackendTest, PHII8ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1850,19 +1848,19 @@ TEST(ASMBackendTest, PHII8ConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I16_ADD) {
+TEST_P(ASMBackendTest, I16_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I16Type(), {program.I16Type(), program.I16Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AddI16(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -1877,7 +1875,7 @@ TEST(ASMBackendTest, I16_ADD) {
   }
 }
 
-TEST(ASMBackendTest, I16_ADDConstArg0) {
+TEST_P(ASMBackendTest, I16_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -1886,14 +1884,14 @@ TEST(ASMBackendTest, I16_ADDConstArg0) {
     int16_t a0 = distrib(gen);
     int16_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I16Type(),
                                              {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1905,7 +1903,7 @@ TEST(ASMBackendTest, I16_ADDConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I16_ADDConstArg1) {
+TEST_P(ASMBackendTest, I16_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -1914,14 +1912,14 @@ TEST(ASMBackendTest, I16_ADDConstArg1) {
     int16_t a0 = distrib(gen);
     int16_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I16Type(),
                                              {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI16(args[0], program.ConstI16(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1933,19 +1931,19 @@ TEST(ASMBackendTest, I16_ADDConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I16_SUB) {
+TEST_P(ASMBackendTest, I16_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I16Type(), {program.I16Type(), program.I16Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.SubI16(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -1960,7 +1958,7 @@ TEST(ASMBackendTest, I16_SUB) {
   }
 }
 
-TEST(ASMBackendTest, I16_SubConstArg0) {
+TEST_P(ASMBackendTest, I16_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -1969,14 +1967,14 @@ TEST(ASMBackendTest, I16_SubConstArg0) {
     int16_t a0 = distrib(gen);
     int16_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I16Type(),
                                              {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -1988,7 +1986,7 @@ TEST(ASMBackendTest, I16_SubConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I16_SubConstArg1) {
+TEST_P(ASMBackendTest, I16_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -1997,14 +1995,14 @@ TEST(ASMBackendTest, I16_SubConstArg1) {
     int16_t a0 = distrib(gen);
     int16_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I16Type(),
                                              {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI16(args[0], program.ConstI16(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2016,19 +2014,19 @@ TEST(ASMBackendTest, I16_SubConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I16_MUL) {
+TEST_P(ASMBackendTest, I16_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I16Type(), {program.I16Type(), program.I16Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.MulI16(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -2043,7 +2041,7 @@ TEST(ASMBackendTest, I16_MUL) {
   }
 }
 
-TEST(ASMBackendTest, I16_MULConstArg0) {
+TEST_P(ASMBackendTest, I16_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2052,14 +2050,14 @@ TEST(ASMBackendTest, I16_MULConstArg0) {
     int16_t a0 = distrib(gen);
     int16_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I16Type(),
                                              {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2071,7 +2069,7 @@ TEST(ASMBackendTest, I16_MULConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I16_MULConstArg1) {
+TEST_P(ASMBackendTest, I16_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2080,14 +2078,14 @@ TEST(ASMBackendTest, I16_MULConstArg1) {
     int16_t a0 = distrib(gen);
     int16_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I16Type(),
                                              {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI16(args[0], program.ConstI16(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2099,18 +2097,18 @@ TEST(ASMBackendTest, I16_MULConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I16_CONST) {
+TEST_P(ASMBackendTest, I16_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     int16_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I16Type(), {}, "compute");
     program.Return(program.ConstI16(c));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2121,18 +2119,18 @@ TEST(ASMBackendTest, I16_CONST) {
   }
 }
 
-TEST(ASMBackendTest, I16_ZEXT_I64) {
+TEST_P(ASMBackendTest, I16_ZEXT_I64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI16(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2145,19 +2143,19 @@ TEST(ASMBackendTest, I16_ZEXT_I64) {
   }
 }
 
-TEST(ASMBackendTest, I16_ZEXT_I64Const) {
+TEST_P(ASMBackendTest, I16_ZEXT_I64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     int16_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {program.I16Type()},
                                  "compute");
     program.Return(program.I64ZextI16(program.ConstI16(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2169,18 +2167,18 @@ TEST(ASMBackendTest, I16_ZEXT_I64Const) {
   }
 }
 
-TEST(ASMBackendTest, I16_CONV_F64) {
+TEST_P(ASMBackendTest, I16_CONV_F64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI16(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2193,19 +2191,19 @@ TEST(ASMBackendTest, I16_CONV_F64) {
   }
 }
 
-TEST(ASMBackendTest, I16_CONV_F64Const) {
+TEST_P(ASMBackendTest, I16_CONV_F64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     int16_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {program.I16Type()},
                                  "compute");
     program.Return(program.F64ConvI16(program.ConstI16(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2217,24 +2215,23 @@ TEST(ASMBackendTest, I16_CONV_F64Const) {
   }
 }
 
-TEST(ASMBackendTest, I16_CMP_XXReturn) {
+TEST_P(ASMBackendTest, I16_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int16_t c1 = distrib(gen);
       int16_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(
           program.I1Type(), {program.I16Type(), program.I16Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, args[0], args[1]));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -2269,18 +2266,17 @@ TEST(ASMBackendTest, I16_CMP_XXReturn) {
   }
 }
 
-TEST(ASMBackendTest, I16_CMP_XXBranch) {
+TEST_P(ASMBackendTest, I16_CMP_XXBranch) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int16_t c1 = distrib(gen);
       int16_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(
           program.I1Type(), {program.I16Type(), program.I16Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
@@ -2292,7 +2288,7 @@ TEST(ASMBackendTest, I16_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -2327,24 +2323,23 @@ TEST(ASMBackendTest, I16_CMP_XXBranch) {
   }
 }
 
-TEST(ASMBackendTest, I16_CMP_XXConstArg0) {
+TEST_P(ASMBackendTest, I16_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int16_t c1 = distrib(gen);
       int16_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(program.I1Type(),
                                                {program.I16Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, program.ConstI16(c1), args[0]));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -2367,24 +2362,23 @@ TEST(ASMBackendTest, I16_CMP_XXConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I16_CMP_XXConstArg1) {
+TEST_P(ASMBackendTest, I16_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int16_t c1 = distrib(gen);
       int16_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(program.I1Type(),
                                                {program.I16Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, args[0], program.ConstI16(c2)));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -2407,20 +2401,20 @@ TEST(ASMBackendTest, I16_CMP_XXConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I16_LOAD) {
+TEST_P(ASMBackendTest, I16_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     int16_t loc = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.I16Type(), {program.PointerType(program.I16Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI16(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2431,20 +2425,20 @@ TEST(ASMBackendTest, I16_LOAD) {
   }
 }
 
-TEST(ASMBackendTest, I16_LOADGlobal) {
+TEST_P(ASMBackendTest, I16_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     int16_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto global =
         program.Global(true, false, program.I16Type(), program.ConstI16(c));
     program.CreatePublicFunction(program.I16Type(), {}, "compute");
     program.Return(program.LoadI16(global));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2455,7 +2449,7 @@ TEST(ASMBackendTest, I16_LOADGlobal) {
   }
 }
 
-TEST(ASMBackendTest, I16_LOADStruct) {
+TEST_P(ASMBackendTest, I16_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2466,14 +2460,14 @@ TEST(ASMBackendTest, I16_LOADStruct) {
       int16_t x;
     };
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto st = program.StructType({program.I16Type()});
     auto func = program.CreatePublicFunction(
         program.I16Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI16(program.GetElementPtr(st, args[0], {0, 0})));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2485,14 +2479,14 @@ TEST(ASMBackendTest, I16_LOADStruct) {
   }
 }
 
-TEST(ASMBackendTest, I16_STORE) {
+TEST_P(ASMBackendTest, I16_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     int16_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.VoidType(),
         {program.PointerType(program.I16Type()), program.I16Type()}, "compute");
@@ -2500,7 +2494,7 @@ TEST(ASMBackendTest, I16_STORE) {
     program.StoreI16(args[0], args[1]);
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2513,14 +2507,14 @@ TEST(ASMBackendTest, I16_STORE) {
   }
 }
 
-TEST(ASMBackendTest, I16_STOREConst) {
+TEST_P(ASMBackendTest, I16_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     int16_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.PointerType(program.I16Type())},
         "compute");
@@ -2528,7 +2522,7 @@ TEST(ASMBackendTest, I16_STOREConst) {
     program.StoreI16(args[0], program.ConstI16(c));
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2541,14 +2535,14 @@ TEST(ASMBackendTest, I16_STOREConst) {
   }
 }
 
-TEST(ASMBackendTest, I16_STOREGlobal) {
+TEST_P(ASMBackendTest, I16_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     int16_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto global =
         program.Global(true, false, program.I16Type(), program.ConstI16(c));
     auto func = program.CreatePublicFunction(
@@ -2557,7 +2551,7 @@ TEST(ASMBackendTest, I16_STOREGlobal) {
     program.StoreI16(global, args[0]);
     program.Return(global);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2569,7 +2563,7 @@ TEST(ASMBackendTest, I16_STOREGlobal) {
   }
 }
 
-TEST(ASMBackendTest, I16_STOREStruct) {
+TEST_P(ASMBackendTest, I16_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2580,7 +2574,7 @@ TEST(ASMBackendTest, I16_STOREStruct) {
       int16_t x;
     };
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto st = program.StructType({program.I16Type()});
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.PointerType(st), program.I16Type()},
@@ -2589,7 +2583,7 @@ TEST(ASMBackendTest, I16_STOREStruct) {
     program.StoreI16(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2602,7 +2596,7 @@ TEST(ASMBackendTest, I16_STOREStruct) {
   }
 }
 
-TEST(ASMBackendTest, PHII16) {
+TEST_P(ASMBackendTest, PHII16) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2610,7 +2604,7 @@ TEST(ASMBackendTest, PHII16) {
     int16_t c1 = distrib(gen);
     int16_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I16Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type, type}, "compute");
@@ -2636,7 +2630,7 @@ TEST(ASMBackendTest, PHII16) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2649,7 +2643,7 @@ TEST(ASMBackendTest, PHII16) {
   }
 }
 
-TEST(ASMBackendTest, PHII16ConstArg0) {
+TEST_P(ASMBackendTest, PHII16ConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2657,7 +2651,7 @@ TEST(ASMBackendTest, PHII16ConstArg0) {
     int16_t c1 = distrib(gen);
     int16_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I16Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type}, "compute");
@@ -2683,7 +2677,7 @@ TEST(ASMBackendTest, PHII16ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2695,7 +2689,7 @@ TEST(ASMBackendTest, PHII16ConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, PHII16ConstArg1) {
+TEST_P(ASMBackendTest, PHII16ConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2703,7 +2697,7 @@ TEST(ASMBackendTest, PHII16ConstArg1) {
     int16_t c1 = distrib(gen);
     int16_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I16Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type}, "compute");
@@ -2729,7 +2723,7 @@ TEST(ASMBackendTest, PHII16ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2741,19 +2735,19 @@ TEST(ASMBackendTest, PHII16ConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I32_ADD) {
+TEST_P(ASMBackendTest, I32_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I32Type(), {program.I32Type(), program.I32Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AddI32(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -2768,7 +2762,7 @@ TEST(ASMBackendTest, I32_ADD) {
   }
 }
 
-TEST(ASMBackendTest, I32_ADDConstArg0) {
+TEST_P(ASMBackendTest, I32_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2777,14 +2771,14 @@ TEST(ASMBackendTest, I32_ADDConstArg0) {
     int32_t a0 = distrib(gen);
     int32_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I32Type(),
                                              {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2796,7 +2790,7 @@ TEST(ASMBackendTest, I32_ADDConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I32_ADDConstArg1) {
+TEST_P(ASMBackendTest, I32_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2805,14 +2799,14 @@ TEST(ASMBackendTest, I32_ADDConstArg1) {
     int32_t a0 = distrib(gen);
     int32_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I32Type(),
                                              {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI32(args[0], program.ConstI32(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2824,19 +2818,19 @@ TEST(ASMBackendTest, I32_ADDConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I32_SUB) {
+TEST_P(ASMBackendTest, I32_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I32Type(), {program.I32Type(), program.I32Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.SubI32(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -2851,7 +2845,7 @@ TEST(ASMBackendTest, I32_SUB) {
   }
 }
 
-TEST(ASMBackendTest, I32_SubConstArg0) {
+TEST_P(ASMBackendTest, I32_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2860,14 +2854,14 @@ TEST(ASMBackendTest, I32_SubConstArg0) {
     int32_t a0 = distrib(gen);
     int32_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I32Type(),
                                              {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2879,7 +2873,7 @@ TEST(ASMBackendTest, I32_SubConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I32_SubConstArg1) {
+TEST_P(ASMBackendTest, I32_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2888,14 +2882,14 @@ TEST(ASMBackendTest, I32_SubConstArg1) {
     int32_t a0 = distrib(gen);
     int32_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I32Type(),
                                              {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI32(args[0], program.ConstI32(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2907,19 +2901,19 @@ TEST(ASMBackendTest, I32_SubConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I32_MUL) {
+TEST_P(ASMBackendTest, I32_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I32Type(), {program.I32Type(), program.I32Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.MulI32(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -2934,7 +2928,7 @@ TEST(ASMBackendTest, I32_MUL) {
   }
 }
 
-TEST(ASMBackendTest, I32_MULConstArg0) {
+TEST_P(ASMBackendTest, I32_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2943,14 +2937,14 @@ TEST(ASMBackendTest, I32_MULConstArg0) {
     int32_t a0 = distrib(gen);
     int32_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I32Type(),
                                              {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2962,7 +2956,7 @@ TEST(ASMBackendTest, I32_MULConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I32_MULConstArg1) {
+TEST_P(ASMBackendTest, I32_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2971,14 +2965,14 @@ TEST(ASMBackendTest, I32_MULConstArg1) {
     int32_t a0 = distrib(gen);
     int32_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I32Type(),
                                              {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI32(args[0], program.ConstI32(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -2990,18 +2984,18 @@ TEST(ASMBackendTest, I32_MULConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I32_CONST) {
+TEST_P(ASMBackendTest, I32_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I32Type(), {}, "compute");
     program.Return(program.ConstI32(c));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3012,18 +3006,18 @@ TEST(ASMBackendTest, I32_CONST) {
   }
 }
 
-TEST(ASMBackendTest, I32_ZEXT_I64) {
+TEST_P(ASMBackendTest, I32_ZEXT_I64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI32(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3036,19 +3030,19 @@ TEST(ASMBackendTest, I32_ZEXT_I64) {
   }
 }
 
-TEST(ASMBackendTest, I32_ZEXT_I64Const) {
+TEST_P(ASMBackendTest, I32_ZEXT_I64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {program.I32Type()},
                                  "compute");
     program.Return(program.I64ZextI32(program.ConstI32(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3060,18 +3054,18 @@ TEST(ASMBackendTest, I32_ZEXT_I64Const) {
   }
 }
 
-TEST(ASMBackendTest, I32_CONV_F64) {
+TEST_P(ASMBackendTest, I32_CONV_F64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI32(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3084,19 +3078,19 @@ TEST(ASMBackendTest, I32_CONV_F64) {
   }
 }
 
-TEST(ASMBackendTest, I32_CONV_F64Const) {
+TEST_P(ASMBackendTest, I32_CONV_F64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {program.I32Type()},
                                  "compute");
     program.Return(program.F64ConvI32(program.ConstI32(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3108,24 +3102,23 @@ TEST(ASMBackendTest, I32_CONV_F64Const) {
   }
 }
 
-TEST(ASMBackendTest, I32_CMP_XXReturn) {
+TEST_P(ASMBackendTest, I32_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int32_t c1 = distrib(gen);
       int32_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(
           program.I1Type(), {program.I32Type(), program.I32Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, args[0], args[1]));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -3160,18 +3153,17 @@ TEST(ASMBackendTest, I32_CMP_XXReturn) {
   }
 }
 
-TEST(ASMBackendTest, I32_CMP_XXBranch) {
+TEST_P(ASMBackendTest, I32_CMP_XXBranch) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int32_t c1 = distrib(gen);
       int32_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(
           program.I1Type(), {program.I32Type(), program.I32Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
@@ -3183,7 +3175,7 @@ TEST(ASMBackendTest, I32_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -3218,24 +3210,23 @@ TEST(ASMBackendTest, I32_CMP_XXBranch) {
   }
 }
 
-TEST(ASMBackendTest, I32_CMP_XXConstArg0) {
+TEST_P(ASMBackendTest, I32_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int32_t c1 = distrib(gen);
       int32_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(program.I1Type(),
                                                {program.I32Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, program.ConstI32(c1), args[0]));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -3258,24 +3249,23 @@ TEST(ASMBackendTest, I32_CMP_XXConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I32_CMP_XXConstArg1) {
+TEST_P(ASMBackendTest, I32_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int32_t c1 = distrib(gen);
       int32_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(program.I1Type(),
                                                {program.I32Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, args[0], program.ConstI32(c2)));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -3298,20 +3288,20 @@ TEST(ASMBackendTest, I32_CMP_XXConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I32_LOAD) {
+TEST_P(ASMBackendTest, I32_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t loc = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.I32Type(), {program.PointerType(program.I32Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI32(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3322,20 +3312,20 @@ TEST(ASMBackendTest, I32_LOAD) {
   }
 }
 
-TEST(ASMBackendTest, I32_LOADGlobal) {
+TEST_P(ASMBackendTest, I32_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto global =
         program.Global(true, false, program.I32Type(), program.ConstI32(c));
     program.CreatePublicFunction(program.I32Type(), {}, "compute");
     program.Return(program.LoadI32(global));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3346,7 +3336,7 @@ TEST(ASMBackendTest, I32_LOADGlobal) {
   }
 }
 
-TEST(ASMBackendTest, I32_LOADStruct) {
+TEST_P(ASMBackendTest, I32_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3357,14 +3347,14 @@ TEST(ASMBackendTest, I32_LOADStruct) {
       int32_t x;
     };
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto st = program.StructType({program.I32Type()});
     auto func = program.CreatePublicFunction(
         program.I32Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI32(program.GetElementPtr(st, args[0], {0, 0})));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3376,14 +3366,14 @@ TEST(ASMBackendTest, I32_LOADStruct) {
   }
 }
 
-TEST(ASMBackendTest, I32_STORE) {
+TEST_P(ASMBackendTest, I32_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.VoidType(),
         {program.PointerType(program.I32Type()), program.I32Type()}, "compute");
@@ -3391,7 +3381,7 @@ TEST(ASMBackendTest, I32_STORE) {
     program.StoreI32(args[0], args[1]);
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3404,14 +3394,14 @@ TEST(ASMBackendTest, I32_STORE) {
   }
 }
 
-TEST(ASMBackendTest, I32_STOREConst) {
+TEST_P(ASMBackendTest, I32_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.PointerType(program.I32Type())},
         "compute");
@@ -3419,7 +3409,7 @@ TEST(ASMBackendTest, I32_STOREConst) {
     program.StoreI32(args[0], program.ConstI32(c));
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3432,14 +3422,14 @@ TEST(ASMBackendTest, I32_STOREConst) {
   }
 }
 
-TEST(ASMBackendTest, I32_STOREGlobal) {
+TEST_P(ASMBackendTest, I32_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     int32_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto global =
         program.Global(true, false, program.I32Type(), program.ConstI32(c));
     auto func = program.CreatePublicFunction(
@@ -3448,7 +3438,7 @@ TEST(ASMBackendTest, I32_STOREGlobal) {
     program.StoreI32(global, args[0]);
     program.Return(global);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3460,7 +3450,7 @@ TEST(ASMBackendTest, I32_STOREGlobal) {
   }
 }
 
-TEST(ASMBackendTest, I32_STOREStruct) {
+TEST_P(ASMBackendTest, I32_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3471,7 +3461,7 @@ TEST(ASMBackendTest, I32_STOREStruct) {
       int32_t x;
     };
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto st = program.StructType({program.I32Type()});
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.PointerType(st), program.I32Type()},
@@ -3480,7 +3470,7 @@ TEST(ASMBackendTest, I32_STOREStruct) {
     program.StoreI32(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3493,7 +3483,7 @@ TEST(ASMBackendTest, I32_STOREStruct) {
   }
 }
 
-TEST(ASMBackendTest, PHII32) {
+TEST_P(ASMBackendTest, PHII32) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3501,7 +3491,7 @@ TEST(ASMBackendTest, PHII32) {
     int32_t c1 = distrib(gen);
     int32_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I32Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type, type}, "compute");
@@ -3527,7 +3517,7 @@ TEST(ASMBackendTest, PHII32) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3540,7 +3530,7 @@ TEST(ASMBackendTest, PHII32) {
   }
 }
 
-TEST(ASMBackendTest, PHII32ConstArg0) {
+TEST_P(ASMBackendTest, PHII32ConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3548,7 +3538,7 @@ TEST(ASMBackendTest, PHII32ConstArg0) {
     int32_t c1 = distrib(gen);
     int32_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I32Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type}, "compute");
@@ -3574,7 +3564,7 @@ TEST(ASMBackendTest, PHII32ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3586,7 +3576,7 @@ TEST(ASMBackendTest, PHII32ConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, PHII32ConstArg1) {
+TEST_P(ASMBackendTest, PHII32ConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3594,7 +3584,7 @@ TEST(ASMBackendTest, PHII32ConstArg1) {
     int32_t c1 = distrib(gen);
     int32_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I32Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type}, "compute");
@@ -3620,7 +3610,7 @@ TEST(ASMBackendTest, PHII32ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3632,19 +3622,19 @@ TEST(ASMBackendTest, PHII32ConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I64_ADD) {
+TEST_P(ASMBackendTest, I64_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AddI64(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -3659,7 +3649,7 @@ TEST(ASMBackendTest, I64_ADD) {
   }
 }
 
-TEST(ASMBackendTest, I64_ADDConstArg0) {
+TEST_P(ASMBackendTest, I64_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3668,14 +3658,14 @@ TEST(ASMBackendTest, I64_ADDConstArg0) {
     int64_t a0 = distrib(gen);
     int64_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3687,7 +3677,7 @@ TEST(ASMBackendTest, I64_ADDConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I64_ADDConstArg1) {
+TEST_P(ASMBackendTest, I64_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3696,14 +3686,14 @@ TEST(ASMBackendTest, I64_ADDConstArg1) {
     int64_t a0 = distrib(gen);
     int64_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3715,19 +3705,19 @@ TEST(ASMBackendTest, I64_ADDConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I64_SUB) {
+TEST_P(ASMBackendTest, I64_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.SubI64(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -3742,7 +3732,7 @@ TEST(ASMBackendTest, I64_SUB) {
   }
 }
 
-TEST(ASMBackendTest, I64_SubConstArg0) {
+TEST_P(ASMBackendTest, I64_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3751,14 +3741,14 @@ TEST(ASMBackendTest, I64_SubConstArg0) {
     int64_t a0 = distrib(gen);
     int64_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3770,7 +3760,7 @@ TEST(ASMBackendTest, I64_SubConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I64_SubConstArg1) {
+TEST_P(ASMBackendTest, I64_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3779,14 +3769,14 @@ TEST(ASMBackendTest, I64_SubConstArg1) {
     int64_t a0 = distrib(gen);
     int64_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3798,19 +3788,19 @@ TEST(ASMBackendTest, I64_SubConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I64_MUL) {
+TEST_P(ASMBackendTest, I64_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.MulI64(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -3825,7 +3815,7 @@ TEST(ASMBackendTest, I64_MUL) {
   }
 }
 
-TEST(ASMBackendTest, I64_MULConstArg0) {
+TEST_P(ASMBackendTest, I64_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3834,14 +3824,14 @@ TEST(ASMBackendTest, I64_MULConstArg0) {
     int64_t a0 = distrib(gen);
     int64_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3853,7 +3843,7 @@ TEST(ASMBackendTest, I64_MULConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I64_MULConstArg1) {
+TEST_P(ASMBackendTest, I64_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3862,14 +3852,14 @@ TEST(ASMBackendTest, I64_MULConstArg1) {
     int64_t a0 = distrib(gen);
     int64_t a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3881,18 +3871,18 @@ TEST(ASMBackendTest, I64_MULConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I64_CONST) {
+TEST_P(ASMBackendTest, I64_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     int64_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {}, "compute");
     program.Return(program.ConstI64(c));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3903,18 +3893,18 @@ TEST(ASMBackendTest, I64_CONST) {
   }
 }
 
-TEST(ASMBackendTest, I64_CONV_F64) {
+TEST_P(ASMBackendTest, I64_CONV_F64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI64(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3927,19 +3917,19 @@ TEST(ASMBackendTest, I64_CONV_F64) {
   }
 }
 
-TEST(ASMBackendTest, I64_CONV_F64Const) {
+TEST_P(ASMBackendTest, I64_CONV_F64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     int64_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {program.I64Type()},
                                  "compute");
     program.Return(program.F64ConvI64(program.ConstI64(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -3951,24 +3941,23 @@ TEST(ASMBackendTest, I64_CONV_F64Const) {
   }
 }
 
-TEST(ASMBackendTest, I64_CMP_XXReturn) {
+TEST_P(ASMBackendTest, I64_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int64_t c1 = distrib(gen);
       int64_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(
           program.I1Type(), {program.I64Type(), program.I64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, args[0], args[1]));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -4003,18 +3992,17 @@ TEST(ASMBackendTest, I64_CMP_XXReturn) {
   }
 }
 
-TEST(ASMBackendTest, I64_CMP_XXBranch) {
+TEST_P(ASMBackendTest, I64_CMP_XXBranch) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int64_t c1 = distrib(gen);
       int64_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(
           program.I1Type(), {program.I64Type(), program.I64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
@@ -4027,7 +4015,7 @@ TEST(ASMBackendTest, I64_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -4062,24 +4050,23 @@ TEST(ASMBackendTest, I64_CMP_XXBranch) {
   }
 }
 
-TEST(ASMBackendTest, I64_CMP_XXConstArg0) {
+TEST_P(ASMBackendTest, I64_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int64_t c1 = distrib(gen);
       int64_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(program.I1Type(),
                                                {program.I64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, program.ConstI64(c1), args[0]));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -4102,24 +4089,23 @@ TEST(ASMBackendTest, I64_CMP_XXConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, I64_CMP_XXConstArg1) {
+TEST_P(ASMBackendTest, I64_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       int64_t c1 = distrib(gen);
       int64_t c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(program.I1Type(),
                                                {program.I64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, args[0], program.ConstI64(c2)));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -4142,20 +4128,20 @@ TEST(ASMBackendTest, I64_CMP_XXConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, I64_LOAD) {
+TEST_P(ASMBackendTest, I64_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     int64_t loc = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.I64Type(), {program.PointerType(program.I64Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI64(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4166,20 +4152,20 @@ TEST(ASMBackendTest, I64_LOAD) {
   }
 }
 
-TEST(ASMBackendTest, I64_LOADGlobal) {
+TEST_P(ASMBackendTest, I64_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     int64_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto global =
         program.Global(true, false, program.I64Type(), program.ConstI64(c));
     program.CreatePublicFunction(program.I64Type(), {}, "compute");
     program.Return(program.LoadI64(global));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4190,7 +4176,7 @@ TEST(ASMBackendTest, I64_LOADGlobal) {
   }
 }
 
-TEST(ASMBackendTest, I64_LOADStruct) {
+TEST_P(ASMBackendTest, I64_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4201,14 +4187,14 @@ TEST(ASMBackendTest, I64_LOADStruct) {
       int64_t x;
     };
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto st = program.StructType({program.I64Type()});
     auto func = program.CreatePublicFunction(
         program.I64Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI64(program.GetElementPtr(st, args[0], {0, 0})));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4220,14 +4206,14 @@ TEST(ASMBackendTest, I64_LOADStruct) {
   }
 }
 
-TEST(ASMBackendTest, I64_STORE) {
+TEST_P(ASMBackendTest, I64_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     int64_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.VoidType(),
         {program.PointerType(program.I64Type()), program.I64Type()}, "compute");
@@ -4235,7 +4221,7 @@ TEST(ASMBackendTest, I64_STORE) {
     program.StoreI64(args[0], args[1]);
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4248,14 +4234,14 @@ TEST(ASMBackendTest, I64_STORE) {
   }
 }
 
-TEST(ASMBackendTest, I64_STOREConst) {
+TEST_P(ASMBackendTest, I64_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     int64_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.PointerType(program.I64Type())},
         "compute");
@@ -4263,7 +4249,7 @@ TEST(ASMBackendTest, I64_STOREConst) {
     program.StoreI64(args[0], program.ConstI64(c));
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4276,14 +4262,14 @@ TEST(ASMBackendTest, I64_STOREConst) {
   }
 }
 
-TEST(ASMBackendTest, I64_STOREGlobal) {
+TEST_P(ASMBackendTest, I64_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     int64_t c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto global =
         program.Global(true, false, program.I64Type(), program.ConstI64(c));
     auto func = program.CreatePublicFunction(
@@ -4292,7 +4278,7 @@ TEST(ASMBackendTest, I64_STOREGlobal) {
     program.StoreI64(global, args[0]);
     program.Return(global);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4304,7 +4290,7 @@ TEST(ASMBackendTest, I64_STOREGlobal) {
   }
 }
 
-TEST(ASMBackendTest, I64_STOREStruct) {
+TEST_P(ASMBackendTest, I64_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4315,7 +4301,7 @@ TEST(ASMBackendTest, I64_STOREStruct) {
       int64_t x;
     };
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto st = program.StructType({program.I64Type()});
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.PointerType(st), program.I64Type()},
@@ -4324,7 +4310,7 @@ TEST(ASMBackendTest, I64_STOREStruct) {
     program.StoreI64(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4337,7 +4323,7 @@ TEST(ASMBackendTest, I64_STOREStruct) {
   }
 }
 
-TEST(ASMBackendTest, PHII64) {
+TEST_P(ASMBackendTest, PHII64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4345,7 +4331,7 @@ TEST(ASMBackendTest, PHII64) {
     int64_t c1 = distrib(gen);
     int64_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I64Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type, type}, "compute");
@@ -4371,7 +4357,7 @@ TEST(ASMBackendTest, PHII64) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4384,7 +4370,7 @@ TEST(ASMBackendTest, PHII64) {
   }
 }
 
-TEST(ASMBackendTest, PHII64ConstArg0) {
+TEST_P(ASMBackendTest, PHII64ConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4392,7 +4378,7 @@ TEST(ASMBackendTest, PHII64ConstArg0) {
     int64_t c1 = distrib(gen);
     int64_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I64Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type}, "compute");
@@ -4418,7 +4404,7 @@ TEST(ASMBackendTest, PHII64ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4430,7 +4416,7 @@ TEST(ASMBackendTest, PHII64ConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, PHII64ConstArg1) {
+TEST_P(ASMBackendTest, PHII64ConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4438,7 +4424,7 @@ TEST(ASMBackendTest, PHII64ConstArg1) {
     int64_t c1 = distrib(gen);
     int64_t c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.I64Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type}, "compute");
@@ -4464,7 +4450,7 @@ TEST(ASMBackendTest, PHII64ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4476,19 +4462,19 @@ TEST(ASMBackendTest, PHII64ConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, F64_ADD) {
+TEST_P(ASMBackendTest, F64_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AddF64(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -4503,7 +4489,7 @@ TEST(ASMBackendTest, F64_ADD) {
   }
 }
 
-TEST(ASMBackendTest, F64_ADDConstArg0) {
+TEST_P(ASMBackendTest, F64_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4512,14 +4498,14 @@ TEST(ASMBackendTest, F64_ADDConstArg0) {
     double a0 = distrib(gen);
     double a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4531,7 +4517,7 @@ TEST(ASMBackendTest, F64_ADDConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, F64_ADDConstArg1) {
+TEST_P(ASMBackendTest, F64_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4540,14 +4526,14 @@ TEST(ASMBackendTest, F64_ADDConstArg1) {
     double a0 = distrib(gen);
     double a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4559,19 +4545,19 @@ TEST(ASMBackendTest, F64_ADDConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, F64_SUB) {
+TEST_P(ASMBackendTest, F64_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.SubF64(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -4586,7 +4572,7 @@ TEST(ASMBackendTest, F64_SUB) {
   }
 }
 
-TEST(ASMBackendTest, F64_SubConstArg0) {
+TEST_P(ASMBackendTest, F64_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4595,14 +4581,14 @@ TEST(ASMBackendTest, F64_SubConstArg0) {
     double a0 = distrib(gen);
     double a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4614,7 +4600,7 @@ TEST(ASMBackendTest, F64_SubConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, F64_SubConstArg1) {
+TEST_P(ASMBackendTest, F64_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4623,14 +4609,14 @@ TEST(ASMBackendTest, F64_SubConstArg1) {
     double a0 = distrib(gen);
     double a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4642,19 +4628,19 @@ TEST(ASMBackendTest, F64_SubConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, F64_MUL) {
+TEST_P(ASMBackendTest, F64_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.MulF64(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -4669,7 +4655,7 @@ TEST(ASMBackendTest, F64_MUL) {
   }
 }
 
-TEST(ASMBackendTest, F64_MULConstArg0) {
+TEST_P(ASMBackendTest, F64_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4678,14 +4664,14 @@ TEST(ASMBackendTest, F64_MULConstArg0) {
     double a0 = distrib(gen);
     double a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4697,7 +4683,7 @@ TEST(ASMBackendTest, F64_MULConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, F64_MULConstArg1) {
+TEST_P(ASMBackendTest, F64_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4706,14 +4692,14 @@ TEST(ASMBackendTest, F64_MULConstArg1) {
     double a0 = distrib(gen);
     double a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4725,19 +4711,19 @@ TEST(ASMBackendTest, F64_MULConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, F64_DIV) {
+TEST_P(ASMBackendTest, F64_DIV) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
 
-  khir::ProgramBuilder program;
+  ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.DivF64(args[0], args[1]);
   program.Return(sum);
 
-  khir::ASMBackend backend;
+  ASMBackend backend(GetParam());
   program.Translate(backend);
   backend.Compile();
 
@@ -4752,7 +4738,7 @@ TEST(ASMBackendTest, F64_DIV) {
   }
 }
 
-TEST(ASMBackendTest, F64_DIVConstArg0) {
+TEST_P(ASMBackendTest, F64_DIVConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4761,14 +4747,14 @@ TEST(ASMBackendTest, F64_DIVConstArg0) {
     double a0 = distrib(gen);
     double a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.DivF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4780,7 +4766,7 @@ TEST(ASMBackendTest, F64_DIVConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, F64_DIVConstArg1) {
+TEST_P(ASMBackendTest, F64_DIVConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4789,14 +4775,14 @@ TEST(ASMBackendTest, F64_DIVConstArg1) {
     double a0 = distrib(gen);
     double a1 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.DivF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4808,18 +4794,18 @@ TEST(ASMBackendTest, F64_DIVConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, F64_CONST) {
+TEST_P(ASMBackendTest, F64_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
     double c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.F64Type(), {}, "compute");
     program.Return(program.ConstF64(c));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4830,18 +4816,18 @@ TEST(ASMBackendTest, F64_CONST) {
   }
 }
 
-TEST(ASMBackendTest, F64_CONV_I64) {
+TEST_P(ASMBackendTest, F64_CONV_I64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
                                              {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ConvF64(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4854,18 +4840,18 @@ TEST(ASMBackendTest, F64_CONV_I64) {
   }
 }
 
-TEST(ASMBackendTest, F64_CONV_I64Const) {
+TEST_P(ASMBackendTest, F64_CONV_I64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
     double c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {}, "compute");
     program.Return(program.I64ConvF64(program.ConstF64(c)));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -4877,24 +4863,23 @@ TEST(ASMBackendTest, F64_CONV_I64Const) {
   }
 }
 
-TEST(ASMBackendTest, F64_CMP_XXReturn) {
+TEST_P(ASMBackendTest, F64_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       double c1 = distrib(gen);
       double c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(
           program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, args[0], args[1]));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -4929,18 +4914,17 @@ TEST(ASMBackendTest, F64_CMP_XXReturn) {
   }
 }
 
-TEST(ASMBackendTest, F64_CMP_XXBranch) {
+TEST_P(ASMBackendTest, F64_CMP_XXBranch) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       double c1 = distrib(gen);
       double c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(
           program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
@@ -4952,7 +4936,7 @@ TEST(ASMBackendTest, F64_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -4987,24 +4971,23 @@ TEST(ASMBackendTest, F64_CMP_XXBranch) {
   }
 }
 
-TEST(ASMBackendTest, F64_CMP_XXConstArg0) {
+TEST_P(ASMBackendTest, F64_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       double c1 = distrib(gen);
       double c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(program.I1Type(),
                                                {program.F64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, program.ConstF64(c1), args[0]));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -5027,24 +5010,23 @@ TEST(ASMBackendTest, F64_CMP_XXConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, F64_CMP_XXConstArg1) {
+TEST_P(ASMBackendTest, F64_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
-    for (auto cmp_type :
-         {khir::CompType::EQ, khir::CompType::NE, khir::CompType::LT,
-          khir::CompType::LE, khir::CompType::GT, khir::CompType::GE}) {
+    for (auto cmp_type : {CompType::EQ, CompType::NE, CompType::LT,
+                          CompType::LE, CompType::GT, CompType::GE}) {
       double c1 = distrib(gen);
       double c2 = distrib(gen);
 
-      khir::ProgramBuilder program;
+      ProgramBuilder program;
       auto func = program.CreatePublicFunction(program.I1Type(),
                                                {program.F64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, args[0], program.ConstF64(c2)));
 
-      khir::ASMBackend backend;
+      ASMBackend backend(GetParam());
       program.Translate(backend);
       backend.Compile();
 
@@ -5067,20 +5049,20 @@ TEST(ASMBackendTest, F64_CMP_XXConstArg1) {
   }
 }
 
-TEST(ASMBackendTest, F64_LOAD) {
+TEST_P(ASMBackendTest, F64_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
     double loc = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.F64Type(), {program.PointerType(program.F64Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadF64(args[0]));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -5091,21 +5073,21 @@ TEST(ASMBackendTest, F64_LOAD) {
   }
 }
 
-TEST(ASMBackendTest, F64_LOADGlobal) {
+TEST_P(ASMBackendTest, F64_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
     double c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto global =
         program.Global(true, false, program.F64Type(), program.ConstF64(c));
     program.CreatePublicFunction(program.F64Type(), {}, "compute");
     program.Return(
         program.LoadF64(program.GetElementPtr(program.F64Type(), global, {0})));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -5116,7 +5098,7 @@ TEST(ASMBackendTest, F64_LOADGlobal) {
   }
 }
 
-TEST(ASMBackendTest, F64_LOADStruct) {
+TEST_P(ASMBackendTest, F64_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5127,14 +5109,14 @@ TEST(ASMBackendTest, F64_LOADStruct) {
       double x;
     };
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto st = program.StructType({program.F64Type()});
     auto func = program.CreatePublicFunction(
         program.F64Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadF64(program.GetElementPtr(st, args[0], {0, 0})));
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -5146,14 +5128,14 @@ TEST(ASMBackendTest, F64_LOADStruct) {
   }
 }
 
-TEST(ASMBackendTest, F64_STORE) {
+TEST_P(ASMBackendTest, F64_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
     double c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.VoidType(),
         {program.PointerType(program.F64Type()), program.F64Type()}, "compute");
@@ -5161,7 +5143,7 @@ TEST(ASMBackendTest, F64_STORE) {
     program.StoreF64(args[0], args[1]);
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -5174,14 +5156,14 @@ TEST(ASMBackendTest, F64_STORE) {
   }
 }
 
-TEST(ASMBackendTest, F64_STOREConst) {
+TEST_P(ASMBackendTest, F64_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
     double c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.PointerType(program.F64Type())},
         "compute");
@@ -5189,7 +5171,7 @@ TEST(ASMBackendTest, F64_STOREConst) {
     program.StoreF64(args[0], program.ConstF64(c));
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -5202,14 +5184,14 @@ TEST(ASMBackendTest, F64_STOREConst) {
   }
 }
 
-TEST(ASMBackendTest, F64_STOREGlobal) {
+TEST_P(ASMBackendTest, F64_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
   for (int i = 0; i < 10; i++) {
     double c = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto global =
         program.Global(true, false, program.F64Type(), program.ConstF64(c));
     auto func = program.CreatePublicFunction(
@@ -5219,7 +5201,7 @@ TEST(ASMBackendTest, F64_STOREGlobal) {
                      args[0]);
     program.Return(global);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -5231,7 +5213,7 @@ TEST(ASMBackendTest, F64_STOREGlobal) {
   }
 }
 
-TEST(ASMBackendTest, F64_STOREStruct) {
+TEST_P(ASMBackendTest, F64_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5242,7 +5224,7 @@ TEST(ASMBackendTest, F64_STOREStruct) {
       double x;
     };
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto st = program.StructType({program.F64Type()});
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.PointerType(st), program.F64Type()},
@@ -5251,7 +5233,7 @@ TEST(ASMBackendTest, F64_STOREStruct) {
     program.StoreF64(program.GetElementPtr(st, args[0], {0}), args[1]);
     program.Return();
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -5264,7 +5246,7 @@ TEST(ASMBackendTest, F64_STOREStruct) {
   }
 }
 
-TEST(ASMBackendTest, PHIF64) {
+TEST_P(ASMBackendTest, PHIF64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5272,7 +5254,7 @@ TEST(ASMBackendTest, PHIF64) {
     double c1 = distrib(gen);
     double c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.F64Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type, type}, "compute");
@@ -5298,7 +5280,7 @@ TEST(ASMBackendTest, PHIF64) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -5310,7 +5292,7 @@ TEST(ASMBackendTest, PHIF64) {
   }
 }
 
-TEST(ASMBackendTest, PHIF64ConstArg0) {
+TEST_P(ASMBackendTest, PHIF64ConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5318,7 +5300,7 @@ TEST(ASMBackendTest, PHIF64ConstArg0) {
     double c1 = distrib(gen);
     double c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.F64Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type}, "compute");
@@ -5344,7 +5326,7 @@ TEST(ASMBackendTest, PHIF64ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -5356,7 +5338,7 @@ TEST(ASMBackendTest, PHIF64ConstArg0) {
   }
 }
 
-TEST(ASMBackendTest, PHIF64ConstArg1) {
+TEST_P(ASMBackendTest, PHIF64ConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5364,7 +5346,7 @@ TEST(ASMBackendTest, PHIF64ConstArg1) {
     double c1 = distrib(gen);
     double c2 = distrib(gen);
 
-    khir::ProgramBuilder program;
+    ProgramBuilder program;
     auto type = program.F64Type();
     auto func = program.CreatePublicFunction(
         program.VoidType(), {program.I1Type(), type}, "compute");
@@ -5390,7 +5372,7 @@ TEST(ASMBackendTest, PHIF64ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    khir::ASMBackend backend;
+    ASMBackend backend(GetParam());
     program.Translate(backend);
     backend.Compile();
 
@@ -5401,3 +5383,6 @@ TEST(ASMBackendTest, PHIF64ConstArg1) {
     EXPECT_EQ(c2, compute(0, c1));
   }
 }
+
+INSTANTIATE_TEST_SUITE_P(StackSpill, ASMBackendTest,
+                         testing::Values(RegAllocImpl::STACK_SPILL));

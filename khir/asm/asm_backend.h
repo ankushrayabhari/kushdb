@@ -13,6 +13,8 @@
 
 namespace kush::khir {
 
+enum class RegAllocImpl { STACK_SPILL, LINEAR_SCAN };
+
 class ExceptionErrorHandler : public asmjit::ErrorHandler {
  public:
   void handleError(asmjit::Error err, const char* message,
@@ -31,7 +33,7 @@ class StackSlotAllocator {
 
 class ASMBackend : public Backend, public compile::Program {
  public:
-  ASMBackend() = default;
+  ASMBackend(RegAllocImpl impl);
   virtual ~ASMBackend() = default;
 
   void Translate(const TypeManager& type_manager,
@@ -281,6 +283,7 @@ class ASMBackend : public Backend, public compile::Program {
   template <typename Dest>
   void StoreF64CmpFlags(Opcode opcode, Dest d);
 
+  RegAllocImpl reg_alloc_impl_;
   asmjit::JitRuntime rt_;
   asmjit::CodeHolder code_;
   asmjit::Section* text_section_;

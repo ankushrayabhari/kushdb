@@ -173,9 +173,11 @@ std::vector<RegisterAssignment> StackSpillingRegisterAlloc(
   return assignments;
 }
 
-std::vector<RegisterAssignment> LinearScanRegisterAlloc(
-    std::vector<LiveInterval>& live_intervals,
-    const std::vector<uint64_t>& instrs, const TypeManager& manager) {
+std::pair<std::vector<RegisterAssignment>, std::vector<int>>
+LinearScanRegisterAlloc(const Function& func, const TypeManager& manager) {
+  auto instrs = func.Instructions();
+  auto [live_intervals, order] = ComputeLiveIntervals(func, manager);
+
   // Sort by increasing start point order
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& a, const LiveInterval& b) -> bool {
@@ -347,7 +349,7 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
     }
   }
 
-  return assignments;
+  return {assignments, order};
 }
 
 }  // namespace kush::khir
