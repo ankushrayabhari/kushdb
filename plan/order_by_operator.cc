@@ -33,7 +33,7 @@ nlohmann::json OrderByOperator::ToJson() const {
   for (int i = 0; i < key_exprs_.size(); i++) {
     nlohmann::json key;
     key["expr"] = key_exprs_[i]->ToJson();
-    key["asc"] = asc_[i];
+    key["asc"] = bool(asc_[i]);
     j["order_by"].push_back(key);
   }
 

@@ -1,6 +1,19 @@
 build --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
 build --experimental_guard_against_concurrent_changes
 
+build:remote --jobs=50
+build:remote --define=EXECUTOR=remote
+build:remote --bes_results_url=https://app.buildbuddy.io/invocation/
+build:remote --bes_backend=grpcs://cloud.buildbuddy.io
+build:remote --remote_timeout=3600
+build:remote --remote_cache=grpcs://cloud.buildbuddy.io
+build:remote --remote_executor=grpcs://cloud.buildbuddy.io
+build:remote --host_platform=@buildbuddy_toolchain//:platform
+build:remote --platforms=@buildbuddy_toolchain//:platform
+build:remote --extra_execution_platforms=@buildbuddy_toolchain//:platform
+build:remote --crosstool_top=@buildbuddy_toolchain//:toolchain
+build:remote --extra_toolchains=@buildbuddy_toolchain//:cc_toolchain
+
 build:lto --cxxopt=-flto=thin
 build:lto --linkopt=-flto=thin
 

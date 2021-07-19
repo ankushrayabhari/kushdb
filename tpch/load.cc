@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <execution>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -458,6 +457,7 @@ void Supplier() {
 int main() {
   std::vector<std::function<void(void)>> loads{
       Supplier, Part, Partsupp, Customer, Orders, Lineitem, Nation, Region};
-  std::for_each(std::execution::par_unseq, loads.begin(), loads.end(),
-                [](auto&& item) { item(); });
+  for (auto& f : loads) {
+    f();
+  }
 }
