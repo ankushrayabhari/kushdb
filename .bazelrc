@@ -38,3 +38,5 @@ build:msan --cxxopt=-DGPR_NO_DIRECT_SYSCALLS
 build:msan --cxxopt=-DMEMORY_SANITIZER  # used by absl
 build:msan --linkopt=-fsanitize=memory
 build:msan --action_env=MSAN_OPTIONS=poison_in_dtor=1
+
+try-import %workspace%/user.bazelrc
