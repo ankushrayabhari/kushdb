@@ -17,7 +17,7 @@ to generate .tbl files.
 1. Create database: `monetdb create tpch`
 2. (optional) Set parallelism: `monetdb set nthreads={N} tpch1`
 3. Release database: `monetdb release tpch1`
-4. Open client: `mclient --timer=performance -u monetdb -d tpch1`. Default
+4. Open client: `mclient --timer=performance -d tpch1`. Default user is `monetdb`
    password is `monetdb`.
 5. Run `tpch/schema.sql`.
 6. Run each line of `tpch/monetdb-load.sql` replacing `{data path}` with the
