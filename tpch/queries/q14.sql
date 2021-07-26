@@ -5,5 +5,5 @@ from
     part 
 where 
     l_partkey = p_partkey and 
-    l_shipdate >= date '1994-03-01' and 
-    l_shipdate < date '1994-03-01' + interval '1' month;
+    l_shipdate >= timestamp '1994-03-01' and 
+    l_shipdate < timestamp '1994-03-01' + interval '1' month;

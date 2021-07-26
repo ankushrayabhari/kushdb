@@ -24,7 +24,7 @@ from (
         n1.n_regionkey = r_regionkey and 
         r_name = 'ASIA' and 
         s_nationkey = n2.n_nationkey and 
-        o_orderdate between date '1995-01-01' and date '1996-12-31' and 
+        o_orderdate between timestamp '1995-01-01' and timestamp '1996-12-31' and 
         p_type = 'PROMO BRUSHED COPPER' 
 ) as all_nations 
 group by 

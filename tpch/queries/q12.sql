@@ -10,8 +10,8 @@ where
     l_shipmode in ('FOB', 'SHIP') and 
     l_commitdate < l_receiptdate and 
     l_shipdate < l_commitdate and 
-    l_receiptdate >= date '1994-01-01' and 
-    l_receiptdate < date '1994-01-01' + interval '1' year 
+    l_receiptdate >= timestamp '1994-01-01' and 
+    l_receiptdate < timestamp '1994-01-01' + interval '1' year 
 group by 
     l_shipmode 
 order by 

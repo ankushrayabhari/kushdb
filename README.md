@@ -20,6 +20,6 @@ to generate .tbl files.
 4. Open client: `mclient --timer=performance -u monetdb -d tpch1`. Default
    password is `monetdb`.
 5. Run `tpch/schema.sql`.
-6. Run each line of `tpch/monetdb-load.sql` replacing `{abs repo}` with the
-   absolute repository path.
+6. Run each line of `tpch/monetdb-load.sql` replacing `{data path}` with the
+   data path.
 7. Execute queries in `tpch/queries/`. Use `\f trash` to not print output.
