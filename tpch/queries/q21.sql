@@ -26,8 +26,6 @@ where
                 from
                         lineitem l3
                 where
-                where
-                where
                         l3.l_orderkey = l1.l_orderkey
                         and l3.l_suppkey <> l1.l_suppkey
                         and l3.l_receiptdate > l3.l_commitdate
