@@ -118,7 +118,7 @@ TypeManager::TypeManager()
     throw std::runtime_error("Target not found: " + error);
   }
 
-  auto cpu = "znver3";
+  auto cpu = "x86-64";
   auto features = "";
 
   llvm::TargetOptions opt;
