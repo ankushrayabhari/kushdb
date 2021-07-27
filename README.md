@@ -4,7 +4,7 @@ Compilation-based execution engine for a database
 ### Execute TPC-H, Skewed TPC-H
 1. Run [DBGEN](https://github.com/electrum/tpch-dbgen) or
 [skewed DBGEN](https://www.microsoft.com/en-us/download/details.aspx?id=52430)
-to generate .tbl files.
+to generate .tbl files. For skewed DBGEN, rename `order.tbl` with `orders.tbl`.
 2. Move them to `tpch/raw/`.
 3. Run: `for i in tpch/raw/*; do sed -i 's/.$//' $i; done`.
 
