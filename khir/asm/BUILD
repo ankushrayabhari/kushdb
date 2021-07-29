@@ -44,6 +44,17 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "live_intervals_test",
+    size = "small",
+    srcs = ["live_intervals_test.cc"],
+    deps = [
+        ":live_intervals",
+        "//khir:program_builder",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "register",
     srcs = ["register.cc"],

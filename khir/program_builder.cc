@@ -1392,4 +1392,12 @@ void ProgramBuilder::Translate(Backend& backend) {
                     globals_, constant_instrs_, functions_);
 }
 
+const Function& ProgramBuilder::GetFunction(FunctionRef func) const {
+  return functions_[func.GetID()];
+}
+
+const TypeManager& ProgramBuilder::GetTypeManager() const {
+  return type_manager_;
+}
+
 }  // namespace kush::khir

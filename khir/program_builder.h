@@ -35,7 +35,7 @@ class Value {
 
   bool IsConstantGlobal() const { return (idx_ & (1 << 23)) != 0; }
 
-  bool operator==(const Value& rhs) { return idx_ == rhs.idx_; }
+  bool operator==(const Value& rhs) const { return idx_ == rhs.idx_; }
 
  private:
   uint32_t idx_;
@@ -293,6 +293,9 @@ class ProgramBuilder {
   Value Global(bool constant, bool pub, Type t, Value v);
 
   void Translate(Backend& backend);
+
+  const Function& GetFunction(FunctionRef func) const;
+  const TypeManager& GetTypeManager() const;
 
  private:
   TypeManager type_manager_;
