@@ -59,6 +59,7 @@ void Region() {
                                                     r_name);
   kush::runtime::ColumnData::Serialize<std::string>("tpch/data/r_comment.kdb",
                                                     r_comment);
+  std::cout << "region complete" << std::endl;
 }
 
 void Nation() {
@@ -94,6 +95,7 @@ void Nation() {
                                                 n_regionkey);
   kush::runtime::ColumnData::Serialize<std::string>("tpch/data/n_comment.kdb",
                                                     n_comment);
+  std::cout << "nation complete" << std::endl;
 }
 
 void Lineitem() {
@@ -188,6 +190,7 @@ void Lineitem() {
                                                     l_shipmode);
   kush::runtime::ColumnData::Serialize<std::string>("tpch/data/l_comment.kdb",
                                                     l_comment);
+  std::cout << "lineitem complete" << std::endl;
 }
 
 void Orders() {
@@ -248,6 +251,7 @@ void Orders() {
                                                 o_shippriority);
   kush::runtime::ColumnData::Serialize<std::string>("tpch/data/o_comment.kdb",
                                                     o_comment);
+  std::cout << "orders complete" << std::endl;
 }
 
 void Customer() {
@@ -303,6 +307,7 @@ void Customer() {
       "tpch/data/c_mktsegment.kdb", c_mktsegment);
   kush::runtime::ColumnData::Serialize<std::string>("tpch/data/c_comment.kdb",
                                                     c_comment);
+  std::cout << "customer complete" << std::endl;
 }
 
 void Partsupp() {
@@ -343,6 +348,7 @@ void Partsupp() {
                                                ps_supplycost);
   kush::runtime::ColumnData::Serialize<std::string>("tpch/data/ps_comment.kdb",
                                                     ps_comment);
+  std::cout << "partsupp complete" << std::endl;
 }
 
 void Part() {
@@ -402,6 +408,7 @@ void Part() {
                                                p_retailprice);
   kush::runtime::ColumnData::Serialize<std::string>("tpch/data/p_comment.kdb",
                                                     p_comment);
+  std::cout << "part complete" << std::endl;
 }
 
 void Supplier() {
@@ -452,6 +459,7 @@ void Supplier() {
                                                s_acctbal);
   kush::runtime::ColumnData::Serialize<std::string>("tpch/data/s_comment.kdb",
                                                     s_comment);
+  std::cout << "supplier complete" << std::endl;
 }
 
 int main() {

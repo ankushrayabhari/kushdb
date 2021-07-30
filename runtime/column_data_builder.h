@@ -46,7 +46,7 @@ void Serialize(std::string_view path, const std::vector<T>& contents) {
     throw std::system_error(errno, std::generic_category());
   }
 
-  if (close(fd) == 0) {
+  if (close(fd) != 0) {
     throw std::system_error(errno, std::generic_category());
   }
 }
@@ -92,7 +92,7 @@ void Serialize(std::string_view path,
     throw std::system_error(errno, std::generic_category());
   }
 
-  if (close(fd) == 0) {
+  if (close(fd) != 0) {
     throw std::system_error(errno, std::generic_category());
   }
 }
