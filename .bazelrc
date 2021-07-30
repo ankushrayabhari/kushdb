@@ -1,5 +1,4 @@
 build --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
-build --cxxopt=-stdlib=libc++ --host_cxxopt=-stdlib=libc++
 build --experimental_guard_against_concurrent_changes
 
 build:remote --jobs=50
