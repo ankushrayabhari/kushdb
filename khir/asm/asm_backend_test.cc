@@ -5386,3 +5386,6 @@ TEST_P(ASMBackendTest, PHIF64ConstArg1) {
 
 INSTANTIATE_TEST_SUITE_P(StackSpill, ASMBackendTest,
                          testing::Values(RegAllocImpl::STACK_SPILL));
+
+INSTANTIATE_TEST_SUITE_P(LinearScan, ASMBackendTest,
+                         testing::Values(RegAllocImpl::LINEAR_SCAN));

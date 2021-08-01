@@ -345,17 +345,57 @@ RegisterAllocationResult LinearScanRegisterAlloc(const Function& func,
     ExpireOldIntervals(i, assignments, free_floating_point_regs,
                        active_floating_point);
 
-    // FLAG register into branch
-    if (manager.IsI1Type(i.Type())) {
-      if (i.StartBB() == i.EndBB() && i.StartIdx() + 1 == i.EndIdx() &&
-          OpcodeFrom(GenericInstructionReader(instrs[i.EndIdx()]).Opcode()) ==
-              Opcode::CONDBR) {
-        assignments[i_instr].SetRegister(100);
-        continue;
-      }
-    }
-
     switch (i_opcode) {
+      case Opcode::I1_CMP_EQ:
+      case Opcode::I1_CMP_NE:
+      case Opcode::I8_CMP_EQ:
+      case Opcode::I8_CMP_NE:
+      case Opcode::I8_CMP_LT:
+      case Opcode::I8_CMP_LE:
+      case Opcode::I8_CMP_GT:
+      case Opcode::I8_CMP_GE:
+      case Opcode::I16_CMP_EQ:
+      case Opcode::I16_CMP_NE:
+      case Opcode::I16_CMP_LT:
+      case Opcode::I16_CMP_LE:
+      case Opcode::I16_CMP_GT:
+      case Opcode::I16_CMP_GE:
+      case Opcode::I32_CMP_EQ:
+      case Opcode::I32_CMP_NE:
+      case Opcode::I32_CMP_LT:
+      case Opcode::I32_CMP_LE:
+      case Opcode::I32_CMP_GT:
+      case Opcode::I32_CMP_GE:
+      case Opcode::I64_CMP_EQ:
+      case Opcode::I64_CMP_NE:
+      case Opcode::I64_CMP_LT:
+      case Opcode::I64_CMP_LE:
+      case Opcode::I64_CMP_GT:
+      case Opcode::I64_CMP_GE: {
+        if (i.StartBB() == i.EndBB() && i.StartIdx() + 1 == i.EndIdx() &&
+            OpcodeFrom(GenericInstructionReader(instrs[i.EndIdx()]).Opcode()) ==
+                Opcode::CONDBR) {
+          assignments[i_instr].SetRegister(100);
+          continue;
+        }
+        break;
+      }
+
+      case Opcode::F64_CMP_EQ:
+      case Opcode::F64_CMP_NE:
+      case Opcode::F64_CMP_LT:
+      case Opcode::F64_CMP_LE:
+      case Opcode::F64_CMP_GT:
+      case Opcode::F64_CMP_GE: {
+        if (i.StartBB() == i.EndBB() && i.StartIdx() + 1 == i.EndIdx() &&
+            OpcodeFrom(GenericInstructionReader(instrs[i.EndIdx()]).Opcode()) ==
+                Opcode::CONDBR) {
+          assignments[i_instr].SetRegister(101);
+          continue;
+        }
+        break;
+      }
+
       case Opcode::I8_STORE:
       case Opcode::I16_STORE:
       case Opcode::I32_STORE:
