@@ -12,7 +12,7 @@ class LiveInterval {
   LiveInterval(int reg);
   void Extend(int bb, int idx);
 
-  void ChangeToFixed(int reg);
+  void ChangeToPrecolored(int reg);
 
   int StartBB() const;
   int EndBB() const;
@@ -22,8 +22,9 @@ class LiveInterval {
   bool Undef() const;
   khir::Type Type() const;
   khir::Value Value() const;
-  int Register() const;
-  bool IsRegister() const;
+
+  int PrecoloredRegister() const;
+  bool IsPrecolored() const;
 
   bool operator==(const LiveInterval& rhs);
 

@@ -58,7 +58,7 @@ void LiveInterval::Extend(int bb, int idx) {
   }
 }
 
-void LiveInterval::ChangeToFixed(int reg) {
+void LiveInterval::ChangeToPrecolored(int reg) {
   value_ = khir::Value(0);
   type_ = static_cast<khir::Type>(0);
   register_ = reg;
@@ -83,28 +83,28 @@ bool LiveInterval::operator==(const LiveInterval& rhs) {
 }
 
 khir::Type LiveInterval::Type() const {
-  if (IsRegister()) {
+  if (IsPrecolored()) {
     throw std::runtime_error("Not a virtual live interval");
   }
   return type_;
 }
 
 khir::Value LiveInterval::Value() const {
-  if (IsRegister()) {
+  if (IsPrecolored()) {
     throw std::runtime_error("Not a virtual live interval");
   }
   return value_;
 }
 
-int LiveInterval::Register() const {
-  if (IsRegister()) {
+int LiveInterval::PrecoloredRegister() const {
+  if (IsPrecolored()) {
     return register_;
   }
 
   throw std::runtime_error("Not a precolored live interval");
 }
 
-bool LiveInterval::IsRegister() const { return register_ >= 0; }
+bool LiveInterval::IsPrecolored() const { return register_ >= 0; }
 
 std::vector<std::vector<int>> ComputeBackedges(const Function& func) {
   // TODO: replace with linear time dominator algorithm
@@ -588,12 +588,16 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
       return true;
     }
 
+    // Generate intervals for stores since they need an extra register.
     case Opcode::I8_STORE:
     case Opcode::I16_STORE:
     case Opcode::I32_STORE:
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
-    case Opcode::PTR_STORE:
+    case Opcode::PTR_STORE: {
+      return true;
+    }
+
     case Opcode::GEP:
     case Opcode::GEP_OFFSET:
     case Opcode::PHI_MEMBER:

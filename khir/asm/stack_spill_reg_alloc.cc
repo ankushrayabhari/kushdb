@@ -40,8 +40,7 @@ Reserved/Scratch
 
 std::vector<RegisterAssignment> StackSpillingRegisterAlloc(
     const std::vector<uint64_t>& instrs) {
-  std::vector<RegisterAssignment> assignments(instrs.size(),
-                                              RegisterAssignment(-1, false));
+  std::vector<RegisterAssignment> assignments(instrs.size());
 
   for (int i = 0; i < instrs.size(); i++) {
     auto opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());

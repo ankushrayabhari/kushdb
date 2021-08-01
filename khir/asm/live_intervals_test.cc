@@ -44,6 +44,46 @@ TEST(LiveIntervalsTest, SingleBasicBlockArgs) {
   EXPECT_EQ(live_intervals[2].EndIdx(), 3);
 }
 
+TEST(LiveIntervalsTest, Store) {
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I32Type(),
+      {program.PointerType(program.I32Type()), program.I32Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StoreI32(args[0], args[1]);
+  program.Return();
+
+  auto analysis =
+      ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
+  auto& live_intervals = analysis.live_intervals;
+  auto& labels = analysis.labels;
+
+  std::sort(live_intervals.begin(), live_intervals.end(),
+            [](const LiveInterval& l1, const LiveInterval& l2) {
+              return l1.Value().GetIdx() < l2.Value().GetIdx();
+            });
+
+  EXPECT_EQ(live_intervals.size(), 3);
+
+  EXPECT_EQ(live_intervals[0].Value(), args[0]);
+  EXPECT_EQ(live_intervals[0].StartBB(), labels[0]);
+  EXPECT_EQ(live_intervals[0].StartIdx(), 0);
+  EXPECT_EQ(live_intervals[0].EndBB(), labels[0]);
+  EXPECT_EQ(live_intervals[0].EndIdx(), 2);
+
+  EXPECT_EQ(live_intervals[1].Value(), args[1]);
+  EXPECT_EQ(live_intervals[1].StartBB(), labels[0]);
+  EXPECT_EQ(live_intervals[1].StartIdx(), 1);
+  EXPECT_EQ(live_intervals[1].EndBB(), labels[0]);
+  EXPECT_EQ(live_intervals[1].EndIdx(), 2);
+
+  EXPECT_EQ(live_intervals[2].Value(), khir::Value(2));
+  EXPECT_EQ(live_intervals[2].StartBB(), labels[0]);
+  EXPECT_EQ(live_intervals[2].StartIdx(), 2);
+  EXPECT_EQ(live_intervals[2].EndBB(), labels[0]);
+  EXPECT_EQ(live_intervals[2].EndIdx(), 2);
+}
+
 TEST(LiveIntervalsTest, AcrossBasicBlock) {
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(

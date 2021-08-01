@@ -55,6 +55,17 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "linear_scan_reg_alloc_test",
+    size = "small",
+    srcs = ["linear_scan_reg_alloc_test.cc"],
+    deps = [
+        ":linear_scan_reg_alloc",
+        "//khir:program_builder",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "register",
     srcs = ["register.cc"],

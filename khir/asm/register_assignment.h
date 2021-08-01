@@ -4,8 +4,10 @@ namespace kush::khir {
 
 class RegisterAssignment {
  public:
-  RegisterAssignment(int reg, bool coalesced);
+  RegisterAssignment();
+  RegisterAssignment(int reg);
 
+  void Spill();
   void SetRegister(int r);
 
   int Register() const;

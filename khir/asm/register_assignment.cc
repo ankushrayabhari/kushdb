@@ -2,10 +2,13 @@
 
 namespace kush::khir {
 
-RegisterAssignment::RegisterAssignment(int reg, bool coalesced)
-    : register_(reg) {}
+RegisterAssignment::RegisterAssignment() : register_(-1) {}
+
+RegisterAssignment::RegisterAssignment(int reg) : register_(reg) {}
 
 void RegisterAssignment::SetRegister(int r) { register_ = r; }
+
+void RegisterAssignment::Spill() { register_ = -1; }
 
 int RegisterAssignment::Register() const { return register_; }
 
