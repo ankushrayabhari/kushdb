@@ -177,7 +177,8 @@ TEST(LiveIntervalsTest, Loop) {
   program.Branch(bb1);
 
   program.SetCurrentBlock(bb3);
-  program.Return(phi);
+  auto scaled = program.MulI32(phi, program.ConstI32(3));
+  program.Return(scaled);
 
   auto [live_intervals, order] =
       ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
@@ -187,7 +188,7 @@ TEST(LiveIntervalsTest, Loop) {
               return l1.Value().GetIdx() < l2.Value().GetIdx();
             });
 
-  EXPECT_EQ(live_intervals.size(), 3);
+  EXPECT_EQ(live_intervals.size(), 4);
 
   EXPECT_EQ(live_intervals[0].Value(), phi);
   EXPECT_EQ(live_intervals[0].StartBB(), order[0]);
@@ -206,4 +207,10 @@ TEST(LiveIntervalsTest, Loop) {
   EXPECT_EQ(live_intervals[2].StartIdx(), 5);
   EXPECT_EQ(live_intervals[2].EndBB(), order[2]);
   EXPECT_EQ(live_intervals[2].EndIdx(), 6);
+
+  EXPECT_EQ(live_intervals[3].Value(), scaled);
+  EXPECT_EQ(live_intervals[3].StartBB(), order[3]);
+  EXPECT_EQ(live_intervals[3].StartIdx(), 8);
+  EXPECT_EQ(live_intervals[3].EndBB(), order[3]);
+  EXPECT_EQ(live_intervals[3].EndIdx(), 9);
 }
