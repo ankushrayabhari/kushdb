@@ -82,7 +82,7 @@ TEST(LiveIntervalsTest, AcrossBasicBlock) {
   EXPECT_EQ(live_intervals[2].EndIdx(), 4);
 }
 
-TEST(LiveIntervalsTest, PHI) {
+TEST(LiveIntervalsTest, Phi) {
   ProgramBuilder program;
   auto type = program.I32Type();
   auto func = program.CreatePublicFunction(type, {program.I1Type(), type, type},
@@ -147,4 +147,63 @@ TEST(LiveIntervalsTest, PHI) {
   }
   EXPECT_EQ(live_intervals[3].EndBB(), order[3]);
   EXPECT_EQ(live_intervals[3].EndIdx(), 9);
+}
+
+TEST(LiveIntervalsTest, Loop) {
+  ProgramBuilder program;
+  auto type = program.I32Type();
+  auto func = program.CreatePublicFunction(type, {}, "compute");
+
+  auto init = program.ConstI32(0);
+  auto phi_1 = program.PhiMember(init);
+
+  auto bb1 = program.GenerateBlock();
+  auto bb2 = program.GenerateBlock();
+  auto bb3 = program.GenerateBlock();
+
+  program.Branch(bb1);
+
+  program.SetCurrentBlock(bb1);
+  auto phi = program.Phi(type);
+  program.UpdatePhiMember(phi, phi_1);
+
+  auto cond = program.CmpI32(CompType::LT, phi, program.ConstI32(10));
+  program.Branch(cond, bb2, bb3);
+
+  program.SetCurrentBlock(bb2);
+  auto incr = program.AddI32(phi, program.ConstI32(1));
+  auto phi_2 = program.PhiMember(incr);
+  program.UpdatePhiMember(phi, phi_2);
+  program.Branch(bb1);
+
+  program.SetCurrentBlock(bb3);
+  program.Return(phi);
+
+  auto [live_intervals, order] =
+      ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
+
+  std::sort(live_intervals.begin(), live_intervals.end(),
+            [](const LiveInterval& l1, const LiveInterval& l2) {
+              return l1.Value().GetIdx() < l2.Value().GetIdx();
+            });
+
+  EXPECT_EQ(live_intervals.size(), 3);
+
+  EXPECT_EQ(live_intervals[0].Value(), phi);
+  EXPECT_EQ(live_intervals[0].StartBB(), order[0]);
+  EXPECT_EQ(live_intervals[0].StartIdx(), 0);
+  EXPECT_EQ(live_intervals[0].EndBB(), order[3]);
+  EXPECT_EQ(live_intervals[0].EndIdx(), 8);
+
+  EXPECT_EQ(live_intervals[1].Value(), cond);
+  EXPECT_EQ(live_intervals[1].StartBB(), order[1]);
+  EXPECT_EQ(live_intervals[1].StartIdx(), 3);
+  EXPECT_EQ(live_intervals[1].EndBB(), order[1]);
+  EXPECT_EQ(live_intervals[1].EndIdx(), 4);
+
+  EXPECT_EQ(live_intervals[2].Value(), incr);
+  EXPECT_EQ(live_intervals[2].StartBB(), order[2]);
+  EXPECT_EQ(live_intervals[2].StartIdx(), 5);
+  EXPECT_EQ(live_intervals[2].EndBB(), order[2]);
+  EXPECT_EQ(live_intervals[2].EndIdx(), 6);
 }
