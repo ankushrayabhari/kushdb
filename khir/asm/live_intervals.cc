@@ -778,8 +778,8 @@ std::vector<int> ComputeInstrToBB(const std::vector<uint64_t>& instrs,
   return instr_to_bb;
 }
 
-std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
-    const Function& func, const TypeManager& manager) {
+LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
+                                          const TypeManager& manager) {
   const auto& bb = func.BasicBlocks();
   const auto& instrs = func.Instructions();
 
@@ -903,7 +903,11 @@ std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
   std::cerr << std::endl;
   */
 
-  return {outputs, order};
+  LiveIntervalAnalysis result;
+  result.live_intervals = std::move(outputs);
+  result.order = std::move(order);
+  result.labels = std::move(labels);
+  return result;
 }
 
 }  // namespace kush::khir

@@ -176,7 +176,9 @@ std::vector<RegisterAssignment> StackSpillingRegisterAlloc(
 std::pair<std::vector<RegisterAssignment>, std::vector<int>>
 LinearScanRegisterAlloc(const Function& func, const TypeManager& manager) {
   auto instrs = func.Instructions();
-  auto [live_intervals, order] = ComputeLiveIntervals(func, manager);
+  auto analysis = ComputeLiveIntervals(func, manager);
+  auto& live_intervals = analysis.live_intervals;
+  auto& order = analysis.labels;
 
   // Sort by increasing start point order
   std::sort(live_intervals.begin(), live_intervals.end(),

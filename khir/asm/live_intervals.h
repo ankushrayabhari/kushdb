@@ -39,7 +39,13 @@ class LiveInterval {
   int register_;
 };
 
-std::pair<std::vector<LiveInterval>, std::vector<int>> ComputeLiveIntervals(
-    const Function& func, const TypeManager& manager);
+struct LiveIntervalAnalysis {
+  std::vector<LiveInterval> live_intervals;
+  std::vector<int> labels;
+  std::vector<int> order;
+};
+
+LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
+                                          const TypeManager& manager);
 
 }  // namespace kush::khir
