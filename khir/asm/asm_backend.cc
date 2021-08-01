@@ -239,8 +239,9 @@ void ASMBackend::Translate(const TypeManager& type_manager,
         break;
 
       case RegAllocImpl::LINEAR_SCAN:
-        std::tie(register_assign, order) =
-            LinearScanRegisterAlloc(func, type_manager);
+        auto result = LinearScanRegisterAlloc(func, type_manager);
+        register_assign = result.assignment;
+        order = result.order;
         break;
     }
 

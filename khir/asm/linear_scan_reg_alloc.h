@@ -7,7 +7,12 @@
 
 namespace kush::khir {
 
-std::pair<std::vector<RegisterAssignment>, std::vector<int>> LinearScanRegisterAlloc(
-    const Function& func, const TypeManager& manager);
+struct RegisterAllocationResult {
+  std::vector<RegisterAssignment> assignment;
+  std::vector<int> order;
+};
+
+RegisterAllocationResult LinearScanRegisterAlloc(const Function& func,
+                                                 const TypeManager& manager);
 
 }  // namespace kush::khir

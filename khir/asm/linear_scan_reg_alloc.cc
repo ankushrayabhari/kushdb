@@ -149,32 +149,8 @@ Reserved/Scratch
   RSP, RBP, RAX, XMM7
 */
 
-std::vector<RegisterAssignment> StackSpillingRegisterAlloc(
-    const std::vector<uint64_t>& instrs) {
-  std::vector<RegisterAssignment> assignments(instrs.size(),
-                                              RegisterAssignment(-1, false));
-
-  for (int i = 0; i < instrs.size(); i++) {
-    auto opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
-    switch (opcode) {
-      case Opcode::I8_STORE:
-      case Opcode::I16_STORE:
-      case Opcode::I32_STORE:
-      case Opcode::I64_STORE:
-      case Opcode::PTR_STORE:
-        assignments[i].SetRegister(12);
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  return assignments;
-}
-
-std::pair<std::vector<RegisterAssignment>, std::vector<int>>
-LinearScanRegisterAlloc(const Function& func, const TypeManager& manager) {
+RegisterAllocationResult LinearScanRegisterAlloc(const Function& func,
+                                                 const TypeManager& manager) {
   auto instrs = func.Instructions();
   auto analysis = ComputeLiveIntervals(func, manager);
   auto& live_intervals = analysis.live_intervals;
@@ -351,7 +327,10 @@ LinearScanRegisterAlloc(const Function& func, const TypeManager& manager) {
     }
   }
 
-  return {assignments, order};
+  RegisterAllocationResult result;
+  result.assignment = std::move(assignments);
+  result.order = std::move(order);
+  return result;
 }
 
 }  // namespace kush::khir
