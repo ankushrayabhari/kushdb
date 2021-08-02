@@ -5388,30 +5388,35 @@ TEST_P(ASMBackendTest, Loop) {
   ProgramBuilder program;
   program.CreatePublicFunction(program.I32Type(), {}, "compute");
 
-  auto init = program.ConstI32(0);
-  auto phi_1 = program.PhiMember(init);
-
   auto bb1 = program.GenerateBlock();
   auto bb2 = program.GenerateBlock();
   auto bb3 = program.GenerateBlock();
 
+  auto init = program.ConstI32(0);
+  auto suminit = program.ConstI32(0);
+  auto phi_1 = program.PhiMember(init);
+  auto sumphi_1 = program.PhiMember(suminit);
   program.Branch(bb1);
 
   program.SetCurrentBlock(bb1);
   auto phi = program.Phi(program.I32Type());
+  auto sumphi = program.Phi(program.I32Type());
   program.UpdatePhiMember(phi, phi_1);
-
+  program.UpdatePhiMember(sumphi, sumphi_1);
   auto cond = program.CmpI32(CompType::LT, phi, program.ConstI32(10));
   program.Branch(cond, bb2, bb3);
 
   program.SetCurrentBlock(bb2);
   auto incr = program.AddI32(phi, program.ConstI32(1));
+  auto newsum = program.AddI32(sumphi, phi);
   auto phi_2 = program.PhiMember(incr);
   program.UpdatePhiMember(phi, phi_2);
+  auto sumphi_2 = program.PhiMember(newsum);
+  program.UpdatePhiMember(sumphi, sumphi_2);
   program.Branch(bb1);
 
   program.SetCurrentBlock(bb3);
-  auto scaled = program.MulI32(phi, program.ConstI32(3));
+  auto scaled = program.MulI32(sumphi, program.ConstI32(3));
   program.Return(scaled);
 
   ASMBackend backend(GetParam());
@@ -5421,7 +5426,12 @@ TEST_P(ASMBackendTest, Loop) {
   using compute_fn = std::add_pointer<int32_t()>::type;
   auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
 
-  EXPECT_EQ(135, compute());
+  int32_t result = 0;
+  for (int i = 0; i < 10; i++) {
+    result += i;
+  }
+  result *= 3;
+  EXPECT_EQ(result, compute());
 }
 
 INSTANTIATE_TEST_SUITE_P(StackSpill, ASMBackendTest,
