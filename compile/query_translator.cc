@@ -77,7 +77,7 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   // program.Translate(printer);
 
   auto backend =
-      std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::STACK_SPILL);
+      std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::LINEAR_SCAN);
   program.Translate(*backend);
   backend->Compile();
 

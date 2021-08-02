@@ -190,7 +190,7 @@ RegisterAllocationResult LinearScanRegisterAlloc(const Function& func,
   auto instrs = func.Instructions();
   auto analysis = ComputeLiveIntervals(func, manager);
   auto& live_intervals = analysis.live_intervals;
-  auto& order = analysis.labels;
+  auto& order = analysis.order;
 
   // Handle intervals by increasing start point order
   std::sort(live_intervals.begin(), live_intervals.end(),

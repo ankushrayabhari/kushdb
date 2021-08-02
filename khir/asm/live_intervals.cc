@@ -205,6 +205,37 @@ void FindLoopHelper(int curr, const std::vector<std::vector<int>>& bb_succ,
     }
   }
 
+  for (int curr : loop_body) {
+    for (int next : bb_succ[curr]) {
+      if (!loop_body.contains(next)) {
+        work_list.insert(next);
+      }
+    }
+  }
+  while (!work_list.empty()) {
+    int curr = *work_list.begin();
+    work_list.erase(curr);
+
+    // if all predecessor blocks are in the loop, then it's part of the loop
+    bool should_add = true;
+    for (int pred : bb_pred[curr]) {
+      if (!loop_body.contains(pred)) {
+        should_add = false;
+        break;
+      }
+    }
+
+    if (should_add) {
+      loop_body.insert(curr);
+      // any successor should be reconsidered
+      for (int next : bb_succ[curr]) {
+        if (!loop_body.contains(next)) {
+          work_list.insert(next);
+        }
+      }
+    }
+  }
+
   if (!loop_body.empty()) {
     is_loop_header[curr] = true;
     Collapse(loop_parent, union_find, loop_body, curr);
