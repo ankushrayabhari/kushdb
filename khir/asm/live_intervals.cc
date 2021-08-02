@@ -205,38 +205,49 @@ void FindLoopHelper(int curr, const std::vector<std::vector<int>>& bb_succ,
     }
   }
 
-  for (int curr : loop_body) {
-    for (int next : bb_succ[curr]) {
-      if (!loop_body.contains(next)) {
-        work_list.insert(next);
+  if (!loop_body.empty()) {
+    int exit_block = -1;
+    for (int x : bb_succ[curr]) {
+      auto repr = util::UnionFind::Find(union_find, x);
+      if (loop_body.contains(x)) {
+        continue;
       }
+      exit_block = repr;
+      break;
     }
-  }
-  while (!work_list.empty()) {
-    int curr = *work_list.begin();
-    work_list.erase(curr);
+    assert(exit_block >= 0);
 
-    // if all predecessor blocks are in the loop, then it's part of the loop
-    bool should_add = true;
-    for (int pred : bb_pred[curr]) {
-      if (!loop_body.contains(pred)) {
-        should_add = false;
-        break;
-      }
-    }
-
-    if (should_add) {
-      loop_body.insert(curr);
-      // any successor should be reconsidered
-      for (int next : bb_succ[curr]) {
-        if (!loop_body.contains(next)) {
-          work_list.insert(next);
+    for (int y : loop_body) {
+      for (int z : bb_succ[y]) {
+        auto repr = util::UnionFind::Find(union_find, z);
+        if (repr != exit_block && z != curr && !loop_body.contains(repr)) {
+          work_list.insert(repr);
         }
       }
     }
-  }
 
-  if (!loop_body.empty()) {
+    while (!work_list.empty()) {
+      int y = *work_list.begin();
+      work_list.erase(y);
+
+      // all predecessor blocks are in the loop, then it's part of the loop
+      for (int x : bb_pred[y]) {
+        auto repr = util::UnionFind::Find(union_find, x);
+        if (!loop_body.contains(repr)) {
+          throw std::runtime_error("not all predecessors are in loop.");
+        }
+      }
+
+      loop_body.insert(y);
+
+      for (int z : bb_succ[y]) {
+        auto repr = util::UnionFind::Find(union_find, z);
+        if (repr != exit_block && z != curr && !loop_body.contains(repr)) {
+          work_list.insert(repr);
+        }
+      }
+    }
+
     is_loop_header[curr] = true;
     Collapse(loop_parent, union_find, loop_body, curr);
   }

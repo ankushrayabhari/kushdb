@@ -123,8 +123,7 @@ std::unique_ptr<Operator> GroupByAgg() {
 }
 
 int main() {
-  std::unique_ptr<Operator> query =
-      std::make_unique<OutputOperator>(GroupByAgg());
+  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(Scan());
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();
