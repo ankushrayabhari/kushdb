@@ -799,12 +799,6 @@ std::pair<std::vector<int>, std::vector<int>> ComputeLoopDepthEnd(
     }
   }
 
-  for (int i = 0; i < loop_parent.size(); i++) {
-    if (loop_header[i]) {
-      loop_depth[i]--;
-    }
-  }
-
   return {loop_depth, loop_end};
 }
 

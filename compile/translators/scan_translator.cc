@@ -9,6 +9,7 @@
 #include "catalog/sql_type.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/loop.h"
+#include "compile/proxy/printer.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
 #include "plan/scan_operator.h"
@@ -71,7 +72,7 @@ void ScanTranslator::Produce() {
 
   auto card_var = column_data_vars[0]->Size();
 
-  proxy::Loop(
+  proxy::Loop loop(
       program_,
       [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
       [&](auto& loop) {
@@ -92,6 +93,10 @@ void ScanTranslator::Produce() {
 
         return loop.Continue(i + 1);
       });
+
+  proxy::Printer printer(program_);
+  printer.Print(loop.template GetLoopVariable<proxy::Int32>(0));
+  printer.PrintNewline();
 
   for (auto& col : column_data_vars) {
     col->Reset();

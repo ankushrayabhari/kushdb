@@ -288,61 +288,62 @@ RegisterAllocationResult LinearScanRegisterAlloc(const Function& func,
         // Passing argument by stack so just move on.
         if (fp_arg_ctr >= fp_arg_reg.size()) {
           fp_arg_ctr++;
-          continue;
+        } else {
+          int reg = fp_arg_reg[fp_arg_ctr++];
+          assignments[i_instr].SetRegister(reg);
+          i.ChangeToPrecolored(reg);
+          AddPrecoloredInterval(i, assignments, free_floating_point_regs,
+                                active_floating_point);
         }
-
-        int reg = fp_arg_reg[fp_arg_ctr++];
-        assignments[i_instr].SetRegister(reg);
-        i.ChangeToPrecolored(reg);
-        AddPrecoloredInterval(i, assignments, free_floating_point_regs,
-                              active_floating_point);
       } else {
         // Passing argument by stack so just move on.
         if (normal_arg_ctr >= normal_arg_reg.size()) {
           normal_arg_ctr++;
-          continue;
+        } else {
+          int reg = normal_arg_reg[normal_arg_ctr++];
+          assignments[i_instr].SetRegister(reg);
+          i.ChangeToPrecolored(reg);
+          AddPrecoloredInterval(i, assignments, free_normal_regs,
+                                active_normal);
+        }
+      }
+
+      auto next_opcode = OpcodeFrom(
+          GenericInstructionReader(instrs[i.StartIdx() + 1]).Opcode());
+      if (next_opcode == Opcode::CALL || next_opcode == Opcode::CALL_INDIRECT) {
+        // add in live intervals for all remaining arg regs since they are
+        // clobbered
+        while (normal_arg_ctr < normal_arg_reg.size()) {
+          int reg = normal_arg_reg[normal_arg_ctr++];
+          LiveInterval interval(reg);
+          interval.Extend(i.StartBB(), i.StartIdx());
+          AddPrecoloredInterval(interval, assignments, free_normal_regs,
+                                active_normal);
         }
 
-        int reg = normal_arg_reg[normal_arg_ctr++];
-        assignments[i_instr].SetRegister(reg);
-        i.ChangeToPrecolored(reg);
-        AddPrecoloredInterval(i, assignments, free_normal_regs, active_normal);
+        while (fp_arg_ctr < fp_arg_reg.size()) {
+          int reg = fp_arg_reg[fp_arg_ctr++];
+          LiveInterval interval(reg);
+          interval.Extend(i.StartBB(), i.StartIdx());
+          AddPrecoloredInterval(interval, assignments, free_floating_point_regs,
+                                active_floating_point);
+        }
+
+        // clobber remaining caller saved registers
+        // FP registers have already been clobbered.
+        const std::vector<int> caller_saved_normal_registers = {7, 8};
+        for (int reg : caller_saved_normal_registers) {
+          LiveInterval interval(reg);
+          interval.Extend(i.StartBB(), i.StartIdx());
+          AddPrecoloredInterval(interval, assignments, free_normal_regs,
+                                active_normal);
+        }
+
+        // reset arg counters
+        normal_arg_ctr = 0;
+        fp_arg_ctr = 0;
       }
       continue;
-    }
-
-    if (i_opcode == Opcode::CALL || i_opcode == Opcode::CALL_INDIRECT) {
-      // add in live intervals for all remaining arg regs since they are
-      // clobbered
-      while (normal_arg_ctr < normal_arg_reg.size()) {
-        int reg = normal_arg_reg[normal_arg_ctr++];
-        LiveInterval interval(reg);
-        interval.Extend(i.StartBB(), i.StartIdx());
-        AddPrecoloredInterval(interval, assignments, free_normal_regs,
-                              active_normal);
-      }
-
-      while (fp_arg_ctr < fp_arg_reg.size()) {
-        int reg = fp_arg_reg[fp_arg_ctr++];
-        LiveInterval interval(reg);
-        interval.Extend(i.StartBB(), i.StartIdx());
-        AddPrecoloredInterval(interval, assignments, free_floating_point_regs,
-                              active_floating_point);
-      }
-
-      // clobber remaining caller saved registers
-      // FP registers have already been clobbered.
-      const std::vector<int> caller_saved_normal_registers = {7, 8};
-      for (int reg : caller_saved_normal_registers) {
-        LiveInterval interval(reg);
-        interval.Extend(i.StartBB(), i.StartIdx());
-        AddPrecoloredInterval(interval, assignments, free_normal_regs,
-                              active_normal);
-      }
-
-      // reset arg counters
-      normal_arg_ctr = 0;
-      fp_arg_ctr = 0;
     }
 
     switch (i_opcode) {
