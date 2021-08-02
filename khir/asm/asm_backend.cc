@@ -2867,6 +2867,7 @@ void ASMBackend::TranslateInstr(
       auto type = static_cast<khir::Type>(
           Type3InstructionReader(instructions[phi.GetIdx()]).TypeID());
 
+      const auto& dest_assign = register_assign[phi.GetIdx()];
       if (!dest_assign.IsRegister() && offsets[phi.GetIdx()] == INT32_MAX) {
         offsets[phi.GetIdx()] = stack_allocator.AllocateSlot();
       }
