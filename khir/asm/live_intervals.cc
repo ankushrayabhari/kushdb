@@ -18,8 +18,8 @@ LiveInterval::LiveInterval(int reg)
       end_bb_(-1),
       start_idx_(-1),
       end_idx_(-1),
-      value_(khir::Value(0)),
-      type_(static_cast<khir::Type>(0)),
+      value_(khir::Value(-1)),
+      type_(static_cast<khir::Type>(-1)),
       register_(reg) {}
 
 LiveInterval::LiveInterval(khir::Value v, khir::Type t)
@@ -59,8 +59,8 @@ void LiveInterval::Extend(int bb, int idx) {
 }
 
 void LiveInterval::ChangeToPrecolored(int reg) {
-  value_ = khir::Value(0);
-  type_ = static_cast<khir::Type>(0);
+  value_ = khir::Value(-1);
+  type_ = static_cast<khir::Type>(-1);
   register_ = reg;
 }
 
@@ -481,7 +481,8 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     }
 
     case Opcode::RETURN_VALUE:
-    case Opcode::CALL_ARG: {
+    case Opcode::CALL_ARG:
+    case Opcode::CALL_INDIRECT: {
       Type3InstructionReader reader(instr);
       Value v0(reader.Arg());
 
@@ -504,10 +505,8 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     case Opcode::GEP_OFFSET:
     case Opcode::PHI:
     case Opcode::ALLOCA:
-    case Opcode::CALL:  // call arg must be in same bb as call so we are good
-    case Opcode::CALL_INDIRECT: {
+    case Opcode::CALL:  // call arg must be in same bb as call so we are good{
       return {};
-    }
   }
 }
 

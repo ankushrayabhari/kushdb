@@ -277,6 +277,11 @@ RegisterAllocationResult LinearScanRegisterAlloc(const Function& func,
     auto i_opcode =
         OpcodeFrom(GenericInstructionReader(instrs[i_instr]).Opcode());
 
+    // Expire old intervals
+    ExpireOldIntervals(i, assignments, free_normal_regs, active_normal);
+    ExpireOldIntervals(i, assignments, free_floating_point_regs,
+                       active_floating_point);
+
     // Handle CALL_ARG as a precolored reg
     if (i_opcode == Opcode::CALL_ARG) {
       if (manager.IsF64Type(i.Type())) {
@@ -339,11 +344,6 @@ RegisterAllocationResult LinearScanRegisterAlloc(const Function& func,
       normal_arg_ctr = 0;
       fp_arg_ctr = 0;
     }
-
-    // Expire old intervals
-    ExpireOldIntervals(i, assignments, free_normal_regs, active_normal);
-    ExpireOldIntervals(i, assignments, free_floating_point_regs,
-                       active_floating_point);
 
     switch (i_opcode) {
       case Opcode::I1_CMP_EQ:
