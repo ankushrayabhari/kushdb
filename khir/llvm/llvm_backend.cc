@@ -615,7 +615,8 @@ void LLVMBackend::TranslateInstr(
     case Opcode::CALL_INDIRECT: {
       Type3InstructionReader reader(instr);
       auto func = GetValue(Value(reader.Arg()), constant_values, values);
-      auto func_type = types_[reader.TypeID()];
+      auto func_type =
+          llvm::dyn_cast<llvm::PointerType>(func->getType())->getElementType();
       values[instr_idx] = llvm::CallInst::Create(
           llvm::dyn_cast<llvm::FunctionType>(func_type), func, call_args_, "",
           builder_->GetInsertBlock());

@@ -85,6 +85,7 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   auto backend = std::make_unique<khir::LLVMBackend>();
   program.Translate(*backend);
   */
+
   return std::move(backend);
 }
 
