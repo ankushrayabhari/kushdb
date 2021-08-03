@@ -95,9 +95,7 @@ std::unique_ptr<Operator> SkinnerJoin() {
       std::move(conditions));
 }
 
-std::unique_ptr<Operator> GroupByAgg() {
-  auto base = HashJoin();
-
+std::unique_ptr<Operator> GroupByAgg(std::unique_ptr<Operator> base) {
   // aggregate
   auto sum_regionkey = Sum(ColRef(base, "r_regionkey"));
   auto min_regionkey = Min(ColRef(base, "r_regionkey"));
@@ -123,10 +121,22 @@ std::unique_ptr<Operator> GroupByAgg() {
 }
 
 int main() {
-  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(Scan());
+  {
+    std::unique_ptr<Operator> query =
+        std::make_unique<OutputOperator>(GroupByAgg(SkinnerJoin()));
 
-  QueryTranslator translator(*query);
-  auto prog = translator.Translate();
-  prog->Execute();
+    QueryTranslator translator(*query);
+    auto prog = translator.Translate();
+    prog->Execute();
+  }
+
+  {
+    std::unique_ptr<Operator> query =
+        std::make_unique<OutputOperator>(GroupByAgg(HashJoin()));
+
+    QueryTranslator translator(*query);
+    auto prog = translator.Translate();
+    prog->Execute();
+  }
   return 0;
 }

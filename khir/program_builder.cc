@@ -743,6 +743,7 @@ Value ProgramBuilder::Call(FunctionRef func,
                            absl::Span<const Value> arguments) {
   auto result = functions_[func.GetID()].ReturnType();
 
+  std::vector<Value> materialized_args;
   for (uint8_t i = 0; i < arguments.size(); i++) {
     auto v = arguments[i];
     if (!v.IsConstantGlobal()) {
@@ -760,13 +761,17 @@ Value ProgramBuilder::Call(FunctionRef func,
                 .Build());
       }
     }
+    materialized_args.push_back(v);
+  }
 
-    GetCurrentFunction().Append(Type3InstructionBuilder()
-                                    .SetOpcode(OpcodeTo(Opcode::CALL_ARG))
-                                    .SetTypeID(TypeOf(v).GetID())
-                                    .SetSarg(i)
-                                    .SetArg(v.Serialize())
-                                    .Build());
+  for (uint8_t i = 0; i < arguments.size(); i++) {
+    GetCurrentFunction().Append(
+        Type3InstructionBuilder()
+            .SetOpcode(OpcodeTo(Opcode::CALL_ARG))
+            .SetTypeID(TypeOf(materialized_args[i]).GetID())
+            .SetSarg(i)
+            .SetArg(materialized_args[i].Serialize())
+            .Build());
   }
 
   return GetCurrentFunction().Append(Type3InstructionBuilder()
@@ -777,6 +782,7 @@ Value ProgramBuilder::Call(FunctionRef func,
 }
 
 Value ProgramBuilder::Call(Value func, absl::Span<const Value> arguments) {
+  std::vector<Value> materialized_args;
   for (uint8_t i = 0; i < arguments.size(); i++) {
     auto v = arguments[i];
     if (!v.IsConstantGlobal()) {
@@ -794,13 +800,17 @@ Value ProgramBuilder::Call(Value func, absl::Span<const Value> arguments) {
                 .Build());
       }
     }
+    materialized_args.push_back(v);
+  }
 
-    GetCurrentFunction().Append(Type3InstructionBuilder()
-                                    .SetOpcode(OpcodeTo(Opcode::CALL_ARG))
-                                    .SetTypeID(TypeOf(v).GetID())
-                                    .SetSarg(i)
-                                    .SetArg(v.Serialize())
-                                    .Build());
+  for (uint8_t i = 0; i < arguments.size(); i++) {
+    GetCurrentFunction().Append(
+        Type3InstructionBuilder()
+            .SetOpcode(OpcodeTo(Opcode::CALL_ARG))
+            .SetTypeID(TypeOf(materialized_args[i]).GetID())
+            .SetSarg(i)
+            .SetArg(materialized_args[i].Serialize())
+            .Build());
   }
 
   auto func_ptr_type = TypeOf(func);

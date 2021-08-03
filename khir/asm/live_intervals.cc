@@ -771,31 +771,22 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
 
 std::pair<std::vector<int>, std::vector<int>> ComputeLoopDepthEnd(
     const std::vector<int>& loop_parent, const std::vector<bool>& loop_header,
-    const std::vector<int>& order) {
+    const std::vector<int>& order, const std::vector<int>& labels) {
   std::vector<int> loop_depth(loop_parent.size(), 0);
   std::vector<int> loop_end(loop_parent.size(), -1);
 
   for (int block_id : order) {
-    if (block_id == 0) {
-      loop_depth[0] = 0;
-      continue;
-    }
+    int curr_block = block_id;
+    while (curr_block != 0) {
+      if (loop_header[curr_block]) {
+        loop_depth[block_id]++;
 
-    if (loop_header[block_id]) {
-      // loop depth is loop parent's depth + 1
-      loop_depth[block_id] = loop_depth[loop_parent[block_id]] + 1;
-    } else {
-      // loop depth is that of the loop parents depth
-      loop_depth[block_id] = loop_depth[loop_parent[block_id]];
-
-      int x = block_id;
-      while (true) {
-        x = loop_parent[x];
-        loop_end[x] = std::max(loop_end[x], block_id);
-        if (x == 0) {
-          break;
+        if (labels[loop_end[curr_block]] < labels[block_id]) {
+          loop_end[curr_block] = block_id;
         }
       }
+
+      curr_block = loop_parent[curr_block];
     }
   }
 
@@ -825,7 +816,7 @@ LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
   auto [loop_parent, loop_header] = FindLoops(func);
   auto [labels, order] = LabelBlocks(func, loop_parent);
   auto [loop_depth, loop_end] =
-      ComputeLoopDepthEnd(loop_parent, loop_header, order);
+      ComputeLoopDepthEnd(loop_parent, loop_header, order, labels);
 
   auto instr_to_bb = ComputeInstrToBB(instrs, order, bb);
 
