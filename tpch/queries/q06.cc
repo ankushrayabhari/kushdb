@@ -40,23 +40,23 @@ std::unique_ptr<Operator> ScanLineitem() {
   return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
-// Select(l_shipdate >= '1994-01-01' AND l_shipdate < '1995-01-01' AND
-// l_discount  >= 0.07 AND l_discount <= 0.09 AND l_quantity < 24)
+// Select(l_shipdate >= '1993-01-01' AND l_shipdate < '1994-01-01' AND
+// l_discount  >= 0.02 AND l_discount <= 0.04 AND l_quantity < 25)
 std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLineitem();
 
   std::unique_ptr<Expression> cond;
   {
     std::unique_ptr<Expression> p1 = Geq(ColRef(lineitem, "l_shipdate"),
-                                         Literal(absl::CivilDay(1994, 1, 1)));
+                                         Literal(absl::CivilDay(1993, 1, 1)));
     std::unique_ptr<Expression> p2 =
-        Lt(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1995, 1, 1)));
+        Lt(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1994, 1, 1)));
     std::unique_ptr<Expression> p3 =
-        Geq(ColRef(lineitem, "l_discount"), Literal(0.07));
+        Geq(ColRef(lineitem, "l_discount"), Literal(0.02));
     std::unique_ptr<Expression> p4 =
-        Leq(ColRef(lineitem, "l_discount"), Literal(0.09));
+        Leq(ColRef(lineitem, "l_discount"), Literal(0.04));
     std::unique_ptr<Expression> p5 =
-        Lt(ColRef(lineitem, "l_quantity"), Literal(24.0));
+        Lt(ColRef(lineitem, "l_quantity"), Literal(25.0));
 
     cond = And(util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                                 std::move(p4), std::move(p5)));
