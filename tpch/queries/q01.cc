@@ -41,13 +41,13 @@ std::unique_ptr<Operator> ScanLineitem() {
   return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
-// Select (l_shipdate <= 1998-12-01)
+// Select (l_shipdate <= 1998-09-13)
 std::unique_ptr<Operator> SelectLineitem() {
   auto scan_lineitem = ScanLineitem();
 
   auto leq = std::make_unique<BinaryArithmeticExpression>(
       BinaryArithmeticOperatorType::LEQ, ColRef(scan_lineitem, "l_shipdate"),
-      Literal(absl::CivilDay(1998, 12, 1)));
+      Literal(absl::CivilDay(1998, 9, 13)));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*scan_lineitem,
