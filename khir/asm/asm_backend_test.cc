@@ -5434,6 +5434,43 @@ TEST_P(ASMBackendTest, Loop) {
   EXPECT_EQ(result, compute());
 }
 
+TEST_P(ASMBackendTest, LoopVariableAccess) {
+  ProgramBuilder program;
+  program.CreatePublicFunction(program.I32Type(), {}, "compute");
+
+  auto bb1 = program.GenerateBlock();
+  auto bb2 = program.GenerateBlock();
+  auto bb3 = program.GenerateBlock();
+
+  auto init = program.ConstI32(0);
+  auto phi_1 = program.PhiMember(init);
+  program.Branch(bb1);
+
+  program.SetCurrentBlock(bb1);
+  auto phi = program.Phi(program.I32Type());
+  program.UpdatePhiMember(phi, phi_1);
+  auto cond = program.CmpI32(CompType::LT, phi, program.ConstI32(10));
+  program.Branch(cond, bb2, bb3);
+
+  program.SetCurrentBlock(bb2);
+  auto incr = program.AddI32(phi, program.ConstI32(1));
+  auto phi_2 = program.PhiMember(incr);
+  program.UpdatePhiMember(phi, phi_2);
+  program.Branch(bb1);
+
+  program.SetCurrentBlock(bb3);
+  program.Return(phi);
+
+  ASMBackend backend(GetParam());
+  program.Translate(backend);
+  backend.Compile();
+
+  using compute_fn = std::add_pointer<int32_t()>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+
+  EXPECT_EQ(10, compute());
+}
+
 INSTANTIATE_TEST_SUITE_P(StackSpill, ASMBackendTest,
                          testing::Values(RegAllocImpl::STACK_SPILL));
 

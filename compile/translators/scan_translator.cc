@@ -94,10 +94,6 @@ void ScanTranslator::Produce() {
         return loop.Continue(i + 1);
       });
 
-  proxy::Printer printer(program_);
-  printer.Print(loop.template GetLoopVariable<proxy::Int32>(0));
-  printer.PrintNewline();
-
   for (auto& col : column_data_vars) {
     col->Reset();
   }

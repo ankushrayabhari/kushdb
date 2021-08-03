@@ -860,18 +860,27 @@ LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
         auto def_bb = instr_to_bb[v.GetIdx()];
         auto use_bb = bb_idx;
 
-        if (loop_depth[def_bb] == loop_depth[use_bb]) {
-          live_intervals[v.GetIdx()].Extend(labels[use_bb], i);
-        } else {
-          if (!(loop_depth[use_bb] > loop_depth[def_bb])) {
+        auto def_depth = loop_depth[def_bb];
+        if (loop_depth[use_bb] < def_depth) {
+          if (loop_header[def_bb] &&
+              OpcodeFrom(
+                  GenericInstructionReader(instrs[v.GetIdx()]).Opcode()) ==
+                  Opcode::PHI &&
+              loop_depth[use_bb] >= def_depth - 1) {
+            def_depth--;
+          } else {
             throw std::runtime_error("Invalid def/use situation.");
           }
+        }
 
+        if (loop_depth[use_bb] == def_depth) {
+          live_intervals[v.GetIdx()].Extend(labels[use_bb], i);
+        } else {
           if (!loop_header[use_bb]) {
             use_bb = loop_parent[use_bb];
           }
 
-          while (loop_depth[use_bb] > loop_depth[def_bb] + 1) {
+          while (loop_depth[use_bb] > def_depth + 1) {
             use_bb = loop_parent[use_bb];
           }
 

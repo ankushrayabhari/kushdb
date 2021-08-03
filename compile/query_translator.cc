@@ -73,8 +73,8 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   // terminate last basic block
   program.Return();
 
-  khir::ProgramPrinter printer;
-  program.Translate(printer);
+  // khir::ProgramPrinter printer;
+  // program.Translate(printer);
 
   auto backend =
       std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::LINEAR_SCAN);
