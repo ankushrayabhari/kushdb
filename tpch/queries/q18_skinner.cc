@@ -56,12 +56,12 @@ std::unique_ptr<Operator> SubqueryAgg() {
       util::MakeVector(std::move(sum_l_quantity)));
 }
 
-// Select(sum(l_quantity) > 313)
+// Select(sum(l_quantity) > 315)
 std::unique_ptr<Operator> SubquerySelect() {
   auto subquery = SubqueryAgg();
 
   std::unique_ptr<Expression> cond =
-      Gt(ColRef(subquery, "sum_l_quantity"), Literal(313.0));
+      Gt(ColRef(subquery, "sum_l_quantity"), Literal(315.0));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*subquery, {"l_orderkey"});

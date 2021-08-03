@@ -43,16 +43,16 @@ std::unique_ptr<Operator> ScanLineitem() {
   return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
-// Select((l_shipmode = 'FOB' OR l_shipmode = 'SHIP') AND l_commitdate <
+// Select((l_shipmode = 'RAIL' OR l_shipmode = 'MAIL') AND l_commitdate <
 // l_receiptdate AND l_shipdate < l_commitdate AND l_receiptdate >=
 // '1994-01-01' and l_receiptdate < '1995-01-01')
 std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLineitem();
 
   std::unique_ptr<Expression> p1 =
-      Eq(ColRef(lineitem, "l_shipmode"), Literal("FOB"sv));
+      Eq(ColRef(lineitem, "l_shipmode"), Literal("RAIL"sv));
   std::unique_ptr<Expression> p2 =
-      Eq(ColRef(lineitem, "l_shipmode"), Literal("SHIP"sv));
+      Eq(ColRef(lineitem, "l_shipmode"), Literal("MAIL"sv));
   std::unique_ptr<Expression> or_expr =
       Or(util::MakeVector(std::move(p1), std::move(p2)));
 

@@ -42,14 +42,14 @@ std::unique_ptr<Operator> ScanLineitem() {
   return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
-// Select(l_shipdate >= '1994-03-01' and l_receiptdate < '1994-04-01')
+// Select(l_shipdate >= '1995-12-01' and l_receiptdate < '1996-01-01')
 std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLineitem();
 
   std::unique_ptr<Expression> p1 =
-      Geq(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1994, 3, 1)));
+      Geq(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1995, 12, 1)));
   std::unique_ptr<Expression> p2 =
-      Lt(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1994, 4, 1)));
+      Lt(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1996, 1, 1)));
   auto cond = And(util::MakeVector(std::move(p1), std::move(p2)));
 
   OperatorSchema schema;

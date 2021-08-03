@@ -41,10 +41,10 @@ std::unique_ptr<Operator> ScanNation() {
   return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
-// Select(n_name = 'ARGENTINA')
+// Select(n_name = 'GERMANY')
 std::unique_ptr<Operator> SelectNation() {
   auto nation = ScanNation();
-  auto eq = Eq(ColRef(nation, "n_name"), Literal("ARGENTINA"sv));
+  auto eq = Eq(ColRef(nation, "n_name"), Literal("GERMANY"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*nation, {"n_nationkey"});
