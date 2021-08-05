@@ -234,9 +234,52 @@ std::unique_ptr<Operator> SelectNationSupplierNationCustomerOrdersLineitem() {
                                           std::move(cond));
 }
 
+// Group By supp_nation, cust_nation, l_year -> Aggregate
+std::unique_ptr<Operator> GroupByAgg() {
+  auto base = SelectNationSupplierNationCustomerOrdersLineitem();
+
+  // Group by
+  auto supp_nation = ColRefE(base, "supp_nation");
+  auto cust_nation = ColRefE(base, "cust_nation");
+  auto l_year = ColRefE(base, "l_year");
+
+  // aggregate
+  auto revenue = Sum(ColRef(base, "volume"));
+
+  // output
+  OperatorSchema schema;
+  schema.AddDerivedColumn("supp_nation", VirtColRef(supp_nation, 0));
+  schema.AddDerivedColumn("cust_nation", VirtColRef(cust_nation, 1));
+  schema.AddDerivedColumn("l_year", VirtColRef(l_year, 2));
+  schema.AddDerivedColumn("revenue", VirtColRef(revenue, 3));
+
+  return std::make_unique<GroupByAggregateOperator>(
+      std::move(schema), std::move(base),
+      util::MakeVector(std::move(supp_nation), std::move(cust_nation),
+                       std::move(l_year)),
+      util::MakeVector(std::move(revenue)));
+}
+
+// Order By supp_nation, cust_nation, l_year
+std::unique_ptr<Operator> OrderBy() {
+  auto agg = GroupByAgg();
+
+  auto supp_nation = ColRef(agg, "supp_nation");
+  auto cust_nation = ColRef(agg, "cust_nation");
+  auto l_year = ColRef(agg, "l_year");
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(*agg);
+
+  return std::make_unique<OrderByOperator>(
+      std::move(schema), std::move(agg),
+      util::MakeVector(std::move(supp_nation), std::move(cust_nation),
+                       std::move(l_year)),
+      std::vector<bool>{true, true, true});
+}
+
 int main() {
-  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(
-      SelectNationSupplierNationCustomerOrdersLineitem());
+  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(OrderBy());
 
   QueryTranslator translator(*query);
   auto prog = translator.Translate();
