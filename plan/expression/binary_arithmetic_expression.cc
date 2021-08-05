@@ -29,6 +29,7 @@ catalog::SqlType CalculateType(BinaryArithmeticOperatorType type,
     case BinaryArithmeticOperatorType::STARTS_WITH:
     case BinaryArithmeticOperatorType::ENDS_WITH:
     case BinaryArithmeticOperatorType::CONTAINS:
+    case BinaryArithmeticOperatorType::LIKE:
       return catalog::SqlType::BOOLEAN;
 
     default:

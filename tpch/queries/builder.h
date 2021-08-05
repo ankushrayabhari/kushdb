@@ -113,6 +113,12 @@ std::unique_ptr<BinaryArithmeticExpression> Contains(
       BinaryArithmeticOperatorType::CONTAINS, std::move(e1), std::move(e2));
 }
 
+std::unique_ptr<BinaryArithmeticExpression> Like(
+    std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2) {
+  return std::make_unique<BinaryArithmeticExpression>(
+      BinaryArithmeticOperatorType::LIKE, std::move(e1), std::move(e2));
+}
+
 std::unique_ptr<BinaryArithmeticExpression> And(
     std::vector<std::unique_ptr<Expression>> expr) {
   std::unique_ptr<BinaryArithmeticExpression> output =

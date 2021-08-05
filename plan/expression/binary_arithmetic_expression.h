@@ -23,7 +23,8 @@ enum class BinaryArithmeticOperatorType {
   OR,
   STARTS_WITH,
   ENDS_WITH,
-  CONTAINS
+  CONTAINS,
+  LIKE
 };
 
 class BinaryArithmeticExpression : public BinaryExpression {

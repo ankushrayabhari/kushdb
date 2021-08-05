@@ -12,6 +12,8 @@ constexpr std::string_view FreeFnName(
     "_ZN4kush7runtime6String4FreeEPNS1_6StringE");
 constexpr std::string_view ContainsFnName(
     "_ZN4kush7runtime6String8ContainsEPNS1_6StringES3_");
+constexpr std::string_view LikeFnName(
+    "_ZN4kush7runtime6String4LikeEPNS1_6StringES3_");
 constexpr std::string_view EndsWithFnName(
     "_ZN4kush7runtime6String8EndsWithEPNS1_6StringES3_");
 constexpr std::string_view StartsWithFnName(
@@ -54,6 +56,11 @@ Bool String::EndsWith(const String& rhs) {
                                       {value_, rhs.Get()}));
 }
 
+Bool String::Like(const String& rhs) {
+  return Bool(program_, program_.Call(program_.GetFunction(LikeFnName),
+                                      {value_, rhs.Get()}));
+}
+
 Bool String::operator==(const String& rhs) {
   return Bool(program_, program_.Call(program_.GetFunction(EqualsFnName),
                                       {value_, rhs.Get()}));
@@ -85,6 +92,9 @@ std::unique_ptr<Value> String::EvaluateBinary(
 
     case plan::BinaryArithmeticOperatorType::CONTAINS:
       return Contains(rhs).ToPointer();
+
+    case plan::BinaryArithmeticOperatorType::LIKE:
+      return Like(rhs).ToPointer();
 
     case plan::BinaryArithmeticOperatorType::EQ:
       return (*this == rhs).ToPointer();
@@ -144,6 +154,9 @@ void String::ForwardDeclare(khir::ProgramBuilder& program) {
   program.DeclareExternalFunction(
       ContainsFnName, program.I1Type(), {struct_ptr, struct_ptr},
       reinterpret_cast<void*>(runtime::String::Contains));
+  program.DeclareExternalFunction(
+      LikeFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::Like));
   program.DeclareExternalFunction(
       EndsWithFnName, program.I1Type(), {struct_ptr, struct_ptr},
       reinterpret_cast<void*>(runtime::String::EndsWith));

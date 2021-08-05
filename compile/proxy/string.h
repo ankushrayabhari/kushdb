@@ -20,6 +20,7 @@ class String : public Value {
   Bool Contains(const String& rhs);
   Bool StartsWith(const String& rhs);
   Bool EndsWith(const String& rhs);
+  Bool Like(const String& rhs);
   Bool operator==(const String& rhs);
   Bool operator!=(const String& rhs);
   Bool operator<(const String& rhs);
