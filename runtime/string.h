@@ -22,5 +22,6 @@ bool Equals(String* s1, String* s2);
 bool NotEquals(String* s1, String* s2);
 bool LessThan(String* s1, String* s2);
 int64_t Hash(String* s1);
+bool Like(String* s1, String* s2);
 
 }  // namespace kush::runtime::String

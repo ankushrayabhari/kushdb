@@ -139,3 +139,10 @@ http_archive(
     strip_prefix = "asmjit-master",
     urls = ["https://github.com/ankushrayabhari/asmjit/archive/refs/heads/master.zip"],
 )
+
+http_archive(
+    name = "re2",
+    sha256 = "40593c03cf7f309facc2cf8eea7d5a5c84d395ebfacbc2cedab75f67983a4e43",
+    strip_prefix = "re2-2021-08-01",
+    urls = ["https://github.com/google/re2/archive/refs/tags/2021-08-01.zip"],
+)

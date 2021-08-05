@@ -6,6 +6,9 @@
 #include <string_view>
 #include <type_traits>
 
+#include "re2/re2.h"
+#include "re2/stringpiece.h"
+
 namespace kush::runtime::String {
 
 void Copy(String* dest, String* src) {
@@ -61,6 +64,12 @@ bool LessThan(String* s1, String* s2) {
 int64_t Hash(String* s1) {
   auto sv1 = std::string_view(s1->data, s1->length);
   return std::hash<std::string_view>{}(sv1);
+}
+
+bool Like(String* s1, String* s2) {
+  re2::StringPiece sp1(s1->data, s1->length);
+  re2::StringPiece sp2(s2->data, s2->length);
+  return RE2::FullMatch(sp1, sp2);
 }
 
 }  // namespace kush::runtime::String

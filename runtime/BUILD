@@ -42,7 +42,9 @@ cc_library(
     name = "string",
     srcs = ["string.cc"],
     hdrs = ["string.h"],
-    deps = [],
+    deps = [
+        "@re2",
+    ],
 )
 
 cc_library(
