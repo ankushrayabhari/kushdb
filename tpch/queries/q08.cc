@@ -135,55 +135,137 @@ std::unique_ptr<Operator> ScanSupplier() {
   return std::make_unique<ScanOperator>(std::move(schema), db["supplier"]);
 }
 
-// part
-// JOIN lineitem ON p_partkey = l_partkey
-// JOIN supplier ON s_suppkey = l_suppkey
-// JOIN orders ON l_orderkey = o_orderkey
-// JOIN nation n2 ON s_nationkey = n2.n_nationkey
-// JOIN nation n1
-// JOIN customer ON c_nationkey = n1.n_nationkey AND o_orderkey = c_custkey
-// JOIN region ON n1.n_regionkey = r_regionkey
-std::unique_ptr<Operator> Join() {
-  auto part = SelectPart();
-  auto supplier = ScanSupplier();
-  auto lineitem = ScanLineitem();
-  auto orders = SelectOrders();
-  auto customer = ScanCustomer();
-  auto n1 = ScanNationN1();
-  auto n2 = ScanNationN2();
+// nation n1 JOIN region ON n1.n_regionkey = r_regionkey
+std::unique_ptr<Operator> RegionNationN1() {
   auto region = SelectRegion();
+  auto n1 = ScanNationN1();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
-  conditions.push_back(
-      Eq(ColRef(part, "p_partkey", 0), ColRef(lineitem, "l_partkey", 2)));
-  conditions.push_back(
-      Eq(ColRef(supplier, "s_suppkey", 1), ColRef(lineitem, "l_suppkey", 2)));
-  conditions.push_back(
-      Eq(ColRef(lineitem, "l_orderkey", 2), ColRef(orders, "o_orderkey", 3)));
-  conditions.push_back(
-      Eq(ColRef(orders, "o_custkey", 3), ColRef(customer, "c_custkey", 4)));
-  conditions.push_back(
-      Eq(ColRef(customer, "c_nationkey", 4), ColRef(n1, "n_nationkey", 5)));
-  conditions.push_back(
-      Eq(ColRef(n1, "n_regionkey", 5), ColRef(region, "r_regionkey", 7)));
-  conditions.push_back(
-      Eq(ColRef(supplier, "s_nationkey", 1), ColRef(n2, "n_nationkey", 6)));
+  auto r_regionkey = ColRef(region, "r_regionkey", 0);
+  auto n_regionkey = ColRef(n1, "n_regionkey", 1);
 
-  auto o_year = Extract(ColRef(orders, "o_orderdate", 3), ExtractValue::YEAR);
-  auto volume = Mul(ColRef(lineitem, "l_extendedprice", 2),
-                    Sub(Literal(1.0), ColRef(lineitem, "l_discount", 2)));
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(*n1, {"n_nationkey"}, 1);
+  return std::make_unique<HashJoinOperator>(
+      std::move(schema), std::move(region), std::move(n1),
+      util::MakeVector(std::move(r_regionkey)),
+      util::MakeVector(std::move(n_regionkey)));
+}
+
+// part JOIN lineitem ON p_partkey = l_partkey
+std::unique_ptr<Operator> PartLineitem() {
+  auto part = SelectPart();
+  auto lineitem = ScanLineitem();
+
+  auto p_partkey = ColRef(part, "p_partkey", 0);
+  auto l_partkey = ColRef(lineitem, "l_partkey", 1);
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(
+      *lineitem, {"l_extendedprice", "l_discount", "l_suppkey", "l_orderkey"},
+      1);
+  return std::make_unique<HashJoinOperator>(
+      std::move(schema), std::move(part), std::move(lineitem),
+      util::MakeVector(std::move(p_partkey)),
+      util::MakeVector(std::move(l_partkey)));
+}
+
+// part_lineitem JOIN orders ON  l_orderkey = o_orderkey
+std::unique_ptr<Operator> PartLineitemOrders() {
+  auto part_lineitem = PartLineitem();
+  auto orders = SelectOrders();
+
+  auto l_orderkey = ColRef(part_lineitem, "l_orderkey", 0);
+  auto o_orderkey = ColRef(orders, "o_orderkey", 1);
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(
+      *part_lineitem, {"l_extendedprice", "l_discount", "l_suppkey"}, 0);
+  schema.AddPassthroughColumns(*orders, {"o_custkey", "o_orderdate"}, 1);
+  return std::make_unique<HashJoinOperator>(
+      std::move(schema), std::move(part_lineitem), std::move(orders),
+      util::MakeVector(std::move(l_orderkey)),
+      util::MakeVector(std::move(o_orderkey)));
+}
+
+// part_lineitem_orders JOIN customer ON o_custkey = c_custkey
+std::unique_ptr<Operator> PartLineitemOrdersCustomer() {
+  auto part_lineitem_orders = PartLineitemOrders();
+  auto customer = ScanCustomer();
+
+  auto o_custkey = ColRef(part_lineitem_orders, "o_custkey", 0);
+  auto c_custkey = ColRef(customer, "c_custkey", 1);
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(
+      *part_lineitem_orders,
+      {"l_extendedprice", "l_discount", "l_suppkey", "o_orderdate"}, 0);
+  schema.AddPassthroughColumns(*customer, {"c_nationkey"}, 1);
+  return std::make_unique<HashJoinOperator>(
+      std::move(schema), std::move(part_lineitem_orders), std::move(customer),
+      util::MakeVector(std::move(o_custkey)),
+      util::MakeVector(std::move(c_custkey)));
+}
+
+// region_nation1 JOIN part_lineitem_orders_customer ON c_nationkey =
+// n1.n_nationkey
+std::unique_ptr<Operator> RegionNationN1PartLineitemOrdersCustomer() {
+  auto region_nation1 = RegionNationN1();
+  auto part_lineitem_orders_customer = PartLineitemOrdersCustomer();
+
+  auto o_custkey = ColRef(region_nation1, "n_nationkey", 0);
+  auto c_nationkey = ColRef(part_lineitem_orders_customer, "c_nationkey", 1);
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(
+      *part_lineitem_orders_customer,
+      {"l_extendedprice", "l_discount", "l_suppkey", "o_orderdate"}, 1);
+  return std::make_unique<HashJoinOperator>(
+      std::move(schema), std::move(region_nation1),
+      std::move(part_lineitem_orders_customer),
+      util::MakeVector(std::move(o_custkey)),
+      util::MakeVector(std::move(c_nationkey)));
+}
+
+// region_nation1_part_lineitem_orders_customer JOIN supplier ON l_suppkey =
+// s_suppkey
+std::unique_ptr<Operator> RegionNationN1PartLineitemOrdersCustomerSupplier() {
+  auto left = RegionNationN1PartLineitemOrdersCustomer();
+  auto supp = ScanSupplier();
+
+  auto l_suppkey = ColRef(left, "l_suppkey", 0);
+  auto s_suppkey = ColRef(supp, "s_suppkey", 1);
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(
+      *left, {"l_extendedprice", "l_discount", "o_orderdate"}, 0);
+  schema.AddPassthroughColumns(*supp, {"s_nationkey"}, 1);
+  return std::make_unique<HashJoinOperator>(
+      std::move(schema), std::move(left), std::move(supp),
+      util::MakeVector(std::move(l_suppkey)),
+      util::MakeVector(std::move(s_suppkey)));
+}
+
+// nation n2 JOIN region_nation1_part_lineitem_orders_customer_supplier ON
+// n2.n_nationkey = s_nationkey
+std::unique_ptr<Operator> Join() {
+  auto n2 = ScanNationN2();
+  auto right = RegionNationN1PartLineitemOrdersCustomerSupplier();
+
+  auto n_nationkey = ColRef(n2, "n_nationkey", 0);
+  auto s_nationkey = ColRef(right, "s_nationkey", 1);
+
+  auto o_year = Extract(ColRef(right, "o_orderdate", 1), ExtractValue::YEAR);
+  auto volume = Mul(ColRef(right, "l_extendedprice", 1),
+                    Sub(Literal(1.0), ColRef(right, "l_discount", 1)));
 
   OperatorSchema schema;
   schema.AddDerivedColumn("o_year", std::move(o_year));
   schema.AddDerivedColumn("volume", std::move(volume));
-  schema.AddPassthroughColumn(*n2, "n_name", "nation", 6);
-  return std::make_unique<SkinnerJoinOperator>(
-      std::move(schema),
-      util::MakeVector(std::move(part), std::move(supplier),
-                       std::move(lineitem), std::move(orders),
-                       std::move(customer), std::move(n1), std::move(n2),
-                       std::move(region)),
-      std::move(conditions));
+  schema.AddPassthroughColumn(*n2, "n_name", "nation", 0);
+  return std::make_unique<HashJoinOperator>(
+      std::move(schema), std::move(n2), std::move(right),
+      util::MakeVector(std::move(n_nationkey)),
+      util::MakeVector(std::move(s_nationkey)));
 }
 
 // Group By o_year -> Aggregate
