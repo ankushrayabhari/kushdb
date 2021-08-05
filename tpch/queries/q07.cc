@@ -221,12 +221,14 @@ std::unique_ptr<Operator> SelectNationSupplierNationCustomerOrdersLineitem() {
   std::unique_ptr<Expression> cond =
       Or(util::MakeVector(std::move(or1), std::move(or2)));
 
+  auto l_year = Extract(ColRef(base, "l_shipdate"), ExtractValue::YEAR);
   auto volume = Mul(ColRef(base, "l_extendedprice"),
                     Sub(Literal(1.0), ColRef(base, "l_discount")));
 
   OperatorSchema schema;
   schema.AddPassthroughColumn(*base, "n1_n_name", "supp_nation");
   schema.AddPassthroughColumn(*base, "n2_n_name", "cust_nation");
+  schema.AddDerivedColumn("l_year", std::move(l_year));
   schema.AddDerivedColumn("volume", std::move(volume));
   return std::make_unique<SelectOperator>(std::move(schema), std::move(base),
                                           std::move(cond));

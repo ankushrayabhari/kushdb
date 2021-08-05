@@ -15,6 +15,7 @@
 #include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/conversion_expression.h"
+#include "plan/expression/extract_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
 #include "plan/group_by_aggregate_operator.h"
@@ -196,6 +197,11 @@ std::unique_ptr<AggregateExpression> Count() {
 std::unique_ptr<IntToFloatConversionExpression> Float(
     std::unique_ptr<Expression> e) {
   return std::make_unique<IntToFloatConversionExpression>(std::move(e));
+}
+
+std::unique_ptr<ExtractExpression> Extract(std::unique_ptr<Expression> e,
+                                           ExtractValue v) {
+  return std::make_unique<ExtractExpression>(std::move(e), v);
 }
 
 std::unique_ptr<CaseExpression> Case(std::unique_ptr<Expression> cond,

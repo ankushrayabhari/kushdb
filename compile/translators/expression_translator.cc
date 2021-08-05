@@ -16,10 +16,24 @@
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/conversion_expression.h"
 #include "plan/expression/expression_visitor.h"
+#include "plan/expression/extract_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
+#include "runtime/date_extractor.h"
 
 namespace kush::compile {
+
+constexpr std::string_view ExtractYearFnName(
+    "_ZN4kush7runtime13DateExtractor11ExtractYearEl");
+
+void ExpressionTranslator::ForwardDeclare(khir::ProgramBuilder& program) {
+  auto date_type = program.I64Type();
+  auto result_type = program.I32Type();
+
+  program.DeclareExternalFunction(
+      ExtractYearFnName, result_type, {date_type},
+      reinterpret_cast<void*>(&runtime::DateExtractor::ExtractYear));
+}
 
 ExpressionTranslator::ExpressionTranslator(khir::ProgramBuilder& program,
                                            OperatorTranslator& source)
@@ -216,6 +230,18 @@ void ExpressionTranslator::Visit(
   }
 
   throw std::runtime_error("Not an integer input.");
+}
+
+void ExpressionTranslator::Visit(const plan::ExtractExpression& extract_expr) {
+  auto v = this->Compute(extract_expr.Child());
+
+  switch (extract_expr.ValueToExtract()) {
+    case plan::ExtractValue::YEAR:
+      auto result_v =
+          program_.Call(program_.GetFunction(ExtractYearFnName), {v->Get()});
+      this->Return(proxy::Int32(program_, result_v).ToPointer());
+      return;
+  }
 }
 
 }  // namespace kush::compile

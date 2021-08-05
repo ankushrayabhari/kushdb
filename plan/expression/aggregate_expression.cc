@@ -13,7 +13,7 @@ namespace kush::plan {
 
 using SqlType = catalog::SqlType;
 
-SqlType CalculateSqlType(AggregateType type, const Expression& expr) {
+SqlType CalculateAggSqlType(AggregateType type, const Expression& expr) {
   auto child_type = expr.Type();
   switch (type) {
     case AggregateType::SUM:
@@ -49,7 +49,7 @@ SqlType CalculateSqlType(AggregateType type, const Expression& expr) {
 
 AggregateExpression::AggregateExpression(AggregateType type,
                                          std::unique_ptr<Expression> child)
-    : UnaryExpression(CalculateSqlType(type, *child), std::move(child)),
+    : UnaryExpression(CalculateAggSqlType(type, *child), std::move(child)),
       type_(type) {}
 
 nlohmann::json AggregateExpression::ToJson() const {

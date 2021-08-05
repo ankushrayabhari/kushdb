@@ -12,6 +12,15 @@ cc_binary(
 )
 
 cc_library(
+    name = "date_extractor",
+    srcs = ["date_extractor.cc"],
+    hdrs = ["date_extractor.h"],
+    deps = [
+        "@absl//absl/time",
+    ],
+)
+
+cc_library(
     name = "column_index",
     srcs = ["column_index.cc"],
     hdrs = ["column_index.h"],

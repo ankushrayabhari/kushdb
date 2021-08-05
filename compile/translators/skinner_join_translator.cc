@@ -28,6 +28,7 @@
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/conversion_expression.h"
 #include "plan/expression/expression_visitor.h"
+#include "plan/expression/extract_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
 #include "util/vector_util.h"
@@ -77,6 +78,10 @@ class PredicateColumnCollector : public plan::ImmutableExpressionVisitor {
   }
 
   void Visit(const plan::IntToFloatConversionExpression& conv) override {
+    VisitChildren(conv);
+  }
+
+  void Visit(const plan::ExtractExpression& conv) override {
     VisitChildren(conv);
   }
 

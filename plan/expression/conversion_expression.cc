@@ -13,7 +13,7 @@ namespace kush::plan {
 
 using SqlType = catalog::SqlType;
 
-SqlType CalculateSqlType(catalog::SqlType child_type) {
+SqlType CalculateConvSqlType(catalog::SqlType child_type) {
   if (child_type != SqlType::BIGINT && child_type != SqlType::INT &&
       child_type != SqlType::SMALLINT) {
     throw std::runtime_error("Non-integral child type for conversion.");
@@ -23,7 +23,7 @@ SqlType CalculateSqlType(catalog::SqlType child_type) {
 
 IntToFloatConversionExpression::IntToFloatConversionExpression(
     std::unique_ptr<Expression> child)
-    : UnaryExpression(CalculateSqlType(child->Type()), std::move(child)) {}
+    : UnaryExpression(CalculateConvSqlType(child->Type()), std::move(child)) {}
 
 nlohmann::json IntToFloatConversionExpression::ToJson() const {
   nlohmann::json j;

@@ -15,6 +15,7 @@
 #include "compile/proxy/string.h"
 #include "compile/proxy/tuple_idx_table.h"
 #include "compile/proxy/vector.h"
+#include "compile/translators/expression_translator.h"
 #include "compile/translators/translator_factory.h"
 #include "khir/asm/asm_backend.h"
 #include "khir/llvm/llvm_backend.h"
@@ -28,6 +29,9 @@ QueryTranslator::QueryTranslator(const plan::Operator& op) : op_(op) {}
 
 std::unique_ptr<Program> QueryTranslator::Translate() {
   khir::ProgramBuilder program;
+
+  // Forward declare expression translator helper functions
+  ExpressionTranslator::ForwardDeclare(program);
 
   // Forward declare string functions
   proxy::String::ForwardDeclare(program);
