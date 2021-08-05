@@ -20,9 +20,10 @@ LiveInterval::LiveInterval(int reg)
       end_idx_(-1),
       value_(khir::Value(-1)),
       type_(static_cast<khir::Type>(-1)),
-      register_(reg) {}
+      register_(reg),
+      spill_cost_(INT32_MAX) {}
 
-LiveInterval::LiveInterval(khir::Value v, khir::Type t)
+LiveInterval::LiveInterval(khir::Value v, khir::Type t, int spill_cost)
     : undef_(true),
       start_bb_(-1),
       end_bb_(-1),
@@ -30,7 +31,8 @@ LiveInterval::LiveInterval(khir::Value v, khir::Type t)
       end_idx_(-1),
       value_(v),
       type_(t),
-      register_(-1) {}
+      register_(-1),
+      spill_cost_(spill_cost) {}
 
 void LiveInterval::Extend(int bb, int idx) {
   assert(bb >= 0);
@@ -71,6 +73,8 @@ int LiveInterval::EndBB() const { return end_bb_; }
 int LiveInterval::StartIdx() const { return start_idx_; }
 
 int LiveInterval::EndIdx() const { return end_idx_; }
+
+int LiveInterval::SpillCost() const { return spill_cost_; }
 
 bool LiveInterval::Undef() const { return undef_; }
 
@@ -832,7 +836,7 @@ LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
   live_intervals.reserve(instrs.size());
   for (int i = 0; i < instrs.size(); i++) {
     auto v = Value(i);
-    live_intervals.emplace_back(v, TypeOf(instrs[i], instrs, manager));
+    live_intervals.emplace_back(v, TypeOf(instrs[i], instrs, manager), 0);
   }
 
   for (auto bb_idx : order) {

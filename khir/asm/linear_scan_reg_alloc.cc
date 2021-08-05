@@ -12,6 +12,72 @@
 namespace kush::khir {
 
 template <typename ActiveSet>
+int SpillMinCost(ActiveSet& active, std::unordered_set<int>& free,
+                 std::vector<RegisterAssignment>& assignments) {
+  if (active.empty()) {
+    throw std::runtime_error("Nothing to spill.");
+  }
+
+  auto min_spill_cost = INT32_MAX;
+  auto min_spill_it = active.end();
+  for (auto it = active.begin(); it != active.end(); it++) {
+    if (it->IsPrecolored()) {
+      continue;
+    }
+
+    auto spill_cost = it->SpillCost();
+    if (spill_cost < min_spill_cost) {
+      min_spill_cost = spill_cost;
+      min_spill_it = it;
+    }
+  }
+
+  if (min_spill_it == active.end()) {
+    throw std::runtime_error("No spillable register exists");
+  }
+
+  auto reg = assignments[min_spill_it->Value().GetIdx()].Register();
+  assignments[min_spill_it->Value().GetIdx()].Spill();
+  free.insert(reg);
+  active.erase(min_spill_it);
+  return reg;
+}
+
+template <typename ActiveSet>
+int MaybeSpillMinCost(ActiveSet& active, std::unordered_set<int>& free,
+                      std::vector<RegisterAssignment>& assignments,
+                      const LiveInterval& maybe) {
+  if (active.empty()) {
+    throw std::runtime_error("Nothing to spill.");
+  }
+
+  auto min_spill_cost = maybe.SpillCost();
+  auto min_spill_it = active.end();
+  for (auto it = active.begin(); it != active.end(); it++) {
+    if (it->IsPrecolored()) {
+      continue;
+    }
+
+    auto spill_cost = it->SpillCost();
+    if (spill_cost < min_spill_cost) {
+      min_spill_cost = spill_cost;
+      min_spill_it = it;
+    }
+  }
+
+  if (min_spill_it == active.end()) {
+    // nothing has lower spill cost
+    return -1;
+  }
+
+  auto reg = assignments[min_spill_it->Value().GetIdx()].Register();
+  assignments[min_spill_it->Value().GetIdx()].Spill();
+  free.insert(reg);
+  active.erase(min_spill_it);
+  return reg;
+}
+
+template <typename ActiveSet>
 void AddPrecoloredInterval(LiveInterval& to_add,
                            std::vector<RegisterAssignment>& assignments,
                            std::unordered_set<int>& free, ActiveSet& active) {
@@ -23,8 +89,6 @@ void AddPrecoloredInterval(LiveInterval& to_add,
       active.insert(to_add);
       return;
     }
-
-    // TODO: change this to spill the min cost register, shuffle regs around
 
     // Find the interval in active that is assigned to reg
     for (auto it = active.begin(); it != active.end(); it++) {
@@ -38,13 +102,28 @@ void AddPrecoloredInterval(LiveInterval& to_add,
         throw std::runtime_error("Two precolored intervals conflicting.");
       }
 
-      // Spill the old one
-      assignments[j.Value().GetIdx()].Spill();
-      active.erase(it);
-      active.insert(to_add);
+      auto j_idx = j.Value().GetIdx();
+
+      // Find the min cost register in active
+      auto free_reg = SpillMinCost(active, free, assignments);
+      if (free_reg == j_reg) {
+        // we spilled j
+        assert(!assignments[j_idx].IsRegister());
+        active.insert(to_add);
+        free.erase(reg);
+      } else {
+        // we spilled something else
+        // move j to that register
+        assignments[j_idx].SetRegister(free_reg);
+        free.erase(free_reg);
+
+        // now that j's old register is free, we can add to_add
+        active.insert(to_add);
+      }
       return;
     }
-    return;
+
+    throw std::runtime_error("Register should have been in free.");
   }
 
   // No constraint on the register, pick any register
@@ -58,22 +137,12 @@ void AddPrecoloredInterval(LiveInterval& to_add,
     return;
   }
 
-  // TODO: pick the min cost one to spill and spill that
-  // for now spill any active that can be spilled
-  for (auto it = active.begin(); it != active.end(); it++) {
-    const auto& j = *it;
-    if (j.IsPrecolored()) continue;
-
-    // Spill the active register
-    to_add.ChangeToPrecolored(assignments[j.Value().GetIdx()].Register());
-    assignments[j.Value().GetIdx()].Spill();
-    active.erase(it);
-    active.insert(to_add);
-    return;
-  }
-
-  throw std::runtime_error(
-      "No active registers can be spilled. All precolored.");
+  // pick the min cost one to spill and spill that
+  // let to_add be precolored with that free_reg
+  auto free_reg = SpillMinCost(active, free, assignments);
+  to_add.ChangeToPrecolored(free_reg);
+  active.insert(to_add);
+  free.erase(free_reg);
 }
 
 template <typename ActiveSet>
@@ -121,38 +190,16 @@ void SpillAtInterval(LiveInterval& curr,
     return;
   }
 
-  // Spill one of the non-precolored intervals
-  auto spill = active.begin();
-  while (spill != active.end()) {
-    if (spill->IsPrecolored()) {
-      spill++;
-      continue;
-    }
-
-    break;
-  }
-
-  if (spill == active.end()) {
-    // Forced to spill the current.
+  // spill live interval with min cost only if smaller than the live interval
+  auto free_reg = MaybeSpillMinCost(active, free, assignments, curr);
+  if (free_reg == -1) {
+    // spill current
     assignments[curr_idx].Spill();
-    return;
-  }
-
-  assert(!spill->IsPrecolored());
-  auto spill_idx = spill->Value().GetIdx();
-
-  // Heuristic.
-  if (spill->EndBB() > curr.EndBB() ||
-      (spill->EndBB() == curr.EndBB() && spill->EndIdx() > curr.EndIdx())) {
-    assignments[curr_idx] = assignments[spill_idx];
-    assignments[spill_idx].Spill();
-    active.erase(spill);
-    active.insert(curr);
   } else {
-    assignments[curr_idx].Spill();
+    assignments[curr_idx].SetRegister(free_reg);
+    free.erase(free_reg);
+    active.insert(curr);
   }
-
-  return;
 }
 
 /*
