@@ -39,6 +39,9 @@ class OperatorSchema {
   void AddPassthroughColumns(const OperatorSchemaProvider& op,
                              const std::vector<std::string>& columns,
                              int child_idx = 0);
+  void AddPassthroughColumn(const OperatorSchemaProvider& op,
+                            std::string_view base_name,
+                            std::string_view derived_name, int child_idx = 0);
   void AddGeneratedColumns(const kush::catalog::Table& table,
                            const std::vector<std::string>& columns);
 
