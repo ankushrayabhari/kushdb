@@ -18,7 +18,7 @@ void PrintInt32(int32_t v) { std::cout << v << "|"; }
 
 void PrintInt64(int64_t v) { std::cout << v << "|"; }
 
-void PrintFloat64(double v) { std::cout << v << "|"; }
+void PrintFloat64(double v) { std::cout << std::fixed << v << "|"; }
 
 void PrintNewline() { std::cout << "\n"; }
 
