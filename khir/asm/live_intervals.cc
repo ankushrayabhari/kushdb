@@ -23,7 +23,7 @@ LiveInterval::LiveInterval(int reg)
       register_(reg),
       spill_cost_(INT32_MAX) {}
 
-LiveInterval::LiveInterval(khir::Value v, khir::Type t, int spill_cost)
+LiveInterval::LiveInterval(khir::Value v, khir::Type t)
     : undef_(true),
       start_bb_(-1),
       end_bb_(-1),
@@ -32,7 +32,7 @@ LiveInterval::LiveInterval(khir::Value v, khir::Type t, int spill_cost)
       value_(v),
       type_(t),
       register_(-1),
-      spill_cost_(spill_cost) {}
+      spill_cost_(0) {}
 
 void LiveInterval::Extend(int bb, int idx) {
   assert(bb >= 0);
@@ -64,6 +64,23 @@ void LiveInterval::ChangeToPrecolored(int reg) {
   value_ = khir::Value(-1);
   type_ = static_cast<khir::Type>(-1);
   register_ = reg;
+  spill_cost_ = INT32_MAX;
+}
+
+void LiveInterval::UpdateSpillCostWithUse(int loop_depth) {
+  if (IsPrecolored()) {
+    return;
+  }
+
+  // just use 1.5^(loop_depth)
+  double add_factor = pow(1.5, loop_depth);
+  int to_add = add_factor >= INT32_MAX ? INT32_MAX : add_factor;
+
+  if (spill_cost_ + to_add < spill_cost_) {
+    spill_cost_ = INT32_MAX;
+  } else {
+    spill_cost_ += to_add;
+  }
 }
 
 int LiveInterval::StartBB() const { return start_bb_; }
@@ -836,7 +853,7 @@ LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
   live_intervals.reserve(instrs.size());
   for (int i = 0; i < instrs.size(); i++) {
     auto v = Value(i);
-    live_intervals.emplace_back(v, TypeOf(instrs[i], instrs, manager), 0);
+    live_intervals.emplace_back(v, TypeOf(instrs[i], instrs, manager));
   }
 
   for (auto bb_idx : order) {
@@ -868,6 +885,9 @@ LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
           }
         }
 
+        // Update cost
+        live_intervals[v.GetIdx()].UpdateSpillCostWithUse(loop_depth[use_bb]);
+
         if (loop_depth[use_bb] == def_depth) {
           live_intervals[v.GetIdx()].Extend(labels[use_bb], i);
         } else {
@@ -892,6 +912,9 @@ LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
         Type2InstructionReader reader(instr);
         Value v0(reader.Arg0());
         auto phi = v0.GetIdx();
+
+        // give extra cost for writing the loop variable
+        live_intervals[phi].UpdateSpillCostWithUse(loop_depth[bb_idx]);
 
         live_intervals[phi].Extend(labels[bb_idx], i);
       } else {

@@ -8,7 +8,7 @@ namespace kush::khir {
 
 class LiveInterval {
  public:
-  LiveInterval(khir::Value v, khir::Type t, int spill_cost);
+  LiveInterval(khir::Value v, khir::Type t);
   LiveInterval(int reg);
   void Extend(int bb, int idx);
 
@@ -27,6 +27,7 @@ class LiveInterval {
   bool IsPrecolored() const;
 
   int SpillCost() const;
+  void UpdateSpillCostWithUse(int loop_depth);
 
   bool operator==(const LiveInterval& rhs);
 
@@ -40,6 +41,7 @@ class LiveInterval {
   khir::Value value_;
   khir::Type type_;
   int register_;
+
   int spill_cost_;
 };
 
