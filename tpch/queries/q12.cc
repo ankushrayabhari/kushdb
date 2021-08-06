@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include "absl/flags/parse.h"
+#include "absl/flags/usage.h"
 #include "absl/time/civil_time.h"
 
 #include "catalog/catalog.h"
@@ -148,7 +150,8 @@ std::unique_ptr<Operator> OrderBy() {
       util::MakeVector(std::move(l_shipmode)), std::vector<bool>{true});
 }
 
-int main() {
+int main(int argc, char** argv) {
+  absl::ParseCommandLine(argc, argv);
   std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(OrderBy());
 
   QueryTranslator translator(*query);

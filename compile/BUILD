@@ -27,5 +27,6 @@ cc_library(
         "//khir:program_builder",
         "//khir/asm:asm_backend",
         "//khir/llvm:llvm_backend",
+        "@absl//absl/flags:flag",
     ],
 )

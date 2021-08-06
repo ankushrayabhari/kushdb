@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include "absl/flags/parse.h"
+#include "absl/flags/usage.h"
 #include "absl/time/civil_time.h"
 
 #include "catalog/catalog.h"
@@ -231,7 +233,9 @@ std::unique_ptr<Operator> OrderBy() {
       std::vector<bool>{false, true, true, true});
 }
 
-int main() {
+int main(int argc, char** argv) {
+  absl::SetProgramUsageMessage("Executes query.");
+  absl::ParseCommandLine(argc, argv);
   auto query = std::make_unique<OutputOperator>(OrderBy());
 
   QueryTranslator translator(*query);

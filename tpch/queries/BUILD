@@ -48,6 +48,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -73,6 +75,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -98,6 +102,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -123,6 +129,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -148,6 +156,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -173,6 +183,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -198,6 +210,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -223,6 +237,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -248,6 +264,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -273,6 +291,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -298,6 +318,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -323,6 +345,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -348,6 +372,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -373,6 +399,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -398,6 +426,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -423,6 +453,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -448,6 +480,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -473,6 +507,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -498,6 +534,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -523,6 +561,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -548,6 +588,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -573,6 +615,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -598,6 +642,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -623,6 +669,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -648,6 +696,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -673,6 +723,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -698,6 +750,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -723,6 +777,8 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
@@ -748,5 +804,7 @@ cc_binary(
         "//plan/expression:virtual_column_ref_expression",
         "//tpch:schema",
         "//util:vector_util",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )

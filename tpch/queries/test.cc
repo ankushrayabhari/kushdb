@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include "absl/flags/parse.h"
+#include "absl/flags/usage.h"
 #include "absl/time/civil_time.h"
 
 #include "catalog/catalog.h"
@@ -120,7 +122,9 @@ std::unique_ptr<Operator> GroupByAgg(std::unique_ptr<Operator> base) {
                        std::move(cnt)));
 }
 
-int main() {
+int main(int argc, char** argv) {
+  absl::SetProgramUsageMessage("Executes query.");
+  absl::ParseCommandLine(argc, argv);
   {
     std::unique_ptr<Operator> query =
         std::make_unique<OutputOperator>(GroupByAgg(SkinnerJoin()));
