@@ -14,12 +14,12 @@
 
 namespace kush::compile {
 
-class SkinnerJoinTranslator : public OperatorTranslator {
+class PermutableSkinnerJoinTranslator : public OperatorTranslator {
  public:
-  SkinnerJoinTranslator(
+  PermutableSkinnerJoinTranslator(
       const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
       std::vector<std::unique_ptr<OperatorTranslator>> children);
-  virtual ~SkinnerJoinTranslator() = default;
+  virtual ~PermutableSkinnerJoinTranslator() = default;
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
 

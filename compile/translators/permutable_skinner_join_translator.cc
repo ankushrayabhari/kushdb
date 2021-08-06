@@ -1,4 +1,4 @@
-#include "compile/translators/skinner_join_translator.h"
+#include "compile/translators/permutable_skinner_join_translator.h"
 
 #include <iostream>
 #include <string>
@@ -101,7 +101,7 @@ class PredicateColumnCollector : public plan::ImmutableExpressionVisitor {
       predicate_columns_;
 };
 
-SkinnerJoinTranslator::SkinnerJoinTranslator(
+PermutableSkinnerJoinTranslator::PermutableSkinnerJoinTranslator(
     const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(join, std::move(children)),
@@ -109,7 +109,7 @@ SkinnerJoinTranslator::SkinnerJoinTranslator(
       program_(program),
       expr_translator_(program_, *this) {}
 
-void SkinnerJoinTranslator::Produce() {
+void PermutableSkinnerJoinTranslator::Produce() {
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
   auto conditions = join_.Conditions();
@@ -780,7 +780,7 @@ void SkinnerJoinTranslator::Produce() {
   predicate_struct.reset();
 }
 
-void SkinnerJoinTranslator::Consume(OperatorTranslator& src) {
+void PermutableSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
   auto values = src.SchemaValues().Values();
   auto& buffer = buffers_[child_idx_];
   auto tuple_idx = buffer.Size();

@@ -6,9 +6,9 @@
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/order_by_translator.h"
 #include "compile/translators/output_translator.h"
+#include "compile/translators/permutable_skinner_join_translator.h"
 #include "compile/translators/scan_translator.h"
 #include "compile/translators/select_translator.h"
-#include "compile/translators/skinner_join_translator.h"
 #include "khir/program_builder.h"
 #include "plan/hash_join_operator.h"
 #include "plan/operator.h"
@@ -48,7 +48,7 @@ void TranslatorFactory::Visit(const plan::OutputOperator& output) {
 }
 
 void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
-  this->Return(std::make_unique<SkinnerJoinTranslator>(
+  this->Return(std::make_unique<PermutableSkinnerJoinTranslator>(
       skinner_join, program_, GetChildTranslators(skinner_join)));
 }
 

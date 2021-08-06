@@ -118,9 +118,9 @@ cc_library(
 )
 
 cc_library(
-    name = "skinner_join_translator",
-    srcs = ["skinner_join_translator.cc"],
-    hdrs = ["skinner_join_translator.h"],
+    name = "permutable_skinner_join_translator",
+    srcs = ["permutable_skinner_join_translator.cc"],
+    hdrs = ["permutable_skinner_join_translator.h"],
     deps = [
         ":expression_translator",
         ":operator_translator",
@@ -192,9 +192,9 @@ cc_library(
         ":operator_translator",
         ":order_by_translator",
         ":output_translator",
+        ":permutable_skinner_join_translator",
         ":scan_translator",
         ":select_translator",
-        ":skinner_join_translator",
         "//compile/proxy:hash_table",
         "//compile/proxy:vector",
         "//khir:program_builder",
