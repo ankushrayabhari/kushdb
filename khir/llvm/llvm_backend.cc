@@ -724,15 +724,16 @@ void LLVMBackend::Execute() {
   dest.close();
 
   // Link
-  if (system(
-          "clang++ -shared -fpic bazel-bin/runtime/libprinter.so "
-          "bazel-bin/runtime/libstring.so "
-          "bazel-bin/runtime/libcolumn_data.so "
-          "bazel-bin/runtime/libvector.so bazel-bin/runtime/libhash_table.so "
-          "bazel-bin/runtime/libtuple_idx_table.so "
-          "bazel-bin/runtime/libcolumn_index.so "
-          "bazel-bin/runtime/libskinner_join_executor.so "
-          "/tmp/query.o -o /tmp/query.so")) {
+  if (system("clang++ -shared -fpic bazel-bin/runtime/libcolumn_data.so "
+             "bazel-bin/runtime/libcolumn_index.so "
+             "bazel-bin/runtime/libdate_extractor.so "
+             "bazel-bin/runtime/libhash_table.so "
+             "bazel-bin/runtime/libprinter.so "
+             "bazel-bin/runtime/libskinner_join_executor.so "
+             "bazel-bin/runtime/libstring.so "
+             "bazel-bin/runtime/libtuple_idx_table.so "
+             "bazel-bin/runtime/libvector.so "
+             "/tmp/query.o -o /tmp/query.so")) {
     throw std::runtime_error("Failed to link file.");
   }
 
