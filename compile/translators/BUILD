@@ -118,12 +118,32 @@ cc_library(
 )
 
 cc_library(
+    name = "predicate_column_collector",
+    srcs = ["predicate_column_collector.cc"],
+    hdrs = ["predicate_column_collector.h"],
+    deps = [
+        "//plan/expression",
+        "//plan/expression:aggregate_expression",
+        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:case_expression",
+        "//plan/expression:column_ref_expression",
+        "//plan/expression:conversion_expression",
+        "//plan/expression:expression_visitor",
+        "//plan/expression:extract_expression",
+        "//plan/expression:literal_expression",
+        "//plan/expression:virtual_column_ref_expression",
+        "@absl//absl/container:flat_hash_set",
+    ],
+)
+
+cc_library(
     name = "permutable_skinner_join_translator",
     srcs = ["permutable_skinner_join_translator.cc"],
     hdrs = ["permutable_skinner_join_translator.h"],
     deps = [
         ":expression_translator",
         ":operator_translator",
+        ":predicate_column_collector",
         ":scan_translator",
         "//compile/proxy:column_index",
         "//compile/proxy:function",

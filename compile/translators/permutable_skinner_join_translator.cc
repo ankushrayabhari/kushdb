@@ -20,86 +20,12 @@
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "compile/translators/predicate_column_collector.h"
 #include "compile/translators/scan_translator.h"
 #include "khir/program_builder.h"
-#include "plan/expression/aggregate_expression.h"
-#include "plan/expression/binary_arithmetic_expression.h"
-#include "plan/expression/case_expression.h"
-#include "plan/expression/column_ref_expression.h"
-#include "plan/expression/conversion_expression.h"
-#include "plan/expression/expression_visitor.h"
-#include "plan/expression/extract_expression.h"
-#include "plan/expression/literal_expression.h"
-#include "plan/expression/virtual_column_ref_expression.h"
 #include "util/vector_util.h"
 
 namespace kush::compile {
-
-class PredicateColumnCollector : public plan::ImmutableExpressionVisitor {
- public:
-  PredicateColumnCollector() = default;
-  virtual ~PredicateColumnCollector() = default;
-
-  std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
-  PredicateColumns() {
-    // dedupe, should actually be doing this via hashing
-    absl::flat_hash_set<std::pair<int, int>> exists;
-
-    std::vector<std::reference_wrapper<const plan::ColumnRefExpression>> output;
-    for (auto& col_ref : predicate_columns_) {
-      std::pair<int, int> key = {col_ref.get().GetChildIdx(),
-                                 col_ref.get().GetColumnIdx()};
-      if (exists.contains(key)) {
-        continue;
-      }
-
-      output.push_back(col_ref);
-      exists.insert(key);
-    }
-    return output;
-  }
-
-  void Visit(const plan::ColumnRefExpression& col_ref) override {
-    predicate_columns_.push_back(col_ref);
-  }
-
-  void VisitChildren(const plan::Expression& expr) {
-    for (auto& child : expr.Children()) {
-      child.get().Accept(*this);
-    }
-  }
-
-  void Visit(const plan::BinaryArithmeticExpression& arith) override {
-    VisitChildren(arith);
-  }
-
-  void Visit(const plan::CaseExpression& case_expr) override {
-    VisitChildren(case_expr);
-  }
-
-  void Visit(const plan::IntToFloatConversionExpression& conv) override {
-    VisitChildren(conv);
-  }
-
-  void Visit(const plan::ExtractExpression& conv) override {
-    VisitChildren(conv);
-  }
-
-  void Visit(const plan::LiteralExpression& literal) override {}
-
-  void Visit(const plan::AggregateExpression& agg) override {
-    throw std::runtime_error("Aggregates cannot appear in join predicates.");
-  }
-
-  void Visit(const plan::VirtualColumnRefExpression& virtual_col_ref) override {
-    throw std::runtime_error(
-        "Virtual column references cannot appear in join predicates.");
-  }
-
- private:
-  std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
-      predicate_columns_;
-};
 
 PermutableSkinnerJoinTranslator::PermutableSkinnerJoinTranslator(
     const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
