@@ -24,7 +24,7 @@
 #include "khir/program_printer.h"
 #include "plan/operator.h"
 
-ABSL_FLAG(std::string, backend, "asm", "Backend to choose (asm or llvm)");
+ABSL_FLAG(std::string, backend, "asm", "Compilation Backend: asm or llvm");
 
 namespace kush::compile {
 

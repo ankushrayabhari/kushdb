@@ -1,5 +1,9 @@
 #include "compile/translators/translator_factory.h"
 
+#include <string>
+
+#include "absl/flags/flag.h"
+
 #include "compile/translators/cross_product_translator.h"
 #include "compile/translators/group_by_aggregate_translator.h"
 #include "compile/translators/hash_join_translator.h"
@@ -7,6 +11,7 @@
 #include "compile/translators/order_by_translator.h"
 #include "compile/translators/output_translator.h"
 #include "compile/translators/permutable_skinner_join_translator.h"
+#include "compile/translators/recompiling_skinner_join_translator.h"
 #include "compile/translators/scan_translator.h"
 #include "compile/translators/select_translator.h"
 #include "khir/program_builder.h"
@@ -17,6 +22,9 @@
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
 #include "plan/skinner_join_operator.h"
+
+ABSL_FLAG(std::string, skinner_impl, "permutable",
+          "Skinner Join Implementation: permutable or recompiling");
 
 namespace kush::compile {
 
@@ -48,8 +56,19 @@ void TranslatorFactory::Visit(const plan::OutputOperator& output) {
 }
 
 void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
-  this->Return(std::make_unique<PermutableSkinnerJoinTranslator>(
-      skinner_join, program_, GetChildTranslators(skinner_join)));
+  if (FLAGS_skinner_impl.CurrentValue() == "permutable") {
+    this->Return(std::make_unique<PermutableSkinnerJoinTranslator>(
+        skinner_join, program_, GetChildTranslators(skinner_join)));
+    return;
+  }
+
+  if (FLAGS_skinner_impl.CurrentValue() == "recompiling") {
+    this->Return(std::make_unique<RecompilingSkinnerJoinTranslator>(
+        skinner_join, program_, GetChildTranslators(skinner_join)));
+    return;
+  }
+
+  throw std::runtime_error("Unknown skinner join implementation.");
 }
 
 void TranslatorFactory::Visit(const plan::HashJoinOperator& hash_join) {

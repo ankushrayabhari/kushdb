@@ -137,6 +137,32 @@ cc_library(
 )
 
 cc_library(
+    name = "recompiling_skinner_join_translator",
+    srcs = ["recompiling_skinner_join_translator.cc"],
+    hdrs = ["recompiling_skinner_join_translator.h"],
+    deps = [
+        ":expression_translator",
+        ":operator_translator",
+        ":predicate_column_collector",
+        ":scan_translator",
+        "//compile/proxy:column_index",
+        "//compile/proxy:function",
+        "//compile/proxy:if",
+        "//compile/proxy:loop",
+        "//compile/proxy:skinner_join_executor",
+        "//compile/proxy:struct",
+        "//compile/proxy:tuple_idx_table",
+        "//compile/proxy:value",
+        "//compile/proxy:vector",
+        "//khir:program_builder",
+        "//plan:skinner_join_operator",
+        "//util:vector_util",
+        "@absl//absl/container:btree",
+        "@absl//absl/container:flat_hash_set",
+    ],
+)
+
+cc_library(
     name = "permutable_skinner_join_translator",
     srcs = ["permutable_skinner_join_translator.cc"],
     hdrs = ["permutable_skinner_join_translator.h"],
@@ -213,6 +239,7 @@ cc_library(
         ":order_by_translator",
         ":output_translator",
         ":permutable_skinner_join_translator",
+        ":recompiling_skinner_join_translator",
         ":scan_translator",
         ":select_translator",
         "//compile/proxy:hash_table",
@@ -224,5 +251,6 @@ cc_library(
         "//plan:scan_operator",
         "//plan:select_operator",
         "//plan:skinner_join_operator",
+        "@absl//absl/flags:flag",
     ],
 )
