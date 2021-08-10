@@ -8,6 +8,7 @@
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_set.h"
 
+#include "compile/forward_declare.h"
 #include "compile/proxy/function.h"
 #include "compile/proxy/if.h"
 #include "compile/proxy/loop.h"
@@ -34,6 +35,22 @@ RecompilingSkinnerJoinTranslator::RecompilingSkinnerJoinTranslator(
       join_(join),
       program_(program),
       expr_translator_(program_, *this) {}
+
+void* RecompilingSkinnerJoinTranslator::CompileJoinOrder(
+    CompilationCache& cache, const std::vector<int>& order) {
+  auto& entry = cache.GetOrInsert(order);
+  if (entry.IsCompiled()) {
+    return entry.Func("compute");
+  }
+
+  auto& program = entry.ProgramBuilder();
+  ForwardDeclare(program);
+
+  // TODO: generate code for this specific join order
+
+  entry.Compile();
+  return entry.Func("compute");
+}
 
 void RecompilingSkinnerJoinTranslator::Produce() {
   auto child_translators = this->Children();

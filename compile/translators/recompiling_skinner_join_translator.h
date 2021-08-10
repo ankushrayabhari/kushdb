@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "compile/compilation_cache.h"
+#include "compile/program.h"
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
@@ -22,6 +24,8 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator {
   virtual ~RecompilingSkinnerJoinTranslator() = default;
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
+  void* CompileJoinOrder(CompilationCache& cache,
+                         const std::vector<int>& order);
 
  private:
   const plan::SkinnerJoinOperator& join_;

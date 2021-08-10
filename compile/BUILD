@@ -9,17 +9,39 @@ cc_library(
 )
 
 cc_library(
+    name = "compilation_cache",
+    srcs = ["compilation_cache.cc"],
+    hdrs = ["compilation_cache.h"],
+    deps = [
+        ":backend",
+        "//compile:program",
+        "//khir:program_builder",
+        "//khir/asm:asm_backend",
+        "//khir/llvm:llvm_backend",
+    ],
+)
+
+cc_library(
+    name = "backend",
+    srcs = ["backend.cc"],
+    hdrs = ["backend.h"],
+    deps = [
+        "@absl//absl/flags:flag",
+    ],
+)
+
+cc_library(
     name = "query_translator",
     srcs = ["query_translator.cc"],
     hdrs = ["query_translator.h"],
     deps = [
+        ":backend",
         ":forward_declare",
         "//compile:program",
         "//compile/translators:translator_factory",
         "//khir:program_builder",
         "//khir/asm:asm_backend",
         "//khir/llvm:llvm_backend",
-        "@absl//absl/flags:flag",
     ],
 )
 
@@ -39,10 +61,6 @@ cc_library(
         "//compile/proxy:tuple_idx_table",
         "//compile/proxy:vector",
         "//compile/translators:expression_translator",
-        "//compile/translators:translator_factory",
         "//khir:program_builder",
-        "//khir/asm:asm_backend",
-        "//khir/llvm:llvm_backend",
-        "@absl//absl/flags:flag",
     ],
 )

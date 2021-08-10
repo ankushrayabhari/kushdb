@@ -2,8 +2,7 @@
 
 #include <memory>
 
-#include "absl/flags/flag.h"
-
+#include "compile/backend.h"
 #include "compile/forward_declare.h"
 #include "compile/translators/translator_factory.h"
 #include "khir/asm/asm_backend.h"
@@ -11,8 +10,6 @@
 #include "khir/program_builder.h"
 #include "khir/program_printer.h"
 #include "plan/operator.h"
-
-ABSL_FLAG(std::string, backend, "asm", "Compilation Backend: asm or llvm");
 
 namespace kush::compile {
 
@@ -38,20 +35,20 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   // program.Translate(printer);
 
   std::unique_ptr<Program> result;
-  if (FLAGS_backend.CurrentValue() == "asm") {
-    auto backend =
-        std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::LINEAR_SCAN);
-    program.Translate(*backend);
-    result = std::move(backend);
-  } else if (FLAGS_backend.CurrentValue() == "llvm") {
-    auto backend = std::make_unique<khir::LLVMBackend>();
-    program.Translate(*backend);
-    result = std::move(backend);
-  } else {
-    throw std::runtime_error("Unknown backend.");
-  }
+  switch (GetBackend()) {
+    case Backend::ASM: {
+      auto backend =
+          std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::LINEAR_SCAN);
+      program.Translate(*backend);
+      return backend;
+    }
 
-  return result;
+    case Backend::LLVM: {
+      auto backend = std::make_unique<khir::LLVMBackend>();
+      program.Translate(*backend);
+      return backend;
+    }
+  }
 }
 
 }  // namespace kush::compile
