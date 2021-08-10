@@ -13,7 +13,22 @@ cc_library(
     srcs = ["query_translator.cc"],
     hdrs = ["query_translator.h"],
     deps = [
-        "//catalog",
+        ":forward_declare",
+        "//compile:program",
+        "//compile/translators:translator_factory",
+        "//khir:program_builder",
+        "//khir/asm:asm_backend",
+        "//khir/llvm:llvm_backend",
+        "@absl//absl/flags:flag",
+    ],
+)
+
+cc_library(
+    name = "forward_declare",
+    srcs = ["forward_declare.cc"],
+    hdrs = ["forward_declare.h"],
+    deps = [
+        "//catalog:sql_type",
         "//compile:program",
         "//compile/proxy:column_data",
         "//compile/proxy:column_index",
@@ -23,6 +38,7 @@ cc_library(
         "//compile/proxy:string",
         "//compile/proxy:tuple_idx_table",
         "//compile/proxy:vector",
+        "//compile/translators:expression_translator",
         "//compile/translators:translator_factory",
         "//khir:program_builder",
         "//khir/asm:asm_backend",
