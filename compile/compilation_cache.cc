@@ -1,6 +1,8 @@
 #include "compile/compilation_cache.h"
 
 #include <memory>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "compile/backend.h"
