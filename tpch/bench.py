@@ -32,7 +32,8 @@ def bench(database, benchmark, data_path, use_skinner, flags):
                     times.append(float(t))
                 except ValueError as e:
                     continue
-            print(database, benchmark, query_num, times[0], times[1], sep=',')
+            print(database, benchmark, query_num, times[0], times[1], times[2],
+                  times[3], sep=',')
 
 if __name__ == "__main__":
     bench('kushdb ASM (Hash Join)', 'TPC-H SF1', 'tpch/data-1', False, ['--backend=asm'])
