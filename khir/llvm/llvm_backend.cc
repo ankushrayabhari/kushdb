@@ -32,7 +32,14 @@ namespace kush::khir {
 LLVMBackend::LLVMBackend()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("query", *context_)),
-      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {}
+      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)),
+      dl_handle_(nullptr) {}
+
+LLVMBackend::~LLVMBackend() {
+  if (dl_opened_) {
+    dlclose(dl_handle_);
+  }
+}
 
 void LLVMBackend::TranslateVoidType() {
   types_.push_back(builder_->getVoidTy());
@@ -193,8 +200,6 @@ void LLVMBackend::Translate(
     const std::vector<Global>& globals,
     const std::vector<uint64_t>& constant_instrs,
     const std::vector<Function>& functions) {
-  start = std::chrono::system_clock::now();
-
   // Populate types_ array
   manager.Translate(*this);
 
@@ -667,7 +672,7 @@ void LLVMBackend::TranslateInstr(
   }
 }
 
-void LLVMBackend::Execute() {
+void LLVMBackend::Compile() {
   llvm::verifyModule(*module_, &llvm::errs());
   // module_->print(llvm::errs(), nullptr);
 
@@ -737,29 +742,20 @@ void LLVMBackend::Execute() {
     throw std::runtime_error("Failed to link file.");
   }
 
-  void* handle = dlopen("/tmp/query.so", RTLD_LAZY);
-
-  if (!handle) {
+  dl_handle_ = dlopen("/tmp/query.so", RTLD_LAZY);
+  if (!dl_handle_) {
     throw std::runtime_error(dlerror());
   }
+}
 
-  using compute_fn = std::add_pointer<void()>::type;
-  auto process_query = (compute_fn)(dlsym(handle, "compute"));
-  if (!process_query) {
-    dlclose(handle);
-    throw std::runtime_error("Failed to get compute fn.");
+void* LLVMBackend::GetFunction(std::string_view name) const {
+  assert(dl_opened_);
+  std::string name_copy(name);
+  auto fn = dlsym(dl_handle_, name_copy.data());
+  if (!fn) {
+    throw std::runtime_error("Failed to get fn: " + name_copy);
   }
-  comp = std::chrono::system_clock::now();
-
-  process_query();
-  dlclose(handle);
-  end = std::chrono::system_clock::now();
-
-  std::cerr << "Performance stats (ms):" << std::endl;
-  std::chrono::duration<double, std::milli> elapsed_seconds = comp - start;
-  std::cerr << "Compilation: " << elapsed_seconds.count() << std::endl;
-  elapsed_seconds = end - comp;
-  std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
+  return fn;
 }
 
 }  // namespace kush::khir

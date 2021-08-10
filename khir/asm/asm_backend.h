@@ -47,10 +47,8 @@ class ASMBackend : public Backend, public compile::Program {
                  const std::vector<Function>& functions) override;
 
   // Program
-  void Compile();
-  void Execute() override;
-
-  void* GetFunction(std::string_view name) const;
+  void Compile() override;
+  void* GetFunction(std::string_view name) const override;
 
  private:
   uint64_t OutputConstant(uint64_t instr, const TypeManager& type_manager,
@@ -298,7 +296,6 @@ class ASMBackend : public Backend, public compile::Program {
 
   std::vector<void*> external_func_addr_;
   std::vector<asmjit::Label> internal_func_labels_;
-  asmjit::Label compute_label_;
   int num_floating_point_args_;
   int num_regular_args_;
   int num_stack_args_;
@@ -308,8 +305,6 @@ class ASMBackend : public Backend, public compile::Program {
   std::vector<khir::Value> floating_point_call_args_;
 
   absl::flat_hash_map<std::string, asmjit::Label> public_fns_;
-
-  std::chrono::time_point<std::chrono::system_clock> start, comp, end;
 };
 
 }  // namespace kush::khir

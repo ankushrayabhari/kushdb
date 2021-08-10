@@ -30,3 +30,11 @@ cc_library(
         "@nn",
     ],
 )
+
+cc_library(
+    name = "time_execute",
+    hdrs = ["time_execute.h"],
+    deps = [
+        "//compile:query_translator",
+    ],
+)

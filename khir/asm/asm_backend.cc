@@ -165,7 +165,6 @@ void ASMBackend::Translate(const TypeManager& type_manager,
                            const std::vector<Global>& globals,
                            const std::vector<uint64_t>& constant_instrs,
                            const std::vector<Function>& functions) {
-  start = std::chrono::system_clock::now();
   code_.init(rt_.environment());
   asm_ = std::make_unique<x86::Assembler>(&code_);
 
@@ -222,10 +221,6 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
     if (func.Public()) {
       public_fns_[func.Name()] = internal_func_labels_[func_idx];
-    }
-
-    if (func.Name() == "compute") {
-      compute_label_ = internal_func_labels_[func_idx];
     }
 
     // auto register_assign =
@@ -3253,25 +3248,6 @@ void ASMBackend::TranslateInstr(
       return;
     }
   }
-}
-
-void ASMBackend::Execute() {
-  auto offset = code_.labelOffsetFromBase(compute_label_);
-  using compute_fn = std::add_pointer<void()>::type;
-  auto compute = reinterpret_cast<compute_fn>(
-      reinterpret_cast<uint64_t>(buffer_start_) + offset);
-
-  comp = std::chrono::system_clock::now();
-
-  compute();
-
-  end = std::chrono::system_clock::now();
-
-  std::cerr << "Performance stats (ms):" << std::endl;
-  std::chrono::duration<double, std::milli> elapsed_seconds = comp - start;
-  std::cerr << "Compilation: " << elapsed_seconds.count() << std::endl;
-  elapsed_seconds = end - comp;
-  std::cerr << "Execution: " << elapsed_seconds.count() << std::endl;
 }
 
 void ASMBackend::Compile() { rt_.add(&buffer_start_, &code_); }

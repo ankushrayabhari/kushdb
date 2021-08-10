@@ -25,6 +25,7 @@
 #include "plan/select_operator.h"
 #include "tpch/queries/builder.h"
 #include "tpch/schema.h"
+#include "util/time_execute.h"
 #include "util/vector_util.h"
 
 using namespace kush;
@@ -128,19 +129,13 @@ int main(int argc, char** argv) {
   {
     std::unique_ptr<Operator> query =
         std::make_unique<OutputOperator>(GroupByAgg(SkinnerJoin()));
-
-    QueryTranslator translator(*query);
-    auto prog = translator.Translate();
-    prog->Execute();
+    kush::util::ExecuteAndTime(*query);
   }
 
   {
     std::unique_ptr<Operator> query =
         std::make_unique<OutputOperator>(GroupByAgg(HashJoin()));
-
-    QueryTranslator translator(*query);
-    auto prog = translator.Translate();
-    prog->Execute();
+    kush::util::ExecuteAndTime(*query);
   }
   return 0;
 }

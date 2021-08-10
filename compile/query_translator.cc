@@ -83,21 +83,21 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   // khir::ProgramPrinter printer;
   // program.Translate(printer);
 
+  std::unique_ptr<Program> result;
   if (FLAGS_backend.CurrentValue() == "asm") {
     auto backend =
         std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::LINEAR_SCAN);
     program.Translate(*backend);
-    backend->Compile();
-    return std::move(backend);
-  }
-
-  if (FLAGS_backend.CurrentValue() == "llvm") {
+    result = std::move(backend);
+  } else if (FLAGS_backend.CurrentValue() == "llvm") {
     auto backend = std::make_unique<khir::LLVMBackend>();
     program.Translate(*backend);
-    return std::move(backend);
+    result = std::move(backend);
+  } else {
+    throw std::runtime_error("Unknown backend.");
   }
 
-  throw std::runtime_error("Unknown backend.");
+  return result;
 }
 
 }  // namespace kush::compile

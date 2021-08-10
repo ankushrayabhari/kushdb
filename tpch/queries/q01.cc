@@ -25,6 +25,7 @@
 #include "plan/select_operator.h"
 #include "tpch/queries/builder.h"
 #include "tpch/schema.h"
+#include "util/time_execute.h"
 #include "util/vector_util.h"
 
 using namespace kush;
@@ -126,8 +127,6 @@ int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   auto query = std::make_unique<OutputOperator>(OrderBy());
 
-  QueryTranslator translator(*query);
-  auto prog = translator.Translate();
-  prog->Execute();
+  kush::util::ExecuteAndTime(*query);
   return 0;
 }

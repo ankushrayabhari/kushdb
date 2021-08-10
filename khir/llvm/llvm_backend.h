@@ -15,7 +15,7 @@ class LLVMBackend : public Backend,
                     public compile::Program {
  public:
   LLVMBackend();
-  virtual ~LLVMBackend() = default;
+  virtual ~LLVMBackend();
 
   // Types
   void TranslateVoidType() override;
@@ -43,7 +43,8 @@ class LLVMBackend : public Backend,
                  const std::vector<Function>& functions) override;
 
   // Program
-  void Execute() override;
+  void Compile() override;
+  void* GetFunction(std::string_view name) const override;
 
  private:
   llvm::Constant* ConvertConstantInstr(
@@ -72,7 +73,8 @@ class LLVMBackend : public Backend,
   std::vector<llvm::Function*> functions_;
   std::vector<llvm::Value*> call_args_;
 
-  std::chrono::time_point<std::chrono::system_clock> start, comp, end;
+  void* dl_handle_;
+  bool dl_opened_;
 };
 
 }  // namespace kush::khir
