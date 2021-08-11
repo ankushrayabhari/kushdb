@@ -27,7 +27,8 @@ class SkinnerJoinExecutor {
   SkinnerJoinExecutor(khir::ProgramBuilder& program);
 
   void ExecutePermutableJoin(absl::Span<const khir::Value> args);
-  void ExecuteRecompilingJoin(RecompilingJoinTranslator* obj);
+  void ExecuteRecompilingJoin(int32_t num_tables,
+                              RecompilingJoinTranslator* obj);
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 

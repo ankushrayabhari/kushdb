@@ -38,6 +38,7 @@ cc_library(
         ":backend",
         ":forward_declare",
         "//compile:program",
+        "//compile/translators:operator_translator",
         "//compile/translators:translator_factory",
         "//khir:program_builder",
         "//khir/asm:asm_backend",

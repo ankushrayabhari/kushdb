@@ -26,7 +26,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   virtual ~RecompilingSkinnerJoinTranslator() = default;
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
-  void* CompileJoinOrder(const std::vector<int>& order) override;
+  ExecuteJoinFn CompileJoinOrder(const std::vector<int>& order) override;
 
  private:
   const plan::SkinnerJoinOperator& join_;

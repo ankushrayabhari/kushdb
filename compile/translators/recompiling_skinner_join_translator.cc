@@ -181,19 +181,13 @@ void RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 }
 */
 
-void* RecompilingSkinnerJoinTranslator::CompileJoinOrder(
+RecompilingJoinTranslator::ExecuteJoinFn
+RecompilingSkinnerJoinTranslator::CompileJoinOrder(
     const std::vector<int>& order) {
-  std::cout << "Called in translator: ";
-  for (int x : order) {
-    std::cout << " " << x;
-  }
-  std::cout << std::endl;
-  return nullptr;
-  /*
   auto child_translators = this->Children();
   auto& entry = cache_.GetOrInsert(order);
   if (entry.IsCompiled()) {
-    return entry.Func("compute");
+    return reinterpret_cast<ExecuteJoinFn>(entry.Func("compute"));
   }
 
   auto& program = entry.ProgramBuilder();
@@ -203,7 +197,7 @@ void* RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   program.Return();
 
   entry.Compile();
-  return entry.Func("compute"); */
+  return reinterpret_cast<ExecuteJoinFn>(entry.Func("compute"));
 }
 
 void RecompilingSkinnerJoinTranslator::Produce() {
@@ -312,7 +306,7 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   proxy::SkinnerJoinExecutor executor(program_);
 
   auto compile_fn = static_cast<RecompilingJoinTranslator*>(this);
-  executor.ExecuteRecompilingJoin(compile_fn);
+  executor.ExecuteRecompilingJoin(child_translators.size(), compile_fn);
 
   // TODO: implement here
 

@@ -27,9 +27,13 @@ class CompilationCache {
   CacheEntry& GetOrInsert(const std::vector<int>& order);
 
  private:
-  struct TrieNode {
+  class TrieNode {
+   public:
     TrieNode(int n);
+    std::unique_ptr<TrieNode>& GetChild(int i);
     CacheEntry& GetEntry();
+
+   private:
     std::vector<std::unique_ptr<TrieNode>> children_;
     std::unique_ptr<CacheEntry> entry_;
   };

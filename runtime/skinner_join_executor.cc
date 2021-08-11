@@ -714,9 +714,15 @@ void ExecutePermutableSkinnerJoin(
   }
 }
 
-void ExecuteRecompilingSkinnerJoin(compile::RecompilingJoinTranslator* obj) {
-  std::cout << "Called in runtime " << std::endl;
-  obj->CompileJoinOrder({0, 1});
+void ExecuteRecompilingSkinnerJoin(int32_t num_tables,
+                                   compile::RecompilingJoinTranslator* obj) {
+  std::vector<int> order(num_tables);
+  for (int i = 0; i < num_tables; i++) {
+    order[i] = i;
+  }
+
+  auto execute_fn = obj->CompileJoinOrder(order);
+  execute_fn();
 }
 
 }  // namespace kush::runtime

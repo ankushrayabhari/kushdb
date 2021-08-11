@@ -1,5 +1,6 @@
 #include "khir/llvm/llvm_backend.h"
 
+#include <chrono>
 #include <dlfcn.h>
 #include <iostream>
 #include <system_error>
@@ -719,9 +720,11 @@ void LLVMBackend::Compile() {
 
   module_->setDataLayout(target_machine->createDataLayout());
 
-  auto file = "/tmp/query.o";
+  auto unique = std::chrono::system_clock::now().time_since_epoch().count();
+  auto obj_file = "/tmp/query" + std::to_string(unique) + ".o";
+  auto shared_obj_file = "/tmp/query" + std::to_string(unique) + ".so";
   std::error_code error_code;
-  llvm::raw_fd_ostream dest(file, error_code, llvm::sys::fs::OF_None);
+  llvm::raw_fd_ostream dest(obj_file, error_code, llvm::sys::fs::OF_None);
   if (error_code) {
     throw std::runtime_error(error_code.message());
   }
@@ -735,23 +738,26 @@ void LLVMBackend::Compile() {
   dest.close();
 
   // Link
-  if (system("clang++ -shared -fpic bazel-bin/runtime/libcolumn_data.so "
-             "bazel-bin/runtime/libcolumn_index.so "
-             "bazel-bin/runtime/libdate_extractor.so "
-             "bazel-bin/runtime/libhash_table.so "
-             "bazel-bin/runtime/libprinter.so "
-             "bazel-bin/runtime/libskinner_join_executor.so "
-             "bazel-bin/runtime/libstring.so "
-             "bazel-bin/runtime/libtuple_idx_table.so "
-             "bazel-bin/runtime/libvector.so "
-             "/tmp/query.o -o /tmp/query.so")) {
+  auto command =
+      "clang++ -shared -fpic bazel-bin/runtime/libcolumn_data.so "
+      "bazel-bin/runtime/libcolumn_index.so "
+      "bazel-bin/runtime/libdate_extractor.so "
+      "bazel-bin/runtime/libhash_table.so "
+      "bazel-bin/runtime/libprinter.so "
+      "bazel-bin/runtime/libskinner_join_executor.so "
+      "bazel-bin/runtime/libstring.so "
+      "bazel-bin/runtime/libtuple_idx_table.so "
+      "bazel-bin/runtime/libvector.so " +
+      obj_file + " -o " + shared_obj_file;
+  if (system(command.c_str())) {
     throw std::runtime_error("Failed to link file.");
   }
 
-  dl_handle_ = dlopen("/tmp/query.so", RTLD_LAZY);
+  dl_handle_ = dlopen(shared_obj_file.c_str(), RTLD_LAZY);
   if (!dl_handle_) {
     throw std::runtime_error(dlerror());
   }
+  dl_opened_ = true;
 }
 
 void* LLVMBackend::GetFunction(std::string_view name) const {

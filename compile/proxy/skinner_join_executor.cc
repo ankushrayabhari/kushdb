@@ -47,9 +47,10 @@ void SkinnerJoinExecutor::ExecutePermutableJoin(
 }
 
 void SkinnerJoinExecutor::ExecuteRecompilingJoin(
-    RecompilingJoinTranslator* obj) {
+    int32_t num_tables, RecompilingJoinTranslator* obj) {
   program_.Call(program_.GetFunction(recompiling_fn),
-                {program_.ConstPtr(static_cast<void*>(obj))});
+                {program_.ConstI32(num_tables),
+                 program_.ConstPtr(static_cast<void*>(obj))});
 }
 
 void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
@@ -80,6 +81,7 @@ void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
   program.DeclareExternalFunction(
       recompiling_fn, program.VoidType(),
       {
+          program.I32Type(),
           program.PointerType(program.I8Type()),
       },
       reinterpret_cast<void*>(&runtime::ExecuteRecompilingSkinnerJoin));

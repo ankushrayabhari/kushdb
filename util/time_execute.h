@@ -10,7 +10,7 @@ namespace kush::util {
 void ExecuteAndTime(kush::plan::Operator& query) {
   auto start = std::chrono::system_clock::now();
   kush::compile::QueryTranslator translator(query);
-  auto prog = translator.Translate();
+  auto [codegen, prog] = translator.Translate();
   auto gen = std::chrono::system_clock::now();
   prog->Compile();
   auto comp = std::chrono::system_clock::now();

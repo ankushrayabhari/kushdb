@@ -15,7 +15,8 @@ namespace kush::compile {
 
 QueryTranslator::QueryTranslator(const plan::Operator& op) : op_(op) {}
 
-std::unique_ptr<Program> QueryTranslator::Translate() {
+std::pair<std::unique_ptr<OperatorTranslator>, std::unique_ptr<Program>>
+QueryTranslator::Translate() {
   khir::ProgramBuilder program;
 
   ForwardDeclare(program);
@@ -34,19 +35,18 @@ std::unique_ptr<Program> QueryTranslator::Translate() {
   // khir::ProgramPrinter printer;
   // program.Translate(printer);
 
-  std::unique_ptr<Program> result;
   switch (GetBackend()) {
     case Backend::ASM: {
       auto backend =
           std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::LINEAR_SCAN);
       program.Translate(*backend);
-      return backend;
+      return {std::move(translator), std::move(backend)};
     }
 
     case Backend::LLVM: {
       auto backend = std::make_unique<khir::LLVMBackend>();
       program.Translate(*backend);
-      return backend;
+      return {std::move(translator), std::move(backend)};
     }
   }
 }

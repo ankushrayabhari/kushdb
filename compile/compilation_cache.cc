@@ -15,7 +15,7 @@ namespace kush::compile {
 
 CacheEntry::CacheEntry() : compiled_program_(nullptr) {}
 
-bool CacheEntry::IsCompiled() const { return compiled_program_ == nullptr; }
+bool CacheEntry::IsCompiled() const { return compiled_program_ != nullptr; }
 
 void* CacheEntry::Func(std::string_view name) const {
   return compiled_program_->GetFunction(name);
@@ -30,12 +30,14 @@ void CacheEntry::Compile() {
           std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::LINEAR_SCAN);
       program_builder_.Translate(*backend);
       compiled_program_ = std::move(backend);
+      break;
     }
 
     case Backend::LLVM: {
       auto backend = std::make_unique<khir::LLVMBackend>();
       program_builder_.Translate(*backend);
       compiled_program_ = std::move(backend);
+      break;
     }
   }
 
@@ -45,6 +47,11 @@ void CacheEntry::Compile() {
 CompilationCache::CompilationCache(int n) : root_(n), num_tables_(n) {}
 
 CompilationCache::TrieNode::TrieNode(int n) : children_(n), entry_(nullptr) {}
+
+std::unique_ptr<CompilationCache::TrieNode>&
+CompilationCache::TrieNode::GetChild(int i) {
+  return children_[i];
+}
 
 CacheEntry& CompilationCache::TrieNode::GetEntry() {
   if (entry_ == nullptr) {
@@ -58,7 +65,7 @@ CacheEntry& CompilationCache::GetOrInsert(const std::vector<int>& order) {
 
   TrieNode* curr = &root_;
   for (int x : order) {
-    auto& child = curr->children_[x];
+    auto& child = curr->GetChild(x);
     if (child == nullptr) {
       child = std::make_unique<TrieNode>(num_tables_);
     }
