@@ -23,8 +23,8 @@
 #include "plan/select_operator.h"
 #include "plan/skinner_join_operator.h"
 
-ABSL_FLAG(std::string, skinner_impl, "permutable",
-          "Skinner Join Implementation: permutable or recompiling");
+ABSL_FLAG(std::string, skinner, "permute",
+          "Skinner Join Implementation: permute or recompile");
 
 namespace kush::compile {
 
@@ -56,13 +56,13 @@ void TranslatorFactory::Visit(const plan::OutputOperator& output) {
 }
 
 void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
-  if (FLAGS_skinner_impl.CurrentValue() == "permutable") {
+  if (FLAGS_skinner.CurrentValue() == "permute") {
     this->Return(std::make_unique<PermutableSkinnerJoinTranslator>(
         skinner_join, program_, GetChildTranslators(skinner_join)));
     return;
   }
 
-  if (FLAGS_skinner_impl.CurrentValue() == "recompiling") {
+  if (FLAGS_skinner.CurrentValue() == "recompile") {
     this->Return(std::make_unique<RecompilingSkinnerJoinTranslator>(
         skinner_join, program_, GetChildTranslators(skinner_join)));
     return;
