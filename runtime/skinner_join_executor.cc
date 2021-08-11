@@ -13,6 +13,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "compile/translators/recompiling_join_translator.h"
+
 namespace kush::runtime {
 
 class JoinState {
@@ -673,7 +675,7 @@ std::vector<std::unordered_set<int>> ReconstructTablesPerPredicate(
   return tables_per_predicate;
 }
 
-void ExecuteSkinnerJoin(
+void ExecutePermutableSkinnerJoin(
     int32_t num_tables, int32_t num_predicates,
     std::add_pointer<int32_t(int32_t, int8_t)>::type* join_handler_fn_arr,
     std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler,
@@ -710,6 +712,11 @@ void ExecuteSkinnerJoin(
   while (!environment.IsComplete()) {
     agent.Act();
   }
+}
+
+void ExecuteRecompilingSkinnerJoin(compile::RecompilingJoinTranslator* obj) {
+  std::cout << "Called in runtime " << std::endl;
+  obj->CompileJoinOrder({0, 1});
 }
 
 }  // namespace kush::runtime

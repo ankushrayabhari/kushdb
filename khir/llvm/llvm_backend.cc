@@ -95,6 +95,7 @@ void LLVMBackend::TranslateStructType(absl::Span<const Type> elem_types) {
 
 llvm::Constant* LLVMBackend::ConvertConstantInstr(
     uint64_t instr, std::vector<llvm::Constant*>& constant_values,
+    const std::vector<void*>& ptr_constants,
     const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
     const std::vector<std::string>& char_array_constants,
@@ -129,6 +130,13 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
       return llvm::ConstantFP::get(
           builder_->getDoubleTy(),
           f64_constants[Type1InstructionReader(instr).Constant()]);
+    }
+
+    case ConstantOpcode::PTR_CONST: {
+      auto i64_v = builder_->getInt64(reinterpret_cast<uint64_t>(
+          ptr_constants[Type1InstructionReader(instr).Constant()]));
+      return llvm::ConstantExpr::getIntToPtr(
+          i64_v, llvm::PointerType::get(builder_->getVoidTy(), 0));
     }
 
     case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST: {
@@ -185,14 +193,12 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
     case ConstantOpcode::FUNC_PTR: {
       return functions_[Type3InstructionReader(instr).Arg()];
     }
-
-    default:
-      throw std::runtime_error("Invalid constant.");
   }
 }
 
 void LLVMBackend::Translate(
-    const TypeManager& manager, const std::vector<uint64_t>& i64_constants,
+    const TypeManager& manager, const std::vector<void*>& ptr_constants,
+    const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
     const std::vector<std::string>& char_array_constants,
     const std::vector<StructConstant>& struct_constants,
@@ -218,7 +224,7 @@ void LLVMBackend::Translate(
   std::vector<llvm::Constant*> constant_values;
   for (auto instr : constant_instrs) {
     constant_values.push_back(ConvertConstantInstr(
-        instr, constant_values, i64_constants, f64_constants,
+        instr, constant_values, ptr_constants, i64_constants, f64_constants,
         char_array_constants, struct_constants, array_constants, globals));
   }
 

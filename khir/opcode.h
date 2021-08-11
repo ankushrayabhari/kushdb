@@ -16,7 +16,8 @@ enum class ConstantOpcode : uint8_t {
   ARRAY_CONST,
   NULLPTR,
   GLOBAL_REF,
-  FUNC_PTR
+  FUNC_PTR,
+  PTR_CONST,
 };
 
 ConstantOpcode ConstantOpcodeFrom(uint8_t t);

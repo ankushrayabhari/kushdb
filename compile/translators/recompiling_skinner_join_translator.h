@@ -11,12 +11,14 @@
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "compile/translators/recompiling_join_translator.h"
 #include "khir/program_builder.h"
 #include "plan/skinner_join_operator.h"
 
 namespace kush::compile {
 
-class RecompilingSkinnerJoinTranslator : public OperatorTranslator {
+class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
+                                         public RecompilingJoinTranslator {
  public:
   RecompilingSkinnerJoinTranslator(
       const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
@@ -24,8 +26,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator {
   virtual ~RecompilingSkinnerJoinTranslator() = default;
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
-  void* CompileJoinOrder(CompilationCache& cache,
-                         const std::vector<int>& order);
+  void* CompileJoinOrder(const std::vector<int>& order) override;
 
  private:
   const plan::SkinnerJoinOperator& join_;
@@ -37,6 +38,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator {
       predicate_columns_;
   absl::flat_hash_map<std::pair<int, int>, int> predicate_to_index_idx_;
   int child_idx_ = -1;
+  CompilationCache cache_;
 };
 
 }  // namespace kush::compile

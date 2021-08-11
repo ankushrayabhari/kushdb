@@ -543,6 +543,9 @@ Type ProgramBuilder::TypeOf(Value value) {
       case ConstantOpcode::F64_CONST:
         return type_manager_.F64Type();
 
+      case ConstantOpcode::PTR_CONST:
+        return type_manager_.PointerType(type_manager_.I8Type());
+
       case ConstantOpcode::NULLPTR:
       case ConstantOpcode::FUNC_PTR:
         return static_cast<Type>(Type3InstructionReader(instr).TypeID());
@@ -1305,6 +1308,16 @@ Value ProgramBuilder::ConstF64(double v) {
           .Build());
 }
 
+Value ProgramBuilder::ConstPtr(void* v) {
+  uint32_t id = ptr_constants_.size();
+  ptr_constants_.push_back(v);
+  return AppendConstantGlobal(
+      Type1InstructionBuilder()
+          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::PTR_CONST))
+          .SetConstant(id)
+          .Build());
+}
+
 Value ProgramBuilder::I64ConvF64(Value v) {
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
@@ -1397,9 +1410,9 @@ Value ProgramBuilder::GetElementPtr(Type t, Value v,
 }
 
 void ProgramBuilder::Translate(Backend& backend) {
-  backend.Translate(type_manager_, i64_constants_, f64_constants_,
-                    char_array_constants_, struct_constants_, array_constants_,
-                    globals_, constant_instrs_, functions_);
+  backend.Translate(type_manager_, ptr_constants_, i64_constants_,
+                    f64_constants_, char_array_constants_, struct_constants_,
+                    array_constants_, globals_, constant_instrs_, functions_);
 }
 
 const Function& ProgramBuilder::GetFunction(FunctionRef func) const {

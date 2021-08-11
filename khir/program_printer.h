@@ -24,6 +24,7 @@ class ProgramPrinter : public Backend, public TypeTranslator {
   void TranslateStructType(absl::Span<const Type> elem_types) override;
 
   void Translate(const TypeManager& manager,
+                 const std::vector<void*>& ptr_constants,
                  const std::vector<uint64_t>& i64_constants,
                  const std::vector<double>& f64_constants,
                  const std::vector<std::string>& char_array_constants,
@@ -34,7 +35,8 @@ class ProgramPrinter : public Backend, public TypeTranslator {
                  const std::vector<Function>& functions) override;
 
  private:
-  void OutputInstr(int idx, const std::vector<uint64_t>& i64_constants,
+  void OutputInstr(int idx, const std::vector<void*>& ptr_constants,
+                   const std::vector<uint64_t>& i64_constants,
                    const std::vector<double>& f64_constants,
                    const std::vector<std::string>& char_array_constants,
                    const std::vector<StructConstant>& struct_constants,

@@ -150,7 +150,9 @@ cc_library(
     srcs = ["skinner_join_executor.cc"],
     hdrs = ["skinner_join_executor.h"],
     linkstatic = True,
-    deps = [],
+    deps = [
+        "//compile/translators:recompiling_join_translator",
+    ],
 )
 
 cc_binary(
@@ -159,6 +161,7 @@ cc_binary(
     linkshared = True,
     deps = [
         ":skinner_join_executor",
+        "//compile/translators:recompiling_join_translator",
     ],
 )
 

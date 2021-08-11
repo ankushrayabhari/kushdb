@@ -137,6 +137,12 @@ cc_library(
 )
 
 cc_library(
+    name = "recompiling_join_translator",
+    hdrs = ["recompiling_join_translator.h"],
+    deps = [],
+)
+
+cc_library(
     name = "recompiling_skinner_join_translator",
     srcs = ["recompiling_skinner_join_translator.cc"],
     hdrs = ["recompiling_skinner_join_translator.h"],
@@ -144,6 +150,7 @@ cc_library(
         ":expression_translator",
         ":operator_translator",
         ":predicate_column_collector",
+        ":recompiling_join_translator",
         ":scan_translator",
         "//compile:backend",
         "//compile:compilation_cache",
@@ -161,6 +168,7 @@ cc_library(
         "//plan:skinner_join_operator",
         "//util:vector_util",
         "@absl//absl/container:btree",
+        "@absl//absl/container:flat_hash_map",
         "@absl//absl/container:flat_hash_set",
     ],
 )

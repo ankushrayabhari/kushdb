@@ -37,6 +37,7 @@ class ASMBackend : public Backend, public compile::Program {
   virtual ~ASMBackend() = default;
 
   void Translate(const TypeManager& type_manager,
+                 const std::vector<void*>& ptr_constants,
                  const std::vector<uint64_t>& i64_constants,
                  const std::vector<double>& f64_constants,
                  const std::vector<std::string>& char_array_constants,
@@ -53,6 +54,7 @@ class ASMBackend : public Backend, public compile::Program {
  private:
   uint64_t OutputConstant(uint64_t instr, const TypeManager& type_manager,
                           const std::vector<uint64_t>& constant_instrs,
+                          const std::vector<void*>& ptr_constants,
                           const std::vector<uint64_t>& i64_constants,
                           const std::vector<double>& f64_constants,
                           const std::vector<std::string>& char_array_constants,
@@ -60,11 +62,14 @@ class ASMBackend : public Backend, public compile::Program {
                           const std::vector<ArrayConstant>& array_constants,
                           const std::vector<Global>& globals);
   bool IsNullPtr(khir::Value v, const std::vector<uint64_t>& constant_instrs);
+  bool IsConstantPtr(khir::Value v,
+                     const std::vector<uint64_t>& constant_instrs);
   bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions);
   std::pair<khir::Value, int32_t> Gep(
       khir::Value v, const std::vector<uint64_t>& instructions,
       const std::vector<uint64_t>& constant_instrs);
   void TranslateInstr(const TypeManager& type_manager,
+                      const std::vector<void*>& ptr_constants,
                       const std::vector<uint64_t>& i64_constants,
                       const std::vector<double>& f64_constants,
                       const std::vector<asmjit::Label>& basic_blocks,
@@ -112,6 +117,7 @@ class ASMBackend : public Backend, public compile::Program {
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
       const std::vector<uint64_t>& constant_instrs,
+      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
 
   template <typename T>
@@ -146,6 +152,7 @@ class ASMBackend : public Backend, public compile::Program {
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
       const std::vector<uint64_t>& constant_instrs,
+      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
 
   template <typename T>
@@ -179,6 +186,7 @@ class ASMBackend : public Backend, public compile::Program {
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
       const std::vector<uint64_t>& constant_instrs,
+      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
 
   template <typename T>
@@ -214,22 +222,26 @@ class ASMBackend : public Backend, public compile::Program {
   template <typename T>
   void MovePtrValue(T dest, Value v, std::vector<int32_t>& offsets,
                     const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<void*>& ptr_constants,
                     const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetQWordPtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
       const std::vector<uint64_t>& constant_instrs,
+      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
 
   void MaterializeGep(asmjit::x86::Mem dest, khir::Value v,
                       std::vector<int32_t>& offsets,
                       const std::vector<uint64_t>& instrs,
                       const std::vector<uint64_t>& constant_instrs,
+                      const std::vector<void*>& ptr_constants,
                       const std::vector<RegisterAssignment>& register_assign);
   void MaterializeGep(asmjit::x86::Gpq dest, khir::Value v,
                       std::vector<int32_t>& offsets,
                       const std::vector<uint64_t>& instrs,
                       const std::vector<uint64_t>& constant_instrs,
+                      const std::vector<void*>& ptr_constants,
                       const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void MoveF64Value(T dest, Value v, std::vector<int32_t>& offsets,

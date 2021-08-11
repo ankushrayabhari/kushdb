@@ -128,13 +128,7 @@ int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   {
     std::unique_ptr<Operator> query =
-        std::make_unique<OutputOperator>(GroupByAgg(SkinnerJoin()));
-    kush::util::ExecuteAndTime(*query);
-  }
-
-  {
-    std::unique_ptr<Operator> query =
-        std::make_unique<OutputOperator>(GroupByAgg(HashJoin()));
+        std::make_unique<OutputOperator>(SkinnerJoin());
     kush::util::ExecuteAndTime(*query);
   }
   return 0;

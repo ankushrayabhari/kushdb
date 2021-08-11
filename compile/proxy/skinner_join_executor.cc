@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "compile/proxy/int.h"
+#include "compile/translators/recompiling_join_translator.h"
 #include "khir/program_builder.h"
 #include "runtime/skinner_join_executor.h"
 
@@ -29,15 +30,26 @@ TableFunction::TableFunction(
 
 khir::FunctionRef TableFunction::Get() { return func_.value(); }
 
-constexpr std::string_view fn =
+constexpr std::string_view permutable_fn(
     "_ZN4kush7runtime18ExecuteSkinnerJoinEiiPPFiiaES2_iPiS4_PaS4_S4_S4_S4_"
-    "S4_S4_";
+    "S4_S4_");
+
+constexpr std::string_view recompiling_fn(
+    "_ZN4kush7runtime29ExecuteRecompilingSkinnerJoinEPNS_"
+    "7compile25RecompilingJoinTranslatorE");
 
 SkinnerJoinExecutor::SkinnerJoinExecutor(khir::ProgramBuilder& program)
     : program_(program) {}
 
-void SkinnerJoinExecutor::Execute(absl::Span<const khir::Value> args) {
-  program_.Call(program_.GetFunction(fn), args);
+void SkinnerJoinExecutor::ExecutePermutableJoin(
+    absl::Span<const khir::Value> args) {
+  program_.Call(program_.GetFunction(permutable_fn), args);
+}
+
+void SkinnerJoinExecutor::ExecuteRecompilingJoin(
+    RecompilingJoinTranslator* obj) {
+  program_.Call(program_.GetFunction(recompiling_fn),
+                {program_.ConstPtr(static_cast<void*>(obj))});
 }
 
 void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
@@ -46,7 +58,7 @@ void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
   auto handler_pointer_type = program.PointerType(handler_type);
 
   program.DeclareExternalFunction(
-      fn, program.VoidType(),
+      permutable_fn, program.VoidType(),
       {
           program.I32Type(),
           program.I32Type(),
@@ -63,7 +75,14 @@ void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
           program.PointerType(program.I32Type()),
           program.PointerType(program.I32Type()),
       },
-      reinterpret_cast<void*>(&runtime::ExecuteSkinnerJoin));
+      reinterpret_cast<void*>(&runtime::ExecutePermutableSkinnerJoin));
+
+  program.DeclareExternalFunction(
+      recompiling_fn, program.VoidType(),
+      {
+          program.PointerType(program.I8Type()),
+      },
+      reinterpret_cast<void*>(&runtime::ExecuteRecompilingSkinnerJoin));
 }
 
 }  // namespace kush::compile::proxy

@@ -33,6 +33,7 @@ class LLVMBackend : public Backend,
 
   // Globals
   void Translate(const TypeManager& manager,
+                 const std::vector<void*>& ptr_constants,
                  const std::vector<uint64_t>& i64_constants,
                  const std::vector<double>& f64_constants,
                  const std::vector<std::string>& char_array_constants,
@@ -49,6 +50,7 @@ class LLVMBackend : public Backend,
  private:
   llvm::Constant* ConvertConstantInstr(
       uint64_t instr, std::vector<llvm::Constant*>& constant_values,
+      const std::vector<void*>& ptr_constants,
       const std::vector<uint64_t>& i64_constants,
       const std::vector<double>& f64_constants,
       const std::vector<std::string>& char_array_constants,

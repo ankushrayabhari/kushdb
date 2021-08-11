@@ -6,6 +6,7 @@
 #include "absl/types/span.h"
 
 #include "compile/proxy/int.h"
+#include "compile/translators/recompiling_join_translator.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
@@ -25,7 +26,8 @@ class SkinnerJoinExecutor {
  public:
   SkinnerJoinExecutor(khir::ProgramBuilder& program);
 
-  void Execute(absl::Span<const khir::Value> args);
+  void ExecutePermutableJoin(absl::Span<const khir::Value> args);
+  void ExecuteRecompilingJoin(RecompilingJoinTranslator* obj);
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 

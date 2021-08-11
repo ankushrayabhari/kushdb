@@ -654,7 +654,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
   // Execute build side of skinner join
   proxy::SkinnerJoinExecutor executor(program_);
 
-  executor.Execute({
+  executor.ExecutePermutableJoin({
       program_.ConstI32(child_operators.size()),
       program_.ConstI32(conditions.size()),
       program_.GetElementPtr(handler_pointer_array_type, handler_pointer_array,

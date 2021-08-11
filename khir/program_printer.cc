@@ -11,6 +11,7 @@ namespace kush::khir {
 
 void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
                  const std::vector<uint64_t>& constant_instrs,
+                 const std::vector<void*>& ptr_constants,
                  const std::vector<uint64_t>& i64_constants,
                  const std::vector<double>& f64_constants,
                  const std::vector<std::string>& char_array_constants,
@@ -85,6 +86,12 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
         std::cerr << functions[Type3InstructionReader(instr).Arg()].Name();
         return;
       }
+
+      case ConstantOpcode::PTR_CONST: {
+        int v = Type1InstructionReader(instr).Constant();
+        std::cerr << "ptr:" << ptr_constants[v];
+        return;
+      }
     }
   }
 
@@ -92,7 +99,8 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
 }
 
 void ProgramPrinter::OutputInstr(
-    int idx, const std::vector<uint64_t>& i64_constants,
+    int idx, const std::vector<void*>& ptr_constants,
+    const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
     const std::vector<std::string>& char_array_constants,
     const std::vector<StructConstant>& struct_constants,
@@ -160,13 +168,13 @@ void ProgramPrinter::OutputInstr(
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, instrs, constant_instrs, i64_constants, f64_constants,
-                  char_array_constants, struct_constants, array_constants,
-                  globals, functions);
+      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
+                  f64_constants, char_array_constants, struct_constants,
+                  array_constants, globals, functions);
       std::cerr << " ";
-      OutputValue(v1, instrs, constant_instrs, i64_constants, f64_constants,
-                  char_array_constants, struct_constants, array_constants,
-                  globals, functions);
+      OutputValue(v1, instrs, constant_instrs, ptr_constants, i64_constants,
+                  f64_constants, char_array_constants, struct_constants,
+                  array_constants, globals, functions);
       std::cerr << "\n";
 
       return;
@@ -193,9 +201,9 @@ void ProgramPrinter::OutputInstr(
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, instrs, constant_instrs, i64_constants, f64_constants,
-                  char_array_constants, struct_constants, array_constants,
-                  globals, functions);
+      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
+                  f64_constants, char_array_constants, struct_constants,
+                  array_constants, globals, functions);
       std::cerr << "\n";
 
       return;
@@ -212,13 +220,13 @@ void ProgramPrinter::OutputInstr(
       Value v1(reader.Arg1());
 
       std::cerr << "   " << magic_enum::enum_name(opcode) << " ";
-      OutputValue(v0, instrs, constant_instrs, i64_constants, f64_constants,
-                  char_array_constants, struct_constants, array_constants,
-                  globals, functions);
+      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
+                  f64_constants, char_array_constants, struct_constants,
+                  array_constants, globals, functions);
       std::cerr << " ";
-      OutputValue(v1, instrs, constant_instrs, i64_constants, f64_constants,
-                  char_array_constants, struct_constants, array_constants,
-                  globals, functions);
+      OutputValue(v1, instrs, constant_instrs, ptr_constants, i64_constants,
+                  f64_constants, char_array_constants, struct_constants,
+                  array_constants, globals, functions);
       std::cerr << "\n";
       return;
     }
@@ -241,9 +249,9 @@ void ProgramPrinter::OutputInstr(
       Value v0(reader.Arg());
 
       std::cerr << "   " << magic_enum::enum_name(opcode) << " ";
-      OutputValue(v0, instrs, constant_instrs, i64_constants, f64_constants,
-                  char_array_constants, struct_constants, array_constants,
-                  globals, functions);
+      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
+                  f64_constants, char_array_constants, struct_constants,
+                  array_constants, globals, functions);
       int label0 = reader.Marg0();
       int label1 = reader.Marg1();
       std::cerr << " ." << label0 << " ." << label1 << "\n";
@@ -261,9 +269,9 @@ void ProgramPrinter::OutputInstr(
       Value v0(reader.Arg());
 
       std::cerr << "   " << magic_enum::enum_name(opcode) << " ";
-      OutputValue(v0, instrs, constant_instrs, i64_constants, f64_constants,
-                  char_array_constants, struct_constants, array_constants,
-                  globals, functions);
+      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
+                  f64_constants, char_array_constants, struct_constants,
+                  array_constants, globals, functions);
       std::cerr << "\n";
 
       return;
@@ -280,9 +288,9 @@ void ProgramPrinter::OutputInstr(
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, instrs, constant_instrs, i64_constants, f64_constants,
-                  char_array_constants, struct_constants, array_constants,
-                  globals, functions);
+      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
+                  f64_constants, char_array_constants, struct_constants,
+                  array_constants, globals, functions);
       std::cerr << "\n";
 
       return;
@@ -372,7 +380,8 @@ void ProgramPrinter::TranslateStructType(absl::Span<const Type> elem_types) {
 }
 
 void ProgramPrinter::Translate(
-    const TypeManager& manager, const std::vector<uint64_t>& i64_constants,
+    const TypeManager& manager, const std::vector<void*>& ptr_constants,
+    const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
     const std::vector<std::string>& char_array_constants,
     const std::vector<StructConstant>& struct_constants,
@@ -407,9 +416,9 @@ void ProgramPrinter::Translate(
       std::cerr << " ." << i << ":\n";
       const auto& [i_start, i_end] = basic_blocks[i];
       for (int j = i_start; j <= i_end; j++) {
-        OutputInstr(j, i64_constants, f64_constants, char_array_constants,
-                    struct_constants, array_constants, globals, constant_instrs,
-                    functions, func);
+        OutputInstr(j, ptr_constants, i64_constants, f64_constants,
+                    char_array_constants, struct_constants, array_constants,
+                    globals, constant_instrs, functions, func);
       }
     }
     std::cerr << "}\n" << std::endl;

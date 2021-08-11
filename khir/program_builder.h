@@ -159,6 +159,7 @@ class Backend {
   virtual ~Backend() = default;
 
   virtual void Translate(const TypeManager& manager,
+                         const std::vector<void*>& ptr_constants,
                          const std::vector<uint64_t>& i64_constants,
                          const std::vector<double>& f64_constants,
                          const std::vector<std::string>& char_array_constants,
@@ -218,6 +219,7 @@ class ProgramBuilder {
   void UpdatePhiMember(Value phi, Value phi_member);
 
   // Memory
+  Value ConstPtr(void* t);
   Value NullPtr(Type t);
   Value PointerCast(Value v, Type t);
   Value Alloca(Type size);
@@ -309,6 +311,7 @@ class ProgramBuilder {
   Value AppendConstantGlobal(uint64_t);
   uint64_t GetConstantGlobalInstr(Value v);
   std::vector<uint64_t> constant_instrs_;
+  std::vector<void*> ptr_constants_;
   std::vector<uint64_t> i64_constants_;
   std::vector<double> f64_constants_;
   std::vector<std::string> char_array_constants_;
