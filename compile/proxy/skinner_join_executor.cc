@@ -36,7 +36,7 @@ constexpr std::string_view permutable_fn(
 
 constexpr std::string_view recompiling_fn(
     "_ZN4kush7runtime29ExecuteRecompilingSkinnerJoinEiPNS_"
-    "7compile25RecompilingJoinTranslatorEPPv");
+    "7compile25RecompilingJoinTranslatorEPPvS5_S4_");
 
 SkinnerJoinExecutor::SkinnerJoinExecutor(khir::ProgramBuilder& program)
     : program_(program) {}
@@ -48,11 +48,12 @@ void SkinnerJoinExecutor::ExecutePermutableJoin(
 
 void SkinnerJoinExecutor::ExecuteRecompilingJoin(
     int32_t num_tables, RecompilingJoinTranslator* obj,
-    khir::Value materialized_buffers, khir::Value tuple_idx_table) {
+    khir::Value materialized_buffers, khir::Value materialized_indexes,
+    khir::Value tuple_idx_table) {
   program_.Call(program_.GetFunction(recompiling_fn),
                 {program_.ConstI32(num_tables),
                  program_.ConstPtr(static_cast<void*>(obj)),
-                 materialized_buffers, tuple_idx_table});
+                 materialized_buffers, materialized_indexes, tuple_idx_table});
 }
 
 void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
@@ -85,6 +86,7 @@ void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
       {
           program.I32Type(),
           program.PointerType(program.I8Type()),
+          program.PointerType(program.PointerType(program.I8Type())),
           program.PointerType(program.PointerType(program.I8Type())),
           program.PointerType(program.I8Type()),
       },

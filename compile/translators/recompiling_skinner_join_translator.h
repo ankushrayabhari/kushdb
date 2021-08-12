@@ -32,11 +32,13 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   void Consume(OperatorTranslator& src) override;
   ExecuteJoinFn CompileJoinOrder(const std::vector<int>& order,
                                  void** materialized_buffers,
+                                 void** materialized_indexes,
                                  void* tuple_idx_table) override;
   void GenerateChildLoops(
       int curr, const std::vector<int>& order, khir::ProgramBuilder& program,
       ExpressionTranslator& expr_translator,
       std::vector<proxy::Vector>& buffers,
+      std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
       proxy::TupleIdxTable& tuple_idx_table,
       absl::flat_hash_set<int> evaluated_predicates,
       std::vector<absl::flat_hash_set<int>>& tables_per_predicate,

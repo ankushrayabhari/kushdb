@@ -23,6 +23,7 @@ void ExecutePermutableSkinnerJoin(
 void ExecuteRecompilingSkinnerJoin(int32_t num_tables,
                                    compile::RecompilingJoinTranslator* codegen,
                                    void** materialized_buffers,
+                                   void** materialized_indexes,
                                    void* tuple_idx_table);
 
 }  // namespace kush::runtime

@@ -216,6 +216,24 @@ ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program, bool global)
 }
 
 template <catalog::SqlType S>
+ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program,
+                                    khir::Value v)
+    : program_(program),
+      value_(program_.Alloca(program.PointerType(program.I8Type()))) {
+  program_.StorePtr(value_, v);
+}
+
+template <catalog::SqlType S>
+khir::Value ColumnIndexImpl<S>::Get() const {
+  return program_.LoadPtr(value_);
+}
+
+template <catalog::SqlType S>
+catalog::SqlType ColumnIndexImpl<S>::Type() const {
+  return S;
+}
+
+template <catalog::SqlType S>
 void ColumnIndexImpl<S>::Insert(const proxy::Value& v,
                                 const proxy::Int32& tuple_idx) {
   program_.Call(program_.GetFunction(InsertFnName<S>()),

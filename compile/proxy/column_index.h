@@ -14,6 +14,8 @@ class ColumnIndex {
  public:
   virtual ~ColumnIndex() = default;
 
+  virtual khir::Value Get() const = 0;
+  virtual catalog::SqlType Type() const = 0;
   virtual void Reset() = 0;
   virtual void Insert(const proxy::Value& v, const proxy::Int32& tuple_idx) = 0;
   virtual proxy::Int32 GetNextGreater(const proxy::Value& v,
@@ -25,10 +27,13 @@ template <catalog::SqlType S>
 class ColumnIndexImpl : public ColumnIndex {
  public:
   ColumnIndexImpl(khir::ProgramBuilder& program, bool global);
+  ColumnIndexImpl(khir::ProgramBuilder& program, khir::Value v);
   virtual ~ColumnIndexImpl() = default;
 
   void Reset() override;
   void Insert(const proxy::Value& v, const proxy::Int32& tuple_idx) override;
+  khir::Value Get() const override;
+  catalog::SqlType Type() const override;
   proxy::Int32 GetNextGreater(const proxy::Value& v,
                               const proxy::Int32& tuple_idx,
                               const proxy::Int32& cardinality) override;
