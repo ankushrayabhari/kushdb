@@ -168,7 +168,82 @@ class JoinState {
   std::vector<int32_t> offset_;
 };
 
-struct ExecutionEngineFlags {
+class JoinEnvironment {
+ public:
+  virtual bool IsConnected(const std::set<int>& joined_tables, int table) = 0;
+  virtual bool IsComplete() = 0;
+  virtual double Execute(const std::vector<int>& order) = 0;
+
+  std::vector<int32_t> ComputeLastCompletedTuple(
+      const std::vector<int>& order, const std::vector<int32_t>& cardinalities,
+      int status, int table_ctr, int* idx_arr) {
+    std::vector<int32_t> last_completed_tuple(order.size(), 0);
+    auto should_decrement = status == -2;
+
+    int table_ctr_idx = -1;
+    for (int i = 0; i < order.size(); i++) {
+      int table = order[i];
+      last_completed_tuple[table] = idx_arr[table];
+      if (table_ctr == table) {
+        table_ctr_idx = i;
+      }
+    }
+
+    if (!should_decrement) {
+      // every table after table_ctr is just cardinality - 1
+      for (int i = table_ctr_idx + 1; i < order.size(); i++) {
+        int table = order[i];
+        last_completed_tuple[table] = cardinalities[table] - 1;
+      }
+      return last_completed_tuple;
+    }
+
+    // fill in every table after table_ctr with 0
+    for (int i = table_ctr_idx + 1; i < order.size(); i++) {
+      int table = order[i];
+      last_completed_tuple[table] = 0;
+    }
+
+    // decrement last_completed_tuple by 1
+    for (int i = order.size() - 1; i >= 0; i--) {
+      int table = order[i];
+
+      if (last_completed_tuple[table] == 0) {
+        last_completed_tuple[table] = cardinalities[table] - 1;
+      } else {
+        last_completed_tuple[table]--;
+        break;
+      }
+    }
+
+    return last_completed_tuple;
+  }
+
+  double Reward(const std::vector<int32_t>& order,
+                const std::vector<int32_t>& offset,
+                const std::vector<int32_t>& initial_last_completed_tuple,
+                const std::vector<int32_t>& final_last_completed_tuple,
+                const std::vector<int32_t>& cardinalities,
+                int32_t num_result_tuples, int32_t budget_per_episode) {
+    double progress = 0;
+    double weight = 1;
+    for (int i = 0; i < order.size(); i++) {
+      int table = order[i];
+      int remaining_card = cardinalities[table] - offset[table];
+      weight *= 1.0 / remaining_card;
+
+      int start = std::max(offset[table], initial_last_completed_tuple[table]);
+      int end = std::max(offset[table], final_last_completed_tuple[table]);
+
+      progress += (end - start) * weight;
+    }
+
+    return 0.5 * progress +
+           0.5 * num_result_tuples / (double)budget_per_episode;
+  }
+};
+
+struct PermutableExecutionEngineFlags {
   std::add_pointer<int32_t(int32_t, int8_t)>::type* join_handler_fn_arr;
   int8_t* flag_arr;
   int32_t* progress_arr;
@@ -179,9 +254,9 @@ struct ExecutionEngineFlags {
   int32_t* offset_arr;
 };
 
-class JoinEnvironment {
+class PermutableJoinEnvironment : public JoinEnvironment {
  public:
-  JoinEnvironment(
+  PermutableJoinEnvironment(
       int num_predicates,
       const std::vector<std::unordered_map<int, int>>&
           table_predicate_to_flag_idx,
@@ -191,7 +266,7 @@ class JoinEnvironment {
           table_functions,
       const std::add_pointer<int32_t(int32_t, int8_t)>::type
           valid_tuple_handler,
-      ExecutionEngineFlags execution_engine)
+      PermutableExecutionEngineFlags execution_engine)
       : num_predicates_(num_predicates),
         budget_per_episode_(10000),
         table_predicate_to_flag_idx_(table_predicate_to_flag_idx),
@@ -202,7 +277,7 @@ class JoinEnvironment {
         state_(cardinalities_),
         execution_engine_(execution_engine) {}
 
-  bool IsConnected(const std::set<int>& joined_tables, int table) {
+  bool IsConnected(const std::set<int>& joined_tables, int table) override {
     for (int i = 0; i < num_predicates_; i++) {
       const auto& tables = tables_per_predicate_[i];
 
@@ -220,9 +295,9 @@ class JoinEnvironment {
     return false;
   }
 
-  bool IsComplete() { return state_.IsComplete(); }
+  bool IsComplete() override { return state_.IsComplete(); }
 
-  double Execute(const std::vector<int>& order) {
+  double Execute(const std::vector<int>& order) override {
     auto initial_last_completed_tuple = state_.GetLastCompletedTupleIdx(order);
     const auto& offset = state_.GetOffset();
 
@@ -236,39 +311,20 @@ class JoinEnvironment {
     auto status = table_functions_[order[0]](
         budget_per_episode_, initial_last_completed_tuple.has_value() ? 1 : 0);
 
-    auto final_last_completed_tuple =
-        ComputeLastCompletedTuple(order, cardinalities_, status);
+    auto final_last_completed_tuple = ComputeLastCompletedTuple(
+        order, cardinalities_, status, *execution_engine_.table_ctr,
+        execution_engine_.idx_arr);
 
     state_.Update(order, final_last_completed_tuple);
 
     return Reward(order, offset,
                   initial_last_completed_tuple.value_or(
                       std::vector<int32_t>(order.size(), -1)),
-                  final_last_completed_tuple);
+                  final_last_completed_tuple, cardinalities_,
+                  *execution_engine_.num_result_tuples, budget_per_episode_);
   }
 
  private:
-  double Reward(const std::vector<int32_t>& order,
-                const std::vector<int32_t>& offset,
-                const std::vector<int32_t>& initial_last_completed_tuple,
-                const std::vector<int32_t>& final_last_completed_tuple) {
-    double progress = 0;
-    double weight = 1;
-    for (int i = 0; i < order.size(); i++) {
-      int table = order[i];
-      int remaining_card = cardinalities_[table] - offset[table];
-      weight *= 1.0 / remaining_card;
-
-      int start = std::max(offset[table], initial_last_completed_tuple[table]);
-      int end = std::max(offset[table], final_last_completed_tuple[table]);
-
-      progress += (end - start) * weight;
-    }
-
-    return 0.5 * progress + 0.5 * (*execution_engine_.num_result_tuples) /
-                                (double)budget_per_episode_;
-  }
-
   void SetJoinOrder(const std::vector<int>& order) {
     *execution_engine_.last_table = order.back();
 
@@ -336,52 +392,6 @@ class JoinEnvironment {
     }
   }
 
-  std::vector<int32_t> ComputeLastCompletedTuple(
-      const std::vector<int>& order, const std::vector<int32_t>& cardinalities,
-      int status) {
-    std::vector<int32_t> last_completed_tuple(order.size(), 0);
-    auto should_decrement = status == -2;
-    auto table_ctr = *execution_engine_.table_ctr;
-
-    int table_ctr_idx = -1;
-    for (int i = 0; i < order.size(); i++) {
-      int table = order[i];
-      last_completed_tuple[table] = execution_engine_.idx_arr[table];
-      if (table_ctr == table) {
-        table_ctr_idx = i;
-      }
-    }
-
-    if (!should_decrement) {
-      // every table after table_ctr is just cardinality - 1
-      for (int i = table_ctr_idx + 1; i < order.size(); i++) {
-        int table = order[i];
-        last_completed_tuple[table] = cardinalities[table] - 1;
-      }
-      return last_completed_tuple;
-    }
-
-    // fill in every table after table_ctr with 0
-    for (int i = table_ctr_idx + 1; i < order.size(); i++) {
-      int table = order[i];
-      last_completed_tuple[table] = 0;
-    }
-
-    // decrement last_completed_tuple by 1
-    for (int i = order.size() - 1; i >= 0; i--) {
-      int table = order[i];
-
-      if (last_completed_tuple[table] == 0) {
-        last_completed_tuple[table] = cardinalities[table] - 1;
-      } else {
-        last_completed_tuple[table]--;
-        break;
-      }
-    }
-
-    return last_completed_tuple;
-  }
-
   const int num_predicates_;
   const int32_t budget_per_episode_;
   const std::vector<std::unordered_map<int, int>> table_predicate_to_flag_idx_;
@@ -390,7 +400,7 @@ class JoinEnvironment {
   const std::vector<std::add_pointer<int(int, int8_t)>::type> table_functions_;
   const std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler_;
   JoinState state_;
-  ExecutionEngineFlags execution_engine_;
+  PermutableExecutionEngineFlags execution_engine_;
 };
 
 class UctNode {
@@ -692,7 +702,7 @@ void ExecutePermutableSkinnerJoin(
   auto tables_per_predicate =
       ReconstructTablesPerPredicate(num_predicates, tables_per_predicate_arr);
   auto cardinalities = ReconstructCardinalities(num_tables, idx_arr);
-  ExecutionEngineFlags execution_engine{
+  PermutableExecutionEngineFlags execution_engine{
       .join_handler_fn_arr = join_handler_fn_arr,
       .flag_arr = flag_arr,
       .progress_arr = progress_arr,
@@ -703,7 +713,7 @@ void ExecutePermutableSkinnerJoin(
       .offset_arr = offset_arr,
   };
 
-  JoinEnvironment environment(
+  PermutableJoinEnvironment environment(
       num_predicates, table_predicate_to_flag_idx, tables_per_predicate,
       cardinalities, table_functions, valid_tuple_handler, execution_engine);
 
