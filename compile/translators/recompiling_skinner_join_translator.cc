@@ -47,7 +47,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
     std::vector<absl::flat_hash_set<int>>& tables_per_predicate,
     std::vector<absl::btree_set<int>>& predicates_per_table,
     absl::flat_hash_set<int> available_tables, khir::Type idx_array_type,
-    khir::Value idx_array, khir::Value progress_arr,
+    khir::Value idx_array, khir::Value progress_arr, khir::Value table_ctr_ptr,
     proxy::Int32 initial_budget, proxy::Bool resume_progress) {
   auto child_translators = this->Children();
   auto conditions = join_.Conditions();
@@ -147,12 +147,9 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
               proxy::If(
                   program, budget == 0,
                   [&]() -> std::vector<khir::Value> {
-                    /*
-                      // Set table_ctr to be the current table
-                          program.StoreI32(
-                              program.GetElementPtr(table_ctr_type,
-                      table_ctr_ptr, {0, 0}), program.ConstI32(table_idx));
-                    */
+                    // Set table_ctr to be the current table
+                    program.StoreI32(table_ctr_ptr,
+                                     program.ConstI32(table_idx));
                     program.Return(program.ConstI32(-1));
                     return {};
                   },
@@ -202,13 +199,8 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                 proxy::If(
                     program, budget == 0,
                     [&]() -> std::vector<khir::Value> {
-                      /*
-                            // Set table_ctr to be the current table
-                                program.StoreI32(
-                                    program.GetElementPtr(table_ctr_type,
-                            table_ctr_ptr, {0, 0}),
-                         program.ConstI32(table_idx));
-                          */
+                      program.StoreI32(table_ctr_ptr,
+                                       program.ConstI32(table_idx));
                       program.Return(program.ConstI32(-1));
                       return {};
                     },
@@ -237,12 +229,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
           proxy::If(
               program, budget == 0,
               [&]() -> std::vector<khir::Value> {
-                /*
-                      // Set table_ctr to be the current table
-                          program.StoreI32(
-                              program.GetElementPtr(table_ctr_type,
-                      table_ctr_ptr, {0, 0}), program.ConstI32(table_idx));
-                    */
+                program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
                 program.Return(program.ConstI32(-1));
                 return {};
               },
@@ -254,13 +241,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
           proxy::If(
               program, budget == 0,
               [&]() -> std::vector<khir::Value> {
-                /*
-                  // Set table_ctr to be the current table
-                      program.StoreI32(
-                          program.GetElementPtr(table_ctr_type, table_ctr_ptr,
-                                                 {0, 0}),
-                          program.ConstI32(table_idx));
-                */
+                program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
                 program.Return(program.ConstI32(-2));
                 return {};
               },
@@ -268,11 +249,12 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
           // Partial tuple - loop over other tables to complete it
           next_budget =
-              GenerateChildLoops(
-                  curr + 1, order, program, expr_translator, buffers, indexes,
-                  tuple_idx_table, evaluated_predicates, tables_per_predicate,
-                  predicates_per_table, available_tables, idx_array_type,
-                  idx_array, progress_arr, budget, resume_progress)
+              GenerateChildLoops(curr + 1, order, program, expr_translator,
+                                 buffers, indexes, tuple_idx_table,
+                                 evaluated_predicates, tables_per_predicate,
+                                 predicates_per_table, available_tables,
+                                 idx_array_type, idx_array, progress_arr,
+                                 table_ctr_ptr, budget, resume_progress)
                   .ToPointer();
         }
 
@@ -303,12 +285,14 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   auto func =
       program.CreatePublicFunction(program.I32Type(),
                                    {program.I32Type(), program.I1Type(),
+                                    program.PointerType(program.I32Type()),
                                     program.PointerType(program.I32Type())},
                                    "compute");
   auto args = program.GetFunctionArguments(func);
   proxy::Int32 initial_budget(program, args[0]);
   proxy::Bool resume_progress(program, args[1]);
   auto progress_arr = args[2];
+  auto table_ctr_ptr = args[3];
 
   // Regenerate all child struct types/buffers in new program
   std::vector<std::unique_ptr<proxy::StructBuilder>> structs;
@@ -441,13 +425,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         proxy::If(
             program, budget == 0,
             [&]() -> std::vector<khir::Value> {
-              /*
-                // Set table_ctr to be the current table
-                    program.StoreI32(
-                        program.GetElementPtr(table_ctr_type, table_ctr_ptr,
-                                               {0, 0}),
-                        program.ConstI32(table_idx));
-              */
+              program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
               program.Return(program.ConstI32(-2));
               return {};
             },
@@ -466,7 +444,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
             1, order, program, expr_translator, buffers, indexes,
             tuple_idx_table, evaluated_predicates, tables_per_predicate,
             predicates_per_table, available_tables, idx_array_type, idx_array,
-            progress_arr, budget, resume_progress);
+            progress_arr, table_ctr_ptr, budget, resume_progress);
         return loop.Continue(next_tuple, next_budget,
                              proxy::Bool(program, false));
       });

@@ -731,7 +731,10 @@ void ExecuteRecompilingSkinnerJoin(int32_t num_tables,
   progress_arr[0] = 0;
   progress_arr[1] = 1;
 
-  std::cout << execute_fn(10000, true, progress_arr) << std::endl;
+  int32_t table_ctr;
+
+  std::cout << execute_fn(1, true, progress_arr, &table_ctr) << ' ' << table_ctr
+            << std::endl;
 }
 
 }  // namespace kush::runtime

@@ -45,7 +45,8 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
       std::vector<absl::btree_set<int>>& predicates_per_table,
       absl::flat_hash_set<int> available_tables, khir::Type idx_array_type,
       khir::Value idx_array, khir::Value progress_arr,
-      proxy::Int32 initial_budget, proxy::Bool resume_progress);
+      khir::Value table_ctr_ptr, proxy::Int32 initial_budget,
+      proxy::Bool resume_progress);
 
  private:
   const plan::SkinnerJoinOperator& join_;
