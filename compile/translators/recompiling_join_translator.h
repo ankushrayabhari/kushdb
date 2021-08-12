@@ -7,7 +7,8 @@ namespace kush::compile {
 
 class RecompilingJoinTranslator {
  public:
-  typedef int32_t (*ExecuteJoinFn)(int32_t initial_budget);
+  typedef int32_t (*ExecuteJoinFn)(int32_t initial_budget, bool resume_progress,
+                                   int32_t* progress_arr);
   virtual ExecuteJoinFn CompileJoinOrder(const std::vector<int>& order,
                                          void** materialized_buffers,
                                          void** materialized_indexes,

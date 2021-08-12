@@ -726,7 +726,12 @@ void ExecuteRecompilingSkinnerJoin(int32_t num_tables,
 
   auto execute_fn = codegen->CompileJoinOrder(
       order, materialized_buffers, materialized_indexes, tuple_idx_table);
-  std::cout << execute_fn(4) << std::endl;
+
+  int32_t* progress_arr = new int32_t[num_tables];
+  progress_arr[0] = 0;
+  progress_arr[1] = 1;
+
+  std::cout << execute_fn(10000, true, progress_arr) << std::endl;
 }
 
 }  // namespace kush::runtime
