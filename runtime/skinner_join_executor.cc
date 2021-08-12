@@ -715,13 +715,14 @@ void ExecutePermutableSkinnerJoin(
 }
 
 void ExecuteRecompilingSkinnerJoin(int32_t num_tables,
-                                   compile::RecompilingJoinTranslator* obj) {
+                                   compile::RecompilingJoinTranslator* obj,
+                                   void** materialized_buffers) {
   std::vector<int> order(num_tables);
   for (int i = 0; i < num_tables; i++) {
     order[i] = i;
   }
 
-  auto execute_fn = obj->CompileJoinOrder(order);
+  auto execute_fn = obj->CompileJoinOrder(order, materialized_buffers);
   execute_fn();
 }
 

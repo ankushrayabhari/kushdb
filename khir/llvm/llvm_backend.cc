@@ -136,8 +136,7 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
     case ConstantOpcode::PTR_CONST: {
       auto i64_v = builder_->getInt64(reinterpret_cast<uint64_t>(
           ptr_constants[Type1InstructionReader(instr).Constant()]));
-      return llvm::ConstantExpr::getIntToPtr(
-          i64_v, llvm::PointerType::get(builder_->getVoidTy(), 0));
+      return llvm::ConstantExpr::getIntToPtr(i64_v, builder_->getInt8PtrTy());
     }
 
     case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST: {

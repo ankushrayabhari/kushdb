@@ -19,6 +19,8 @@ class Vector {
   void Reset();
   void Sort(const khir::FunctionRef& comp);
 
+  khir::Value Get() const;
+
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
   static const std::string_view VectorStructName;

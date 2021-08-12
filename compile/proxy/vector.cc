@@ -60,6 +60,8 @@ void Vector::Reset() {
   program_.Call(program_.GetFunction(FreeFnName), {value_});
 }
 
+khir::Value Vector::Get() const { return value_; }
+
 Struct Vector::operator[](const proxy::Int32& idx) {
   auto ptr =
       program_.Call(program_.GetFunction(GetFnName), {value_, idx.Get()});

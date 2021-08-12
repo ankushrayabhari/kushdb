@@ -183,8 +183,10 @@ void RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
 RecompilingJoinTranslator::ExecuteJoinFn
 RecompilingSkinnerJoinTranslator::CompileJoinOrder(
-    const std::vector<int>& order) {
+    const std::vector<int>& order, void** materialized_buffers) {
   auto child_translators = this->Children();
+  auto child_operators = this->join_.Children();
+
   auto& entry = cache_.GetOrInsert(order);
   if (entry.IsCompiled()) {
     return reinterpret_cast<ExecuteJoinFn>(entry.Func("compute"));
@@ -194,6 +196,49 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   ForwardDeclare(program);
 
   program.CreatePublicFunction(program.VoidType(), {}, "compute");
+
+  // Regenerate all child struct types in new program
+  std::vector<std::unique_ptr<proxy::StructBuilder>> structs;
+  std::vector<proxy::Vector> buffers;
+  for (int i = 0; i < child_operators.size(); i++) {
+    auto& child_operator = child_operators[i].get();
+
+    structs.push_back(std::make_unique<proxy::StructBuilder>(program));
+    const auto& child_schema = child_operator.Schema().Columns();
+    for (const auto& col : child_schema) {
+      structs.back()->Add(col.Expr().Type());
+    }
+    structs.back()->Build();
+
+    buffers.emplace_back(
+        program, *structs.back(),
+        program.PointerCast(program.ConstPtr(materialized_buffers[i]),
+                            program.PointerType(program.GetStructType(
+                                proxy::Vector::VectorStructName))));
+  }
+
+  // Generate loop over base table
+  auto table_idx = order[0];
+  auto& buffer = buffers[table_idx];
+  auto cardinality = buffer.Size();
+  proxy::Loop loop(
+      program,
+      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program, -1)); },
+      [&](auto& loop) {
+        auto last_tuple = loop.template GetLoopVariable<proxy::Int32>(0);
+        return last_tuple < (cardinality - 1);
+      },
+      [&](auto& loop) {
+        auto last_tuple = loop.template GetLoopVariable<proxy::Int32>(0);
+        auto next_tuple = last_tuple + 1;
+
+        auto tuple = buffer[next_tuple];
+        child_translators[table_idx].get().SchemaValues().SetValues(
+            tuple.Unpack());
+
+        return loop.Continue(next_tuple);
+      });
+
   program.Return();
 
   entry.Compile();
@@ -300,13 +345,34 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   // Setup global hash table that contains tuple idx
   proxy::TupleIdxTable tuple_idx_table(program_, true);
 
-  // TODO: implement here
+  // pass all materialized buffers to the executor
+  auto materialized_buffer_array_type = program_.ArrayType(
+      program_.PointerType(program_.I8Type()), buffers_.size());
+  auto materialized_buffer_array_init = program_.ConstantArray(
+      materialized_buffer_array_type,
+      std::vector<khir::Value>(
+          buffers_.size(),
+          program_.NullPtr(program_.PointerType(program_.I8Type()))));
+  auto materialized_buffer_array =
+      program_.Global(false, true, materialized_buffer_array_type,
+                      materialized_buffer_array_init);
+  for (int i = 0; i < buffers_.size(); i++) {
+    program_.StorePtr(
+        program_.GetElementPtr(materialized_buffer_array_type,
+                               materialized_buffer_array, {0, i}),
+        program_.PointerCast(buffers_[i].Get(),
+                             program_.PointerType(program_.I8Type())));
+  }
+
+  // TODO: pass all materialized indexes to the executor
 
   // 3. Execute join
   proxy::SkinnerJoinExecutor executor(program_);
-
   auto compile_fn = static_cast<RecompilingJoinTranslator*>(this);
-  executor.ExecuteRecompilingJoin(child_translators.size(), compile_fn);
+  executor.ExecuteRecompilingJoin(
+      child_translators.size(), compile_fn,
+      program_.GetElementPtr(materialized_buffer_array_type,
+                             materialized_buffer_array, {0, 0}));
 
   // TODO: implement here
 

@@ -21,6 +21,7 @@ void ExecutePermutableSkinnerJoin(
     int32_t* offset_arr);
 
 void ExecuteRecompilingSkinnerJoin(int32_t num_tables,
-                                   compile::RecompilingJoinTranslator* codegen);
+                                   compile::RecompilingJoinTranslator* codegen,
+                                   void** materialized_buffers);
 
 }  // namespace kush::runtime
