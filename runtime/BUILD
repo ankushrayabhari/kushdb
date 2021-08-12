@@ -152,6 +152,9 @@ cc_library(
     linkstatic = True,
     deps = [
         "//compile/translators:recompiling_join_translator",
+        "@absl//absl/container:btree",
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/container:flat_hash_set",
     ],
 )
 
@@ -162,6 +165,9 @@ cc_binary(
     deps = [
         ":skinner_join_executor",
         "//compile/translators:recompiling_join_translator",
+        "@absl//absl/container:btree",
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/container:flat_hash_set",
     ],
 )
 

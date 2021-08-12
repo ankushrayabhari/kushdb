@@ -3,6 +3,7 @@
 #include <functional>
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 
 #include "compile/proxy/int.h"
@@ -27,7 +28,9 @@ class SkinnerJoinExecutor {
   SkinnerJoinExecutor(khir::ProgramBuilder& program);
 
   void ExecutePermutableJoin(absl::Span<const khir::Value> args);
-  void ExecuteRecompilingJoin(int32_t num_tables,
+  void ExecuteRecompilingJoin(int32_t num_tables, int32_t num_predicates,
+                              khir::Value cardinality_arr,
+                              khir::Value tables_per_predicate,
                               RecompilingJoinTranslator* obj,
                               khir::Value materialized_buffers,
                               khir::Value materialized_indexes,

@@ -2,9 +2,11 @@
 
 #include <cstdint>
 #include <type_traits>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
+
+#include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 
 #include "compile/translators/recompiling_join_translator.h"
 
@@ -20,7 +22,9 @@ void ExecutePermutableSkinnerJoin(
     int32_t* idx_arr, int32_t* last_table, int32_t* num_result_tuples,
     int32_t* offset_arr);
 
-void ExecuteRecompilingSkinnerJoin(int32_t num_tables,
+void ExecuteRecompilingSkinnerJoin(int32_t num_tables, int32_t num_predicates,
+                                   int32_t* cardinality_arr,
+                                   int32_t* tables_per_predicate_arr,
                                    compile::RecompilingJoinTranslator* codegen,
                                    void** materialized_buffers,
                                    void** materialized_indexes,

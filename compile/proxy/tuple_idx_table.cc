@@ -66,6 +66,13 @@ void TupleIdxTable::Insert(const khir::Value& idx_arr,
 
 khir::Value TupleIdxTable::Get() { return program_.LoadPtr(value_); }
 
+proxy::Int32 TupleIdxTable::Size() {
+  auto tuple_idx_table = program_.LoadPtr(value_);
+  return proxy::Int32(
+      program_,
+      program_.Call(program_.GetFunction(size_fn_name), {tuple_idx_table}));
+}
+
 void TupleIdxTable::ForEach(std::function<void(const khir::Value&)> handler) {
   auto tuple_idx_table = program_.LoadPtr(value_);
 

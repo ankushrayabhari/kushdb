@@ -46,9 +46,10 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
     absl::flat_hash_set<int> evaluated_predicates,
     std::vector<absl::flat_hash_set<int>>& tables_per_predicate,
     std::vector<absl::btree_set<int>>& predicates_per_table,
-    absl::flat_hash_set<int> available_tables, khir::Type idx_array_type,
-    khir::Value idx_array, khir::Value progress_arr, khir::Value table_ctr_ptr,
-    proxy::Int32 initial_budget, proxy::Bool resume_progress) {
+    absl::flat_hash_set<int> available_tables, khir::Value idx_array,
+    khir::Value progress_arr, khir::Value table_ctr_ptr,
+    khir::Value num_result_tuples_ptr, proxy::Int32 initial_budget,
+    proxy::Bool resume_progress) {
   auto child_translators = this->Children();
   auto conditions = join_.Conditions();
 
@@ -91,6 +92,16 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
         absl::flat_hash_set<int> index_evaluated_predicates;
         for (int predicate_idx : predicates_per_table[table_idx]) {
           if (evaluated_predicates.contains(predicate_idx)) {
+            continue;
+          }
+
+          bool can_execute = true;
+          for (int table : tables_per_predicate[predicate_idx]) {
+            if (!available_tables.contains(table)) {
+              can_execute = false;
+            }
+          }
+          if (!can_execute) {
             continue;
           }
 
@@ -216,7 +227,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
         // write idx into idx array
         auto idx_ptr =
-            program.GetElementPtr(idx_array_type, idx_array, {0, table_idx});
+            program.GetElementPtr(program.I32Type(), idx_array, {table_idx});
         program.StoreI32(idx_ptr, next_tuple->Get());
 
         std::unique_ptr<proxy::Int32> next_budget;
@@ -224,6 +235,11 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
           // Complete tuple - insert into HT
           tuple_idx_table.Insert(idx_array,
                                  proxy::Int32(program, order.size()));
+
+          proxy::Int32 num_result_tuples(
+              program, program.LoadI32(num_result_tuples_ptr));
+          program.StoreI32(num_result_tuples_ptr,
+                           (num_result_tuples + 1).Get());
 
           // If budget depleted, return with -1 (i.e. finished entire tables)
           proxy::If(
@@ -253,8 +269,8 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                                  buffers, indexes, tuple_idx_table,
                                  evaluated_predicates, tables_per_predicate,
                                  predicates_per_table, available_tables,
-                                 idx_array_type, idx_array, progress_arr,
-                                 table_ctr_ptr, budget, resume_progress)
+                                 idx_array, progress_arr, table_ctr_ptr,
+                                 num_result_tuples_ptr, budget, resume_progress)
                   .ToPointer();
         }
 
@@ -286,6 +302,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
       program.CreatePublicFunction(program.I32Type(),
                                    {program.I32Type(), program.I1Type(),
                                     program.PointerType(program.I32Type()),
+                                    program.PointerType(program.I32Type()),
+                                    program.PointerType(program.I32Type()),
                                     program.PointerType(program.I32Type())},
                                    "compute");
   auto args = program.GetFunctionArguments(func);
@@ -293,6 +311,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   proxy::Bool resume_progress(program, args[1]);
   auto progress_arr = args[2];
   auto table_ctr_ptr = args[3];
+  auto num_result_tuples_ptr = args[4];
+  auto idx_array = args[5];
 
   // Regenerate all child struct types/buffers in new program
   std::vector<std::unique_ptr<proxy::StructBuilder>> structs;
@@ -355,15 +375,6 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         break;
     }
   }
-
-  // Setup idx array.
-  std::vector<khir::Value> initial_idx_values(child_operators.size(),
-                                              program.ConstI32(0));
-  auto idx_array_type =
-      program.ArrayType(program.I32Type(), child_operators.size());
-  auto idx_array =
-      program.Global(false, true, idx_array_type,
-                     program.ConstantArray(idx_array_type, initial_idx_values));
 
   // Create tuple idx table
   proxy::TupleIdxTable tuple_idx_table(program,
@@ -437,14 +448,14 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
 
         available_tables.insert(table_idx);
         auto idx_ptr =
-            program.GetElementPtr(idx_array_type, idx_array, {0, table_idx});
+            program.GetElementPtr(program.I32Type(), idx_array, {table_idx});
         program.StoreI32(idx_ptr, next_tuple.Get());
 
         auto next_budget = GenerateChildLoops(
             1, order, program, expr_translator, buffers, indexes,
             tuple_idx_table, evaluated_predicates, tables_per_predicate,
-            predicates_per_table, available_tables, idx_array_type, idx_array,
-            progress_arr, table_ctr_ptr, budget, resume_progress);
+            predicates_per_table, available_tables, idx_array, progress_arr,
+            table_ctr_ptr, num_result_tuples_ptr, budget, resume_progress);
         return loop.Continue(next_tuple, next_budget,
                              proxy::Bool(program, false));
       });
@@ -594,11 +605,48 @@ void RecompilingSkinnerJoinTranslator::Produce() {
                              program_.PointerType(program_.I8Type())));
   }
 
+  // pass all cardinalities to the executor
+  auto cardinalities_array_type =
+      program_.ArrayType(program_.I32Type(), buffers_.size());
+  auto cardinalities_array_init = program_.ConstantArray(
+      cardinalities_array_type,
+      std::vector<khir::Value>(child_translators.size(), program_.ConstI32(0)));
+  auto cardinalities_array = program_.Global(
+      false, true, cardinalities_array_type, cardinalities_array_init);
+  for (int i = 0; i < buffers_.size(); i++) {
+    program_.StoreI32(program_.GetElementPtr(cardinalities_array_type,
+                                             cardinalities_array, {0, i}),
+                      buffers_[i].Size().Get());
+  }
+
+  // Serialize the tables_per_predicate map.
+  std::vector<khir::Value> tables_per_predicate_arr_values;
+  for (int i = 0; i < conditions.size(); i++) {
+    tables_per_predicate_arr_values.push_back(
+        program_.ConstI32(tables_per_predicate[i].size()));
+  }
+  for (int i = 0; i < conditions.size(); i++) {
+    for (int x : tables_per_predicate[i]) {
+      tables_per_predicate_arr_values.push_back(program_.ConstI32(x));
+    }
+  }
+  auto tables_per_predicate_arr_type = program_.ArrayType(
+      program_.I32Type(), tables_per_predicate_arr_values.size());
+  auto tables_per_predicate_arr_init = program_.ConstantArray(
+      tables_per_predicate_arr_type, tables_per_predicate_arr_values);
+  auto tables_per_predicate_arr = program_.Global(
+      true, true, tables_per_predicate_arr_type, tables_per_predicate_arr_init);
+
   // 3. Execute join
   proxy::SkinnerJoinExecutor executor(program_);
   auto compile_fn = static_cast<RecompilingJoinTranslator*>(this);
   executor.ExecuteRecompilingJoin(
-      child_translators.size(), compile_fn,
+      child_translators.size(), conditions.size(),
+      program_.GetElementPtr(cardinalities_array_type, cardinalities_array,
+                             {0, 0}),
+      program_.GetElementPtr(tables_per_predicate_arr_type,
+                             tables_per_predicate_arr, {0, 0}),
+      compile_fn,
       program_.GetElementPtr(materialized_buffer_array_type,
                              materialized_buffer_array, {0, 0}),
       program_.GetElementPtr(materialized_index_array_type,

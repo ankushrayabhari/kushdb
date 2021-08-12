@@ -7,11 +7,12 @@
 #include <iostream>
 #include <memory>
 #include <random>
-#include <set>
 #include <type_traits>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
+
+#include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 
 #include "compile/translators/recompiling_join_translator.h"
 
@@ -170,7 +171,8 @@ class JoinState {
 
 class JoinEnvironment {
  public:
-  virtual bool IsConnected(const std::set<int>& joined_tables, int table) = 0;
+  virtual bool IsConnected(const absl::btree_set<int>& joined_tables,
+                           int table) = 0;
   virtual bool IsComplete() = 0;
   virtual double Execute(const std::vector<int>& order) = 0;
 
@@ -258,9 +260,9 @@ class PermutableJoinEnvironment : public JoinEnvironment {
  public:
   PermutableJoinEnvironment(
       int num_predicates,
-      const std::vector<std::unordered_map<int, int>>&
+      const std::vector<absl::flat_hash_map<int, int>>&
           table_predicate_to_flag_idx,
-      const std::vector<std::unordered_set<int>>& tables_per_predicate,
+      const std::vector<absl::flat_hash_set<int>>& tables_per_predicate,
       const std::vector<int32_t>& cardinalities,
       const std::vector<std::add_pointer<int(int, int8_t)>::type>&
           table_functions,
@@ -277,7 +279,8 @@ class PermutableJoinEnvironment : public JoinEnvironment {
         state_(cardinalities_),
         execution_engine_(execution_engine) {}
 
-  bool IsConnected(const std::set<int>& joined_tables, int table) override {
+  bool IsConnected(const absl::btree_set<int>& joined_tables,
+                   int table) override {
     for (int i = 0; i < num_predicates_; i++) {
       const auto& tables = tables_per_predicate_[i];
 
@@ -363,8 +366,8 @@ class PermutableJoinEnvironment : public JoinEnvironment {
     }
 
     // Set all predicate flags
-    std::unordered_set<int> available_tables;
-    std::unordered_set<int> executed_predicates;
+    absl::flat_hash_set<int> available_tables;
+    absl::flat_hash_set<int> executed_predicates;
     for (int table : order) {
       available_tables.insert(table);
 
@@ -394,13 +397,114 @@ class PermutableJoinEnvironment : public JoinEnvironment {
 
   const int num_predicates_;
   const int32_t budget_per_episode_;
-  const std::vector<std::unordered_map<int, int>> table_predicate_to_flag_idx_;
-  const std::vector<std::unordered_set<int>> tables_per_predicate_;
+  const std::vector<absl::flat_hash_map<int, int>> table_predicate_to_flag_idx_;
+  const std::vector<absl::flat_hash_set<int>> tables_per_predicate_;
   const std::vector<int32_t> cardinalities_;
   const std::vector<std::add_pointer<int(int, int8_t)>::type> table_functions_;
   const std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler_;
   JoinState state_;
   PermutableExecutionEngineFlags execution_engine_;
+};
+
+struct RecompilationExecutionEngineFlags {
+  int32_t* progress_arr;
+  int32_t* table_ctr;
+  int32_t* idx_arr;
+  int32_t* num_result_tuples;
+};
+
+class RecompilationJoinEnvironment : public JoinEnvironment {
+ public:
+  RecompilationJoinEnvironment(
+      compile::RecompilingJoinTranslator* codegen, void** materialized_buffers,
+      void** materialized_indexes, void* tuple_idx_table, int num_predicates,
+      const std::vector<absl::flat_hash_set<int>>& tables_per_predicate,
+      const std::vector<int32_t>& cardinalities,
+      RecompilationExecutionEngineFlags execution_engine)
+      : codegen_(codegen),
+        materialized_buffers_(materialized_buffers),
+        materialized_indexes_(materialized_indexes),
+        tuple_idx_table_(tuple_idx_table),
+        num_predicates_(num_predicates),
+        budget_per_episode_(10000),
+        tables_per_predicate_(tables_per_predicate),
+        cardinalities_(cardinalities),
+        state_(cardinalities_),
+        execution_engine_(execution_engine) {}
+
+  bool IsConnected(const absl::btree_set<int>& joined_tables,
+                   int table) override {
+    for (int i = 0; i < num_predicates_; i++) {
+      const auto& tables = tables_per_predicate_[i];
+
+      if (tables.find(table) == tables.end()) {
+        continue;
+      }
+
+      for (int x : tables) {
+        if (joined_tables.find(x) != joined_tables.end()) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  bool IsComplete() override { return state_.IsComplete(); }
+
+  double Execute(const std::vector<int>& order) override {
+    auto initial_last_completed_tuple = state_.GetLastCompletedTupleIdx(order);
+    const auto& offset = state_.GetOffset();
+
+    SetResumeProgress(order,
+                      initial_last_completed_tuple.value_or(
+                          std::vector<int32_t>(order.size(), -1)),
+                      offset);
+
+    auto execute_fn = codegen_->CompileJoinOrder(
+        order, materialized_buffers_, materialized_indexes_, tuple_idx_table_);
+
+    auto status = execute_fn(
+        budget_per_episode_, initial_last_completed_tuple.has_value(),
+        execution_engine_.progress_arr, execution_engine_.table_ctr,
+        execution_engine_.num_result_tuples, execution_engine_.idx_arr);
+
+    auto final_last_completed_tuple = ComputeLastCompletedTuple(
+        order, cardinalities_, status, *execution_engine_.table_ctr,
+        execution_engine_.idx_arr);
+
+    state_.Update(order, final_last_completed_tuple);
+
+    return Reward(order, offset,
+                  initial_last_completed_tuple.value_or(
+                      std::vector<int32_t>(order.size(), -1)),
+                  final_last_completed_tuple, cardinalities_,
+                  *execution_engine_.num_result_tuples, budget_per_episode_);
+  }
+
+ private:
+  void SetResumeProgress(const std::vector<int>& order,
+                         const std::vector<int32_t>& last_completed_tuple,
+                         const std::vector<int32_t>& offset) {
+    for (int table = 0; table < last_completed_tuple.size(); table++) {
+      execution_engine_.progress_arr[table] =
+          std::max(offset[table], last_completed_tuple[table]);
+    }
+    *execution_engine_.table_ctr = order[0];
+    *execution_engine_.num_result_tuples = 0;
+  }
+
+  compile::RecompilingJoinTranslator* codegen_;
+  void** materialized_buffers_;
+  void** materialized_indexes_;
+  void* tuple_idx_table_;
+  const int num_predicates_;
+  const int32_t budget_per_episode_;
+  const std::vector<absl::flat_hash_set<int>> tables_per_predicate_;
+  const std::vector<int32_t> cardinalities_;
+  JoinState state_;
+  RecompilationExecutionEngineFlags execution_engine_;
 };
 
 class UctNode {
@@ -416,7 +520,7 @@ class UctNode {
         num_tries_per_action_(num_actions_, 0),
         acc_reward_per_action_(num_actions_, 0),
         table_per_action_(num_actions_),
-        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+        rng_(0) {
     for (int i = 0; i < num_actions_; i++) {
       priority_actions_.push_back(i);
       recommended_actions_.insert(i);
@@ -441,7 +545,7 @@ class UctNode {
         joined_tables_(parent.joined_tables_),
         unjoined_tables_(parent.unjoined_tables_),
         table_per_action_(num_actions_),
-        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+        rng_(0) {
     joined_tables_.insert(joined_table);
 
     auto it = std::find(unjoined_tables_.begin(), unjoined_tables_.end(),
@@ -504,7 +608,7 @@ class UctNode {
     int last_table = order[tree_level_];
 
     if (USE_HEURISTIC_) {
-      std::set<int> newly_joined;
+      absl::btree_set<int> newly_joined;
       newly_joined.insert(joined_tables_.begin(), joined_tables_.end());
       newly_joined.insert(last_table);
 
@@ -607,8 +711,8 @@ class UctNode {
   int num_visits_;
   std::vector<int> num_tries_per_action_;
   std::vector<double> acc_reward_per_action_;
-  std::set<int> joined_tables_;
-  std::set<int> recommended_actions_;
+  absl::btree_set<int> joined_tables_;
+  absl::btree_set<int> recommended_actions_;
   std::vector<int> unjoined_tables_;
   std::vector<int> table_per_action_;
   std::default_random_engine rng_;
@@ -636,10 +740,10 @@ class UctJoinAgent {
   UctNode root_;
 };
 
-std::vector<std::unordered_map<int, int>> ReconstructTablePredicateToFlagIdx(
+std::vector<absl::flat_hash_map<int, int>> ReconstructTablePredicateToFlagIdx(
     int32_t num_tables, int32_t table_predicate_to_flag_idx_len,
     int32_t* table_predicate_to_flag_idx_arr) {
-  std::vector<std::unordered_map<int, int>> table_predicate_to_flag_idx(
+  std::vector<absl::flat_hash_map<int, int>> table_predicate_to_flag_idx(
       num_tables);
   for (int i = 0; i < table_predicate_to_flag_idx_len; i += 3) {
     int table = table_predicate_to_flag_idx_arr[i];
@@ -669,9 +773,9 @@ std::vector<int32_t> ReconstructCardinalities(int32_t num_tables,
   return cardinalities;
 }
 
-std::vector<std::unordered_set<int>> ReconstructTablesPerPredicate(
+std::vector<absl::flat_hash_set<int>> ReconstructTablesPerPredicate(
     int32_t num_predicates, int32_t* tables_per_predicate_arr) {
-  std::vector<std::unordered_set<int>> tables_per_predicate(num_predicates);
+  std::vector<absl::flat_hash_set<int>> tables_per_predicate(num_predicates);
   std::vector<int> num_tables_per_predicate(num_predicates);
   for (int i = 0; i < num_predicates; i++) {
     num_tables_per_predicate[i] = tables_per_predicate_arr[i];
@@ -724,27 +828,45 @@ void ExecutePermutableSkinnerJoin(
   }
 }
 
-void ExecuteRecompilingSkinnerJoin(int32_t num_tables,
+void ExecuteRecompilingSkinnerJoin(int32_t num_tables, int32_t num_predicates,
+                                   int32_t* cardinality_arr,
+                                   int32_t* tables_per_predicate_arr,
                                    compile::RecompilingJoinTranslator* codegen,
                                    void** materialized_buffers,
                                    void** materialized_indexes,
                                    void* tuple_idx_table) {
-  std::vector<int> order(num_tables);
+  auto cardinalities = ReconstructCardinalities(num_tables, cardinality_arr);
+  auto tables_per_predicate =
+      ReconstructTablesPerPredicate(num_predicates, tables_per_predicate_arr);
+
+  auto progress_arr = new int32_t[num_tables];
+  int32_t table_ctr = 0;
+  auto idx_arr = new int32_t[num_tables];
+  int32_t num_result_tuples = 0;
   for (int i = 0; i < num_tables; i++) {
-    order[i] = i;
+    idx_arr[i] = 0;
+    progress_arr[i] = -1;
   }
 
-  auto execute_fn = codegen->CompileJoinOrder(
-      order, materialized_buffers, materialized_indexes, tuple_idx_table);
+  RecompilationExecutionEngineFlags execution_engine{
+      .progress_arr = progress_arr,
+      .table_ctr = &table_ctr,
+      .idx_arr = idx_arr,
+      .num_result_tuples = &num_result_tuples,
+  };
 
-  int32_t* progress_arr = new int32_t[num_tables];
-  progress_arr[0] = 0;
-  progress_arr[1] = 1;
+  RecompilationJoinEnvironment environment(
+      codegen, materialized_buffers, materialized_indexes, tuple_idx_table,
+      num_predicates, tables_per_predicate, cardinalities, execution_engine);
 
-  int32_t table_ctr;
+  UctJoinAgent agent(num_tables, environment);
 
-  std::cout << execute_fn(1, true, progress_arr, &table_ctr) << ' ' << table_ctr
-            << std::endl;
+  while (!environment.IsComplete()) {
+    agent.Act();
+  }
+
+  delete[] progress_arr;
+  delete[] idx_arr;
 }
 
 }  // namespace kush::runtime
