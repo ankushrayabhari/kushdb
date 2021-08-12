@@ -34,7 +34,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
                                  void** materialized_buffers,
                                  void** materialized_indexes,
                                  void* tuple_idx_table) override;
-  void GenerateChildLoops(
+  proxy::Int32 GenerateChildLoops(
       int curr, const std::vector<int>& order, khir::ProgramBuilder& program,
       ExpressionTranslator& expr_translator,
       std::vector<proxy::Vector>& buffers,
@@ -44,7 +44,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
       std::vector<absl::flat_hash_set<int>>& tables_per_predicate,
       std::vector<absl::btree_set<int>>& predicates_per_table,
       absl::flat_hash_set<int> available_tables, khir::Type idx_array_type,
-      khir::Value idx_array);
+      khir::Value idx_array, proxy::Int32 initial_budget);
 
  private:
   const plan::SkinnerJoinOperator& join_;

@@ -715,7 +715,7 @@ void ExecutePermutableSkinnerJoin(
 }
 
 void ExecuteRecompilingSkinnerJoin(int32_t num_tables,
-                                   compile::RecompilingJoinTranslator* obj,
+                                   compile::RecompilingJoinTranslator* codegen,
                                    void** materialized_buffers,
                                    void** materialized_indexes,
                                    void* tuple_idx_table) {
@@ -724,9 +724,9 @@ void ExecuteRecompilingSkinnerJoin(int32_t num_tables,
     order[i] = i;
   }
 
-  auto execute_fn = obj->CompileJoinOrder(
+  auto execute_fn = codegen->CompileJoinOrder(
       order, materialized_buffers, materialized_indexes, tuple_idx_table);
-  execute_fn();
+  std::cout << execute_fn(4) << std::endl;
 }
 
 }  // namespace kush::runtime
