@@ -46,16 +46,25 @@ TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program, bool global)
   program_.StorePtr(value_, tuple_idx_table);
 }
 
+TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program, khir::Value value)
+    : program_(program),
+      value_(program.Alloca(program.PointerType(program.I8Type()))) {
+  program_.StorePtr(value_, value);
+}
+
 void TupleIdxTable::Reset() {
   auto tuple_idx_table = program_.LoadPtr(value_);
   program_.Call(program_.GetFunction(free_fn_name), {tuple_idx_table});
 }
 
-void TupleIdxTable::Insert(const khir::Value& idx_arr, Int32& num_tables) {
+void TupleIdxTable::Insert(const khir::Value& idx_arr,
+                           const Int32& num_tables) {
   auto tuple_idx_table = program_.LoadPtr(value_);
   program_.Call(program_.GetFunction(insert_fn_name),
                 {tuple_idx_table, idx_arr, num_tables.Get()});
 }
+
+khir::Value TupleIdxTable::Get() { return program_.LoadPtr(value_); }
 
 void TupleIdxTable::ForEach(std::function<void(const khir::Value&)> handler) {
   auto tuple_idx_table = program_.LoadPtr(value_);

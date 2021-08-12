@@ -4,10 +4,14 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_set.h"
+
 #include "compile/compilation_cache.h"
 #include "compile/program.h"
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/struct.h"
+#include "compile/proxy/tuple_idx_table.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
@@ -27,7 +31,18 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
   ExecuteJoinFn CompileJoinOrder(const std::vector<int>& order,
-                                 void** materialized_buffers) override;
+                                 void** materialized_buffers,
+                                 void* tuple_idx_table) override;
+  void GenerateChildLoops(
+      int curr, const std::vector<int>& order, khir::ProgramBuilder& program,
+      ExpressionTranslator& expr_translator,
+      std::vector<proxy::Vector>& buffers,
+      proxy::TupleIdxTable& tuple_idx_table,
+      absl::flat_hash_set<int> evaluated_predicates,
+      std::vector<absl::flat_hash_set<int>>& tables_per_predicate,
+      std::vector<absl::btree_set<int>>& predicates_per_table,
+      absl::flat_hash_set<int> available_tables, khir::Type idx_array_type,
+      khir::Value idx_array);
 
  private:
   const plan::SkinnerJoinOperator& join_;
