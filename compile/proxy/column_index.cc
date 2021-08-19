@@ -94,59 +94,64 @@ void* FreeFn() {
 }
 
 template <catalog::SqlType S>
-std::string_view GetNextGreaterFnName() {
+std::string_view GetBucketFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime11ColumnIndex22GetNextTupleInt16IndexEPSt13unordere"
-           "d_mapIsSt6vectorIiSaIiEESt4hashIsESt8equal_toIsESaISt4pairIKsS5_"
-           "EEEsii";
+    return "_ZN4kush7runtime11ColumnIndex19GetBucketInt16IndexEPN4absl13flat_"
+           "hash_mapIsSt6vectorIiSaIiEENS2_13hash_internal4HashIsEESt8equal_"
+           "toIsESaISt4pairIKsS6_EEEEs";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime11ColumnIndex22GetNextTupleInt32IndexEPSt13unordere"
-           "d_mapIiSt6vectorIiSaIiEESt4hashIiESt8equal_toIiESaISt4pairIKiS5_"
-           "EEEiii";
+    return "_ZN4kush7runtime11ColumnIndex19GetBucketInt32IndexEPN4absl13flat_"
+           "hash_mapIiSt6vectorIiSaIiEENS2_13hash_internal4HashIiEESt8equal_"
+           "toIiESaISt4pairIKiS6_EEEEi";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime11ColumnIndex22GetNextTupleInt64IndexEPSt13unordere"
-           "d_mapIlSt6vectorIiSaIiEESt4hashIlESt8equal_toIlESaISt4pairIKlS5_"
-           "EEElii";
+    return "_ZN4kush7runtime11ColumnIndex19GetBucketInt64IndexEPN4absl13flat_"
+           "hash_mapIlSt6vectorIiSaIiEENS2_13hash_internal4HashIlEESt8equal_"
+           "toIlESaISt4pairIKlS6_EEEEl";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime11ColumnIndex24GetNextTupleFloat64IndexEPSt13unorde"
-           "red_mapIdSt6vectorIiSaIiEESt4hashIdESt8equal_toIdESaISt4pairIKdS5_"
-           "EEEdii";
+    return "_ZN4kush7runtime11ColumnIndex21GetBucketFloat64IndexEPN4absl13flat_"
+           "hash_mapIdSt6vectorIiSaIiEENS2_13hash_internal4HashIdEESt8equal_"
+           "toIdESaISt4pairIKdS6_EEEEd";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime11ColumnIndex21GetNextTupleInt8IndexEPSt13unordered"
-           "_mapIaSt6vectorIiSaIiEESt4hashIaESt8equal_toIaESaISt4pairIKaS5_"
-           "EEEaii";
+    return "_ZN4kush7runtime11ColumnIndex18GetBucketInt8IndexEPN4absl13flat_"
+           "hash_mapIaSt6vectorIiSaIiEENS2_13hash_internal4HashIaEESt8equal_"
+           "toIaESaISt4pairIKaS6_EEEEa";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime11ColumnIndex21GetNextTupleTextIndexEPSt13unordered"
-           "_mapINSt7__cxx1112basic_stringIcSt11char_"
-           "traitsIcESaIcEEESt6vectorIiSaIiEESt4hashIS8_ESt8equal_toIS8_"
-           "ESaISt4pairIKS8_SB_EEEPNS0_6String6StringEii";
+    return "_ZN4kush7runtime11ColumnIndex18GetBucketTextIndexEPN4absl13flat_"
+           "hash_mapINSt7__cxx1112basic_stringIcSt11char_"
+           "traitsIcESaIcEEESt6vectorIiSaIiEENS2_18container_"
+           "internal10StringHashENSD_12StringHashEq2EqESaISt4pairIKS9_SC_"
+           "EEEEPNS0_6String6StringE";
   }
 }
 
 template <catalog::SqlType S>
-void* GetNextGreaterFn() {
+void* GetBucketFn() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::ColumnIndex::GetNextTupleInt16Index);
+    return reinterpret_cast<void*>(&runtime::ColumnIndex::GetBucketInt16Index);
   } else if constexpr (catalog::SqlType::INT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::ColumnIndex::GetNextTupleInt32Index);
+    return reinterpret_cast<void*>(&runtime::ColumnIndex::GetBucketInt32Index);
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return reinterpret_cast<void*>(
-        &runtime::ColumnIndex::GetNextTupleInt64Index);
+    return reinterpret_cast<void*>(&runtime::ColumnIndex::GetBucketInt64Index);
   } else if constexpr (catalog::SqlType::REAL == S) {
     return reinterpret_cast<void*>(
-        &runtime::ColumnIndex::GetNextTupleFloat64Index);
+        &runtime::ColumnIndex::GetBucketFloat64Index);
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return reinterpret_cast<void*>(
-        &runtime::ColumnIndex::GetNextTupleInt8Index);
+    return reinterpret_cast<void*>(&runtime::ColumnIndex::GetBucketInt8Index);
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::ColumnIndex::GetNextTupleTextIndex);
+    return reinterpret_cast<void*>(&runtime::ColumnIndex::GetBucketTextIndex);
   }
 }
+
+constexpr std::string_view FastForwardBucketName(
+    "_ZN4kush7runtime11ColumnIndex17FastForwardBucketEPSt6vectorIiSaIiEEi");
+
+constexpr std::string_view BucketSizeName(
+    "_ZN4kush7runtime11ColumnIndex10BucketSizeEPSt6vectorIiSaIiEE");
+
+constexpr std::string_view BucketGetName(
+    "_ZN4kush7runtime11ColumnIndex9BucketGetEPSt6vectorIiSaIiEEi");
 
 template <catalog::SqlType S>
 std::string_view InsertFnName() {
@@ -241,19 +246,19 @@ void ColumnIndexImpl<S>::Insert(const proxy::Value& v,
 }
 
 template <catalog::SqlType S>
-proxy::Int32 ColumnIndexImpl<S>::GetNextGreater(
-    const proxy::Value& v, const proxy::Int32& tuple_idx,
-    const proxy::Int32& cardinality) {
-  return proxy::Int32(
-      program_, program_.Call(program_.GetFunction(GetNextGreaterFnName<S>()),
-                              {program_.LoadPtr(value_), v.Get(),
-                               tuple_idx.Get(), cardinality.Get()}));
+IndexBucket ColumnIndexImpl<S>::GetBucket(const proxy::Value& v) {
+  return IndexBucket(program_,
+                     program_.Call(program_.GetFunction(GetBucketFnName<S>()),
+                                   {program_.LoadPtr(value_), v.Get()}));
 }
 
 template <catalog::SqlType S>
 void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   auto index_type = program.I8Type();
   auto index_ptr_type = program.PointerType(index_type);
+
+  auto bucket_type = program.I8Type();
+  auto bucket_ptr_type = program.PointerType(bucket_type);
 
   std::optional<typename khir::Type> value_type;
   if constexpr (catalog::SqlType::SMALLINT == S) {
@@ -279,10 +284,41 @@ void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   program.DeclareExternalFunction(
       InsertFnName<S>(), program.VoidType(),
       {index_ptr_type, value_type.value(), program.I32Type()}, InsertFn<S>());
-  program.DeclareExternalFunction(GetNextGreaterFnName<S>(), program.I32Type(),
-                                  {index_ptr_type, value_type.value(),
-                                   program.I32Type(), program.I32Type()},
-                                  GetNextGreaterFn<S>());
+
+  // Bucket related functionality
+  program.DeclareExternalFunction(GetBucketFnName<S>(), bucket_ptr_type,
+                                  {index_ptr_type, value_type.value()},
+                                  GetBucketFn<S>());
+  program.DeclareExternalFunction(
+      FastForwardBucketName, program.I32Type(),
+      {bucket_ptr_type, program.I32Type()},
+      reinterpret_cast<void*>(&runtime::ColumnIndex::FastForwardBucket));
+  program.DeclareExternalFunction(
+      BucketSizeName, program.I32Type(), {bucket_ptr_type},
+      reinterpret_cast<void*>(&runtime::ColumnIndex::BucketSize));
+  program.DeclareExternalFunction(
+      BucketGetName, program.I32Type(), {bucket_ptr_type, program.I32Type()},
+      reinterpret_cast<void*>(&runtime::ColumnIndex::BucketGet));
+}
+
+IndexBucket::IndexBucket(khir::ProgramBuilder& program, khir::Value v)
+    : program_(program), value_(v) {}
+
+proxy::Int32 IndexBucket::FastForwardToStart(const proxy::Int32& last_tuple) {
+  return proxy::Int32(program_,
+                      program_.Call(program_.GetFunction(FastForwardBucketName),
+                                    {value_, last_tuple.Get()}));
+}
+
+proxy::Int32 IndexBucket::Size() {
+  return proxy::Int32(
+      program_, program_.Call(program_.GetFunction(BucketSizeName), {value_}));
+}
+
+proxy::Int32 IndexBucket::Get(const proxy::Int32& v) {
+  return proxy::Int32(
+      program_,
+      program_.Call(program_.GetFunction(BucketGetName), {value_, v.Get()}));
 }
 
 template class ColumnIndexImpl<catalog::SqlType::SMALLINT>;

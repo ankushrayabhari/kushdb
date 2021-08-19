@@ -10,6 +10,19 @@
 
 namespace kush::compile::proxy {
 
+class IndexBucket {
+ public:
+  IndexBucket(khir::ProgramBuilder& program, khir::Value v);
+
+  proxy::Int32 FastForwardToStart(const proxy::Int32& last_tuple);
+  proxy::Int32 Size();
+  proxy::Int32 Get(const proxy::Int32& v);
+
+ private:
+  khir::ProgramBuilder& program_;
+  khir::Value value_;
+};
+
 class ColumnIndex {
  public:
   virtual ~ColumnIndex() = default;
@@ -18,9 +31,7 @@ class ColumnIndex {
   virtual catalog::SqlType Type() const = 0;
   virtual void Reset() = 0;
   virtual void Insert(const proxy::Value& v, const proxy::Int32& tuple_idx) = 0;
-  virtual proxy::Int32 GetNextGreater(const proxy::Value& v,
-                                      const proxy::Int32& tuple_idx,
-                                      const proxy::Int32& cardinality) = 0;
+  virtual IndexBucket GetBucket(const proxy::Value& v) = 0;
 };
 
 template <catalog::SqlType S>
@@ -34,9 +45,7 @@ class ColumnIndexImpl : public ColumnIndex {
   void Insert(const proxy::Value& v, const proxy::Int32& tuple_idx) override;
   khir::Value Get() const override;
   catalog::SqlType Type() const override;
-  proxy::Int32 GetNextGreater(const proxy::Value& v,
-                              const proxy::Int32& tuple_idx,
-                              const proxy::Int32& cardinality) override;
+  IndexBucket GetBucket(const proxy::Value& v) override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 

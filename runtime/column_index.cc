@@ -10,160 +10,168 @@
 #include <system_error>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
+
 namespace kush::runtime::ColumnIndex {
 
 // ---------- Create Index -------------
-std::unordered_map<int8_t, std::vector<int32_t>>* CreateInt8Index() {
-  return new std::unordered_map<int8_t, std::vector<int32_t>>;
+absl::flat_hash_map<int8_t, std::vector<int32_t>>* CreateInt8Index() {
+  return new absl::flat_hash_map<int8_t, std::vector<int32_t>>;
 }
 
-std::unordered_map<int16_t, std::vector<int32_t>>* CreateInt16Index() {
-  return new std::unordered_map<int16_t, std::vector<int32_t>>;
+absl::flat_hash_map<int16_t, std::vector<int32_t>>* CreateInt16Index() {
+  return new absl::flat_hash_map<int16_t, std::vector<int32_t>>;
 }
 
-std::unordered_map<int32_t, std::vector<int32_t>>* CreateInt32Index() {
-  return new std::unordered_map<int32_t, std::vector<int32_t>>;
+absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt32Index() {
+  return new absl::flat_hash_map<int32_t, std::vector<int32_t>>;
 }
 
-std::unordered_map<int64_t, std::vector<int32_t>>* CreateInt64Index() {
-  return new std::unordered_map<int64_t, std::vector<int32_t>>;
+absl::flat_hash_map<int64_t, std::vector<int32_t>>* CreateInt64Index() {
+  return new absl::flat_hash_map<int64_t, std::vector<int32_t>>;
 }
 
-std::unordered_map<double, std::vector<int32_t>>* CreateFloat64Index() {
-  return new std::unordered_map<double, std::vector<int32_t>>;
+absl::flat_hash_map<double, std::vector<int32_t>>* CreateFloat64Index() {
+  return new absl::flat_hash_map<double, std::vector<int32_t>>;
 }
 
-std::unordered_map<std::string, std::vector<int32_t>>* CreateTextIndex() {
-  return new std::unordered_map<std::string, std::vector<int32_t>>;
+absl::flat_hash_map<std::string, std::vector<int32_t>>* CreateTextIndex() {
+  return new absl::flat_hash_map<std::string, std::vector<int32_t>>;
 }
 
 // ---------- Free Index -------------
-void FreeInt8Index(std::unordered_map<int8_t, std::vector<int32_t>>* index) {
+void FreeInt8Index(absl::flat_hash_map<int8_t, std::vector<int32_t>>* index) {
   delete index;
 }
 
-void FreeInt16Index(std::unordered_map<int16_t, std::vector<int32_t>>* index) {
+void FreeInt16Index(absl::flat_hash_map<int16_t, std::vector<int32_t>>* index) {
   delete index;
 }
 
-void FreeInt32Index(std::unordered_map<int32_t, std::vector<int32_t>>* index) {
+void FreeInt32Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index) {
   delete index;
 }
 
-void FreeInt64Index(std::unordered_map<int64_t, std::vector<int32_t>>* index) {
+void FreeInt64Index(absl::flat_hash_map<int64_t, std::vector<int32_t>>* index) {
   delete index;
 }
 
-void FreeFloat64Index(std::unordered_map<double, std::vector<int32_t>>* index) {
+void FreeFloat64Index(
+    absl::flat_hash_map<double, std::vector<int32_t>>* index) {
   delete index;
 }
 
 void FreeTextIndex(
-    std::unordered_map<std::string, std::vector<int32_t>>* index) {
+    absl::flat_hash_map<std::string, std::vector<int32_t>>* index) {
   delete index;
 }
 
 // ---------- Insert -------------
-void InsertInt8Index(std::unordered_map<int8_t, std::vector<int32_t>>* index,
+void InsertInt8Index(absl::flat_hash_map<int8_t, std::vector<int32_t>>* index,
                      int8_t value, int32_t tuple_idx) {
   index->operator[](value).push_back(tuple_idx);
 }
 
-void InsertInt16Index(std::unordered_map<int16_t, std::vector<int32_t>>* index,
+void InsertInt16Index(absl::flat_hash_map<int16_t, std::vector<int32_t>>* index,
                       int16_t value, int32_t tuple_idx) {
   index->operator[](value).push_back(tuple_idx);
 }
 
-void InsertInt32Index(std::unordered_map<int32_t, std::vector<int32_t>>* index,
+void InsertInt32Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
                       int32_t value, int32_t tuple_idx) {
   index->operator[](value).push_back(tuple_idx);
 }
 
-void InsertInt64Index(std::unordered_map<int64_t, std::vector<int32_t>>* index,
+void InsertInt64Index(absl::flat_hash_map<int64_t, std::vector<int32_t>>* index,
                       int64_t value, int32_t tuple_idx) {
   index->operator[](value).push_back(tuple_idx);
 }
 
-void InsertFloat64Index(std::unordered_map<double, std::vector<int32_t>>* index,
-                        double value, int32_t tuple_idx) {
+void InsertFloat64Index(
+    absl::flat_hash_map<double, std::vector<int32_t>>* index, double value,
+    int32_t tuple_idx) {
   index->operator[](value).push_back(tuple_idx);
 }
 
 void InsertTextIndex(
-    std::unordered_map<std::string, std::vector<int32_t>>* index,
+    absl::flat_hash_map<std::string, std::vector<int32_t>>* index,
     String::String* value, int32_t tuple_idx) {
   index->operator[](std::string(value->data, value->length))
       .push_back(tuple_idx);
 }
 
 // Get the next tuple from index or cardinality
-template <typename T>
-inline int32_t GetNextTupleImpl(
-    std::unordered_map<T, std::vector<int32_t>>* index, const T& value,
-    int32_t prev_tuple, int32_t cardinality) {
-  auto it = index->find(value);
-
-  if (it == index->end()) {
-    return cardinality;
-  }
-
-  // Get bucket
-  const auto& bucket = it->second;
-
+int32_t FastForwardBucket(std::vector<int32_t>* bucket_ptr,
+                          int32_t prev_tuple) {
   // Binary search for tuple greater than prev_tuple
   int start = 0;
+  const auto& bucket = *bucket_ptr;
   int end = bucket.size() - 1;
 
-  int32_t next_greater = cardinality;
+  int32_t next_greater_idx = -1;
   while (start <= end) {
     int mid = (start + end) / 2;
 
     if (bucket[mid] <= prev_tuple) {
       start = mid + 1;
     } else {
-      next_greater = bucket[mid];
+      next_greater_idx = mid;
       end = mid - 1;
     }
   }
 
-  return next_greater;
+  return next_greater_idx;
 }
 
-int32_t GetNextTupleInt8Index(
-    std::unordered_map<int8_t, std::vector<int32_t>>* index, int8_t value,
-    int32_t prev_tuple, int32_t cardinality) {
-  return GetNextTupleImpl(index, value, prev_tuple, cardinality);
+int32_t BucketSize(std::vector<int32_t>* bucket) { return bucket->size(); }
+
+int32_t BucketGet(std::vector<int32_t>* bucket, int32_t idx) {
+  return (*bucket)[idx];
 }
 
-int32_t GetNextTupleInt16Index(
-    std::unordered_map<int16_t, std::vector<int32_t>>* index, int16_t value,
-    int32_t prev_tuple, int32_t cardinality) {
-  return GetNextTupleImpl(index, value, prev_tuple, cardinality);
+// Get the next tuple from index or cardinality
+template <typename T, typename S>
+inline std::vector<int32_t>* GetBucketImpl(
+    absl::flat_hash_map<T, std::vector<int32_t>>* index, S value) {
+  auto it = index->find(value);
+
+  if (it == index->end()) {
+    return nullptr;
+  }
+
+  // Get bucket
+  return &it->second;
 }
 
-int32_t GetNextTupleInt32Index(
-    std::unordered_map<int32_t, std::vector<int32_t>>* index, int32_t value,
-    int32_t prev_tuple, int32_t cardinality) {
-  return GetNextTupleImpl(index, value, prev_tuple, cardinality);
+std::vector<int32_t>* GetBucketInt8Index(
+    absl::flat_hash_map<int8_t, std::vector<int32_t>>* index, int8_t value) {
+  return GetBucketImpl(index, value);
 }
 
-int32_t GetNextTupleInt64Index(
-    std::unordered_map<int64_t, std::vector<int32_t>>* index, int64_t value,
-    int32_t prev_tuple, int32_t cardinality) {
-  return GetNextTupleImpl(index, value, prev_tuple, cardinality);
+std::vector<int32_t>* GetBucketInt16Index(
+    absl::flat_hash_map<int16_t, std::vector<int32_t>>* index, int16_t value) {
+  return GetBucketImpl(index, value);
 }
 
-int32_t GetNextTupleFloat64Index(
-    std::unordered_map<double, std::vector<int32_t>>* index, double value,
-    int32_t prev_tuple, int32_t cardinality) {
-  return GetNextTupleImpl(index, value, prev_tuple, cardinality);
+std::vector<int32_t>* GetBucketInt32Index(
+    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int32_t value) {
+  return GetBucketImpl(index, value);
 }
 
-int32_t GetNextTupleTextIndex(
-    std::unordered_map<std::string, std::vector<int32_t>>* index,
-    String::String* value, int32_t prev_tuple, int32_t cardinality) {
-  return GetNextTupleImpl(index, std::string(value->data, value->length),
-                          prev_tuple, cardinality);
+std::vector<int32_t>* GetBucketInt64Index(
+    absl::flat_hash_map<int64_t, std::vector<int32_t>>* index, int64_t value) {
+  return GetBucketImpl(index, value);
+}
+
+std::vector<int32_t>* GetBucketFloat64Index(
+    absl::flat_hash_map<double, std::vector<int32_t>>* index, double value) {
+  return GetBucketImpl(index, value);
+}
+
+std::vector<int32_t>* GetBucketTextIndex(
+    absl::flat_hash_map<std::string, std::vector<int32_t>>* index,
+    String::String* value) {
+  return GetBucketImpl(index, std::string_view(value->data, value->length));
 }
 
 }  // namespace kush::runtime::ColumnIndex

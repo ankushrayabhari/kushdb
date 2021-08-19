@@ -38,6 +38,7 @@ cc_library(
     linkstatic = True,
     deps = [
         ":string",
+        "@absl//absl/container:flat_hash_map",
     ],
 )
 
@@ -48,6 +49,7 @@ cc_binary(
     deps = [
         ":column_index",
         ":string",
+        "@absl//absl/container:flat_hash_map",
     ],
 )
 
