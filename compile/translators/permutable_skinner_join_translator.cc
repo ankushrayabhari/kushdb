@@ -347,77 +347,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
                 auto next_tuple = (last_tuple + 1).ToPointer();
 
-                // Get next_tuple from active equality predicates
-                absl::flat_hash_set<int> index_evaluated_predicates;
-                for (int predicate_idx : predicates_per_table[table_idx]) {
-                  const auto& predicate = conditions[predicate_idx].get();
-                  if (auto eq = dynamic_cast<
-                          const kush::plan::BinaryArithmeticExpression*>(
-                          &predicate)) {
-                    if (auto left_column = dynamic_cast<
-                            const kush::plan::ColumnRefExpression*>(
-                            &eq->LeftChild())) {
-                      if (auto right_column = dynamic_cast<
-                              const kush::plan::ColumnRefExpression*>(
-                              &eq->RightChild())) {
-                        if (table_idx == left_column->GetChildIdx() ||
-                            table_idx == right_column->GetChildIdx()) {
-                          auto table_column =
-                              table_idx == left_column->GetChildIdx()
-                                  ? left_column->GetColumnIdx()
-                                  : right_column->GetColumnIdx();
-
-                          auto it = predicate_to_index_idx_.find(
-                              {table_idx, table_column});
-                          if (it != predicate_to_index_idx_.end()) {
-                            auto idx = it->second;
-
-                            auto flag_ptr = program_.GetElementPtr(
-                                flag_array_type, flag_array,
-                                {0, table_predicate_to_flag_idx.at(
-                                        {table_idx, predicate_idx})});
-                            proxy::Int8 flag_value(program_,
-                                                   program_.LoadI8(flag_ptr));
-
-                            auto check = proxy::If(
-                                program_, flag_value == 1,
-                                [&]() -> std::vector<khir::Value> {
-                                  auto other_side_value =
-                                      expr_translator_.Compute(
-                                          table_idx ==
-                                                  left_column->GetChildIdx()
-                                              ? *right_column
-                                              : *left_column);
-                                  auto next_greater_in_index =
-                                      indexes_[idx]->GetNextGreater(
-                                          *other_side_value, last_tuple,
-                                          cardinality);
-
-                                  auto max_check = proxy::If(
-                                      program_,
-                                      next_greater_in_index > (*next_tuple),
-                                      [&]() -> std::vector<khir::Value> {
-                                        return {next_greater_in_index.Get()};
-                                      },
-                                      [&]() -> std::vector<khir::Value> {
-                                        return {next_tuple->Get()};
-                                      });
-
-                                  return {max_check[0]};
-                                },
-                                [&]() -> std::vector<khir::Value> {
-                                  return {next_tuple->Get()};
-                                });
-                            next_tuple =
-                                proxy::Int32(program_, check[0]).ToPointer();
-                            index_evaluated_predicates.insert(predicate_idx);
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-
                 proxy::If(
                     program_, *next_tuple == cardinality,
                     [&]() -> std::vector<khir::Value> {
@@ -469,15 +398,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
                 }
 
                 for (int predicate_idx : predicates_per_table[table_idx]) {
-                  // If there was only one predicate checked via index,
-                  // we're guaranteed it holds. Otherwise, we checked
-                  // multiple indexes and so we need to evaluate all
-                  // predicates again.
-                  if (index_evaluated_predicates.size() == 1 &&
-                      index_evaluated_predicates.contains(predicate_idx)) {
-                    continue;
-                  }
-
                   auto flag_ptr = program_.GetElementPtr(
                       flag_array_type, flag_array,
                       {0, table_predicate_to_flag_idx.at(
