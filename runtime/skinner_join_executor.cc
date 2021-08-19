@@ -520,7 +520,7 @@ class UctNode {
         num_tries_per_action_(num_actions_, 0),
         acc_reward_per_action_(num_actions_, 0),
         table_per_action_(num_actions_),
-        rng_(0) {
+        rng_(2) {
     for (int i = 0; i < num_actions_; i++) {
       priority_actions_.push_back(i);
       recommended_actions_.insert(i);
@@ -545,7 +545,7 @@ class UctNode {
         joined_tables_(parent.joined_tables_),
         unjoined_tables_(parent.unjoined_tables_),
         table_per_action_(num_actions_),
-        rng_(0) {
+        rng_(2) {
     joined_tables_.insert(joined_table);
 
     auto it = std::find(unjoined_tables_.begin(), unjoined_tables_.end(),

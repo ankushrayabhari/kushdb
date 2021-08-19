@@ -60,20 +60,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
   proxy::Loop loop(
       program,
       [&](auto& loop) {
-        auto initial_last_tuple = proxy::If(
-            program, resume_progress,
-            [&]() -> std::vector<khir::Value> {
-              auto progress_ptr = program.GetElementPtr(
-                  program.I32Type(), progress_arr, {table_idx});
-              auto progress =
-                  proxy::Int32(program, program.LoadI32(progress_ptr));
-              return {progress.Get()};
-            },
-            [&]() -> std::vector<khir::Value> {
-              return {proxy::Int32(program, -1).Get()};
-            });
-
-        loop.AddLoopVariable(proxy::Int32(program, initial_last_tuple[0]));
+        loop.AddLoopVariable(proxy::Int32(program, -1));
         loop.AddLoopVariable(initial_budget);
         loop.AddLoopVariable(resume_progress);
       },
@@ -83,82 +70,38 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
       },
       [&](auto& loop) {
         auto last_tuple = loop.template GetLoopVariable<proxy::Int32>(0);
-        auto budget = loop.template GetLoopVariable<proxy::Int32>(1) - 1;
+        auto last_budget = loop.template GetLoopVariable<proxy::Int32>(1);
         auto resume_progress = loop.template GetLoopVariable<proxy::Bool>(2);
 
-        auto next_tuple = (last_tuple + 1).ToPointer();
+        auto progress_check = proxy::If(
+            program, resume_progress,
+            [&]() -> std::vector<khir::Value> {
+              auto progress_ptr = program.GetElementPtr(
+                  program.I32Type(), progress_arr, {table_idx});
+              auto next_tuple =
+                  proxy::Int32(program, program.LoadI32(progress_ptr));
+              return {next_tuple.Get(), last_budget.Get()};
+            },
+            [&]() -> std::vector<khir::Value> {
+              auto next_tuple = last_tuple + 1;
+              auto next_budget = last_budget - 1;
+              return {next_tuple.Get(), next_budget.Get()};
+            });
 
-        // Get next_tuple from active equality predicates
-        absl::flat_hash_set<int> index_evaluated_predicates;
-        for (int predicate_idx : predicates_per_table[table_idx]) {
-          if (evaluated_predicates.contains(predicate_idx)) {
-            continue;
-          }
-
-          bool can_execute = true;
-          for (int table : tables_per_predicate[predicate_idx]) {
-            if (!available_tables.contains(table)) {
-              can_execute = false;
-            }
-          }
-          if (!can_execute) {
-            continue;
-          }
-
-          const auto& predicate = conditions[predicate_idx].get();
-          if (auto eq =
-                  dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(
-                      &predicate)) {
-            if (auto left_column =
-                    dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                        &eq->LeftChild())) {
-              if (auto right_column =
-                      dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                          &eq->RightChild())) {
-                if (table_idx == left_column->GetChildIdx() ||
-                    table_idx == right_column->GetChildIdx()) {
-                  auto table_column = table_idx == left_column->GetChildIdx()
-                                          ? left_column->GetColumnIdx()
-                                          : right_column->GetColumnIdx();
-
-                  auto it =
-                      predicate_to_index_idx_.find({table_idx, table_column});
-                  if (it != predicate_to_index_idx_.end()) {
-                    auto idx = it->second;
-
-                    auto other_side_value = expr_translator.Compute(
-                        table_idx == left_column->GetChildIdx() ? *right_column
-                                                                : *left_column);
-                    auto next_greater_in_index = indexes[idx]->GetNextGreater(
-                        *other_side_value, last_tuple, cardinality);
-
-                    auto max_check = proxy::If(
-                        program, next_greater_in_index > (*next_tuple),
-                        [&]() -> std::vector<khir::Value> {
-                          return {next_greater_in_index.Get()};
-                        },
-                        [&]() -> std::vector<khir::Value> {
-                          return {next_tuple->Get()};
-                        });
-
-                    next_tuple =
-                        proxy::Int32(program, max_check[0]).ToPointer();
-                    index_evaluated_predicates.insert(predicate_idx);
-                  }
-                }
-              }
-            }
-          }
-        }
+        // write idx into idx array
+        auto next_tuple = proxy::Int32(program, progress_check[0]);
+        auto budget = proxy::Int32(program, progress_check[1]);
+        auto idx_ptr =
+            program.GetElementPtr(program.I32Type(), idx_array, {table_idx});
+        program.StoreI32(idx_ptr, next_tuple.Get());
 
         proxy::If(
-            program, *next_tuple == cardinality,
+            program, next_tuple == cardinality,
             [&]() -> std::vector<khir::Value> {
               // Since loop is complete check that we've depleted budget
               proxy::If(
                   program, budget == 0,
                   [&]() -> std::vector<khir::Value> {
-                    // Set table_ctr to be the current table
                     program.StoreI32(table_ctr_ptr,
                                      program.ConstI32(table_idx));
                     program.Return(program.ConstI32(-1));
@@ -171,7 +114,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
             },
             []() -> std::vector<khir::Value> { return {}; });
 
-        auto tuple = buffer[*next_tuple];
+        auto tuple = buffer[next_tuple];
         child_translators[table_idx].get().SchemaValues().SetValues(
             tuple.Unpack());
         available_tables.insert(table_idx);
@@ -185,19 +128,10 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
           for (int table : tables_per_predicate[predicate_idx]) {
             if (!available_tables.contains(table)) {
               can_execute = false;
+              break;
             }
           }
           if (!can_execute) {
-            continue;
-          }
-
-          // If there was only one predicate checked via index,
-          // we're guaranteed it holds. Otherwise, we checked
-          // multiple indexes and so we need to evaluate all
-          // predicates again.
-          if (index_evaluated_predicates.size() == 1 &&
-              index_evaluated_predicates.contains(predicate_idx)) {
-            evaluated_predicates.insert(predicate_idx);
             continue;
           }
 
@@ -217,19 +151,13 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                     },
                     []() -> std::vector<khir::Value> { return {}; });
 
-                loop.Continue(*next_tuple, budget, proxy::Bool(program, false));
+                loop.Continue(next_tuple, budget, proxy::Bool(program, false));
                 return {};
               },
               []() -> std::vector<khir::Value> { return {}; });
         }
 
         // Valid tuple
-
-        // write idx into idx array
-        auto idx_ptr =
-            program.GetElementPtr(program.I32Type(), idx_array, {table_idx});
-        program.StoreI32(idx_ptr, next_tuple->Get());
-
         std::unique_ptr<proxy::Int32> next_budget;
         if (curr + 1 == order.size()) {
           // Complete tuple - insert into HT
@@ -274,7 +202,8 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                   .ToPointer();
         }
 
-        return loop.Continue(*next_tuple, budget, proxy::Bool(program, false));
+        return loop.Continue(next_tuple, *next_budget,
+                             proxy::Bool(program, false));
       });
 
   return loop.template GetLoopVariable<proxy::Int32>(1);
@@ -405,20 +334,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   proxy::Loop loop(
       program,
       [&](auto& loop) {
-        auto initial_last_tuple = proxy::If(
-            program, resume_progress,
-            [&]() -> std::vector<khir::Value> {
-              auto progress_ptr = program.GetElementPtr(
-                  program.I32Type(), progress_arr, {table_idx});
-              auto progress =
-                  proxy::Int32(program, program.LoadI32(progress_ptr));
-              return {progress.Get()};
-            },
-            [&]() -> std::vector<khir::Value> {
-              return {proxy::Int32(program, -1).Get()};
-            });
-
-        loop.AddLoopVariable(proxy::Int32(program, initial_last_tuple[0]));
+        loop.AddLoopVariable(proxy::Int32(program, -1));
         loop.AddLoopVariable(initial_budget);
         loop.AddLoopVariable(resume_progress);
       },
@@ -428,10 +344,28 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
       },
       [&](auto& loop) {
         auto last_tuple = loop.template GetLoopVariable<proxy::Int32>(0);
-        auto budget = loop.template GetLoopVariable<proxy::Int32>(1) - 1;
+        auto last_budget = loop.template GetLoopVariable<proxy::Int32>(1);
         auto resume_progress = loop.template GetLoopVariable<proxy::Bool>(2);
 
-        auto next_tuple = last_tuple + 1;
+        auto progress_check = proxy::If(
+            program, resume_progress,
+            [&]() -> std::vector<khir::Value> {
+              auto progress_ptr = program.GetElementPtr(
+                  program.I32Type(), progress_arr, {table_idx});
+              auto next_tuple =
+                  proxy::Int32(program, program.LoadI32(progress_ptr));
+              return {next_tuple.Get(), last_budget.Get()};
+            },
+            [&]() -> std::vector<khir::Value> {
+              auto next_tuple = last_tuple + 1;
+              auto next_budget = last_budget - 1;
+              return {next_tuple.Get(), next_budget.Get()};
+            });
+        auto next_tuple = proxy::Int32(program, progress_check[0]);
+        auto budget = proxy::Int32(program, progress_check[1]);
+        auto idx_ptr =
+            program.GetElementPtr(program.I32Type(), idx_array, {table_idx});
+        program.StoreI32(idx_ptr, next_tuple.Get());
 
         proxy::If(
             program, budget == 0,
@@ -445,22 +379,19 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         auto tuple = buffer[next_tuple];
         child_translators[table_idx].get().SchemaValues().SetValues(
             tuple.Unpack());
-
         available_tables.insert(table_idx);
-        auto idx_ptr =
-            program.GetElementPtr(program.I32Type(), idx_array, {table_idx});
-        program.StoreI32(idx_ptr, next_tuple.Get());
 
         auto next_budget = GenerateChildLoops(
             1, order, program, expr_translator, buffers, indexes,
             tuple_idx_table, evaluated_predicates, tables_per_predicate,
             predicates_per_table, available_tables, idx_array, progress_arr,
             table_ctr_ptr, num_result_tuples_ptr, budget, resume_progress);
+
         return loop.Continue(next_tuple, next_budget,
                              proxy::Bool(program, false));
       });
 
-  auto budget = loop.template GetLoopVariable<proxy::Int32>(0);
+  auto budget = loop.template GetLoopVariable<proxy::Int32>(1);
   program.Return(budget.Get());
 
   entry.Compile();

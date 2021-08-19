@@ -38,7 +38,7 @@ QueryTranslator::Translate() {
   switch (GetBackend()) {
     case Backend::ASM: {
       auto backend =
-          std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::LINEAR_SCAN);
+          std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::STACK_SPILL);
       program.Translate(*backend);
       return {std::move(translator), std::move(backend)};
     }
