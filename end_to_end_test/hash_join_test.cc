@@ -11,6 +11,7 @@
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "compile/query_translator.h"
+#include "end_to_end_test/execute_capture.h"
 #include "end_to_end_test/schema.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
@@ -75,27 +76,13 @@ TEST_P(HashJoinTest, IntColSelfJoin) {
         util::MakeVector(std::move(col1)), util::MakeVector(std::move(col2))));
   }
 
-  std::stringstream buffer;
-  std::streambuf *sbuf = std::cout.rdbuf();
-  std::cout.rdbuf(buffer.rdbuf());
+  auto expected_file =
+      "end_to_end_test/results/hashjointest_intcolselfjoin.csv";
+  auto output_file = ExecuteAndCapture(*query);
 
-  kush::compile::QueryTranslator translator(*query);
-  auto [codegen, prog] = translator.Translate();
-  prog->Compile();
-  using compute_fn = std::add_pointer<void()>::type;
-  auto compute = reinterpret_cast<compute_fn>(prog->GetFunction("compute"));
-  compute();
-
-  int c1, c2;
-  while (static_cast<bool>(buffer >> c1)) {
-    char tmp;
-    buffer >> tmp;
-    buffer >> c2;
-    buffer >> tmp;
-    EXPECT_EQ(c1, c2);
-  }
-
-  std::cout.rdbuf(sbuf);
+  auto expected = GetFileContents(expected_file);
+  auto output = GetFileContents(output_file);
+  EXPECT_EQ(output, expected);
 }
 
 INSTANTIATE_TEST_SUITE_P(ASMBackend, HashJoinTest,

@@ -1,4 +1,12 @@
-load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+cc_library(
+    name = "execute_capture",
+    hdrs = ["execute_capture.h"],
+    deps = [
+        "//compile:query_translator",
+    ],
+)
 
 cc_library(
     name = "schema",
@@ -9,11 +17,30 @@ cc_library(
     ],
 )
 
+filegroup(
+    name = "data",
+    srcs = glob([
+        "data/*.kdb",
+    ]),
+)
+
+filegroup(
+    name = "results",
+    srcs = glob([
+        "results/*.csv",
+    ]),
+)
+
 cc_test(
     name = "hash_join_test",
     size = "large",
     srcs = ["hash_join_test.cc"],
+    data = [
+        ":data",
+        ":results",
+    ],
     deps = [
+        ":execute_capture",
         ":schema",
         "//catalog",
         "//compile:query_translator",

@@ -747,15 +747,15 @@ void LLVMBackend::Compile() {
 
   // Link
   auto command =
-      "clang++ -shared -fpic bazel-bin/runtime/libcolumn_data.so "
-      "bazel-bin/runtime/libcolumn_index.so "
-      "bazel-bin/runtime/libdate_extractor.so "
-      "bazel-bin/runtime/libhash_table.so "
-      "bazel-bin/runtime/libprinter.so "
-      "bazel-bin/runtime/libskinner_join_executor.so "
-      "bazel-bin/runtime/libstring.so "
-      "bazel-bin/runtime/libtuple_idx_table.so "
-      "bazel-bin/runtime/libvector.so " +
+      "clang++ -shared -fpic runtime/libcolumn_data.so "
+      "runtime/libcolumn_index.so "
+      "runtime/libdate_extractor.so "
+      "runtime/libhash_table.so "
+      "runtime/libprinter.so "
+      "runtime/libskinner_join_executor.so "
+      "runtime/libstring.so "
+      "runtime/libtuple_idx_table.so "
+      "runtime/libvector.so " +
       obj_file + " -o " + shared_obj_file;
   if (system(command.c_str())) {
     throw std::runtime_error("Failed to link file.");

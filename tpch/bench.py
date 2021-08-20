@@ -12,7 +12,7 @@ def bench(database, benchmark, data_path, use_skinner, flags):
     queries = ['q02', 'q03', 'q04', 'q05', 'q07', 'q08', 'q09', 'q10', 'q11',
                'q12', 'q14', 'q18', 'q19']
     for query in queries:
-        binary = './bazel-bin/tpch/queries/' + query
+        binary = 'bazel run --ui_event_filters=-info,-stdout,-stderr --noshow_progress //tpch/queries:' + query
         if use_skinner:
             binary += '_skinner'
         for f in flags:

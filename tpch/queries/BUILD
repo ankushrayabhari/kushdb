@@ -3,6 +3,9 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 cc_binary(
     name = "test",
     srcs = ["test.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -31,6 +34,9 @@ cc_binary(
 cc_binary(
     name = "q01",
     srcs = ["q01.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -59,6 +65,9 @@ cc_binary(
 cc_binary(
     name = "q02",
     srcs = ["q02.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -87,6 +96,9 @@ cc_binary(
 cc_binary(
     name = "q02_skinner",
     srcs = ["q02_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -115,6 +127,9 @@ cc_binary(
 cc_binary(
     name = "q03",
     srcs = ["q03.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -143,6 +158,9 @@ cc_binary(
 cc_binary(
     name = "q03_skinner",
     srcs = ["q03_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -171,6 +189,9 @@ cc_binary(
 cc_binary(
     name = "q04",
     srcs = ["q04.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -199,6 +220,9 @@ cc_binary(
 cc_binary(
     name = "q04_skinner",
     srcs = ["q04_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -227,6 +251,9 @@ cc_binary(
 cc_binary(
     name = "q05",
     srcs = ["q05.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -255,6 +282,9 @@ cc_binary(
 cc_binary(
     name = "q05_skinner",
     srcs = ["q05_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -283,6 +313,9 @@ cc_binary(
 cc_binary(
     name = "q06",
     srcs = ["q06.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -311,6 +344,9 @@ cc_binary(
 cc_binary(
     name = "q07",
     srcs = ["q07.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -339,6 +375,9 @@ cc_binary(
 cc_binary(
     name = "q07_skinner",
     srcs = ["q07_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -367,6 +406,9 @@ cc_binary(
 cc_binary(
     name = "q08",
     srcs = ["q08.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -395,6 +437,9 @@ cc_binary(
 cc_binary(
     name = "q08_skinner",
     srcs = ["q08_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -423,6 +468,9 @@ cc_binary(
 cc_binary(
     name = "q09",
     srcs = ["q09.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -451,6 +499,9 @@ cc_binary(
 cc_binary(
     name = "q09_skinner",
     srcs = ["q09_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -479,6 +530,9 @@ cc_binary(
 cc_binary(
     name = "q10",
     srcs = ["q10.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -507,6 +561,9 @@ cc_binary(
 cc_binary(
     name = "q10_skinner",
     srcs = ["q10_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -535,6 +592,9 @@ cc_binary(
 cc_binary(
     name = "q11",
     srcs = ["q11.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -563,6 +623,9 @@ cc_binary(
 cc_binary(
     name = "q11_skinner",
     srcs = ["q11_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -591,6 +654,9 @@ cc_binary(
 cc_binary(
     name = "q12",
     srcs = ["q12.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -619,6 +685,9 @@ cc_binary(
 cc_binary(
     name = "q12_skinner",
     srcs = ["q12_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -647,6 +716,9 @@ cc_binary(
 cc_binary(
     name = "q14",
     srcs = ["q14.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -675,6 +747,9 @@ cc_binary(
 cc_binary(
     name = "q14_skinner",
     srcs = ["q14_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -703,6 +778,9 @@ cc_binary(
 cc_binary(
     name = "q18_skinner",
     srcs = ["q18_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -731,6 +809,9 @@ cc_binary(
 cc_binary(
     name = "q18",
     srcs = ["q18.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -759,6 +840,9 @@ cc_binary(
 cc_binary(
     name = "q19",
     srcs = ["q19.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",
@@ -787,6 +871,9 @@ cc_binary(
 cc_binary(
     name = "q19_skinner",
     srcs = ["q19_skinner.cc"],
+    data = [
+        "//tpch:data",
+    ],
     deps = [
         "//catalog",
         "//compile:query_translator",

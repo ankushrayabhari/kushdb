@@ -10,7 +10,7 @@ to generate .tbl files. For skewed DBGEN, rename `order.tbl` with `orders.tbl`.
 
 #### KushDB
 1. Create `tpch/data/`.
-2. Run `bazel build //tpch:load && bazel-bin/tpch/load` .
+2. Run `bazel run //tpch:load` .
 3. Execute queries in `tpch/queries/`.
 
 #### MonetDB

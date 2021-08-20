@@ -6,9 +6,7 @@ cc_library(
     name = "llvm_backend",
     srcs = ["llvm_backend.cc"],
     hdrs = ["llvm_backend.h"],
-    deps = [
-        "//compile:program",
-        "//khir:program_builder",
+    data = [
         "//runtime:libcolumn_data.so",
         "//runtime:libcolumn_index.so",
         "//runtime:libdate_extractor.so",
@@ -18,6 +16,10 @@ cc_library(
         "//runtime:libstring.so",
         "//runtime:libtuple_idx_table.so",
         "//runtime:libvector.so",
+    ],
+    deps = [
+        "//compile:program",
+        "//khir:program_builder",
         "@absl//absl/types:span",
         "@llvm-project//llvm:BitWriter",
         "@llvm-project//llvm:Core",
