@@ -11,6 +11,10 @@ std::string ExecuteAndCapture(kush::plan::Operator& query) {
   auto test_file = "/tmp/query_output_test" + std::to_string(unique) + ".csv";
 
   std::fstream buffer(test_file, std::fstream::out | std::fstream::trunc);
+  if (!buffer.is_open()) {
+    throw std::runtime_error("Can't capture output to file.");
+  }
+
   std::streambuf* sbuf = std::cout.rdbuf();
   std::cout.rdbuf(buffer.rdbuf());
 
