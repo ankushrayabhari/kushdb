@@ -1,6 +1,6 @@
 #include "khir/asm/linear_scan_reg_alloc.h"
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 using namespace kush;
 using namespace kush::khir;

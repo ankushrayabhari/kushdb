@@ -1,6 +1,6 @@
 #include "khir/asm/live_intervals.h"
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 using namespace kush;
 using namespace kush::khir;

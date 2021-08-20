@@ -1,7 +1,8 @@
 #include "khir/asm/asm_backend.h"
 
-#include <gtest/gtest.h>
 #include <random>
+
+#include "gtest/gtest.h"
 
 #include "khir/program_builder.h"
 #include "khir/program_printer.h"

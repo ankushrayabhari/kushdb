@@ -1,7 +1,7 @@
 
 #include "runtime/column_index.h"
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 using namespace kush::runtime;
 
