@@ -24,12 +24,13 @@
 #include "plan/output_operator.h"
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
-#include "tpch/queries/builder.h"
 #include "tpch/schema.h"
+#include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
 
 using namespace kush;
+using namespace kush::util;
 using namespace kush::plan;
 using namespace kush::compile;
 using namespace kush::catalog;
