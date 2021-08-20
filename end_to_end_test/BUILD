@@ -33,7 +33,7 @@ filegroup(
 
 cc_test(
     name = "hash_join_test",
-    size = "large",
+    size = "small",
     srcs = ["hash_join_test.cc"],
     data = [
         ":data",
