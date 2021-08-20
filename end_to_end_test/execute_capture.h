@@ -6,17 +6,22 @@
 
 #include "compile/query_translator.h"
 
+class RedirectStdout {
+ public:
+  RedirectStdout(std::streambuf* dest) : old_(std::cout.rdbuf(dest)) {}
+
+  ~RedirectStdout() { std::cout.rdbuf(old_); }
+
+ private:
+  std::streambuf* old_;
+};
+
 std::string ExecuteAndCapture(kush::plan::Operator& query) {
   auto unique = std::chrono::system_clock::now().time_since_epoch().count();
   auto test_file = "/tmp/query_output_test" + std::to_string(unique) + ".csv";
 
   std::fstream buffer(test_file, std::fstream::out | std::fstream::trunc);
-  if (!buffer.is_open()) {
-    throw std::runtime_error("Can't capture output to file.");
-  }
-
-  std::streambuf* sbuf = std::cout.rdbuf();
-  std::cout.rdbuf(buffer.rdbuf());
+  RedirectStdout redirect(buffer.rdbuf());
 
   kush::compile::QueryTranslator translator(query);
   auto [codegen, prog] = translator.Translate();
@@ -24,8 +29,6 @@ std::string ExecuteAndCapture(kush::plan::Operator& query) {
   using compute_fn = std::add_pointer<void()>::type;
   auto compute = reinterpret_cast<compute_fn>(prog->GetFunction("compute"));
   compute();
-
-  std::cout.rdbuf(sbuf);
 
   buffer.close();
 
