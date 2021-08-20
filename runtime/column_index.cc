@@ -96,23 +96,27 @@ void InsertFloat64Index(
 void InsertTextIndex(
     absl::flat_hash_map<std::string, std::vector<int32_t>>* index,
     String::String* value, int32_t tuple_idx) {
-  index->operator[](std::string(value->data, value->length))
+  index->operator[](std::string_view(value->data, value->length))
       .push_back(tuple_idx);
 }
 
-// Get the next tuple from index or cardinality
+// Get the next tuple that is greater than or equal to from index or cardinality
 int32_t FastForwardBucket(std::vector<int32_t>* bucket_ptr,
                           int32_t prev_tuple) {
+  if (bucket_ptr->size() == 0) {
+    return INT32_MAX;
+  }
+
   // Binary search for tuple greater than prev_tuple
   int start = 0;
   const auto& bucket = *bucket_ptr;
   int end = bucket.size() - 1;
 
-  int32_t next_greater_idx = -1;
+  int32_t next_greater_idx = INT32_MAX;
   while (start <= end) {
     int mid = (start + end) / 2;
 
-    if (bucket[mid] <= prev_tuple) {
+    if (bucket[mid] < prev_tuple) {
       start = mid + 1;
     } else {
       next_greater_idx = mid;

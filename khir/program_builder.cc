@@ -604,6 +604,7 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::F64_CMP_LE:
     case Opcode::F64_CMP_GT:
     case Opcode::F64_CMP_GE:
+    case Opcode::PTR_CMP_NULLPTR:
       return type_manager_.I1Type();
 
     case Opcode::I8_ADD:
@@ -1210,6 +1211,30 @@ Value ProgramBuilder::CmpI64(CompType cmp, Value v1, Value v2) {
                                          .SetArg0(v1.Serialize())
                                          .SetArg1(v2.Serialize())
                                          .Build());
+}
+
+Value ProgramBuilder::IsNullPtr(Value v) {
+  if (!v.IsConstantGlobal()) {
+    auto v_instr = GetCurrentFunction().GetInstruction(v);
+    auto v_opcode = OpcodeFrom(GenericInstructionReader(v_instr).Opcode());
+
+    if (v_opcode == Opcode::GEP) {
+      // GEPs are potentially lazily computed so add in a materialize here for
+      // the backend so each instruction has at most one lazy operand
+      v = GetCurrentFunction().Append(
+          Type3InstructionBuilder()
+              .SetOpcode(OpcodeTo(Opcode::PTR_MATERIALIZE))
+              .SetArg(v.Serialize())
+              .SetTypeID(TypeOf(v).GetID())
+              .Build());
+    }
+  }
+
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::PTR_CMP_NULLPTR))
+          .SetArg0(v.Serialize())
+          .Build());
 }
 
 Value ProgramBuilder::ConstI64(uint64_t v) {

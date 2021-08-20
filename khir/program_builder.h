@@ -226,6 +226,7 @@ class ProgramBuilder {
   Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
   Value LoadPtr(Value ptr);
   void StorePtr(Value ptr, Value v);
+  Value IsNullPtr(Value v);
 
   // I1
   Value ConstI1(bool v);

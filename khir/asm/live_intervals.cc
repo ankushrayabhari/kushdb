@@ -456,7 +456,8 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     case Opcode::I32_ZEXT_I64:
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
-    case Opcode::F64_CONV_I64: {
+    case Opcode::F64_CONV_I64:
+    case Opcode::PTR_CMP_NULLPTR: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
 
@@ -646,7 +647,8 @@ bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
     case Opcode::PTR_MATERIALIZE:
     case Opcode::PTR_LOAD:
     case Opcode::CALL_ARG:
-    case Opcode::ALLOCA: {
+    case Opcode::ALLOCA:
+    case Opcode::PTR_CMP_NULLPTR: {
       return true;
     }
 
@@ -717,6 +719,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::F64_CMP_LE:
     case Opcode::F64_CMP_GT:
     case Opcode::F64_CMP_GE:
+    case Opcode::PTR_CMP_NULLPTR:
       return manager.I1Type();
 
     case Opcode::I8_ADD:

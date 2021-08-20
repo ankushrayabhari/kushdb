@@ -239,7 +239,8 @@ std::unique_ptr<Operator> OrderBy() {
 int main(int argc, char** argv) {
   absl::SetProgramUsageMessage("Executes query.");
   absl::ParseCommandLine(argc, argv);
-  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(OrderBy());
+  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(
+      RegionNationCustomerOrdersLineitemSupplier());
 
   kush::util::ExecuteAndTime(*query);
   return 0;

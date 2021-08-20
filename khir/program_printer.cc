@@ -191,6 +191,7 @@ void ProgramPrinter::OutputInstr(
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
     case Opcode::F64_CONV_I64:
+    case Opcode::PTR_CMP_NULLPTR:
     case Opcode::I8_LOAD:
     case Opcode::I16_LOAD:
     case Opcode::I32_LOAD:

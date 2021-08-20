@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -39,6 +39,16 @@ cc_library(
     deps = [
         ":string",
         "@absl//absl/container:flat_hash_map",
+    ],
+)
+
+cc_test(
+    name = "column_index_test",
+    size = "small",
+    srcs = ["column_index_test.cc"],
+    deps = [
+        ":column_index",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

@@ -462,6 +462,24 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
                           std::vector<int32_t>(order.size(), -1)),
                       offset);
 
+    /*
+    std::cout << "Order:";
+    for (int i = 0; i < order.size(); i++) {
+      std::cout << ' ' << order[i];
+    }
+    std::cout << std::endl;
+    std::cout << "Progress:";
+    for (int i = 0; i < order.size(); i++) {
+      std::cout << ' ' << execution_engine_.progress_arr[i];
+    }
+    std::cout << std::endl;
+    std::cout << "Cardinalities:";
+    for (int i = 0; i < order.size(); i++) {
+      std::cout << ' ' << cardinalities_[i];
+    }
+    std::cout << std::endl;
+    */
+
     auto execute_fn = codegen_->CompileJoinOrder(
         order, materialized_buffers_, materialized_indexes_, tuple_idx_table_);
 
@@ -470,9 +488,27 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
         execution_engine_.progress_arr, execution_engine_.table_ctr,
         execution_engine_.num_result_tuples, execution_engine_.idx_arr);
 
+    /*
+    std::cout << "Status: " << status << std::endl;
+    std::cout << "Table CTR: " << *execution_engine_.table_ctr << std::endl;
+    std::cout << "IDX:";
+    for (int i = 0; i < order.size(); i++) {
+      std::cout << ' ' << execution_engine_.idx_arr[i];
+    }
+    std::cout << std::endl;
+    */
+
     auto final_last_completed_tuple = ComputeLastCompletedTuple(
         order, cardinalities_, status, *execution_engine_.table_ctr,
         execution_engine_.idx_arr);
+
+    /*
+    std::cout << "Final Completed Tuple:";
+    for (int i = 0; i < order.size(); i++) {
+      std::cout << ' ' << final_last_completed_tuple[i];
+    }
+    std::cout << std::endl;
+    */
 
     state_.Update(order, final_last_completed_tuple);
 

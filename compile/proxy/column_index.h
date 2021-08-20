@@ -17,6 +17,7 @@ class IndexBucket {
   proxy::Int32 FastForwardToStart(const proxy::Int32& last_tuple);
   proxy::Int32 Size();
   proxy::Int32 Get(const proxy::Int32& v);
+  proxy::Bool DoesNotExist();
 
  private:
   khir::ProgramBuilder& program_;

@@ -52,26 +52,31 @@ void* CreateFn() {
 template <catalog::SqlType S>
 std::string_view FreeFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime11ColumnIndex14FreeInt16IndexEPSt13unordered_"
-           "mapIsSt6vectorIiSaIiEESt4hashIsESt8equal_toIsESaISt4pairIKsS5_EEE";
+    return "_ZN4kush7runtime11ColumnIndex14FreeInt16IndexEPN4absl13flat_hash_"
+           "mapIsSt6vectorIiSaIiEENS2_13hash_internal4HashIsEESt8equal_"
+           "toIsESaISt4pairIKsS6_EEEE";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime11ColumnIndex14FreeInt32IndexEPSt13unordered_"
-           "mapIiSt6vectorIiSaIiEESt4hashIiESt8equal_toIiESaISt4pairIKiS5_EEE";
+    return "_ZN4kush7runtime11ColumnIndex14FreeInt32IndexEPN4absl13flat_hash_"
+           "mapIiSt6vectorIiSaIiEENS2_13hash_internal4HashIiEESt8equal_"
+           "toIiESaISt4pairIKiS6_EEEE";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime11ColumnIndex14FreeInt64IndexEPSt13unordered_"
-           "mapIlSt6vectorIiSaIiEESt4hashIlESt8equal_toIlESaISt4pairIKlS5_EEE";
+    return "_ZN4kush7runtime11ColumnIndex14FreeInt64IndexEPN4absl13flat_hash_"
+           "mapIlSt6vectorIiSaIiEENS2_13hash_internal4HashIlEESt8equal_"
+           "toIlESaISt4pairIKlS6_EEEE";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime11ColumnIndex16FreeFloat64IndexEPSt13unordered_"
-           "mapIdSt6vectorIiSaIiEESt4hashIdESt8equal_toIdESaISt4pairIKdS5_EEE";
+    return "_ZN4kush7runtime11ColumnIndex16FreeFloat64IndexEPN4absl13flat_hash_"
+           "mapIdSt6vectorIiSaIiEENS2_13hash_internal4HashIdEESt8equal_"
+           "toIdESaISt4pairIKdS6_EEEE";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime11ColumnIndex13FreeInt8IndexEPSt13unordered_"
-           "mapIaSt6vectorIiSaIiEESt4hashIaESt8equal_toIaESaISt4pairIKaS5_EEE";
+    return "_ZN4kush7runtime11ColumnIndex13FreeInt8IndexEPN4absl13flat_hash_"
+           "mapIaSt6vectorIiSaIiEENS2_13hash_internal4HashIaEESt8equal_"
+           "toIaESaISt4pairIKaS6_EEEE";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime11ColumnIndex13FreeTextIndexEPSt13unordered_"
+    return "_ZN4kush7runtime11ColumnIndex13FreeTextIndexEPN4absl13flat_hash_"
            "mapINSt7__cxx1112basic_stringIcSt11char_"
-           "traitsIcESaIcEEESt6vectorIiSaIiEESt4hashIS8_ESt8equal_toIS8_"
-           "ESaISt4pairIKS8_SB_EEE";
+           "traitsIcESaIcEEESt6vectorIiSaIiEENS2_18container_"
+           "internal10StringHashENSD_12StringHashEq2EqESaISt4pairIKS9_SC_EEEE";
   }
 }
 
@@ -156,31 +161,32 @@ constexpr std::string_view BucketGetName(
 template <catalog::SqlType S>
 std::string_view InsertFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime11ColumnIndex16InsertInt16IndexEPSt13unordered_"
-           "mapIsSt6vectorIiSaIiEESt4hashIsESt8equal_toIsESaISt4pairIKsS5_"
-           "EEEsi";
+    return "_ZN4kush7runtime11ColumnIndex16InsertInt16IndexEPN4absl13flat_hash_"
+           "mapIsSt6vectorIiSaIiEENS2_13hash_internal4HashIsEESt8equal_"
+           "toIsESaISt4pairIKsS6_EEEEsi";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime11ColumnIndex16InsertInt32IndexEPSt13unordered_"
-           "mapIiSt6vectorIiSaIiEESt4hashIiESt8equal_toIiESaISt4pairIKiS5_"
-           "EEEii";
+    return "_ZN4kush7runtime11ColumnIndex16InsertInt32IndexEPN4absl13flat_hash_"
+           "mapIiSt6vectorIiSaIiEENS2_13hash_internal4HashIiEESt8equal_"
+           "toIiESaISt4pairIKiS6_EEEEii";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime11ColumnIndex16InsertInt64IndexEPSt13unordered_"
-           "mapIlSt6vectorIiSaIiEESt4hashIlESt8equal_toIlESaISt4pairIKlS5_"
-           "EEEli";
+    return "_ZN4kush7runtime11ColumnIndex16InsertInt64IndexEPN4absl13flat_hash_"
+           "mapIlSt6vectorIiSaIiEENS2_13hash_internal4HashIlEESt8equal_"
+           "toIlESaISt4pairIKlS6_EEEEli";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime11ColumnIndex18InsertFloat64IndexEPSt13unordered_"
-           "mapIdSt6vectorIiSaIiEESt4hashIdESt8equal_toIdESaISt4pairIKdS5_"
-           "EEEdi";
+    return "_ZN4kush7runtime11ColumnIndex18InsertFloat64IndexEPN4absl13flat_"
+           "hash_mapIdSt6vectorIiSaIiEENS2_13hash_internal4HashIdEESt8equal_"
+           "toIdESaISt4pairIKdS6_EEEEdi";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime11ColumnIndex15InsertInt8IndexEPSt13unordered_"
-           "mapIaSt6vectorIiSaIiEESt4hashIaESt8equal_toIaESaISt4pairIKaS5_"
-           "EEEai";
+    return "_ZN4kush7runtime11ColumnIndex15InsertInt8IndexEPN4absl13flat_hash_"
+           "mapIaSt6vectorIiSaIiEENS2_13hash_internal4HashIaEESt8equal_"
+           "toIaESaISt4pairIKaS6_EEEEai";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime11ColumnIndex15InsertTextIndexEPSt13unordered_"
+    return "_ZN4kush7runtime11ColumnIndex15InsertTextIndexEPN4absl13flat_hash_"
            "mapINSt7__cxx1112basic_stringIcSt11char_"
-           "traitsIcESaIcEEESt6vectorIiSaIiEESt4hashIS8_ESt8equal_toIS8_"
-           "ESaISt4pairIKS8_SB_EEEPNS0_6String6StringEi";
+           "traitsIcESaIcEEESt6vectorIiSaIiEENS2_18container_"
+           "internal10StringHashENSD_12StringHashEq2EqESaISt4pairIKS9_SC_"
+           "EEEEPNS0_6String6StringEi";
   }
 }
 
@@ -319,6 +325,10 @@ proxy::Int32 IndexBucket::Get(const proxy::Int32& v) {
   return proxy::Int32(
       program_,
       program_.Call(program_.GetFunction(BucketGetName), {value_, v.Get()}));
+}
+
+proxy::Bool IndexBucket::DoesNotExist() {
+  return proxy::Bool(program_, program_.IsNullPtr(value_));
 }
 
 template class ColumnIndexImpl<catalog::SqlType::SMALLINT>;

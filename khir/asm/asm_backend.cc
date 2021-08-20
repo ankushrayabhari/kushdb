@@ -515,6 +515,7 @@ bool IsF64FlagReg(const RegisterAssignment& reg) {
 template <typename Dest>
 void ASMBackend::StoreCmpFlags(Opcode opcode, Dest d) {
   switch (opcode) {
+    case Opcode::PTR_CMP_NULLPTR:
     case Opcode::I1_CMP_EQ:
     case Opcode::I8_CMP_EQ:
     case Opcode::I16_CMP_EQ:
@@ -2435,6 +2436,30 @@ void ASMBackend::TranslateInstr(
         MulQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
                       register_assign);
         asm_->mov(x86::qword_ptr(x86::rbp, offset), dest);
+      }
+      return;
+    }
+
+    case Opcode::PTR_CMP_NULLPTR: {
+      Type2InstructionReader reader(instr);
+      Value v(reader.Arg0());
+
+      MovePtrValue(Register::RAX.GetQ(), v, offsets, constant_instrs,
+                   ptr_constants, register_assign);
+      asm_->cmp(Register::RAX.GetQ(), 0);
+
+      if (IsFlagReg(dest_assign)) {
+        return;
+      }
+
+      if (dest_assign.IsRegister()) {
+        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        StoreCmpFlags(opcode, loc);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        auto loc = x86::byte_ptr(x86::rbp, offset);
+        StoreCmpFlags(opcode, loc);
       }
       return;
     }

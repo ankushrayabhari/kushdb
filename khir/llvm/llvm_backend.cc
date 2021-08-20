@@ -397,6 +397,15 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::PTR_CMP_NULLPTR: {
+      Type2InstructionReader reader(instr);
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = llvm::ConstantPointerNull::get(
+          llvm::dyn_cast<llvm::PointerType>(v0->getType()));
+      values[instr_idx] = builder_->CreateCmp(LLVMCmp::ICMP_EQ, v0, v1);
+      return;
+    }
+
     case Opcode::I8_ADD:
     case Opcode::I16_ADD:
     case Opcode::I32_ADD:
