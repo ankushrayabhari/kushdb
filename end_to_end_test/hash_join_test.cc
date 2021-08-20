@@ -85,9 +85,8 @@ TEST_P(HashJoinTest, IntColSelfJoin) {
   EXPECT_EQ(output, expected);
 }
 
-/*
 INSTANTIATE_TEST_SUITE_P(ASMBackend, HashJoinTest,
-                         testing::Values(ParameterValues{.backend = "asm"})); */
+                         testing::Values(ParameterValues{.backend = "asm"}));
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackend, HashJoinTest,
                          testing::Values(ParameterValues{.backend = "llvm"}));
