@@ -12,11 +12,21 @@ filegroup(
     ),
 )
 
+filegroup(
+    name = "raw",
+    srcs = glob(
+        [
+            "raw/*.tbl",
+        ],
+        allow_empty = True,
+    ),
+)
+
 cc_binary(
     name = "load",
     srcs = ["load.cc"],
     data = [
-        ":data",
+        ":raw",
     ],
     deps = [
         "//runtime:column_data_builder",
@@ -27,6 +37,9 @@ cc_binary(
 cc_library(
     name = "schema",
     hdrs = ["schema.h"],
+    data = [
+        ":data",
+    ],
     deps = [
         "//catalog",
         "//catalog:sql_type",
