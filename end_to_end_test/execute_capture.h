@@ -10,15 +10,15 @@
 
 class RedirectStdout {
  public:
-  RedirectStdout(int fd) : old_stdout(dup(1)) { dup2(fd, 1); }
+  RedirectStdout(int fd) : old_stdout_(dup(1)) { dup2(fd, 1); }
 
   ~RedirectStdout() {
-    dup2(old_stdout, 1);
-    close(old_stdout);
+    dup2(old_stdout_, 1);
+    close(old_stdout_);
   }
 
  private:
-  int old_stdout;
+  int old_stdout_;
 };
 
 std::string ExecuteAndCapture(kush::plan::Operator& query) {
