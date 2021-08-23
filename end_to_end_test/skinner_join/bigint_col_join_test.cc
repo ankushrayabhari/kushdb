@@ -38,17 +38,20 @@ using namespace std::literals;
 struct ParameterValues {
   std::string backend;
   std::string skinner;
+  int32_t budget_per_episode;
 };
 
 class SkinnerJoinTest : public testing::TestWithParam<ParameterValues> {};
 
 ABSL_DECLARE_FLAG(std::string, backend);
 ABSL_DECLARE_FLAG(std::string, skinner);
+ABSL_DECLARE_FLAG(int32_t, budget_per_episode);
 
 TEST_P(SkinnerJoinTest, BigIntCol) {
   auto params = GetParam();
   absl::SetFlag(&FLAGS_backend, params.backend);
   absl::SetFlag(&FLAGS_skinner, params.skinner);
+  absl::SetFlag(&FLAGS_budget_per_episode, params.budget_per_episode);
 
   auto db = Schema();
 
@@ -91,18 +94,44 @@ TEST_P(SkinnerJoinTest, BigIntCol) {
   EXPECT_EQ(output, expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_Recompile, SkinnerJoinTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_Recompile_HighBudget, SkinnerJoinTest,
                          testing::Values(ParameterValues{
-                             .backend = "asm", .skinner = "recompile"}));
+                             .backend = "asm",
+                             .skinner = "recompile",
+                             .budget_per_episode = 10000}));
 
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Recompile, SkinnerJoinTest,
-                         testing::Values(ParameterValues{
-                             .backend = "llvm", .skinner = "recompile"}));
+INSTANTIATE_TEST_SUITE_P(
+    ASMBackend_Permute_HighBudget, SkinnerJoinTest,
+    testing::Values(ParameterValues{
+        .backend = "asm", .skinner = "permute", .budget_per_episode = 10000}));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_Permute, SkinnerJoinTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm", .skinner = "permute"}));
+INSTANTIATE_TEST_SUITE_P(
+    ASMBackend_Recompile_LowBudget, SkinnerJoinTest,
+    testing::Values(ParameterValues{
+        .backend = "asm", .skinner = "recompile", .budget_per_episode = 10}));
 
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Permute, SkinnerJoinTest,
+INSTANTIATE_TEST_SUITE_P(
+    ASMBackend_Permute_LowBudget, SkinnerJoinTest,
+    testing::Values(ParameterValues{
+        .backend = "asm", .skinner = "permute", .budget_per_episode = 10}));
+
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Recompile_HighBudget, SkinnerJoinTest,
                          testing::Values(ParameterValues{
-                             .backend = "llvm", .skinner = "permute"}));
+                             .backend = "llvm",
+                             .skinner = "recompile",
+                             .budget_per_episode = 10000}));
+
+INSTANTIATE_TEST_SUITE_P(
+    LLVMBackend_Permute_HighBudget, SkinnerJoinTest,
+    testing::Values(ParameterValues{
+        .backend = "llvm", .skinner = "permute", .budget_per_episode = 10000}));
+
+INSTANTIATE_TEST_SUITE_P(
+    LLVMBackend_Recompile_LowBudget, SkinnerJoinTest,
+    testing::Values(ParameterValues{
+        .backend = "llvm", .skinner = "recompile", .budget_per_episode = 10}));
+
+INSTANTIATE_TEST_SUITE_P(
+    LLVMBackend_Permute_LowBudget, SkinnerJoinTest,
+    testing::Values(ParameterValues{
+        .backend = "llvm", .skinner = "permute", .budget_per_episode = 10}));

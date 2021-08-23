@@ -13,8 +13,11 @@
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/flags/flag.h"
 
 #include "compile/translators/recompiling_join_translator.h"
+
+ABSL_DECLARE_FLAG(int32_t, budget_per_episode);
 
 namespace kush::runtime {
 
@@ -270,7 +273,7 @@ class PermutableJoinEnvironment : public JoinEnvironment {
           valid_tuple_handler,
       PermutableExecutionEngineFlags execution_engine)
       : num_predicates_(num_predicates),
-        budget_per_episode_(10000),
+        budget_per_episode_(FLAGS_budget_per_episode.Get()),
         table_predicate_to_flag_idx_(table_predicate_to_flag_idx),
         tables_per_predicate_(tables_per_predicate),
         cardinalities_(cardinalities),
@@ -426,7 +429,7 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
         materialized_indexes_(materialized_indexes),
         tuple_idx_table_(tuple_idx_table),
         num_predicates_(num_predicates),
-        budget_per_episode_(10000),
+        budget_per_episode_(FLAGS_budget_per_episode.Get()),
         tables_per_predicate_(tables_per_predicate),
         cardinalities_(cardinalities),
         state_(cardinalities_),

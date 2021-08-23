@@ -3,10 +3,14 @@
 #include <functional>
 #include <vector>
 
+#include "absl/flags/flag.h"
+
 #include "compile/proxy/int.h"
 #include "compile/translators/recompiling_join_translator.h"
 #include "khir/program_builder.h"
 #include "runtime/skinner_join_executor.h"
+
+ABSL_FLAG(int32_t, budget_per_episode, 10000, "Budget per episode");
 
 namespace kush::compile::proxy {
 
