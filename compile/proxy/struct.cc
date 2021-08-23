@@ -106,7 +106,7 @@ std::vector<std::unique_ptr<Value>> Struct::Unpack() {
         break;
       case catalog::SqlType::BOOLEAN:
         result.push_back(
-            (proxy::Int8(program_, program_.LoadI8(ptr)) == 0).ToPointer());
+            (proxy::Int8(program_, program_.LoadI8(ptr)) != 0).ToPointer());
         break;
     }
   }

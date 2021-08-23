@@ -43,7 +43,7 @@ class HashJoinTest : public testing::TestWithParam<ParameterValues> {};
 
 ABSL_DECLARE_FLAG(std::string, backend);
 
-TEST_P(HashJoinTest, BigIntCol) {
+TEST_P(HashJoinTest, BooleanCol) {
   auto params = GetParam();
   absl::SetFlag(&FLAGS_backend, params.backend);
 
@@ -54,19 +54,19 @@ TEST_P(HashJoinTest, BigIntCol) {
     std::unique_ptr<Operator> s1;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"num2"});
+      schema.AddGeneratedColumns(db["info"], {"cheated"});
       s1 = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
     std::unique_ptr<Operator> s2;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"num2"});
+      schema.AddGeneratedColumns(db["info"], {"cheated"});
       s2 = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
-    auto col1 = ColRef(s1, "num2", 0);
-    auto col2 = ColRef(s2, "num2", 1);
+    auto col1 = ColRef(s1, "cheated", 0);
+    auto col2 = ColRef(s2, "cheated", 1);
 
     OperatorSchema schema;
     schema.AddPassthroughColumns(*s1, 0);
@@ -75,8 +75,8 @@ TEST_P(HashJoinTest, BigIntCol) {
         std::move(schema), std::move(s1), std::move(s2),
         util::MakeVector(std::move(col1)), util::MakeVector(std::move(col2))));
   }
-
-  auto expected_file = "end_to_end_test/hash_join/bigint_col_join_expected.tbl";
+  auto expected_file =
+      "end_to_end_test/hash_join/boolean_col_join_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);
@@ -87,5 +87,7 @@ TEST_P(HashJoinTest, BigIntCol) {
 INSTANTIATE_TEST_SUITE_P(ASMBackend, HashJoinTest,
                          testing::Values(ParameterValues{.backend = "asm"}));
 
+/*
 INSTANTIATE_TEST_SUITE_P(LLVMBackend, HashJoinTest,
                          testing::Values(ParameterValues{.backend = "llvm"}));
+*/

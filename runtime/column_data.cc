@@ -89,7 +89,7 @@ void CloseText(TextColumnData* col) { CloseImpl(col); }
 // ------ Size --------
 
 int32_t SizeInt8(Int8ColumnData* col) {
-  return col->file_length / sizeof(int16_t);
+  return col->file_length / sizeof(int8_t);
 }
 
 int32_t SizeInt16(Int16ColumnData* col) {

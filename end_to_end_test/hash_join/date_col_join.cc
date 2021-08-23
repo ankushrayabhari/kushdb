@@ -43,7 +43,7 @@ class HashJoinTest : public testing::TestWithParam<ParameterValues> {};
 
 ABSL_DECLARE_FLAG(std::string, backend);
 
-TEST_P(HashJoinTest, DateColSelfJoin) {
+TEST_P(HashJoinTest, DateCol) {
   auto params = GetParam();
   absl::SetFlag(&FLAGS_backend, params.backend);
 
