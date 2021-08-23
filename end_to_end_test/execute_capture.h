@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <unistd.h>
 
 #include "compile/query_translator.h"
@@ -42,13 +43,14 @@ std::string ExecuteAndCapture(kush::plan::Operator& query) {
   return test_file;
 }
 
-std::string GetFileContents(const std::string& filename) {
+std::vector<std::string> GetFileContents(const std::string& filename) {
   std::ifstream in(filename, std::ios::in | std::ios::binary);
-  if (in) {
-    std::ostringstream contents;
-    contents << in.rdbuf();
-    in.close();
-    return (contents.str());
+
+  std::vector<std::string> output;
+  std::string str;
+  while (std::getline(in, str)) {
+    output.push_back(str);
   }
-  throw(errno);
+
+  return output;
 }

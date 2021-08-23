@@ -81,6 +81,8 @@ TEST_P(HashJoinTest, DateCol) {
 
   auto expected = GetFileContents(expected_file);
   auto output = GetFileContents(output_file);
+  std::sort(expected.begin(), expected.end());
+  std::sort(output.begin(), output.end());
   EXPECT_EQ(output, expected);
 }
 
