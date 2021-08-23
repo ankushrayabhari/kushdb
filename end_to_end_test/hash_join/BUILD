@@ -3,7 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_test")
 cc_test(
     name = "int_col_join",
     size = "small",
-    srcs = ["int_col_join.cc"],
+    srcs = ["int_col_join_test.cc"],
     data = [
         "int_col_join_expected.tbl",
     ],
@@ -37,7 +37,7 @@ cc_test(
 cc_test(
     name = "smallint_col_join",
     size = "small",
-    srcs = ["smallint_col_join.cc"],
+    srcs = ["smallint_col_join_test.cc"],
     data = [
         "smallint_col_join_expected.tbl",
     ],
@@ -71,7 +71,7 @@ cc_test(
 cc_test(
     name = "bigint_col_join",
     size = "small",
-    srcs = ["bigint_col_join.cc"],
+    srcs = ["bigint_col_join_test.cc"],
     data = [
         "bigint_col_join_expected.tbl",
     ],
@@ -105,7 +105,7 @@ cc_test(
 cc_test(
     name = "real_col_join",
     size = "small",
-    srcs = ["real_col_join.cc"],
+    srcs = ["real_col_join_test.cc"],
     data = [
         "real_col_join_expected.tbl",
     ],
@@ -139,7 +139,7 @@ cc_test(
 cc_test(
     name = "date_col_join",
     size = "small",
-    srcs = ["date_col_join.cc"],
+    srcs = ["date_col_join_test.cc"],
     data = [
         "date_col_join_expected.tbl",
     ],
@@ -173,7 +173,7 @@ cc_test(
 cc_test(
     name = "text_col_join",
     size = "small",
-    srcs = ["text_col_join.cc"],
+    srcs = ["text_col_join_test.cc"],
     data = [
         "text_col_join_expected.tbl",
     ],
@@ -207,7 +207,7 @@ cc_test(
 cc_test(
     name = "boolean_col_join",
     size = "small",
-    srcs = ["boolean_col_join.cc"],
+    srcs = ["boolean_col_join_test.cc"],
     data = [
         "boolean_col_join_expected.tbl",
     ],
