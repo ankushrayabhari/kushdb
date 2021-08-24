@@ -747,7 +747,7 @@ void LLVMBackend::Compile() {
 
   // Link
   auto command =
-      "clang++ -shared -fpic runtime/libcolumn_data.so "
+      "/usr/bin/clang++ -shared -fpic runtime/libcolumn_data.so "
       "runtime/libcolumn_index.so "
       "runtime/libdate_extractor.so "
       "runtime/libhash_table.so "
