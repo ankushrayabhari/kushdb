@@ -38,6 +38,50 @@ RecompilingSkinnerJoinTranslator::RecompilingSkinnerJoinTranslator(
       expr_translator_(program_, *this),
       cache_(join_.Children().size()) {}
 
+int IndexAvailableForTable(
+    int table_idx, std::vector<absl::flat_hash_set<int>>& tables_per_predicate,
+    std::vector<absl::btree_set<int>>& predicates_per_table,
+    absl::flat_hash_set<int>& available_tables,
+    absl::flat_hash_set<int>& evaluated_predicates,
+    const std::vector<
+        std::reference_wrapper<const kush::plan::BinaryArithmeticExpression>>&
+        conditions) {
+  for (int predicate_idx : predicates_per_table[table_idx]) {
+    if (evaluated_predicates.contains(predicate_idx)) {
+      continue;
+    }
+
+    bool can_execute = true;
+    for (int table : tables_per_predicate[predicate_idx]) {
+      if (!available_tables.contains(table) && table != table_idx) {
+        can_execute = false;
+        break;
+      }
+    }
+    if (!can_execute) {
+      continue;
+    }
+
+    const auto& predicate = conditions[predicate_idx].get();
+
+    if (auto eq = dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(
+            &predicate)) {
+      if (auto left_column =
+              dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                  &eq->LeftChild())) {
+        if (auto right_column =
+                dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                    &eq->RightChild())) {
+          // possible to evaluate this via index
+          return predicate_idx;
+        }
+      }
+    }
+  }
+
+  return -1;
+}
+
 proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
     int curr, const std::vector<int>& order, khir::ProgramBuilder& program,
     ExpressionTranslator& expr_translator, std::vector<proxy::Vector>& buffers,
@@ -56,7 +100,229 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
   int table_idx = order[curr];
   auto& buffer = buffers[table_idx];
-  const auto& cardinality = cardinalities[table_idx];
+  auto cardinality = cardinalities[table_idx];
+
+  // TODO: change to look at multiple potential index predicates rather than
+  // first
+  auto indexed_predicate = IndexAvailableForTable(
+      table_idx, tables_per_predicate, predicates_per_table, available_tables,
+      evaluated_predicates, conditions);
+  if (indexed_predicate >= 0) {
+    // Generate a loop over the index rather than the full table
+    const auto& predicate = conditions[indexed_predicate].get();
+
+    auto eq =
+        dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(&predicate);
+    auto left_column =
+        dynamic_cast<const kush::plan::ColumnRefExpression*>(&eq->LeftChild());
+    auto right_column =
+        dynamic_cast<const kush::plan::ColumnRefExpression*>(&eq->RightChild());
+
+    // Get index from table value to tuple idx
+    auto table_column = table_idx == left_column->GetChildIdx()
+                            ? left_column->GetColumnIdx()
+                            : right_column->GetColumnIdx();
+
+    auto it = predicate_to_index_idx_.find({table_idx, table_column});
+    assert(it != predicate_to_index_idx_.end());
+    auto index_idx = it->second;
+
+    auto other_side_value = expr_translator.Compute(
+        table_idx == left_column->GetChildIdx() ? *right_column : *left_column);
+    auto bucket = indexes[index_idx]->GetBucket(*other_side_value);
+
+    auto bucket_dne_check = proxy::If(
+        program, bucket.DoesNotExist(),
+        [&]() -> std::vector<khir::Value> {
+          auto budget = initial_budget - 1;
+          proxy::If(
+              program, budget == 0,
+              [&]() -> std::vector<khir::Value> {
+                auto idx_ptr = program.GetElementPtr(program.I32Type(),
+                                                     idx_array, {table_idx});
+                program.StoreI32(idx_ptr, (cardinality - 1).Get());
+                program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
+                program.Return(program.ConstI32(-1));
+                return {};
+              },
+              []() -> std::vector<khir::Value> { return {}; });
+
+          return {budget.Get()};
+        },
+        [&]() -> std::vector<khir::Value> {
+          proxy::Loop loop(
+              program,
+              [&](auto& loop) {
+                auto progress_check = proxy::If(
+                    program, resume_progress,
+                    [&]() -> std::vector<khir::Value> {
+                      auto progress_ptr = program.GetElementPtr(
+                          program.I32Type(), progress_arr, {table_idx});
+                      auto next_tuple =
+                          proxy::Int32(program, program.LoadI32(progress_ptr));
+                      return {next_tuple.Get()};
+                    },
+                    [&]() -> std::vector<khir::Value> {
+                      auto next_tuple = proxy::Int32(program, 0);
+                      return {next_tuple.Get()};
+                    });
+                auto next_tuple = proxy::Int32(program, progress_check[0]);
+                loop.AddLoopVariable(next_tuple);
+                loop.AddLoopVariable(initial_budget);
+                loop.AddLoopVariable(resume_progress);
+              },
+              [&](auto& loop) {
+                auto next_tuple =
+                    loop.template GetLoopVariable<proxy::Int32>(0);
+                return next_tuple < cardinality;
+              },
+              [&](auto& loop) {
+                auto next_tuple =
+                    loop.template GetLoopVariable<proxy::Int32>(0);
+                auto budget =
+                    loop.template GetLoopVariable<proxy::Int32>(1) - 1;
+                auto resume_progress =
+                    loop.template GetLoopVariable<proxy::Bool>(2);
+
+                auto idx_ptr = program.GetElementPtr(program.I32Type(),
+                                                     idx_array, {table_idx});
+                program.StoreI32(idx_ptr, next_tuple.Get());
+
+                /*
+                proxy::Printer printer(program);
+                std::string x;
+                for (int i = 0; i < curr; i++) {
+                  x += " ";
+                }
+                auto str = proxy::String::Global(program, x);
+                printer.Print(str);
+                printer.Print(next_tuple);
+                printer.PrintNewline();
+                */
+
+                proxy::If(
+                    program, next_tuple == cardinality,
+                    [&]() -> std::vector<khir::Value> {
+                      // Since loop is complete check that we've depleted budget
+                      proxy::If(
+                          program, budget == 0,
+                          [&]() -> std::vector<khir::Value> {
+                            program.StoreI32(table_ctr_ptr,
+                                             program.ConstI32(table_idx));
+                            program.Return(program.ConstI32(-1));
+                            return {};
+                          },
+                          []() -> std::vector<khir::Value> { return {}; });
+
+                      loop.Continue(cardinality, budget,
+                                    proxy::Bool(program, false));
+                      return {};
+                    },
+                    []() -> std::vector<khir::Value> { return {}; });
+
+                auto tuple = buffer[next_tuple];
+                child_translators[table_idx].get().SchemaValues().SetValues(
+                    tuple.Unpack());
+                available_tables.insert(table_idx);
+
+                for (int predicate_idx : predicates_per_table[table_idx]) {
+                  if (evaluated_predicates.contains(predicate_idx)) {
+                    continue;
+                  }
+
+                  bool can_execute = true;
+                  for (int table : tables_per_predicate[predicate_idx]) {
+                    if (!available_tables.contains(table)) {
+                      can_execute = false;
+                      break;
+                    }
+                  }
+                  if (!can_execute) {
+                    continue;
+                  }
+
+                  evaluated_predicates.insert(predicate_idx);
+                  auto cond =
+                      expr_translator.Compute(conditions[predicate_idx]);
+                  proxy::If(
+                      program, !static_cast<proxy::Bool&>(*cond),
+                      [&]() -> std::vector<khir::Value> {
+                        // If budget, depleted return -1 and set table ctr
+                        proxy::If(
+                            program, budget == 0,
+                            [&]() -> std::vector<khir::Value> {
+                              program.StoreI32(table_ctr_ptr,
+                                               program.ConstI32(table_idx));
+                              program.Return(program.ConstI32(-1));
+                              return {};
+                            },
+                            []() -> std::vector<khir::Value> { return {}; });
+
+                        loop.Continue(next_tuple + 1, budget,
+                                      proxy::Bool(program, false));
+                        return {};
+                      },
+                      []() -> std::vector<khir::Value> { return {}; });
+                }
+
+                // Valid tuple
+                std::unique_ptr<proxy::Int32> next_budget;
+                if (curr + 1 == order.size()) {
+                  // Complete tuple - insert into HT
+                  tuple_idx_table.Insert(idx_array,
+                                         proxy::Int32(program, order.size()));
+
+                  proxy::Int32 num_result_tuples(
+                      program, program.LoadI32(num_result_tuples_ptr));
+                  program.StoreI32(num_result_tuples_ptr,
+                                   (num_result_tuples + 1).Get());
+
+                  // If budget depleted, return with -1 (i.e. finished entire
+                  // tables)
+                  proxy::If(
+                      program, budget == 0,
+                      [&]() -> std::vector<khir::Value> {
+                        program.StoreI32(table_ctr_ptr,
+                                         program.ConstI32(table_idx));
+                        program.Return(program.ConstI32(-1));
+                        return {};
+                      },
+                      []() -> std::vector<khir::Value> { return {}; });
+
+                  next_budget = budget.ToPointer();
+                } else {
+                  // If budget depleted, return with -2 and store table_ctr
+                  proxy::If(
+                      program, budget == 0,
+                      [&]() -> std::vector<khir::Value> {
+                        program.StoreI32(table_ctr_ptr,
+                                         program.ConstI32(table_idx));
+                        program.Return(program.ConstI32(-2));
+                        return {};
+                      },
+                      []() -> std::vector<khir::Value> { return {}; });
+
+                  // Partial tuple - loop over other tables to complete it
+                  next_budget =
+                      GenerateChildLoops(
+                          curr + 1, order, program, expr_translator, buffers,
+                          indexes, cardinalities, tuple_idx_table,
+                          evaluated_predicates, tables_per_predicate,
+                          predicates_per_table, available_tables, idx_array,
+                          progress_arr, table_ctr_ptr, num_result_tuples_ptr,
+                          budget, resume_progress)
+                          .ToPointer();
+                }
+
+                return loop.Continue(next_tuple + 1, *next_budget,
+                                     proxy::Bool(program, false));
+              });
+
+          return {loop.template GetLoopVariable<proxy::Int32>(1).Get()};
+        });
+
+    return proxy::Int32(program, bucket_dne_check[0]);
+  }
 
   proxy::Loop loop(
       program,

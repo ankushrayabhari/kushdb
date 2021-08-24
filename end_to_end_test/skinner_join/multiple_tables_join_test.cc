@@ -49,7 +49,7 @@ ABSL_DECLARE_FLAG(int32_t, budget_per_episode);
 
 std::unique_ptr<Operator> Scan(const Database& db) {
   OperatorSchema schema;
-  schema.AddGeneratedColumns(db["info"], {"id"});
+  schema.AddGeneratedColumns(db["info"], {"id", "num2"});
   return std::make_unique<ScanOperator>(std::move(schema), db["info"]);
 }
 
@@ -70,14 +70,14 @@ TEST_P(SkinnerJoinTest, IntCol) {
 
     std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
     conditions.push_back(Eq(ColRef(s1, "id", 0), ColRef(s2, "id", 1)));
-    conditions.push_back(Eq(ColRef(s2, "id", 1), ColRef(s3, "id", 2)));
+    conditions.push_back(Eq(ColRef(s2, "num2", 1), ColRef(s3, "num2", 2)));
     conditions.push_back(Eq(ColRef(s2, "id", 1), ColRef(s4, "id", 3)));
 
     OperatorSchema schema;
-    schema.AddPassthroughColumns(*s1, 0);
-    schema.AddPassthroughColumns(*s2, 1);
-    schema.AddPassthroughColumns(*s3, 2);
-    schema.AddPassthroughColumns(*s4, 3);
+    schema.AddPassthroughColumns(*s1, {"id"}, 0);
+    schema.AddPassthroughColumns(*s2, {"id"}, 1);
+    schema.AddPassthroughColumns(*s3, {"id"}, 2);
+    schema.AddPassthroughColumns(*s4, {"id"}, 3);
     query =
         std::make_unique<OutputOperator>(std::make_unique<SkinnerJoinOperator>(
             std::move(schema),
