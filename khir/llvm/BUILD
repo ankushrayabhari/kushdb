@@ -20,6 +20,7 @@ cc_library(
     deps = [
         "//compile:program",
         "//khir:program_builder",
+        "@absl//absl/flags:flag",
         "@absl//absl/types:span",
         "@llvm-project//llvm:BitWriter",
         "@llvm-project//llvm:Core",

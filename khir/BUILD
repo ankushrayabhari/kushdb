@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -59,5 +59,19 @@ cc_library(
     hdrs = ["instruction.h"],
     deps = [
         ":opcode",
+    ],
+)
+
+cc_test(
+    name = "backend_test",
+    size = "large",
+    srcs = ["backend_test.cc"],
+    deps = [
+        "//compile:backend",
+        "//compile:program",
+        "//khir:program_builder",
+        "//khir/asm:asm_backend",
+        "//khir/llvm:llvm_backend",
+        "@com_google_googletest//:gtest_main",
     ],
 )

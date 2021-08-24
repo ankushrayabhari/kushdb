@@ -1,14 +1,36 @@
-#include "khir/asm/asm_backend.h"
+#include "compile/backend.h"
 
 #include <random>
 
 #include "gtest/gtest.h"
 
+#include "khir/asm/asm_backend.h"
+#include "khir/llvm/llvm_backend.h"
 #include "khir/program_builder.h"
 #include "khir/program_printer.h"
 
 using namespace kush;
 using namespace kush::khir;
+
+std::unique_ptr<compile::Program> Compile(
+    const std::pair<compile::Backend, khir::RegAllocImpl>& params,
+    khir::ProgramBuilder& program_builder) {
+  switch (params.first) {
+    case compile::Backend::ASM: {
+      auto backend = std::make_unique<khir::ASMBackend>(params.second);
+      program_builder.Translate(*backend);
+      backend->Compile();
+      return std::move(backend);
+    }
+
+    case compile::Backend::LLVM: {
+      auto backend = std::make_unique<khir::LLVMBackend>();
+      program_builder.Translate(*backend);
+      backend->Compile();
+      return std::move(backend);
+    }
+  }
+}
 
 template <typename T>
 bool Compare(CompType cmp, T a0, T a1) {
@@ -33,9 +55,10 @@ bool Compare(CompType cmp, T a0, T a1) {
   }
 }
 
-class ASMBackendTest : public testing::TestWithParam<RegAllocImpl> {};
+class BackendTest : public testing::TestWithParam<
+                        std::pair<compile::Backend, khir::RegAllocImpl>> {};
 
-TEST_P(ASMBackendTest, NULLPTR) {
+TEST_P(BackendTest, NULLPTR) {
   for (auto type_func : {&ProgramBuilder::I1Type, &ProgramBuilder::I8Type,
                          &ProgramBuilder::I16Type, &ProgramBuilder::I32Type,
                          &ProgramBuilder::I64Type, &ProgramBuilder::F64Type}) {
@@ -44,17 +67,16 @@ TEST_P(ASMBackendTest, NULLPTR) {
     program.CreatePublicFunction(type, {}, "compute");
     program.Return(program.NullPtr(type));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t*()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
     EXPECT_EQ(nullptr, compute());
   }
 }
 
-TEST_P(ASMBackendTest, PTR_CAST) {
+TEST_P(BackendTest, PTR_CAST) {
   ProgramBuilder program;
   auto type = program.PointerType(program.I8Type());
   auto func = program.CreatePublicFunction(
@@ -63,19 +85,17 @@ TEST_P(ASMBackendTest, PTR_CAST) {
   program.Return(
       program.PointerCast(args[0], program.PointerType(program.F64Type())));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<double*(int8_t*)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
   EXPECT_EQ(nullptr, compute(nullptr));
 
   int8_t test;
   EXPECT_EQ(reinterpret_cast<double*>(&test), compute(&test));
 }
 
-TEST_P(ASMBackendTest, PTR_CASTGlobal) {
+TEST_P(BackendTest, PTR_CASTGlobal) {
   ProgramBuilder program;
   auto global =
       program.Global(false, true, program.I64Type(), program.ConstI64(5));
@@ -84,17 +104,15 @@ TEST_P(ASMBackendTest, PTR_CASTGlobal) {
   program.Return(
       program.PointerCast(global, program.PointerType(program.F64Type())));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<double*()>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   EXPECT_EQ(5, *reinterpret_cast<int64_t*>(compute()));
 }
 
-TEST_P(ASMBackendTest, PTR_CASTStruct) {
+TEST_P(BackendTest, PTR_CASTStruct) {
   struct Test {
     int64_t x;
   };
@@ -108,18 +126,16 @@ TEST_P(ASMBackendTest, PTR_CASTStruct) {
   program.Return(program.PointerCast(program.GetElementPtr(st, args[0], {0, 0}),
                                      program.PointerType(program.F64Type())));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<double*(Test*)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   Test test{.x = 5};
   EXPECT_EQ(5, *reinterpret_cast<int64_t*>(compute(&test)));
 }
 
-TEST_P(ASMBackendTest, ALLOCAI8) {
+TEST_P(BackendTest, ALLOCAI8) {
   ProgramBuilder program;
   auto type = program.I8Type();
   auto func = program.CreatePublicFunction(type, {type}, "compute");
@@ -128,12 +144,10 @@ TEST_P(ASMBackendTest, ALLOCAI8) {
   program.StoreI8(ptr, args[0]);
   program.Return(program.LoadI8(ptr));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -144,7 +158,7 @@ TEST_P(ASMBackendTest, ALLOCAI8) {
   }
 }
 
-TEST_P(ASMBackendTest, ALLOCAI16) {
+TEST_P(BackendTest, ALLOCAI16) {
   ProgramBuilder program;
   auto type = program.I16Type();
   auto func = program.CreatePublicFunction(type, {type}, "compute");
@@ -153,12 +167,10 @@ TEST_P(ASMBackendTest, ALLOCAI16) {
   program.StoreI16(ptr, args[0]);
   program.Return(program.LoadI16(ptr));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -169,7 +181,7 @@ TEST_P(ASMBackendTest, ALLOCAI16) {
   }
 }
 
-TEST_P(ASMBackendTest, ALLOCAI32) {
+TEST_P(BackendTest, ALLOCAI32) {
   ProgramBuilder program;
   auto type = program.I32Type();
   auto func = program.CreatePublicFunction(type, {type}, "compute");
@@ -178,12 +190,10 @@ TEST_P(ASMBackendTest, ALLOCAI32) {
   program.StoreI32(ptr, args[0]);
   program.Return(program.LoadI32(ptr));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -194,7 +204,7 @@ TEST_P(ASMBackendTest, ALLOCAI32) {
   }
 }
 
-TEST_P(ASMBackendTest, ALLOCAI64) {
+TEST_P(BackendTest, ALLOCAI64) {
   ProgramBuilder program;
   auto type = program.I64Type();
   auto func = program.CreatePublicFunction(type, {type}, "compute");
@@ -203,12 +213,10 @@ TEST_P(ASMBackendTest, ALLOCAI64) {
   program.StoreI64(ptr, args[0]);
   program.Return(program.LoadI64(ptr));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -219,7 +227,7 @@ TEST_P(ASMBackendTest, ALLOCAI64) {
   }
 }
 
-TEST_P(ASMBackendTest, ALLOCAF64) {
+TEST_P(BackendTest, ALLOCAF64) {
   ProgramBuilder program;
   auto type = program.F64Type();
   auto func = program.CreatePublicFunction(type, {type}, "compute");
@@ -228,12 +236,10 @@ TEST_P(ASMBackendTest, ALLOCAF64) {
   program.StoreF64(ptr, args[0]);
   program.Return(program.LoadF64(ptr));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<double(double)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -244,7 +250,7 @@ TEST_P(ASMBackendTest, ALLOCAF64) {
   }
 }
 
-TEST_P(ASMBackendTest, ALLOCAStruct) {
+TEST_P(BackendTest, ALLOCAStruct) {
   struct Test {
     int8_t x1;
     int16_t x2;
@@ -272,13 +278,11 @@ TEST_P(ASMBackendTest, ALLOCAStruct) {
   program.Call(args[0], {ptr});
   program.Return();
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using handler_fn = std::add_pointer<void(Test*)>::type;
   using compute_fn = std::add_pointer<void(handler_fn)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   compute([](Test* t) {
     EXPECT_EQ(0, t->x1);
@@ -287,7 +291,7 @@ TEST_P(ASMBackendTest, ALLOCAStruct) {
   });
 }
 
-TEST_P(ASMBackendTest, PTR_LOAD) {
+TEST_P(BackendTest, PTR_LOAD) {
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.PointerType(program.I64Type()),
@@ -295,64 +299,56 @@ TEST_P(ASMBackendTest, PTR_LOAD) {
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LoadPtr(args[0]));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int64_t*(int64_t**)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   int64_t value = 0xDEADBEEF;
   int64_t* ptr = reinterpret_cast<int64_t*>(value);
   EXPECT_EQ(ptr, compute(&ptr));
 }
 
-TEST_P(ASMBackendTest, PTR_LOADGlobal) {
+TEST_P(BackendTest, PTR_LOADGlobal) {
   ProgramBuilder program;
   auto global =
       program.Global(true, false, program.PointerType(program.I64Type()),
-                     program.NullPtr(program.I64Type()));
-  program.CreatePublicFunction(
-      program.PointerType(program.PointerType(program.I64Type())), {},
-      "compute");
+                     program.NullPtr(program.PointerType(program.I64Type())));
+  program.CreatePublicFunction(program.PointerType(program.I64Type()), {},
+                               "compute");
   program.Return(program.LoadPtr(global));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int64_t*()>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   EXPECT_EQ(nullptr, compute());
 }
 
-TEST_P(ASMBackendTest, PTR_LOADStruct) {
+TEST_P(BackendTest, PTR_LOADStruct) {
   struct Test {
     int64_t* x;
   };
 
   ProgramBuilder program;
-  auto st = program.StructType(
-      {program.PointerType(program.PointerType(program.I64Type()))});
+  auto st = program.StructType({program.PointerType(program.I64Type())});
   auto func =
       program.CreatePublicFunction(program.PointerType(program.I64Type()),
                                    {program.PointerType(st)}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LoadPtr(program.GetElementPtr(st, args[0], {0, 0})));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int64_t*(Test*)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   Test t{.x = reinterpret_cast<int64_t*>(0xDEADBEEF)};
   EXPECT_EQ(t.x, compute(&t));
 }
 
-TEST_P(ASMBackendTest, PTR_STORE) {
+TEST_P(BackendTest, PTR_STORE) {
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.VoidType(),
@@ -363,12 +359,10 @@ TEST_P(ASMBackendTest, PTR_STORE) {
   program.StorePtr(args[0], args[1]);
   program.Return();
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<void(int64_t**, int64_t*)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   int64_t value = 0xDEADBEEF;
   int64_t* ptr = reinterpret_cast<int64_t*>(value);
@@ -377,21 +371,20 @@ TEST_P(ASMBackendTest, PTR_STORE) {
   EXPECT_EQ(ptr, loc);
 }
 
-TEST_P(ASMBackendTest, PTR_STORENullptr) {
+TEST_P(BackendTest, PTR_STORENullptr) {
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.VoidType(),
       {program.PointerType(program.PointerType(program.I64Type()))}, "compute");
   auto args = program.GetFunctionArguments(func);
-  program.StorePtr(args[0], program.NullPtr(program.I64Type()));
+  program.StorePtr(args[0],
+                   program.NullPtr(program.PointerType(program.I64Type())));
   program.Return();
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<void(int64_t**)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   int64_t value = 0xDEADBEEF;
   int64_t* ptr = reinterpret_cast<int64_t*>(value);
@@ -399,7 +392,7 @@ TEST_P(ASMBackendTest, PTR_STORENullptr) {
   EXPECT_EQ(nullptr, ptr);
 }
 
-TEST_P(ASMBackendTest, PTR_STOREGlobal) {
+TEST_P(BackendTest, PTR_STOREGlobal) {
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.I64Type(),
@@ -411,18 +404,16 @@ TEST_P(ASMBackendTest, PTR_STOREGlobal) {
   auto ptr = program.LoadPtr(args[0]);
   program.Return(program.LoadI64(ptr));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int64_t(int64_t**)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   int64_t* loc = nullptr;
   EXPECT_EQ(-1, compute(&loc));
 }
 
-TEST_P(ASMBackendTest, PTR_STOREGep) {
+TEST_P(BackendTest, PTR_STOREGep) {
   struct Test {
     int32_t a;
     int64_t b;
@@ -439,12 +430,10 @@ TEST_P(ASMBackendTest, PTR_STOREGep) {
   program.StorePtr(args[0], program.GetElementPtr(st, args[1], {0, 1}));
   program.Return();
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<void(int64_t**, Test*)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   Test x{.a = 100, .b = -1000};
   int64_t* loc = nullptr;
@@ -452,7 +441,7 @@ TEST_P(ASMBackendTest, PTR_STOREGep) {
   EXPECT_EQ(&x.b, loc);
 }
 
-TEST_P(ASMBackendTest, PTR_STOREGlobalDest) {
+TEST_P(BackendTest, PTR_STOREGlobalDest) {
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
       program.PointerType(program.I64Type()),
@@ -460,25 +449,23 @@ TEST_P(ASMBackendTest, PTR_STOREGlobalDest) {
   auto args = program.GetFunctionArguments(func);
   auto global =
       program.Global(false, true, program.PointerType(program.I64Type()),
-                     program.NullPtr(program.I64Type()));
+                     program.NullPtr(program.PointerType(program.I64Type())));
   program.StorePtr(
       global,
       program.PointerCast(args[0], program.PointerType(program.I64Type())));
   program.Return(program.LoadPtr(global));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int64_t*(int64_t*)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   int64_t value = 0xDEADBEEF;
   int64_t* ptr = reinterpret_cast<int64_t*>(value);
   EXPECT_EQ(ptr, compute(ptr));
 }
 
-TEST_P(ASMBackendTest, PTR_STOREGepDest) {
+TEST_P(BackendTest, PTR_STOREGepDest) {
   struct Test {
     int64_t* x;
   };
@@ -493,12 +480,10 @@ TEST_P(ASMBackendTest, PTR_STOREGepDest) {
   program.StorePtr(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
   program.Return();
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<void(Test*, int64_t*)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   Test t{.x = nullptr};
   int64_t value = 0xDEADBEEF;
@@ -507,7 +492,7 @@ TEST_P(ASMBackendTest, PTR_STOREGepDest) {
   EXPECT_EQ(ptr, t.x);
 }
 
-TEST_P(ASMBackendTest, PHIPTR) {
+TEST_P(BackendTest, PHIPTR) {
   int64_t c1 = 0xDEADBEEF;
   int64_t* p1 = reinterpret_cast<int64_t*>(c1);
   int64_t c2 = 0xBEAFDEAD;
@@ -515,8 +500,8 @@ TEST_P(ASMBackendTest, PHIPTR) {
 
   ProgramBuilder program;
   auto type = program.PointerType(program.I64Type());
-  auto func = program.CreatePublicFunction(
-      program.VoidType(), {program.I1Type(), type, type}, "compute");
+  auto func = program.CreatePublicFunction(type, {program.I1Type(), type, type},
+                                           "compute");
   auto args = program.GetFunctionArguments(func);
 
   auto bb1 = program.GenerateBlock();
@@ -539,19 +524,17 @@ TEST_P(ASMBackendTest, PHIPTR) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn =
       std::add_pointer<int64_t*(int8_t, int64_t*, int64_t*)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   EXPECT_EQ(p1, compute(1, p1, p2));
   EXPECT_EQ(p2, compute(0, p1, p2));
 }
 
-TEST_P(ASMBackendTest, I1_CONST) {
+TEST_P(BackendTest, I1_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(0, 1);
@@ -562,53 +545,49 @@ TEST_P(ASMBackendTest, I1_CONST) {
     program.CreatePublicFunction(program.I1Type(), {}, "compute");
     program.Return(program.ConstI1(c));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<bool()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I1_LNOT) {
+TEST_P(BackendTest, I1_LNOT) {
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(program.I1Type(), {program.I1Type()},
                                            "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LNotI1(args[0]));
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<bool(bool)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   EXPECT_EQ(false, compute(true));
   EXPECT_EQ(true, compute(false));
 }
 
-TEST_P(ASMBackendTest, I1_LNOTConst) {
+TEST_P(BackendTest, I1_LNOTConst) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
     program.CreatePublicFunction(program.I1Type(), {}, "compute");
     program.Return(program.LNotI1(program.ConstI1(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<bool()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(!c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I1_CMP_XXReturn) {
+TEST_P(BackendTest, I1_CMP_XXReturn) {
   for (auto cmp_type : {CompType::EQ, CompType::NE}) {
     int8_t c1 = 0;
     int8_t c2 = 1;
@@ -619,12 +598,11 @@ TEST_P(ASMBackendTest, I1_CMP_XXReturn) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, args[0], args[1]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     if (Compare(cmp_type, c1, c1)) {
       EXPECT_NE(0, compute(c1, c1));
@@ -652,7 +630,7 @@ TEST_P(ASMBackendTest, I1_CMP_XXReturn) {
   }
 }
 
-TEST_P(ASMBackendTest, I1_CMP_XXBranch) {
+TEST_P(BackendTest, I1_CMP_XXBranch) {
   for (auto cmp_type : {CompType::EQ, CompType::NE}) {
     int8_t c1 = 0;
     int8_t c2 = 1;
@@ -669,12 +647,11 @@ TEST_P(ASMBackendTest, I1_CMP_XXBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI1(false));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     if (Compare(cmp_type, c1, c1)) {
       EXPECT_NE(0, compute(c1, c1));
@@ -702,7 +679,7 @@ TEST_P(ASMBackendTest, I1_CMP_XXBranch) {
   }
 }
 
-TEST_P(ASMBackendTest, I1_CMP_XXReturnConstArg0) {
+TEST_P(BackendTest, I1_CMP_XXReturnConstArg0) {
   for (auto cmp_type : {CompType::EQ, CompType::NE}) {
     int8_t c1 = 0;
     int8_t c2 = 1;
@@ -713,12 +690,11 @@ TEST_P(ASMBackendTest, I1_CMP_XXReturnConstArg0) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, program.ConstI1(c1), args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     if (Compare(cmp_type, c1, c1)) {
       EXPECT_NE(0, compute(c1));
@@ -734,7 +710,7 @@ TEST_P(ASMBackendTest, I1_CMP_XXReturnConstArg0) {
   }
 }
 
-TEST_P(ASMBackendTest, I1_CMP_XXReturnConstArg1) {
+TEST_P(BackendTest, I1_CMP_XXReturnConstArg1) {
   for (auto cmp_type : {CompType::EQ, CompType::NE}) {
     int8_t c1 = 0;
     int8_t c2 = 1;
@@ -745,12 +721,11 @@ TEST_P(ASMBackendTest, I1_CMP_XXReturnConstArg1) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, args[0], program.ConstI1(c2)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     if (Compare(cmp_type, c1, c2)) {
       EXPECT_NE(0, compute(c1));
@@ -766,7 +741,7 @@ TEST_P(ASMBackendTest, I1_CMP_XXReturnConstArg1) {
   }
 }
 
-TEST_P(ASMBackendTest, I1_ZEXT_I64) {
+TEST_P(BackendTest, I1_ZEXT_I64) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
@@ -774,37 +749,35 @@ TEST_P(ASMBackendTest, I1_ZEXT_I64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI1(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(bool)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t zexted = c ? 1 : 0;
     EXPECT_EQ(zexted, compute(c));
   }
 }
 
-TEST_P(ASMBackendTest, I1_ZEXT_I64Const) {
+TEST_P(BackendTest, I1_ZEXT_I64Const) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
     program.CreatePublicFunction(program.I64Type(), {}, "compute");
     program.Return(program.I64ZextI1(program.ConstI1(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t zexted = c ? 1 : 0;
     EXPECT_EQ(zexted, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I1_ZEXT_I8) {
+TEST_P(BackendTest, I1_ZEXT_I8) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I8Type(),
@@ -812,42 +785,40 @@ TEST_P(ASMBackendTest, I1_ZEXT_I8) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I8ZextI1(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(bool)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute(c));
   }
 }
 
-TEST_P(ASMBackendTest, I1_ZEXT_I8Const) {
+TEST_P(BackendTest, I1_ZEXT_I8Const) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
     program.CreatePublicFunction(program.I8Type(), {}, "compute");
     program.Return(program.I8ZextI1(program.ConstI1(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, PHII1) {
+TEST_P(BackendTest, PHII1) {
   bool c1 = false;
   bool c2 = true;
 
   ProgramBuilder program;
   auto type = program.I1Type();
-  auto func = program.CreatePublicFunction(
-      program.VoidType(), {program.I1Type(), type, type}, "compute");
+  auto func = program.CreatePublicFunction(type, {program.I1Type(), type, type},
+                                           "compute");
   auto args = program.GetFunctionArguments(func);
 
   auto bb1 = program.GenerateBlock();
@@ -870,25 +841,23 @@ TEST_P(ASMBackendTest, PHII1) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   EXPECT_EQ(c1, compute(1, c1, c2));
   EXPECT_EQ(c2, compute(0, c1, c2));
 }
 
-TEST_P(ASMBackendTest, PHII1ConstArg0) {
+TEST_P(BackendTest, PHII1ConstArg0) {
   bool c1 = false;
   bool c2 = true;
 
   ProgramBuilder program;
   auto type = program.I1Type();
-  auto func = program.CreatePublicFunction(program.VoidType(),
-                                           {program.I1Type(), type}, "compute");
+  auto func =
+      program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
   auto args = program.GetFunctionArguments(func);
 
   auto bb1 = program.GenerateBlock();
@@ -911,25 +880,23 @@ TEST_P(ASMBackendTest, PHII1ConstArg0) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   EXPECT_EQ(c1, compute(1, c2));
   EXPECT_EQ(c2, compute(0, c2));
 }
 
-TEST_P(ASMBackendTest, PHII1ConstArg1) {
+TEST_P(BackendTest, PHII1ConstArg1) {
   bool c1 = false;
   bool c2 = true;
 
   ProgramBuilder program;
   auto type = program.I1Type();
-  auto func = program.CreatePublicFunction(program.VoidType(),
-                                           {program.I1Type(), type}, "compute");
+  auto func =
+      program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
   auto args = program.GetFunctionArguments(func);
 
   auto bb1 = program.GenerateBlock();
@@ -952,18 +919,16 @@ TEST_P(ASMBackendTest, PHII1ConstArg1) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   EXPECT_EQ(c1, compute(1, c1));
   EXPECT_EQ(c2, compute(0, c1));
 }
 
-TEST_P(ASMBackendTest, I8_ADD) {
+TEST_P(BackendTest, I8_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -975,12 +940,10 @@ TEST_P(ASMBackendTest, I8_ADD) {
   auto sum = program.AddI8(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
@@ -991,7 +954,7 @@ TEST_P(ASMBackendTest, I8_ADD) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_ADDConstArg0) {
+TEST_P(BackendTest, I8_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1007,19 +970,18 @@ TEST_P(ASMBackendTest, I8_ADDConstArg0) {
     auto sum = program.AddI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int8_t res = a0 + a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I8_ADDConstArg1) {
+TEST_P(BackendTest, I8_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1035,19 +997,18 @@ TEST_P(ASMBackendTest, I8_ADDConstArg1) {
     auto sum = program.AddI8(args[0], program.ConstI8(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int8_t res = a0 + a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I8_SUB) {
+TEST_P(BackendTest, I8_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1059,12 +1020,10 @@ TEST_P(ASMBackendTest, I8_SUB) {
   auto sum = program.SubI8(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
@@ -1074,7 +1033,7 @@ TEST_P(ASMBackendTest, I8_SUB) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_SubConstArg0) {
+TEST_P(BackendTest, I8_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1090,19 +1049,18 @@ TEST_P(ASMBackendTest, I8_SubConstArg0) {
     auto sum = program.SubI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int8_t res = a0 - a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I8_SubConstArg1) {
+TEST_P(BackendTest, I8_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1118,19 +1076,18 @@ TEST_P(ASMBackendTest, I8_SubConstArg1) {
     auto sum = program.SubI8(args[0], program.ConstI8(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int8_t res = a0 - a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I8_MUL) {
+TEST_P(BackendTest, I8_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1142,12 +1099,10 @@ TEST_P(ASMBackendTest, I8_MUL) {
   auto sum = program.MulI8(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int8_t a0 = distrib(gen);
@@ -1157,7 +1112,7 @@ TEST_P(ASMBackendTest, I8_MUL) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_MULConstArg0) {
+TEST_P(BackendTest, I8_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1173,19 +1128,18 @@ TEST_P(ASMBackendTest, I8_MULConstArg0) {
     auto sum = program.MulI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int8_t res = a0 * a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I8_MULConstArg1) {
+TEST_P(BackendTest, I8_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1201,19 +1155,18 @@ TEST_P(ASMBackendTest, I8_MULConstArg1) {
     auto sum = program.MulI8(args[0], program.ConstI8(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int8_t res = a0 * a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I8_CONST) {
+TEST_P(BackendTest, I8_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1224,18 +1177,17 @@ TEST_P(ASMBackendTest, I8_CONST) {
     program.CreatePublicFunction(program.I8Type(), {}, "compute");
     program.Return(program.ConstI8(c));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I8_ZEXT_I64) {
+TEST_P(BackendTest, I8_ZEXT_I64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1246,12 +1198,11 @@ TEST_P(ASMBackendTest, I8_ZEXT_I64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI8(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int8_t c = distrib(gen);
     int64_t zexted = int64_t(c) & 0xFF;
@@ -1259,7 +1210,7 @@ TEST_P(ASMBackendTest, I8_ZEXT_I64) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_ZEXT_I64Const) {
+TEST_P(BackendTest, I8_ZEXT_I64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1271,35 +1222,33 @@ TEST_P(ASMBackendTest, I8_ZEXT_I64Const) {
                                  "compute");
     program.Return(program.I64ZextI8(program.ConstI8(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t zexted = int64_t(c) & 0xFF;
     EXPECT_EQ(zexted, compute(c));
   }
 }
 
-TEST_P(ASMBackendTest, I8_CONV_F64) {
+TEST_P(BackendTest, I8_CONV_F64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
+    auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI8(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int8_t c = distrib(gen);
     double conv = c;
@@ -1307,7 +1256,7 @@ TEST_P(ASMBackendTest, I8_CONV_F64) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_CONV_F64Const) {
+TEST_P(BackendTest, I8_CONV_F64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1315,23 +1264,22 @@ TEST_P(ASMBackendTest, I8_CONV_F64Const) {
     int8_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {program.I8Type()},
+    program.CreatePublicFunction(program.F64Type(), {program.I8Type()},
                                  "compute");
     program.Return(program.F64ConvI8(program.ConstI8(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double conv = c;
     EXPECT_EQ(conv, compute(c));
   }
 }
 
-TEST_P(ASMBackendTest, I8_CMP_XXReturn) {
+TEST_P(BackendTest, I8_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1347,13 +1295,11 @@ TEST_P(ASMBackendTest, I8_CMP_XXReturn) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, args[0], args[1]));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1, c1));
@@ -1382,7 +1328,7 @@ TEST_P(ASMBackendTest, I8_CMP_XXReturn) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_CMP_XXBranch) {
+TEST_P(BackendTest, I8_CMP_XXBranch) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1404,13 +1350,11 @@ TEST_P(ASMBackendTest, I8_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1, c1));
@@ -1439,7 +1383,7 @@ TEST_P(ASMBackendTest, I8_CMP_XXBranch) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_CMP_XXConstArg0) {
+TEST_P(BackendTest, I8_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1455,13 +1399,11 @@ TEST_P(ASMBackendTest, I8_CMP_XXConstArg0) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, program.ConstI8(c1), args[0]));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1));
@@ -1478,7 +1420,7 @@ TEST_P(ASMBackendTest, I8_CMP_XXConstArg0) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_CMP_XXConstArg1) {
+TEST_P(BackendTest, I8_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1494,13 +1436,11 @@ TEST_P(ASMBackendTest, I8_CMP_XXConstArg1) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, args[0], program.ConstI8(c2)));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c2, c2)) {
         EXPECT_NE(0, compute(c2));
@@ -1517,7 +1457,7 @@ TEST_P(ASMBackendTest, I8_CMP_XXConstArg1) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_LOAD) {
+TEST_P(BackendTest, I8_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1530,18 +1470,17 @@ TEST_P(ASMBackendTest, I8_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI8(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(loc, compute(&loc));
   }
 }
 
-TEST_P(ASMBackendTest, I8_LOADGlobal) {
+TEST_P(BackendTest, I8_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1554,18 +1493,17 @@ TEST_P(ASMBackendTest, I8_LOADGlobal) {
     program.CreatePublicFunction(program.I8Type(), {}, "compute");
     program.Return(program.LoadI8(global));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I8_LOADStruct) {
+TEST_P(BackendTest, I8_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1583,19 +1521,18 @@ TEST_P(ASMBackendTest, I8_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI8(program.GetElementPtr(st, args[0], {0, 0})));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(Test*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     Test t{.x = c};
     EXPECT_EQ(c, compute(&t));
   }
 }
 
-TEST_P(ASMBackendTest, I8_STORE) {
+TEST_P(BackendTest, I8_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1610,12 +1547,11 @@ TEST_P(ASMBackendTest, I8_STORE) {
     program.StoreI8(args[0], args[1]);
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(int8_t*, int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int8_t loc;
     compute(&loc, c);
@@ -1623,7 +1559,7 @@ TEST_P(ASMBackendTest, I8_STORE) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_STOREConst) {
+TEST_P(BackendTest, I8_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1637,12 +1573,11 @@ TEST_P(ASMBackendTest, I8_STOREConst) {
     program.StoreI8(args[0], program.ConstI8(c));
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(int8_t*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int8_t loc;
     compute(&loc);
@@ -1650,7 +1585,7 @@ TEST_P(ASMBackendTest, I8_STOREConst) {
   }
 }
 
-TEST_P(ASMBackendTest, I8_STOREGlobal) {
+TEST_P(BackendTest, I8_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1666,19 +1601,18 @@ TEST_P(ASMBackendTest, I8_STOREGlobal) {
     program.StoreI8(global, args[0]);
     program.Return(global);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t*(int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     auto loc = compute(c);
     EXPECT_EQ(*loc, c);
   }
 }
 
-TEST_P(ASMBackendTest, I8_STOREStruct) {
+TEST_P(BackendTest, I8_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1698,12 +1632,11 @@ TEST_P(ASMBackendTest, I8_STOREStruct) {
     program.StoreI8(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(Test*, int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     Test t;
     compute(&t, c);
@@ -1711,7 +1644,7 @@ TEST_P(ASMBackendTest, I8_STOREStruct) {
   }
 }
 
-TEST_P(ASMBackendTest, PHII8) {
+TEST_P(BackendTest, PHII8) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1722,7 +1655,7 @@ TEST_P(ASMBackendTest, PHII8) {
     ProgramBuilder program;
     auto type = program.I8Type();
     auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type, type}, "compute");
+        type, {program.I1Type(), type, type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -1745,19 +1678,18 @@ TEST_P(ASMBackendTest, PHII8) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t, int8_t, int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c1, c2));
     EXPECT_EQ(c2, compute(0, c1, c2));
   }
 }
 
-TEST_P(ASMBackendTest, PHII8ConstArg0) {
+TEST_P(BackendTest, PHII8ConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1767,8 +1699,8 @@ TEST_P(ASMBackendTest, PHII8ConstArg0) {
 
     ProgramBuilder program;
     auto type = program.I8Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto func =
+        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -1791,19 +1723,18 @@ TEST_P(ASMBackendTest, PHII8ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c2));
     EXPECT_EQ(c2, compute(0, c2));
   }
 }
 
-TEST_P(ASMBackendTest, PHII8ConstArg1) {
+TEST_P(BackendTest, PHII8ConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
@@ -1813,8 +1744,8 @@ TEST_P(ASMBackendTest, PHII8ConstArg1) {
 
     ProgramBuilder program;
     auto type = program.I8Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto func =
+        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -1837,19 +1768,18 @@ TEST_P(ASMBackendTest, PHII8ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c1));
     EXPECT_EQ(c2, compute(0, c1));
   }
 }
 
-TEST_P(ASMBackendTest, I16_ADD) {
+TEST_P(BackendTest, I16_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -1861,12 +1791,10 @@ TEST_P(ASMBackendTest, I16_ADD) {
   auto sum = program.AddI16(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int16_t(int16_t, int16_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
@@ -1876,7 +1804,7 @@ TEST_P(ASMBackendTest, I16_ADD) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_ADDConstArg0) {
+TEST_P(BackendTest, I16_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -1892,19 +1820,18 @@ TEST_P(ASMBackendTest, I16_ADDConstArg0) {
     auto sum = program.AddI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int16_t res = a0 + a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I16_ADDConstArg1) {
+TEST_P(BackendTest, I16_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -1920,19 +1847,18 @@ TEST_P(ASMBackendTest, I16_ADDConstArg1) {
     auto sum = program.AddI16(args[0], program.ConstI16(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int16_t res = a0 + a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I16_SUB) {
+TEST_P(BackendTest, I16_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -1944,12 +1870,10 @@ TEST_P(ASMBackendTest, I16_SUB) {
   auto sum = program.SubI16(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int16_t(int16_t, int16_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
@@ -1959,7 +1883,7 @@ TEST_P(ASMBackendTest, I16_SUB) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_SubConstArg0) {
+TEST_P(BackendTest, I16_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -1975,19 +1899,18 @@ TEST_P(ASMBackendTest, I16_SubConstArg0) {
     auto sum = program.SubI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int16_t res = a0 - a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I16_SubConstArg1) {
+TEST_P(BackendTest, I16_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2003,19 +1926,18 @@ TEST_P(ASMBackendTest, I16_SubConstArg1) {
     auto sum = program.SubI16(args[0], program.ConstI16(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int16_t res = a0 - a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I16_MUL) {
+TEST_P(BackendTest, I16_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2027,12 +1949,10 @@ TEST_P(ASMBackendTest, I16_MUL) {
   auto sum = program.MulI16(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int16_t(int16_t, int16_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int16_t a0 = distrib(gen);
@@ -2042,7 +1962,7 @@ TEST_P(ASMBackendTest, I16_MUL) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_MULConstArg0) {
+TEST_P(BackendTest, I16_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2058,19 +1978,18 @@ TEST_P(ASMBackendTest, I16_MULConstArg0) {
     auto sum = program.MulI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int16_t res = a0 * a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I16_MULConstArg1) {
+TEST_P(BackendTest, I16_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2086,19 +2005,18 @@ TEST_P(ASMBackendTest, I16_MULConstArg1) {
     auto sum = program.MulI16(args[0], program.ConstI16(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int16_t res = a0 * a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I16_CONST) {
+TEST_P(BackendTest, I16_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2109,18 +2027,17 @@ TEST_P(ASMBackendTest, I16_CONST) {
     program.CreatePublicFunction(program.I16Type(), {}, "compute");
     program.Return(program.ConstI16(c));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I16_ZEXT_I64) {
+TEST_P(BackendTest, I16_ZEXT_I64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2131,12 +2048,11 @@ TEST_P(ASMBackendTest, I16_ZEXT_I64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI16(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int16_t c = distrib(gen);
     int64_t zexted = int64_t(c) & 0xFFFF;
@@ -2144,7 +2060,7 @@ TEST_P(ASMBackendTest, I16_ZEXT_I64) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_ZEXT_I64Const) {
+TEST_P(BackendTest, I16_ZEXT_I64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2156,35 +2072,33 @@ TEST_P(ASMBackendTest, I16_ZEXT_I64Const) {
                                  "compute");
     program.Return(program.I64ZextI16(program.ConstI16(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t zexted = int64_t(c) & 0xFFFF;
     EXPECT_EQ(zexted, compute(c));
   }
 }
 
-TEST_P(ASMBackendTest, I16_CONV_F64) {
+TEST_P(BackendTest, I16_CONV_F64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
+    auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI16(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int16_t c = distrib(gen);
     double conv = c;
@@ -2192,7 +2106,7 @@ TEST_P(ASMBackendTest, I16_CONV_F64) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_CONV_F64Const) {
+TEST_P(BackendTest, I16_CONV_F64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2200,23 +2114,22 @@ TEST_P(ASMBackendTest, I16_CONV_F64Const) {
     int16_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {program.I16Type()},
+    program.CreatePublicFunction(program.F64Type(), {program.I16Type()},
                                  "compute");
     program.Return(program.F64ConvI16(program.ConstI16(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double conv = c;
     EXPECT_EQ(conv, compute(c));
   }
 }
 
-TEST_P(ASMBackendTest, I16_CMP_XXReturn) {
+TEST_P(BackendTest, I16_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2232,13 +2145,11 @@ TEST_P(ASMBackendTest, I16_CMP_XXReturn) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, args[0], args[1]));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int16_t, int16_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1, c1));
@@ -2267,7 +2178,7 @@ TEST_P(ASMBackendTest, I16_CMP_XXReturn) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_CMP_XXBranch) {
+TEST_P(BackendTest, I16_CMP_XXBranch) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2289,13 +2200,11 @@ TEST_P(ASMBackendTest, I16_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int16_t, int16_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1, c1));
@@ -2324,7 +2233,7 @@ TEST_P(ASMBackendTest, I16_CMP_XXBranch) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_CMP_XXConstArg0) {
+TEST_P(BackendTest, I16_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2340,13 +2249,11 @@ TEST_P(ASMBackendTest, I16_CMP_XXConstArg0) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, program.ConstI16(c1), args[0]));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int16_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1));
@@ -2363,7 +2270,7 @@ TEST_P(ASMBackendTest, I16_CMP_XXConstArg0) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_CMP_XXConstArg1) {
+TEST_P(BackendTest, I16_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2379,13 +2286,11 @@ TEST_P(ASMBackendTest, I16_CMP_XXConstArg1) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, args[0], program.ConstI16(c2)));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int16_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c2, c2)) {
         EXPECT_NE(0, compute(c2));
@@ -2402,7 +2307,7 @@ TEST_P(ASMBackendTest, I16_CMP_XXConstArg1) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_LOAD) {
+TEST_P(BackendTest, I16_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2415,18 +2320,17 @@ TEST_P(ASMBackendTest, I16_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI16(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t(int16_t*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(loc, compute(&loc));
   }
 }
 
-TEST_P(ASMBackendTest, I16_LOADGlobal) {
+TEST_P(BackendTest, I16_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2439,18 +2343,17 @@ TEST_P(ASMBackendTest, I16_LOADGlobal) {
     program.CreatePublicFunction(program.I16Type(), {}, "compute");
     program.Return(program.LoadI16(global));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I16_LOADStruct) {
+TEST_P(BackendTest, I16_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2468,19 +2371,18 @@ TEST_P(ASMBackendTest, I16_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI16(program.GetElementPtr(st, args[0], {0, 0})));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t(Test*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     Test t{.x = c};
     EXPECT_EQ(c, compute(&t));
   }
 }
 
-TEST_P(ASMBackendTest, I16_STORE) {
+TEST_P(BackendTest, I16_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2495,12 +2397,11 @@ TEST_P(ASMBackendTest, I16_STORE) {
     program.StoreI16(args[0], args[1]);
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(int16_t*, int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int16_t loc;
     compute(&loc, c);
@@ -2508,7 +2409,7 @@ TEST_P(ASMBackendTest, I16_STORE) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_STOREConst) {
+TEST_P(BackendTest, I16_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2523,12 +2424,11 @@ TEST_P(ASMBackendTest, I16_STOREConst) {
     program.StoreI16(args[0], program.ConstI16(c));
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(int16_t*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int16_t loc;
     compute(&loc);
@@ -2536,7 +2436,7 @@ TEST_P(ASMBackendTest, I16_STOREConst) {
   }
 }
 
-TEST_P(ASMBackendTest, I16_STOREGlobal) {
+TEST_P(BackendTest, I16_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2552,19 +2452,18 @@ TEST_P(ASMBackendTest, I16_STOREGlobal) {
     program.StoreI16(global, args[0]);
     program.Return(global);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t*(int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     auto loc = compute(c);
     EXPECT_EQ(*loc, c);
   }
 }
 
-TEST_P(ASMBackendTest, I16_STOREStruct) {
+TEST_P(BackendTest, I16_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2584,12 +2483,11 @@ TEST_P(ASMBackendTest, I16_STOREStruct) {
     program.StoreI16(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(Test*, int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     Test t;
     compute(&t, c);
@@ -2597,7 +2495,7 @@ TEST_P(ASMBackendTest, I16_STOREStruct) {
   }
 }
 
-TEST_P(ASMBackendTest, PHII16) {
+TEST_P(BackendTest, PHII16) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2608,7 +2506,7 @@ TEST_P(ASMBackendTest, PHII16) {
     ProgramBuilder program;
     auto type = program.I16Type();
     auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type, type}, "compute");
+        type, {program.I1Type(), type, type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -2631,20 +2529,19 @@ TEST_P(ASMBackendTest, PHII16) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn =
         std::add_pointer<int16_t(int8_t, int16_t, int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c1, c2));
     EXPECT_EQ(c2, compute(0, c1, c2));
   }
 }
 
-TEST_P(ASMBackendTest, PHII16ConstArg0) {
+TEST_P(BackendTest, PHII16ConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2654,8 +2551,8 @@ TEST_P(ASMBackendTest, PHII16ConstArg0) {
 
     ProgramBuilder program;
     auto type = program.I16Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto func =
+        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -2678,19 +2575,18 @@ TEST_P(ASMBackendTest, PHII16ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t(int8_t, int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c2));
     EXPECT_EQ(c2, compute(0, c2));
   }
 }
 
-TEST_P(ASMBackendTest, PHII16ConstArg1) {
+TEST_P(BackendTest, PHII16ConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
@@ -2700,8 +2596,8 @@ TEST_P(ASMBackendTest, PHII16ConstArg1) {
 
     ProgramBuilder program;
     auto type = program.I16Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto func =
+        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -2724,19 +2620,18 @@ TEST_P(ASMBackendTest, PHII16ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int16_t(int8_t, int16_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c1));
     EXPECT_EQ(c2, compute(0, c1));
   }
 }
 
-TEST_P(ASMBackendTest, I32_ADD) {
+TEST_P(BackendTest, I32_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2748,12 +2643,10 @@ TEST_P(ASMBackendTest, I32_ADD) {
   auto sum = program.AddI32(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int32_t(int32_t, int32_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
@@ -2763,7 +2656,7 @@ TEST_P(ASMBackendTest, I32_ADD) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_ADDConstArg0) {
+TEST_P(BackendTest, I32_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2779,19 +2672,18 @@ TEST_P(ASMBackendTest, I32_ADDConstArg0) {
     auto sum = program.AddI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int32_t res = a0 + a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I32_ADDConstArg1) {
+TEST_P(BackendTest, I32_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2807,19 +2699,18 @@ TEST_P(ASMBackendTest, I32_ADDConstArg1) {
     auto sum = program.AddI32(args[0], program.ConstI32(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int32_t res = a0 + a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I32_SUB) {
+TEST_P(BackendTest, I32_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2831,12 +2722,10 @@ TEST_P(ASMBackendTest, I32_SUB) {
   auto sum = program.SubI32(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int32_t(int32_t, int32_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
@@ -2846,7 +2735,7 @@ TEST_P(ASMBackendTest, I32_SUB) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_SubConstArg0) {
+TEST_P(BackendTest, I32_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2862,19 +2751,18 @@ TEST_P(ASMBackendTest, I32_SubConstArg0) {
     auto sum = program.SubI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int32_t res = a0 - a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I32_SubConstArg1) {
+TEST_P(BackendTest, I32_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2890,19 +2778,18 @@ TEST_P(ASMBackendTest, I32_SubConstArg1) {
     auto sum = program.SubI32(args[0], program.ConstI32(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int32_t res = a0 - a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I32_MUL) {
+TEST_P(BackendTest, I32_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2914,12 +2801,10 @@ TEST_P(ASMBackendTest, I32_MUL) {
   auto sum = program.MulI32(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int32_t(int32_t, int32_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int32_t a0 = distrib(gen);
@@ -2929,7 +2814,7 @@ TEST_P(ASMBackendTest, I32_MUL) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_MULConstArg0) {
+TEST_P(BackendTest, I32_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2945,19 +2830,18 @@ TEST_P(ASMBackendTest, I32_MULConstArg0) {
     auto sum = program.MulI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int32_t res = a0 * a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I32_MULConstArg1) {
+TEST_P(BackendTest, I32_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2973,19 +2857,18 @@ TEST_P(ASMBackendTest, I32_MULConstArg1) {
     auto sum = program.MulI32(args[0], program.ConstI32(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int32_t res = a0 * a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I32_CONST) {
+TEST_P(BackendTest, I32_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -2996,18 +2879,17 @@ TEST_P(ASMBackendTest, I32_CONST) {
     program.CreatePublicFunction(program.I32Type(), {}, "compute");
     program.Return(program.ConstI32(c));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I32_ZEXT_I64) {
+TEST_P(BackendTest, I32_ZEXT_I64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3018,12 +2900,11 @@ TEST_P(ASMBackendTest, I32_ZEXT_I64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI32(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int32_t c = distrib(gen);
     int64_t zexted = int64_t(c) & 0xFFFFFFFF;
@@ -3031,7 +2912,7 @@ TEST_P(ASMBackendTest, I32_ZEXT_I64) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_ZEXT_I64Const) {
+TEST_P(BackendTest, I32_ZEXT_I64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3043,35 +2924,33 @@ TEST_P(ASMBackendTest, I32_ZEXT_I64Const) {
                                  "compute");
     program.Return(program.I64ZextI32(program.ConstI32(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t zexted = int64_t(c) & 0xFFFFFFFF;
     EXPECT_EQ(zexted, compute(c));
   }
 }
 
-TEST_P(ASMBackendTest, I32_CONV_F64) {
+TEST_P(BackendTest, I32_CONV_F64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
+    auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI32(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int32_t c = distrib(gen);
     double conv = c;
@@ -3079,7 +2958,7 @@ TEST_P(ASMBackendTest, I32_CONV_F64) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_CONV_F64Const) {
+TEST_P(BackendTest, I32_CONV_F64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3087,23 +2966,22 @@ TEST_P(ASMBackendTest, I32_CONV_F64Const) {
     int32_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {program.I32Type()},
+    program.CreatePublicFunction(program.F64Type(), {program.I32Type()},
                                  "compute");
     program.Return(program.F64ConvI32(program.ConstI32(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double conv = c;
     EXPECT_EQ(conv, compute(c));
   }
 }
 
-TEST_P(ASMBackendTest, I32_CMP_XXReturn) {
+TEST_P(BackendTest, I32_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3119,13 +2997,11 @@ TEST_P(ASMBackendTest, I32_CMP_XXReturn) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, args[0], args[1]));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int32_t, int32_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1, c1));
@@ -3154,7 +3030,7 @@ TEST_P(ASMBackendTest, I32_CMP_XXReturn) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_CMP_XXBranch) {
+TEST_P(BackendTest, I32_CMP_XXBranch) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3176,13 +3052,11 @@ TEST_P(ASMBackendTest, I32_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int32_t, int32_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1, c1));
@@ -3211,7 +3085,7 @@ TEST_P(ASMBackendTest, I32_CMP_XXBranch) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_CMP_XXConstArg0) {
+TEST_P(BackendTest, I32_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3227,13 +3101,11 @@ TEST_P(ASMBackendTest, I32_CMP_XXConstArg0) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, program.ConstI32(c1), args[0]));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1));
@@ -3250,7 +3122,7 @@ TEST_P(ASMBackendTest, I32_CMP_XXConstArg0) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_CMP_XXConstArg1) {
+TEST_P(BackendTest, I32_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3266,13 +3138,11 @@ TEST_P(ASMBackendTest, I32_CMP_XXConstArg1) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, args[0], program.ConstI32(c2)));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c2, c2)) {
         EXPECT_NE(0, compute(c2));
@@ -3289,7 +3159,7 @@ TEST_P(ASMBackendTest, I32_CMP_XXConstArg1) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_LOAD) {
+TEST_P(BackendTest, I32_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3302,18 +3172,17 @@ TEST_P(ASMBackendTest, I32_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI32(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(loc, compute(&loc));
   }
 }
 
-TEST_P(ASMBackendTest, I32_LOADGlobal) {
+TEST_P(BackendTest, I32_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3326,18 +3195,17 @@ TEST_P(ASMBackendTest, I32_LOADGlobal) {
     program.CreatePublicFunction(program.I32Type(), {}, "compute");
     program.Return(program.LoadI32(global));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I32_LOADStruct) {
+TEST_P(BackendTest, I32_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3355,19 +3223,18 @@ TEST_P(ASMBackendTest, I32_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI32(program.GetElementPtr(st, args[0], {0, 0})));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t(Test*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     Test t{.x = c};
     EXPECT_EQ(c, compute(&t));
   }
 }
 
-TEST_P(ASMBackendTest, I32_STORE) {
+TEST_P(BackendTest, I32_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3382,12 +3249,11 @@ TEST_P(ASMBackendTest, I32_STORE) {
     program.StoreI32(args[0], args[1]);
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(int32_t*, int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int32_t loc;
     compute(&loc, c);
@@ -3395,7 +3261,7 @@ TEST_P(ASMBackendTest, I32_STORE) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_STOREConst) {
+TEST_P(BackendTest, I32_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3410,12 +3276,11 @@ TEST_P(ASMBackendTest, I32_STOREConst) {
     program.StoreI32(args[0], program.ConstI32(c));
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(int32_t*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int32_t loc;
     compute(&loc);
@@ -3423,7 +3288,7 @@ TEST_P(ASMBackendTest, I32_STOREConst) {
   }
 }
 
-TEST_P(ASMBackendTest, I32_STOREGlobal) {
+TEST_P(BackendTest, I32_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3439,19 +3304,18 @@ TEST_P(ASMBackendTest, I32_STOREGlobal) {
     program.StoreI32(global, args[0]);
     program.Return(global);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t*(int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     auto loc = compute(c);
     EXPECT_EQ(*loc, c);
   }
 }
 
-TEST_P(ASMBackendTest, I32_STOREStruct) {
+TEST_P(BackendTest, I32_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3471,12 +3335,11 @@ TEST_P(ASMBackendTest, I32_STOREStruct) {
     program.StoreI32(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(Test*, int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     Test t;
     compute(&t, c);
@@ -3484,7 +3347,7 @@ TEST_P(ASMBackendTest, I32_STOREStruct) {
   }
 }
 
-TEST_P(ASMBackendTest, PHII32) {
+TEST_P(BackendTest, PHII32) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3495,7 +3358,7 @@ TEST_P(ASMBackendTest, PHII32) {
     ProgramBuilder program;
     auto type = program.I32Type();
     auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type, type}, "compute");
+        type, {program.I1Type(), type, type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -3518,20 +3381,19 @@ TEST_P(ASMBackendTest, PHII32) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn =
         std::add_pointer<int32_t(int8_t, int32_t, int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c1, c2));
     EXPECT_EQ(c2, compute(0, c1, c2));
   }
 }
 
-TEST_P(ASMBackendTest, PHII32ConstArg0) {
+TEST_P(BackendTest, PHII32ConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3541,8 +3403,8 @@ TEST_P(ASMBackendTest, PHII32ConstArg0) {
 
     ProgramBuilder program;
     auto type = program.I32Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto func =
+        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -3565,19 +3427,18 @@ TEST_P(ASMBackendTest, PHII32ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t(int8_t, int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c2));
     EXPECT_EQ(c2, compute(0, c2));
   }
 }
 
-TEST_P(ASMBackendTest, PHII32ConstArg1) {
+TEST_P(BackendTest, PHII32ConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
@@ -3587,8 +3448,8 @@ TEST_P(ASMBackendTest, PHII32ConstArg1) {
 
     ProgramBuilder program;
     auto type = program.I32Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto func =
+        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -3611,19 +3472,18 @@ TEST_P(ASMBackendTest, PHII32ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int32_t(int8_t, int32_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c1));
     EXPECT_EQ(c2, compute(0, c1));
   }
 }
 
-TEST_P(ASMBackendTest, I64_ADD) {
+TEST_P(BackendTest, I64_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3635,12 +3495,10 @@ TEST_P(ASMBackendTest, I64_ADD) {
   auto sum = program.AddI64(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int64_t a0 = distrib(gen);
@@ -3650,7 +3508,7 @@ TEST_P(ASMBackendTest, I64_ADD) {
   }
 }
 
-TEST_P(ASMBackendTest, I64_ADDConstArg0) {
+TEST_P(BackendTest, I64_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3666,19 +3524,18 @@ TEST_P(ASMBackendTest, I64_ADDConstArg0) {
     auto sum = program.AddI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t res = a0 + a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I64_ADDConstArg1) {
+TEST_P(BackendTest, I64_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3694,19 +3551,18 @@ TEST_P(ASMBackendTest, I64_ADDConstArg1) {
     auto sum = program.AddI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t res = a0 + a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I64_SUB) {
+TEST_P(BackendTest, I64_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3718,12 +3574,10 @@ TEST_P(ASMBackendTest, I64_SUB) {
   auto sum = program.SubI64(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int64_t a0 = distrib(gen);
@@ -3733,7 +3587,7 @@ TEST_P(ASMBackendTest, I64_SUB) {
   }
 }
 
-TEST_P(ASMBackendTest, I64_SubConstArg0) {
+TEST_P(BackendTest, I64_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3749,19 +3603,18 @@ TEST_P(ASMBackendTest, I64_SubConstArg0) {
     auto sum = program.SubI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t res = a0 - a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I64_SubConstArg1) {
+TEST_P(BackendTest, I64_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3777,19 +3630,18 @@ TEST_P(ASMBackendTest, I64_SubConstArg1) {
     auto sum = program.SubI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t res = a0 - a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I64_MUL) {
+TEST_P(BackendTest, I64_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3801,12 +3653,10 @@ TEST_P(ASMBackendTest, I64_MUL) {
   auto sum = program.MulI64(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     int64_t a0 = distrib(gen);
@@ -3816,7 +3666,7 @@ TEST_P(ASMBackendTest, I64_MUL) {
   }
 }
 
-TEST_P(ASMBackendTest, I64_MULConstArg0) {
+TEST_P(BackendTest, I64_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3832,19 +3682,18 @@ TEST_P(ASMBackendTest, I64_MULConstArg0) {
     auto sum = program.MulI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t res = a0 * a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, I64_MULConstArg1) {
+TEST_P(BackendTest, I64_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3860,19 +3709,18 @@ TEST_P(ASMBackendTest, I64_MULConstArg1) {
     auto sum = program.MulI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t res = a0 * a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, I64_CONST) {
+TEST_P(BackendTest, I64_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3883,34 +3731,32 @@ TEST_P(ASMBackendTest, I64_CONST) {
     program.CreatePublicFunction(program.I64Type(), {}, "compute");
     program.Return(program.ConstI64(c));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I64_CONV_F64) {
+TEST_P(BackendTest, I64_CONV_F64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
+    auto func = program.CreatePublicFunction(program.F64Type(),
                                              {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI64(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t c = distrib(gen);
     double conv = c;
@@ -3918,7 +3764,7 @@ TEST_P(ASMBackendTest, I64_CONV_F64) {
   }
 }
 
-TEST_P(ASMBackendTest, I64_CONV_F64Const) {
+TEST_P(BackendTest, I64_CONV_F64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3926,23 +3772,22 @@ TEST_P(ASMBackendTest, I64_CONV_F64Const) {
     int64_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {program.I64Type()},
+    program.CreatePublicFunction(program.F64Type(), {program.I64Type()},
                                  "compute");
     program.Return(program.F64ConvI64(program.ConstI64(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double conv = c;
     EXPECT_EQ(conv, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I64_CMP_XXReturn) {
+TEST_P(BackendTest, I64_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -3958,13 +3803,11 @@ TEST_P(ASMBackendTest, I64_CMP_XXReturn) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, args[0], args[1]));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int64_t, int64_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1, c1));
@@ -3993,7 +3836,25 @@ TEST_P(ASMBackendTest, I64_CMP_XXReturn) {
   }
 }
 
-TEST_P(ASMBackendTest, I64_CMP_XXBranch) {
+TEST_P(BackendTest, PTR_CMP_NULLPTRReturn) {
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.PointerType(program.I64Type())}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.IsNullPtr(args[0]));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int8_t(int64_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  EXPECT_NE(0, compute(nullptr));
+  int64_t value = 0xDEADBEEF;
+  int64_t* ptr = reinterpret_cast<int64_t*>(value);
+  EXPECT_EQ(0, compute(ptr));
+}
+
+TEST_P(BackendTest, I64_CMP_XXBranch) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4016,13 +3877,11 @@ TEST_P(ASMBackendTest, I64_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int64_t, int64_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1, c1));
@@ -4051,7 +3910,7 @@ TEST_P(ASMBackendTest, I64_CMP_XXBranch) {
   }
 }
 
-TEST_P(ASMBackendTest, I64_CMP_XXConstArg0) {
+TEST_P(BackendTest, I64_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4067,13 +3926,11 @@ TEST_P(ASMBackendTest, I64_CMP_XXConstArg0) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, program.ConstI64(c1), args[0]));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int64_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1));
@@ -4090,7 +3947,7 @@ TEST_P(ASMBackendTest, I64_CMP_XXConstArg0) {
   }
 }
 
-TEST_P(ASMBackendTest, I64_CMP_XXConstArg1) {
+TEST_P(BackendTest, I64_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4106,13 +3963,11 @@ TEST_P(ASMBackendTest, I64_CMP_XXConstArg1) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, args[0], program.ConstI64(c2)));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(int64_t)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c2, c2)) {
         EXPECT_NE(0, compute(c2));
@@ -4129,7 +3984,7 @@ TEST_P(ASMBackendTest, I64_CMP_XXConstArg1) {
   }
 }
 
-TEST_P(ASMBackendTest, I64_LOAD) {
+TEST_P(BackendTest, I64_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4142,18 +3997,17 @@ TEST_P(ASMBackendTest, I64_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI64(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int64_t*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(loc, compute(&loc));
   }
 }
 
-TEST_P(ASMBackendTest, I64_LOADGlobal) {
+TEST_P(BackendTest, I64_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4166,18 +4020,17 @@ TEST_P(ASMBackendTest, I64_LOADGlobal) {
     program.CreatePublicFunction(program.I64Type(), {}, "compute");
     program.Return(program.LoadI64(global));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, I64_LOADStruct) {
+TEST_P(BackendTest, I64_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4195,19 +4048,18 @@ TEST_P(ASMBackendTest, I64_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI64(program.GetElementPtr(st, args[0], {0, 0})));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(Test*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     Test t{.x = c};
     EXPECT_EQ(c, compute(&t));
   }
 }
 
-TEST_P(ASMBackendTest, I64_STORE) {
+TEST_P(BackendTest, I64_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4222,12 +4074,11 @@ TEST_P(ASMBackendTest, I64_STORE) {
     program.StoreI64(args[0], args[1]);
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(int64_t*, int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t loc;
     compute(&loc, c);
@@ -4235,7 +4086,7 @@ TEST_P(ASMBackendTest, I64_STORE) {
   }
 }
 
-TEST_P(ASMBackendTest, I64_STOREConst) {
+TEST_P(BackendTest, I64_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4250,12 +4101,11 @@ TEST_P(ASMBackendTest, I64_STOREConst) {
     program.StoreI64(args[0], program.ConstI64(c));
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(int64_t*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t loc;
     compute(&loc);
@@ -4263,7 +4113,7 @@ TEST_P(ASMBackendTest, I64_STOREConst) {
   }
 }
 
-TEST_P(ASMBackendTest, I64_STOREGlobal) {
+TEST_P(BackendTest, I64_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4279,19 +4129,18 @@ TEST_P(ASMBackendTest, I64_STOREGlobal) {
     program.StoreI64(global, args[0]);
     program.Return(global);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t*(int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     auto loc = compute(c);
     EXPECT_EQ(*loc, c);
   }
 }
 
-TEST_P(ASMBackendTest, I64_STOREStruct) {
+TEST_P(BackendTest, I64_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4311,12 +4160,11 @@ TEST_P(ASMBackendTest, I64_STOREStruct) {
     program.StoreI64(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(Test*, int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     Test t;
     compute(&t, c);
@@ -4324,7 +4172,7 @@ TEST_P(ASMBackendTest, I64_STOREStruct) {
   }
 }
 
-TEST_P(ASMBackendTest, PHII64) {
+TEST_P(BackendTest, PHII64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4335,7 +4183,7 @@ TEST_P(ASMBackendTest, PHII64) {
     ProgramBuilder program;
     auto type = program.I64Type();
     auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type, type}, "compute");
+        type, {program.I1Type(), type, type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -4358,20 +4206,19 @@ TEST_P(ASMBackendTest, PHII64) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn =
         std::add_pointer<int64_t(int8_t, int64_t, int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c1, c2));
     EXPECT_EQ(c2, compute(0, c1, c2));
   }
 }
 
-TEST_P(ASMBackendTest, PHII64ConstArg0) {
+TEST_P(BackendTest, PHII64ConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4381,8 +4228,8 @@ TEST_P(ASMBackendTest, PHII64ConstArg0) {
 
     ProgramBuilder program;
     auto type = program.I64Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto func =
+        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -4405,19 +4252,18 @@ TEST_P(ASMBackendTest, PHII64ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int8_t, int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c2));
     EXPECT_EQ(c2, compute(0, c2));
   }
 }
 
-TEST_P(ASMBackendTest, PHII64ConstArg1) {
+TEST_P(BackendTest, PHII64ConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
@@ -4427,8 +4273,8 @@ TEST_P(ASMBackendTest, PHII64ConstArg1) {
 
     ProgramBuilder program;
     auto type = program.I64Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto func =
+        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -4451,19 +4297,18 @@ TEST_P(ASMBackendTest, PHII64ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(int8_t, int64_t)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c1));
     EXPECT_EQ(c2, compute(0, c1));
   }
 }
 
-TEST_P(ASMBackendTest, F64_ADD) {
+TEST_P(BackendTest, F64_ADD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4475,12 +4320,10 @@ TEST_P(ASMBackendTest, F64_ADD) {
   auto sum = program.AddF64(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<double(double, double)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     double a0 = distrib(gen);
@@ -4490,7 +4333,7 @@ TEST_P(ASMBackendTest, F64_ADD) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_ADDConstArg0) {
+TEST_P(BackendTest, F64_ADDConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4506,19 +4349,18 @@ TEST_P(ASMBackendTest, F64_ADDConstArg0) {
     auto sum = program.AddF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double res = a0 + a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, F64_ADDConstArg1) {
+TEST_P(BackendTest, F64_ADDConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4534,19 +4376,18 @@ TEST_P(ASMBackendTest, F64_ADDConstArg1) {
     auto sum = program.AddF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double res = a0 + a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, F64_SUB) {
+TEST_P(BackendTest, F64_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4558,12 +4399,10 @@ TEST_P(ASMBackendTest, F64_SUB) {
   auto sum = program.SubF64(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<double(double, double)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     double a0 = distrib(gen);
@@ -4573,7 +4412,7 @@ TEST_P(ASMBackendTest, F64_SUB) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_SubConstArg0) {
+TEST_P(BackendTest, F64_SubConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4589,19 +4428,18 @@ TEST_P(ASMBackendTest, F64_SubConstArg0) {
     auto sum = program.SubF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double res = a0 - a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, F64_SubConstArg1) {
+TEST_P(BackendTest, F64_SubConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4617,19 +4455,18 @@ TEST_P(ASMBackendTest, F64_SubConstArg1) {
     auto sum = program.SubF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double res = a0 - a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, F64_MUL) {
+TEST_P(BackendTest, F64_MUL) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4641,12 +4478,10 @@ TEST_P(ASMBackendTest, F64_MUL) {
   auto sum = program.MulF64(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<double(double, double)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     double a0 = distrib(gen);
@@ -4656,7 +4491,7 @@ TEST_P(ASMBackendTest, F64_MUL) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_MULConstArg0) {
+TEST_P(BackendTest, F64_MULConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4672,19 +4507,18 @@ TEST_P(ASMBackendTest, F64_MULConstArg0) {
     auto sum = program.MulF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double res = a0 * a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, F64_MULConstArg1) {
+TEST_P(BackendTest, F64_MULConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4700,19 +4534,18 @@ TEST_P(ASMBackendTest, F64_MULConstArg1) {
     auto sum = program.MulF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double res = a0 * a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, F64_DIV) {
+TEST_P(BackendTest, F64_DIV) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4724,12 +4557,10 @@ TEST_P(ASMBackendTest, F64_DIV) {
   auto sum = program.DivF64(args[0], args[1]);
   program.Return(sum);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<double(double, double)>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   for (int i = 0; i < 10; i++) {
     double a0 = distrib(gen);
@@ -4739,7 +4570,7 @@ TEST_P(ASMBackendTest, F64_DIV) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_DIVConstArg0) {
+TEST_P(BackendTest, F64_DIVConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4755,19 +4586,18 @@ TEST_P(ASMBackendTest, F64_DIVConstArg0) {
     auto sum = program.DivF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double res = a0 / a1;
     EXPECT_EQ(res, compute(a1));
   }
 }
 
-TEST_P(ASMBackendTest, F64_DIVConstArg1) {
+TEST_P(BackendTest, F64_DIVConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4783,19 +4613,18 @@ TEST_P(ASMBackendTest, F64_DIVConstArg1) {
     auto sum = program.DivF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double res = a0 / a1;
     EXPECT_EQ(res, compute(a0));
   }
 }
 
-TEST_P(ASMBackendTest, F64_CONST) {
+TEST_P(BackendTest, F64_CONST) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4806,21 +4635,21 @@ TEST_P(ASMBackendTest, F64_CONST) {
     program.CreatePublicFunction(program.F64Type(), {}, "compute");
     program.Return(program.ConstF64(c));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, F64_CONV_I64) {
+TEST_P(BackendTest, F64_CONV_I64) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_real_distribution<double> distrib(-1e100, 1e100);
+  std::uniform_real_distribution<double> distrib(-9223372036854775808.0,
+                                                 9223372036854775807.0);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
     auto func = program.CreatePublicFunction(program.I64Type(),
@@ -4828,12 +4657,11 @@ TEST_P(ASMBackendTest, F64_CONV_I64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ConvF64(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t(double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double c = distrib(gen);
     int64_t conv = c;
@@ -4841,10 +4669,11 @@ TEST_P(ASMBackendTest, F64_CONV_I64) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_CONV_I64Const) {
+TEST_P(BackendTest, F64_CONV_I64Const) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_real_distribution<double> distrib(-1e100, 1e100);
+  std::uniform_real_distribution<double> distrib(-9223372036854775808.0,
+                                                 9223372036854775807.0);
   for (int i = 0; i < 10; i++) {
     double c = distrib(gen);
 
@@ -4852,19 +4681,18 @@ TEST_P(ASMBackendTest, F64_CONV_I64Const) {
     program.CreatePublicFunction(program.I64Type(), {}, "compute");
     program.Return(program.I64ConvF64(program.ConstF64(c)));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<int64_t()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     int64_t conv = c;
     EXPECT_EQ(conv, compute());
   }
 }
 
-TEST_P(ASMBackendTest, F64_CMP_XXReturn) {
+TEST_P(BackendTest, F64_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4880,13 +4708,11 @@ TEST_P(ASMBackendTest, F64_CMP_XXReturn) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, args[0], args[1]));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(double, double)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1, c1));
@@ -4915,7 +4741,7 @@ TEST_P(ASMBackendTest, F64_CMP_XXReturn) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_CMP_XXBranch) {
+TEST_P(BackendTest, F64_CMP_XXBranch) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4937,13 +4763,11 @@ TEST_P(ASMBackendTest, F64_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(double, double)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1, c1));
@@ -4972,7 +4796,7 @@ TEST_P(ASMBackendTest, F64_CMP_XXBranch) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_CMP_XXConstArg0) {
+TEST_P(BackendTest, F64_CMP_XXConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -4988,13 +4812,11 @@ TEST_P(ASMBackendTest, F64_CMP_XXConstArg0) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, program.ConstF64(c1), args[0]));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(double)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c1, c1)) {
         EXPECT_NE(0, compute(c1));
@@ -5011,7 +4833,7 @@ TEST_P(ASMBackendTest, F64_CMP_XXConstArg0) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_CMP_XXConstArg1) {
+TEST_P(BackendTest, F64_CMP_XXConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5027,13 +4849,11 @@ TEST_P(ASMBackendTest, F64_CMP_XXConstArg1) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, args[0], program.ConstF64(c2)));
 
-      ASMBackend backend(GetParam());
-      program.Translate(backend);
-      backend.Compile();
+      auto backend = Compile(GetParam(), program);
 
       using compute_fn = std::add_pointer<int8_t(double)>::type;
       auto compute =
-          reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+          reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
       if (Compare(cmp_type, c2, c2)) {
         EXPECT_NE(0, compute(c2));
@@ -5050,7 +4870,7 @@ TEST_P(ASMBackendTest, F64_CMP_XXConstArg1) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_LOAD) {
+TEST_P(BackendTest, F64_LOAD) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5063,18 +4883,17 @@ TEST_P(ASMBackendTest, F64_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadF64(args[0]));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(double*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(loc, compute(&loc));
   }
 }
 
-TEST_P(ASMBackendTest, F64_LOADGlobal) {
+TEST_P(BackendTest, F64_LOADGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5088,18 +4907,17 @@ TEST_P(ASMBackendTest, F64_LOADGlobal) {
     program.Return(
         program.LoadF64(program.GetElementPtr(program.F64Type(), global, {0})));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double()>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c, compute());
   }
 }
 
-TEST_P(ASMBackendTest, F64_LOADStruct) {
+TEST_P(BackendTest, F64_LOADStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5117,19 +4935,18 @@ TEST_P(ASMBackendTest, F64_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadF64(program.GetElementPtr(st, args[0], {0, 0})));
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(Test*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     Test t{.x = c};
     EXPECT_EQ(c, compute(&t));
   }
 }
 
-TEST_P(ASMBackendTest, F64_STORE) {
+TEST_P(BackendTest, F64_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5144,12 +4961,11 @@ TEST_P(ASMBackendTest, F64_STORE) {
     program.StoreF64(args[0], args[1]);
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(double*, double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double loc;
     compute(&loc, c);
@@ -5157,7 +4973,7 @@ TEST_P(ASMBackendTest, F64_STORE) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_STOREConst) {
+TEST_P(BackendTest, F64_STOREConst) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5172,12 +4988,11 @@ TEST_P(ASMBackendTest, F64_STOREConst) {
     program.StoreF64(args[0], program.ConstF64(c));
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(double*)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     double loc;
     compute(&loc);
@@ -5185,7 +5000,7 @@ TEST_P(ASMBackendTest, F64_STOREConst) {
   }
 }
 
-TEST_P(ASMBackendTest, F64_STOREGlobal) {
+TEST_P(BackendTest, F64_STOREGlobal) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5202,19 +5017,18 @@ TEST_P(ASMBackendTest, F64_STOREGlobal) {
                      args[0]);
     program.Return(global);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double*(double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     auto loc = compute(c);
     EXPECT_EQ(*loc, c);
   }
 }
 
-TEST_P(ASMBackendTest, F64_STOREStruct) {
+TEST_P(BackendTest, F64_STOREStruct) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5231,15 +5045,14 @@ TEST_P(ASMBackendTest, F64_STOREStruct) {
         program.VoidType(), {program.PointerType(st), program.F64Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreF64(program.GetElementPtr(st, args[0], {0}), args[1]);
+    program.StoreF64(program.GetElementPtr(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<void(Test*, double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     Test t;
     compute(&t, c);
@@ -5247,7 +5060,7 @@ TEST_P(ASMBackendTest, F64_STOREStruct) {
   }
 }
 
-TEST_P(ASMBackendTest, PHIF64) {
+TEST_P(BackendTest, PHIF64) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5281,19 +5094,18 @@ TEST_P(ASMBackendTest, PHIF64) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(int8_t, double, double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c1, c2));
     EXPECT_EQ(c2, compute(0, c1, c2));
   }
 }
 
-TEST_P(ASMBackendTest, PHIF64ConstArg0) {
+TEST_P(BackendTest, PHIF64ConstArg0) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5327,19 +5139,18 @@ TEST_P(ASMBackendTest, PHIF64ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(int8_t, double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c2));
     EXPECT_EQ(c2, compute(0, c2));
   }
 }
 
-TEST_P(ASMBackendTest, PHIF64ConstArg1) {
+TEST_P(BackendTest, PHIF64ConstArg1) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
@@ -5373,19 +5184,18 @@ TEST_P(ASMBackendTest, PHIF64ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    ASMBackend backend(GetParam());
-    program.Translate(backend);
-    backend.Compile();
+    auto backend = Compile(GetParam(), program);
 
     using compute_fn = std::add_pointer<double(int8_t, double)>::type;
-    auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
     EXPECT_EQ(c1, compute(1, c1));
     EXPECT_EQ(c2, compute(0, c1));
   }
 }
 
-TEST_P(ASMBackendTest, Loop) {
+TEST_P(BackendTest, Loop) {
   ProgramBuilder program;
   program.CreatePublicFunction(program.I32Type(), {}, "compute");
 
@@ -5420,12 +5230,10 @@ TEST_P(ASMBackendTest, Loop) {
   auto scaled = program.MulI32(sumphi, program.ConstI32(3));
   program.Return(scaled);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int32_t()>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   int32_t result = 0;
   for (int i = 0; i < 10; i++) {
@@ -5435,7 +5243,7 @@ TEST_P(ASMBackendTest, Loop) {
   EXPECT_EQ(result, compute());
 }
 
-TEST_P(ASMBackendTest, LoopVariableAccess) {
+TEST_P(BackendTest, LoopVariableAccess) {
   ProgramBuilder program;
   program.CreatePublicFunction(program.I32Type(), {}, "compute");
 
@@ -5462,18 +5270,25 @@ TEST_P(ASMBackendTest, LoopVariableAccess) {
   program.SetCurrentBlock(bb3);
   program.Return(phi);
 
-  ASMBackend backend(GetParam());
-  program.Translate(backend);
-  backend.Compile();
+  auto backend = Compile(GetParam(), program);
 
   using compute_fn = std::add_pointer<int32_t()>::type;
-  auto compute = reinterpret_cast<compute_fn>(backend.GetFunction("compute"));
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   EXPECT_EQ(10, compute());
 }
 
-INSTANTIATE_TEST_SUITE_P(StackSpill, ASMBackendTest,
-                         testing::Values(RegAllocImpl::STACK_SPILL));
+INSTANTIATE_TEST_SUITE_P(
+    LLVMBackendTest, BackendTest,
+    testing::Values(std::make_pair(compile::Backend::LLVM,
+                                   RegAllocImpl::STACK_SPILL)));
 
-INSTANTIATE_TEST_SUITE_P(LinearScan, ASMBackendTest,
-                         testing::Values(RegAllocImpl::LINEAR_SCAN));
+INSTANTIATE_TEST_SUITE_P(
+    ASMBackendTest_StackSpill, BackendTest,
+    testing::Values(std::make_pair(compile::Backend::ASM,
+                                   RegAllocImpl::STACK_SPILL)));
+
+INSTANTIATE_TEST_SUITE_P(
+    ASMBackendTest_LinearScan, BackendTest,
+    testing::Values(std::make_pair(compile::Backend::ASM,
+                                   RegAllocImpl::LINEAR_SCAN)));

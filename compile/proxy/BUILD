@@ -110,7 +110,6 @@ cc_library(
         "//compile/translators:recompiling_join_translator",
         "//khir:program_builder",
         "//runtime:skinner_join_executor",
-        "@absl//absl/flags:flag",
     ],
 )
 

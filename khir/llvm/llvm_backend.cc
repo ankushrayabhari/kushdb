@@ -6,6 +6,7 @@
 #include <system_error>
 #include <type_traits>
 
+#include "absl/flags/flag.h"
 #include "absl/types/span.h"
 
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -27,6 +28,9 @@
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
+
+// Put this here so that any time we link the shared library, this is available.
+ABSL_FLAG(int32_t, budget_per_episode, 10000, "Budget per episode");
 
 namespace kush::khir {
 
