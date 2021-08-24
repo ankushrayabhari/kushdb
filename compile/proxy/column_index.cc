@@ -277,7 +277,7 @@ void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   } else if constexpr (catalog::SqlType::REAL == S) {
     value_type = program.F64Type();
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    value_type = program.I8Type();
+    value_type = program.I1Type();
   } else if constexpr (catalog::SqlType::TEXT == S) {
     value_type =
         program.PointerType(program.GetStructType(String::StringStructName));
