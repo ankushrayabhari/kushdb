@@ -150,6 +150,8 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
           return {budget.Get()};
         },
         [&]() -> std::vector<khir::Value> {
+          // Loop over bucket
+          auto bucket_size = bucket.Size();
           proxy::Loop loop(
               program,
               [&](auto& loop) {
@@ -166,23 +168,51 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                       auto next_tuple = proxy::Int32(program, 0);
                       return {next_tuple.Get()};
                     });
-                auto next_tuple = proxy::Int32(program, progress_check[0]);
-                loop.AddLoopVariable(next_tuple);
+                auto initial_next_tuple =
+                    proxy::Int32(program, progress_check[0]);
+                auto bucket_idx = bucket.FastForwardToStart(initial_next_tuple);
+                loop.AddLoopVariable(bucket_idx);
                 loop.AddLoopVariable(initial_budget);
-                loop.AddLoopVariable(resume_progress);
+
+                // todo set this only if bucket_idx < bucketsize and
+                // resume_progress and bucket[bucket_idx] == initial_next_tuple
+                auto continue_resume_progress = proxy::If(
+                    program, resume_progress,
+                    [&]() -> std::vector<khir::Value> {
+                      auto valid_bucket_idx = proxy::If(
+                          program, bucket_idx < bucket_size,
+                          [&]() -> std::vector<khir::Value> {
+                            auto bucket_next_tuple = bucket.Get(bucket_idx);
+                            return {(bucket_next_tuple == initial_next_tuple)
+                                        .Get()};
+                          },
+                          [&]() -> std::vector<khir::Value> {
+                            return {proxy::Bool(program, false).Get()};
+                          });
+                      return {valid_bucket_idx[0]};
+                    },
+                    [&]() -> std::vector<khir::Value> {
+                      return {proxy::Bool(program, false).Get()};
+                    });
+                loop.AddLoopVariable(
+                    proxy::Bool(program, continue_resume_progress[0]));
               },
               [&](auto& loop) {
-                auto next_tuple =
+                auto bucket_idx =
                     loop.template GetLoopVariable<proxy::Int32>(0);
-                return next_tuple < cardinality;
+                return bucket_idx < bucket_size;
               },
               [&](auto& loop) {
-                auto next_tuple =
+                auto bucket_idx =
                     loop.template GetLoopVariable<proxy::Int32>(0);
                 auto budget =
                     loop.template GetLoopVariable<proxy::Int32>(1) - 1;
                 auto resume_progress =
                     loop.template GetLoopVariable<proxy::Bool>(2);
+
+                auto next_tuple = bucket.Get(bucket_idx);
+                // guaranteed that the index condition holds
+                evaluated_predicates.insert(indexed_predicate);
 
                 auto idx_ptr = program.GetElementPtr(program.I32Type(),
                                                      idx_array, {table_idx});
@@ -214,7 +244,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                           },
                           []() -> std::vector<khir::Value> { return {}; });
 
-                      loop.Continue(cardinality, budget,
+                      loop.Continue(bucket_size, budget,
                                     proxy::Bool(program, false));
                       return {};
                     },
@@ -258,7 +288,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                             },
                             []() -> std::vector<khir::Value> { return {}; });
 
-                        loop.Continue(next_tuple + 1, budget,
+                        loop.Continue(bucket_idx + 1, budget,
                                       proxy::Bool(program, false));
                         return {};
                       },
@@ -314,7 +344,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                           .ToPointer();
                 }
 
-                return loop.Continue(next_tuple + 1, *next_budget,
+                return loop.Continue(bucket_idx + 1, *next_budget,
                                      proxy::Bool(program, false));
               });
 
