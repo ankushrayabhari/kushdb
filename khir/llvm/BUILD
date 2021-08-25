@@ -17,6 +17,7 @@ cc_library(
         "//runtime:libtuple_idx_table.so",
         "//runtime:libvector.so",
     ],
+    linkopts = ["-rdynamic"],
     deps = [
         "//compile:program",
         "//khir:program_builder",

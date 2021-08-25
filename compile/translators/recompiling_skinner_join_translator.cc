@@ -174,8 +174,6 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                 loop.AddLoopVariable(bucket_idx);
                 loop.AddLoopVariable(initial_budget);
 
-                // todo set this only if bucket_idx < bucketsize and
-                // resume_progress and bucket[bucket_idx] == initial_next_tuple
                 auto continue_resume_progress = proxy::If(
                     program, resume_progress,
                     [&]() -> std::vector<khir::Value> {
