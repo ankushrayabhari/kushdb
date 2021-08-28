@@ -228,26 +228,6 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                 printer.PrintNewline();
                 */
 
-                proxy::If(
-                    program, next_tuple == cardinality,
-                    [&]() -> std::vector<khir::Value> {
-                      // Since loop is complete check that we've depleted budget
-                      proxy::If(
-                          program, budget == 0,
-                          [&]() -> std::vector<khir::Value> {
-                            program.StoreI32(table_ctr_ptr,
-                                             program.ConstI32(table_idx));
-                            program.Return(program.ConstI32(-1));
-                            return {};
-                          },
-                          []() -> std::vector<khir::Value> { return {}; });
-
-                      loop.Continue(bucket_size, budget,
-                                    proxy::Bool(program, false));
-                      return {};
-                    },
-                    []() -> std::vector<khir::Value> { return {}; });
-
                 auto tuple = buffer[next_tuple];
                 child_translators[table_idx].get().SchemaValues().SetValues(
                     tuple.Unpack());
@@ -397,25 +377,6 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
         printer.Print(next_tuple);
         printer.PrintNewline();
         */
-
-        proxy::If(
-            program, next_tuple == cardinality,
-            [&]() -> std::vector<khir::Value> {
-              // Since loop is complete check that we've depleted budget
-              proxy::If(
-                  program, budget == 0,
-                  [&]() -> std::vector<khir::Value> {
-                    program.StoreI32(table_ctr_ptr,
-                                     program.ConstI32(table_idx));
-                    program.Return(program.ConstI32(-1));
-                    return {};
-                  },
-                  []() -> std::vector<khir::Value> { return {}; });
-
-              loop.Continue(cardinality, budget, proxy::Bool(program, false));
-              return {};
-            },
-            []() -> std::vector<khir::Value> { return {}; });
 
         auto tuple = buffer[next_tuple];
         child_translators[table_idx].get().SchemaValues().SetValues(
