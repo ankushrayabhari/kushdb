@@ -158,6 +158,25 @@ constexpr std::string_view BucketSizeName(
 constexpr std::string_view BucketGetName(
     "_ZN4kush7runtime11ColumnIndex9BucketGetEPSt6vectorIiSaIiEEi");
 
+constexpr std::string_view CreateBucketListName(
+    "_ZN4kush7runtime11ColumnIndex16CreateBucketListEv");
+
+constexpr std::string_view BucketListGetName(
+    "_ZN4kush7runtime11ColumnIndex13BucketListGetEPSt6vectorIPS2_IiSaIiEESaIS5_"
+    "EEi");
+
+constexpr std::string_view BucketListPushBackName(
+    "_ZN4kush7runtime11ColumnIndex18BucketListPushBackEPSt6vectorIPS2_"
+    "IiSaIiEESaIS5_EES5_");
+
+constexpr std::string_view BucketListSizeName(
+    "_ZN4kush7runtime11ColumnIndex14BucketListSizeEPSt6vectorIPS2_"
+    "IiSaIiEESaIS5_EE");
+
+constexpr std::string_view FreeBucketListName(
+    "_ZN4kush7runtime11ColumnIndex14FreeBucketListEPSt6vectorIPS2_"
+    "IiSaIiEESaIS5_EE");
+
 template <catalog::SqlType S>
 std::string_view InsertFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
@@ -305,6 +324,27 @@ void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   program.DeclareExternalFunction(
       BucketGetName, program.I32Type(), {bucket_ptr_type, program.I32Type()},
       reinterpret_cast<void*>(&runtime::ColumnIndex::BucketGet));
+
+  // Bucket list related functionality
+  auto bucket_list_type = program.I8Type();
+  auto bucket_list_ptr_type = program.PointerType(bucket_list_type);
+  program.DeclareExternalFunction(
+      CreateBucketListName, bucket_list_ptr_type, {},
+      reinterpret_cast<void*>(&runtime::ColumnIndex::CreateBucketList));
+  program.DeclareExternalFunction(
+      FreeBucketListName, program.VoidType(), {bucket_list_ptr_type},
+      reinterpret_cast<void*>(&runtime::ColumnIndex::FreeBucketList));
+  program.DeclareExternalFunction(
+      BucketListSizeName, program.I32Type(), {bucket_list_ptr_type},
+      reinterpret_cast<void*>(&runtime::ColumnIndex::BucketListSize));
+  program.DeclareExternalFunction(
+      BucketListGetName, bucket_ptr_type,
+      {bucket_list_ptr_type, program.I32Type()},
+      reinterpret_cast<void*>(&runtime::ColumnIndex::BucketListGet));
+  program.DeclareExternalFunction(
+      BucketListPushBackName, program.VoidType(),
+      {bucket_list_ptr_type, bucket_ptr_type},
+      reinterpret_cast<void*>(&runtime::ColumnIndex::BucketListPushBack));
 }
 
 IndexBucket::IndexBucket(khir::ProgramBuilder& program, khir::Value v)
@@ -331,16 +371,38 @@ proxy::Bool IndexBucket::DoesNotExist() {
   return proxy::Bool(program_, program_.IsNullPtr(value_));
 }
 
+khir::Value IndexBucket::Get() const { return value_; }
+
 IndexBucketList::IndexBucketList(khir::ProgramBuilder& program)
-    : program_(program) {}
+    : program_(program),
+      value_(program.Alloca(program.PointerType(program.I8Type()))) {
+  program_.StorePtr(
+      value_, program_.Call(program_.GetFunction(CreateBucketListName), {}));
+}
+
+void IndexBucketList::Reset() {
+  program_.Call(program_.GetFunction(FreeBucketListName),
+                {program_.LoadPtr(value_)});
+}
 
 proxy::Int32 IndexBucketList::Size() {
-  // TODO: implement this
-  return proxy::Int32(program_, 0);
+  return proxy::Int32(program_,
+                      program_.Call(program_.GetFunction(BucketListSizeName),
+                                    {program_.LoadPtr(value_)}));
+}
+
+proxy::IndexBucket IndexBucketList::operator[](const proxy::Int32& idx) {
+  return proxy::IndexBucket(
+      program_, program_.Call(program_.GetFunction(BucketListGetName),
+                              {
+                                  program_.LoadPtr(value_),
+                                  idx.Get(),
+                              }));
 }
 
 void IndexBucketList::PushBack(const IndexBucket& bucket) {
-  // TODO: implement this
+  program_.Call(program_.GetFunction(BucketListPushBackName),
+                {program_.LoadPtr(value_), bucket.Get()});
 }
 
 template class ColumnIndexImpl<catalog::SqlType::SMALLINT>;

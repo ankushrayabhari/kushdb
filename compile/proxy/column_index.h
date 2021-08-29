@@ -19,6 +19,8 @@ class IndexBucket {
   proxy::Int32 operator[](const proxy::Int32& v);
   proxy::Bool DoesNotExist();
 
+  khir::Value Get() const;
+
  private:
   khir::ProgramBuilder& program_;
   khir::Value value_;
@@ -29,10 +31,13 @@ class IndexBucketList {
   IndexBucketList(khir::ProgramBuilder& program);
 
   proxy::Int32 Size();
+  proxy::IndexBucket operator[](const proxy::Int32& idx);
   void PushBack(const IndexBucket& bucket);
+  void Reset();
 
  private:
   khir::ProgramBuilder& program_;
+  khir::Value value_;
 };
 
 class ColumnIndex {

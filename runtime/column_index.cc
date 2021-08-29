@@ -178,4 +178,26 @@ std::vector<int32_t>* GetBucketTextIndex(
   return GetBucketImpl(index, std::string_view(value->data, value->length));
 }
 
+std::vector<std::vector<int32_t>*>* CreateBucketList() {
+  return new std::vector<std::vector<int32_t>*>();
+}
+
+int32_t BucketListSize(std::vector<std::vector<int32_t>*>* bucket_list) {
+  return bucket_list->size();
+}
+
+void BucketListPushBack(std::vector<std::vector<int32_t>*>* bucket_list,
+                        std::vector<int32_t>* bucket) {
+  bucket_list->push_back(bucket);
+}
+
+std::vector<int32_t>* BucketListGet(
+    std::vector<std::vector<int32_t>*>* bucket_list, int32_t idx) {
+  return bucket_list->at(idx);
+}
+
+void FreeBucketList(std::vector<std::vector<int32_t>*>* bucket_list) {
+  delete bucket_list;
+}
+
 }  // namespace kush::runtime::ColumnIndex

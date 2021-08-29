@@ -66,4 +66,13 @@ int32_t FastForwardBucket(std::vector<int32_t>* bucket, int32_t prev_tuple);
 int32_t BucketSize(std::vector<int32_t>* bucket);
 int32_t BucketGet(std::vector<int32_t>* bucket, int32_t idx);
 
+// Bucket List
+std::vector<std::vector<int32_t>*>* CreateBucketList();
+int32_t BucketListSize(std::vector<std::vector<int32_t>*>* bucket_list);
+void BucketListPushBack(std::vector<std::vector<int32_t>*>* bucket_list,
+                        std::vector<int32_t>* bucket);
+std::vector<int32_t>* BucketListGet(
+    std::vector<std::vector<int32_t>*>* bucket_list, int32_t idx);
+void FreeBucketList(std::vector<std::vector<int32_t>*>* bucket_list);
+
 }  // namespace kush::runtime::ColumnIndex

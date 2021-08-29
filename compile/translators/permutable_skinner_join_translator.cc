@@ -348,7 +348,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
           }
 
           auto use_index_check = proxy::If(
-              program_, bucket_list.Size() > 0,
+              program_, proxy::Bool(program_, false) /*bucket_list.Size() > 0*/,
               [&]() -> std::vector<khir::Value> {
                 // TODO: loop over bucket
                 return {proxy::Int32(program_, 0).Get()};
