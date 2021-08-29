@@ -321,7 +321,7 @@ proxy::Int32 IndexBucket::Size() {
       program_, program_.Call(program_.GetFunction(BucketSizeName), {value_}));
 }
 
-proxy::Int32 IndexBucket::Get(const proxy::Int32& v) {
+proxy::Int32 IndexBucket::operator[](const proxy::Int32& v) {
   return proxy::Int32(
       program_,
       program_.Call(program_.GetFunction(BucketGetName), {value_, v.Get()}));
@@ -329,6 +329,18 @@ proxy::Int32 IndexBucket::Get(const proxy::Int32& v) {
 
 proxy::Bool IndexBucket::DoesNotExist() {
   return proxy::Bool(program_, program_.IsNullPtr(value_));
+}
+
+IndexBucketList::IndexBucketList(khir::ProgramBuilder& program)
+    : program_(program) {}
+
+proxy::Int32 IndexBucketList::Size() {
+  // TODO: implement this
+  return proxy::Int32(program_, 0);
+}
+
+void IndexBucketList::PushBack(const IndexBucket& bucket) {
+  // TODO: implement this
 }
 
 template class ColumnIndexImpl<catalog::SqlType::SMALLINT>;

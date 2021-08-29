@@ -180,7 +180,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                       auto valid_bucket_idx = proxy::If(
                           program, bucket_idx < bucket_size,
                           [&]() -> std::vector<khir::Value> {
-                            auto bucket_next_tuple = bucket.Get(bucket_idx);
+                            auto bucket_next_tuple = bucket[bucket_idx];
                             return {(bucket_next_tuple == initial_next_tuple)
                                         .Get()};
                           },
@@ -208,7 +208,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                 auto resume_progress =
                     loop.template GetLoopVariable<proxy::Bool>(2);
 
-                auto next_tuple = bucket.Get(bucket_idx);
+                auto next_tuple = bucket[bucket_idx];
                 // guaranteed that the index condition holds
                 evaluated_predicates.insert(indexed_predicate);
 

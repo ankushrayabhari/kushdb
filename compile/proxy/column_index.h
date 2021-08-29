@@ -16,12 +16,23 @@ class IndexBucket {
 
   proxy::Int32 FastForwardToStart(const proxy::Int32& last_tuple);
   proxy::Int32 Size();
-  proxy::Int32 Get(const proxy::Int32& v);
+  proxy::Int32 operator[](const proxy::Int32& v);
   proxy::Bool DoesNotExist();
 
  private:
   khir::ProgramBuilder& program_;
   khir::Value value_;
+};
+
+class IndexBucketList {
+ public:
+  IndexBucketList(khir::ProgramBuilder& program);
+
+  proxy::Int32 Size();
+  void PushBack(const IndexBucket& bucket);
+
+ private:
+  khir::ProgramBuilder& program_;
 };
 
 class ColumnIndex {
