@@ -35,6 +35,23 @@ PermutableSkinnerJoinTranslator::PermutableSkinnerJoinTranslator(
       program_(program),
       expr_translator_(program_, *this) {}
 
+bool IsEqualityPredicate(
+    const kush::plan::BinaryArithmeticExpression& predicate) {
+  if (auto eq = dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(
+          &predicate)) {
+    if (auto left_column = dynamic_cast<const kush::plan::ColumnRefExpression*>(
+            &eq->LeftChild())) {
+      if (auto right_column =
+              dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                  &eq->RightChild())) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 void PermutableSkinnerJoinTranslator::Produce() {
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
@@ -254,9 +271,81 @@ void PermutableSkinnerJoinTranslator::Produce() {
             }
           }
 
-          // Loop over tuples in buffer
           auto& buffer = buffers_[table_idx];
           auto cardinality = buffer.Size();
+
+          // for each indexed predicate, if the buffer DNE, then return since
+          // no result tuples with current column values.
+          for (int predicate_idx : predicates_per_table[table_idx]) {
+            const auto& predicate = conditions[predicate_idx].get();
+            if (!IsEqualityPredicate(predicate)) {
+              continue;
+            }
+
+            auto flag_ptr = program_.GetElementPtr(
+                flag_array_type, flag_array,
+                {0,
+                 table_predicate_to_flag_idx.at({table_idx, predicate_idx})});
+            proxy::Int8 flag_value(program_, program_.LoadI8(flag_ptr));
+            proxy::If(
+                program_, flag_value != 0,
+                [&]() -> std::vector<khir::Value> {
+                  auto eq = dynamic_cast<
+                      const kush::plan::BinaryArithmeticExpression*>(
+                      &predicate);
+                  auto left_column =
+                      dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                          &eq->LeftChild());
+                  auto right_column =
+                      dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                          &eq->RightChild());
+
+                  auto table_column = table_idx == left_column->GetChildIdx()
+                                          ? left_column->GetColumnIdx()
+                                          : right_column->GetColumnIdx();
+
+                  auto it =
+                      predicate_to_index_idx_.find({table_idx, table_column});
+                  assert(it != predicate_to_index_idx_.end());
+                  auto index_idx = it->second;
+
+                  auto other_side_value = expr_translator_.Compute(
+                      table_idx == left_column->GetChildIdx() ? *right_column
+                                                              : *left_column);
+                  auto bucket =
+                      indexes_[index_idx]->GetBucket(*other_side_value);
+
+                  auto bucket_dne_check = proxy::If(
+                      program_, bucket.DoesNotExist(),
+                      [&]() -> std::vector<khir::Value> {
+                        auto budget = initial_budget - 1;
+                        proxy::If(
+                            program_, budget == 0,
+                            [&]() -> std::vector<khir::Value> {
+                              auto idx_ptr = program_.GetElementPtr(
+                                  idx_array_type, idx_array, {0, table_idx});
+                              program_.StoreI32(idx_ptr,
+                                                (cardinality - 1).Get());
+                              program_.StoreI32(
+                                  program_.GetElementPtr(table_ctr_type,
+                                                         table_ctr_ptr, {0, 0}),
+                                  program_.ConstI32(table_idx));
+                              program_.Return(program_.ConstI32(-1));
+                              return {};
+                            },
+                            [&]() -> std::vector<khir::Value> {
+                              program_.Return(budget.Get());
+                              return {};
+                            });
+                        return {};
+                      },
+                      [&]() -> std::vector<khir::Value> { return {}; });
+                  return {};
+                },
+                [&]() -> std::vector<khir::Value> { return {}; });
+          }
+
+          // Loop over tuples in buffer
 
           proxy::Loop loop(
               program_,
