@@ -15,7 +15,7 @@ namespace kush::compile::proxy {
 class TableFunction {
  public:
   TableFunction(khir::ProgramBuilder& program,
-                std::function<proxy::Int32(proxy::Int32&, proxy::Int8&)> body);
+                std::function<proxy::Int32(proxy::Int32&, proxy::Bool&)> body);
 
   khir::FunctionRef Get();
 

@@ -12,15 +12,15 @@ namespace kush::compile::proxy {
 
 TableFunction::TableFunction(
     khir::ProgramBuilder& program,
-    std::function<proxy::Int32(proxy::Int32&, proxy::Int8&)> body) {
+    std::function<proxy::Int32(proxy::Int32&, proxy::Bool&)> body) {
   auto current_block = program.CurrentBlock();
 
   func_ = program.CreateFunction(program.I32Type(),
-                                 {program.I32Type(), program.I8Type()});
+                                 {program.I32Type(), program.I1Type()});
 
   auto args = program.GetFunctionArguments(func_.value());
   proxy::Int32 budget(program, args[0]);
-  proxy::Int8 resume_progress(program, args[1]);
+  proxy::Bool resume_progress(program, args[1]);
 
   auto x = body(budget, resume_progress);
   program.Return(x.Get());
@@ -61,7 +61,7 @@ void SkinnerJoinExecutor::ExecuteRecompilingJoin(
 
 void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
   auto handler_type = program.FunctionType(
-      program.I32Type(), {program.I32Type(), program.I8Type()});
+      program.I32Type(), {program.I32Type(), program.I1Type()});
   auto handler_pointer_type = program.PointerType(handler_type);
 
   program.DeclareExternalFunction(
