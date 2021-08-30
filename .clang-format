@@ -14,3 +14,5 @@ IncludeCategories:
     Priority:        6
   - Regex:           '"gtest\/'
     Priority:        7
+  - Regex:           '"magic_enum'
+    Priority:        8

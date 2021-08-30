@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "magic_enum.hpp"
+
 #include "nlohmann/json.hpp"
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"

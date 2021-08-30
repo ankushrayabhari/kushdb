@@ -6,11 +6,12 @@
 #include <string_view>
 #include <vector>
 
+#include "magic_enum.hpp"
+
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "expression/column_ref_expression.h"
 #include "expression/expression.h"
-#include "magic_enum.hpp"
 #include "nlohmann/json.hpp"
 
 namespace kush::plan {

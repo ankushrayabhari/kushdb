@@ -2,10 +2,11 @@
 
 #include <iostream>
 
+#include "magic_enum.hpp"
+
 #include "khir/instruction.h"
 #include "khir/opcode.h"
 #include "khir/program_builder.h"
-#include "magic_enum.hpp"
 
 namespace kush::khir {
 

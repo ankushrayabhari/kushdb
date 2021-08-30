@@ -3,8 +3,9 @@
 
 #include <memory>
 
-#include "catalog/sql_type.h"
 #include "magic_enum.hpp"
+
+#include "catalog/sql_type.h"
 #include "nlohmann/json.hpp"
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
