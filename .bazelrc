@@ -1,6 +1,8 @@
 build --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
 build --experimental_guard_against_concurrent_changes
 
+build:profile --cxxopt=-fno-omit-frame-pointer
+
 build:remote --jobs=50
 build:remote --define=EXECUTOR=remote
 build:remote --bes_results_url=https://app.buildbuddy.io/invocation/
