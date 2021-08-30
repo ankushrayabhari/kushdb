@@ -428,6 +428,7 @@ struct RecompilationExecutionEngineFlags {
   int32_t* progress_arr;
   int32_t* table_ctr;
   int32_t* idx_arr;
+  int32_t* offset_arr;
   int32_t* num_result_tuples;
 };
 
@@ -544,6 +545,7 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
     for (int table = 0; table < last_completed_tuple.size(); table++) {
       execution_engine_.progress_arr[table] =
           std::max(offset[table], last_completed_tuple[table]);
+      execution_engine_.offset_arr[table] = offset[table];
     }
     *execution_engine_.table_ctr = order[0];
     *execution_engine_.num_result_tuples = 0;
@@ -895,17 +897,25 @@ void ExecuteRecompilingSkinnerJoin(int32_t num_tables, int32_t num_predicates,
 
   auto progress_arr = new int32_t[num_tables];
   int32_t table_ctr = 0;
-  auto idx_arr = new int32_t[num_tables];
+
+  // TODO: as a hack, the idx array is set to be 2x the length with the
+  // offset_array being the other half to avoid passing in > 6 arguments to
+  // the function
+  // once the asm backend supports this, we can clean this up
+  auto idx_arr = new int32_t[2 * num_tables];
+  auto offset_arr = &idx_arr[num_tables];
   int32_t num_result_tuples = 0;
   for (int i = 0; i < num_tables; i++) {
     idx_arr[i] = 0;
     progress_arr[i] = -1;
+    offset_arr[i] = -1;
   }
 
   RecompilationExecutionEngineFlags execution_engine{
       .progress_arr = progress_arr,
       .table_ctr = &table_ctr,
       .idx_arr = idx_arr,
+      .offset_arr = offset_arr,
       .num_result_tuples = &num_result_tuples,
   };
 

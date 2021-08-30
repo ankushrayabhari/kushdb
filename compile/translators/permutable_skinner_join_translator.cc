@@ -365,7 +365,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           program_, resume_progress,
                           [&]() -> std::vector<khir::Value> {
                             auto progress_ptr = program_.GetElementPtr(
-                                program_.I32Type(), progress_arr, {table_idx});
+                                progress_array_type, progress_arr,
+                                {0, table_idx});
                             auto next_tuple = proxy::Int32(
                                 program_, program_.LoadI32(progress_ptr));
                             return {next_tuple.Get()};
@@ -404,8 +405,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                 program_, bucket_idx < bucket_size,
                                 [&]() -> std::vector<khir::Value> {
                                   auto progress_ptr = program_.GetElementPtr(
-                                      program_.I32Type(), progress_arr,
-                                      {table_idx});
+                                      progress_array_type, progress_arr,
+                                      {0, table_idx});
                                   auto progress_next_tuple = proxy::Int32(
                                       program_, program_.LoadI32(progress_ptr));
 
@@ -441,7 +442,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       auto next_tuple = bucket[bucket_idx];
 
                       auto idx_ptr = program_.GetElementPtr(
-                          program_.I32Type(), idx_array, {table_idx});
+                          idx_array_type, idx_array, {0, table_idx});
                       program_.StoreI32(idx_ptr, next_tuple.Get());
 
                       /*
@@ -607,7 +608,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           program_, resume_progress,
                           [&]() -> std::vector<khir::Value> {
                             auto progress_ptr = program_.GetElementPtr(
-                                program_.I32Type(), progress_arr, {table_idx});
+                                progress_array_type, progress_arr,
+                                {0, table_idx});
                             auto progress_next_tuple = proxy::Int32(
                                 program_, program_.LoadI32(progress_ptr));
                             return {(initial_next_tuple == progress_next_tuple)
