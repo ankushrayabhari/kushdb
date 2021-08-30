@@ -374,8 +374,24 @@ void PermutableSkinnerJoinTranslator::Produce() {
                             auto next_tuple = proxy::Int32(program_, 0);
                             return {next_tuple.Get()};
                           });
-                      auto initial_next_tuple =
+                      auto progress_next_tuple =
                           proxy::Int32(program_, progress_check[0]);
+                      auto offset_next_tuple =
+                          proxy::Int32(program_,
+                                       program_.LoadI32(program_.GetElementPtr(
+                                           offset_array_type, offset_array,
+                                           {0, table_idx}))) +
+                          1;
+                      auto offset_check = proxy::If(
+                          program_, offset_next_tuple > progress_next_tuple,
+                          [&]() -> std::vector<khir::Value> {
+                            return {offset_next_tuple.Get()};
+                          },
+                          [&]() -> std::vector<khir::Value> {
+                            return {progress_next_tuple.Get()};
+                          });
+                      proxy::Int32 initial_next_tuple(program_,
+                                                      offset_check[0]);
                       auto bucket_idx =
                           bucket.FastForwardToStart(initial_next_tuple);
                       loop.AddLoopVariable(bucket_idx);
@@ -387,9 +403,15 @@ void PermutableSkinnerJoinTranslator::Produce() {
                             auto valid_bucket_idx = proxy::If(
                                 program_, bucket_idx < bucket_size,
                                 [&]() -> std::vector<khir::Value> {
+                                  auto progress_ptr = program_.GetElementPtr(
+                                      program_.I32Type(), progress_arr,
+                                      {table_idx});
+                                  auto progress_next_tuple = proxy::Int32(
+                                      program_, program_.LoadI32(progress_ptr));
+
                                   auto bucket_next_tuple = bucket[bucket_idx];
                                   return {
-                                      (bucket_next_tuple == initial_next_tuple)
+                                      (bucket_next_tuple == progress_next_tuple)
                                           .Get()};
                                 },
                                 [&]() -> std::vector<khir::Value> {
@@ -559,11 +581,43 @@ void PermutableSkinnerJoinTranslator::Produce() {
                             auto next_tuple = proxy::Int32(program_, 0);
                             return {next_tuple.Get()};
                           });
-                      auto next_tuple =
+                      auto progress_next_tuple =
                           proxy::Int32(program_, progress_check[0]);
-                      loop.AddLoopVariable(next_tuple);
+                      auto offset_next_tuple =
+                          proxy::Int32(program_,
+                                       program_.LoadI32(program_.GetElementPtr(
+                                           offset_array_type, offset_array,
+                                           {0, table_idx}))) +
+                          1;
+                      auto offset_check = proxy::If(
+                          program_, offset_next_tuple > progress_next_tuple,
+                          [&]() -> std::vector<khir::Value> {
+                            return {offset_next_tuple.Get()};
+                          },
+                          [&]() -> std::vector<khir::Value> {
+                            return {progress_next_tuple.Get()};
+                          });
+                      proxy::Int32 initial_next_tuple(program_,
+                                                      offset_check[0]);
+
+                      loop.AddLoopVariable(initial_next_tuple);
                       loop.AddLoopVariable(initial_budget);
-                      loop.AddLoopVariable(resume_progress);
+
+                      auto continue_resume_progress = proxy::If(
+                          program_, resume_progress,
+                          [&]() -> std::vector<khir::Value> {
+                            auto progress_ptr = program_.GetElementPtr(
+                                program_.I32Type(), progress_arr, {table_idx});
+                            auto progress_next_tuple = proxy::Int32(
+                                program_, program_.LoadI32(progress_ptr));
+                            return {(initial_next_tuple == progress_next_tuple)
+                                        .Get()};
+                          },
+                          [&]() -> std::vector<khir::Value> {
+                            return {proxy::Bool(program_, false).Get()};
+                          });
+                      loop.AddLoopVariable(
+                          proxy::Bool(program_, continue_resume_progress[0]));
                     },
                     [&](auto& loop) {
                       auto next_tuple =

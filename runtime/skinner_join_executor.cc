@@ -108,11 +108,26 @@ class JoinState {
       return;
     }
 
-    // TODO: Offset diabled due to incorrect outputs.
     // Update offset
     {
       int first_table = order[0];
-      offset_[first_table] = -1;
+      int32_t last_finished_tuple = last_completed_tuple_idx[first_table];
+
+      bool completed_last_finished_tuple = true;
+      for (int i = 1; i < order.size(); i++) {
+        auto table_idx = order[i];
+        if (last_completed_tuple_idx[table_idx] !=
+            cardinalities_[table_idx] - 1) {
+          completed_last_finished_tuple = false;
+          break;
+        }
+      }
+      if (!completed_last_finished_tuple) {
+        last_finished_tuple--;
+      }
+
+      offset_[first_table] =
+          std::max(last_finished_tuple, offset_[first_table]);
     }
 
     // Update progress tree
