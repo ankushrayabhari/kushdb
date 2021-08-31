@@ -316,7 +316,8 @@ class ASMBackend : public Backend, public compile::Program {
   std::vector<std::pair<khir::Value, khir::Type>> regular_call_args_;
   std::vector<khir::Value> floating_point_call_args_;
 
-  absl::flat_hash_map<std::string, asmjit::Label> public_fns_;
+  absl::flat_hash_map<std::string, std::pair<asmjit::Label, asmjit::Label>>
+      public_fns_;
 };
 
 }  // namespace kush::khir

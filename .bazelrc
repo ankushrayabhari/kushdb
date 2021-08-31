@@ -1,6 +1,7 @@
 build --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
 build --experimental_guard_against_concurrent_changes
 
+build:profile --cxxopt=-DPROFILE_ENABLED
 build:profile --cxxopt=-fno-omit-frame-pointer
 
 build:remote --jobs=50

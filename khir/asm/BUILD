@@ -89,6 +89,7 @@ cc_library(
         "//khir:program_builder",
         "//khir:program_printer",
         "//khir:type_manager",
+        "//util:profile_map_generator",
         "@absl//absl/types:span",
         "@asmjit",
     ],

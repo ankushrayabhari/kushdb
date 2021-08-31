@@ -13,6 +13,7 @@
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
+#include "util/profile_map_generator.h"
 
 namespace kush::khir {
 
@@ -227,9 +228,11 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     num_stack_args_ = 0;
 
     asm_->bind(internal_func_labels_[func_idx]);
+    auto func_end_label = asm_->newLabel();
 
     if (func.Public()) {
-      public_fns_[func.Name()] = internal_func_labels_[func_idx];
+      public_fns_[func.Name()] =
+          std::make_pair(internal_func_labels_[func_idx], func_end_label);
     }
 
     // auto register_assign =
@@ -317,6 +320,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     // - Return
     asm_->ret();
     // =========================================================================
+    asm_->bind(func_end_label);
   }
 }
 
@@ -3379,11 +3383,27 @@ void ASMBackend::TranslateInstr(
   }
 }
 
-void ASMBackend::Compile() { rt_.add(&buffer_start_, &code_); }
+void ASMBackend::Compile() {
+  rt_.add(&buffer_start_, &code_);
+
+#ifdef PROFILE_ENABLED
+  for (const auto& [name, labels] : public_fns_) {
+    auto [begin_label, end_label] = labels;
+
+    auto begin_offset = code_.labelOffsetFromBase(begin_label);
+    auto end_offset = code_.labelOffsetFromBase(end_label);
+    auto begin_addr = reinterpret_cast<void*>(
+        reinterpret_cast<uint64_t>(buffer_start_) + begin_offset);
+    auto code_size = end_offset - begin_offset;
+
+    util::ProfileMapGenerator::Get().AddEntry(begin_addr, code_size, name);
+  }
+#endif
+}
 
 void* ASMBackend::GetFunction(std::string_view name) const {
-  auto label = public_fns_.at(name);
-  auto offset = code_.labelOffsetFromBase(label);
+  auto [begin_label, end_label] = public_fns_.at(name);
+  auto offset = code_.labelOffsetFromBase(begin_label);
   return reinterpret_cast<void*>(reinterpret_cast<uint64_t>(buffer_start_) +
                                  offset);
 }

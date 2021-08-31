@@ -28,6 +28,12 @@ cc_library(
 )
 
 cc_library(
+    name = "profile_map_generator",
+    srcs = ["profile_map_generator.cc"],
+    hdrs = ["profile_map_generator.h"],
+)
+
+cc_library(
     name = "union_find",
     srcs = ["union_find.cc"],
     hdrs = ["union_find.h"],
