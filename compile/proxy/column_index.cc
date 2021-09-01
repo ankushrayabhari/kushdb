@@ -16,18 +16,18 @@ namespace kush::compile::proxy {
 template <catalog::SqlType S>
 std::string_view CreateFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime11ColumnIndex16CreateInt16IndexEv";
+    return "kush::runtime::ColumnIndex::CreateInt16Index";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime11ColumnIndex16CreateInt32IndexEv";
+    return "kush::runtime::ColumnIndex::CreateInt32Index";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime11ColumnIndex16CreateInt64IndexEv";
+    return "kush::runtime::ColumnIndex::CreateInt64Index";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime11ColumnIndex18CreateFloat64IndexEv";
+    return "kush::runtime::ColumnIndex::CreateFloat64Index";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime11ColumnIndex15CreateInt8IndexEv";
+    return "kush::runtime::ColumnIndex::CreateInt8Index";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime11ColumnIndex15CreateTextIndexB5cxx11Ev";
+    return "kush::runtime::ColumnIndex::CreateTextIndex";
   }
 }
 
@@ -52,31 +52,18 @@ void* CreateFn() {
 template <catalog::SqlType S>
 std::string_view FreeFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime11ColumnIndex14FreeInt16IndexEPN4absl13flat_hash_"
-           "mapIsSt6vectorIiSaIiEENS2_13hash_internal4HashIsEESt8equal_"
-           "toIsESaISt4pairIKsS6_EEEE";
+    return "kush::runtime::ColumnIndex::FreeInt16Index";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime11ColumnIndex14FreeInt32IndexEPN4absl13flat_hash_"
-           "mapIiSt6vectorIiSaIiEENS2_13hash_internal4HashIiEESt8equal_"
-           "toIiESaISt4pairIKiS6_EEEE";
+    return "kush::runtime::ColumnIndex::FreeInt32Index";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime11ColumnIndex14FreeInt64IndexEPN4absl13flat_hash_"
-           "mapIlSt6vectorIiSaIiEENS2_13hash_internal4HashIlEESt8equal_"
-           "toIlESaISt4pairIKlS6_EEEE";
+    return "kush::runtime::ColumnIndex::FreeInt64Index";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime11ColumnIndex16FreeFloat64IndexEPN4absl13flat_hash_"
-           "mapIdSt6vectorIiSaIiEENS2_13hash_internal4HashIdEESt8equal_"
-           "toIdESaISt4pairIKdS6_EEEE";
+    return "kush::runtime::ColumnIndex::FreeFloat64Index";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime11ColumnIndex13FreeInt8IndexEPN4absl13flat_hash_"
-           "mapIaSt6vectorIiSaIiEENS2_13hash_internal4HashIaEESt8equal_"
-           "toIaESaISt4pairIKaS6_EEEE";
+    return "kush::runtime::ColumnIndex::FreeInt8Index";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime11ColumnIndex13FreeTextIndexEPN4absl13flat_hash_"
-           "mapINSt7__cxx1112basic_stringIcSt11char_"
-           "traitsIcESaIcEEESt6vectorIiSaIiEENS2_18container_"
-           "internal10StringHashENSD_12StringHashEq2EqESaISt4pairIKS9_SC_EEEE";
+    return "kush::runtime::ColumnIndex::FreeTextIndex";
   }
 }
 
@@ -101,32 +88,18 @@ void* FreeFn() {
 template <catalog::SqlType S>
 std::string_view GetBucketFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime11ColumnIndex19GetBucketInt16IndexEPN4absl13flat_"
-           "hash_mapIsSt6vectorIiSaIiEENS2_13hash_internal4HashIsEESt8equal_"
-           "toIsESaISt4pairIKsS6_EEEEs";
+    return "kush::runtime::ColumnIndex::GetBucketInt16Index";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime11ColumnIndex19GetBucketInt32IndexEPN4absl13flat_"
-           "hash_mapIiSt6vectorIiSaIiEENS2_13hash_internal4HashIiEESt8equal_"
-           "toIiESaISt4pairIKiS6_EEEEi";
+    return "kush::runtime::ColumnIndex::GetBucketInt32Index";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime11ColumnIndex19GetBucketInt64IndexEPN4absl13flat_"
-           "hash_mapIlSt6vectorIiSaIiEENS2_13hash_internal4HashIlEESt8equal_"
-           "toIlESaISt4pairIKlS6_EEEEl";
+    return "kush::runtime::ColumnIndex::GetBucketInt64Index";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime11ColumnIndex21GetBucketFloat64IndexEPN4absl13flat_"
-           "hash_mapIdSt6vectorIiSaIiEENS2_13hash_internal4HashIdEESt8equal_"
-           "toIdESaISt4pairIKdS6_EEEEd";
+    return "kush::runtime::ColumnIndex::GetBucketFloat64Index";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime11ColumnIndex18GetBucketInt8IndexEPN4absl13flat_"
-           "hash_mapIaSt6vectorIiSaIiEENS2_13hash_internal4HashIaEESt8equal_"
-           "toIaESaISt4pairIKaS6_EEEEa";
+    return "kush::runtime::ColumnIndex::GetBucketInt8Index";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime11ColumnIndex18GetBucketTextIndexEPN4absl13flat_"
-           "hash_mapINSt7__cxx1112basic_stringIcSt11char_"
-           "traitsIcESaIcEEESt6vectorIiSaIiEENS2_18container_"
-           "internal10StringHashENSD_12StringHashEq2EqESaISt4pairIKS9_SC_"
-           "EEEEPNS0_6String6StringE";
+    return "kush::runtime::ColumnIndex::GetBucketTextIndex";
   }
 }
 
@@ -150,62 +123,44 @@ void* GetBucketFn() {
 }
 
 constexpr std::string_view FastForwardBucketName(
-    "_ZN4kush7runtime11ColumnIndex17FastForwardBucketEPSt6vectorIiSaIiEEi");
+    "kush::runtime::ColumnIndex::FastForwardBucket");
 
 constexpr std::string_view BucketSizeName(
-    "_ZN4kush7runtime11ColumnIndex10BucketSizeEPSt6vectorIiSaIiEE");
+    "kush::runtime::ColumnIndex::BucketSize");
 
 constexpr std::string_view BucketGetName(
-    "_ZN4kush7runtime11ColumnIndex9BucketGetEPSt6vectorIiSaIiEEi");
+    "kush::runtime::ColumnIndex::BucketGet");
 
 constexpr std::string_view CreateBucketListName(
-    "_ZN4kush7runtime11ColumnIndex16CreateBucketListEv");
+    "kush::runtime::ColumnIndex::CreateBucketList");
 
 constexpr std::string_view BucketListGetName(
-    "_ZN4kush7runtime11ColumnIndex13BucketListGetEPSt6vectorIPS2_IiSaIiEESaIS5_"
-    "EEi");
+    "kush::runtime::ColumnIndex::BucketListGet");
 
 constexpr std::string_view BucketListPushBackName(
-    "_ZN4kush7runtime11ColumnIndex18BucketListPushBackEPSt6vectorIPS2_"
-    "IiSaIiEESaIS5_EES5_");
+    "kush::runtime::ColumnIndex::BucketListPushBack");
 
 constexpr std::string_view BucketListSizeName(
-    "_ZN4kush7runtime11ColumnIndex14BucketListSizeEPSt6vectorIPS2_"
-    "IiSaIiEESaIS5_EE");
+    "kush::runtime::ColumnIndex::BucketListSize");
 
 constexpr std::string_view FreeBucketListName(
-    "_ZN4kush7runtime11ColumnIndex14FreeBucketListEPSt6vectorIPS2_"
-    "IiSaIiEESaIS5_EE");
+    "kush::runtime::ColumnIndex::FreeBucketList");
 
 template <catalog::SqlType S>
 std::string_view InsertFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "_ZN4kush7runtime11ColumnIndex16InsertInt16IndexEPN4absl13flat_hash_"
-           "mapIsSt6vectorIiSaIiEENS2_13hash_internal4HashIsEESt8equal_"
-           "toIsESaISt4pairIKsS6_EEEEsi";
+    return "kush::runtime::ColumnIndex::InsertInt16Index";
   } else if constexpr (catalog::SqlType::INT == S) {
-    return "_ZN4kush7runtime11ColumnIndex16InsertInt32IndexEPN4absl13flat_hash_"
-           "mapIiSt6vectorIiSaIiEENS2_13hash_internal4HashIiEESt8equal_"
-           "toIiESaISt4pairIKiS6_EEEEii";
+    return "kush::runtime::ColumnIndex::InsertInt32Index";
   } else if constexpr (catalog::SqlType::BIGINT == S ||
                        catalog::SqlType::DATE == S) {
-    return "_ZN4kush7runtime11ColumnIndex16InsertInt64IndexEPN4absl13flat_hash_"
-           "mapIlSt6vectorIiSaIiEENS2_13hash_internal4HashIlEESt8equal_"
-           "toIlESaISt4pairIKlS6_EEEEli";
+    return "kush::runtime::ColumnIndex::InsertInt64Index";
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return "_ZN4kush7runtime11ColumnIndex18InsertFloat64IndexEPN4absl13flat_"
-           "hash_mapIdSt6vectorIiSaIiEENS2_13hash_internal4HashIdEESt8equal_"
-           "toIdESaISt4pairIKdS6_EEEEdi";
+    return "kush::runtime::ColumnIndex::InsertFloat64Index";
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "_ZN4kush7runtime11ColumnIndex15InsertInt8IndexEPN4absl13flat_hash_"
-           "mapIaSt6vectorIiSaIiEENS2_13hash_internal4HashIaEESt8equal_"
-           "toIaESaISt4pairIKaS6_EEEEai";
+    return "kush::runtime::ColumnIndex::InsertInt8Index";
   } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "_ZN4kush7runtime11ColumnIndex15InsertTextIndexEPN4absl13flat_hash_"
-           "mapINSt7__cxx1112basic_stringIcSt11char_"
-           "traitsIcESaIcEEESt6vectorIiSaIiEENS2_18container_"
-           "internal10StringHashENSD_12StringHashEq2EqESaISt4pairIKS9_SC_"
-           "EEEEPNS0_6String6StringEi";
+    return "kush::runtime::ColumnIndex::InsertTextIndex";
   }
 }
 
