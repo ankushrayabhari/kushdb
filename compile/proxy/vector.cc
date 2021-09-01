@@ -7,22 +7,19 @@
 
 namespace kush::compile::proxy {
 
-const std::string_view CreateFnName(
-    "_ZN4kush7runtime6Vector6CreateEPNS1_6VectorEli");
+constexpr std::string_view CreateFnName("kush::runtime::Vector::Create");
 
-const std::string_view PushBackFnName(
-    "_ZN4kush7runtime6Vector8PushBackEPNS1_6VectorE");
+constexpr std::string_view PushBackFnName("kush::runtime::Vector::PushBack");
 
-const std::string_view GetFnName("_ZN4kush7runtime6Vector3GetEPNS1_6VectorEi");
+constexpr std::string_view GetFnName("kush::runtime::Vector::Get");
 
-const std::string_view SizeFnName("_ZN4kush7runtime6Vector4SizeEPNS1_6VectorE");
+constexpr std::string_view SizeFnName("kush::runtime::Vector::Size");
 
-const std::string_view FreeFnName("_ZN4kush7runtime6Vector4FreeEPNS1_6VectorE");
+constexpr std::string_view FreeFnName("kush::runtime::Vector::Free");
 
-const std::string_view SortFnName(
-    "_ZN4kush7runtime6Vector4SortEPNS1_6VectorEPFbPaS4_E");
+constexpr std::string_view SortFnName("kush::runtime::Vector::Sort");
 
-const std::string_view Vector::VectorStructName(
+constexpr std::string_view Vector::VectorStructName(
     "kush::runtime::Vector::Vector");
 
 Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content,

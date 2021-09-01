@@ -11,29 +11,17 @@
 namespace kush::compile::proxy {
 
 constexpr std::string_view create_fn_name(
-    "_ZN4kush7runtime13TupleIdxTable6CreateEv");
+    "kush::runtime::TupleIdxTable::Create");
 constexpr std::string_view insert_fn_name(
-    "_ZN4kush7runtime13TupleIdxTable6InsertEPSt13unordered_"
-    "setISt6vectorIiSaIiEESt4hashIS5_ESt8equal_toIS5_ESaIS5_EEPii");
-constexpr std::string_view free_fn_name(
-    "_ZN4kush7runtime13TupleIdxTable4FreeEPSt13unordered_"
-    "setISt6vectorIiSaIiEESt4hashIS5_ESt8equal_toIS5_ESaIS5_EE");
-constexpr std::string_view size_fn_name(
-    "_ZN4kush7runtime13TupleIdxTable4SizeEPSt13unordered_"
-    "setISt6vectorIiSaIiEESt4hashIS5_ESt8equal_toIS5_ESaIS5_EE");
-constexpr std::string_view begin_fn_name(
-    "_ZN4kush7runtime13TupleIdxTable5BeginEPSt13unordered_"
-    "setISt6vectorIiSaIiEESt4hashIS5_ESt8equal_toIS5_ESaIS5_EEPPNSt8__detail20_"
-    "Node_const_iteratorIS5_Lb1ELb1EEE");
+    "kush::runtime::TupleIdxTable::Insert");
+constexpr std::string_view free_fn_name("kush::runtime::TupleIdxTable::Free");
+constexpr std::string_view size_fn_name("kush::runtime::TupleIdxTable::Size");
+constexpr std::string_view begin_fn_name("kush::runtime::TupleIdxTable::Begin");
 constexpr std::string_view increment_fn_name(
-    "_ZN4kush7runtime13TupleIdxTable9IncrementEPPNSt8__detail20_Node_const_"
-    "iteratorISt6vectorIiSaIiEELb1ELb1EEE");
-constexpr std::string_view get_fn_name(
-    "_ZN4kush7runtime13TupleIdxTable3GetEPPNSt8__detail20_Node_const_"
-    "iteratorISt6vectorIiSaIiEELb1ELb1EEE");
+    "kush::runtime::TupleIdxTable::Increment");
+constexpr std::string_view get_fn_name("kush::runtime::TupleIdxTable::Get");
 constexpr std::string_view free_it_fn_name(
-    "_ZN4kush7runtime13TupleIdxTable6FreeItEPPNSt8__detail20_Node_const_"
-    "iteratorISt6vectorIiSaIiEELb1ELb1EEE");
+    "kush::runtime::TupleIdxTable::FreeIt");
 
 TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program, bool global)
     : program_(program),

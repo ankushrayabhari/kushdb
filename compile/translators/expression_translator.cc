@@ -24,7 +24,7 @@
 namespace kush::compile {
 
 constexpr std::string_view ExtractYearFnName(
-    "_ZN4kush7runtime13DateExtractor11ExtractYearEl");
+    "kush::runtime::DateExtractor::ExtractYear");
 
 void ExpressionTranslator::ForwardDeclare(khir::ProgramBuilder& program) {
   auto date_type = program.I64Type();
