@@ -9,20 +9,16 @@
 
 namespace kush::compile::proxy {
 
-constexpr std::string_view i1_fn_name("_ZN4kush7runtime7Printer9PrintBoolEb");
-constexpr std::string_view i8_fn_name("_ZN4kush7runtime7Printer9PrintInt8Ea");
-constexpr std::string_view i16_fn_name(
-    "_ZN4kush7runtime7Printer10PrintInt16Es");
-constexpr std::string_view i32_fn_name(
-    "_ZN4kush7runtime7Printer10PrintInt32Ei");
-constexpr std::string_view i64_fn_name(
-    "_ZN4kush7runtime7Printer10PrintInt64El");
-constexpr std::string_view f64_fn_name(
-    "_ZN4kush7runtime7Printer12PrintFloat64Ed");
+constexpr std::string_view i1_fn_name("kush::runtime::Printer::PrintBool");
+constexpr std::string_view i8_fn_name("kush::runtime::Printer::PrintInt8");
+constexpr std::string_view i16_fn_name("kush::runtime::Printer::PrintInt16");
+constexpr std::string_view i32_fn_name("kush::runtime::Printer::PrintInt32");
+constexpr std::string_view i64_fn_name("kush::runtime::Printer::PrintInt64");
+constexpr std::string_view f64_fn_name("kush::runtime::Printer::PrintFloat64");
 constexpr std::string_view newline_fn_name(
-    "_ZN4kush7runtime7Printer12PrintNewlineEv");
+    "kush::runtime::Printer::PrintNewline");
 constexpr std::string_view string_fn_name(
-    "_ZN4kush7runtime7Printer11PrintStringEPNS0_6String6StringE");
+    "kush::runtime::Printer::PrintString");
 
 Printer::Printer(khir::ProgramBuilder& program) : program_(program) {}
 
