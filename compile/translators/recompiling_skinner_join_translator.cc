@@ -534,9 +534,14 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
     child_translator.get().SchemaValues().ResetValues();
   }
 
+  std::string func_name = std::to_string(order[0]);
+  for (int i = 1; i < order.size(); i++) {
+    func_name += "-" + std::to_string(order[i]);
+  }
+
   auto& entry = cache_.GetOrInsert(order);
   if (entry.IsCompiled()) {
-    return reinterpret_cast<ExecuteJoinFn>(entry.Func("compute"));
+    return reinterpret_cast<ExecuteJoinFn>(entry.Func(func_name));
   }
 
   auto& program = entry.ProgramBuilder();
@@ -551,7 +556,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                                     program.PointerType(program.I32Type()),
                                     program.PointerType(program.I32Type()),
                                     program.PointerType(program.I32Type())},
-                                   "compute");
+                                   func_name);
   auto args = program.GetFunctionArguments(func);
   proxy::Int32 initial_budget(program, args[0]);
   proxy::Bool resume_progress(program, args[1]);
@@ -758,7 +763,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   program.Return(budget.Get());
 
   entry.Compile();
-  return reinterpret_cast<ExecuteJoinFn>(entry.Func("compute"));
+  return reinterpret_cast<ExecuteJoinFn>(entry.Func(func_name));
 }
 
 void RecompilingSkinnerJoinTranslator::Produce() {
