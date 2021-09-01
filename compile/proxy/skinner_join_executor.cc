@@ -31,12 +31,10 @@ TableFunction::TableFunction(
 khir::FunctionRef TableFunction::Get() { return func_.value(); }
 
 constexpr std::string_view permutable_fn(
-    "_ZN4kush7runtime28ExecutePermutableSkinnerJoinEiiPPFiiaES2_iPiS4_PaS4_S4_"
-    "S4_S4_S4_S4_");
+    "kush::runtime::ExecutePermutableSkinnerJoin");
 
 constexpr std::string_view recompiling_fn(
-    "_ZN4kush7runtime29ExecuteRecompilingSkinnerJoinEiiPiS1_PNS_"
-    "7compile25RecompilingJoinTranslatorEPPvS6_S5_");
+    "kush::runtime::ExecuteRecompilingSkinnerJoin");
 
 SkinnerJoinExecutor::SkinnerJoinExecutor(khir::ProgramBuilder& program)
     : program_(program) {}
