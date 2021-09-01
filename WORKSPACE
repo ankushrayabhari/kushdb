@@ -1,6 +1,19 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
+    name = "bazel_skylib",
+    sha256 = "1c531376ac7e5a180e0237938a2536de0c54d93f5c278634818e0efc952dd56c",
+    urls = [
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
+    ],
+)
+
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+
+bazel_skylib_workspace()
+
+http_archive(
     name = "rules_cc",
     sha256 = "9a446e9dd9c1bb180c86977a8dc1e9e659550ae732ae58bd2e8fd51e15b2c91d",
     strip_prefix = "rules_cc-262ebec3c2296296526740db4aefce68c80de7fa",
@@ -67,52 +80,30 @@ http_archive(
     urls = ["https://github.com/dropbox/nn/archive/refs/heads/master.zip"],
 )
 
-LLVM_COMMIT = "fde3ae88ee4236d6ecb8178c6c893df5a5a04437"
+# Replace with the LLVM commit you want to use.
+LLVM_COMMIT = "f2694500c2b50dd712e941b276acf68733778b29"
 
-LLVM_BAZEL_TAG = "llvm-project-%s" % (LLVM_COMMIT,)
-
-LLVM_BAZEL_SHA256 = "fb68b0fed34f23114713c9549742fbc4f7cc85d528ac13032d41e8aed7613008"
-
-http_archive(
-    name = "llvm-bazel",
-    sha256 = LLVM_BAZEL_SHA256,
-    strip_prefix = "llvm-bazel-{tag}/llvm-bazel".format(tag = LLVM_BAZEL_TAG),
-    url = "https://github.com/google/llvm-bazel/archive/{tag}.tar.gz".format(tag = LLVM_BAZEL_TAG),
-)
-
-LLVM_SHA256 = "e62a037e88cd9eede4b3776ff265b3b9149018cbe6ea9d40f7fec38c0bc32512"
-
-LLVM_URLS = [
-    "https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT),
-]
+# The easiest way to calculate this for a new commit is to set it to empty and
+# then run a bazel build and it will report the digest necessary to cache the
+# archive and make the build reproducible.
+LLVM_SHA256 = "16c710d2f77426f1e607967048b491a8b3e6f72c762ec1a6342025d12960dd13"
 
 http_archive(
-    name = "llvm-project-raw",
-    build_file_content = "#empty",
+    name = "llvm-raw",
+    build_file_content = "# empty",
     sha256 = LLVM_SHA256,
     strip_prefix = "llvm-project-" + LLVM_COMMIT,
-    urls = LLVM_URLS,
+    urls = ["https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT)],
 )
 
-load("@llvm-bazel//:terminfo.bzl", "llvm_terminfo_disable")
+load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure", "llvm_disable_optional_support_deps")
 
-llvm_terminfo_disable(
-    name = "llvm_terminfo",
-)
+llvm_configure(name = "llvm-project")
 
-load("@llvm-bazel//:zlib.bzl", "llvm_zlib_disable")
-
-llvm_zlib_disable(
-    name = "llvm_zlib",
-)
-
-load("@llvm-bazel//:configure.bzl", "llvm_configure")
-
-llvm_configure(
-    name = "llvm-project",
-    src_path = ".",
-    src_workspace = "@llvm-project-raw//:WORKSPACE",
-)
+# Disables optional dependencies for Support like zlib and terminfo. You may
+# instead want to configure them using the macros in the corresponding bzl
+# files.
+llvm_disable_optional_support_deps()
 
 http_archive(
     name = "asmjit",

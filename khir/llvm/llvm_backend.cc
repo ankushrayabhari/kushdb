@@ -10,6 +10,10 @@
 #include "absl/types/span.h"
 
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/ExecutionEngine/JITSymbol.h"
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
+#include "llvm/ExecutionEngine/Orc/ObjectLinkingLayer.h"
+#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
@@ -37,14 +41,9 @@ namespace kush::khir {
 LLVMBackend::LLVMBackend()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("query", *context_)),
-      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)),
-      dl_handle_(nullptr) {}
+      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {}
 
-LLVMBackend::~LLVMBackend() {
-  if (dl_opened_) {
-    dlclose(dl_handle_);
-  }
-}
+LLVMBackend::~LLVMBackend() {}
 
 void LLVMBackend::TranslateVoidType() {
   types_.push_back(builder_->getVoidTy());
@@ -236,7 +235,12 @@ void LLVMBackend::Translate(
   for (int func_idx = 0; func_idx < functions.size(); func_idx++) {
     const auto& func = functions[func_idx];
     if (func.External()) {
+      external_functions_.emplace_back(func.Name(), func.Addr());
       continue;
+    }
+
+    if (func.Public()) {
+      public_functions_.emplace_back(func.Name());
     }
 
     llvm::Function* function = functions_[func_idx];
@@ -564,14 +568,16 @@ void LLVMBackend::TranslateInstr(
     case Opcode::F64_LOAD: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateLoad(v);
+      values[instr_idx] =
+          builder_->CreateLoad(v->getType()->getPointerElementType(), v);
       return;
     }
 
     case Opcode::PTR_LOAD: {
       Type3InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg()), constant_values, values);
-      values[instr_idx] = builder_->CreateLoad(v);
+      values[instr_idx] =
+          builder_->CreateLoad(v->getType()->getPointerElementType(), v);
       return;
     }
 
@@ -693,24 +699,15 @@ void LLVMBackend::TranslateInstr(
 
 void LLVMBackend::Compile() {
   llvm::verifyModule(*module_, &llvm::errs());
-  // module_->print(llvm::errs(), nullptr);
 
   llvm::legacy::PassManager pass;
-
-  // Setup Optimizations
   pass.add(llvm::createInstructionCombiningPass());
   pass.add(llvm::createReassociatePass());
   pass.add(llvm::createGVNPass());
   pass.add(llvm::createCFGSimplificationPass());
   pass.add(llvm::createAggressiveDCEPass());
   pass.add(llvm::createCFGSimplificationPass());
-
-  // Setup Compilation
-  LLVMInitializeX86TargetInfo();
-  LLVMInitializeX86Target();
-  LLVMInitializeX86TargetMC();
-  LLVMInitializeX86AsmParser();
-  LLVMInitializeX86AsmPrinter();
+  pass.run(*module_);
 
   auto target_triple = llvm::sys::getDefaultTargetTriple();
   module_->setTargetTriple(target_triple);
@@ -729,57 +726,49 @@ void LLVMBackend::Compile() {
       llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
   auto target_machine = target->createTargetMachine(target_triple, cpu,
                                                     features, opt, reloc_model);
-
   module_->setDataLayout(target_machine->createDataLayout());
 
-  auto unique = std::chrono::system_clock::now().time_since_epoch().count();
-  auto obj_file = "/tmp/query" + std::to_string(unique) + ".o";
-  auto shared_obj_file = "/tmp/query" + std::to_string(unique) + ".so";
-  std::error_code error_code;
-  llvm::raw_fd_ostream dest(obj_file, error_code, llvm::sys::fs::OF_None);
-  if (error_code) {
-    throw std::runtime_error(error_code.message());
-  }
-  auto FileType = llvm::CGFT_ObjectFile;
-  if (target_machine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
-    throw std::runtime_error("Cannot emit object file.");
-  }
+  jit_ = cantFail(
+      llvm::orc::LLJITBuilder()
+          .setDataLayout(module_->getDataLayout())
+          .setNumCompileThreads(0)
+          .setObjectLinkingLayerCreator([&](llvm::orc::ExecutionSession& es,
+                                            const llvm::Triple& tt) {
+            auto ll = std::make_unique<llvm::orc::ObjectLinkingLayer>(
+                es, std::make_unique<llvm::jitlink::InProcessMemoryManager>());
+            ll->setAutoClaimResponsibilityForObjectSymbols(true);
+            return ll;
+          })
+          .create());
 
-  // Run Optimizations and Compilation
-  pass.run(*module_);
-  dest.close();
+  cantFail(jit_->addIRModule(
+      llvm::orc::ThreadSafeModule(std::move(module_), std::move(context_))));
 
-  // Link
-  auto command =
-      "/usr/bin/clang++ -shared -fpic runtime/libcolumn_data.so "
-      "runtime/libcolumn_index.so "
-      "runtime/libdate_extractor.so "
-      "runtime/libhash_table.so "
-      "runtime/libprinter.so "
-      "runtime/libskinner_join_executor.so "
-      "runtime/libstring.so "
-      "runtime/libtuple_idx_table.so "
-      "runtime/libvector.so " +
-      obj_file + " -o " + shared_obj_file;
-  if (system(command.c_str())) {
-    throw std::runtime_error("Failed to link file.");
+  llvm::orc::SymbolMap symbol_map;
+  for (const auto& [name, addr] : external_functions_) {
+    auto mangled = jit_->mangleAndIntern(name);
+    auto flags =
+        llvm::JITSymbolFlags::Callable | llvm::JITSymbolFlags::Exported;
+    auto symbol =
+        llvm::JITEvaluatedSymbol(llvm::pointerToJITTargetAddress(addr), flags);
+    symbol_map.try_emplace(mangled, symbol);
   }
+  cantFail(
+      jit_->getMainJITDylib().define(llvm::orc::absoluteSymbols(symbol_map)));
 
-  dl_handle_ = dlopen(shared_obj_file.c_str(), RTLD_LAZY);
-  if (!dl_handle_) {
-    throw std::runtime_error(dlerror());
+  // Trigger compilation for all public functions
+  for (const auto& name : public_functions_) {
+    cantFail(jit_->lookup(name));
   }
-  dl_opened_ = true;
 }
 
 void* LLVMBackend::GetFunction(std::string_view name) const {
-  assert(dl_opened_);
-  std::string name_copy(name);
-  auto fn = dlsym(dl_handle_, name_copy.data());
-  if (!fn) {
-    throw std::runtime_error("Failed to get fn: " + name_copy);
+  auto entry_sym = jit_->lookup(name);
+  if (!entry_sym) {
+    throw std::runtime_error("symbol not found");
   }
-  return fn;
+
+  return (void*)entry_sym->getAddress();
 }
 
 }  // namespace kush::khir

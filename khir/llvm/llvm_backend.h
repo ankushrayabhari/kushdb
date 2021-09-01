@@ -1,5 +1,6 @@
 #pragma once
 
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
@@ -75,8 +76,12 @@ class LLVMBackend : public Backend,
   std::vector<llvm::Function*> functions_;
   std::vector<llvm::Value*> call_args_;
 
-  void* dl_handle_;
-  bool dl_opened_;
+  std::vector<std::tuple<std::string, void*>> external_functions_;
+  std::vector<std::string> public_functions_;
+
+  std::unique_ptr<llvm::orc::LLJIT> jit_;
+
+  std::string name_;
 };
 
 }  // namespace kush::khir
