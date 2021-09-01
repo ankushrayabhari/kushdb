@@ -14,6 +14,23 @@ namespace kush::compile::proxy {
 
 constexpr std::string_view BucketListStructName(
     "kush::runtime::HashTable::BucketList");
+constexpr std::string_view HashTableStructName(
+    "kush::runtime::HashTable::HashTable");
+constexpr std::string_view CreateFnName("kush::runtime::HashTable::Create");
+constexpr std::string_view InsertFnName("kush::runtime::HashTable::Insert");
+constexpr std::string_view GetBucketFnName(
+    "kush::runtime::HashTable::GetBucket");
+constexpr std::string_view GetAllBucketsFnName(
+    "kush::runtime::HashTable::GetAllBuckets");
+constexpr std::string_view FreeFnName("kush::runtime::HashTable::Free");
+constexpr std::string_view HashCombineFnName(
+    "kush::runtime::HashTable::HashCombine");
+constexpr std::string_view BucketListSizeFnName =
+    "kush::runtime::HashTable::BucketListSize";
+constexpr std::string_view BucketListFreeFnName =
+    "kush::runtime::HashTable::BucketListFree";
+constexpr std::string_view BucketListGetBucketIdxFnName =
+    "kush::runtime::HashTable::GetBucketIdx";
 
 class BucketList {
  public:
@@ -59,35 +76,10 @@ class BucketList {
   }
 
  private:
-  static constexpr std::string_view BucketListSizeFnName =
-      "_ZN4kush7runtime9HashTable14BucketListSizeEPNS1_10BucketListE";
-
-  static constexpr std::string_view BucketListFreeFnName =
-      "_ZN4kush7runtime9HashTable14BucketListFreeEPNS1_10BucketListE";
-
-  static constexpr std::string_view BucketListGetBucketIdxFnName =
-      "_ZN4kush7runtime9HashTable12GetBucketIdxEPNS1_10BucketListEi";
-
   khir::ProgramBuilder& program_;
   StructBuilder& content_;
   khir::Value& value_;
 };
-
-constexpr std::string_view HashTableStructName(
-    "kush::runtime::HashTable::HashTable");
-constexpr std::string_view CreateFnName(
-    "_ZN4kush7runtime9HashTable6CreateEPNS1_9HashTableEl");
-constexpr std::string_view InsertFnName(
-    "_ZN4kush7runtime9HashTable6InsertEPNS1_9HashTableEi");
-constexpr std::string_view GetBucketFnName(
-    "_ZN4kush7runtime9HashTable9GetBucketEPNS1_9HashTableEi");
-constexpr std::string_view GetAllBucketsFnName(
-    "_ZN4kush7runtime9HashTable13GetAllBucketsEPNS1_9HashTableEPNS1_"
-    "10BucketListE");
-constexpr std::string_view FreeFnName(
-    "_ZN4kush7runtime9HashTable4FreeEPNS1_9HashTableE");
-constexpr std::string_view HashCombineFnName(
-    "_ZN4kush7runtime9HashTable11HashCombineEPil");
 
 HashTable::HashTable(khir::ProgramBuilder& program, StructBuilder& content)
     : program_(program),
