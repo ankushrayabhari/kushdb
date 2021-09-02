@@ -13,7 +13,9 @@
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/ObjectLinkingLayer.h"
+#include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
@@ -30,6 +32,7 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 
 #include "khir/instruction.h"
+#include "khir/llvm/perf_jit_event_listener.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
 
@@ -722,6 +725,14 @@ void LLVMBackend::Compile() {
     throw std::runtime_error("Target not found: " + error);
   }
 
+#if PROFILE_ENABLED
+  for (auto& func : *module_) {
+    auto attrs = func.getAttributes().addAttribute(
+        *context_, llvm::AttributeList::FunctionIndex, "frame-pointer", "all");
+    func.setAttributes(attrs);
+  }
+#endif
+
   auto cpu = "x86-64";
   auto features = "";
 
@@ -738,9 +749,15 @@ void LLVMBackend::Compile() {
           .setNumCompileThreads(0)
           .setObjectLinkingLayerCreator([&](llvm::orc::ExecutionSession& es,
                                             const llvm::Triple& tt) {
-            auto ll = std::make_unique<llvm::orc::ObjectLinkingLayer>(
-                es, std::make_unique<llvm::jitlink::InProcessMemoryManager>());
+            auto ll =
+                std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(es, []() {
+                  return std::make_unique<llvm::SectionMemoryManager>();
+                });
             ll->setAutoClaimResponsibilityForObjectSymbols(true);
+#ifdef PROFILE_ENABLED
+            auto perf = createPerfJITEventListener();
+            ll->registerJITEventListener(*perf);
+#endif
             return ll;
           })
           .create());
@@ -762,17 +779,12 @@ void LLVMBackend::Compile() {
 
   // Trigger compilation for all public functions
   for (const auto& name : public_functions_) {
-    cantFail(jit_->lookup(name));
+    compiled_fn_[name] = (void*)jit_->lookup(name)->getAddress();
   }
 }
 
 void* LLVMBackend::GetFunction(std::string_view name) const {
-  auto entry_sym = jit_->lookup(name);
-  if (!entry_sym) {
-    throw std::runtime_error("symbol not found");
-  }
-
-  return (void*)entry_sym->getAddress();
+  return compiled_fn_.at(name);
 }
 
 }  // namespace kush::khir

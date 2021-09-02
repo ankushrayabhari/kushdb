@@ -83,6 +83,8 @@ class LLVMBackend : public Backend,
   std::unique_ptr<llvm::orc::LLJIT> jit_;
 
   std::string name_;
+
+  absl::flat_hash_map<std::string, void*> compiled_fn_;
 };
 
 }  // namespace kush::khir

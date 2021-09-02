@@ -14,4 +14,4 @@ user.bazelrc
 /tpch/results
 
 # Perf results
-perf.data*
+perf_scripts/
