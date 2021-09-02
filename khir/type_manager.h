@@ -26,6 +26,7 @@ struct Type : type_safe::strong_typedef<Type, uint16_t>,
 
 class TypeTranslator {
  public:
+  virtual void TranslateOpaqueType(std::string_view name) = 0;
   virtual void TranslateVoidType() = 0;
   virtual void TranslateI1Type() = 0;
   virtual void TranslateI8Type() = 0;
@@ -51,6 +52,7 @@ class TypeManager {
   Type I32Type() const;
   Type I64Type() const;
   Type F64Type() const;
+  Type OpaqueType(std::string_view name);
   Type NamedStructType(absl::Span<const Type> field_type_id,
                        std::string_view name);
   Type StructType(absl::Span<const Type> field_type_id);
@@ -59,6 +61,7 @@ class TypeManager {
   Type ArrayType(Type type, int len);
   Type FunctionType(Type result, absl::Span<const Type> args);
 
+  Type GetOpaqueType(std::string_view name);
   Type GetNamedStructType(std::string_view name);
   Type GetFunctionReturnType(Type func_type) const;
   Type GetPointerElementType(Type ptr_type) const;
@@ -101,6 +104,19 @@ class TypeManager {
    private:
     BaseTypeId id_;
     Type type_;
+    llvm::Type* type_impl_;
+  };
+
+  class OpaqueTypeImpl : public TypeImpl {
+   public:
+    OpaqueTypeImpl(Type type, std::string_view name, llvm::Type* type_impl);
+    llvm::Type* GetLLVM() override;
+    Type Get() override;
+    std::string_view Name();
+
+   private:
+    Type type_;
+    std::string name_;
     llvm::Type* type_impl_;
   };
 
@@ -179,6 +195,7 @@ class TypeManager {
   std::unique_ptr<llvm::IRBuilder<>> builder_;
   std::vector<std::unique_ptr<TypeImpl>> type_id_to_impl_;
   absl::flat_hash_map<std::string, Type> struct_name_to_type_id_;
+  absl::flat_hash_map<std::string, Type> opaque_name_to_type_id_;
   static bool initialized_;
 };
 

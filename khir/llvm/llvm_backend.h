@@ -19,6 +19,7 @@ class LLVMBackend : public Backend,
   virtual ~LLVMBackend();
 
   // Types
+  void TranslateOpaqueType(std::string_view name) override;
   void TranslateVoidType() override;
   void TranslateI1Type() override;
   void TranslateI8Type() override;

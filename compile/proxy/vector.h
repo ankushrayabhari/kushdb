@@ -23,7 +23,8 @@ class Vector {
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
-  static const std::string_view VectorStructName;
+  static constexpr std::string_view VectorStructName =
+      "kush::runtime::Vector::Vector";
 
  private:
   khir::ProgramBuilder& program_;

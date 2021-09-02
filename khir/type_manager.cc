@@ -100,6 +100,16 @@ absl::Span<const Type> TypeManager::StructTypeImpl::ElementTypes() {
   return elem_types_;
 }
 
+TypeManager::OpaqueTypeImpl::OpaqueTypeImpl(Type type, std::string_view name,
+                                            llvm::Type* type_impl)
+    : type_(type), name_(name), type_impl_(type_impl) {}
+
+llvm::Type* TypeManager::OpaqueTypeImpl::GetLLVM() { return type_impl_; }
+
+Type TypeManager::OpaqueTypeImpl::Get() { return type_; }
+
+std::string_view TypeManager::OpaqueTypeImpl::Name() { return name_; }
+
 TypeManager::TypeManager()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("type_manager", *context_)),
@@ -159,12 +169,27 @@ Type TypeManager::I64Type() const { return static_cast<Type>(5); }
 
 Type TypeManager::F64Type() const { return static_cast<Type>(6); }
 
+Type TypeManager::OpaqueType(std::string_view name) {
+  auto output = static_cast<Type>(type_id_to_impl_.size());
+  auto impl = llvm::StructType::create(*context_, name);
+  type_id_to_impl_.push_back(
+      std::make_unique<OpaqueTypeImpl>(output, name, impl));
+  if (opaque_name_to_type_id_.contains(name)) {
+    throw std::runtime_error("Name exists!");
+  }
+  opaque_name_to_type_id_[name] = output;
+  return output;
+}
+
 Type TypeManager::NamedStructType(absl::Span<const Type> field_type_id,
                                   std::string_view name) {
   if (struct_name_to_type_id_.contains(name)) {
     return struct_name_to_type_id_[name];
   }
   auto id = StructType(field_type_id);
+  if (struct_name_to_type_id_.contains(name)) {
+    throw std::runtime_error("Name exists!");
+  }
   struct_name_to_type_id_[name] = id;
   return id;
 }
@@ -205,6 +230,10 @@ Type TypeManager::FunctionType(Type result, absl::Span<const Type> args) {
   type_id_to_impl_.push_back(
       std::make_unique<FunctionTypeImpl>(result, args, output, impl));
   return output;
+}
+
+Type TypeManager::GetOpaqueType(std::string_view name) {
+  return opaque_name_to_type_id_.at(name);
 }
 
 Type TypeManager::GetNamedStructType(std::string_view name) {
@@ -295,6 +324,8 @@ void TypeManager::Translate(TypeTranslator& translator) const {
           translator.TranslateF64Type();
           break;
       }
+    } else if (auto opaque_type = dynamic_cast<OpaqueTypeImpl*>(type_impl)) {
+      translator.TranslateOpaqueType(opaque_type->Name());
     } else if (auto ptr_type = dynamic_cast<PointerTypeImpl*>(type_impl)) {
       translator.TranslatePointerType(ptr_type->ElementType());
     } else if (auto array_type = dynamic_cast<ArrayTypeImpl*>(type_impl)) {

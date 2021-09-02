@@ -480,6 +480,10 @@ Value ProgramBuilder::LoadPtr(Value ptr) {
           .Build());
 }
 
+Type ProgramBuilder::OpaqueType(std::string_view name) {
+  return type_manager_.OpaqueType(name);
+}
+
 Type ProgramBuilder::VoidType() { return type_manager_.VoidType(); }
 
 Type ProgramBuilder::I1Type() { return type_manager_.I1Type(); }
@@ -501,6 +505,10 @@ Type ProgramBuilder::StructType(absl::Span<const Type> types,
   } else {
     return type_manager_.NamedStructType(types, name);
   }
+}
+
+Type ProgramBuilder::GetOpaqueType(std::string_view name) {
+  return type_manager_.GetOpaqueType(name);
 }
 
 Type ProgramBuilder::GetStructType(std::string_view name) {

@@ -10,6 +10,8 @@
 
 namespace kush::compile::proxy {
 
+constexpr std::string_view tuple_idx_table_iterator_name(
+    "kush::runtime::TupleIdxTable::Iterator");
 constexpr std::string_view create_fn_name(
     "kush::runtime::TupleIdxTable::Create");
 constexpr std::string_view insert_fn_name(
@@ -25,18 +27,21 @@ constexpr std::string_view free_it_fn_name(
 
 TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program, bool global)
     : program_(program),
-      value_(global
-                 ? program.Global(
-                       false, true, program.PointerType(program.I8Type()),
-                       program.NullPtr(program.PointerType(program.I8Type())))
-                 : program.Alloca(program.PointerType(program.I8Type()))) {
+      value_(global ? program.Global(
+                          false, true,
+                          program.PointerType(program.GetOpaqueType(TypeName)),
+                          program.NullPtr(program.PointerType(
+                              program.GetOpaqueType(TypeName))))
+                    : program.Alloca(program.PointerType(
+                          program.GetOpaqueType(TypeName)))) {
   auto tuple_idx_table = program_.Call(program_.GetFunction(create_fn_name));
   program_.StorePtr(value_, tuple_idx_table);
 }
 
 TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program, khir::Value value)
     : program_(program),
-      value_(program.Alloca(program.PointerType(program.I8Type()))) {
+      value_(program.Alloca(
+          program.PointerType(program.GetOpaqueType(TypeName)))) {
   program_.StorePtr(value_, value);
 }
 
@@ -68,7 +73,8 @@ void TupleIdxTable::ForEach(std::function<void(const khir::Value&)> handler) {
       program_,
       program_.Call(program_.GetFunction(size_fn_name), {tuple_idx_table}));
 
-  auto tuple_it = program_.Alloca(program_.I8Type());
+  auto tuple_it = program_.Alloca(program_.PointerType(
+      program_.GetOpaqueType(tuple_idx_table_iterator_name)));
   program_.Call(program_.GetFunction(begin_fn_name),
                 {tuple_idx_table, tuple_it});
 
@@ -96,36 +102,43 @@ void TupleIdxTable::ForEach(std::function<void(const khir::Value&)> handler) {
 }
 
 void TupleIdxTable::ForwardDeclare(khir::ProgramBuilder& program) {
-  auto tuple_idx_table_type = program.PointerType(program.I8Type());
+  auto tuple_idx_table_type = program.OpaqueType(TypeName);
+  auto tuple_idx_table_ptr_type = program.PointerType(tuple_idx_table_type);
   program.DeclareExternalFunction(
-      create_fn_name, tuple_idx_table_type, {},
+      create_fn_name, tuple_idx_table_ptr_type, {},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Create));
   program.DeclareExternalFunction(
       insert_fn_name, program.VoidType(),
-      {tuple_idx_table_type, program.PointerType(program.I32Type()),
+      {tuple_idx_table_ptr_type, program.PointerType(program.I32Type()),
        program.I32Type()},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Insert));
   program.DeclareExternalFunction(
-      free_fn_name, program.VoidType(), {tuple_idx_table_type},
+      free_fn_name, program.VoidType(), {tuple_idx_table_ptr_type},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Free));
   program.DeclareExternalFunction(
-      size_fn_name, program.I32Type(), {tuple_idx_table_type},
+      size_fn_name, program.I32Type(), {tuple_idx_table_ptr_type},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Size));
 
-  auto tuple_idx_iterator_type = program.PointerType(program.I8Type());
+  auto tuple_idx_iterator_type =
+      program.OpaqueType(tuple_idx_table_iterator_name);
+  auto tuple_idx_iterator_ptr_type =
+      program.PointerType(tuple_idx_iterator_type);
   program.DeclareExternalFunction(
       begin_fn_name, program.VoidType(),
-      {tuple_idx_table_type, tuple_idx_iterator_type},
+      {tuple_idx_table_ptr_type,
+       program.PointerType(tuple_idx_iterator_ptr_type)},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Begin));
   program.DeclareExternalFunction(
-      increment_fn_name, program.VoidType(), {tuple_idx_iterator_type},
+      increment_fn_name, program.VoidType(),
+      {program.PointerType(tuple_idx_iterator_ptr_type)},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Increment));
   program.DeclareExternalFunction(
       get_fn_name, program.PointerType(program.I32Type()),
-      {tuple_idx_iterator_type},
+      {program.PointerType(tuple_idx_iterator_ptr_type)},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Get));
   program.DeclareExternalFunction(
-      free_it_fn_name, program.VoidType(), {tuple_idx_iterator_type},
+      free_it_fn_name, program.VoidType(),
+      {program.PointerType(tuple_idx_iterator_ptr_type)},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::FreeIt));
 }
 

@@ -20,6 +20,9 @@ class TupleIdxTable {
   void ForEach(std::function<void(const khir::Value&)> handler);
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
+  static constexpr std::string_view TypeName =
+      "kush::runtime::TupleIdxTable::TupleIdxTable";
+
  private:
   khir::ProgramBuilder& program_;
   khir::Value value_;

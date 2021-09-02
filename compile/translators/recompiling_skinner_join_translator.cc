@@ -636,8 +636,10 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   }
 
   // Create tuple idx table
-  proxy::TupleIdxTable tuple_idx_table(program,
-                                       program.ConstPtr(tuple_idx_table_ptr));
+  proxy::TupleIdxTable tuple_idx_table(
+      program, program.PointerCast(program.ConstPtr(tuple_idx_table_ptr),
+                                   program.PointerType(program.GetOpaqueType(
+                                       proxy::TupleIdxTable::TypeName))));
 
   // Generate loop over base table
   std::vector<proxy::Int32> cardinalities;

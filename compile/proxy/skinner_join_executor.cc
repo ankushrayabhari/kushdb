@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "compile/proxy/int.h"
+#include "compile/proxy/tuple_idx_table.h"
 #include "compile/translators/recompiling_join_translator.h"
 #include "khir/program_builder.h"
 #include "runtime/skinner_join_executor.h"
@@ -92,7 +93,7 @@ void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
           program.PointerType(program.I8Type()),
           program.PointerType(program.PointerType(program.I8Type())),
           program.PointerType(program.PointerType(program.I8Type())),
-          program.PointerType(program.I8Type()),
+          program.PointerType(program.GetOpaqueType(TupleIdxTable::TypeName)),
       },
       reinterpret_cast<void*>(&runtime::ExecuteRecompilingSkinnerJoin));
 }

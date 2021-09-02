@@ -49,8 +49,8 @@ void ForwardDeclare(khir::ProgramBuilder& program) {
   proxy::ColumnIndexImpl<catalog::SqlType::REAL>::ForwardDeclare(program);
   proxy::ColumnIndexImpl<catalog::SqlType::TEXT>::ForwardDeclare(program);
 
-  proxy::SkinnerJoinExecutor::ForwardDeclare(program);
   proxy::TupleIdxTable::ForwardDeclare(program);
+  proxy::SkinnerJoinExecutor::ForwardDeclare(program);
 }
 
 }  // namespace kush::compile

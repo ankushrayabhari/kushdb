@@ -45,6 +45,10 @@ LLVMBackend::LLVMBackend()
 
 LLVMBackend::~LLVMBackend() {}
 
+void LLVMBackend::TranslateOpaqueType(std::string_view name) {
+  types_.push_back(llvm::StructType::create(*context_, name));
+}
+
 void LLVMBackend::TranslateVoidType() {
   types_.push_back(builder_->getVoidTy());
 }

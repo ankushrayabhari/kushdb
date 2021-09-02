@@ -325,6 +325,10 @@ void ProgramPrinter::OutputInstr(
   }
 }
 
+void ProgramPrinter::TranslateOpaqueType(std::string_view name) {
+  type_to_string_.emplace_back(name);
+}
+
 void ProgramPrinter::TranslateVoidType() { type_to_string_.push_back("void"); }
 
 void ProgramPrinter::TranslateI1Type() { type_to_string_.push_back("i1"); }

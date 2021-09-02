@@ -10,6 +10,7 @@ class ProgramPrinter : public Backend, public TypeTranslator {
   virtual ~ProgramPrinter() = default;
 
   // Types
+  void TranslateOpaqueType(std::string_view name) override;
   void TranslateVoidType() override;
   void TranslateI1Type() override;
   void TranslateI8Type() override;

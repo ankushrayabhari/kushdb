@@ -19,9 +19,6 @@ constexpr std::string_view FreeFnName("kush::runtime::Vector::Free");
 
 constexpr std::string_view SortFnName("kush::runtime::Vector::Sort");
 
-constexpr std::string_view Vector::VectorStructName(
-    "kush::runtime::Vector::Vector");
-
 Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content,
                bool global)
     : program_(program),
