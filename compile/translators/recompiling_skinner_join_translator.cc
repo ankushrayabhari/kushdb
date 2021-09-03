@@ -135,17 +135,13 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
         program, bucket.DoesNotExist(),
         [&]() -> std::vector<khir::Value> {
           auto budget = initial_budget - 1;
-          proxy::Ternary(
-              program, budget == 0,
-              [&]() -> std::vector<khir::Value> {
-                auto idx_ptr = program.GetElementPtr(program.I32Type(),
-                                                     idx_array, {table_idx});
-                program.StoreI32(idx_ptr, (cardinality - 1).Get());
-                program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
-                program.Return(program.ConstI32(-1));
-                return {};
-              },
-              []() -> std::vector<khir::Value> { return {}; });
+          proxy::If(program, budget == 0, [&]() {
+            auto idx_ptr = program.GetElementPtr(program.I32Type(), idx_array,
+                                                 {table_idx});
+            program.StoreI32(idx_ptr, (cardinality - 1).Get());
+            program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
+            program.Return(program.ConstI32(-1));
+          });
 
           return {budget.Get()};
         },
@@ -271,25 +267,20 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                   evaluated_predicates.insert(predicate_idx);
                   auto cond =
                       expr_translator.Compute(conditions[predicate_idx]);
-                  proxy::Ternary(
-                      program, !static_cast<proxy::Bool&>(*cond),
-                      [&]() -> std::vector<khir::Value> {
-                        // If budget, depleted return -1 and set table ctr
-                        proxy::Ternary(
-                            program, budget == 0,
-                            [&]() -> std::vector<khir::Value> {
-                              program.StoreI32(table_ctr_ptr,
-                                               program.ConstI32(table_idx));
-                              program.Return(program.ConstI32(-1));
-                              return {};
-                            },
-                            []() -> std::vector<khir::Value> { return {}; });
-
-                        loop.Continue(bucket_idx + 1, budget,
-                                      proxy::Bool(program, false));
-                        return {};
-                      },
-                      []() -> std::vector<khir::Value> { return {}; });
+                  proxy::If(program, !static_cast<proxy::Bool&>(*cond), [&]() {
+                    // If budget, depleted return -1 and set table ctr
+                    proxy::If(
+                        program, budget == 0,
+                        [&]() {
+                          program.StoreI32(table_ctr_ptr,
+                                           program.ConstI32(table_idx));
+                          program.Return(program.ConstI32(-1));
+                        },
+                        [&]() {
+                          loop.Continue(bucket_idx + 1, budget,
+                                        proxy::Bool(program, false));
+                        });
+                  });
                 }
 
                 // Valid tuple
@@ -306,28 +297,20 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
                   // If budget depleted, return with -1 (i.e. finished entire
                   // tables)
-                  proxy::Ternary(
-                      program, budget == 0,
-                      [&]() -> std::vector<khir::Value> {
-                        program.StoreI32(table_ctr_ptr,
-                                         program.ConstI32(table_idx));
-                        program.Return(program.ConstI32(-1));
-                        return {};
-                      },
-                      []() -> std::vector<khir::Value> { return {}; });
+                  proxy::If(program, budget == 0, [&]() {
+                    program.StoreI32(table_ctr_ptr,
+                                     program.ConstI32(table_idx));
+                    program.Return(program.ConstI32(-1));
+                  });
 
                   next_budget = budget.ToPointer();
                 } else {
                   // If budget depleted, return with -2 and store table_ctr
-                  proxy::Ternary(
-                      program, budget == 0,
-                      [&]() -> std::vector<khir::Value> {
-                        program.StoreI32(table_ctr_ptr,
-                                         program.ConstI32(table_idx));
-                        program.Return(program.ConstI32(-2));
-                        return {};
-                      },
-                      []() -> std::vector<khir::Value> { return {}; });
+                  proxy::If(program, budget == 0, [&]() {
+                    program.StoreI32(table_ctr_ptr,
+                                     program.ConstI32(table_idx));
+                    program.Return(program.ConstI32(-2));
+                  });
 
                   // Partial tuple - loop over other tables to complete it
                   next_budget =
@@ -448,25 +431,19 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
           evaluated_predicates.insert(predicate_idx);
           auto cond = expr_translator.Compute(conditions[predicate_idx]);
-          proxy::Ternary(
-              program, !static_cast<proxy::Bool&>(*cond),
-              [&]() -> std::vector<khir::Value> {
-                // If budget, depleted return -1 and set table ctr
-                proxy::Ternary(
-                    program, budget == 0,
-                    [&]() -> std::vector<khir::Value> {
-                      program.StoreI32(table_ctr_ptr,
-                                       program.ConstI32(table_idx));
-                      program.Return(program.ConstI32(-1));
-                      return {};
-                    },
-                    []() -> std::vector<khir::Value> { return {}; });
-
-                loop.Continue(next_tuple + 1, budget,
-                              proxy::Bool(program, false));
-                return {};
-              },
-              []() -> std::vector<khir::Value> { return {}; });
+          proxy::If(program, !static_cast<proxy::Bool&>(*cond), [&]() {
+            // If budget, depleted return -1 and set table ctr
+            proxy::If(
+                program, budget == 0,
+                [&]() {
+                  program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
+                  program.Return(program.ConstI32(-1));
+                },
+                [&]() {
+                  loop.Continue(next_tuple + 1, budget,
+                                proxy::Bool(program, false));
+                });
+          });
         }
 
         // Valid tuple
@@ -483,26 +460,18 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
           // If budget depleted, return with -1 (i.e. finished entire
           // tables)
-          proxy::Ternary(
-              program, budget == 0,
-              [&]() -> std::vector<khir::Value> {
-                program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
-                program.Return(program.ConstI32(-1));
-                return {};
-              },
-              []() -> std::vector<khir::Value> { return {}; });
+          proxy::If(program, budget == 0, [&]() {
+            program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
+            program.Return(program.ConstI32(-1));
+          });
 
           next_budget = budget.ToPointer();
         } else {
           // If budget depleted, return with -2 and store table_ctr
-          proxy::Ternary(
-              program, budget == 0,
-              [&]() -> std::vector<khir::Value> {
-                program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
-                program.Return(program.ConstI32(-2));
-                return {};
-              },
-              []() -> std::vector<khir::Value> { return {}; });
+          proxy::If(program, budget == 0, [&]() {
+            program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
+            program.Return(program.ConstI32(-2));
+          });
 
           // Partial tuple - loop over other tables to complete it
           next_budget =
@@ -765,14 +734,10 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         printer.PrintNewline();
         */
 
-        proxy::Ternary(
-            program, budget == 0,
-            [&]() -> std::vector<khir::Value> {
-              program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
-              program.Return(program.ConstI32(-2));
-              return {};
-            },
-            []() -> std::vector<khir::Value> { return {}; });
+        proxy::If(program, budget == 0, [&]() {
+          program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
+          program.Return(program.ConstI32(-2));
+        });
 
         auto tuple = buffer[next_tuple];
         child_translators[table_idx].get().SchemaValues().SetValues(
