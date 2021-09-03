@@ -37,13 +37,14 @@ using namespace std::literals;
 
 struct ParameterValues {
   std::string backend;
+  bool asc;
 };
 
-class GroupByAggregateTest : public testing::TestWithParam<ParameterValues> {};
+class OrderByTest : public testing::TestWithParam<ParameterValues> {};
 
 ABSL_DECLARE_FLAG(std::string, backend);
 
-TEST_P(GroupByAggregateTest, RealCol) {
+TEST_P(OrderByTest, RealCol) {
   auto params = GetParam();
   absl::SetFlag(&FLAGS_backend, params.backend);
 
@@ -54,50 +55,57 @@ TEST_P(GroupByAggregateTest, RealCol) {
     std::unique_ptr<Operator> base;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"zscore"});
+      schema.AddGeneratedColumns(db["info"], {"zscore", "id"});
       base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
     // Aggregate
-    auto sum = Sum(ColRef(base, "zscore"));
-    auto min = Min(ColRef(base, "zscore"));
-    auto max = Max(ColRef(base, "zscore"));
-    auto avg = Avg(ColRef(base, "zscore"));
-    auto count = Count();
+    auto zscore = ColRef(base, "zscore");
+    auto id = ColRef(base, "id");
 
     // output
     OperatorSchema schema;
-    schema.AddDerivedColumn("sum", VirtColRef(sum, 0));
-    schema.AddDerivedColumn("min", VirtColRef(min, 1));
-    schema.AddDerivedColumn("max", VirtColRef(max, 2));
-    schema.AddDerivedColumn("avg", VirtColRef(avg, 3));
-    schema.AddDerivedColumn("count", VirtColRef(count, 4));
-
-    query = std::make_unique<OutputOperator>(
-        std::make_unique<GroupByAggregateOperator>(
-            std::move(schema), std::move(base),
-            std::vector<std::unique_ptr<Expression>>(),
-            util::MakeVector(std::move(sum), std::move(min), std::move(max),
-                             std::move(avg), std::move(count))));
+    schema.AddPassthroughColumns(*base);
+    query = std::make_unique<OutputOperator>(std::make_unique<OrderByOperator>(
+        std::move(schema), std::move(base),
+        util::MakeVector(std::move(zscore), std::move(id)),
+        std::vector<bool>{params.asc, params.asc}));
   }
 
   auto expected_file =
-      "end_to_end_test/group_by_aggregate/real_col_group_by_agg_expected.tbl";
+      "end_to_end_test/order_by/real_col_order_by_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);
   auto output = GetFileContents(output_file);
-  std::sort(expected.begin(), expected.end());
-  std::sort(output.begin(), output.end());
+
+  if (!params.asc) {
+    std::reverse(expected.begin(), expected.end());
+  }
+
   EXPECT_EQ(output, expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend, GroupByAggregateTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_Asc, OrderByTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
+                             .asc = true,
                          }));
 
-INSTANTIATE_TEST_SUITE_P(LLVMBackend, GroupByAggregateTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_Desc, OrderByTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .asc = false,
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Asc, OrderByTest,
                          testing::Values(ParameterValues{
                              .backend = "llvm",
+                             .asc = true,
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Desc, OrderByTest,
+                         testing::Values(ParameterValues{
+                             .backend = "llvm",
+                             .asc = false,
                          }));
