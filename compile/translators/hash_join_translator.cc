@@ -106,22 +106,16 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
         }
 
         auto cond = expr_translator_.template ComputeAs<proxy::Bool>(*conj);
-        proxy::Ternary(
-            program_, cond,
-            [&]() -> std::vector<khir::Value> {
-              this->values_.ResetValues();
-              for (const auto& column : hash_join_.Schema().Columns()) {
-                this->values_.AddVariable(
-                    expr_translator_.Compute(column.Expr()));
-              }
+        proxy::If(program_, cond, [&]() {
+          this->values_.ResetValues();
+          for (const auto& column : hash_join_.Schema().Columns()) {
+            this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+          }
 
-              if (auto parent = this->Parent()) {
-                parent->get().Consume(*this);
-              }
-
-              return {};
-            },
-            [&]() -> std::vector<khir::Value> { return {}; });
+          if (auto parent = this->Parent()) {
+            parent->get().Consume(*this);
+          }
+        });
 
         return loop.Continue(i + 1);
       });
