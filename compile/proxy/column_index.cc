@@ -14,6 +14,24 @@
 namespace kush::compile::proxy {
 
 template <catalog::SqlType S>
+std::string_view ColumnIndexImpl<S>::TypeName() {
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    return "kush::runtime::ColumnIndex::Int16Index";
+  } else if constexpr (catalog::SqlType::INT == S) {
+    return "kush::runtime::ColumnIndex::Int32Index";
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    return "kush::runtime::ColumnIndex::Int64Index";
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    return "kush::runtime::ColumnIndex::Float64Index";
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    return "kush::runtime::ColumnIndex::Int8Index";
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    return "kush::runtime::ColumnIndex::TextIndex";
+  }
+}
+
+template <catalog::SqlType S>
 std::string_view CreateFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return "kush::runtime::ColumnIndex::CreateInt16Index";
@@ -191,11 +209,13 @@ void ColumnIndexImpl<S>::Reset() {
 template <catalog::SqlType S>
 ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program, bool global)
     : program_(program),
-      value_(global
-                 ? program.Global(
-                       false, false, program.PointerType(program.I8Type()),
-                       program.NullPtr(program.PointerType(program.I8Type())))
-                 : program_.Alloca(program.PointerType(program.I8Type()))) {
+      value_(global ? program.Global(false, false,
+                                     program.PointerType(
+                                         program.GetOpaqueType(TypeName())),
+                                     program.NullPtr(program.PointerType(
+                                         program.GetOpaqueType(TypeName()))))
+                    : program_.Alloca(program.PointerType(
+                          program.GetOpaqueType(TypeName())))) {
   program_.StorePtr(value_,
                     program_.Call(program_.GetFunction(CreateFnName<S>()), {}));
 }
@@ -204,7 +224,8 @@ template <catalog::SqlType S>
 ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program,
                                     khir::Value v)
     : program_(program),
-      value_(program_.Alloca(program.PointerType(program.I8Type()))) {
+      value_(program_.Alloca(
+          program.PointerType(program.GetOpaqueType(TypeName())))) {
   program_.StorePtr(value_, v);
 }
 
@@ -234,8 +255,13 @@ IndexBucket ColumnIndexImpl<S>::GetBucket(const proxy::Value& v) {
 
 template <catalog::SqlType S>
 void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
-  auto index_type = program.I8Type();
-  auto index_ptr_type = program.PointerType(index_type);
+  std::optional<typename khir::Type> index_type;
+  if constexpr (catalog::SqlType::DATE == S) {
+    index_type = program.GetOpaqueType(TypeName());
+  } else {
+    index_type = program.OpaqueType(TypeName());
+  }
+  auto index_ptr_type = program.PointerType(index_type.value());
 
   auto bucket_type = program.I8Type();
   auto bucket_ptr_type = program.PointerType(bucket_type);

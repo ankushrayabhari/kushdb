@@ -600,37 +600,66 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
       case catalog::SqlType::SMALLINT:
         indexes.push_back(std::make_unique<
                           proxy::ColumnIndexImpl<catalog::SqlType::SMALLINT>>(
-            program, program.ConstPtr(materialized_indexes[i])));
+            program, program.PointerCast(
+                         program.ConstPtr(materialized_indexes[i]),
+                         program.PointerType(program.GetOpaqueType(
+                             proxy::ColumnIndexImpl<
+                                 catalog::SqlType::SMALLINT>::TypeName())))));
         break;
       case catalog::SqlType::INT:
         indexes.push_back(
             std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::INT>>(
-                program, program.ConstPtr(materialized_indexes[i])));
+                program, program.PointerCast(
+                             program.ConstPtr(materialized_indexes[i]),
+                             program.PointerType(program.GetOpaqueType(
+                                 proxy::ColumnIndexImpl<
+                                     catalog::SqlType::INT>::TypeName())))));
         break;
       case catalog::SqlType::BIGINT:
         indexes.push_back(
             std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::BIGINT>>(
-                program, program.ConstPtr(materialized_indexes[i])));
+                program, program.PointerCast(
+                             program.ConstPtr(materialized_indexes[i]),
+                             program.PointerType(program.GetOpaqueType(
+                                 proxy::ColumnIndexImpl<
+                                     catalog::SqlType::BIGINT>::TypeName())))));
         break;
       case catalog::SqlType::REAL:
         indexes.push_back(
             std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::REAL>>(
-                program, program.ConstPtr(materialized_indexes[i])));
+                program, program.PointerCast(
+                             program.ConstPtr(materialized_indexes[i]),
+                             program.PointerType(program.GetOpaqueType(
+                                 proxy::ColumnIndexImpl<
+                                     catalog::SqlType::REAL>::TypeName())))));
         break;
       case catalog::SqlType::DATE:
         indexes.push_back(
             std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::DATE>>(
-                program, program.ConstPtr(materialized_indexes[i])));
+                program, program.PointerCast(
+                             program.ConstPtr(materialized_indexes[i]),
+                             program.PointerType(program.GetOpaqueType(
+                                 proxy::ColumnIndexImpl<
+                                     catalog::SqlType::DATE>::TypeName())))));
         break;
       case catalog::SqlType::TEXT:
         indexes.push_back(
             std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::TEXT>>(
-                program, program.ConstPtr(materialized_indexes[i])));
+                program, program.PointerCast(
+                             program.ConstPtr(materialized_indexes[i]),
+                             program.PointerType(program.GetOpaqueType(
+                                 proxy::ColumnIndexImpl<
+                                     catalog::SqlType::TEXT>::TypeName())))));
         break;
       case catalog::SqlType::BOOLEAN:
         indexes.push_back(
             std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::BOOLEAN>>(
-                program, program.ConstPtr(materialized_indexes[i])));
+                program,
+                program.PointerCast(
+                    program.ConstPtr(materialized_indexes[i]),
+                    program.PointerType(program.GetOpaqueType(
+                        proxy::ColumnIndexImpl<
+                            catalog::SqlType::BOOLEAN>::TypeName())))));
         break;
     }
   }

@@ -66,6 +66,8 @@ class ColumnIndexImpl : public ColumnIndex {
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
+  static std::string_view TypeName();
+
  private:
   khir::ProgramBuilder& program_;
   khir::Value value_;
