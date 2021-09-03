@@ -288,66 +288,53 @@ void PermutableSkinnerJoinTranslator::Produce() {
                 {0,
                  table_predicate_to_flag_idx.at({table_idx, predicate_idx})});
             proxy::Int8 flag_value(program_, program_.LoadI8(flag_ptr));
-            proxy::Ternary(
-                program_, flag_value != 0,
-                [&]() -> std::vector<khir::Value> {
-                  auto eq = dynamic_cast<
-                      const kush::plan::BinaryArithmeticExpression*>(
+            proxy::If(program_, flag_value != 0, [&]() {
+              auto eq =
+                  dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(
                       &predicate);
-                  auto left_column =
-                      dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                          &eq->LeftChild());
-                  auto right_column =
-                      dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                          &eq->RightChild());
+              auto left_column =
+                  dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                      &eq->LeftChild());
+              auto right_column =
+                  dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                      &eq->RightChild());
 
-                  auto table_column = table_idx == left_column->GetChildIdx()
-                                          ? left_column->GetColumnIdx()
-                                          : right_column->GetColumnIdx();
+              auto table_column = table_idx == left_column->GetChildIdx()
+                                      ? left_column->GetColumnIdx()
+                                      : right_column->GetColumnIdx();
 
-                  auto it =
-                      predicate_to_index_idx_.find({table_idx, table_column});
-                  assert(it != predicate_to_index_idx_.end());
-                  auto index_idx = it->second;
+              auto it = predicate_to_index_idx_.find({table_idx, table_column});
+              assert(it != predicate_to_index_idx_.end());
+              auto index_idx = it->second;
 
-                  auto other_side_value = expr_translator_.Compute(
-                      table_idx == left_column->GetChildIdx() ? *right_column
-                                                              : *left_column);
-                  auto bucket =
-                      indexes_[index_idx]->GetBucket(*other_side_value);
-                  bucket_list.PushBack(bucket);
+              auto other_side_value = expr_translator_.Compute(
+                  table_idx == left_column->GetChildIdx() ? *right_column
+                                                          : *left_column);
+              auto bucket = indexes_[index_idx]->GetBucket(*other_side_value);
+              bucket_list.PushBack(bucket);
 
-                  auto bucket_dne_check = proxy::Ternary(
-                      program_, bucket.DoesNotExist(),
-                      [&]() -> std::vector<khir::Value> {
-                        auto budget = initial_budget - 1;
-                        proxy::Ternary(
-                            program_, budget == 0,
-                            [&]() -> std::vector<khir::Value> {
-                              auto idx_ptr = program_.GetElementPtr(
-                                  idx_array_type, idx_array, {0, table_idx});
-                              program_.StoreI32(idx_ptr,
-                                                (cardinality - 1).Get());
-                              program_.StoreI32(
-                                  program_.GetElementPtr(table_ctr_type,
-                                                         table_ctr_ptr, {0, 0}),
-                                  program_.ConstI32(table_idx));
+              proxy::If(program_, bucket.DoesNotExist(), [&]() {
+                auto budget = initial_budget - 1;
+                proxy::If(
+                    program_, budget == 0,
+                    [&]() {
+                      auto idx_ptr = program_.GetElementPtr(
+                          idx_array_type, idx_array, {0, table_idx});
+                      program_.StoreI32(idx_ptr, (cardinality - 1).Get());
+                      program_.StoreI32(
+                          program_.GetElementPtr(table_ctr_type, table_ctr_ptr,
+                                                 {0, 0}),
+                          program_.ConstI32(table_idx));
 
-                              bucket_list.Reset();
-                              program_.Return(program_.ConstI32(-1));
-                              return {};
-                            },
-                            [&]() -> std::vector<khir::Value> {
-                              bucket_list.Reset();
-                              program_.Return(budget.Get());
-                              return {};
-                            });
-                        return {};
-                      },
-                      [&]() -> std::vector<khir::Value> { return {}; });
-                  return {};
-                },
-                [&]() -> std::vector<khir::Value> { return {}; });
+                      bucket_list.Reset();
+                      program_.Return(program_.ConstI32(-1));
+                    },
+                    [&]() {
+                      bucket_list.Reset();
+                      program_.Return(budget.Get());
+                    });
+              });
+            });
           }
 
           auto use_index_check = proxy::Ternary(
@@ -460,8 +447,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       auto tuple = buffer[next_tuple];
                       auto current_table_values = tuple.Unpack();
 
-                      // Store each of this table's predicate column values into
-                      // the global_predicate_struct
+                      // Store each of this table's predicate column values
+                      // into the global_predicate_struct
                       for (int k = 0; k < predicate_columns_.size(); k++) {
                         auto& col_ref = predicate_columns_[k].get();
                         if (col_ref.GetChildIdx() == table_idx) {
@@ -489,70 +476,49 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                     {table_idx, predicate_idx})});
                         proxy::Int8 flag_value(program_,
                                                program_.LoadI8(flag_ptr));
-                        proxy::Ternary(
-                            program_, flag_value != 0,
-                            [&]() -> std::vector<khir::Value> {
-                              auto cond = expr_translator_.Compute(
-                                  conditions[predicate_idx]);
+                        proxy::If(program_, flag_value != 0, [&]() {
+                          auto cond = expr_translator_.Compute(
+                              conditions[predicate_idx]);
 
-                              proxy::Ternary(
-                                  program_, !static_cast<proxy::Bool&>(*cond),
-                                  [&]() -> std::vector<khir::Value> {
-                                    // If budget, depleted return -1 and set
-                                    // table ctr
-                                    proxy::Ternary(
-                                        program_, budget == 0,
-                                        [&]() -> std::vector<khir::Value> {
-                                          program_.StoreI32(
-                                              program_.GetElementPtr(
-                                                  table_ctr_type, table_ctr_ptr,
-                                                  {0, 0}),
-                                              program_.ConstI32(table_idx));
-                                          program_.Return(
-                                              program_.ConstI32(-1));
-                                          return {};
-                                        },
-                                        [&]() -> std::vector<khir::Value> {
-                                          loop.Continue(
-                                              bucket_idx + 1, budget,
-                                              proxy::Bool(program_, false));
-                                          return {};
-                                        });
-
-                                    return {};
-                                  },
-                                  []() -> std::vector<khir::Value> {
-                                    return {};
-                                  });
-                              return {};
-                            },
-                            [&]() -> std::vector<khir::Value> { return {}; });
+                          proxy::If(
+                              program_, !static_cast<proxy::Bool&>(*cond),
+                              [&]() {
+                                // If budget, depleted return -1 and set
+                                // table ctr
+                                proxy::If(
+                                    program_, budget == 0,
+                                    [&]() {
+                                      program_.StoreI32(
+                                          program_.GetElementPtr(table_ctr_type,
+                                                                 table_ctr_ptr,
+                                                                 {0, 0}),
+                                          program_.ConstI32(table_idx));
+                                      program_.Return(program_.ConstI32(-1));
+                                    },
+                                    [&]() {
+                                      loop.Continue(
+                                          bucket_idx + 1, budget,
+                                          proxy::Bool(program_, false));
+                                    });
+                              });
+                        });
                       }
 
-                      proxy::Ternary(
-                          program_, budget == 0,
-                          [&]() -> std::vector<khir::Value> {
-                            program_.StoreI32(
-                                program_.GetElementPtr(table_ctr_type,
-                                                       table_ctr_ptr, {0, 0}),
-                                program_.ConstI32(table_idx));
-                            program_.Return(program_.ConstI32(-2));
-                            return {};
-                          },
-                          [&]() -> std::vector<khir::Value> { return {}; });
+                      proxy::If(program_, budget == 0, [&]() {
+                        program_.StoreI32(
+                            program_.GetElementPtr(table_ctr_type,
+                                                   table_ctr_ptr, {0, 0}),
+                            program_.ConstI32(table_idx));
+                        program_.Return(program_.ConstI32(-2));
+                      });
 
                       // Valid tuple
                       auto next_budget = proxy::Int32(
                           program_,
                           program_.Call(handler,
                                         {budget.Get(), resume_progress.Get()}));
-                      proxy::Ternary(
-                          program_, next_budget < 0,
-                          [&]() -> std::vector<khir::Value> {
-                            program_.Return(next_budget.Get());
-                            return {};
-                          },
-                          []() -> std::vector<khir::Value> { return {}; });
+                      proxy::If(program_, next_budget < 0,
+                                [&]() { program_.Return(next_budget.Get()); });
 
                       return loop.Continue(bucket_idx + 1, next_budget,
                                            proxy::Bool(program_, false));
@@ -653,8 +619,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       auto tuple = buffer[next_tuple];
                       auto current_table_values = tuple.Unpack();
 
-                      // Store each of this table's predicate column values into
-                      // the global_predicate_struct
+                      // Store each of this table's predicate column values
+                      // into the global_predicate_struct
                       for (int k = 0; k < predicate_columns_.size(); k++) {
                         auto& col_ref = predicate_columns_[k].get();
                         if (col_ref.GetChildIdx() == table_idx) {
@@ -682,70 +648,49 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                     {table_idx, predicate_idx})});
                         proxy::Int8 flag_value(program_,
                                                program_.LoadI8(flag_ptr));
-                        proxy::Ternary(
-                            program_, flag_value != 0,
-                            [&]() -> std::vector<khir::Value> {
-                              auto cond = expr_translator_.Compute(
-                                  conditions[predicate_idx]);
+                        proxy::If(program_, flag_value != 0, [&]() {
+                          auto cond = expr_translator_.Compute(
+                              conditions[predicate_idx]);
 
-                              proxy::Ternary(
-                                  program_, !static_cast<proxy::Bool&>(*cond),
-                                  [&]() -> std::vector<khir::Value> {
-                                    // If budget, depleted return -1 and set
-                                    // table ctr
-                                    proxy::Ternary(
-                                        program_, budget == 0,
-                                        [&]() -> std::vector<khir::Value> {
-                                          program_.StoreI32(
-                                              program_.GetElementPtr(
-                                                  table_ctr_type, table_ctr_ptr,
-                                                  {0, 0}),
-                                              program_.ConstI32(table_idx));
-                                          program_.Return(
-                                              program_.ConstI32(-1));
-                                          return {};
-                                        },
-                                        [&]() -> std::vector<khir::Value> {
-                                          loop.Continue(
-                                              next_tuple + 1, budget,
-                                              proxy::Bool(program_, false));
-                                          return {};
-                                        });
-
-                                    return {};
-                                  },
-                                  []() -> std::vector<khir::Value> {
-                                    return {};
-                                  });
-                              return {};
-                            },
-                            [&]() -> std::vector<khir::Value> { return {}; });
+                          proxy::If(
+                              program_, !static_cast<proxy::Bool&>(*cond),
+                              [&]() {
+                                // If budget, depleted return -1 and set
+                                // table ctr
+                                proxy::If(
+                                    program_, budget == 0,
+                                    [&]() {
+                                      program_.StoreI32(
+                                          program_.GetElementPtr(table_ctr_type,
+                                                                 table_ctr_ptr,
+                                                                 {0, 0}),
+                                          program_.ConstI32(table_idx));
+                                      program_.Return(program_.ConstI32(-1));
+                                    },
+                                    [&]() {
+                                      loop.Continue(
+                                          next_tuple + 1, budget,
+                                          proxy::Bool(program_, false));
+                                    });
+                              });
+                        });
                       }
 
-                      proxy::Ternary(
-                          program_, budget == 0,
-                          [&]() -> std::vector<khir::Value> {
-                            program_.StoreI32(
-                                program_.GetElementPtr(table_ctr_type,
-                                                       table_ctr_ptr, {0, 0}),
-                                program_.ConstI32(table_idx));
-                            program_.Return(program_.ConstI32(-2));
-                            return {};
-                          },
-                          [&]() -> std::vector<khir::Value> { return {}; });
+                      proxy::If(program_, budget == 0, [&]() {
+                        program_.StoreI32(
+                            program_.GetElementPtr(table_ctr_type,
+                                                   table_ctr_ptr, {0, 0}),
+                            program_.ConstI32(table_idx));
+                        program_.Return(program_.ConstI32(-2));
+                      });
 
                       // Valid tuple
                       auto next_budget = proxy::Int32(
                           program_,
                           program_.Call(handler,
                                         {budget.Get(), resume_progress.Get()}));
-                      proxy::Ternary(
-                          program_, next_budget < 0,
-                          [&]() -> std::vector<khir::Value> {
-                            program_.Return(next_budget.Get());
-                            return {};
-                          },
-                          []() -> std::vector<khir::Value> { return {}; });
+                      proxy::If(program_, next_budget < 0,
+                                [&]() { program_.Return(next_budget.Get()); });
 
                       return loop.Continue(next_tuple + 1, next_budget,
                                            proxy::Bool(program_, false));
