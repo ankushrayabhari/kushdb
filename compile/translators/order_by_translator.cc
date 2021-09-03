@@ -64,7 +64,7 @@ void OrderByTranslator::Produce() {
           if (asc) {
             auto v1 = s1_field.EvaluateBinary(
                 plan::BinaryArithmeticOperatorType::LT, s2_field);
-            proxy::If(
+            proxy::Ternary(
                 program_, static_cast<proxy::Bool&>(*v1),
                 [&]() -> std::vector<khir::Value> {
                   Return(proxy::Bool(program_, true));
@@ -74,7 +74,7 @@ void OrderByTranslator::Produce() {
 
             auto v2 = s2_field.EvaluateBinary(
                 plan::BinaryArithmeticOperatorType::LT, s1_field);
-            proxy::If(
+            proxy::Ternary(
                 program_, static_cast<proxy::Bool&>(*v2),
                 [&]() -> std::vector<khir::Value> {
                   Return(proxy::Bool(program_, false));
@@ -84,7 +84,7 @@ void OrderByTranslator::Produce() {
           } else {
             auto v1 = s1_field.EvaluateBinary(
                 plan::BinaryArithmeticOperatorType::LT, s2_field);
-            proxy::If(
+            proxy::Ternary(
                 program_, static_cast<proxy::Bool&>(*v1),
                 [&]() -> std::vector<khir::Value> {
                   Return(proxy::Bool(program_, false));
@@ -94,7 +94,7 @@ void OrderByTranslator::Produce() {
 
             auto v2 = s2_field.EvaluateBinary(
                 plan::BinaryArithmeticOperatorType::LT, s1_field);
-            proxy::If(
+            proxy::Ternary(
                 program_, static_cast<proxy::Bool&>(*v2),
                 [&]() -> std::vector<khir::Value> {
                   Return(proxy::Bool(program_, true));

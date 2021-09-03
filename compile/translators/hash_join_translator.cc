@@ -106,7 +106,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
         }
 
         auto cond = expr_translator_.template ComputeAs<proxy::Bool>(*conj);
-        proxy::If(
+        proxy::Ternary(
             program_, cond,
             [&]() -> std::vector<khir::Value> {
               this->values_.ResetValues();

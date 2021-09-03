@@ -48,7 +48,7 @@ void ExpressionTranslator::Visit(
       std::unique_ptr<proxy::Bool> th, el;
       auto left_value = ComputeAs<proxy::Bool>(arith.LeftChild());
 
-      auto ret_val = proxy::If(
+      auto ret_val = proxy::Ternary(
           program_, left_value,
           [&]() -> std::vector<khir::Value> {
             return {Compute(arith.RightChild())->Get()};
@@ -63,7 +63,7 @@ void ExpressionTranslator::Visit(
     case OpType::OR: {
       std::unique_ptr<proxy::Bool> th, el;
       auto left_value = ComputeAs<proxy::Bool>(arith.LeftChild());
-      auto ret_val = proxy::If(
+      auto ret_val = proxy::Ternary(
           program_, left_value,
           [&]() -> std::vector<khir::Value> {
             return {proxy::Bool(program_, true).Get()};
@@ -161,7 +161,7 @@ std::unique_ptr<S> ExpressionTranslator::Ternary(
     const plan::CaseExpression& case_expr) {
   std::unique_ptr<S> th, el;
   auto cond = ComputeAs<proxy::Bool>(case_expr.Cond());
-  auto ret_val = proxy::If(
+  auto ret_val = proxy::Ternary(
       program_, cond,
       [&]() -> std::vector<khir::Value> {
         return {this->Compute(case_expr.Then())->Get()};

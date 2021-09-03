@@ -288,7 +288,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                 {0,
                  table_predicate_to_flag_idx.at({table_idx, predicate_idx})});
             proxy::Int8 flag_value(program_, program_.LoadI8(flag_ptr));
-            proxy::If(
+            proxy::Ternary(
                 program_, flag_value != 0,
                 [&]() -> std::vector<khir::Value> {
                   auto eq = dynamic_cast<
@@ -317,11 +317,11 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       indexes_[index_idx]->GetBucket(*other_side_value);
                   bucket_list.PushBack(bucket);
 
-                  auto bucket_dne_check = proxy::If(
+                  auto bucket_dne_check = proxy::Ternary(
                       program_, bucket.DoesNotExist(),
                       [&]() -> std::vector<khir::Value> {
                         auto budget = initial_budget - 1;
-                        proxy::If(
+                        proxy::Ternary(
                             program_, budget == 0,
                             [&]() -> std::vector<khir::Value> {
                               auto idx_ptr = program_.GetElementPtr(
@@ -350,7 +350,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                 [&]() -> std::vector<khir::Value> { return {}; });
           }
 
-          auto use_index_check = proxy::If(
+          auto use_index_check = proxy::Ternary(
               program_, bucket_list.Size() > 0,
               [&]() -> std::vector<khir::Value> {
                 // TODO: check all buckets not just the first
@@ -361,7 +361,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                 proxy::Loop loop(
                     program_,
                     [&](auto& loop) {
-                      auto progress_check = proxy::If(
+                      auto progress_check = proxy::Ternary(
                           program_, resume_progress,
                           [&]() -> std::vector<khir::Value> {
                             auto progress_ptr = program_.GetElementPtr(
@@ -383,7 +383,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                            offset_array_type, offset_array,
                                            {0, table_idx}))) +
                           1;
-                      auto offset_check = proxy::If(
+                      auto offset_check = proxy::Ternary(
                           program_, offset_next_tuple > progress_next_tuple,
                           [&]() -> std::vector<khir::Value> {
                             return {offset_next_tuple.Get()};
@@ -398,10 +398,10 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       loop.AddLoopVariable(bucket_idx);
                       loop.AddLoopVariable(initial_budget);
 
-                      auto continue_resume_progress = proxy::If(
+                      auto continue_resume_progress = proxy::Ternary(
                           program_, resume_progress,
                           [&]() -> std::vector<khir::Value> {
-                            auto valid_bucket_idx = proxy::If(
+                            auto valid_bucket_idx = proxy::Ternary(
                                 program_, bucket_idx < bucket_size,
                                 [&]() -> std::vector<khir::Value> {
                                   auto progress_ptr = program_.GetElementPtr(
@@ -489,18 +489,18 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                     {table_idx, predicate_idx})});
                         proxy::Int8 flag_value(program_,
                                                program_.LoadI8(flag_ptr));
-                        proxy::If(
+                        proxy::Ternary(
                             program_, flag_value != 0,
                             [&]() -> std::vector<khir::Value> {
                               auto cond = expr_translator_.Compute(
                                   conditions[predicate_idx]);
 
-                              proxy::If(
+                              proxy::Ternary(
                                   program_, !static_cast<proxy::Bool&>(*cond),
                                   [&]() -> std::vector<khir::Value> {
                                     // If budget, depleted return -1 and set
                                     // table ctr
-                                    proxy::If(
+                                    proxy::Ternary(
                                         program_, budget == 0,
                                         [&]() -> std::vector<khir::Value> {
                                           program_.StoreI32(
@@ -529,7 +529,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                             [&]() -> std::vector<khir::Value> { return {}; });
                       }
 
-                      proxy::If(
+                      proxy::Ternary(
                           program_, budget == 0,
                           [&]() -> std::vector<khir::Value> {
                             program_.StoreI32(
@@ -546,7 +546,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           program_,
                           program_.Call(handler,
                                         {budget.Get(), resume_progress.Get()}));
-                      proxy::If(
+                      proxy::Ternary(
                           program_, next_budget < 0,
                           [&]() -> std::vector<khir::Value> {
                             program_.Return(next_budget.Get());
@@ -568,7 +568,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                 proxy::Loop loop(
                     program_,
                     [&](auto& loop) {
-                      auto progress_check = proxy::If(
+                      auto progress_check = proxy::Ternary(
                           program_, resume_progress,
                           [&]() -> std::vector<khir::Value> {
                             auto progress_ptr = program_.GetElementPtr(
@@ -590,7 +590,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                            offset_array_type, offset_array,
                                            {0, table_idx}))) +
                           1;
-                      auto offset_check = proxy::If(
+                      auto offset_check = proxy::Ternary(
                           program_, offset_next_tuple > progress_next_tuple,
                           [&]() -> std::vector<khir::Value> {
                             return {offset_next_tuple.Get()};
@@ -604,7 +604,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       loop.AddLoopVariable(initial_next_tuple);
                       loop.AddLoopVariable(initial_budget);
 
-                      auto continue_resume_progress = proxy::If(
+                      auto continue_resume_progress = proxy::Ternary(
                           program_, resume_progress,
                           [&]() -> std::vector<khir::Value> {
                             auto progress_ptr = program_.GetElementPtr(
@@ -682,18 +682,18 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                     {table_idx, predicate_idx})});
                         proxy::Int8 flag_value(program_,
                                                program_.LoadI8(flag_ptr));
-                        proxy::If(
+                        proxy::Ternary(
                             program_, flag_value != 0,
                             [&]() -> std::vector<khir::Value> {
                               auto cond = expr_translator_.Compute(
                                   conditions[predicate_idx]);
 
-                              proxy::If(
+                              proxy::Ternary(
                                   program_, !static_cast<proxy::Bool&>(*cond),
                                   [&]() -> std::vector<khir::Value> {
                                     // If budget, depleted return -1 and set
                                     // table ctr
-                                    proxy::If(
+                                    proxy::Ternary(
                                         program_, budget == 0,
                                         [&]() -> std::vector<khir::Value> {
                                           program_.StoreI32(
@@ -722,7 +722,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                             [&]() -> std::vector<khir::Value> { return {}; });
                       }
 
-                      proxy::If(
+                      proxy::Ternary(
                           program_, budget == 0,
                           [&]() -> std::vector<khir::Value> {
                             program_.StoreI32(
@@ -739,7 +739,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           program_,
                           program_.Call(handler,
                                         {budget.Get(), resume_progress.Get()}));
-                      proxy::If(
+                      proxy::Ternary(
                           program_, next_budget < 0,
                           [&]() -> std::vector<khir::Value> {
                             program_.Return(next_budget.Get());

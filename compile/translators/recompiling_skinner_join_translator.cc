@@ -131,11 +131,11 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
         table_idx == left_column->GetChildIdx() ? *right_column : *left_column);
     auto bucket = indexes[index_idx]->GetBucket(*other_side_value);
 
-    auto bucket_dne_check = proxy::If(
+    auto bucket_dne_check = proxy::Ternary(
         program, bucket.DoesNotExist(),
         [&]() -> std::vector<khir::Value> {
           auto budget = initial_budget - 1;
-          proxy::If(
+          proxy::Ternary(
               program, budget == 0,
               [&]() -> std::vector<khir::Value> {
                 auto idx_ptr = program.GetElementPtr(program.I32Type(),
@@ -155,7 +155,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
           proxy::Loop loop(
               program,
               [&](auto& loop) {
-                auto progress_check = proxy::If(
+                auto progress_check = proxy::Ternary(
                     program, resume_progress,
                     [&]() -> std::vector<khir::Value> {
                       auto progress_ptr = program.GetElementPtr(
@@ -175,7 +175,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                                               program.I32Type(), offset_array,
                                               {table_idx}))) +
                     1;
-                auto offset_check = proxy::If(
+                auto offset_check = proxy::Ternary(
                     program, offset_next_tuple > progress_next_tuple,
                     [&]() -> std::vector<khir::Value> {
                       return {offset_next_tuple.Get()};
@@ -188,10 +188,10 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                 loop.AddLoopVariable(bucket_idx);
                 loop.AddLoopVariable(initial_budget);
 
-                auto continue_resume_progress = proxy::If(
+                auto continue_resume_progress = proxy::Ternary(
                     program, resume_progress,
                     [&]() -> std::vector<khir::Value> {
-                      auto valid_bucket_idx = proxy::If(
+                      auto valid_bucket_idx = proxy::Ternary(
                           program, bucket_idx < bucket_size,
                           [&]() -> std::vector<khir::Value> {
                             auto progress_ptr = program.GetElementPtr(
@@ -271,11 +271,11 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                   evaluated_predicates.insert(predicate_idx);
                   auto cond =
                       expr_translator.Compute(conditions[predicate_idx]);
-                  proxy::If(
+                  proxy::Ternary(
                       program, !static_cast<proxy::Bool&>(*cond),
                       [&]() -> std::vector<khir::Value> {
                         // If budget, depleted return -1 and set table ctr
-                        proxy::If(
+                        proxy::Ternary(
                             program, budget == 0,
                             [&]() -> std::vector<khir::Value> {
                               program.StoreI32(table_ctr_ptr,
@@ -306,7 +306,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
                   // If budget depleted, return with -1 (i.e. finished entire
                   // tables)
-                  proxy::If(
+                  proxy::Ternary(
                       program, budget == 0,
                       [&]() -> std::vector<khir::Value> {
                         program.StoreI32(table_ctr_ptr,
@@ -319,7 +319,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                   next_budget = budget.ToPointer();
                 } else {
                   // If budget depleted, return with -2 and store table_ctr
-                  proxy::If(
+                  proxy::Ternary(
                       program, budget == 0,
                       [&]() -> std::vector<khir::Value> {
                         program.StoreI32(table_ctr_ptr,
@@ -354,7 +354,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
   proxy::Loop loop(
       program,
       [&](auto& loop) {
-        auto progress_check = proxy::If(
+        auto progress_check = proxy::Ternary(
             program, resume_progress,
             [&]() -> std::vector<khir::Value> {
               auto progress_ptr = program.GetElementPtr(
@@ -373,7 +373,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                          program.LoadI32(program.GetElementPtr(
                              program.I32Type(), offset_array, {table_idx}))) +
             1;
-        auto offset_check = proxy::If(
+        auto offset_check = proxy::Ternary(
             program, offset_next_tuple > progress_next_tuple,
             [&]() -> std::vector<khir::Value> {
               return {offset_next_tuple.Get()};
@@ -386,7 +386,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
         loop.AddLoopVariable(initial_next_tuple);
         loop.AddLoopVariable(initial_budget);
 
-        auto continue_resume_progress = proxy::If(
+        auto continue_resume_progress = proxy::Ternary(
             program, resume_progress,
             [&]() -> std::vector<khir::Value> {
               auto progress_ptr = program.GetElementPtr(
@@ -448,11 +448,11 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
           evaluated_predicates.insert(predicate_idx);
           auto cond = expr_translator.Compute(conditions[predicate_idx]);
-          proxy::If(
+          proxy::Ternary(
               program, !static_cast<proxy::Bool&>(*cond),
               [&]() -> std::vector<khir::Value> {
                 // If budget, depleted return -1 and set table ctr
-                proxy::If(
+                proxy::Ternary(
                     program, budget == 0,
                     [&]() -> std::vector<khir::Value> {
                       program.StoreI32(table_ctr_ptr,
@@ -483,7 +483,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
           // If budget depleted, return with -1 (i.e. finished entire
           // tables)
-          proxy::If(
+          proxy::Ternary(
               program, budget == 0,
               [&]() -> std::vector<khir::Value> {
                 program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
@@ -495,7 +495,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
           next_budget = budget.ToPointer();
         } else {
           // If budget depleted, return with -2 and store table_ctr
-          proxy::If(
+          proxy::Ternary(
               program, budget == 0,
               [&]() -> std::vector<khir::Value> {
                 program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
@@ -700,7 +700,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   proxy::Loop loop(
       program,
       [&](auto& loop) {
-        auto progress_check = proxy::If(
+        auto progress_check = proxy::Ternary(
             program, resume_progress,
             [&]() -> std::vector<khir::Value> {
               auto progress_ptr = program.GetElementPtr(
@@ -719,7 +719,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                          program.LoadI32(program.GetElementPtr(
                              program.I32Type(), offset_array, {table_idx}))) +
             1;
-        auto offset_check = proxy::If(
+        auto offset_check = proxy::Ternary(
             program, offset_next_tuple > progress_next_tuple,
             [&]() -> std::vector<khir::Value> {
               return {offset_next_tuple.Get()};
@@ -732,7 +732,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         loop.AddLoopVariable(initial_next_tuple);
         loop.AddLoopVariable(initial_budget);
 
-        auto continue_resume_progress = proxy::If(
+        auto continue_resume_progress = proxy::Ternary(
             program, resume_progress,
             [&]() -> std::vector<khir::Value> {
               auto progress_ptr = program.GetElementPtr(
@@ -765,7 +765,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         printer.PrintNewline();
         */
 
-        proxy::If(
+        proxy::Ternary(
             program, budget == 0,
             [&]() -> std::vector<khir::Value> {
               program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));

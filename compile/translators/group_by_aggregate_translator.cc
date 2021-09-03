@@ -98,7 +98,7 @@ void CheckEquality(
   auto rhs = expr_translator.Compute(group_by_exprs[i]);
   auto cond = lhs.EvaluateBinary(plan::BinaryArithmeticOperatorType::EQ, *rhs);
 
-  proxy::If(
+  proxy::Ternary(
       program, static_cast<proxy::Bool&>(*cond),
       [&]() -> std::vector<khir::Value> {
         CheckEquality(i + 1, program, expr_translator, values, group_by_exprs,
@@ -163,7 +163,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
                     auto cond = next->EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::LT, current_value);
 
-                    proxy::If(
+                    proxy::Ternary(
                         program_, static_cast<proxy::Bool&>(*cond),
                         [&]() -> std::vector<khir::Value> {
                           packed.Update(i, *next);
@@ -178,7 +178,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
                     auto cond = next->EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::GT, current_value);
 
-                    proxy::If(
+                    proxy::Ternary(
                         program_, static_cast<proxy::Bool&>(*cond),
                         [&]() -> std::vector<khir::Value> {
                           packed.Update(i, *next);
@@ -228,14 +228,14 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         std::unique_ptr<proxy::Int32> next_index;
         proxy::Int32 next(
             program_,
-            proxy::If(
+            proxy::Ternary(
                 program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1,
                 [&]() -> std::vector<khir::Value> { return {(i + 1).Get()}; },
                 [&]() -> std::vector<khir::Value> { return {size.Get()}; })[0]);
         return loop.Continue(next);
       });
 
-  proxy::If(
+  proxy::Ternary(
       program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1,
       [&]() -> std::vector<khir::Value> {
         auto inserted = buffer_->Insert(util::ReferenceVector(keys));

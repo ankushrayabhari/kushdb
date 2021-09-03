@@ -21,7 +21,7 @@ void SelectTranslator::Produce() { this->Child().Produce(); }
 void SelectTranslator::Consume(OperatorTranslator& src) {
   auto value = expr_translator_.template ComputeAs<proxy::Bool>(select_.Expr());
 
-  proxy::If(
+  proxy::Ternary(
       program_, value,
       [&]() -> std::vector<khir::Value> {
         this->values_.ResetValues();

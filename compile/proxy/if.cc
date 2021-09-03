@@ -8,9 +8,10 @@
 
 namespace kush::compile::proxy {
 
-std::vector<khir::Value> If(khir::ProgramBuilder& program, const Bool& cond,
-                            std::function<std::vector<khir::Value>()> then_fn,
-                            std::function<std::vector<khir::Value>()> else_fn) {
+std::vector<khir::Value> Ternary(
+    khir::ProgramBuilder& program, const Bool& cond,
+    std::function<std::vector<khir::Value>()> then_fn,
+    std::function<std::vector<khir::Value>()> else_fn) {
   std::vector<khir::Type> phi_types;
   std::vector<khir::Value> then_branch_phi_members;
   std::vector<khir::Value> else_branch_phi_members;
