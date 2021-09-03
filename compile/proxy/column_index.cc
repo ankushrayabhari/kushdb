@@ -13,6 +13,8 @@
 
 namespace kush::compile::proxy {
 
+std::string_view bucket_type_name("kush::runtime::ColumnIndex::Bucket");
+
 template <catalog::SqlType S>
 std::string_view ColumnIndexImpl<S>::TypeName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
@@ -263,8 +265,13 @@ void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   }
   auto index_ptr_type = program.PointerType(index_type.value());
 
-  auto bucket_type = program.I8Type();
-  auto bucket_ptr_type = program.PointerType(bucket_type);
+  std::optional<typename khir::Type> bucket_type;
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    bucket_type = program.OpaqueType(bucket_type_name);
+  } else {
+    bucket_type = program.GetOpaqueType(bucket_type_name);
+  }
+  auto bucket_ptr_type = program.PointerType(bucket_type.value());
 
   std::optional<typename khir::Type> value_type;
   if constexpr (catalog::SqlType::SMALLINT == S) {
