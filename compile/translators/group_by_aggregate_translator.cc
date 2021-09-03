@@ -98,14 +98,10 @@ void CheckEquality(
   auto rhs = expr_translator.Compute(group_by_exprs[i]);
   auto cond = lhs.EvaluateBinary(plan::BinaryArithmeticOperatorType::EQ, *rhs);
 
-  proxy::Ternary(
-      program, static_cast<proxy::Bool&>(*cond),
-      [&]() -> std::vector<khir::Value> {
-        CheckEquality(i + 1, program, expr_translator, values, group_by_exprs,
-                      true_case);
-        return {};
-      },
-      []() -> std::vector<khir::Value> { return {}; });
+  proxy::If(program, static_cast<proxy::Bool&>(*cond), [&]() {
+    CheckEquality(i + 1, program, expr_translator, values, group_by_exprs,
+                  true_case);
+  });
 }
 
 void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
@@ -163,13 +159,8 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
                     auto cond = next->EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::LT, current_value);
 
-                    proxy::Ternary(
-                        program_, static_cast<proxy::Bool&>(*cond),
-                        [&]() -> std::vector<khir::Value> {
-                          packed.Update(i, *next);
-                          return {};
-                        },
-                        []() -> std::vector<khir::Value> { return {}; });
+                    proxy::If(program_, static_cast<proxy::Bool&>(*cond),
+                              [&]() { packed.Update(i, *next); });
                     break;
                   }
 
@@ -178,13 +169,8 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
                     auto cond = next->EvaluateBinary(
                         plan::BinaryArithmeticOperatorType::GT, current_value);
 
-                    proxy::Ternary(
-                        program_, static_cast<proxy::Bool&>(*cond),
-                        [&]() -> std::vector<khir::Value> {
-                          packed.Update(i, *next);
-                          return {};
-                        },
-                        []() -> std::vector<khir::Value> { return {}; });
+                    proxy::If(program_, static_cast<proxy::Bool&>(*cond),
+                              [&]() { packed.Update(i, *next); });
                     break;
                   }
 
@@ -235,9 +221,8 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         return loop.Continue(next);
       });
 
-  proxy::Ternary(
-      program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1,
-      [&]() -> std::vector<khir::Value> {
+  proxy::If(
+      program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1, [&]() {
         auto inserted = buffer_->Insert(util::ReferenceVector(keys));
 
         std::vector<std::unique_ptr<proxy::Value>> values;
@@ -271,9 +256,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         }
 
         inserted.Pack(util::ReferenceVector(values));
-        return {};
-      },
-      []() -> std::vector<khir::Value> { return {}; });
+      });
 }
 
 proxy::Float64 GroupByAggregateTranslator::ToFloat(proxy::Value& v) {

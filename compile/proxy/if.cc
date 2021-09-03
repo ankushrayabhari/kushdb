@@ -14,6 +14,7 @@ void If(khir::ProgramBuilder& program, const Bool& cond,
   auto dest_block = program.GenerateBlock();
   program.Branch(cond.Get(), first_block, dest_block);
 
+  program.SetCurrentBlock(first_block);
   then_fn();
   if (!program.IsTerminated(program.CurrentBlock())) {
     program.Branch(dest_block);
@@ -30,6 +31,7 @@ void If(khir::ProgramBuilder& program, const Bool& cond,
   auto second_block = program.GenerateBlock();
   program.Branch(cond.Get(), first_block, second_block);
 
+  program.SetCurrentBlock(first_block);
   then_fn();
   if (!program.IsTerminated(program.CurrentBlock())) {
     program.Branch(dest_block);
