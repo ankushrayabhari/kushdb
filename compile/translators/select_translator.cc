@@ -21,21 +21,16 @@ void SelectTranslator::Produce() { this->Child().Produce(); }
 void SelectTranslator::Consume(OperatorTranslator& src) {
   auto value = expr_translator_.template ComputeAs<proxy::Bool>(select_.Expr());
 
-  proxy::Ternary(
-      program_, value,
-      [&]() -> std::vector<khir::Value> {
-        this->values_.ResetValues();
-        for (const auto& column : select_.Schema().Columns()) {
-          this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
-        }
+  proxy::If(program_, value, [&]() {
+    this->values_.ResetValues();
+    for (const auto& column : select_.Schema().Columns()) {
+      this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+    }
 
-        if (auto parent = this->Parent()) {
-          parent->get().Consume(*this);
-        }
-
-        return {};
-      },
-      [&]() -> std::vector<khir::Value> { return {}; });
+    if (auto parent = this->Parent()) {
+      parent->get().Consume(*this);
+    }
+  });
 }
 
 }  // namespace kush::compile
