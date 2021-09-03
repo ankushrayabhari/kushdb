@@ -1,11 +1,11 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "real_col_join",
+    name = "real_col_group_by_agg",
     size = "small",
-    srcs = ["real_col_join_test.cc"],
+    srcs = ["real_col_group_by_agg_test.cc"],
     data = [
-        "real_col_join_expected.tbl",
+        "real_col_group_by_agg_expected.tbl",
     ],
     deps = [
         "//catalog",

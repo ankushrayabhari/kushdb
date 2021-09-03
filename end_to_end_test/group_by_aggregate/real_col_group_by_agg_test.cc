@@ -84,7 +84,7 @@ TEST_P(GroupByAggregateTest, RealCol) {
   }
 
   auto expected_file =
-      "end_to_end_test/group_by_aggregate/real_col_join_expected.tbl";
+      "end_to_end_test/group_by_aggregate/real_col_group_by_agg_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);
