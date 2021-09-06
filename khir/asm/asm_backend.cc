@@ -229,11 +229,8 @@ void ASMBackend::Translate(const TypeManager& type_manager,
 
     asm_->bind(internal_func_labels_[func_idx]);
     auto func_end_label = asm_->newLabel();
-
-    if (func.Public()) {
-      public_fns_[func.Name()] =
-          std::make_pair(internal_func_labels_[func_idx], func_end_label);
-    }
+    function_start_end_[func.Name()] =
+        std::make_pair(internal_func_labels_[func_idx], func_end_label);
 
     // auto register_assign =
     //    AssignRegisters(live_intervals, instructions, type_manager);
@@ -3387,7 +3384,7 @@ void ASMBackend::Compile() {
   rt_.add(&buffer_start_, &code_);
 
 #ifdef PROFILE_ENABLED
-  for (const auto& [name, labels] : public_fns_) {
+  for (const auto& [name, labels] : function_start_end_) {
     auto [begin_label, end_label] = labels;
 
     auto begin_offset = code_.labelOffsetFromBase(begin_label);
@@ -3402,7 +3399,7 @@ void ASMBackend::Compile() {
 }
 
 void* ASMBackend::GetFunction(std::string_view name) const {
-  auto [begin_label, end_label] = public_fns_.at(name);
+  auto [begin_label, end_label] = function_start_end_.at(name);
   auto offset = code_.labelOffsetFromBase(begin_label);
   return reinterpret_cast<void*>(reinterpret_cast<uint64_t>(buffer_start_) +
                                  offset);
