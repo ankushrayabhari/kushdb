@@ -281,12 +281,15 @@ class ASMBackend : public Backend, public compile::Program {
                        const std::vector<uint64_t>& constant_instrs,
                        const std::vector<double>& f64_constants,
                        const std::vector<RegisterAssignment>& register_assign);
-  void CondBrFlag(Value v, const asmjit::Label& tr, const asmjit::Label& fl,
+  void CondBrFlag(Value v, int true_bb, int false_bb,
                   const std::vector<uint64_t>& instructions,
-                  const std::vector<RegisterAssignment>& register_assign);
-  void CondBrF64Flag(Value v, const asmjit::Label& tr, const asmjit::Label& fl,
+                  const std::vector<RegisterAssignment>& register_assign,
+                  const std::vector<asmjit::Label>& basic_blocks, int next_bb);
+  void CondBrF64Flag(Value v, int true_bb, int false_bb,
                      const std::vector<uint64_t>& instructions,
-                     const std::vector<RegisterAssignment>& register_assign);
+                     const std::vector<RegisterAssignment>& register_assign,
+                     const std::vector<asmjit::Label>& basic_blocks,
+                     int next_bb);
   template <typename Dest>
   void StoreCmpFlags(Opcode opcode, Dest d);
   template <typename Dest>

@@ -1647,9 +1647,10 @@ void ASMBackend::F64ConvI64Value(
 }
 
 void ASMBackend::CondBrFlag(
-    Value v, const asmjit::Label& tr, const asmjit::Label& fl,
+    Value v, int true_bb, int false_bb,
     const std::vector<uint64_t>& instructions,
-    const std::vector<RegisterAssignment>& register_assign) {
+    const std::vector<RegisterAssignment>& register_assign,
+    const std::vector<Label>& basic_blocks, int next_bb) {
   assert(!v.IsConstantGlobal());
   GenericInstructionReader reader(instructions[v.GetIdx()]);
   auto opcode = OpcodeFrom(reader.Opcode());
@@ -1659,8 +1660,16 @@ void ASMBackend::CondBrFlag(
     case Opcode::I16_CMP_EQ:
     case Opcode::I32_CMP_EQ:
     case Opcode::I64_CMP_EQ: {
-      asm_->je(tr);
-      asm_->jmp(fl);
+      if (true_bb == next_bb) {
+        asm_->jne(basic_blocks[false_bb]);
+        // fall through to the true_bb
+      } else if (false_bb == next_bb) {
+        asm_->je(basic_blocks[true_bb]);
+        // fall through to the false_bb
+      } else {
+        asm_->je(basic_blocks[true_bb]);
+        asm_->jmp(basic_blocks[false_bb]);
+      }
       return;
     }
 
@@ -1669,8 +1678,16 @@ void ASMBackend::CondBrFlag(
     case Opcode::I16_CMP_NE:
     case Opcode::I32_CMP_NE:
     case Opcode::I64_CMP_NE: {
-      asm_->jne(tr);
-      asm_->jmp(fl);
+      if (true_bb == next_bb) {
+        asm_->je(basic_blocks[false_bb]);
+        // fall through to the true_bb
+      } else if (false_bb == next_bb) {
+        asm_->jne(basic_blocks[true_bb]);
+        // fall through to the false_bb
+      } else {
+        asm_->jne(basic_blocks[true_bb]);
+        asm_->jmp(basic_blocks[false_bb]);
+      }
       return;
     }
 
@@ -1678,8 +1695,16 @@ void ASMBackend::CondBrFlag(
     case Opcode::I16_CMP_LT:
     case Opcode::I32_CMP_LT:
     case Opcode::I64_CMP_LT: {
-      asm_->jl(tr);
-      asm_->jmp(fl);
+      if (true_bb == next_bb) {
+        asm_->jge(basic_blocks[false_bb]);
+        // fall through to the true_bb
+      } else if (false_bb == next_bb) {
+        asm_->jl(basic_blocks[true_bb]);
+        // fall through to the false_bb
+      } else {
+        asm_->jl(basic_blocks[true_bb]);
+        asm_->jmp(basic_blocks[false_bb]);
+      }
       return;
     }
 
@@ -1687,8 +1712,16 @@ void ASMBackend::CondBrFlag(
     case Opcode::I16_CMP_LE:
     case Opcode::I32_CMP_LE:
     case Opcode::I64_CMP_LE: {
-      asm_->jle(tr);
-      asm_->jmp(fl);
+      if (true_bb == next_bb) {
+        asm_->jg(basic_blocks[false_bb]);
+        // fall through to the true_bb
+      } else if (false_bb == next_bb) {
+        asm_->jle(basic_blocks[true_bb]);
+        // fall through to the false_bb
+      } else {
+        asm_->jle(basic_blocks[true_bb]);
+        asm_->jmp(basic_blocks[false_bb]);
+      }
       return;
     }
 
@@ -1696,8 +1729,16 @@ void ASMBackend::CondBrFlag(
     case Opcode::I16_CMP_GT:
     case Opcode::I32_CMP_GT:
     case Opcode::I64_CMP_GT: {
-      asm_->jg(tr);
-      asm_->jmp(fl);
+      if (true_bb == next_bb) {
+        asm_->jle(basic_blocks[false_bb]);
+        // fall through to the true_bb
+      } else if (false_bb == next_bb) {
+        asm_->jg(basic_blocks[true_bb]);
+        // fall through to the false_bb
+      } else {
+        asm_->jg(basic_blocks[true_bb]);
+        asm_->jmp(basic_blocks[false_bb]);
+      }
       return;
     }
 
@@ -1705,8 +1746,16 @@ void ASMBackend::CondBrFlag(
     case Opcode::I16_CMP_GE:
     case Opcode::I32_CMP_GE:
     case Opcode::I64_CMP_GE: {
-      asm_->jge(tr);
-      asm_->jmp(fl);
+      if (true_bb == next_bb) {
+        asm_->jl(basic_blocks[false_bb]);
+        // fall through to the true_bb
+      } else if (false_bb == next_bb) {
+        asm_->jge(basic_blocks[true_bb]);
+        // fall through to the false_bb
+      } else {
+        asm_->jge(basic_blocks[true_bb]);
+        asm_->jmp(basic_blocks[false_bb]);
+      }
       return;
     }
 
@@ -1716,12 +1765,17 @@ void ASMBackend::CondBrFlag(
 }
 
 void ASMBackend::CondBrF64Flag(
-    Value v, const asmjit::Label& tr, const asmjit::Label& fl,
+    Value v, int true_bb, int false_bb,
     const std::vector<uint64_t>& instructions,
-    const std::vector<RegisterAssignment>& register_assign) {
+    const std::vector<RegisterAssignment>& register_assign,
+    const std::vector<Label>& basic_blocks, int next_bb) {
   assert(!v.IsConstantGlobal());
   GenericInstructionReader reader(instructions[v.GetIdx()]);
   auto opcode = OpcodeFrom(reader.Opcode());
+
+  auto tr = basic_blocks[true_bb];
+  auto fl = basic_blocks[false_bb];
+
   switch (opcode) {
     case Opcode::F64_CMP_EQ: {
       asm_->jne(fl);
@@ -2962,30 +3016,57 @@ void ASMBackend::TranslateInstr(
       if (v.IsConstantGlobal()) {
         int8_t c =
             Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+
+        int dest_bb;
         if (c != 0) {
-          asm_->jmp(basic_blocks[reader.Marg0()]);
+          dest_bb = reader.Marg0();
         } else {
-          asm_->jmp(basic_blocks[reader.Marg1()]);
+          dest_bb = reader.Marg1();
+        }
+
+        if (dest_bb == next_bb) {
+          // we can fall through to this
+        } else {
+          asm_->jmp(basic_blocks[dest_bb]);
         }
         return;
       }
 
+      int true_bb = reader.Marg0();
+      int false_bb = reader.Marg1();
+
       if (IsFlagReg(register_assign[v.GetIdx()])) {
-        CondBrFlag(v, basic_blocks[reader.Marg0()],
-                   basic_blocks[reader.Marg1()], instructions, register_assign);
+        CondBrFlag(v, true_bb, false_bb, instructions, register_assign,
+                   basic_blocks, next_bb);
       } else if (IsF64FlagReg(register_assign[v.GetIdx()])) {
-        CondBrF64Flag(v, basic_blocks[reader.Marg0()],
-                      basic_blocks[reader.Marg1()], instructions,
-                      register_assign);
+        CondBrF64Flag(v, true_bb, false_bb, instructions, register_assign,
+                      basic_blocks, next_bb);
       } else if (register_assign[v.GetIdx()].IsRegister()) {
         asm_->cmp(NormalRegister(register_assign[v.GetIdx()].Register()).GetB(),
                   0);
-        asm_->jne(basic_blocks[reader.Marg0()]);
-        asm_->jmp(basic_blocks[reader.Marg1()]);
+
+        if (next_bb == true_bb) {
+          asm_->je(basic_blocks[false_bb]);
+          // fall through to the true_bb
+        } else if (next_bb == false_bb) {
+          asm_->jne(basic_blocks[true_bb]);
+          // fall through to the false
+        } else {
+          asm_->jne(basic_blocks[true_bb]);
+          asm_->jmp(basic_blocks[false_bb]);
+        }
       } else {
         asm_->cmp(x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())), 0);
-        asm_->jne(basic_blocks[reader.Marg0()]);
-        asm_->jmp(basic_blocks[reader.Marg1()]);
+        if (next_bb == true_bb) {
+          asm_->je(basic_blocks[false_bb]);
+          // fall through to the true_bb
+        } else if (next_bb == false_bb) {
+          asm_->jne(basic_blocks[true_bb]);
+          // fall through to the false
+        } else {
+          asm_->jne(basic_blocks[true_bb]);
+          asm_->jmp(basic_blocks[false_bb]);
+        }
       }
       return;
     }
