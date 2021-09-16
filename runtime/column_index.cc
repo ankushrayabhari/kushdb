@@ -15,12 +15,12 @@
 namespace kush::runtime::ColumnIndex {
 
 // ---------- Create Index -------------
-absl::flat_hash_map<int8_t, std::vector<int32_t>>* CreateInt8Index() {
-  return new absl::flat_hash_map<int8_t, std::vector<int32_t>>;
+absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt8Index() {
+  return new absl::flat_hash_map<int32_t, std::vector<int32_t>>;
 }
 
-absl::flat_hash_map<int16_t, std::vector<int32_t>>* CreateInt16Index() {
-  return new absl::flat_hash_map<int16_t, std::vector<int32_t>>;
+absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt16Index() {
+  return new absl::flat_hash_map<int32_t, std::vector<int32_t>>;
 }
 
 absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt32Index() {
@@ -40,11 +40,11 @@ absl::flat_hash_map<std::string, std::vector<int32_t>>* CreateTextIndex() {
 }
 
 // ---------- Free Index -------------
-void FreeInt8Index(absl::flat_hash_map<int8_t, std::vector<int32_t>>* index) {
+void FreeInt8Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index) {
   delete index;
 }
 
-void FreeInt16Index(absl::flat_hash_map<int16_t, std::vector<int32_t>>* index) {
+void FreeInt16Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index) {
   delete index;
 }
 
@@ -67,14 +67,16 @@ void FreeTextIndex(
 }
 
 // ---------- Insert -------------
-void InsertInt8Index(absl::flat_hash_map<int8_t, std::vector<int32_t>>* index,
+void InsertInt8Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
                      int8_t value, int32_t tuple_idx) {
-  index->operator[](value).push_back(tuple_idx);
+  int32_t v = value;
+  index->operator[](v).push_back(tuple_idx);
 }
 
-void InsertInt16Index(absl::flat_hash_map<int16_t, std::vector<int32_t>>* index,
+void InsertInt16Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
                       int16_t value, int32_t tuple_idx) {
-  index->operator[](value).push_back(tuple_idx);
+  int32_t v = value;
+  index->operator[](v).push_back(tuple_idx);
 }
 
 void InsertInt32Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
@@ -148,13 +150,15 @@ inline std::vector<int32_t>* GetBucketImpl(
 }
 
 std::vector<int32_t>* GetBucketInt8Index(
-    absl::flat_hash_map<int8_t, std::vector<int32_t>>* index, int8_t value) {
-  return GetBucketImpl(index, value);
+    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int8_t value) {
+  int32_t v = value;
+  return GetBucketImpl(index, v);
 }
 
 std::vector<int32_t>* GetBucketInt16Index(
-    absl::flat_hash_map<int16_t, std::vector<int32_t>>* index, int16_t value) {
-  return GetBucketImpl(index, value);
+    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int16_t value) {
+  int32_t v = value;
+  return GetBucketImpl(index, v);
 }
 
 std::vector<int32_t>* GetBucketInt32Index(
