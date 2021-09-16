@@ -9,6 +9,16 @@ actions:
           - "master"
     bazel_commands:
       - "build --config=remote --build_metadata=ROLE=CI //..."
+  - name: "Build Optimized"
+    triggers:
+      push:
+        branches:
+          - "master"
+      pull_request:
+        branches:
+          - "master"
+    bazel_commands:
+      - "build -c opt --config=remote --build_metadata=ROLE=CI //..."
   - name: "Test"
     triggers:
       push:
@@ -19,3 +29,13 @@ actions:
           - "master"
     bazel_commands:
       - "test --config=remote --build_metadata=ROLE=CI //..."
+  - name: "Test"
+    triggers:
+      push:
+        branches:
+          - "master"
+      pull_request:
+        branches:
+          - "master"
+    bazel_commands:
+      - "test -c opt --config=remote --build_metadata=ROLE=CI //..."
