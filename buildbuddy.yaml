@@ -29,7 +29,7 @@ actions:
           - "master"
     bazel_commands:
       - "test --config=remote --build_metadata=ROLE=CI //..."
-  - name: "Test"
+  - name: "Test Optimized"
     triggers:
       push:
         branches:
