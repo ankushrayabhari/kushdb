@@ -89,7 +89,5 @@ TEST_P(HashJoinTest, BooleanCol) {
 INSTANTIATE_TEST_SUITE_P(ASMBackend, HashJoinTest,
                          testing::Values(ParameterValues{.backend = "asm"}));
 
-/*
 INSTANTIATE_TEST_SUITE_P(LLVMBackend, HashJoinTest,
                          testing::Values(ParameterValues{.backend = "llvm"}));
-*/
