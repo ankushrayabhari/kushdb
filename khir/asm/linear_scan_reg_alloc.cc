@@ -6,6 +6,7 @@
 
 #include "khir/asm/live_intervals.h"
 #include "khir/asm/register_assignment.h"
+#include "khir/asm/rpo_label.h"
 #include "khir/instruction.h"
 #include "khir/opcode.h"
 
@@ -232,12 +233,11 @@ Reserved/Scratch
   RSP, RBP, RAX, XMM7
 */
 
-RegisterAllocationResult LinearScanRegisterAlloc(const Function& func,
-                                                 const TypeManager& manager) {
+std::vector<RegisterAssignment> LinearScanRegisterAlloc(
+    const Function& func, const TypeManager& manager,
+    const RPOLabelResult& rpo) {
   auto instrs = func.Instructions();
-  auto analysis = ComputeLiveIntervals(func, manager);
-  auto& live_intervals = analysis.live_intervals;
-  auto& order = analysis.order;
+  auto live_intervals = ComputeLiveIntervals(func, manager, rpo);
 
   // Handle intervals by increasing start point order
   std::sort(live_intervals.begin(), live_intervals.end(),
@@ -467,10 +467,7 @@ RegisterAllocationResult LinearScanRegisterAlloc(const Function& func,
     }
   }
 
-  RegisterAllocationResult result;
-  result.assignment = std::move(assignments);
-  result.order = std::move(order);
-  return result;
+  return assignments;
 }
 
 }  // namespace kush::khir

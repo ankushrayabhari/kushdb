@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "khir/asm/rpo_label.h"
 #include "khir/program_builder.h"
 
 namespace kush::khir {
@@ -45,13 +46,8 @@ class LiveInterval {
   int spill_cost_;
 };
 
-struct LiveIntervalAnalysis {
-  std::vector<LiveInterval> live_intervals;
-  std::vector<int> labels;
-  std::vector<int> order;
-};
-
-LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
-                                          const TypeManager& manager);
+std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
+                                               const TypeManager& manager,
+                                               const RPOLabelResult& rpo);
 
 }  // namespace kush::khir

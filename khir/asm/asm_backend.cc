@@ -9,6 +9,7 @@
 
 #include "khir/asm/linear_scan_reg_alloc.h"
 #include "khir/asm/register_assignment.h"
+#include "khir/asm/rpo_label.h"
 #include "khir/asm/stack_spill_reg_alloc.h"
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
@@ -232,20 +233,18 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     function_start_end_[func.Name()] =
         std::make_pair(internal_func_labels_[func_idx], func_end_label);
 
-    // auto register_assign =
-    //    AssignRegisters(live_intervals, instructions, type_manager);
+    auto rpo_analysis = RPOLabel(func.BasicBlockSuccessors());
+    const auto& order = rpo_analysis.order;
+
     std::vector<RegisterAssignment> register_assign;
-    std::vector<int> order;
     switch (reg_alloc_impl_) {
       case RegAllocImpl::STACK_SPILL:
         register_assign = StackSpillingRegisterAlloc(instructions);
-        order = func.BasicBlockOrder();
         break;
 
       case RegAllocImpl::LINEAR_SCAN:
-        auto result = LinearScanRegisterAlloc(func, type_manager);
-        register_assign = result.assignment;
-        order = result.order;
+        register_assign =
+            LinearScanRegisterAlloc(func, type_manager, rpo_analysis);
         break;
     }
 

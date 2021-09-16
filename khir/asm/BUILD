@@ -44,6 +44,7 @@ cc_library(
         ":live_intervals",
         ":register",
         ":register_assignment",
+        ":rpo_label",
         "//khir:instruction",
         "//khir:opcode",
     ],
@@ -54,6 +55,7 @@ cc_library(
     srcs = ["live_intervals.cc"],
     hdrs = ["live_intervals.h"],
     deps = [
+        ":rpo_label",
         "//khir:program_builder",
         "//util:union_find",
         "@absl//absl/container:flat_hash_set",
@@ -99,6 +101,7 @@ cc_library(
         ":linear_scan_reg_alloc",
         ":live_intervals",
         ":register_assignment",
+        ":rpo_label",
         ":stack_spill_reg_alloc",
         "//compile:program",
         "//khir:opcode",

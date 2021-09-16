@@ -6,6 +6,7 @@
 
 #include "absl/container/flat_hash_set.h"
 
+#include "khir/asm/rpo_label.h"
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
 #include "util/union_find.h"
@@ -292,52 +293,6 @@ std::pair<std::vector<int>, std::vector<bool>> FindLoops(const Function& func) {
   FindLoopHelper(0, bb_succ, bb_pred, backedges, visited, union_find,
                  loop_parent, is_loop_header);
   return {loop_parent, is_loop_header};
-}
-
-void LabelBlocks(int curr, const std::vector<std::vector<int>>& bb_succ,
-                 std::stack<int>& output, std::vector<bool>& visited,
-                 const std::vector<int>& loop_parent) {
-  visited[curr] = true;
-
-  for (auto succ : bb_succ[curr]) {
-    if (loop_parent[succ] == curr) {
-      continue;
-    }
-
-    if (!visited[succ]) {
-      LabelBlocks(succ, bb_succ, output, visited, loop_parent);
-    }
-  }
-
-  for (auto succ : bb_succ[curr]) {
-    if (!visited[succ]) {
-      LabelBlocks(succ, bb_succ, output, visited, loop_parent);
-    }
-  }
-
-  output.push(curr);
-}
-
-std::pair<std::vector<int>, std::vector<int>> LabelBlocks(
-    const Function& func, const std::vector<int>& loop_parent) {
-  const auto& bb = func.BasicBlocks();
-  const auto& bb_succ = func.BasicBlockSuccessors();
-
-  std::stack<int> temp;
-  std::vector<bool> visited(bb.size(), false);
-  visited[0] = true;
-  LabelBlocks(0, bb_succ, temp, visited, loop_parent);
-
-  std::vector<int> label(bb.size(), -1);
-  std::vector<int> order(bb.size(), -1);
-  int i = 0;
-  while (!temp.empty()) {
-    order[i] = temp.top();
-    label[temp.top()] = i++;
-    temp.pop();
-  }
-
-  return {label, order};
 }
 
 bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions) {
@@ -818,7 +773,7 @@ std::pair<std::vector<int>, std::vector<int>> ComputeLoopDepthEnd(
 }
 
 std::vector<int> ComputeInstrToBB(const std::vector<uint64_t>& instrs,
-                                  std::vector<int>& order,
+                                  const std::vector<int>& order,
                                   const std::vector<std::pair<int, int>>& bb) {
   std::vector<int> instr_to_bb(instrs.size(), -1);
 
@@ -832,13 +787,17 @@ std::vector<int> ComputeInstrToBB(const std::vector<uint64_t>& instrs,
   return instr_to_bb;
 }
 
-LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
-                                          const TypeManager& manager) {
+std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
+                                               const TypeManager& manager,
+                                               const RPOLabelResult& rpo) {
   const auto& bb = func.BasicBlocks();
   const auto& instrs = func.Instructions();
 
   auto [loop_parent, loop_header] = FindLoops(func);
-  auto [labels, order] = LabelBlocks(func, loop_parent);
+
+  const auto& labels = rpo.label_per_block;
+  const auto& order = rpo.order;
+
   auto [loop_depth, loop_end] =
       ComputeLoopDepthEnd(loop_parent, loop_header, order, labels);
 
@@ -972,11 +931,7 @@ LiveIntervalAnalysis ComputeLiveIntervals(const Function& func,
   std::cerr << std::endl;
   */
 
-  LiveIntervalAnalysis result;
-  result.live_intervals = std::move(outputs);
-  result.order = std::move(order);
-  result.labels = std::move(labels);
-  return result;
+  return outputs;
 }
 
 }  // namespace kush::khir

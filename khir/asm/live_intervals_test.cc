@@ -13,10 +13,10 @@ TEST(LiveIntervalsTest, SingleBasicBlockArgs) {
   auto sum = program.AddI32(args[0], args[1]);
   program.Return(sum);
 
-  auto analysis =
-      ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
-  auto& live_intervals = analysis.live_intervals;
-  auto& labels = analysis.labels;
+  auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+  auto live_intervals = ComputeLiveIntervals(program.GetFunction(func),
+                                             program.GetTypeManager(), rpo);
+  const auto& labels = rpo.label_per_block;
 
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& l1, const LiveInterval& l2) {
@@ -53,10 +53,10 @@ TEST(LiveIntervalsTest, Store) {
   program.StoreI32(args[0], args[1]);
   program.Return();
 
-  auto analysis =
-      ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
-  auto& live_intervals = analysis.live_intervals;
-  auto& labels = analysis.labels;
+  auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+  auto live_intervals = ComputeLiveIntervals(program.GetFunction(func),
+                                             program.GetTypeManager(), rpo);
+  const auto& labels = rpo.label_per_block;
 
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& l1, const LiveInterval& l2) {
@@ -95,10 +95,10 @@ TEST(LiveIntervalsTest, AcrossBasicBlock) {
   program.SetCurrentBlock(bb);
   program.Return(sum);
 
-  auto analysis =
-      ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
-  auto& live_intervals = analysis.live_intervals;
-  auto& labels = analysis.labels;
+  auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+  auto live_intervals = ComputeLiveIntervals(program.GetFunction(func),
+                                             program.GetTypeManager(), rpo);
+  const auto& labels = rpo.label_per_block;
 
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& l1, const LiveInterval& l2) {
@@ -153,10 +153,10 @@ TEST(LiveIntervalsTest, Phi) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  auto analysis =
-      ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
-  auto& live_intervals = analysis.live_intervals;
-  auto& labels = analysis.labels;
+  auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+  auto live_intervals = ComputeLiveIntervals(program.GetFunction(func),
+                                             program.GetTypeManager(), rpo);
+  const auto& labels = rpo.label_per_block;
 
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& l1, const LiveInterval& l2) {
@@ -226,10 +226,10 @@ TEST(LiveIntervalsTest, Loop) {
   auto scaled = program.MulI32(phi, program.ConstI32(3));
   program.Return(scaled);
 
-  auto analysis =
-      ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
-  auto& live_intervals = analysis.live_intervals;
-  auto& labels = analysis.labels;
+  auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+  auto live_intervals = ComputeLiveIntervals(program.GetFunction(func),
+                                             program.GetTypeManager(), rpo);
+  const auto& labels = rpo.label_per_block;
 
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& l1, const LiveInterval& l2) {
@@ -239,10 +239,8 @@ TEST(LiveIntervalsTest, Loop) {
   EXPECT_EQ(live_intervals.size(), 4);
 
   EXPECT_EQ(live_intervals[0].Value(), phi);
-  EXPECT_EQ(live_intervals[0].StartBB(), labels[0]);
-  EXPECT_EQ(live_intervals[0].StartIdx(), 0);
-  EXPECT_EQ(live_intervals[0].EndBB(), labels[3]);
-  EXPECT_EQ(live_intervals[0].EndIdx(), 8);
+  EXPECT_EQ(live_intervals[0].StartBB(), 0);
+  EXPECT_EQ(live_intervals[0].EndBB(), 3);
 
   EXPECT_EQ(live_intervals[1].Value(), cond);
   EXPECT_EQ(live_intervals[1].StartBB(), labels[1]);
@@ -315,10 +313,10 @@ TEST(LiveIntervalsTest, NestedLoop) {
   auto scaled = program.MulI32(phi, program.ConstI32(3));
   program.Return(scaled);
 
-  auto analysis =
-      ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
-  auto& live_intervals = analysis.live_intervals;
-  auto& labels = analysis.labels;
+  auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+  auto live_intervals = ComputeLiveIntervals(program.GetFunction(func),
+                                             program.GetTypeManager(), rpo);
+  const auto& labels = rpo.label_per_block;
 
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& l1, const LiveInterval& l2) {

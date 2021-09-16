@@ -17,10 +17,11 @@ TEST(LiveIntervalsTest, StoreInstructionForcedIntoRegister) {
     program.StoreI32(args[0], args[1]);
     program.Return();
 
+    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
-                                          program.GetTypeManager());
-    EXPECT_EQ(result.assignment.size(), 4);
-    EXPECT_TRUE(result.assignment[2].IsRegister());
+                                          program.GetTypeManager(), rpo);
+    EXPECT_EQ(result.size(), 4);
+    EXPECT_TRUE(result[2].IsRegister());
   }
 }
 
@@ -40,10 +41,11 @@ TEST(LiveIntervalsTest, I8FlagRegIntoBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI32(6));
 
+    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
-                                          program.GetTypeManager());
-    EXPECT_TRUE(result.assignment[cond.GetIdx()].IsRegister());
-    EXPECT_EQ(result.assignment[cond.GetIdx()].Register(), 100);
+                                          program.GetTypeManager(), rpo);
+    EXPECT_TRUE(result[cond.GetIdx()].IsRegister());
+    EXPECT_EQ(result[cond.GetIdx()].Register(), 100);
   }
 }
 
@@ -63,10 +65,11 @@ TEST(LiveIntervalsTest, I16FlagRegIntoBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI32(6));
 
+    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
-                                          program.GetTypeManager());
-    EXPECT_TRUE(result.assignment[cond.GetIdx()].IsRegister());
-    EXPECT_EQ(result.assignment[cond.GetIdx()].Register(), 100);
+                                          program.GetTypeManager(), rpo);
+    EXPECT_TRUE(result[cond.GetIdx()].IsRegister());
+    EXPECT_EQ(result[cond.GetIdx()].Register(), 100);
   }
 }
 
@@ -86,10 +89,11 @@ TEST(LiveIntervalsTest, I32FlagRegIntoBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI32(6));
 
+    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
-                                          program.GetTypeManager());
-    EXPECT_TRUE(result.assignment[cond.GetIdx()].IsRegister());
-    EXPECT_EQ(result.assignment[cond.GetIdx()].Register(), 100);
+                                          program.GetTypeManager(), rpo);
+    EXPECT_TRUE(result[cond.GetIdx()].IsRegister());
+    EXPECT_EQ(result[cond.GetIdx()].Register(), 100);
   }
 }
 
@@ -109,10 +113,11 @@ TEST(LiveIntervalsTest, I64FlagRegIntoBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI32(6));
 
+    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
-                                          program.GetTypeManager());
-    EXPECT_TRUE(result.assignment[cond.GetIdx()].IsRegister());
-    EXPECT_EQ(result.assignment[cond.GetIdx()].Register(), 100);
+                                          program.GetTypeManager(), rpo);
+    EXPECT_TRUE(result[cond.GetIdx()].IsRegister());
+    EXPECT_EQ(result[cond.GetIdx()].Register(), 100);
   }
 }
 
@@ -132,9 +137,10 @@ TEST(LiveIntervalsTest, F64FlagRegIntoBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI32(6));
 
+    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
-                                          program.GetTypeManager());
-    EXPECT_TRUE(result.assignment[cond.GetIdx()].IsRegister());
-    EXPECT_EQ(result.assignment[cond.GetIdx()].Register(), 101);
+                                          program.GetTypeManager(), rpo);
+    EXPECT_TRUE(result[cond.GetIdx()].IsRegister());
+    EXPECT_EQ(result[cond.GetIdx()].Register(), 101);
   }
 }
