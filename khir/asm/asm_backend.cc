@@ -274,14 +274,17 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     // initially, after rbp is all callee saved registers
     StackSlotAllocator static_stack_allocator(8 *
                                               callee_saved_registers.size());
-    for (int i : order) {
-      asm_->bind(basic_blocks_impl[i]);
-      const auto& [i_start, i_end] = basic_blocks[i];
+    for (int k = 0; k < order.size(); k++) {
+      int bb = order[k];
+      int next_bb = k + 1 < order.size() ? order[k + 1] : -1;
+
+      asm_->bind(basic_blocks_impl[bb]);
+      const auto& [i_start, i_end] = basic_blocks[bb];
       for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
-        TranslateInstr(type_manager, ptr_constants, i64_constants,
+        TranslateInstr(func, type_manager, ptr_constants, i64_constants,
                        f64_constants, basic_blocks_impl, functions, epilogue,
                        value_offsets, instructions, constant_instrs, instr_idx,
-                       static_stack_allocator, register_assign);
+                       static_stack_allocator, register_assign, next_bb);
       }
     }
 
@@ -1754,7 +1757,8 @@ void ASMBackend::CondBrF64Flag(
 }
 
 void ASMBackend::TranslateInstr(
-    const TypeManager& type_manager, const std::vector<void*>& ptr_constants,
+    const Function& current_function, const TypeManager& type_manager,
+    const std::vector<void*>& ptr_constants,
     const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
     const std::vector<Label>& basic_blocks,
@@ -1762,7 +1766,7 @@ void ASMBackend::TranslateInstr(
     std::vector<int32_t>& offsets, const std::vector<uint64_t>& instructions,
     const std::vector<uint64_t>& constant_instrs, int instr_idx,
     StackSlotAllocator& stack_allocator,
-    const std::vector<RegisterAssignment>& register_assign) {
+    const std::vector<RegisterAssignment>& register_assign, int next_bb) {
   auto instr = instructions[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
@@ -2942,7 +2946,12 @@ void ASMBackend::TranslateInstr(
 
     // Control Flow ============================================================
     case Opcode::BR: {
-      asm_->jmp(basic_blocks[Type5InstructionReader(instr).Marg0()]);
+      int dest_bb = Type5InstructionReader(instr).Marg0();
+      if (dest_bb == next_bb) {
+        // we can fall through to this
+      } else {
+        asm_->jmp(basic_blocks[dest_bb]);
+      }
       return;
     }
 
