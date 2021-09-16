@@ -9,7 +9,9 @@ void RPOHelper(int curr, const std::vector<std::vector<int>>& bb_succ,
                std::stack<int>& output, std::vector<bool>& visited) {
   visited[curr] = true;
 
-  for (auto succ : bb_succ[curr]) {
+  const auto& successors = bb_succ[curr];
+  for (int i = successors.size() - 1; i >= 0; i--) {
+    int succ = successors[i];
     if (!visited[succ]) {
       RPOHelper(succ, bb_succ, output, visited);
     }
