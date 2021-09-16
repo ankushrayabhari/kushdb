@@ -3,6 +3,22 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "rpo_label",
+    srcs = ["rpo_label.cc"],
+    hdrs = ["rpo_label.h"],
+    deps = [],
+)
+
+cc_test(
+    name = "rpo_label_test",
+    srcs = ["rpo_label_test.cc"],
+    deps = [
+        ":rpo_label",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "register_assignment",
     srcs = ["register_assignment.cc"],
     hdrs = ["register_assignment.h"],
