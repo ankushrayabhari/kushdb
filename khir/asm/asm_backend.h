@@ -112,6 +112,10 @@ class ASMBackend : public Backend, public compile::Program {
                      std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
+  void SextByteValue(asmjit::x86::Gpq dest, Value v,
+                     std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetBytePtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
@@ -144,6 +148,10 @@ class ASMBackend : public Backend, public compile::Program {
                     const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
   void ZextWordValue(asmjit::x86::Gpq dest, Value v,
+                     std::vector<int32_t>& offsets,
+                     const std::vector<uint64_t>& constant_instrs,
+                     const std::vector<RegisterAssignment>& register_assign);
+  void SextWordValue(asmjit::x86::Gpq dest, Value v,
                      std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);

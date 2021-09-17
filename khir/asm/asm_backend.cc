@@ -709,6 +709,22 @@ void ASMBackend::ZextByteValue(
   }
 }
 
+void ASMBackend::SextByteValue(
+    x86::Gpq dest, Value v, std::vector<int32_t>& offsets,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (v.IsConstantGlobal()) {
+    int8_t c8 = Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+    int64_t c64 = c8;
+    asm_->mov(dest, c64);
+  } else if (register_assign[v.GetIdx()].IsRegister()) {
+    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    asm_->movsx(dest, v_reg.GetB());
+  } else {
+    asm_->movsx(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+  }
+}
+
 x86::Mem ASMBackend::GetBytePtrValue(
     Value v, std::vector<int32_t>& offsets, const std::vector<uint64_t>& instrs,
     const std::vector<uint64_t>& constant_instrs,
@@ -883,6 +899,23 @@ void ASMBackend::ZextWordValue(
     asm_->movzx(dest, v_reg.GetW());
   } else {
     asm_->movzx(dest, x86::word_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+  }
+}
+
+void ASMBackend::SextWordValue(
+    x86::Gpq dest, Value v, std::vector<int32_t>& offsets,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (v.IsConstantGlobal()) {
+    int16_t c16 =
+        Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+    int64_t c64 = c16;
+    asm_->mov(dest, c64);
+  } else if (register_assign[v.GetIdx()].IsRegister()) {
+    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    asm_->movsx(dest, v_reg.GetW());
+  } else {
+    asm_->movsx(dest, x86::word_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
   }
 }
 
@@ -3344,10 +3377,10 @@ void ASMBackend::TranslateInstr(
         auto reg = normal_arg_regs[regular_arg_idx++];
 
         if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
-          ZextByteValue(reg.GetQ(), v, offsets, constant_instrs,
+          SextByteValue(reg.GetQ(), v, offsets, constant_instrs,
                         register_assign);
         } else if (type_manager.IsI16Type(type)) {
-          ZextWordValue(reg.GetQ(), v, offsets, constant_instrs,
+          SextWordValue(reg.GetQ(), v, offsets, constant_instrs,
                         register_assign);
         } else if (type_manager.IsI32Type(type)) {
           MoveDWordValue(reg.GetD(), v, offsets, constant_instrs,
