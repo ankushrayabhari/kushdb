@@ -17,6 +17,7 @@ cc_library(
         "//compile:program",
         "//khir:program_builder",
         "//khir/asm:asm_backend",
+        "//khir/asm:reg_alloc_impl",
         "//khir/llvm:llvm_backend",
     ],
 )
@@ -42,6 +43,7 @@ cc_library(
         "//compile/translators:translator_factory",
         "//khir:program_builder",
         "//khir/asm:asm_backend",
+        "//khir/asm:reg_alloc_impl",
         "//khir/llvm:llvm_backend",
     ],
 )

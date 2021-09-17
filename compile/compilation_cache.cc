@@ -8,6 +8,7 @@
 #include "compile/backend.h"
 #include "compile/program.h"
 #include "khir/asm/asm_backend.h"
+#include "khir/asm/reg_alloc_impl.h"
 #include "khir/llvm/llvm_backend.h"
 #include "khir/program_builder.h"
 
@@ -27,7 +28,7 @@ void CacheEntry::Compile() {
   switch (GetBackend()) {
     case Backend::ASM: {
       auto backend =
-          std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::STACK_SPILL);
+          std::make_unique<khir::ASMBackend>(khir::GetRegAllocImpl());
       program_builder_.Translate(*backend);
       compiled_program_ = std::move(backend);
       break;

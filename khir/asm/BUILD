@@ -3,6 +3,15 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "reg_alloc_impl",
+    srcs = ["reg_alloc_impl.cc"],
+    hdrs = ["reg_alloc_impl.h"],
+    deps = [
+        "@absl//absl/flags:flag",
+    ],
+)
+
+cc_library(
     name = "rpo_label",
     srcs = ["rpo_label.cc"],
     hdrs = ["rpo_label.h"],
@@ -100,6 +109,7 @@ cc_library(
     deps = [
         ":linear_scan_reg_alloc",
         ":live_intervals",
+        ":reg_alloc_impl",
         ":register_assignment",
         ":rpo_label",
         ":stack_spill_reg_alloc",

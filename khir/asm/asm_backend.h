@@ -5,6 +5,7 @@
 #include "asmjit/x86.h"
 
 #include "compile/program.h"
+#include "khir/asm/reg_alloc_impl.h"
 #include "khir/asm/register.h"
 #include "khir/asm/register_assignment.h"
 #include "khir/opcode.h"
@@ -12,8 +13,6 @@
 #include "khir/type_manager.h"
 
 namespace kush::khir {
-
-enum class RegAllocImpl { STACK_SPILL, LINEAR_SCAN };
 
 class ExceptionErrorHandler : public asmjit::ErrorHandler {
  public:

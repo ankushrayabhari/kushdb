@@ -6,6 +6,7 @@
 #include "compile/forward_declare.h"
 #include "compile/translators/translator_factory.h"
 #include "khir/asm/asm_backend.h"
+#include "khir/asm/reg_alloc_impl.h"
 #include "khir/llvm/llvm_backend.h"
 #include "khir/program_builder.h"
 #include "khir/program_printer.h"
@@ -38,7 +39,7 @@ QueryTranslator::Translate() {
   switch (GetBackend()) {
     case Backend::ASM: {
       auto backend =
-          std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::STACK_SPILL);
+          std::make_unique<khir::ASMBackend>(khir::GetRegAllocImpl());
       program.Translate(*backend);
       return {std::move(translator), std::move(backend)};
     }
