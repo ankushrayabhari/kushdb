@@ -4,14 +4,13 @@
 #include <string>
 #include <vector>
 
-#include "absl/flags/flag.h"
-
 #include "gtest/gtest.h"
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "compile/query_translator.h"
 #include "end_to_end_test/execute_capture.h"
+#include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
@@ -35,17 +34,10 @@ using namespace kush::compile;
 using namespace kush::catalog;
 using namespace std::literals;
 
-struct ParameterValues {
-  std::string backend;
-};
-
 class SelectTest : public testing::TestWithParam<ParameterValues> {};
 
-ABSL_DECLARE_FLAG(std::string, backend);
-
 TEST_P(SelectTest, RealCol) {
-  auto params = GetParam();
-  absl::SetFlag(&FLAGS_backend, params.backend);
+  SetFlags(GetParam());
 
   auto db = Schema();
 
@@ -78,9 +70,16 @@ TEST_P(SelectTest, RealCol) {
   EXPECT_EQ(output, expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
+                             .reg_alloc = "stack_spill",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
                          }));
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackend, SelectTest,

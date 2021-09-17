@@ -4,14 +4,13 @@
 #include <string>
 #include <vector>
 
-#include "absl/flags/flag.h"
-
 #include "gtest/gtest.h"
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "compile/query_translator.h"
 #include "end_to_end_test/execute_capture.h"
+#include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
@@ -35,18 +34,12 @@ using namespace kush::compile;
 using namespace kush::catalog;
 using namespace std::literals;
 
-struct ParameterValues {
-  std::string backend;
-  bool asc;
-};
-
-class OrderByTest : public testing::TestWithParam<ParameterValues> {};
-
-ABSL_DECLARE_FLAG(std::string, backend);
+class OrderByTest
+    : public testing::TestWithParam<std::pair<ParameterValues, bool>> {};
 
 TEST_P(OrderByTest, RealCol) {
-  auto params = GetParam();
-  absl::SetFlag(&FLAGS_backend, params.backend);
+  auto [params, asc] = GetParam();
+  SetFlags(params);
 
   auto db = Schema();
 
@@ -69,7 +62,7 @@ TEST_P(OrderByTest, RealCol) {
     query = std::make_unique<OutputOperator>(std::make_unique<OrderByOperator>(
         std::move(schema), std::move(base),
         util::MakeVector(std::move(zscore), std::move(id)),
-        std::vector<bool>{params.asc, params.asc}));
+        std::vector<bool>{asc, asc}));
   }
 
   auto expected_file =
@@ -79,33 +72,55 @@ TEST_P(OrderByTest, RealCol) {
   auto expected = GetFileContents(expected_file);
   auto output = GetFileContents(output_file);
 
-  if (!params.asc) {
+  if (!asc) {
     std::reverse(expected.begin(), expected.end());
   }
 
   EXPECT_EQ(output, expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_Asc, OrderByTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .asc = true,
-                         }));
+INSTANTIATE_TEST_SUITE_P(ASMBackend_Asc_StackSpill, OrderByTest,
+                         testing::Values(std::make_pair(
+                             ParameterValues{
+                                 .backend = "asm",
+                                 .reg_alloc = "stack_spill",
+                             },
+                             true)));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_Desc, OrderByTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .asc = false,
-                         }));
+INSTANTIATE_TEST_SUITE_P(ASMBackend_Desc_StackSpill, OrderByTest,
+                         testing::Values(std::make_pair(
+                             ParameterValues{
+                                 .backend = "asm",
+                                 .reg_alloc = "stack_spill",
+                             },
+                             false)));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_Asc_LinearScan, OrderByTest,
+                         testing::Values(std::make_pair(
+                             ParameterValues{
+                                 .backend = "asm",
+                                 .reg_alloc = "linear_scan",
+                             },
+                             true)));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_Desc_LinearScan, OrderByTest,
+                         testing::Values(std::make_pair(
+                             ParameterValues{
+                                 .backend = "asm",
+                                 .reg_alloc = "linear_scan",
+                             },
+                             false)));
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackend_Asc, OrderByTest,
-                         testing::Values(ParameterValues{
-                             .backend = "llvm",
-                             .asc = true,
-                         }));
+                         testing::Values(std::make_pair(
+                             ParameterValues{
+                                 .backend = "llvm",
+                             },
+                             true)));
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackend_Desc, OrderByTest,
-                         testing::Values(ParameterValues{
-                             .backend = "llvm",
-                             .asc = false,
-                         }));
+                         testing::Values(std::make_pair(
+                             ParameterValues{
+                                 .backend = "llvm",
+                             },
+                             false)));

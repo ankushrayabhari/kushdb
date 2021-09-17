@@ -4,14 +4,13 @@
 #include <string>
 #include <vector>
 
-#include "absl/flags/flag.h"
-
 #include "gtest/gtest.h"
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "compile/query_translator.h"
 #include "end_to_end_test/execute_capture.h"
+#include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
@@ -35,23 +34,10 @@ using namespace kush::compile;
 using namespace kush::catalog;
 using namespace std::literals;
 
-struct ParameterValues {
-  std::string backend;
-  std::string skinner;
-  int32_t budget_per_episode;
-};
-
 class SkinnerJoinTest : public testing::TestWithParam<ParameterValues> {};
 
-ABSL_DECLARE_FLAG(std::string, backend);
-ABSL_DECLARE_FLAG(std::string, skinner);
-ABSL_DECLARE_FLAG(int32_t, budget_per_episode);
-
 TEST_P(SkinnerJoinTest, BooleanCol) {
-  auto params = GetParam();
-  absl::SetFlag(&FLAGS_backend, params.backend);
-  absl::SetFlag(&FLAGS_skinner, params.skinner);
-  absl::SetFlag(&FLAGS_budget_per_episode, params.budget_per_episode);
+  SetFlags(GetParam());
 
   auto db = Schema();
 
@@ -95,26 +81,69 @@ TEST_P(SkinnerJoinTest, BooleanCol) {
   EXPECT_EQ(output, expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_Recompile_HighBudget, SkinnerJoinTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Recompile_HighBudget,
+                         SkinnerJoinTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
+                             .reg_alloc = "stack_spill",
                              .skinner = "recompile",
                              .budget_per_episode = 10000}));
 
-INSTANTIATE_TEST_SUITE_P(
-    ASMBackend_Permute_HighBudget, SkinnerJoinTest,
-    testing::Values(ParameterValues{
-        .backend = "asm", .skinner = "permute", .budget_per_episode = 10000}));
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Permute_HighBudget,
+                         SkinnerJoinTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "stack_spill",
+                             .skinner = "permute",
+                             .budget_per_episode = 10000}));
 
-INSTANTIATE_TEST_SUITE_P(
-    ASMBackend_Recompile_LowBudget, SkinnerJoinTest,
-    testing::Values(ParameterValues{
-        .backend = "asm", .skinner = "recompile", .budget_per_episode = 10}));
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Recompile_LowBudget,
+                         SkinnerJoinTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "stack_spill",
+                             .skinner = "recompile",
+                             .budget_per_episode = 10}));
 
-INSTANTIATE_TEST_SUITE_P(
-    ASMBackend_Permute_LowBudget, SkinnerJoinTest,
-    testing::Values(ParameterValues{
-        .backend = "asm", .skinner = "permute", .budget_per_episode = 10}));
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Permute_LowBudget,
+                         SkinnerJoinTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "stack_spill",
+                             .skinner = "permute",
+                             .budget_per_episode = 10}));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Recompile_HighBudget,
+                         SkinnerJoinTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
+                             .skinner = "recompile",
+                             .budget_per_episode = 10000}));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Permute_HighBudget,
+                         SkinnerJoinTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
+                             .skinner = "permute",
+                             .budget_per_episode = 10000}));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Recompile_LowBudget,
+                         SkinnerJoinTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
+                             .skinner = "recompile",
+                             .budget_per_episode = 10}));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Permute_LowBudget,
+                         SkinnerJoinTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
+                             .skinner = "permute",
+                             .budget_per_episode = 10}));
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackend_Recompile_HighBudget, SkinnerJoinTest,
                          testing::Values(ParameterValues{

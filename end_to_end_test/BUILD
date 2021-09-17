@@ -35,6 +35,16 @@ cc_binary(
 )
 
 cc_library(
+    name = "parameters",
+    srcs = ["parameters.cc"],
+    hdrs = ["parameters.h"],
+    deps = [
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
+    ],
+)
+
+cc_library(
     name = "execute_capture",
     hdrs = ["execute_capture.h"],
     deps = [

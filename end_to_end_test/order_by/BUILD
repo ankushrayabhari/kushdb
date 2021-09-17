@@ -11,6 +11,7 @@ cc_test(
         "//catalog",
         "//compile:query_translator",
         "//end_to_end_test:execute_capture",
+        "//end_to_end_test:parameters",
         "//end_to_end_test:schema",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
@@ -28,8 +29,6 @@ cc_test(
         "//util:builder",
         "//util:time_execute",
         "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
         "@com_google_googletest//:gtest_main",
     ],
 )
