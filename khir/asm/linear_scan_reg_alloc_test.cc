@@ -17,7 +17,7 @@ TEST(LiveIntervalsTest, StoreInstructionForcedIntoRegister) {
     program.StoreI32(args[0], args[1]);
     program.Return();
 
-    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+    auto rpo = BBLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
                                           program.GetTypeManager(), rpo);
     EXPECT_EQ(result.size(), 4);
@@ -41,7 +41,7 @@ TEST(LiveIntervalsTest, I8FlagRegIntoBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI32(6));
 
-    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+    auto rpo = BBLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
                                           program.GetTypeManager(), rpo);
     EXPECT_TRUE(result[cond.GetIdx()].IsRegister());
@@ -65,7 +65,7 @@ TEST(LiveIntervalsTest, I16FlagRegIntoBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI32(6));
 
-    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+    auto rpo = BBLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
                                           program.GetTypeManager(), rpo);
     EXPECT_TRUE(result[cond.GetIdx()].IsRegister());
@@ -89,7 +89,7 @@ TEST(LiveIntervalsTest, I32FlagRegIntoBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI32(6));
 
-    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+    auto rpo = BBLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
                                           program.GetTypeManager(), rpo);
     EXPECT_TRUE(result[cond.GetIdx()].IsRegister());
@@ -113,7 +113,7 @@ TEST(LiveIntervalsTest, I64FlagRegIntoBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI32(6));
 
-    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+    auto rpo = BBLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
                                           program.GetTypeManager(), rpo);
     EXPECT_TRUE(result[cond.GetIdx()].IsRegister());
@@ -137,7 +137,7 @@ TEST(LiveIntervalsTest, F64FlagRegIntoBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI32(6));
 
-    auto rpo = RPOLabel(program.GetFunction(func).BasicBlockSuccessors());
+    auto rpo = BBLabel(program.GetFunction(func).BasicBlockSuccessors());
     auto result = LinearScanRegisterAlloc(program.GetFunction(func),
                                           program.GetTypeManager(), rpo);
     EXPECT_TRUE(result[cond.GetIdx()].IsRegister());

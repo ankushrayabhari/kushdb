@@ -12,17 +12,17 @@ cc_library(
 )
 
 cc_library(
-    name = "rpo_label",
-    srcs = ["rpo_label.cc"],
-    hdrs = ["rpo_label.h"],
+    name = "bb_label",
+    srcs = ["bb_label.cc"],
+    hdrs = ["bb_label.h"],
     deps = [],
 )
 
 cc_test(
-    name = "rpo_label_test",
-    srcs = ["rpo_label_test.cc"],
+    name = "bb_label_test",
+    srcs = ["bb_label_test.cc"],
     deps = [
-        ":rpo_label",
+        ":bb_label",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -53,7 +53,7 @@ cc_library(
         ":live_intervals",
         ":register",
         ":register_assignment",
-        ":rpo_label",
+        ":bb_label",
         "//khir:instruction",
         "//khir:opcode",
     ],
@@ -64,7 +64,7 @@ cc_library(
     srcs = ["live_intervals.cc"],
     hdrs = ["live_intervals.h"],
     deps = [
-        ":rpo_label",
+        ":bb_label",
         "//khir:program_builder",
         "//util:union_find",
         "@absl//absl/container:flat_hash_set",
@@ -111,7 +111,7 @@ cc_library(
         ":live_intervals",
         ":reg_alloc_impl",
         ":register_assignment",
-        ":rpo_label",
+        ":bb_label",
         ":stack_spill_reg_alloc",
         "//compile:program",
         "//khir:opcode",
