@@ -1654,6 +1654,10 @@ void ASMBackend::CondBrFlag(
   assert(!v.IsConstantGlobal());
   GenericInstructionReader reader(instructions[v.GetIdx()]);
   auto opcode = OpcodeFrom(reader.Opcode());
+
+  auto tr = basic_blocks[true_bb];
+  auto fl = basic_blocks[false_bb];
+
   switch (opcode) {
     case Opcode::I1_CMP_EQ:
     case Opcode::I8_CMP_EQ:
@@ -1661,14 +1665,14 @@ void ASMBackend::CondBrFlag(
     case Opcode::I32_CMP_EQ:
     case Opcode::I64_CMP_EQ: {
       if (true_bb == next_bb) {
-        asm_->jne(basic_blocks[false_bb]);
+        asm_->jne(fl);
         // fall through to the true_bb
       } else if (false_bb == next_bb) {
-        asm_->je(basic_blocks[true_bb]);
+        asm_->je(tr);
         // fall through to the false_bb
       } else {
-        asm_->je(basic_blocks[true_bb]);
-        asm_->jmp(basic_blocks[false_bb]);
+        asm_->je(tr);
+        asm_->jmp(fl);
       }
       return;
     }
@@ -1679,14 +1683,14 @@ void ASMBackend::CondBrFlag(
     case Opcode::I32_CMP_NE:
     case Opcode::I64_CMP_NE: {
       if (true_bb == next_bb) {
-        asm_->je(basic_blocks[false_bb]);
+        asm_->je(fl);
         // fall through to the true_bb
       } else if (false_bb == next_bb) {
-        asm_->jne(basic_blocks[true_bb]);
+        asm_->jne(tr);
         // fall through to the false_bb
       } else {
-        asm_->jne(basic_blocks[true_bb]);
-        asm_->jmp(basic_blocks[false_bb]);
+        asm_->jne(tr);
+        asm_->jmp(fl);
       }
       return;
     }
@@ -1696,14 +1700,14 @@ void ASMBackend::CondBrFlag(
     case Opcode::I32_CMP_LT:
     case Opcode::I64_CMP_LT: {
       if (true_bb == next_bb) {
-        asm_->jge(basic_blocks[false_bb]);
+        asm_->jge(fl);
         // fall through to the true_bb
       } else if (false_bb == next_bb) {
-        asm_->jl(basic_blocks[true_bb]);
+        asm_->jl(tr);
         // fall through to the false_bb
       } else {
-        asm_->jl(basic_blocks[true_bb]);
-        asm_->jmp(basic_blocks[false_bb]);
+        asm_->jl(tr);
+        asm_->jmp(fl);
       }
       return;
     }
@@ -1713,14 +1717,14 @@ void ASMBackend::CondBrFlag(
     case Opcode::I32_CMP_LE:
     case Opcode::I64_CMP_LE: {
       if (true_bb == next_bb) {
-        asm_->jg(basic_blocks[false_bb]);
+        asm_->jg(fl);
         // fall through to the true_bb
       } else if (false_bb == next_bb) {
-        asm_->jle(basic_blocks[true_bb]);
+        asm_->jle(tr);
         // fall through to the false_bb
       } else {
-        asm_->jle(basic_blocks[true_bb]);
-        asm_->jmp(basic_blocks[false_bb]);
+        asm_->jle(tr);
+        asm_->jmp(fl);
       }
       return;
     }
@@ -1730,14 +1734,14 @@ void ASMBackend::CondBrFlag(
     case Opcode::I32_CMP_GT:
     case Opcode::I64_CMP_GT: {
       if (true_bb == next_bb) {
-        asm_->jle(basic_blocks[false_bb]);
+        asm_->jle(fl);
         // fall through to the true_bb
       } else if (false_bb == next_bb) {
-        asm_->jg(basic_blocks[true_bb]);
+        asm_->jg(tr);
         // fall through to the false_bb
       } else {
-        asm_->jg(basic_blocks[true_bb]);
-        asm_->jmp(basic_blocks[false_bb]);
+        asm_->jg(tr);
+        asm_->jmp(fl);
       }
       return;
     }
@@ -1747,14 +1751,14 @@ void ASMBackend::CondBrFlag(
     case Opcode::I32_CMP_GE:
     case Opcode::I64_CMP_GE: {
       if (true_bb == next_bb) {
-        asm_->jl(basic_blocks[false_bb]);
+        asm_->jl(fl);
         // fall through to the true_bb
       } else if (false_bb == next_bb) {
-        asm_->jge(basic_blocks[true_bb]);
+        asm_->jge(tr);
         // fall through to the false_bb
       } else {
-        asm_->jge(basic_blocks[true_bb]);
-        asm_->jmp(basic_blocks[false_bb]);
+        asm_->jge(tr);
+        asm_->jmp(fl);
       }
       return;
     }
@@ -1878,7 +1882,6 @@ void ASMBackend::TranslateInstr(
         MoveByteValue(dest, v, offsets, constant_instrs, register_assign);
         asm_->xor_(dest, 1);
       }
-
       return;
     }
 
