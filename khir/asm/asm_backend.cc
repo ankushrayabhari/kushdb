@@ -3341,10 +3341,10 @@ void ASMBackend::TranslateInstr(
         auto reg = normal_arg_regs[regular_arg_idx++];
 
         if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
-          MoveByteValue(reg.GetB(), v, offsets, constant_instrs,
+          ZextByteValue(reg.GetQ(), v, offsets, constant_instrs,
                         register_assign);
         } else if (type_manager.IsI16Type(type)) {
-          MoveWordValue(reg.GetW(), v, offsets, constant_instrs,
+          ZextWordValue(reg.GetQ(), v, offsets, constant_instrs,
                         register_assign);
         } else if (type_manager.IsI32Type(type)) {
           MoveDWordValue(reg.GetD(), v, offsets, constant_instrs,
