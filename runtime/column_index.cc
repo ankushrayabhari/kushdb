@@ -69,13 +69,13 @@ void FreeTextIndex(
 // ---------- Insert -------------
 void InsertInt8Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
                      int8_t value, int32_t tuple_idx) {
-  int32_t v = value;
+  int32_t v = value & 0xFF;
   index->operator[](v).push_back(tuple_idx);
 }
 
 void InsertInt16Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
                       int16_t value, int32_t tuple_idx) {
-  int32_t v = value;
+  int32_t v = value & 0xFFFF;
   index->operator[](v).push_back(tuple_idx);
 }
 
@@ -151,13 +151,13 @@ inline std::vector<int32_t>* GetBucketImpl(
 
 std::vector<int32_t>* GetBucketInt8Index(
     absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int8_t value) {
-  int32_t v = value;
+  int32_t v = value & 0xFF;
   return GetBucketImpl(index, v);
 }
 
 std::vector<int32_t>* GetBucketInt16Index(
     absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int16_t value) {
-  int32_t v = value;
+  int32_t v = value & 0xFFFF;
   return GetBucketImpl(index, v);
 }
 
