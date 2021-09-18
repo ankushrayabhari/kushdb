@@ -12,6 +12,24 @@ cc_library(
 )
 
 cc_library(
+    name = "dominators",
+    srcs = ["dominators.cc"],
+    hdrs = ["dominators.h"],
+    deps = [
+        "@absl//absl/container:btree",
+    ],
+)
+
+cc_test(
+    name = "dominators_test",
+    srcs = ["dominators_test.cc"],
+    deps = [
+        ":dominators",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "bb_label",
     srcs = ["bb_label.cc"],
     hdrs = ["bb_label.h"],
@@ -50,10 +68,10 @@ cc_library(
     srcs = ["linear_scan_reg_alloc.cc"],
     hdrs = ["linear_scan_reg_alloc.h"],
     deps = [
+        ":bb_label",
         ":live_intervals",
         ":register",
         ":register_assignment",
-        ":bb_label",
         "//khir:instruction",
         "//khir:opcode",
     ],
@@ -107,11 +125,11 @@ cc_library(
     srcs = ["asm_backend.cc"],
     hdrs = ["asm_backend.h"],
     deps = [
+        ":bb_label",
         ":linear_scan_reg_alloc",
         ":live_intervals",
         ":reg_alloc_impl",
         ":register_assignment",
-        ":bb_label",
         ":stack_spill_reg_alloc",
         "//compile:program",
         "//khir:opcode",
