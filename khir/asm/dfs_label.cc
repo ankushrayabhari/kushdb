@@ -1,7 +1,7 @@
+#include "khir/asm/dfs_label.h"
+
 #include <stack>
 #include <vector>
-
-#include "khir/asm/dfs_label.h"
 
 namespace kush::khir {
 

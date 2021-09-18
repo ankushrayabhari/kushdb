@@ -22,4 +22,4 @@ void ExecuteAndTime(kush::plan::Operator& query) {
   std::cerr << "Total: " << duration.count() << std::endl;
 }
 
-}
+}  // namespace kush::util

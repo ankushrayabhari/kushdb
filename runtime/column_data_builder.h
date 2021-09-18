@@ -97,4 +97,4 @@ void Serialize(std::string_view path,
   }
 }
 
-}  // namespace kush::runtime
+}  // namespace kush::runtime::ColumnData
