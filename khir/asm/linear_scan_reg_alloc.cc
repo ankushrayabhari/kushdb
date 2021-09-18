@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "khir/asm/bb_label.h"
+#include "khir/asm/dfs_label.h"
 #include "khir/asm/live_intervals.h"
 #include "khir/asm/register_assignment.h"
 #include "khir/instruction.h"
@@ -234,8 +234,7 @@ Reserved/Scratch
 */
 
 std::vector<RegisterAssignment> LinearScanRegisterAlloc(
-    const Function& func, const TypeManager& manager,
-    const BBLabelResult& rpo) {
+    const Function& func, const TypeManager& manager, const LabelResult& rpo) {
   auto instrs = func.Instructions();
   auto live_intervals = ComputeLiveIntervals(func, manager, rpo);
 

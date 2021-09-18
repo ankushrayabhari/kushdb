@@ -1,13 +1,13 @@
-#include "khir/asm/bb_label.h"
+#include "khir/asm/dfs_label.h"
 
 #include "gtest/gtest.h"
 
 using namespace kush;
 using namespace kush::khir;
 
-TEST(BBLabelTest, ChainGraph) {
+TEST(DFSLabelTest, ChainGraph) {
   std::vector<std::vector<int>> bb_succ{{1, 5}, {2}, {3}, {}, {}, {}};
-  auto result = BBLabel(bb_succ);
+  auto result = DFSLabel(bb_succ);
 
   std::vector<int> expected_preorder{0, 1, 2, 3, -1, 7};
   EXPECT_EQ(result.preorder_label, expected_preorder);
@@ -16,9 +16,9 @@ TEST(BBLabelTest, ChainGraph) {
   EXPECT_EQ(result.postorder_label, expected_postorder);
 }
 
-TEST(BBLabelTest, LoopGraph) {
+TEST(DFSLabelTest, LoopGraph) {
   std::vector<std::vector<int>> bb_succ{{1}, {2, 4}, {3}, {1}, {}};
-  auto result = BBLabel(bb_succ);
+  auto result = DFSLabel(bb_succ);
 
   std::vector<int> expected_preorder{0, 1, 2, 3, 6};
   EXPECT_EQ(result.preorder_label, expected_preorder);
@@ -27,9 +27,9 @@ TEST(BBLabelTest, LoopGraph) {
   EXPECT_EQ(result.postorder_label, expected_postorder);
 }
 
-TEST(BBLabelTest, LoopWithMultipleExit) {
+TEST(DFSLabelTest, LoopWithMultipleExit) {
   std::vector<std::vector<int>> bb_succ{{1}, {2, 4}, {3, 5}, {1}, {}, {}};
-  auto result = BBLabel(bb_succ);
+  auto result = DFSLabel(bb_succ);
 
   std::vector<int> expected_preorder{0, 1, 2, 3, 8, 5};
   EXPECT_EQ(result.preorder_label, expected_preorder);

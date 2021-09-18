@@ -6,7 +6,7 @@
 
 #include "absl/container/flat_hash_set.h"
 
-#include "khir/asm/bb_label.h"
+#include "khir/asm/dfs_label.h"
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
 #include "util/union_find.h"
@@ -789,7 +789,7 @@ std::vector<int> ComputeInstrToBB(const std::vector<uint64_t>& instrs,
 
 std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
                                                const TypeManager& manager,
-                                               const BBLabelResult& rpo) {
+                                               const LabelResult& rpo) {
   const auto& bb = func.BasicBlocks();
   const auto& instrs = func.Instructions();
 

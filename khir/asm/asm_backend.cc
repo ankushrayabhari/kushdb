@@ -7,7 +7,7 @@
 
 #include "asmjit/x86.h"
 
-#include "khir/asm/bb_label.h"
+#include "khir/asm/dfs_label.h"
 #include "khir/asm/linear_scan_reg_alloc.h"
 #include "khir/asm/register_assignment.h"
 #include "khir/asm/stack_spill_reg_alloc.h"
@@ -233,7 +233,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     function_start_end_[func.Name()] =
         std::make_pair(internal_func_labels_[func_idx], func_end_label);
 
-    auto rpo_analysis = BBLabel(func.BasicBlockSuccessors());
+    auto rpo_analysis = DFSLabel(func.BasicBlockSuccessors());
     const auto& order = rpo_analysis.order;
 
     std::vector<RegisterAssignment> register_assign;

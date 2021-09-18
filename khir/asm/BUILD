@@ -30,17 +30,17 @@ cc_test(
 )
 
 cc_library(
-    name = "bb_label",
-    srcs = ["bb_label.cc"],
-    hdrs = ["bb_label.h"],
+    name = "dfs_label",
+    srcs = ["dfs_label.cc"],
+    hdrs = ["dfs_label.h"],
     deps = [],
 )
 
 cc_test(
-    name = "bb_label_test",
-    srcs = ["bb_label_test.cc"],
+    name = "dfs_label_test",
+    srcs = ["dfs_label_test.cc"],
     deps = [
-        ":bb_label",
+        ":dfs_label",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -68,7 +68,7 @@ cc_library(
     srcs = ["linear_scan_reg_alloc.cc"],
     hdrs = ["linear_scan_reg_alloc.h"],
     deps = [
-        ":bb_label",
+        ":dfs_label",
         ":live_intervals",
         ":register",
         ":register_assignment",
@@ -82,7 +82,7 @@ cc_library(
     srcs = ["live_intervals.cc"],
     hdrs = ["live_intervals.h"],
     deps = [
-        ":bb_label",
+        ":dfs_label",
         "//khir:program_builder",
         "//util:union_find",
         "@absl//absl/container:flat_hash_set",
@@ -125,7 +125,7 @@ cc_library(
     srcs = ["asm_backend.cc"],
     hdrs = ["asm_backend.h"],
     deps = [
-        ":bb_label",
+        ":dfs_label",
         ":linear_scan_reg_alloc",
         ":live_intervals",
         ":reg_alloc_impl",

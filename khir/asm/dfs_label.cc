@@ -1,7 +1,7 @@
-#include "khir/asm/bb_label.h"
-
 #include <stack>
 #include <vector>
+
+#include "khir/asm/dfs_label.h"
 
 namespace kush::khir {
 
@@ -21,8 +21,8 @@ void DFS(int curr, const std::vector<std::vector<int>>& bb_succ,
   postorder[curr] = idx++;
 }
 
-BBLabelResult BBLabel(const std::vector<std::vector<int>>& bb_succ) {
-  BBLabelResult result;
+LabelResult DFSLabel(const std::vector<std::vector<int>>& bb_succ) {
+  LabelResult result;
   std::vector<bool> visited(bb_succ.size(), false);
   int idx = 0;
   result.preorder_label = std::vector<int>(bb_succ.size(), -1);
