@@ -30,13 +30,18 @@ std::vector<std::vector<int>> ComputeDominators(
       if (pred.size() > 0) {
         dom_parent[i] = absl::btree_set<int>(dom_parent[pred[0]].begin(),
                                              dom_parent[pred[0]].end());
-        for (int k = 1; k < pred.size(); k++) {
-          for (auto it = dom_parent[i].begin(); it != dom_parent[i].end();) {
+        for (auto it = dom_parent[i].begin(); it != dom_parent[i].end();) {
+          bool found = true;
+          for (int k = 1; k < pred.size(); k++) {
             if (!dom_parent[pred[k]].contains((*it))) {
-              it = dom_parent[i].erase(it);
-            } else {
-              it++;
+              found = false;
+              break;
             }
+          }
+          if (found) {
+            it++;
+          } else {
+            it = dom_parent[i].erase(it);
           }
         }
       }

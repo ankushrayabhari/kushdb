@@ -12,6 +12,28 @@ cc_library(
 )
 
 cc_library(
+    name = "loops",
+    srcs = ["loops.cc"],
+    hdrs = ["loops.h"],
+    deps = [
+        ":dominators",
+        "//util:union_find",
+        "@absl//absl/container:btree",
+        "@absl//absl/container:flat_hash_set",
+    ],
+)
+
+cc_test(
+    name = "loops_test",
+    srcs = ["loops_test.cc"],
+    deps = [
+        ":dominators",
+        ":loops",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "dominators",
     srcs = ["dominators.cc"],
     hdrs = ["dominators.h"],
