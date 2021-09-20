@@ -203,40 +203,10 @@ void SpillAtInterval(LiveInterval& curr,
   }
 }
 
-/*
-Available for allocation:
-  RBX  = 0
-  RCX  = 1
-  RDX  = 2
-  RSI  = 3
-  RDI  = 4
-  R8   = 5
-  R9   = 6
-  R10  = 7
-  R11  = 8
-  R12  = 9
-  R13  = 10
-  R14  = 11
-  R15  = 12
-
-  XMM0 = 50
-  XMM1 = 51
-  XMM2 = 52
-  XMM3 = 53
-  XMM4 = 54
-  XMM5 = 55
-  XMM6 = 56
-
-  FLAG = 100
-
-Reserved/Scratch
-  RSP, RBP, RAX, XMM7
-*/
-
 std::vector<RegisterAssignment> LinearScanRegisterAlloc(
-    const Function& func, const TypeManager& manager, const LabelResult& rpo) {
+    const Function& func, const TypeManager& manager) {
   auto instrs = func.Instructions();
-  auto live_intervals = ComputeLiveIntervals(func, manager, rpo);
+  auto live_intervals = ComputeLiveIntervals(func, manager);
 
   // Handle intervals by increasing start point order
   std::sort(live_intervals.begin(), live_intervals.end(),
@@ -280,37 +250,6 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
     free_normal_regs.insert(i);
   }
 
-  // Create a precolored interval for each function argument
-  std::vector<int> normal_arg_reg{4, 3, 2, 1, 5, 6};
-  std::vector<int> fp_arg_reg{50, 51, 52, 53, 54, 55, 56};
-  for (int i = 0, normal_arg_ctr = 0, fp_arg_ctr = 0; i < instrs.size(); i++) {
-    auto opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
-    if (opcode != Opcode::FUNC_ARG) {
-      break;
-    }
-
-    Type3InstructionReader reader(instrs[i]);
-    auto type = static_cast<Type>(reader.TypeID());
-    if (manager.IsF64Type(type)) {
-      auto reg = fp_arg_reg[fp_arg_ctr++];
-      LiveInterval interval(reg);
-      interval.Extend(0, 0);
-      interval.Extend(0, i);
-      active_floating_point.insert(interval);
-      free_floating_point_regs.erase(reg);
-    } else {
-      auto reg = normal_arg_reg[normal_arg_ctr++];
-      LiveInterval interval(reg);
-      interval.Extend(0, 0);
-      interval.Extend(0, i);
-      active_normal.insert(interval);
-      free_normal_regs.erase(reg);
-    }
-  }
-
-  int normal_arg_ctr = 0;
-  int fp_arg_ctr = 0;
-
   for (int a = 0; a < live_intervals.size(); a++) {
     LiveInterval& i = live_intervals[a];
     assert(!i.Undef());
@@ -327,70 +266,6 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
     ExpireOldIntervals(i, assignments, free_normal_regs, active_normal);
     ExpireOldIntervals(i, assignments, free_floating_point_regs,
                        active_floating_point);
-
-    // Handle CALL_ARG as a precolored reg
-    if (i_opcode == Opcode::CALL_ARG) {
-      if (manager.IsF64Type(i.Type())) {
-        // Passing argument by stack so just move on.
-        if (fp_arg_ctr >= fp_arg_reg.size()) {
-          fp_arg_ctr++;
-        } else {
-          int reg = fp_arg_reg[fp_arg_ctr++];
-          assignments[i_instr].SetRegister(reg);
-          i.ChangeToPrecolored(reg);
-          AddPrecoloredInterval(i, assignments, free_floating_point_regs,
-                                active_floating_point);
-        }
-      } else {
-        // Passing argument by stack so just move on.
-        if (normal_arg_ctr >= normal_arg_reg.size()) {
-          normal_arg_ctr++;
-        } else {
-          int reg = normal_arg_reg[normal_arg_ctr++];
-          assignments[i_instr].SetRegister(reg);
-          i.ChangeToPrecolored(reg);
-          AddPrecoloredInterval(i, assignments, free_normal_regs,
-                                active_normal);
-        }
-      }
-
-      auto next_opcode = OpcodeFrom(
-          GenericInstructionReader(instrs[i.StartIdx() + 1]).Opcode());
-      if (next_opcode == Opcode::CALL || next_opcode == Opcode::CALL_INDIRECT) {
-        // add in live intervals for all remaining arg regs since they are
-        // clobbered
-        while (normal_arg_ctr < normal_arg_reg.size()) {
-          int reg = normal_arg_reg[normal_arg_ctr++];
-          LiveInterval interval(reg);
-          interval.Extend(i.StartBB(), i.StartIdx());
-          AddPrecoloredInterval(interval, assignments, free_normal_regs,
-                                active_normal);
-        }
-
-        while (fp_arg_ctr < fp_arg_reg.size()) {
-          int reg = fp_arg_reg[fp_arg_ctr++];
-          LiveInterval interval(reg);
-          interval.Extend(i.StartBB(), i.StartIdx());
-          AddPrecoloredInterval(interval, assignments, free_floating_point_regs,
-                                active_floating_point);
-        }
-
-        // clobber remaining caller saved registers
-        // FP registers have already been clobbered.
-        const std::vector<int> caller_saved_normal_registers = {7, 8};
-        for (int reg : caller_saved_normal_registers) {
-          LiveInterval interval(reg);
-          interval.Extend(i.StartBB(), i.StartIdx());
-          AddPrecoloredInterval(interval, assignments, free_normal_regs,
-                                active_normal);
-        }
-
-        // reset arg counters
-        normal_arg_ctr = 0;
-        fp_arg_ctr = 0;
-      }
-      continue;
-    }
 
     switch (i_opcode) {
       case Opcode::I1_CMP_EQ:

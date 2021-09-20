@@ -6,10 +6,16 @@
 
 #include "absl/container/flat_hash_set.h"
 
-#include "khir/asm/dfs_label.h"
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
 #include "util/union_find.h"
+
+namespace std {
+template <>
+struct hash<kush::khir::Value> {
+  size_t operator()(const kush::khir::Value& k) const { return k.Serialize(); }
+};
+}  // namespace std
 
 namespace kush::khir {
 
@@ -128,173 +134,6 @@ int LiveInterval::PrecoloredRegister() const {
 
 bool LiveInterval::IsPrecolored() const { return register_ >= 0; }
 
-std::vector<std::vector<int>> ComputeBackedges(const Function& func) {
-  // TODO: replace with linear time dominator algorithm
-  const auto& bb = func.BasicBlocks();
-  const auto& bb_succ = func.BasicBlockSuccessors();
-  const auto& bb_pred = func.BasicBlockPredecessors();
-  std::vector<absl::flat_hash_set<int>> dom(bb.size());
-  dom[0].insert(0);
-  for (int i = 1; i < bb.size(); i++) {
-    for (int j = 0; j < bb.size(); j++) {
-      dom[i].insert(j);
-    }
-  }
-
-  bool changes = true;
-  while (changes) {
-    changes = false;
-
-    for (int i = 1; i < bb.size(); i++) {
-      int initial_size = dom[i].size();
-
-      dom[i].clear();
-      const auto& pred = bb_pred[i];
-      if (pred.size() > 0) {
-        dom[i] =
-            absl::flat_hash_set<int>(dom[pred[0]].begin(), dom[pred[0]].end());
-        for (int k = 1; k < pred.size(); k++) {
-          for (int x : dom[pred[k]]) {
-            if (!dom[i].contains(x)) {
-              dom[i].erase(x);
-            }
-          }
-        }
-      }
-      dom[i].insert(i);
-
-      changes = changes || dom[i].size() != initial_size;
-    }
-  }
-
-  std::vector<std::vector<int>> backedges(bb.size());
-  for (int i = 0; i < bb.size(); i++) {
-    for (int x : bb_succ[i]) {
-      if (dom[i].contains(x)) {
-        backedges[x].push_back(i);
-      }
-    }
-  }
-
-  return backedges;
-}
-
-void Collapse(std::vector<int>& loop_parent, std::vector<int>& union_find,
-              const absl::flat_hash_set<int>& loop_body, int loop_header) {
-  for (int z : loop_body) {
-    loop_parent[z] = loop_header;
-    util::UnionFind::Union(union_find, z, loop_header);
-  }
-}
-
-void FindLoopHelper(int curr, const std::vector<std::vector<int>>& bb_succ,
-                    const std::vector<std::vector<int>>& bb_pred,
-                    const std::vector<std::vector<int>>& backedges,
-                    std::vector<bool>& visited, std::vector<int>& union_find,
-                    std::vector<int>& loop_parent,
-                    std::vector<bool>& is_loop_header) {
-  // DFS
-  for (auto succ : bb_succ[curr]) {
-    if (!visited[succ]) {
-      visited[succ] = true;
-      FindLoopHelper(succ, bb_succ, bb_pred, backedges, visited, union_find,
-                     loop_parent, is_loop_header);
-    }
-  }
-
-  absl::flat_hash_set<int> loop_body;
-  absl::flat_hash_set<int> work_list;
-  for (int y : backedges[curr]) {
-    work_list.insert(util::UnionFind::Find(union_find, y));
-  }
-  work_list.erase(curr);
-
-  while (!work_list.empty()) {
-    int y = *work_list.begin();
-    work_list.erase(y);
-
-    loop_body.insert(y);
-
-    for (int z : bb_pred[y]) {
-      if (std::find(backedges[y].begin(), backedges[y].end(), z) ==
-          backedges[y].end()) {
-        auto repr = util::UnionFind::Find(union_find, z);
-        if (repr != curr && !loop_body.contains(repr) &&
-            !work_list.contains(repr)) {
-          work_list.insert(repr);
-        }
-      }
-    }
-  }
-
-  if (!loop_body.empty()) {
-    int exit_block = -1;
-    for (int x : bb_succ[curr]) {
-      auto repr = util::UnionFind::Find(union_find, x);
-      if (loop_body.contains(x)) {
-        continue;
-      }
-      exit_block = repr;
-      break;
-    }
-    assert(exit_block >= 0);
-
-    for (int y : loop_body) {
-      for (int z : bb_succ[y]) {
-        auto repr = util::UnionFind::Find(union_find, z);
-        if (repr != exit_block && z != curr && !loop_body.contains(repr)) {
-          work_list.insert(repr);
-        }
-      }
-    }
-
-    while (!work_list.empty()) {
-      int y = *work_list.begin();
-      work_list.erase(y);
-
-      // all predecessor blocks are in the loop, then it's part of the loop
-      for (int x : bb_pred[y]) {
-        auto repr = util::UnionFind::Find(union_find, x);
-        if (!loop_body.contains(repr)) {
-          throw std::runtime_error("not all predecessors are in loop.");
-        }
-      }
-
-      loop_body.insert(y);
-
-      for (int z : bb_succ[y]) {
-        auto repr = util::UnionFind::Find(union_find, z);
-        if (repr != exit_block && z != curr && !loop_body.contains(repr)) {
-          work_list.insert(repr);
-        }
-      }
-    }
-
-    is_loop_header[curr] = true;
-    Collapse(loop_parent, union_find, loop_body, curr);
-  }
-}
-
-std::pair<std::vector<int>, std::vector<bool>> FindLoops(const Function& func) {
-  const auto& bb = func.BasicBlocks();
-  const auto& bb_succ = func.BasicBlockSuccessors();
-  const auto& bb_pred = func.BasicBlockPredecessors();
-  auto backedges = ComputeBackedges(func);
-
-  // Find all loops
-  std::vector<int> union_find(bb.size());
-  for (int i = 0; i < bb.size(); i++) {
-    union_find[i] = i;
-  }
-
-  std::vector<int> loop_parent(bb.size(), 0);
-  std::vector<bool> visited(bb.size(), false);
-  std::vector<bool> is_loop_header(bb.size(), false);
-  FindLoopHelper(0, bb_succ, bb_pred, backedges, visited, union_find,
-                 loop_parent, is_loop_header);
-  return {loop_parent, is_loop_header};
-}
-
 bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions) {
   if (v.IsConstantGlobal()) {
     return false;
@@ -319,8 +158,236 @@ khir::Value Gep(khir::Value v, const std::vector<uint64_t>& instructions) {
   return khir::Value(gep_offset_reader.Arg0());
 }
 
-std::vector<Value> ComputeReadValues(uint64_t instr,
-                                     const std::vector<uint64_t>& instrs) {
+Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
+            const TypeManager& manager) {
+  auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
+
+  switch (opcode) {
+    case Opcode::I1_CMP_EQ:
+    case Opcode::I1_CMP_NE:
+    case Opcode::I1_LNOT:
+    case Opcode::I8_CMP_EQ:
+    case Opcode::I8_CMP_NE:
+    case Opcode::I8_CMP_LT:
+    case Opcode::I8_CMP_LE:
+    case Opcode::I8_CMP_GT:
+    case Opcode::I8_CMP_GE:
+    case Opcode::I16_CMP_EQ:
+    case Opcode::I16_CMP_NE:
+    case Opcode::I16_CMP_LT:
+    case Opcode::I16_CMP_LE:
+    case Opcode::I16_CMP_GT:
+    case Opcode::I16_CMP_GE:
+    case Opcode::I32_CMP_EQ:
+    case Opcode::I32_CMP_NE:
+    case Opcode::I32_CMP_LT:
+    case Opcode::I32_CMP_LE:
+    case Opcode::I32_CMP_GT:
+    case Opcode::I32_CMP_GE:
+    case Opcode::I64_CMP_EQ:
+    case Opcode::I64_CMP_NE:
+    case Opcode::I64_CMP_LT:
+    case Opcode::I64_CMP_LE:
+    case Opcode::I64_CMP_GT:
+    case Opcode::I64_CMP_GE:
+    case Opcode::F64_CMP_EQ:
+    case Opcode::F64_CMP_NE:
+    case Opcode::F64_CMP_LT:
+    case Opcode::F64_CMP_LE:
+    case Opcode::F64_CMP_GT:
+    case Opcode::F64_CMP_GE:
+    case Opcode::PTR_CMP_NULLPTR:
+      return manager.I1Type();
+
+    case Opcode::I8_ADD:
+    case Opcode::I8_MUL:
+    case Opcode::I8_SUB:
+    case Opcode::I8_LOAD:
+    case Opcode::I1_ZEXT_I8:
+      return manager.I8Type();
+
+    case Opcode::I16_ADD:
+    case Opcode::I16_MUL:
+    case Opcode::I16_SUB:
+    case Opcode::I16_LOAD:
+      return manager.I16Type();
+
+    case Opcode::I32_ADD:
+    case Opcode::I32_MUL:
+    case Opcode::I32_SUB:
+    case Opcode::I32_LOAD:
+      return manager.I32Type();
+
+    case Opcode::I64_ADD:
+    case Opcode::I64_MUL:
+    case Opcode::I64_SUB:
+    case Opcode::I1_ZEXT_I64:
+    case Opcode::I8_ZEXT_I64:
+    case Opcode::I16_ZEXT_I64:
+    case Opcode::I32_ZEXT_I64:
+    case Opcode::F64_CONV_I64:
+    case Opcode::I64_LOAD:
+      return manager.I64Type();
+
+    case Opcode::F64_ADD:
+    case Opcode::F64_MUL:
+    case Opcode::F64_SUB:
+    case Opcode::F64_DIV:
+    case Opcode::I8_CONV_F64:
+    case Opcode::I16_CONV_F64:
+    case Opcode::I32_CONV_F64:
+    case Opcode::I64_CONV_F64:
+    case Opcode::F64_LOAD:
+      return manager.F64Type();
+
+    case Opcode::RETURN:
+    case Opcode::I8_STORE:
+    case Opcode::I16_STORE:
+    case Opcode::I32_STORE:
+    case Opcode::I64_STORE:
+    case Opcode::F64_STORE:
+    case Opcode::PTR_STORE:
+    case Opcode::RETURN_VALUE:
+    case Opcode::CONDBR:
+    case Opcode::BR:
+      return manager.VoidType();
+
+    case Opcode::CALL_INDIRECT:
+    case Opcode::ALLOCA:
+    case Opcode::PHI:
+    case Opcode::CALL:
+    case Opcode::PTR_LOAD:
+    case Opcode::PTR_MATERIALIZE:
+    case Opcode::PTR_CAST:
+    case Opcode::GEP:
+    case Opcode::FUNC_ARG:
+      return static_cast<Type>(Type3InstructionReader(instr).TypeID());
+
+    case Opcode::GEP_OFFSET:
+    case Opcode::PHI_MEMBER:
+    case Opcode::CALL_ARG:
+      return manager.VoidType();
+  }
+}
+
+std::optional<Value> GetWrittenValue(int instr_idx,
+                                     const std::vector<uint64_t>& instrs,
+                                     const TypeManager& manager) {
+  auto instr = instrs[instr_idx];
+  auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
+
+  switch (opcode) {
+    case Opcode::I1_CMP_EQ:
+    case Opcode::I1_CMP_NE:
+    case Opcode::I8_ADD:
+    case Opcode::I8_MUL:
+    case Opcode::I8_SUB:
+    case Opcode::I8_CMP_EQ:
+    case Opcode::I8_CMP_NE:
+    case Opcode::I8_CMP_LT:
+    case Opcode::I8_CMP_LE:
+    case Opcode::I8_CMP_GT:
+    case Opcode::I8_CMP_GE:
+    case Opcode::I16_ADD:
+    case Opcode::I16_MUL:
+    case Opcode::I16_SUB:
+    case Opcode::I16_CMP_EQ:
+    case Opcode::I16_CMP_NE:
+    case Opcode::I16_CMP_LT:
+    case Opcode::I16_CMP_LE:
+    case Opcode::I16_CMP_GT:
+    case Opcode::I16_CMP_GE:
+    case Opcode::I32_ADD:
+    case Opcode::I32_MUL:
+    case Opcode::I32_SUB:
+    case Opcode::I32_CMP_EQ:
+    case Opcode::I32_CMP_NE:
+    case Opcode::I32_CMP_LT:
+    case Opcode::I32_CMP_LE:
+    case Opcode::I32_CMP_GT:
+    case Opcode::I32_CMP_GE:
+    case Opcode::I64_ADD:
+    case Opcode::I64_MUL:
+    case Opcode::I64_SUB:
+    case Opcode::I64_CMP_EQ:
+    case Opcode::I64_CMP_NE:
+    case Opcode::I64_CMP_LT:
+    case Opcode::I64_CMP_LE:
+    case Opcode::I64_CMP_GT:
+    case Opcode::I64_CMP_GE:
+    case Opcode::F64_ADD:
+    case Opcode::F64_MUL:
+    case Opcode::F64_SUB:
+    case Opcode::F64_DIV:
+    case Opcode::F64_CMP_EQ:
+    case Opcode::F64_CMP_NE:
+    case Opcode::F64_CMP_LT:
+    case Opcode::F64_CMP_LE:
+    case Opcode::F64_CMP_GT:
+    case Opcode::F64_CMP_GE:
+    case Opcode::I1_LNOT:
+    case Opcode::I1_ZEXT_I8:
+    case Opcode::I1_ZEXT_I64:
+    case Opcode::I8_ZEXT_I64:
+    case Opcode::I8_CONV_F64:
+    case Opcode::I16_ZEXT_I64:
+    case Opcode::I16_CONV_F64:
+    case Opcode::I32_ZEXT_I64:
+    case Opcode::I32_CONV_F64:
+    case Opcode::I64_CONV_F64:
+    case Opcode::F64_CONV_I64:
+    case Opcode::I8_LOAD:
+    case Opcode::I16_LOAD:
+    case Opcode::I32_LOAD:
+    case Opcode::I64_LOAD:
+    case Opcode::F64_LOAD:
+    case Opcode::FUNC_ARG:
+    case Opcode::PTR_CAST:
+    case Opcode::PTR_MATERIALIZE:
+    case Opcode::PTR_LOAD:
+    case Opcode::CALL_ARG:
+    case Opcode::ALLOCA:
+    case Opcode::PTR_CMP_NULLPTR: {
+      return Value(instr_idx);
+    }
+
+    case Opcode::CALL:
+    case Opcode::CALL_INDIRECT: {
+      if (!manager.IsVoid(
+              static_cast<Type>(Type3InstructionReader(instr).TypeID()))) {
+        return Value(instr_idx);
+      }
+      return std::nullopt;
+    }
+
+    case Opcode::PHI_MEMBER: {
+      // writes the phi here
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      return Value(v0.GetIdx());
+    }
+
+    case Opcode::I8_STORE:
+    case Opcode::I16_STORE:
+    case Opcode::I32_STORE:
+    case Opcode::I64_STORE:
+    case Opcode::F64_STORE:
+    case Opcode::PTR_STORE:
+    case Opcode::GEP:
+    case Opcode::GEP_OFFSET:
+    case Opcode::BR:
+    case Opcode::CONDBR:
+    case Opcode::RETURN:
+    case Opcode::RETURN_VALUE:
+    case Opcode::PHI: {
+      return std::nullopt;
+    }
+  }
+}
+
+std::vector<Value> GetReadValues(int instr_idx, int bb_start, int bb_end,
+                                 const std::vector<uint64_t>& instrs) {
+  auto instr = instrs[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
@@ -500,8 +567,7 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     }
 
     case Opcode::RETURN_VALUE:
-    case Opcode::CALL_ARG:
-    case Opcode::CALL_INDIRECT: {
+    case Opcode::CALL_ARG: {
       Type3InstructionReader reader(instr);
       Value v0(reader.Arg());
 
@@ -517,6 +583,34 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
       return result;
     }
 
+    case Opcode::CALL_INDIRECT:
+    case Opcode::CALL: {  // reads all call args
+      std::vector<Value> result;
+
+      if (opcode == Opcode::CALL_INDIRECT) {
+        Type3InstructionReader reader(instr);
+        Value v0(reader.Arg());
+
+        if (IsGep(v0, instrs)) {
+          v0 = Gep(v0, instrs);
+        }
+
+        if (!v0.IsConstantGlobal()) {
+          result.push_back(v0);
+        }
+      }
+
+      for (int j = instr_idx - 1; j >= bb_start; j++) {
+        auto opcode = OpcodeFrom(GenericInstructionReader(instrs[j]).Opcode());
+        if (opcode == Opcode::CALL_ARG) {
+          result.emplace_back(j);
+        } else {
+          break;
+        }
+      }
+      return result;
+    }
+
     case Opcode::RETURN:
     case Opcode::BR:
     case Opcode::FUNC_ARG:
@@ -524,292 +618,79 @@ std::vector<Value> ComputeReadValues(uint64_t instr,
     case Opcode::GEP_OFFSET:
     case Opcode::PHI:
     case Opcode::ALLOCA:
-    case Opcode::CALL:  // call arg must be in same bb as call so we are good{
       return {};
   }
 }
 
-bool DoesWriteValue(uint64_t instr, const TypeManager& manager) {
-  auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
-
-  switch (opcode) {
-    case Opcode::I1_CMP_EQ:
-    case Opcode::I1_CMP_NE:
-    case Opcode::I8_ADD:
-    case Opcode::I8_MUL:
-    case Opcode::I8_SUB:
-    case Opcode::I8_CMP_EQ:
-    case Opcode::I8_CMP_NE:
-    case Opcode::I8_CMP_LT:
-    case Opcode::I8_CMP_LE:
-    case Opcode::I8_CMP_GT:
-    case Opcode::I8_CMP_GE:
-    case Opcode::I16_ADD:
-    case Opcode::I16_MUL:
-    case Opcode::I16_SUB:
-    case Opcode::I16_CMP_EQ:
-    case Opcode::I16_CMP_NE:
-    case Opcode::I16_CMP_LT:
-    case Opcode::I16_CMP_LE:
-    case Opcode::I16_CMP_GT:
-    case Opcode::I16_CMP_GE:
-    case Opcode::I32_ADD:
-    case Opcode::I32_MUL:
-    case Opcode::I32_SUB:
-    case Opcode::I32_CMP_EQ:
-    case Opcode::I32_CMP_NE:
-    case Opcode::I32_CMP_LT:
-    case Opcode::I32_CMP_LE:
-    case Opcode::I32_CMP_GT:
-    case Opcode::I32_CMP_GE:
-    case Opcode::I64_ADD:
-    case Opcode::I64_MUL:
-    case Opcode::I64_SUB:
-    case Opcode::I64_CMP_EQ:
-    case Opcode::I64_CMP_NE:
-    case Opcode::I64_CMP_LT:
-    case Opcode::I64_CMP_LE:
-    case Opcode::I64_CMP_GT:
-    case Opcode::I64_CMP_GE:
-    case Opcode::F64_ADD:
-    case Opcode::F64_MUL:
-    case Opcode::F64_SUB:
-    case Opcode::F64_DIV:
-    case Opcode::F64_CMP_EQ:
-    case Opcode::F64_CMP_NE:
-    case Opcode::F64_CMP_LT:
-    case Opcode::F64_CMP_LE:
-    case Opcode::F64_CMP_GT:
-    case Opcode::F64_CMP_GE:
-    case Opcode::I1_LNOT:
-    case Opcode::I1_ZEXT_I8:
-    case Opcode::I1_ZEXT_I64:
-    case Opcode::I8_ZEXT_I64:
-    case Opcode::I8_CONV_F64:
-    case Opcode::I16_ZEXT_I64:
-    case Opcode::I16_CONV_F64:
-    case Opcode::I32_ZEXT_I64:
-    case Opcode::I32_CONV_F64:
-    case Opcode::I64_CONV_F64:
-    case Opcode::F64_CONV_I64:
-    case Opcode::I8_LOAD:
-    case Opcode::I16_LOAD:
-    case Opcode::I32_LOAD:
-    case Opcode::I64_LOAD:
-    case Opcode::F64_LOAD:
-    case Opcode::FUNC_ARG:
-    case Opcode::PTR_CAST:
-    case Opcode::PTR_MATERIALIZE:
-    case Opcode::PTR_LOAD:
-    case Opcode::CALL_ARG:
-    case Opcode::ALLOCA:
-    case Opcode::PTR_CMP_NULLPTR: {
-      return true;
-    }
-
-    // Generate intervals for stores since they need an extra register.
-    case Opcode::I8_STORE:
-    case Opcode::I16_STORE:
-    case Opcode::I32_STORE:
-    case Opcode::I64_STORE:
-    case Opcode::F64_STORE:
-    case Opcode::PTR_STORE: {
-      return true;
-    }
-
-    case Opcode::GEP:
-    case Opcode::GEP_OFFSET:
-    case Opcode::PHI_MEMBER:
-    case Opcode::RETURN:
-    case Opcode::BR:
-    case Opcode::CONDBR:
-    case Opcode::RETURN_VALUE:
-    case Opcode::PHI: {
-      return false;
-    }
-
-    case Opcode::CALL:  // call arg must be in same bb as call so we are good
-    case Opcode::CALL_INDIRECT: {
-      return !manager.IsVoid(
-          static_cast<Type>(Type3InstructionReader(instr).TypeID()));
-    }
-  }
-}
-
-Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
-            const TypeManager& manager) {
-  auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
-
-  switch (opcode) {
-    case Opcode::I1_CMP_EQ:
-    case Opcode::I1_CMP_NE:
-    case Opcode::I1_LNOT:
-    case Opcode::I8_CMP_EQ:
-    case Opcode::I8_CMP_NE:
-    case Opcode::I8_CMP_LT:
-    case Opcode::I8_CMP_LE:
-    case Opcode::I8_CMP_GT:
-    case Opcode::I8_CMP_GE:
-    case Opcode::I16_CMP_EQ:
-    case Opcode::I16_CMP_NE:
-    case Opcode::I16_CMP_LT:
-    case Opcode::I16_CMP_LE:
-    case Opcode::I16_CMP_GT:
-    case Opcode::I16_CMP_GE:
-    case Opcode::I32_CMP_EQ:
-    case Opcode::I32_CMP_NE:
-    case Opcode::I32_CMP_LT:
-    case Opcode::I32_CMP_LE:
-    case Opcode::I32_CMP_GT:
-    case Opcode::I32_CMP_GE:
-    case Opcode::I64_CMP_EQ:
-    case Opcode::I64_CMP_NE:
-    case Opcode::I64_CMP_LT:
-    case Opcode::I64_CMP_LE:
-    case Opcode::I64_CMP_GT:
-    case Opcode::I64_CMP_GE:
-    case Opcode::F64_CMP_EQ:
-    case Opcode::F64_CMP_NE:
-    case Opcode::F64_CMP_LT:
-    case Opcode::F64_CMP_LE:
-    case Opcode::F64_CMP_GT:
-    case Opcode::F64_CMP_GE:
-    case Opcode::PTR_CMP_NULLPTR:
-      return manager.I1Type();
-
-    case Opcode::I8_ADD:
-    case Opcode::I8_MUL:
-    case Opcode::I8_SUB:
-    case Opcode::I8_LOAD:
-    case Opcode::I1_ZEXT_I8:
-      return manager.I8Type();
-
-    case Opcode::I16_ADD:
-    case Opcode::I16_MUL:
-    case Opcode::I16_SUB:
-    case Opcode::I16_LOAD:
-      return manager.I16Type();
-
-    case Opcode::I32_ADD:
-    case Opcode::I32_MUL:
-    case Opcode::I32_SUB:
-    case Opcode::I32_LOAD:
-      return manager.I32Type();
-
-    case Opcode::I64_ADD:
-    case Opcode::I64_MUL:
-    case Opcode::I64_SUB:
-    case Opcode::I1_ZEXT_I64:
-    case Opcode::I8_ZEXT_I64:
-    case Opcode::I16_ZEXT_I64:
-    case Opcode::I32_ZEXT_I64:
-    case Opcode::F64_CONV_I64:
-    case Opcode::I64_LOAD:
-      return manager.I64Type();
-
-    case Opcode::F64_ADD:
-    case Opcode::F64_MUL:
-    case Opcode::F64_SUB:
-    case Opcode::F64_DIV:
-    case Opcode::I8_CONV_F64:
-    case Opcode::I16_CONV_F64:
-    case Opcode::I32_CONV_F64:
-    case Opcode::I64_CONV_F64:
-    case Opcode::F64_LOAD:
-      return manager.F64Type();
-
-    case Opcode::RETURN:
-    case Opcode::I8_STORE:
-    case Opcode::I16_STORE:
-    case Opcode::I32_STORE:
-    case Opcode::I64_STORE:
-    case Opcode::F64_STORE:
-    case Opcode::PTR_STORE:
-    case Opcode::RETURN_VALUE:
-    case Opcode::CONDBR:
-    case Opcode::BR:
-      return manager.VoidType();
-
-    case Opcode::CALL_INDIRECT:
-    case Opcode::ALLOCA:
-    case Opcode::PHI:
-    case Opcode::CALL:
-    case Opcode::PTR_LOAD:
-    case Opcode::PTR_MATERIALIZE:
-    case Opcode::PTR_CAST:
-    case Opcode::GEP:
-    case Opcode::FUNC_ARG:
-      return static_cast<Type>(Type3InstructionReader(instr).TypeID());
-
-    case Opcode::GEP_OFFSET:
-    case Opcode::PHI_MEMBER:
-    case Opcode::CALL_ARG:
-      return manager.VoidType();
-  }
-}
-
-std::pair<std::vector<int>, std::vector<int>> ComputeLoopDepthEnd(
-    const std::vector<int>& loop_parent, const std::vector<bool>& loop_header,
-    const std::vector<int>& order, const std::vector<int>& labels) {
-  std::vector<int> loop_depth(loop_parent.size(), 0);
-  std::vector<int> loop_end(loop_parent.size(), -1);
-
-  for (int block_id : order) {
-    int curr_block = block_id;
-    while (curr_block != 0) {
-      if (loop_header[curr_block]) {
-        loop_depth[block_id]++;
-
-        if (labels[loop_end[curr_block]] < labels[block_id]) {
-          loop_end[curr_block] = block_id;
-        }
+void AddExternalUses(absl::flat_hash_set<Value>& values,
+                     const std::vector<uint64_t> instrs,
+                     const std::pair<int, int>& bb) {
+  for (int i = bb.first; i <= bb.second; i++) {
+    for (auto v : GetReadValues(i, bb.first, bb.second, instrs)) {
+      if (!(v.GetIdx() >= bb.first && v.GetIdx() <= bb.second)) {
+        values.insert(v);
       }
-
-      curr_block = loop_parent[curr_block];
     }
   }
-
-  return {loop_depth, loop_end};
 }
 
-std::vector<int> ComputeInstrToBB(const std::vector<uint64_t>& instrs,
-                                  const std::vector<int>& order,
-                                  const std::vector<std::pair<int, int>>& bb) {
-  std::vector<int> instr_to_bb(instrs.size(), -1);
-
-  for (auto bb_idx : order) {
-    const auto& [bb_begin, bb_end] = bb[bb_idx];
-    for (int i = bb_begin; i <= bb_end; i++) {
-      instr_to_bb[i] = bb_idx;
+void AddDefs(absl::flat_hash_set<Value>& values,
+             const std::vector<uint64_t> instrs, const TypeManager& manager,
+             const std::pair<int, int>& bb) {
+  for (int i = bb.first; i <= bb.second; i++) {
+    auto v = GetWrittenValue(i, instrs, manager);
+    if (v.has_value()) {
+      values.insert(v.value());
     }
   }
+}
 
-  return instr_to_bb;
+absl::flat_hash_set<Value> Union(
+    const std::vector<int>& successors,
+    const std::vector<absl::flat_hash_set<Value>>& live_in) {
+  absl::flat_hash_set<Value> out;
+  for (int i : successors) {
+    out.insert(live_in[i].begin(), live_in[i].end());
+  }
+  return out;
 }
 
 std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
-                                               const TypeManager& manager,
-                                               const LabelResult& rpo) {
-  const auto& bb = func.BasicBlocks();
+                                               const TypeManager& manager) {
+  auto bb = func.BasicBlocks();
+  auto bb_succ = func.BasicBlockSuccessors();
+  auto bb_pred = func.BasicBlockPredecessors();
   const auto& instrs = func.Instructions();
 
-  auto [loop_parent, loop_header] = FindLoops(func);
+  std::vector<absl::flat_hash_set<Value>> live_in(bb.size());
+  std::vector<absl::flat_hash_set<Value>> uses(bb.size());
+  std::vector<absl::flat_hash_set<Value>> defs(bb.size());
+  std::stack<int> worklist;
+  for (int i = 0; i < bb.size(); i++) {
+    AddExternalUses(live_in[i], instrs, bb[i]);
+    AddDefs(defs[i], instrs, manager, bb[i]);
+    worklist.push(i);
+  }
 
-  const auto& labels = rpo.label_per_block;
-  const auto& order = rpo.order;
+  while (!worklist.empty()) {
+    int curr_block = worklist.top();
+    worklist.pop();
 
-  auto [loop_depth, loop_end] =
-      ComputeLoopDepthEnd(loop_parent, loop_header, order, labels);
+    auto live_out = Union(bb_succ[curr_block], live_in);
 
-  auto instr_to_bb = ComputeInstrToBB(instrs, order, bb);
+    auto initial_size = live_in[curr_block].size();
+    for (auto v : live_out) {
+      if (!defs[curr_block].contains(v)) {
+        live_in[curr_block].insert(v);
+      }
+    }
 
-  // for each value:
-  //   for each use of that value:
-  //     if value is at same depth as def:
-  //        extend live interval to be from def to value's block
-  //     else:
-  //        walk up loop parent until at depth of def
-  //        extend live interval to be from def to end of loop
+    if (live_in[curr_block].size() != initial_size) {
+      for (const int pred : bb_pred[curr_block]) {
+        worklist.push(pred);
+      }
+    }
+  }
 
   std::vector<LiveInterval> live_intervals;
   live_intervals.reserve(instrs.size());
@@ -818,83 +699,169 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
     live_intervals.emplace_back(v, TypeOf(instrs[i], instrs, manager));
   }
 
-  for (auto bb_idx : order) {
-    const auto& [bb_begin, bb_end] = bb[bb_idx];
-    for (int i = bb_begin; i <= bb_end; i++) {
-      auto instr = instrs[i];
-      auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
+  for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
+    auto currently_live = Union(bb_succ[bb_idx], live_in);
 
-      if (opcode == Opcode::PHI || opcode == Opcode::GEP_OFFSET ||
-          opcode == Opcode::RETURN) {
-        continue;
+    const auto& [bb_start, bb_end] = bb[bb_idx];
+    for (int i = bb_end; i >= bb_start; i--) {
+      for (auto v : currently_live) {
+        live_intervals[v.GetIdx()].Extend(bb_idx, i);
       }
 
-      std::vector<Value> values = ComputeReadValues(instr, instrs);
-      for (auto v : values) {
-        auto def_bb = instr_to_bb[v.GetIdx()];
-        auto use_bb = bb_idx;
+      auto written_value = GetWrittenValue(i, instrs, manager);
+      if (written_value.has_value()) {
+        currently_live.erase(written_value.value());
+      }
+      for (auto v : GetReadValues(i, bb_start, bb_end, instrs)) {
+        currently_live.insert(v);
+      }
+    }
 
-        auto def_depth = loop_depth[def_bb];
-        if (loop_depth[use_bb] < def_depth) {
-          if (loop_header[def_bb] &&
-              OpcodeFrom(
-                  GenericInstructionReader(instrs[v.GetIdx()]).Opcode()) ==
-                  Opcode::PHI &&
-              loop_depth[use_bb] >= def_depth - 1) {
-            def_depth--;
+    if (currently_live != live_in[bb_idx]) {
+      throw std::runtime_error("Invalid liveness");
+    }
+  }
+
+  // Create an interval for each store instruction
+  for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
+    const auto& [bb_start, bb_end] = bb[bb_idx];
+    for (int i = bb_start; i <= bb_end; i++) {
+      auto i_opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
+      switch (i_opcode) {
+        case Opcode::I8_STORE:
+        case Opcode::I16_STORE:
+        case Opcode::I32_STORE:
+        case Opcode::I64_STORE:
+        case Opcode::F64_STORE:
+        case Opcode::PTR_STORE: {
+          live_intervals[i].Extend(bb_idx, i);
+        }
+
+        default:
+          break;
+      }
+    }
+  }
+
+  /*
+    Available for allocation:
+      RBX  = 0
+      RCX  = 1
+      RDX  = 2
+      RSI  = 3
+      RDI  = 4
+      R8   = 5
+      R9   = 6
+      R10  = 7
+      R11  = 8
+      R12  = 9
+      R13  = 10
+      R14  = 11
+      R15  = 12
+
+      XMM0 = 50
+      XMM1 = 51
+      XMM2 = 52
+      XMM3 = 53
+      XMM4 = 54
+      XMM5 = 55
+      XMM6 = 56
+
+      FLAG = 100
+
+    Reserved/Scratch
+      RSP, RBP, RAX, XMM7
+  */
+  // Create a precolored interval for each function argument
+  std::vector<int> normal_arg_reg{4, 3, 2, 1, 5, 6};
+  std::vector<int> fp_arg_reg{50, 51, 52, 53, 54, 55, 56};
+  for (int i = 0, normal_arg_ctr = 0, fp_arg_ctr = 0; i < instrs.size(); i++) {
+    auto opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
+    if (opcode != Opcode::FUNC_ARG) {
+      break;
+    }
+
+    Type3InstructionReader reader(instrs[i]);
+    auto type = static_cast<Type>(reader.TypeID());
+    if (manager.IsF64Type(type)) {
+      auto reg = fp_arg_reg[fp_arg_ctr++];
+      LiveInterval interval(reg);
+      interval.Extend(0, 0);
+      interval.Extend(0, i);
+      live_intervals.push_back(interval);
+    } else {
+      auto reg = normal_arg_reg[normal_arg_ctr++];
+      LiveInterval interval(reg);
+      interval.Extend(0, 0);
+      interval.Extend(0, i);
+      live_intervals.push_back(interval);
+    }
+  }
+
+  // Create a precolored interval for all clobbered registers
+  int normal_arg_ctr = 0;
+  int fp_arg_ctr = 0;
+  for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
+    const auto& [bb_start, bb_end] = bb[bb_idx];
+    for (int i = bb_start; i <= bb_end; i++) {
+      auto i_opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
+      auto i_type = TypeOf(instrs[i], instrs, manager);
+      switch (i_opcode) {
+        case Opcode::CALL_ARG: {
+          if (manager.IsF64Type(i_type)) {
+            // Passing argument by stack so just move on.
+            if (fp_arg_ctr >= fp_arg_reg.size()) {
+              fp_arg_ctr++;
+            } else {
+              int reg = fp_arg_reg[fp_arg_ctr++];
+              live_intervals[i].ChangeToPrecolored(reg);
+            }
           } else {
-            throw std::runtime_error("Invalid def/use situation.");
-          }
-        }
-
-        // Update cost
-        live_intervals[v.GetIdx()].UpdateSpillCostWithUse(loop_depth[use_bb]);
-
-        if (loop_depth[use_bb] == def_depth) {
-          live_intervals[v.GetIdx()].Extend(labels[use_bb], i);
-        } else {
-          if (!loop_header[use_bb]) {
-            use_bb = loop_parent[use_bb];
-          }
-
-          while (loop_depth[use_bb] > def_depth + 1) {
-            use_bb = loop_parent[use_bb];
-          }
-
-          assert(loop_header[use_bb]);
-          auto end_of_loop_bb = loop_end[use_bb];
-          auto end_of_loop_idx = bb[loop_end[use_bb]].second;
-          live_intervals[v.GetIdx()].Extend(labels[end_of_loop_bb],
-                                            end_of_loop_idx);
-        }
-      }
-
-      if (opcode == Opcode::PHI_MEMBER) {
-        // phi is read/written here
-        Type2InstructionReader reader(instr);
-        Value v0(reader.Arg0());
-        auto phi = v0.GetIdx();
-
-        // give extra cost for writing the loop variable
-        live_intervals[phi].UpdateSpillCostWithUse(loop_depth[bb_idx]);
-
-        live_intervals[phi].Extend(labels[bb_idx], i);
-      } else {
-        if (DoesWriteValue(instr, manager)) {
-          live_intervals[i].Extend(labels[bb_idx], i);
-        }
-
-        // extend the live interval to the call for each argument
-        if (opcode == Opcode::CALL_ARG) {
-          for (int j = i + 1; j <= bb_end; j++) {
-            auto opcode =
-                OpcodeFrom(GenericInstructionReader(instrs[j]).Opcode());
-            if (opcode == Opcode::CALL || opcode == Opcode::CALL_INDIRECT) {
-              live_intervals[i].Extend(labels[bb_idx], j);
-              break;
+            // Passing argument by stack so just move on.
+            if (normal_arg_ctr >= normal_arg_reg.size()) {
+              normal_arg_ctr++;
+            } else {
+              int reg = normal_arg_reg[normal_arg_ctr++];
+              live_intervals[i].ChangeToPrecolored(reg);
             }
           }
+          break;
         }
+
+        case Opcode::CALL: {
+          // add in live intervals for all remaining arg regs since they are
+          // clobbered
+          while (normal_arg_ctr < normal_arg_reg.size()) {
+            int reg = normal_arg_reg[normal_arg_ctr++];
+            LiveInterval interval(reg);
+            interval.Extend(bb_idx, i);
+            live_intervals.push_back(interval);
+          }
+
+          while (fp_arg_ctr < fp_arg_reg.size()) {
+            int reg = fp_arg_reg[fp_arg_ctr++];
+            LiveInterval interval(reg);
+            interval.Extend(bb_idx, i);
+            live_intervals.push_back(interval);
+          }
+
+          // clobber remaining caller saved registers
+          // FP registers have already been clobbered.
+          const std::vector<int> caller_saved_normal_registers = {7, 8};
+          for (int reg : caller_saved_normal_registers) {
+            LiveInterval interval(reg);
+            interval.Extend(bb_idx, i);
+            live_intervals.push_back(interval);
+          }
+
+          // reset arg counters
+          normal_arg_ctr = 0;
+          fp_arg_ctr = 0;
+          break;
+        }
+
+        default:
+          break;
       }
     }
   }
@@ -906,31 +873,6 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
       outputs.push_back(l);
     }
   }
-
-  /*
-  std::cerr << "digraph G {\n";
-  for (int i = 0; i < labels.size(); i++) {
-    for (auto j : func.BasicBlockSuccessors()[i]) {
-      std::cerr << " \"" << i << "\\nlabel:" << labels[i]
-                << "\\nloop_parent:" << loop_parent[i]
-                << "\\nloop_depth:" << loop_depth[i] << "\" -> \"" << j
-                << "\\nlabel:" << labels[j]
-                << "\\nloop_parent:" << loop_parent[j]
-                << "\\nloop_depth:" << loop_depth[j] << "\"" << std::endl;
-    }
-  }
-  std::cerr << "}" << std::endl;
-
-  for (int i = 0; i < live_intervals.size(); i++) {
-    std::cerr << "%" << i << " [" << live_intervals[i].StartBB() << ','
-              << live_intervals[i].StartIdx() << "] "
-              << " [" << live_intervals[i].EndBB() << ','
-              << live_intervals[i].EndIdx() << "]"
-              << "\n";
-  }
-  std::cerr << std::endl;
-  */
-
   return outputs;
 }
 

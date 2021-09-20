@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "khir/asm/dfs_label.h"
 #include "khir/program_builder.h"
 
 namespace kush::khir {
@@ -47,7 +46,6 @@ class LiveInterval {
 };
 
 std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
-                                               const TypeManager& manager,
-                                               const LabelResult& rpo);
+                                               const TypeManager& manager);
 
 }  // namespace kush::khir

@@ -233,8 +233,20 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     function_start_end_[func.Name()] =
         std::make_pair(internal_func_labels_[func_idx], func_end_label);
 
-    auto rpo_analysis = DFSLabel(func.BasicBlockSuccessors());
-    const auto& order = rpo_analysis.order;
+    auto order_analysis = DFSLabel(func.BasicBlockSuccessors());
+
+    absl::flat_hash_map<int, int> bb_to_order_idx;
+    for (int i = 0; i < order_analysis.postorder_label.size(); i++) {
+      bb_to_order_idx[order_analysis.postorder_label[i]] = i;
+    }
+
+    std::vector<int> order(basic_blocks.size());
+    for (int i = 0; basic_blocks.size(); i++) {
+      order[i] = i;
+    }
+    std::sort(order.begin(), order.end(), [&](int bb1, int bb2) -> bool {
+      return bb_to_order_idx.at(bb2) < bb_to_order_idx.at(bb1);
+    });
 
     std::vector<RegisterAssignment> register_assign;
     switch (reg_alloc_impl_) {
@@ -243,8 +255,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
         break;
 
       case RegAllocImpl::LINEAR_SCAN:
-        register_assign =
-            LinearScanRegisterAlloc(func, type_manager, rpo_analysis);
+        register_assign = LinearScanRegisterAlloc(func, type_manager);
         break;
     }
 
