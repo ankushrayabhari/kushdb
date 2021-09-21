@@ -6,6 +6,7 @@
 
 #include "absl/container/flat_hash_set.h"
 
+#include "khir/asm/loops.h"
 #include "khir/instruction.h"
 #include "khir/program_builder.h"
 #include "util/union_find.h"
@@ -863,6 +864,50 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
 
         default:
           break;
+      }
+    }
+  }
+
+  // update cost of the live intervals
+  auto loop_tree =
+      FindLoops(func.BasicBlockSuccessors(), func.BasicBlockPredecessors());
+  // compute depth in loop tree
+  std::vector<int> loop_depth(bb.size(), 0);
+  {
+    // find all nodes that are roots in the loop forest
+    std::vector<bool> is_root(bb.size(), true);
+    for (const auto& x : loop_tree) {
+      for (int y : x) {
+        is_root[y] = false;
+      }
+    }
+
+    // DFS from each root marking loop depth
+    std::function<void(int, int)> dfs = [&](int curr, int curr_depth) {
+      loop_depth[curr] = curr_depth;
+      for (int next : loop_tree[curr]) {
+        dfs(next, curr_depth + 1);
+      }
+    };
+
+    for (int i = 0; i < bb.size(); i++) {
+      if (is_root[i]) {
+        dfs(i, 0);
+      }
+    }
+  }
+  // update spill costs
+  for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
+    const auto& [bb_start, bb_end] = bb[bb_idx];
+
+    for (int i = bb_start; i <= bb_end; i++) {
+      auto written_value = GetWrittenValue(i, instrs, manager);
+      if (written_value.has_value()) {
+        live_intervals[written_value.value().GetIdx()].UpdateSpillCostWithUse(
+            loop_depth[bb_idx]);
+      }
+      for (auto v : GetReadValues(i, bb_start, bb_end, instrs)) {
+        live_intervals[v.GetIdx()].UpdateSpillCostWithUse(loop_depth[bb_idx]);
       }
     }
   }
