@@ -10,14 +10,12 @@ class LiveInterval {
  public:
   LiveInterval(khir::Value v, khir::Type t);
   LiveInterval(int reg);
-  void Extend(int bb, int idx);
+  void Extend(int x);
 
   void ChangeToPrecolored(int reg);
 
-  int StartBB() const;
-  int EndBB() const;
-  int StartIdx() const;
-  int EndIdx() const;
+  int Start() const;
+  int End() const;
 
   bool Undef() const;
   khir::Type Type() const;
@@ -33,10 +31,8 @@ class LiveInterval {
 
  private:
   bool undef_;
-  int start_bb_;
-  int end_bb_;
-  int start_idx_;
-  int end_idx_;
+  int start_;
+  int end_;
 
   khir::Value value_;
   khir::Type type_;

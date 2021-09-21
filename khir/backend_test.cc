@@ -5071,7 +5071,7 @@ TEST_P(BackendTest, PHIF64) {
     ProgramBuilder program;
     auto type = program.F64Type();
     auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type, type}, "compute");
+        type, {program.I1Type(), type, type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -5115,8 +5115,8 @@ TEST_P(BackendTest, PHIF64ConstArg0) {
 
     ProgramBuilder program;
     auto type = program.F64Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto func =
+        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -5160,8 +5160,8 @@ TEST_P(BackendTest, PHIF64ConstArg1) {
 
     ProgramBuilder program;
     auto type = program.F64Type();
-    auto func = program.CreatePublicFunction(
-        program.VoidType(), {program.I1Type(), type}, "compute");
+    auto func =
+        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();

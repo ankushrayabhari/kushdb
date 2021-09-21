@@ -155,11 +155,7 @@ void ExpireOldIntervals(LiveInterval& current,
     const auto& j = *it;
 
     // Stop once the endpoint[j] >= startpoint[i]
-    if (j.EndBB() > current.StartBB()) {
-      break;
-    }
-
-    if (j.EndBB() == current.StartBB() && j.EndIdx() >= current.StartIdx()) {
+    if (j.End() >= current.Start()) {
       break;
     }
 
@@ -211,30 +207,14 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
   // Handle intervals by increasing start point order
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& a, const LiveInterval& b) -> bool {
-              if (a.StartBB() < b.StartBB()) {
-                return true;
-              }
-
-              if (a.StartBB() == b.StartBB()) {
-                return a.StartIdx() < b.StartIdx();
-              }
-
-              return false;
+              return a.Start() < b.Start();
             });
 
   std::vector<RegisterAssignment> assignments(instrs.size());
 
   // Keep track of intervals by increasing end point
   auto comp = [&](const LiveInterval& a, const LiveInterval& b) -> bool {
-    if (a.EndBB() < b.EndBB()) {
-      return true;
-    }
-
-    if (a.EndBB() == b.EndBB()) {
-      return a.EndIdx() < b.EndIdx();
-    }
-
-    return false;
+    return a.End() < b.End();
   };
   auto active_normal = std::multiset<LiveInterval, decltype(comp)>(comp);
   auto active_floating_point =
@@ -256,87 +236,95 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
     assert(free_normal_regs.size() + active_normal.size() == 13);
     assert(free_floating_point_regs.size() + active_floating_point.size() == 7);
 
-    // Can't be a precolored interval.
-    assert(!i.IsPrecolored());
-    auto i_instr = i.Value().GetIdx();
-    auto i_opcode =
-        OpcodeFrom(GenericInstructionReader(instrs[i_instr]).Opcode());
-
     // Expire old intervals
     ExpireOldIntervals(i, assignments, free_normal_regs, active_normal);
     ExpireOldIntervals(i, assignments, free_floating_point_regs,
                        active_floating_point);
 
-    switch (i_opcode) {
-      case Opcode::I1_CMP_EQ:
-      case Opcode::I1_CMP_NE:
-      case Opcode::I8_CMP_EQ:
-      case Opcode::I8_CMP_NE:
-      case Opcode::I8_CMP_LT:
-      case Opcode::I8_CMP_LE:
-      case Opcode::I8_CMP_GT:
-      case Opcode::I8_CMP_GE:
-      case Opcode::I16_CMP_EQ:
-      case Opcode::I16_CMP_NE:
-      case Opcode::I16_CMP_LT:
-      case Opcode::I16_CMP_LE:
-      case Opcode::I16_CMP_GT:
-      case Opcode::I16_CMP_GE:
-      case Opcode::I32_CMP_EQ:
-      case Opcode::I32_CMP_NE:
-      case Opcode::I32_CMP_LT:
-      case Opcode::I32_CMP_LE:
-      case Opcode::I32_CMP_GT:
-      case Opcode::I32_CMP_GE:
-      case Opcode::I64_CMP_EQ:
-      case Opcode::I64_CMP_NE:
-      case Opcode::I64_CMP_LT:
-      case Opcode::I64_CMP_LE:
-      case Opcode::I64_CMP_GT:
-      case Opcode::I64_CMP_GE: {
-        if (i.StartBB() == i.EndBB() && i.StartIdx() + 1 == i.EndIdx() &&
-            OpcodeFrom(GenericInstructionReader(instrs[i.EndIdx()]).Opcode()) ==
-                Opcode::CONDBR) {
-          assignments[i_instr].SetRegister(100);
-          continue;
-        }
-        break;
-      }
-
-      case Opcode::F64_CMP_EQ:
-      case Opcode::F64_CMP_NE:
-      case Opcode::F64_CMP_LT:
-      case Opcode::F64_CMP_LE:
-      case Opcode::F64_CMP_GT:
-      case Opcode::F64_CMP_GE: {
-        if (i.StartBB() == i.EndBB() && i.StartIdx() + 1 == i.EndIdx() &&
-            OpcodeFrom(GenericInstructionReader(instrs[i.EndIdx()]).Opcode()) ==
-                Opcode::CONDBR) {
-          assignments[i_instr].SetRegister(101);
-          continue;
-        }
-        break;
-      }
-
-      case Opcode::I8_STORE:
-      case Opcode::I16_STORE:
-      case Opcode::I32_STORE:
-      case Opcode::I64_STORE:
-      case Opcode::PTR_STORE: {
+    if (i.IsPrecolored()) {
+      if (i.PrecoloredRegister() >= 50) {
+        AddPrecoloredInterval(i, assignments, free_floating_point_regs,
+                              active_floating_point);
+      } else {
         AddPrecoloredInterval(i, assignments, free_normal_regs, active_normal);
-        assert(i.IsPrecolored());
-        assignments[i_instr].SetRegister(i.PrecoloredRegister());
-        break;
       }
+    } else {
+      auto i_instr = i.Value().GetIdx();
+      auto i_opcode =
+          OpcodeFrom(GenericInstructionReader(instrs[i_instr]).Opcode());
 
-      default: {
-        if (manager.IsF64Type(i.Type())) {
-          SpillAtInterval(i, assignments, free_floating_point_regs,
-                          active_floating_point);
-        } else {
-          SpillAtInterval(i, assignments, free_normal_regs, active_normal);
+      switch (i_opcode) {
+        case Opcode::I1_CMP_EQ:
+        case Opcode::I1_CMP_NE:
+        case Opcode::I8_CMP_EQ:
+        case Opcode::I8_CMP_NE:
+        case Opcode::I8_CMP_LT:
+        case Opcode::I8_CMP_LE:
+        case Opcode::I8_CMP_GT:
+        case Opcode::I8_CMP_GE:
+        case Opcode::I16_CMP_EQ:
+        case Opcode::I16_CMP_NE:
+        case Opcode::I16_CMP_LT:
+        case Opcode::I16_CMP_LE:
+        case Opcode::I16_CMP_GT:
+        case Opcode::I16_CMP_GE:
+        case Opcode::I32_CMP_EQ:
+        case Opcode::I32_CMP_NE:
+        case Opcode::I32_CMP_LT:
+        case Opcode::I32_CMP_LE:
+        case Opcode::I32_CMP_GT:
+        case Opcode::I32_CMP_GE:
+        case Opcode::I64_CMP_EQ:
+        case Opcode::I64_CMP_NE:
+        case Opcode::I64_CMP_LT:
+        case Opcode::I64_CMP_LE:
+        case Opcode::I64_CMP_GT:
+        case Opcode::I64_CMP_GE: {
+          if (i.Start() + 1 == i.End() &&
+              OpcodeFrom(
+                  GenericInstructionReader(instrs[i.Value().GetIdx() + 1])
+                      .Opcode()) == Opcode::CONDBR) {
+            assignments[i_instr].SetRegister(100);
+          }
+          break;
         }
-        break;
+
+        case Opcode::F64_CMP_EQ:
+        case Opcode::F64_CMP_NE:
+        case Opcode::F64_CMP_LT:
+        case Opcode::F64_CMP_LE:
+        case Opcode::F64_CMP_GT:
+        case Opcode::F64_CMP_GE: {
+          if (i.Start() + 1 == i.End() &&
+              OpcodeFrom(
+                  GenericInstructionReader(instrs[i.Value().GetIdx() + 1])
+                      .Opcode()) == Opcode::CONDBR) {
+            assignments[i_instr].SetRegister(101);
+          }
+          break;
+        }
+
+        case Opcode::I8_STORE:
+        case Opcode::I16_STORE:
+        case Opcode::I32_STORE:
+        case Opcode::I64_STORE:
+        case Opcode::PTR_STORE: {
+          AddPrecoloredInterval(i, assignments, free_normal_regs,
+                                active_normal);
+          assert(i.IsPrecolored());
+          assignments[i_instr].SetRegister(i.PrecoloredRegister());
+          break;
+        }
+
+        default: {
+          if (manager.IsF64Type(i.Type())) {
+            SpillAtInterval(i, assignments, free_floating_point_regs,
+                            active_floating_point);
+          } else {
+            SpillAtInterval(i, assignments, free_normal_regs, active_normal);
+          }
+          break;
+        }
       }
     }
   }

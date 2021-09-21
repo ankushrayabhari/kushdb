@@ -21,10 +21,8 @@ namespace kush::khir {
 
 LiveInterval::LiveInterval(int reg)
     : undef_(true),
-      start_bb_(-1),
-      end_bb_(-1),
-      start_idx_(-1),
-      end_idx_(-1),
+      start_(-1),
+      end_(-1),
       value_(khir::Value(-1)),
       type_(static_cast<khir::Type>(-1)),
       register_(reg),
@@ -32,38 +30,23 @@ LiveInterval::LiveInterval(int reg)
 
 LiveInterval::LiveInterval(khir::Value v, khir::Type t)
     : undef_(true),
-      start_bb_(-1),
-      end_bb_(-1),
-      start_idx_(-1),
-      end_idx_(-1),
+      start_(-1),
+      end_(-1),
       value_(v),
       type_(t),
       register_(-1),
       spill_cost_(0) {}
 
-void LiveInterval::Extend(int bb, int idx) {
-  assert(bb >= 0);
-  assert(idx >= 0);
+void LiveInterval::Extend(int x) {
+  assert(x >= 0);
   undef_ = false;
 
-  if (start_bb_ == -1) {
-    start_bb_ = bb;
-    start_idx_ = idx;
-  } else if (start_bb_ == bb && idx < start_idx_) {
-    start_idx_ = idx;
-  } else if (bb < start_bb_) {
-    start_bb_ = bb;
-    start_idx_ = idx;
+  if (start_ == -1 || x < start_) {
+    start_ = x;
   }
 
-  if (end_bb_ == -1) {
-    end_bb_ = bb;
-    end_idx_ = idx;
-  } else if (end_bb_ == bb && idx > end_idx_) {
-    end_idx_ = idx;
-  } else if (bb > end_bb_) {
-    end_bb_ = bb;
-    end_idx_ = idx;
+  if (end_ == -1 || x > end_) {
+    end_ = x;
   }
 }
 
@@ -90,22 +73,16 @@ void LiveInterval::UpdateSpillCostWithUse(int loop_depth) {
   }
 }
 
-int LiveInterval::StartBB() const { return start_bb_; }
+int LiveInterval::Start() const { return start_; }
 
-int LiveInterval::EndBB() const { return end_bb_; }
-
-int LiveInterval::StartIdx() const { return start_idx_; }
-
-int LiveInterval::EndIdx() const { return end_idx_; }
+int LiveInterval::End() const { return end_; }
 
 int LiveInterval::SpillCost() const { return spill_cost_; }
 
 bool LiveInterval::Undef() const { return undef_; }
 
 bool LiveInterval::operator==(const LiveInterval& rhs) {
-  return undef_ == rhs.undef_ && start_bb_ == rhs.start_bb_ &&
-         end_bb_ == rhs.end_bb_ && start_idx_ == rhs.start_idx_ &&
-         end_idx_ == rhs.end_idx_ &&
+  return undef_ == rhs.undef_ && start_ == rhs.start_ && end_ == rhs.end_ &&
          value_.Serialize() == rhs.value_.Serialize() &&
          type_.GetID() == rhs.type_.GetID() && register_ == rhs.register_;
 }
@@ -141,6 +118,16 @@ bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions) {
   return OpcodeFrom(
              GenericInstructionReader(instructions[v.GetIdx()]).Opcode()) ==
          Opcode::GEP;
+}
+
+bool IsPhi(khir::Value v, const std::vector<uint64_t>& instructions) {
+  if (v.IsConstantGlobal()) {
+    return false;
+  }
+
+  return OpcodeFrom(
+             GenericInstructionReader(instructions[v.GetIdx()]).Opcode()) ==
+         Opcode::PHI;
 }
 
 khir::Value Gep(khir::Value v, const std::vector<uint64_t>& instructions) {
@@ -600,7 +587,7 @@ std::vector<Value> GetReadValues(int instr_idx, int bb_start, int bb_end,
         }
       }
 
-      for (int j = instr_idx - 1; j >= bb_start; j++) {
+      for (int j = instr_idx - 1; j >= bb_start; j--) {
         auto opcode = OpcodeFrom(GenericInstructionReader(instrs[j]).Opcode());
         if (opcode == Opcode::CALL_ARG) {
           result.emplace_back(j);
@@ -627,7 +614,8 @@ void AddExternalUses(absl::flat_hash_set<Value>& values,
                      const std::pair<int, int>& bb) {
   for (int i = bb.first; i <= bb.second; i++) {
     for (auto v : GetReadValues(i, bb.first, bb.second, instrs)) {
-      if (!(v.GetIdx() >= bb.first && v.GetIdx() <= bb.second)) {
+      if (!(v.GetIdx() >= bb.first && v.GetIdx() <= bb.second) ||
+          IsPhi(v, instrs)) {
         values.insert(v);
       }
     }
@@ -703,9 +691,10 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
     auto currently_live = Union(bb_succ[bb_idx], live_in);
 
     const auto& [bb_start, bb_end] = bb[bb_idx];
+
     for (int i = bb_end; i >= bb_start; i--) {
       for (auto v : currently_live) {
-        live_intervals[v.GetIdx()].Extend(bb_idx, i);
+        live_intervals[v.GetIdx()].Extend(i);
       }
 
       auto written_value = GetWrittenValue(i, instrs, manager);
@@ -714,6 +703,10 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
       }
       for (auto v : GetReadValues(i, bb_start, bb_end, instrs)) {
         currently_live.insert(v);
+      }
+
+      for (auto v : currently_live) {
+        live_intervals[v.GetIdx()].Extend(i);
       }
     }
 
@@ -734,7 +727,8 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
         case Opcode::I64_STORE:
         case Opcode::F64_STORE:
         case Opcode::PTR_STORE: {
-          live_intervals[i].Extend(bb_idx, i);
+          live_intervals[i].Extend(i);
+          break;
         }
 
         default:
@@ -786,14 +780,14 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
     if (manager.IsF64Type(type)) {
       auto reg = fp_arg_reg[fp_arg_ctr++];
       LiveInterval interval(reg);
-      interval.Extend(0, 0);
-      interval.Extend(0, i);
+      interval.Extend(0);
+      interval.Extend(i);
       live_intervals.push_back(interval);
     } else {
       auto reg = normal_arg_reg[normal_arg_ctr++];
       LiveInterval interval(reg);
-      interval.Extend(0, 0);
-      interval.Extend(0, i);
+      interval.Extend(0);
+      interval.Extend(i);
       live_intervals.push_back(interval);
     }
   }
@@ -834,14 +828,14 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
           while (normal_arg_ctr < normal_arg_reg.size()) {
             int reg = normal_arg_reg[normal_arg_ctr++];
             LiveInterval interval(reg);
-            interval.Extend(bb_idx, i);
+            interval.Extend(i);
             live_intervals.push_back(interval);
           }
 
           while (fp_arg_ctr < fp_arg_reg.size()) {
             int reg = fp_arg_reg[fp_arg_ctr++];
             LiveInterval interval(reg);
-            interval.Extend(bb_idx, i);
+            interval.Extend(i);
             live_intervals.push_back(interval);
           }
 
@@ -850,7 +844,7 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
           const std::vector<int> caller_saved_normal_registers = {7, 8};
           for (int reg : caller_saved_normal_registers) {
             LiveInterval interval(reg);
-            interval.Extend(bb_idx, i);
+            interval.Extend(i);
             live_intervals.push_back(interval);
           }
 

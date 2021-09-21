@@ -118,6 +118,7 @@ cc_test(
     deps = [
         ":live_intervals",
         "//khir:program_builder",
+        "//khir:program_printer",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -129,6 +130,7 @@ cc_test(
     deps = [
         ":linear_scan_reg_alloc",
         "//khir:program_builder",
+        "//khir:program_printer",
         "@com_google_googletest//:gtest_main",
     ],
 )

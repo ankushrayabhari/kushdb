@@ -908,6 +908,7 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       std::vector<khir::Value>(child_translators.size(), program_.ConstI32(0)));
   auto cardinalities_array = program_.Global(
       false, true, cardinalities_array_type, cardinalities_array_init);
+
   for (int i = 0; i < buffers_.size(); i++) {
     program_.StoreI32(program_.GetElementPtr(cardinalities_array_type,
                                              cardinalities_array, {0, i}),

@@ -2,6 +2,8 @@
 
 #include "gtest/gtest.h"
 
+#include "khir/program_printer.h"
+
 using namespace kush;
 using namespace kush::khir;
 
