@@ -344,22 +344,6 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
     }
   }
 
-  for (const auto& x : live_intervals) {
-    for (const auto& y : live_intervals) {
-      if (&x == &y) continue;
-
-      if (!x.IsPrecolored() && !y.IsPrecolored()) {
-        if (!(x.End() < y.Start() || y.End() < x.Start())) {
-          if (assignments[x.Value().GetIdx()].IsRegister() &&
-              assignments[y.Value().GetIdx()].IsRegister()) {
-            assert(assignments[x.Value().GetIdx()].Register() !=
-                   assignments[y.Value().GetIdx()].Register());
-          }
-        }
-      }
-    }
-  }
-
   /*
   for (int i = 0; i < assignments.size(); i++) {
     std::cerr << "Assign: " << i << ' ' << assignments[i].Register()

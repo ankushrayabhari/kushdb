@@ -2,10 +2,35 @@
 
 #include "gtest/gtest.h"
 
+#include "catalog/catalog.h"
+#include "catalog/sql_type.h"
+#include "compile/forward_declare.h"
+#include "compile/query_translator.h"
+#include "compile/translators/translator_factory.h"
+#include "end_to_end_test/schema.h"
+#include "khir/asm/live_intervals.h"
+#include "khir/program_builder.h"
 #include "khir/program_printer.h"
+#include "plan/expression/aggregate_expression.h"
+#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/column_ref_expression.h"
+#include "plan/expression/literal_expression.h"
+#include "plan/expression/virtual_column_ref_expression.h"
+#include "plan/group_by_aggregate_operator.h"
+#include "plan/hash_join_operator.h"
+#include "plan/operator.h"
+#include "plan/operator_schema.h"
+#include "plan/order_by_operator.h"
+#include "plan/output_operator.h"
+#include "plan/scan_operator.h"
+#include "plan/select_operator.h"
+#include "util/builder.h"
 
 using namespace kush;
 using namespace kush::khir;
+using namespace kush::compile;
+using namespace kush::plan;
+using namespace kush::util;
 
 TEST(LiveIntervalsTest, StoreInstructionForcedIntoRegister) {
   for (auto type_func : {&ProgramBuilder::I8Type, &ProgramBuilder::I16Type,
@@ -138,5 +163,74 @@ TEST(LiveIntervalsTest, F64FlagRegIntoBranch) {
                                           program.GetTypeManager());
     EXPECT_TRUE(result[cond.GetIdx()].IsRegister());
     EXPECT_EQ(result[cond.GetIdx()].Register(), 101);
+  }
+}
+
+TEST(LiveIntervalsTest, NoOverlappingLiveIntervals) {
+  auto db = Schema();
+
+  std::unique_ptr<Operator> query;
+  {
+    std::unique_ptr<Operator> s1;
+    {
+      OperatorSchema schema;
+      schema.AddGeneratedColumns(db["info"], {"id"});
+      s1 = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
+    }
+
+    std::unique_ptr<Operator> s2;
+    {
+      OperatorSchema schema;
+      schema.AddGeneratedColumns(db["info"], {"id"});
+      s2 = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
+    }
+
+    std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+    conditions.push_back(Eq(ColRef(s1, "id", 0), ColRef(s2, "id", 1)));
+
+    OperatorSchema schema;
+    schema.AddPassthroughColumns(*s1, 0);
+    schema.AddPassthroughColumns(*s2, 1);
+    query =
+        std::make_unique<OutputOperator>(std::make_unique<SkinnerJoinOperator>(
+            std::move(schema), util::MakeVector(std::move(s1), std::move(s2)),
+            std::move(conditions)));
+  }
+
+  khir::ProgramBuilder program;
+
+  ForwardDeclare(program);
+
+  // Create the compute function
+  auto func = program.CreatePublicFunction(program.VoidType(), {}, "compute");
+
+  // Generate code for operator
+  TranslatorFactory factory(program);
+  auto translator = factory.Compute(*query);
+  translator->Produce();
+
+  // terminate last basic block
+  program.Return();
+
+  auto assignments = LinearScanRegisterAlloc(program.GetFunction(func),
+                                             program.GetTypeManager());
+
+  auto live_intervals =
+      ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
+  for (int i = 0; i < live_intervals.size(); i++) {
+    const auto& x = live_intervals[i];
+    for (int j = i + 1; j < live_intervals.size(); j++) {
+      const auto& y = live_intervals[j];
+
+      if (!x.IsPrecolored() && !y.IsPrecolored()) {
+        if (!(x.End() < y.Start() || y.End() < x.Start())) {
+          if (assignments[x.Value().GetIdx()].IsRegister() &&
+              assignments[y.Value().GetIdx()].IsRegister()) {
+            EXPECT_NE(assignments[x.Value().GetIdx()].Register(),
+                      assignments[y.Value().GetIdx()].Register());
+          }
+        }
+      }
+    }
   }
 }
