@@ -611,13 +611,20 @@ std::vector<Value> GetReadValues(int instr_idx, int bb_start, int bb_end,
 
 void AddExternalUses(absl::flat_hash_set<Value>& values,
                      const std::vector<uint64_t> instrs,
-                     const std::pair<int, int>& bb) {
+                     const std::pair<int, int>& bb,
+                     const TypeManager& manager) {
+  absl::flat_hash_set<kush::khir::Value> written_to;
+
   for (int i = bb.first; i <= bb.second; i++) {
     for (auto v : GetReadValues(i, bb.first, bb.second, instrs)) {
-      if (!(v.GetIdx() >= bb.first && v.GetIdx() <= bb.second) ||
-          IsPhi(v, instrs)) {
+      if (!written_to.contains(v)) {
         values.insert(v);
       }
+    }
+
+    auto written_value = GetWrittenValue(i, instrs, manager);
+    if (written_value.has_value()) {
+      written_to.insert(written_value.value());
     }
   }
 }
@@ -655,7 +662,7 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
   std::vector<absl::flat_hash_set<Value>> defs(bb.size());
   std::stack<int> worklist;
   for (int i = 0; i < bb.size(); i++) {
-    AddExternalUses(live_in[i], instrs, bb[i]);
+    AddExternalUses(live_in[i], instrs, bb[i], manager);
     AddDefs(defs[i], instrs, manager, bb[i]);
     worklist.push(i);
   }

@@ -9,23 +9,17 @@ using namespace kush::khir;
 
 TEST(LiveIntervalsTest, SingleBasicBlock) {
   ProgramBuilder program;
+
   auto type = program.I32Type();
-  auto func = program.CreatePublicFunction(type, {type, type}, "compute");
-  auto args = program.GetFunctionArguments(func);
-  program.Return(program.AddI32(args[0], args[1]));
+  auto ex = program.DeclareExternalFunction("test", program.PointerType(type),
+                                            {}, nullptr);
+
+  auto func = program.CreatePublicFunction(type, {}, "compute");
+  auto x_arr = program.Call(ex);
+  auto x1 = program.LoadI32(program.GetElementPtr(type, x_arr, {0}));
+  auto x2 = program.LoadI32(program.GetElementPtr(type, x_arr, {1}));
+  program.Return(program.AddI32(x1, x2));
 
   auto res =
       ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
-
-  khir::ProgramPrinter printer;
-  program.Translate(printer);
-
-  for (auto& x : res) {
-    if (x.IsPrecolored()) {
-      std::cerr << "Precolored: " << x.PrecoloredRegister() << std::endl;
-    } else {
-      std::cerr << "Value: " << x.Value().GetIdx() << std::endl;
-    }
-    std::cerr << ' ' << x.Start() << ' ' << x.End() << std::endl;
-  }
 }

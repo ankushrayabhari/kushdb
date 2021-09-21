@@ -13,6 +13,21 @@
 namespace kush::khir {
 
 template <typename ActiveSet>
+std::unordered_set<int> Union(ActiveSet& active, std::unordered_set<int>& free,
+                              std::vector<RegisterAssignment>& assignments) {
+  std::unordered_set<int> res = free;
+  for (const auto& x : active) {
+    if (x.IsPrecolored()) {
+      res.insert(x.PrecoloredRegister());
+    } else {
+      assert(assignments[x.Value().GetIdx()].IsRegister());
+      res.insert(assignments[x.Value().GetIdx()].Register());
+    }
+  }
+  return res;
+}
+
+template <typename ActiveSet>
 int SpillMinCost(ActiveSet& active, std::unordered_set<int>& free,
                  std::vector<RegisterAssignment>& assignments) {
   if (active.empty()) {
@@ -105,22 +120,9 @@ void AddPrecoloredInterval(LiveInterval& to_add,
 
       auto j_idx = j.Value().GetIdx();
 
-      // Find the min cost register in active
-      auto free_reg = SpillMinCost(active, free, assignments);
-      if (free_reg == j_reg) {
-        // we spilled j
-        assert(!assignments[j_idx].IsRegister());
-        active.insert(to_add);
-        free.erase(reg);
-      } else {
-        // we spilled something else
-        // move j to that register
-        assignments[j_idx].SetRegister(free_reg);
-        free.erase(free_reg);
-
-        // now that j's old register is free, we can add to_add
-        active.insert(to_add);
-      }
+      assignments[j_idx].Spill();
+      active.erase(it);
+      active.insert(to_add);
       return;
     }
 
@@ -204,6 +206,17 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
   auto instrs = func.Instructions();
   auto live_intervals = ComputeLiveIntervals(func, manager);
 
+  /*
+  for (auto& x : live_intervals) {
+    if (x.IsPrecolored()) {
+      std::cerr << "Precolored: " << x.PrecoloredRegister() << std::endl;
+    } else {
+      std::cerr << "Value: " << x.Value().GetIdx() << std::endl;
+    }
+    std::cerr << ' ' << x.Start() << ' ' << x.End() << std::endl;
+  }
+  */
+
   // Handle intervals by increasing start point order
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& a, const LiveInterval& b) -> bool {
@@ -231,10 +244,12 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
   }
 
   for (int a = 0; a < live_intervals.size(); a++) {
+    assert(Union(active_normal, free_normal_regs, assignments).size() == 13);
+    assert(Union(active_floating_point, free_floating_point_regs, assignments)
+               .size() == 7);
+
     LiveInterval& i = live_intervals[a];
     assert(!i.Undef());
-    assert(free_normal_regs.size() + active_normal.size() == 13);
-    assert(free_floating_point_regs.size() + active_floating_point.size() == 7);
 
     // Expire old intervals
     ExpireOldIntervals(i, assignments, free_normal_regs, active_normal);
@@ -328,6 +343,29 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
       }
     }
   }
+
+  for (const auto& x : live_intervals) {
+    for (const auto& y : live_intervals) {
+      if (&x == &y) continue;
+
+      if (!x.IsPrecolored() && !y.IsPrecolored()) {
+        if (!(x.End() < y.Start() || y.End() < x.Start())) {
+          if (assignments[x.Value().GetIdx()].IsRegister() &&
+              assignments[y.Value().GetIdx()].IsRegister()) {
+            assert(assignments[x.Value().GetIdx()].Register() !=
+                   assignments[y.Value().GetIdx()].Register());
+          }
+        }
+      }
+    }
+  }
+
+  /*
+  for (int i = 0; i < assignments.size(); i++) {
+    std::cerr << "Assign: " << i << ' ' << assignments[i].Register()
+              << std::endl;
+  }
+  */
 
   return assignments;
 }
