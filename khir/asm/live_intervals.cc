@@ -63,11 +63,10 @@ void LiveInterval::UpdateSpillCostWithUse(int loop_depth) {
     return;
   }
 
-  // just use 1.5^(loop_depth)
-  double add_factor = pow(1.5, loop_depth);
+  double add_factor = 1.5 * pow(10, loop_depth);
   int to_add = add_factor >= INT32_MAX ? INT32_MAX : add_factor;
 
-  if (spill_cost_ + to_add < spill_cost_) {
+  if (INT32_MAX - to_add < spill_cost_) {
     spill_cost_ = INT32_MAX;
   } else {
     spill_cost_ += to_add;

@@ -2,7 +2,7 @@
 
 #include "absl/flags/flag.h"
 
-ABSL_FLAG(std::string, reg_alloc, "stack_spill",
+ABSL_FLAG(std::string, reg_alloc, "linear_scan",
           "Register Allocation: stack_spill or linear_scan");
 
 namespace kush::khir {
