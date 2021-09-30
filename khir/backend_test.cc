@@ -1,4 +1,4 @@
-#include "compile/backend.h"
+#include "khir/backend.h"
 
 #include <random>
 
@@ -12,18 +12,18 @@
 using namespace kush;
 using namespace kush::khir;
 
-std::unique_ptr<compile::Program> Compile(
-    const std::pair<compile::Backend, khir::RegAllocImpl>& params,
+std::unique_ptr<Program> Compile(
+    const std::pair<BackendType, khir::RegAllocImpl>& params,
     khir::ProgramBuilder& program_builder) {
   switch (params.first) {
-    case compile::Backend::ASM: {
+    case BackendType::ASM: {
       auto backend = std::make_unique<khir::ASMBackend>(params.second);
       program_builder.Translate(*backend);
       backend->Compile();
       return std::move(backend);
     }
 
-    case compile::Backend::LLVM: {
+    case BackendType::LLVM: {
       auto backend = std::make_unique<khir::LLVMBackend>();
       program_builder.Translate(*backend);
       backend->Compile();
@@ -56,7 +56,7 @@ bool Compare(CompType cmp, T a0, T a1) {
 }
 
 class BackendTest : public testing::TestWithParam<
-                        std::pair<compile::Backend, khir::RegAllocImpl>> {};
+                        std::pair<BackendType, khir::RegAllocImpl>> {};
 
 TEST_P(BackendTest, NULLPTR) {
   for (auto type_func : {&ProgramBuilder::I1Type, &ProgramBuilder::I8Type,
@@ -5278,17 +5278,14 @@ TEST_P(BackendTest, LoopVariableAccess) {
   EXPECT_EQ(10, compute());
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    LLVMBackendTest, BackendTest,
-    testing::Values(std::make_pair(compile::Backend::LLVM,
-                                   RegAllocImpl::STACK_SPILL)));
+INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, BackendTest,
+                         testing::Values(std::make_pair(
+                             BackendType::LLVM, RegAllocImpl::STACK_SPILL)));
 
-INSTANTIATE_TEST_SUITE_P(
-    ASMBackendTest_StackSpill, BackendTest,
-    testing::Values(std::make_pair(compile::Backend::ASM,
-                                   RegAllocImpl::STACK_SPILL)));
+INSTANTIATE_TEST_SUITE_P(ASMBackendTest_StackSpill, BackendTest,
+                         testing::Values(std::make_pair(
+                             BackendType::ASM, RegAllocImpl::STACK_SPILL)));
 
-INSTANTIATE_TEST_SUITE_P(
-    ASMBackendTest_LinearScan, BackendTest,
-    testing::Values(std::make_pair(compile::Backend::ASM,
-                                   RegAllocImpl::LINEAR_SCAN)));
+INSTANTIATE_TEST_SUITE_P(ASMBackendTest_LinearScan, BackendTest,
+                         testing::Values(std::make_pair(
+                             BackendType::ASM, RegAllocImpl::LINEAR_SCAN)));

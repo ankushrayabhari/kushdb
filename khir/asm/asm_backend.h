@@ -4,11 +4,11 @@
 
 #include "asmjit/x86.h"
 
-#include "compile/program.h"
 #include "khir/asm/reg_alloc_impl.h"
 #include "khir/asm/register.h"
 #include "khir/asm/register_assignment.h"
 #include "khir/opcode.h"
+#include "khir/program.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
 
@@ -30,7 +30,7 @@ class StackSlotAllocator {
   int32_t size_;
 };
 
-class ASMBackend : public Backend, public compile::Program {
+class ASMBackend : public Backend, public Program {
  public:
   ASMBackend(RegAllocImpl impl);
   virtual ~ASMBackend() = default;

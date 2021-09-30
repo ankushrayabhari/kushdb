@@ -7,8 +7,6 @@
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_set.h"
 
-#include "compile/compilation_cache.h"
-#include "compile/program.h"
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/tuple_idx_table.h"
@@ -16,6 +14,8 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/recompiling_join_translator.h"
+#include "khir/compilation_cache.h"
+#include "khir/program.h"
 #include "khir/program_builder.h"
 #include "plan/skinner_join_operator.h"
 
@@ -59,7 +59,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
       predicate_columns_;
   absl::flat_hash_map<std::pair<int, int>, int> predicate_to_index_idx_;
   int child_idx_ = -1;
-  CompilationCache cache_;
+  khir::CompilationCache cache_;
 };
 
 }  // namespace kush::compile

@@ -1,7 +1,6 @@
 #include "compile/forward_declare.h"
 
 #include "catalog/sql_type.h"
-#include "compile/program.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/hash_table.h"
@@ -11,6 +10,7 @@
 #include "compile/proxy/tuple_idx_table.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
+#include "khir/program.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile {

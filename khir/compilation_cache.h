@@ -3,10 +3,10 @@
 #include <memory>
 #include <vector>
 
-#include "compile/program.h"
+#include "khir/program.h"
 #include "khir/program_builder.h"
 
-namespace kush::compile {
+namespace kush::khir {
 
 class CacheEntry {
  public:
@@ -18,7 +18,7 @@ class CacheEntry {
 
  private:
   khir::ProgramBuilder program_builder_;
-  std::unique_ptr<compile::Program> compiled_program_;
+  std::unique_ptr<Program> compiled_program_;
 };
 
 class CompilationCache {
@@ -42,4 +42,4 @@ class CompilationCache {
   int num_tables_;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::khir

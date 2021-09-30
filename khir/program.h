@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-namespace kush::compile {
+namespace kush::khir {
 
 class Program {
  public:
@@ -12,4 +12,4 @@ class Program {
   virtual void* GetFunction(std::string_view name) const = 0;
 };
 
-}  // namespace kush::compile
+}  // namespace kush::khir

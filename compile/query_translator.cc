@@ -2,11 +2,11 @@
 
 #include <memory>
 
-#include "compile/backend.h"
 #include "compile/forward_declare.h"
 #include "compile/translators/translator_factory.h"
 #include "khir/asm/asm_backend.h"
 #include "khir/asm/reg_alloc_impl.h"
+#include "khir/backend.h"
 #include "khir/llvm/llvm_backend.h"
 #include "khir/program_builder.h"
 #include "khir/program_printer.h"
@@ -16,7 +16,7 @@ namespace kush::compile {
 
 QueryTranslator::QueryTranslator(const plan::Operator& op) : op_(op) {}
 
-std::pair<std::unique_ptr<OperatorTranslator>, std::unique_ptr<Program>>
+std::pair<std::unique_ptr<OperatorTranslator>, std::unique_ptr<khir::Program>>
 QueryTranslator::Translate() {
   khir::ProgramBuilder program;
 
@@ -36,15 +36,15 @@ QueryTranslator::Translate() {
   // khir::ProgramPrinter printer;
   // program.Translate(printer);
 
-  switch (GetBackend()) {
-    case Backend::ASM: {
+  switch (khir::GetBackendType()) {
+    case khir::BackendType::ASM: {
       auto backend =
           std::make_unique<khir::ASMBackend>(khir::GetRegAllocImpl());
       program.Translate(*backend);
       return {std::move(translator), std::move(backend)};
     }
 
-    case Backend::LLVM: {
+    case khir::BackendType::LLVM: {
       auto backend = std::make_unique<khir::LLVMBackend>();
       program.Translate(*backend);
       return {std::move(translator), std::move(backend)};

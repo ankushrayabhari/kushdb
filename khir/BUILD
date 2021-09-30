@@ -3,6 +3,35 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "program",
+    hdrs = ["program.h"],
+    deps = [],
+)
+
+cc_library(
+    name = "compilation_cache",
+    srcs = ["compilation_cache.cc"],
+    hdrs = ["compilation_cache.h"],
+    deps = [
+        ":backend",
+        "//khir:program",
+        "//khir:program_builder",
+        "//khir/asm:asm_backend",
+        "//khir/asm:reg_alloc_impl",
+        "//khir/llvm:llvm_backend",
+    ],
+)
+
+cc_library(
+    name = "backend",
+    srcs = ["backend.cc"],
+    hdrs = ["backend.h"],
+    deps = [
+        "@absl//absl/flags:flag",
+    ],
+)
+
+cc_library(
     name = "opcode",
     srcs = ["opcode.cc"],
     hdrs = ["opcode.h"],
@@ -29,7 +58,7 @@ cc_library(
         ":instruction",
         ":opcode",
         ":type_manager",
-        "//compile:program",
+        "//khir:program",
         "@absl//absl/types:span",
         "@type_safe",
     ],
@@ -67,8 +96,8 @@ cc_test(
     size = "large",
     srcs = ["backend_test.cc"],
     deps = [
-        "//compile:backend",
-        "//compile:program",
+        "//khir:backend",
+        "//khir:program",
         "//khir:program_builder",
         "//khir/asm:asm_backend",
         "//khir/llvm:llvm_backend",

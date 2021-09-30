@@ -1,19 +1,19 @@
-#include "compile/backend.h"
+#include "khir/backend.h"
 
 #include "absl/flags/flag.h"
 
 ABSL_FLAG(std::string, backend, "asm", "Compilation Backend: asm or llvm");
 
-namespace kush::compile {
+namespace kush::khir {
 
-Backend GetBackend() {
+BackendType GetBackendType() {
   if (FLAGS_backend.CurrentValue() == "asm") {
-    return Backend::ASM;
+    return BackendType::ASM;
   } else if (FLAGS_backend.CurrentValue() == "llvm") {
-    return Backend::LLVM;
+    return BackendType::LLVM;
   } else {
     throw std::runtime_error("Unknown backend.");
   }
 }
 
-}  // namespace kush::compile
+}  // namespace kush::khir
