@@ -10,6 +10,7 @@
 #include "compile/proxy/printer.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/operator_translator.h"
+#include "execution/pipeline.h"
 #include "khir/program_builder.h"
 #include "plan/operator.h"
 #include "plan/operator_visitor.h"
@@ -21,7 +22,8 @@ class TranslatorFactory
     : public util::Visitor<plan::ImmutableOperatorVisitor,
                            const plan::Operator&, OperatorTranslator> {
  public:
-  TranslatorFactory(khir::ProgramBuilder& program);
+  TranslatorFactory(khir::ProgramBuilder& program,
+                    execution::PipelineBuilder& pipeline_builder);
   virtual ~TranslatorFactory() = default;
 
   void Visit(const plan::ScanOperator& scan) override;
@@ -37,6 +39,7 @@ class TranslatorFactory
   std::vector<std::unique_ptr<OperatorTranslator>> GetChildTranslators(
       const plan::Operator& current);
   khir::ProgramBuilder& program_;
+  execution::PipelineBuilder& pipeline_builder_;
 };
 
 }  // namespace kush::compile

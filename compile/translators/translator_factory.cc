@@ -28,8 +28,9 @@ ABSL_FLAG(std::string, skinner, "permute",
 
 namespace kush::compile {
 
-TranslatorFactory::TranslatorFactory(khir::ProgramBuilder& program)
-    : program_(program) {}
+TranslatorFactory::TranslatorFactory(
+    khir::ProgramBuilder& program, execution::PipelineBuilder& pipeline_builder)
+    : program_(program), pipeline_builder_(pipeline_builder) {}
 
 std::vector<std::unique_ptr<OperatorTranslator>>
 TranslatorFactory::GetChildTranslators(const plan::Operator& current) {
@@ -41,8 +42,8 @@ TranslatorFactory::GetChildTranslators(const plan::Operator& current) {
 }
 
 void TranslatorFactory::Visit(const plan::ScanOperator& scan) {
-  this->Return(std::make_unique<ScanTranslator>(scan, program_,
-                                                GetChildTranslators(scan)));
+  this->Return(std::make_unique<ScanTranslator>(
+      scan, program_, pipeline_builder_, GetChildTranslators(scan)));
 }
 
 void TranslatorFactory::Visit(const plan::SelectOperator& select) {

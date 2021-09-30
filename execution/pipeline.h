@@ -12,7 +12,7 @@ class Pipeline {
   void AddPredecessor(std::unique_ptr<Pipeline> pred);
 
   std::vector<std::reference_wrapper<const Pipeline>> Predecessors() const;
-  std::string GetPipelineName() const;
+  std::string Name() const;
 
  private:
   int id_;

@@ -10,9 +10,7 @@ namespace kush::execution {
 
 Pipeline::Pipeline(int id) : id_(id) {}
 
-std::string Pipeline::GetPipelineName() const {
-  return "pipeline" + std::to_string(id_);
-}
+std::string Pipeline::Name() const { return "pipeline" + std::to_string(id_); }
 
 void Pipeline::AddPredecessor(std::unique_ptr<Pipeline> pred) {
   predecessors_.push_back(std::move(pred));

@@ -4,6 +4,7 @@
 
 #include "compile/forward_declare.h"
 #include "compile/translators/translator_factory.h"
+#include "execution/pipeline.h"
 #include "khir/asm/asm_backend.h"
 #include "khir/asm/reg_alloc_impl.h"
 #include "khir/backend.h"
@@ -19,19 +20,14 @@ QueryTranslator::QueryTranslator(const plan::Operator& op) : op_(op) {}
 std::pair<std::unique_ptr<OperatorTranslator>, std::unique_ptr<khir::Program>>
 QueryTranslator::Translate() {
   khir::ProgramBuilder program;
+  execution::PipelineBuilder pipeline_builder;
 
   ForwardDeclare(program);
 
-  // Create the compute function
-  program.CreatePublicFunction(program.VoidType(), {}, "compute");
-
   // Generate code for operator
-  TranslatorFactory factory(program);
+  TranslatorFactory factory(program, pipeline_builder);
   auto translator = factory.Compute(op_);
   translator->Produce();
-
-  // terminate last basic block
-  program.Return();
 
   // khir::ProgramPrinter printer;
   // program.Translate(printer);

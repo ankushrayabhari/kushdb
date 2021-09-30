@@ -10,6 +10,7 @@ cc_library(
         ":forward_declare",
         "//compile/translators:operator_translator",
         "//compile/translators:translator_factory",
+        "//execution:pipeline",
         "//khir:backend",
         "//khir:program",
         "//khir:program_builder",
