@@ -112,6 +112,7 @@ cc_library(
         "//compile/proxy:loop",
         "//compile/proxy:struct",
         "//compile/proxy:value",
+        "//execution:pipeline",
         "//khir:program_builder",
         "//plan:hash_join_operator",
         "//util:vector_util",

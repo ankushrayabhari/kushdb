@@ -74,7 +74,7 @@ void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
 
 void TranslatorFactory::Visit(const plan::HashJoinOperator& hash_join) {
   this->Return(std::make_unique<HashJoinTranslator>(
-      hash_join, program_, GetChildTranslators(hash_join)));
+      hash_join, program_, pipeline_builder_, GetChildTranslators(hash_join)));
 }
 
 void TranslatorFactory::Visit(

@@ -26,6 +26,8 @@ Pipeline& PipelineBuilder::CreatePipeline() {
   return *pipeline_;
 }
 
+Pipeline& PipelineBuilder::GetCurrentPipeline() { return *pipeline_; }
+
 std::unique_ptr<Pipeline> PipelineBuilder::FinishPipeline() {
   auto ret = std::move(pipeline_);
   pipeline_.reset();

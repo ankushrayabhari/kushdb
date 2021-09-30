@@ -85,10 +85,25 @@ HashTable::HashTable(khir::ProgramBuilder& program, StructBuilder& content)
     : program_(program),
       content_(content),
       content_type_(content_.Type()),
-      value_(program_.Alloca(program.GetStructType(HashTableStructName))),
-      hash_ptr_(program_.Alloca(program_.I32Type())),
-      bucket_list_(
-          program_.Alloca(program.GetStructType(BucketListStructName))) {
+      value_(program_.Global(
+          false, true, program.GetStructType(HashTableStructName),
+          program.ConstantStruct(
+              program.GetStructType(HashTableStructName),
+              {
+                  program.ConstI64(0),
+                  program.NullPtr(program.PointerType(program.I8Type())),
+              }))),
+      hash_ptr_(program_.Global(false, true, program_.I32Type(),
+                                program.ConstI32(0))),
+      bucket_list_(program_.Global(
+          false, true, program.GetStructType(BucketListStructName),
+          program.ConstantStruct(
+              program.GetStructType(BucketListStructName),
+              {
+                  program.ConstI32(0),
+                  program.NullPtr(program.PointerType(
+                      program.GetStructType(Vector::VectorStructName))),
+              }))) {
   auto element_size = program_.SizeOf(content_type_);
   program_.Call(program.GetFunction(CreateFnName), {value_, element_size});
 }

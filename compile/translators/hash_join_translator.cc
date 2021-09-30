@@ -10,6 +10,7 @@
 #include "compile/proxy/value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "execution/pipeline.h"
 #include "khir/program_builder.h"
 #include "plan/hash_join_operator.h"
 #include "util/vector_util.h"
@@ -18,10 +19,12 @@ namespace kush::compile {
 
 HashJoinTranslator::HashJoinTranslator(
     const plan::HashJoinOperator& hash_join, khir::ProgramBuilder& program,
+    execution::PipelineBuilder& pipeline_builder,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(hash_join, std::move(children)),
       hash_join_(hash_join),
       program_(program),
+      pipeline_builder_(pipeline_builder),
       expr_translator_(program_, *this) {}
 
 void HashJoinTranslator::Produce() {
@@ -55,8 +58,13 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
 
     auto entry = buffer_->Insert(util::ReferenceVector(key_columns));
     entry.Pack(left_translator.SchemaValues().Values());
+    left_pipeline_ = pipeline_builder_.FinishPipeline();
     return;
   }
+
+  // Register dependency on left pipeline
+  pipeline_builder_.GetCurrentPipeline().AddPredecessor(
+      std::move(left_pipeline_));
 
   // Probe Side
   std::vector<std::unique_ptr<proxy::Value>> key_columns;

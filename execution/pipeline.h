@@ -22,6 +22,7 @@ class Pipeline {
 class PipelineBuilder {
  public:
   Pipeline& CreatePipeline();
+  Pipeline& GetCurrentPipeline();
   std::unique_ptr<Pipeline> FinishPipeline();
 
  private:
