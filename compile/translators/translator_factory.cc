@@ -80,7 +80,8 @@ void TranslatorFactory::Visit(const plan::HashJoinOperator& hash_join) {
 void TranslatorFactory::Visit(
     const plan::GroupByAggregateOperator& group_by_agg) {
   this->Return(std::make_unique<GroupByAggregateTranslator>(
-      group_by_agg, program_, GetChildTranslators(group_by_agg)));
+      group_by_agg, program_, pipeline_builder_,
+      GetChildTranslators(group_by_agg)));
 }
 
 void TranslatorFactory::Visit(const plan::OrderByOperator& order_by) {

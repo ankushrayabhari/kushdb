@@ -213,6 +213,7 @@ cc_library(
         "//compile/proxy:loop",
         "//compile/proxy:struct",
         "//compile/proxy:value",
+        "//execution:pipeline",
         "//khir:program_builder",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",

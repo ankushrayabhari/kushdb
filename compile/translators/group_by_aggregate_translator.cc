@@ -21,11 +21,12 @@ namespace kush::compile {
 
 GroupByAggregateTranslator::GroupByAggregateTranslator(
     const plan::GroupByAggregateOperator& group_by_agg,
-    khir::ProgramBuilder& program,
+    khir::ProgramBuilder& program, execution::PipelineBuilder& pipeline_builder,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(group_by_agg, std::move(children)),
       group_by_agg_(group_by_agg),
       program_(program),
+      pipeline_builder_(pipeline_builder),
       expr_translator_(program, *this) {}
 
 void GroupByAggregateTranslator::Produce() {
@@ -59,6 +60,8 @@ void GroupByAggregateTranslator::Produce() {
   // Populate hash table
   this->Child().Produce();
 
+  auto& pipeline = pipeline_builder_.CreatePipeline();
+  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
   // Loop over elements of HT and output row
   buffer_->ForEach([&](proxy::Struct& packed) {
     auto values = packed.Unpack();
@@ -80,6 +83,7 @@ void GroupByAggregateTranslator::Produce() {
   });
 
   buffer_->Reset();
+  program_.Return();
 }
 
 void CheckEquality(
@@ -105,6 +109,8 @@ void CheckEquality(
 }
 
 void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
+  child_pipeline_ = pipeline_builder_.FinishPipeline();
+
   auto group_by_exprs = group_by_agg_.GroupByExprs();
   auto agg_exprs = group_by_agg_.AggExprs();
 
