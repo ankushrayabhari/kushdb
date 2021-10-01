@@ -59,7 +59,8 @@ void TranslatorFactory::Visit(const plan::OutputOperator& output) {
 void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
   if (FLAGS_skinner.CurrentValue() == "permute") {
     this->Return(std::make_unique<PermutableSkinnerJoinTranslator>(
-        skinner_join, program_, GetChildTranslators(skinner_join)));
+        skinner_join, program_, pipeline_builder_,
+        GetChildTranslators(skinner_join)));
     return;
   }
 
