@@ -31,10 +31,12 @@ namespace kush::compile {
 
 RecompilingSkinnerJoinTranslator::RecompilingSkinnerJoinTranslator(
     const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
+    execution::PipelineBuilder& pipeline_builder,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(join, std::move(children)),
       join_(join),
       program_(program),
+      pipeline_builder_(pipeline_builder),
       expr_translator_(program_, *this),
       cache_(join_.Children().size()) {}
 
@@ -858,6 +860,12 @@ void RecompilingSkinnerJoinTranslator::Produce() {
     child_translator.Produce();
   }
 
+  auto& join_pipeline = pipeline_builder_.CreatePipeline();
+  program_.CreatePublicFunction(program_.VoidType(), {}, join_pipeline.Name());
+  for (auto& pipeline : child_pipelines) {
+    join_pipeline.AddPredecessor(std::move(pipeline));
+  }
+
   // 2. Setup join evaluation
   // Setup global hash table that contains tuple idx
   proxy::TupleIdxTable tuple_idx_table(program_, true);
@@ -949,6 +957,14 @@ void RecompilingSkinnerJoinTranslator::Produce() {
                              materialized_index_array, {0, 0}),
       tuple_idx_table.Get());
 
+  program_.Return();
+
+  auto join_pipeline_obj = pipeline_builder_.FinishPipeline();
+  auto& output_pipeline = pipeline_builder_.CreatePipeline();
+  program_.CreatePublicFunction(program_.VoidType(), {},
+                                output_pipeline.Name());
+  output_pipeline.AddPredecessor(std::move(join_pipeline_obj));
+
   // 4. Output Tuples.
   // Loop over tuple idx table and then output tuples from each table.
   tuple_idx_table.ForEach([&](const auto& tuple_idx_arr) {
@@ -977,9 +993,13 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       parent->get().Consume(*this);
     }
   });
+  tuple_idx_table.Reset();
+  program_.Return();
 }
 
 void RecompilingSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
+  child_pipelines.push_back(pipeline_builder_.FinishPipeline());
+
   auto values = src.SchemaValues().Values();
   auto& buffer = buffers_[child_idx_];
   auto tuple_idx = buffer.Size();

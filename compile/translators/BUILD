@@ -164,6 +164,7 @@ cc_library(
         "//compile/proxy:tuple_idx_table",
         "//compile/proxy:value",
         "//compile/proxy:vector",
+        "//execution:pipeline",
         "//khir:backend",
         "//khir:compilation_cache",
         "//khir:program_builder",
