@@ -765,6 +765,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
 }
 
 void RecompilingSkinnerJoinTranslator::Produce() {
+  auto output_pipeline_func = program_.CurrentBlock();
+
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
   auto conditions = join_.Conditions();
@@ -788,9 +790,12 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   }
   predicate_columns_ = total_collector.PredicateColumns();
 
+  std::vector<std::unique_ptr<execution::Pipeline>> child_pipelines;
   // 1. Materialize each child.
   std::vector<std::unique_ptr<proxy::StructBuilder>> structs;
   for (int i = 0; i < child_translators.size(); i++) {
+    auto& pipeline = pipeline_builder_.CreatePipeline();
+    program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
     auto& child_translator = child_translators[i].get();
     auto& child_operator = child_operators[i].get();
 
@@ -858,6 +863,8 @@ void RecompilingSkinnerJoinTranslator::Produce() {
     // Fill buffer/indexes
     child_idx_ = i;
     child_translator.Produce();
+    program_.Return();
+    child_pipelines.push_back(pipeline_builder_.FinishPipeline());
   }
 
   auto& join_pipeline = pipeline_builder_.CreatePipeline();
@@ -958,12 +965,11 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       tuple_idx_table.Get());
 
   program_.Return();
-
   auto join_pipeline_obj = pipeline_builder_.FinishPipeline();
-  auto& output_pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {},
-                                output_pipeline.Name());
+
+  auto& output_pipeline = pipeline_builder_.GetCurrentPipeline();
   output_pipeline.AddPredecessor(std::move(join_pipeline_obj));
+  program_.SetCurrentBlock(output_pipeline_func);
 
   // 4. Output Tuples.
   // Loop over tuple idx table and then output tuples from each table.
@@ -994,12 +1000,9 @@ void RecompilingSkinnerJoinTranslator::Produce() {
     }
   });
   tuple_idx_table.Reset();
-  program_.Return();
 }
 
 void RecompilingSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
-  child_pipelines.push_back(pipeline_builder_.FinishPipeline());
-
   auto values = src.SchemaValues().Values();
   auto& buffer = buffers_[child_idx_];
   auto tuple_idx = buffer.Size();

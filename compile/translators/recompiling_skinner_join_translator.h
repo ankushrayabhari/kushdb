@@ -63,7 +63,6 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   absl::flat_hash_map<std::pair<int, int>, int> predicate_to_index_idx_;
   int child_idx_ = -1;
   khir::CompilationCache cache_;
-  std::vector<std::unique_ptr<execution::Pipeline>> child_pipelines;
 };
 
 }  // namespace kush::compile

@@ -67,5 +67,6 @@ cc_library(
     hdrs = ["time_execute.h"],
     deps = [
         "//compile:query_translator",
+        "//execution:executable_query",
     ],
 )

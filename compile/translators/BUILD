@@ -59,7 +59,6 @@ cc_library(
         "//catalog:sql_type",
         "//compile/proxy:column_data",
         "//compile/proxy:loop",
-        "//execution:pipeline",
         "//khir:program_builder",
         "//plan:scan_operator",
     ],
@@ -72,6 +71,7 @@ cc_library(
     deps = [
         ":operator_translator",
         "//compile/proxy:printer_impl",
+        "//execution:pipeline",
         "//khir:program_builder",
         "//plan:output_operator",
     ],
@@ -194,6 +194,7 @@ cc_library(
         "//compile/proxy:tuple_idx_table",
         "//compile/proxy:value",
         "//compile/proxy:vector",
+        "//execution:pipeline",
         "//khir:program_builder",
         "//plan:skinner_join_operator",
         "//util:vector_util",

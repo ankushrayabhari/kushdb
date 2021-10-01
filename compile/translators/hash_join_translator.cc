@@ -28,6 +28,10 @@ HashJoinTranslator::HashJoinTranslator(
       expr_translator_(program_, *this) {}
 
 void HashJoinTranslator::Produce() {
+  auto output_pipeline_func = program_.CurrentBlock();
+
+  auto& pipeline = pipeline_builder_.CreatePipeline();
+  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
   // Struct for all columns in the left tuple
   proxy::StructBuilder packed(program_);
   const auto& child_schema = hash_join_.LeftChild().Schema().Columns();
@@ -39,8 +43,15 @@ void HashJoinTranslator::Produce() {
   buffer_ = std::make_unique<proxy::HashTable>(program_, packed);
 
   this->LeftChild().Produce();
-  this->RightChild().Produce();
 
+  program_.Return();
+  auto child_pipeline = pipeline_builder_.FinishPipeline();
+  pipeline_builder_.GetCurrentPipeline().AddPredecessor(
+      std::move(child_pipeline));
+
+  // Loop over elements of HT and output row
+  program_.SetCurrentBlock(output_pipeline_func);
+  this->RightChild().Produce();
   buffer_->Reset();
 }
 
@@ -58,13 +69,8 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
 
     auto entry = buffer_->Insert(util::ReferenceVector(key_columns));
     entry.Pack(left_translator.SchemaValues().Values());
-    left_pipeline_ = pipeline_builder_.FinishPipeline();
     return;
   }
-
-  // Register dependency on left pipeline
-  pipeline_builder_.GetCurrentPipeline().AddPredecessor(
-      std::move(left_pipeline_));
 
   // Probe Side
   std::vector<std::unique_ptr<proxy::Value>> key_columns;

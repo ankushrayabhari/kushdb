@@ -19,18 +19,13 @@ namespace kush::compile {
 
 ScanTranslator::ScanTranslator(
     const plan::ScanOperator& scan, khir::ProgramBuilder& program,
-    execution::PipelineBuilder& pipeline_builder,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(scan, std::move(children)),
       scan_(scan),
-      program_(program),
-      pipeline_builder_(pipeline_builder) {}
+      program_(program) {}
 
 void ScanTranslator::Produce() {
   const auto& table = scan_.Relation();
-
-  auto& pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
 
   std::vector<std::unique_ptr<proxy::Iterable>> column_data_vars;
 
@@ -102,8 +97,6 @@ void ScanTranslator::Produce() {
   for (auto& col : column_data_vars) {
     col->Reset();
   }
-
-  program_.Return();
 }
 
 void ScanTranslator::Consume(OperatorTranslator& src) {

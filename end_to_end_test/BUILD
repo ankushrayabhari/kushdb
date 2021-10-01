@@ -49,6 +49,7 @@ cc_library(
     hdrs = ["execute_capture.h"],
     deps = [
         "//compile:query_translator",
+        "//execution:executable_query",
     ],
 )
 

@@ -4,6 +4,7 @@
 
 #include "catalog/catalog.h"
 #include "compile/translators/operator_translator.h"
+#include "execution/executable_query.h"
 #include "khir/program.h"
 #include "plan/operator.h"
 
@@ -12,8 +13,7 @@ namespace kush::compile {
 class QueryTranslator {
  public:
   QueryTranslator(const plan::Operator& op);
-  std::pair<std::unique_ptr<OperatorTranslator>, std::unique_ptr<khir::Program>>
-  Translate();
+  execution::ExecutableQuery Translate();
 
  private:
   const plan::Operator& op_;

@@ -2,6 +2,7 @@
 
 #include "compile/proxy/printer.h"
 #include "compile/translators/operator_translator.h"
+#include "execution/pipeline.h"
 #include "khir/program_builder.h"
 #include "plan/output_operator.h"
 
@@ -11,6 +12,7 @@ class OutputTranslator : public OperatorTranslator {
  public:
   OutputTranslator(const plan::OutputOperator& output,
                    khir::ProgramBuilder& program,
+                   execution::PipelineBuilder& pipeline_builder,
                    std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~OutputTranslator() = default;
 
@@ -19,6 +21,7 @@ class OutputTranslator : public OperatorTranslator {
 
  private:
   khir::ProgramBuilder& program_;
+  execution::PipelineBuilder& pipeline_builder_;
 };
 
 }  // namespace kush::compile

@@ -34,7 +34,6 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   ExpressionTranslator expr_translator_;
   std::unique_ptr<proxy::HashTable> buffer_;
   khir::Value found_;
-  std::unique_ptr<execution::Pipeline> child_pipeline_;
 };
 
 }  // namespace kush::compile

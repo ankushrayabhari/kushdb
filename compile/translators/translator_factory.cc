@@ -42,8 +42,8 @@ TranslatorFactory::GetChildTranslators(const plan::Operator& current) {
 }
 
 void TranslatorFactory::Visit(const plan::ScanOperator& scan) {
-  this->Return(std::make_unique<ScanTranslator>(
-      scan, program_, pipeline_builder_, GetChildTranslators(scan)));
+  this->Return(std::make_unique<ScanTranslator>(scan, program_,
+                                                GetChildTranslators(scan)));
 }
 
 void TranslatorFactory::Visit(const plan::SelectOperator& select) {
@@ -52,8 +52,8 @@ void TranslatorFactory::Visit(const plan::SelectOperator& select) {
 }
 
 void TranslatorFactory::Visit(const plan::OutputOperator& output) {
-  this->Return(std::make_unique<OutputTranslator>(output, program_,
-                                                  GetChildTranslators(output)));
+  this->Return(std::make_unique<OutputTranslator>(
+      output, program_, pipeline_builder_, GetChildTranslators(output)));
 }
 
 void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {

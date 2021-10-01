@@ -32,6 +32,10 @@ OrderByTranslator::OrderByTranslator(
       expr_translator_(program, *this) {}
 
 void OrderByTranslator::Produce() {
+  auto output_pipeline_func = program_.CurrentBlock();
+
+  auto& child_pipeline = pipeline_builder_.CreatePipeline();
+  program_.CreatePublicFunction(program_.VoidType(), {}, child_pipeline.Name());
   // include every child column inside the struct
   proxy::StructBuilder packed(program_);
   const auto& child_schema = order_by_.Child().Schema().Columns();
@@ -46,10 +50,12 @@ void OrderByTranslator::Produce() {
   // populate vector
   this->Child().Produce();
 
-  auto& pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
-  pipeline.AddPredecessor(std::move(child_pipeline_));
+  program_.Return();
+  auto child_pipeline_finished = pipeline_builder_.FinishPipeline();
 
+  auto& sort_pipeline = pipeline_builder_.CreatePipeline();
+  sort_pipeline.AddPredecessor(std::move(child_pipeline_finished));
+  program_.CreatePublicFunction(program_.VoidType(), {}, sort_pipeline.Name());
   // sort
   proxy::ComparisonFunction comp_fn(
       program_, packed,
@@ -96,12 +102,11 @@ void OrderByTranslator::Produce() {
   buffer_->Sort(comp_fn.Get());
   program_.Return();
 
-  auto sort_pipeline = pipeline_builder_.FinishPipeline();
-  auto& output_pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {},
-                                output_pipeline.Name());
-  output_pipeline.AddPredecessor(std::move(sort_pipeline));
-
+  auto sort_pipeline_finished = pipeline_builder_.FinishPipeline();
+  pipeline_builder_.GetCurrentPipeline().AddPredecessor(
+      std::move(sort_pipeline_finished));
+  program_.SetCurrentBlock(output_pipeline_func);
+  // Loop over elements of HT and output row
   proxy::Loop(
       program_,
       [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
@@ -127,11 +132,9 @@ void OrderByTranslator::Produce() {
       });
 
   buffer_->Reset();
-  program_.Return();
 }
 
 void OrderByTranslator::Consume(OperatorTranslator& src) {
-  child_pipeline_ = pipeline_builder_.FinishPipeline();
   buffer_->PushBack().Pack(this->Child().SchemaValues().Values());
 }
 

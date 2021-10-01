@@ -29,7 +29,6 @@ class HashJoinTranslator : public OperatorTranslator {
   execution::PipelineBuilder& pipeline_builder_;
   ExpressionTranslator expr_translator_;
   std::unique_ptr<proxy::HashTable> buffer_;
-  std::unique_ptr<execution::Pipeline> left_pipeline_;
 };
 
 }  // namespace kush::compile

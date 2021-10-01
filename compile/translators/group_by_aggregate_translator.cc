@@ -30,6 +30,10 @@ GroupByAggregateTranslator::GroupByAggregateTranslator(
       expr_translator_(program, *this) {}
 
 void GroupByAggregateTranslator::Produce() {
+  auto output_pipeline_func = program_.CurrentBlock();
+
+  auto& pipeline = pipeline_builder_.CreatePipeline();
+  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
   auto group_by_exprs = group_by_agg_.GroupByExprs();
   auto agg_exprs = group_by_agg_.AggExprs();
 
@@ -60,11 +64,14 @@ void GroupByAggregateTranslator::Produce() {
   // Populate hash table
   this->Child().Produce();
 
-  auto& pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
-  pipeline.AddPredecessor(std::move(child_pipeline_));
+  // Finish pipeline
+  program_.Return();
+  auto child_pipeline = pipeline_builder_.FinishPipeline();
+  pipeline_builder_.GetCurrentPipeline().AddPredecessor(
+      std::move(child_pipeline));
 
   // Loop over elements of HT and output row
+  program_.SetCurrentBlock(output_pipeline_func);
   buffer_->ForEach([&](proxy::Struct& packed) {
     auto values = packed.Unpack();
 
@@ -83,9 +90,7 @@ void GroupByAggregateTranslator::Produce() {
       parent->get().Consume(*this);
     }
   });
-
   buffer_->Reset();
-  program_.Return();
 }
 
 void CheckEquality(
@@ -111,8 +116,6 @@ void CheckEquality(
 }
 
 void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
-  child_pipeline_ = pipeline_builder_.FinishPipeline();
-
   auto group_by_exprs = group_by_agg_.GroupByExprs();
   auto agg_exprs = group_by_agg_.AggExprs();
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <stack>
 #include <string>
 #include <vector>
 
@@ -26,7 +27,7 @@ class PipelineBuilder {
   std::unique_ptr<Pipeline> FinishPipeline();
 
  private:
-  std::unique_ptr<Pipeline> pipeline_;
+  std::stack<std::unique_ptr<Pipeline>> pipelines_;
   int id_;
 };
 

@@ -22,15 +22,15 @@ std::vector<std::reference_wrapper<const Pipeline>> Pipeline::Predecessors()
 }
 
 Pipeline& PipelineBuilder::CreatePipeline() {
-  pipeline_ = std::make_unique<Pipeline>(id_++);
-  return *pipeline_;
+  pipelines_.push(std::make_unique<Pipeline>(id_++));
+  return *pipelines_.top();
 }
 
-Pipeline& PipelineBuilder::GetCurrentPipeline() { return *pipeline_; }
+Pipeline& PipelineBuilder::GetCurrentPipeline() { return *pipelines_.top(); }
 
 std::unique_ptr<Pipeline> PipelineBuilder::FinishPipeline() {
-  auto ret = std::move(pipeline_);
-  pipeline_.reset();
+  auto ret = std::move(pipelines_.top());
+  pipelines_.pop();
   return ret;
 }
 

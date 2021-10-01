@@ -17,8 +17,7 @@ namespace kush::compile {
 
 QueryTranslator::QueryTranslator(const plan::Operator& op) : op_(op) {}
 
-std::pair<std::unique_ptr<OperatorTranslator>, std::unique_ptr<khir::Program>>
-QueryTranslator::Translate() {
+execution::ExecutableQuery QueryTranslator::Translate() {
   khir::ProgramBuilder program;
   execution::PipelineBuilder pipeline_builder;
 
@@ -29,6 +28,8 @@ QueryTranslator::Translate() {
   auto translator = factory.Compute(op_);
   translator->Produce();
 
+  auto output_pipeline = pipeline_builder.FinishPipeline();
+
   // khir::ProgramPrinter printer;
   // program.Translate(printer);
 
@@ -37,13 +38,17 @@ QueryTranslator::Translate() {
       auto backend =
           std::make_unique<khir::ASMBackend>(khir::GetRegAllocImpl());
       program.Translate(*backend);
-      return {std::move(translator), std::move(backend)};
+      return execution::ExecutableQuery(std::move(translator),
+                                        std::move(backend),
+                                        std::move(output_pipeline));
     }
 
     case khir::BackendType::LLVM: {
       auto backend = std::make_unique<khir::LLVMBackend>();
       program.Translate(*backend);
-      return {std::move(translator), std::move(backend)};
+      return execution::ExecutableQuery(std::move(translator),
+                                        std::move(backend),
+                                        std::move(output_pipeline));
     }
   }
 }
