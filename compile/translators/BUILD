@@ -235,6 +235,7 @@ cc_library(
         "//compile/proxy:int",
         "//compile/proxy:loop",
         "//compile/proxy:vector",
+        "//execution:pipeline",
         "//khir:program_builder",
         "//plan:order_by_operator",
         "//util:vector_util",

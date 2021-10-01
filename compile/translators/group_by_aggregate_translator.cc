@@ -62,6 +62,8 @@ void GroupByAggregateTranslator::Produce() {
 
   auto& pipeline = pipeline_builder_.CreatePipeline();
   program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
+  pipeline.AddPredecessor(std::move(child_pipeline_));
+
   // Loop over elements of HT and output row
   buffer_->ForEach([&](proxy::Struct& packed) {
     auto values = packed.Unpack();

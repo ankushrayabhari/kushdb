@@ -86,7 +86,7 @@ void TranslatorFactory::Visit(
 
 void TranslatorFactory::Visit(const plan::OrderByOperator& order_by) {
   this->Return(std::make_unique<OrderByTranslator>(
-      order_by, program_, GetChildTranslators(order_by)));
+      order_by, program_, pipeline_builder_, GetChildTranslators(order_by)));
 }
 
 void TranslatorFactory::Visit(const plan::CrossProductOperator& cross_product) {

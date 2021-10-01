@@ -23,10 +23,12 @@ namespace kush::compile {
 
 OrderByTranslator::OrderByTranslator(
     const plan::OrderByOperator& order_by, khir::ProgramBuilder& program,
+    execution::PipelineBuilder& pipeline_builder,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(order_by, std::move(children)),
       order_by_(order_by),
       program_(program),
+      pipeline_builder_(pipeline_builder),
       expr_translator_(program, *this) {}
 
 void OrderByTranslator::Produce() {
@@ -43,6 +45,10 @@ void OrderByTranslator::Produce() {
 
   // populate vector
   this->Child().Produce();
+
+  auto& pipeline = pipeline_builder_.CreatePipeline();
+  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
+  pipeline.AddPredecessor(std::move(child_pipeline_));
 
   // sort
   proxy::ComparisonFunction comp_fn(
@@ -88,6 +94,13 @@ void OrderByTranslator::Produce() {
       });
 
   buffer_->Sort(comp_fn.Get());
+  program_.Return();
+
+  auto sort_pipeline = pipeline_builder_.FinishPipeline();
+  auto& output_pipeline = pipeline_builder_.CreatePipeline();
+  program_.CreatePublicFunction(program_.VoidType(), {},
+                                output_pipeline.Name());
+  output_pipeline.AddPredecessor(std::move(sort_pipeline));
 
   proxy::Loop(
       program_,
@@ -114,9 +127,11 @@ void OrderByTranslator::Produce() {
       });
 
   buffer_->Reset();
+  program_.Return();
 }
 
 void OrderByTranslator::Consume(OperatorTranslator& src) {
+  child_pipeline_ = pipeline_builder_.FinishPipeline();
   buffer_->PushBack().Pack(this->Child().SchemaValues().Values());
 }
 
