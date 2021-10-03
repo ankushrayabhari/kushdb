@@ -8,8 +8,13 @@ user.bazelrc
 # Misc
 /db
 
+# Profiling
+/perf-*
+
 # TPCH Data
 /tpch/data*
 /tpch/raw*
-/tpch/results
-perf-*
+
+# JOB Data
+/job/data*
+/job/raw*
