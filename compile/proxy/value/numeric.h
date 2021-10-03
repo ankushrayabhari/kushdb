@@ -2,10 +2,12 @@
 
 #include <memory>
 
-#include "compile/proxy/value.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
+
+class Value;
+class Float64;
 
 template <typename V>
 std::unique_ptr<Value> EvaluateBinaryNumeric(

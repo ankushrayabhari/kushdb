@@ -1,8 +1,7 @@
-#include "compile/proxy/string.h"
-
-#include "compile/proxy/bool.h"
-#include "khir/program_builder.h"
 #include "runtime/string.h"
+
+#include "compile/proxy/value/value.h"
+#include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
 
@@ -102,8 +101,9 @@ std::unique_ptr<Value> String::EvaluateBinary(
 
 void String::Print(proxy::Printer& printer) { printer.Print(*this); }
 
-khir::Value String::Hash() {
-  return program_.Call(program_.GetFunction(HashFnName), {value_});
+proxy::Int64 String::Hash() const {
+  return proxy::Int64(
+      program_, program_.Call(program_.GetFunction(HashFnName), {value_}));
 }
 
 khir::Value String::Get() const { return value_; }

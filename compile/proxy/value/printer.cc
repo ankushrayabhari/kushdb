@@ -1,11 +1,7 @@
-#include "compile/proxy/printer.h"
-
-#include "compile/proxy/bool.h"
-#include "compile/proxy/float.h"
-#include "compile/proxy/int.h"
-#include "compile/proxy/string.h"
-#include "khir/program_builder.h"
 #include "runtime/printer.h"
+
+#include "compile/proxy/value/value.h"
+#include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
 

@@ -1,8 +1,6 @@
-#include "compile/proxy/bool.h"
-
 #include <memory>
 
-#include "compile/proxy/value.h"
+#include "compile/proxy/value/value.h"
 #include "khir/program_builder.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
@@ -48,6 +46,8 @@ std::unique_ptr<Value> Bool::EvaluateBinary(
 
 void Bool::Print(proxy::Printer& printer) { printer.Print(*this); }
 
-khir::Value Bool::Hash() { return program_.I64ZextI1(value_); }
+proxy::Int64 Bool::Hash() const {
+  return proxy::Int64(program_, program_.I64ZextI1(value_));
+}
 
 }  // namespace kush::compile::proxy

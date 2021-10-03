@@ -1,9 +1,5 @@
-#include "compile/proxy/float.h"
-
-#include "compile/proxy/bool.h"
-#include "compile/proxy/int.h"
-#include "compile/proxy/numeric.h"
-#include "compile/proxy/value.h"
+#include "compile/proxy/value/numeric.h"
+#include "compile/proxy/value/value.h"
 #include "khir/program_builder.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 
@@ -132,6 +128,8 @@ std::unique_ptr<Value> Float64::EvaluateBinary(
 
 void Float64::Print(proxy::Printer& printer) { printer.Print(*this); }
 
-khir::Value Float64::Hash() { return program_.I64ConvF64(value_); }
+proxy::Int64 Float64::Hash() const {
+  return proxy::Int64(program_, program_.I64ConvF64(value_));
+}
 
 }  // namespace kush::compile::proxy
