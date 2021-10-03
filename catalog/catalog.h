@@ -14,14 +14,19 @@ namespace kush::catalog {
 class Column {
  public:
   Column(std::string_view name, SqlType type, std::string_view path);
+  Column(std::string_view name, SqlType type, std::string_view path,
+         std::string_view null_path);
   std::string_view Name() const;
   SqlType Type() const;
   std::string_view Path() const;
+  std::string_view NullPath() const;
+  bool Nullable() const;
 
  private:
   const std::string name_;
   const SqlType type_;
   const std::string path_;
+  const std::string null_path_;
 };
 
 class Table {
@@ -30,6 +35,8 @@ class Table {
 
   std::string_view Name() const;
   Column& Insert(std::string_view attr, SqlType type, std::string_view path);
+  Column& Insert(std::string_view attr, SqlType type, std::string_view path,
+                 std::string_view null_path);
   const Column& operator[](std::string_view attr) const;
   std::vector<std::reference_wrapper<const Column>> Columns() const;
 

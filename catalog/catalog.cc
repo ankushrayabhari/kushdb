@@ -10,13 +10,27 @@ namespace kush::catalog {
 Column::Column(std::string_view n, SqlType t, std::string_view p)
     : name_(n), type_(t), path_(p) {}
 
+Column::Column(std::string_view n, SqlType t, std::string_view p,
+               std::string_view np)
+    : name_(n), type_(t), path_(p), null_path_(np) {}
+
 std::string_view Column::Name() const { return name_; }
 
 SqlType Column::Type() const { return type_; }
 
 std::string_view Column::Path() const { return path_; }
 
+std::string_view Column::NullPath() const { return null_path_; }
+
+bool Column::Nullable() const { return !null_path_.empty(); }
+
 Table::Table(std::string_view name) : name_(name) {}
+
+Column& Table::Insert(std::string_view attr, SqlType type,
+                      std::string_view path, std::string_view null_path) {
+  name_to_col_.insert({std::string(attr), Column(attr, type, path, null_path)});
+  return name_to_col_.at(attr);
+}
 
 Column& Table::Insert(std::string_view attr, SqlType type,
                       std::string_view path) {
