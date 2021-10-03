@@ -29,8 +29,8 @@ class Vector {
  private:
   khir::ProgramBuilder& program_;
   StructBuilder& content_;
-  typename khir::Type content_type_;
-  typename khir::Value value_;
+  khir::Type content_type_;
+  khir::Value value_;
 };
 
 }  // namespace kush::compile::proxy

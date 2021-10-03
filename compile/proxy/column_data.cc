@@ -227,7 +227,7 @@ std::unique_ptr<Value> ColumnData<S>::operator[](Int32& idx) {
 
 template <catalog::SqlType S>
 void ColumnData<S>::ForwardDeclare(khir::ProgramBuilder& program) {
-  std::optional<typename khir::Type> elem_type;
+  std::optional<khir::Type> elem_type;
 
   // Initialize all the mangled names and the corresponding data type
   if constexpr (catalog::SqlType::SMALLINT == S) {

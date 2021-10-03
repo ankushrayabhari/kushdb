@@ -257,7 +257,7 @@ IndexBucket ColumnIndexImpl<S>::GetBucket(const proxy::Value& v) {
 
 template <catalog::SqlType S>
 void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
-  std::optional<typename khir::Type> index_type;
+  std::optional<khir::Type> index_type;
   if constexpr (catalog::SqlType::DATE == S) {
     index_type = program.GetOpaqueType(TypeName());
   } else {
@@ -265,7 +265,7 @@ void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   }
   auto index_ptr_type = program.PointerType(index_type.value());
 
-  std::optional<typename khir::Type> bucket_type;
+  std::optional<khir::Type> bucket_type;
   if constexpr (catalog::SqlType::SMALLINT == S) {
     bucket_type = program.OpaqueType(bucket_type_name);
   } else {
@@ -273,7 +273,7 @@ void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   }
   auto bucket_ptr_type = program.PointerType(bucket_type.value());
 
-  std::optional<typename khir::Type> value_type;
+  std::optional<khir::Type> value_type;
   if constexpr (catalog::SqlType::SMALLINT == S) {
     value_type = program.I16Type();
   } else if constexpr (catalog::SqlType::INT == S) {

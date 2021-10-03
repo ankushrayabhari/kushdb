@@ -10,12 +10,12 @@ class Value {
  public:
   virtual ~Value() = default;
 
-  virtual typename khir::Value Get() const = 0;
+  virtual khir::Value Get() const = 0;
 
   virtual std::unique_ptr<Value> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type, Value& rhs) = 0;
   virtual void Print(proxy::Printer& printer) = 0;
-  virtual typename khir::Value Hash() = 0;
+  virtual khir::Value Hash() = 0;
 };
 
 }  // namespace kush::compile::proxy
