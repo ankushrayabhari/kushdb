@@ -22,56 +22,57 @@ constexpr std::string_view HashFnName("kush::runtime::String::Hash");
 String::String(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-void String::Copy(const String& rhs) {
+void String::Copy(const String& rhs) const {
   program_.Call(program_.GetFunction(CopyFnName), {value_, rhs.Get()});
 }
 
-void String::Reset() {
+void String::Reset() const {
   program_.Call(program_.GetFunction(FreeFnName), {value_});
 }
 
-Bool String::Contains(const String& rhs) {
+Bool String::Contains(const String& rhs) const {
   return Bool(program_, program_.Call(program_.GetFunction(ContainsFnName),
                                       {value_, rhs.Get()}));
 }
 
-Bool String::StartsWith(const String& rhs) {
+Bool String::StartsWith(const String& rhs) const {
   return Bool(program_, program_.Call(program_.GetFunction(StartsWithFnName),
                                       {value_, rhs.Get()}));
 }
 
-Bool String::EndsWith(const String& rhs) {
+Bool String::EndsWith(const String& rhs) const {
   return Bool(program_, program_.Call(program_.GetFunction(EndsWithFnName),
                                       {value_, rhs.Get()}));
 }
 
-Bool String::Like(const String& rhs) {
+Bool String::Like(const String& rhs) const {
   return Bool(program_, program_.Call(program_.GetFunction(LikeFnName),
                                       {value_, rhs.Get()}));
 }
 
-Bool String::operator==(const String& rhs) {
+Bool String::operator==(const String& rhs) const {
   return Bool(program_, program_.Call(program_.GetFunction(EqualsFnName),
                                       {value_, rhs.Get()}));
 }
 
-Bool String::operator!=(const String& rhs) {
+Bool String::operator!=(const String& rhs) const {
   return Bool(program_, program_.Call(program_.GetFunction(NotEqualsFnName),
                                       {value_, rhs.Get()}));
 }
 
-Bool String::operator<(const String& rhs) {
+Bool String::operator<(const String& rhs) const {
   return Bool(program_, program_.Call(program_.GetFunction(LessThanFnName),
                                       {value_, rhs.Get()}));
 }
 
-std::unique_ptr<String> String::ToPointer() {
+std::unique_ptr<String> String::ToPointer() const {
   return std::make_unique<String>(program_, value_);
 }
 
 std::unique_ptr<Value> String::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, Value& rhs_generic) {
-  String& rhs = dynamic_cast<String&>(rhs_generic);
+    plan::BinaryArithmeticOperatorType op_type,
+    const Value& rhs_generic) const {
+  const String& rhs = dynamic_cast<const String&>(rhs_generic);
   switch (op_type) {
     case plan::BinaryArithmeticOperatorType::STARTS_WITH:
       return StartsWith(rhs).ToPointer();
@@ -99,7 +100,7 @@ std::unique_ptr<Value> String::EvaluateBinary(
   }
 }
 
-void String::Print(proxy::Printer& printer) { printer.Print(*this); }
+void String::Print(proxy::Printer& printer) const { printer.Print(*this); }
 
 proxy::Int64 String::Hash() const {
   return proxy::Int64(

@@ -14,23 +14,23 @@ Bool::Bool(khir::ProgramBuilder& program, bool value)
 
 khir::Value Bool::Get() const { return value_; }
 
-Bool Bool::operator!() { return Bool(program_, program_.LNotI1(value_)); }
+Bool Bool::operator!() const { return Bool(program_, program_.LNotI1(value_)); }
 
-Bool Bool::operator==(const Bool& rhs) {
+Bool Bool::operator==(const Bool& rhs) const {
   return Bool(program_, program_.CmpI1(khir::CompType::EQ, value_, rhs.value_));
 }
 
-Bool Bool::operator!=(const Bool& rhs) {
+Bool Bool::operator!=(const Bool& rhs) const {
   return Bool(program_, program_.CmpI1(khir::CompType::NE, value_, rhs.value_));
 }
 
-std::unique_ptr<Bool> Bool::ToPointer() {
+std::unique_ptr<Bool> Bool::ToPointer() const {
   return std::make_unique<Bool>(program_, value_);
 }
 
 std::unique_ptr<Value> Bool::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, Value& rhs) {
-  Bool& rhs_bool = dynamic_cast<Bool&>(rhs);
+    plan::BinaryArithmeticOperatorType op_type, const Value& rhs) const {
+  const Bool& rhs_bool = dynamic_cast<const Bool&>(rhs);
 
   switch (op_type) {
     case plan::BinaryArithmeticOperatorType::EQ:
@@ -44,7 +44,7 @@ std::unique_ptr<Value> Bool::EvaluateBinary(
   }
 }
 
-void Bool::Print(proxy::Printer& printer) { printer.Print(*this); }
+void Bool::Print(proxy::Printer& printer) const { printer.Print(*this); }
 
 proxy::Int64 Bool::Hash() const {
   return proxy::Int64(program_, program_.I64ZextI1(value_));

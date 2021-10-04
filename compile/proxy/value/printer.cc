@@ -18,35 +18,35 @@ constexpr std::string_view string_fn_name(
 
 Printer::Printer(khir::ProgramBuilder& program) : program_(program) {}
 
-void Printer::Print(const Int8& t) {
+void Printer::Print(const Int8& t) const {
   program_.Call(program_.GetFunction(i8_fn_name), {t.Get()});
 }
 
-void Printer::Print(const Bool& t) {
+void Printer::Print(const Bool& t) const {
   program_.Call(program_.GetFunction(i1_fn_name), {t.Get()});
 }
 
-void Printer::Print(const Int16& t) {
+void Printer::Print(const Int16& t) const {
   program_.Call(program_.GetFunction(i16_fn_name), {t.Get()});
 }
 
-void Printer::Print(const Int32& t) {
+void Printer::Print(const Int32& t) const {
   program_.Call(program_.GetFunction(i32_fn_name), {t.Get()});
 }
 
-void Printer::Print(const Int64& t) {
+void Printer::Print(const Int64& t) const {
   program_.Call(program_.GetFunction(i64_fn_name), {t.Get()});
 }
 
-void Printer::Print(const Float64& t) {
+void Printer::Print(const Float64& t) const {
   program_.Call(program_.GetFunction(f64_fn_name), {t.Get()});
 }
 
-void Printer::Print(const String& t) {
+void Printer::Print(const String& t) const {
   program_.Call(program_.GetFunction(string_fn_name), {t.Get()});
 }
 
-void Printer::PrintNewline() {
+void Printer::PrintNewline() const {
   program_.Call(program_.GetFunction(newline_fn_name), {});
 }
 

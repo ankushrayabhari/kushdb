@@ -11,8 +11,9 @@ class Float64;
 
 template <typename V>
 std::unique_ptr<Value> EvaluateBinaryNumeric(
-    plan::BinaryArithmeticOperatorType op_type, V& lhs, Value& rhs_generic) {
-  V& rhs = dynamic_cast<V&>(rhs_generic);
+    plan::BinaryArithmeticOperatorType op_type, const V& lhs,
+    const Value& rhs_generic) {
+  const V& rhs = dynamic_cast<const V&>(rhs_generic);
 
   switch (op_type) {
     case plan::BinaryArithmeticOperatorType::ADD:

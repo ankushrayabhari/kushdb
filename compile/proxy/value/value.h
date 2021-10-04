@@ -14,15 +14,13 @@ class Value {
  public:
   virtual ~Value() = default;
 
+  virtual Int64 Hash() const = 0;
+  virtual khir::Value Get() const = 0;
   virtual bool IsNullable() const = 0;
   virtual Bool GetNullableValue() const = 0;
-  virtual Int64 Hash() const = 0;
-
-  virtual void Print(Printer& printer) = 0;
-
-  virtual khir::Value Get() const = 0;
+  virtual void Print(Printer& printer) const = 0;
   virtual std::unique_ptr<Value> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, Value& rhs) = 0;
+      plan::BinaryArithmeticOperatorType op_type, const Value& rhs) const = 0;
 };
 
 class Bool : public Value {
@@ -30,19 +28,19 @@ class Bool : public Value {
   Bool(khir::ProgramBuilder& program, const khir::Value& value);
   Bool(khir::ProgramBuilder& program, bool value);
 
-  Bool operator!();
-  Bool operator==(const Bool& rhs);
-  Bool operator!=(const Bool& rhs);
+  Bool operator!() const;
+  Bool operator==(const Bool& rhs) const;
+  Bool operator!=(const Bool& rhs) const;
 
   Int64 Hash() const override;
   khir::Value Get() const override;
   bool IsNullable() const override;
   Bool GetNullableValue() const override;
-
-  std::unique_ptr<Bool> ToPointer();
+  void Print(Printer& printer) const override;
   std::unique_ptr<Value> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, Value& rhs) override;
-  void Print(Printer& printer) override;
+      plan::BinaryArithmeticOperatorType op_type,
+      const Value& rhs) const override;
+  std::unique_ptr<Bool> ToPointer() const;
 
  private:
   khir::ProgramBuilder& program_;
@@ -55,34 +53,35 @@ class Int8 : public Value {
   Int8(khir::ProgramBuilder& program, const khir::Value& value);
   Int8(khir::ProgramBuilder& program, int8_t value);
 
-  khir::Value Get() const override;
+  Int8 operator+(const Int8& rhs) const;
+  Int8 operator+(int8_t rhs) const;
+  Int8 operator-(const Int8& rhs) const;
+  Int8 operator-(int8_t rhs) const;
+  Int8 operator*(const Int8& rhs) const;
+  Int8 operator*(int8_t rhs) const;
+  Bool operator==(const Int8& rhs) const;
+  Bool operator==(int8_t rhs) const;
+  Bool operator!=(const Int8& rhs) const;
+  Bool operator!=(int8_t rhs) const;
+  Bool operator<(const Int8& rhs) const;
+  Bool operator<(int8_t rhs) const;
+  Bool operator<=(const Int8& rhs) const;
+  Bool operator<=(int8_t rhs) const;
+  Bool operator>(const Int8& rhs) const;
+  Bool operator>(int8_t rhs) const;
+  Bool operator>=(const Int8& rhs) const;
+  Bool operator>=(int8_t rhs) const;
 
-  Int8 operator+(const Int8& rhs);
-  Int8 operator+(int8_t rhs);
-  Int8 operator-(const Int8& rhs);
-  Int8 operator-(int8_t rhs);
-  Int8 operator*(const Int8& rhs);
-  Int8 operator*(int8_t rhs);
-  Bool operator==(const Int8& rhs);
-  Bool operator==(int8_t rhs);
-  Bool operator!=(const Int8& rhs);
-  Bool operator!=(int8_t rhs);
-  Bool operator<(const Int8& rhs);
-  Bool operator<(int8_t rhs);
-  Bool operator<=(const Int8& rhs);
-  Bool operator<=(int8_t rhs);
-  Bool operator>(const Int8& rhs);
-  Bool operator>(int8_t rhs);
-  Bool operator>=(const Int8& rhs);
-  Bool operator>=(int8_t rhs);
-
-  std::unique_ptr<Int8> ToPointer();
-  std::unique_ptr<Value> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
-  void Print(Printer& printer) override;
   Int64 Hash() const override;
+  khir::Value Get() const override;
   bool IsNullable() const override;
   Bool GetNullableValue() const override;
+  void Print(Printer& printer) const override;
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type,
+      const Value& rhs) const override;
+
+  std::unique_ptr<Int8> ToPointer() const;
 
  private:
   khir::ProgramBuilder& program_;
@@ -94,34 +93,35 @@ class Int16 : public Value {
   Int16(khir::ProgramBuilder& program, const khir::Value& value);
   Int16(khir::ProgramBuilder& program, int16_t value);
 
-  khir::Value Get() const override;
+  Int16 operator+(const Int16& rhs) const;
+  Int16 operator+(int16_t rhs) const;
+  Int16 operator-(const Int16& rhs) const;
+  Int16 operator-(int16_t rhs) const;
+  Int16 operator*(const Int16& rhs) const;
+  Int16 operator*(int16_t rhs) const;
+  Bool operator==(const Int16& rhs) const;
+  Bool operator==(int16_t rhs) const;
+  Bool operator!=(const Int16& rhs) const;
+  Bool operator!=(int16_t rhs) const;
+  Bool operator<(const Int16& rhs) const;
+  Bool operator<(int16_t rhs) const;
+  Bool operator<=(const Int16& rhs) const;
+  Bool operator<=(int16_t rhs) const;
+  Bool operator>(const Int16& rhs) const;
+  Bool operator>(int16_t rhs) const;
+  Bool operator>=(const Int16& rhs) const;
+  Bool operator>=(int16_t rhs) const;
 
-  Int16 operator+(const Int16& rhs);
-  Int16 operator+(int16_t rhs);
-  Int16 operator-(const Int16& rhs);
-  Int16 operator-(int16_t rhs);
-  Int16 operator*(const Int16& rhs);
-  Int16 operator*(int16_t rhs);
-  Bool operator==(const Int16& rhs);
-  Bool operator==(int16_t rhs);
-  Bool operator!=(const Int16& rhs);
-  Bool operator!=(int16_t rhs);
-  Bool operator<(const Int16& rhs);
-  Bool operator<(int16_t rhs);
-  Bool operator<=(const Int16& rhs);
-  Bool operator<=(int16_t rhs);
-  Bool operator>(const Int16& rhs);
-  Bool operator>(int16_t rhs);
-  Bool operator>=(const Int16& rhs);
-  Bool operator>=(int16_t rhs);
-
-  std::unique_ptr<Int16> ToPointer();
-  std::unique_ptr<Value> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
-  void Print(Printer& printer) override;
   Int64 Hash() const override;
+  khir::Value Get() const override;
   bool IsNullable() const override;
   Bool GetNullableValue() const override;
+  void Print(Printer& printer) const override;
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type,
+      const Value& rhs) const override;
+
+  std::unique_ptr<Int16> ToPointer() const;
 
  private:
   khir::ProgramBuilder& program_;
@@ -133,34 +133,35 @@ class Int32 : public Value {
   Int32(khir::ProgramBuilder& program, const khir::Value& value);
   Int32(khir::ProgramBuilder& program, int32_t value);
 
-  khir::Value Get() const override;
+  Int32 operator+(const Int32& rhs) const;
+  Int32 operator+(int32_t rhs) const;
+  Int32 operator-(const Int32& rhs) const;
+  Int32 operator-(int32_t rhs) const;
+  Int32 operator*(const Int32& rhs) const;
+  Int32 operator*(int32_t rhs) const;
+  Bool operator==(const Int32& rhs) const;
+  Bool operator==(int32_t rhs) const;
+  Bool operator!=(const Int32& rhs) const;
+  Bool operator!=(int32_t rhs) const;
+  Bool operator<(const Int32& rhs) const;
+  Bool operator<(int32_t rhs) const;
+  Bool operator<=(const Int32& rhs) const;
+  Bool operator<=(int32_t rhs) const;
+  Bool operator>(const Int32& rhs) const;
+  Bool operator>(int32_t rhs) const;
+  Bool operator>=(const Int32& rhs) const;
+  Bool operator>=(int32_t rhs) const;
 
-  Int32 operator+(const Int32& rhs);
-  Int32 operator+(int32_t rhs);
-  Int32 operator-(const Int32& rhs);
-  Int32 operator-(int32_t rhs);
-  Int32 operator*(const Int32& rhs);
-  Int32 operator*(int32_t rhs);
-  Bool operator==(const Int32& rhs);
-  Bool operator==(int32_t rhs);
-  Bool operator!=(const Int32& rhs);
-  Bool operator!=(int32_t rhs);
-  Bool operator<(const Int32& rhs);
-  Bool operator<(int32_t rhs);
-  Bool operator<=(const Int32& rhs);
-  Bool operator<=(int32_t rhs);
-  Bool operator>(const Int32& rhs);
-  Bool operator>(int32_t rhs);
-  Bool operator>=(const Int32& rhs);
-  Bool operator>=(int32_t rhs);
-
-  std::unique_ptr<Int32> ToPointer();
-  std::unique_ptr<Value> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
-  void Print(Printer& printer) override;
   Int64 Hash() const override;
+  khir::Value Get() const override;
   bool IsNullable() const override;
   Bool GetNullableValue() const override;
+  void Print(Printer& printer) const override;
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type,
+      const Value& rhs) const override;
+
+  std::unique_ptr<Int32> ToPointer() const;
 
  private:
   khir::ProgramBuilder& program_;
@@ -172,34 +173,35 @@ class Int64 : public Value {
   Int64(khir::ProgramBuilder& program, const khir::Value& value);
   Int64(khir::ProgramBuilder& program, int64_t value);
 
-  khir::Value Get() const override;
+  Int64 operator+(const Int64& rhs) const;
+  Int64 operator+(int64_t rhs) const;
+  Int64 operator-(const Int64& rhs) const;
+  Int64 operator-(int64_t rhs) const;
+  Int64 operator*(const Int64& rhs) const;
+  Int64 operator*(int64_t rhs) const;
+  Bool operator==(const Int64& rhs) const;
+  Bool operator==(int64_t rhs) const;
+  Bool operator!=(const Int64& rhs) const;
+  Bool operator!=(int64_t rhs) const;
+  Bool operator<(const Int64& rhs) const;
+  Bool operator<(int64_t rhs) const;
+  Bool operator<=(const Int64& rhs) const;
+  Bool operator<=(int64_t rhs) const;
+  Bool operator>(const Int64& rhs) const;
+  Bool operator>(int64_t rhs) const;
+  Bool operator>=(const Int64& rhs) const;
+  Bool operator>=(int64_t rhs) const;
 
-  Int64 operator+(const Int64& rhs);
-  Int64 operator+(int64_t rhs);
-  Int64 operator-(const Int64& rhs);
-  Int64 operator-(int64_t rhs);
-  Int64 operator*(const Int64& rhs);
-  Int64 operator*(int64_t rhs);
-  Bool operator==(const Int64& rhs);
-  Bool operator==(int64_t rhs);
-  Bool operator!=(const Int64& rhs);
-  Bool operator!=(int64_t rhs);
-  Bool operator<(const Int64& rhs);
-  Bool operator<(int64_t rhs);
-  Bool operator<=(const Int64& rhs);
-  Bool operator<=(int64_t rhs);
-  Bool operator>(const Int64& rhs);
-  Bool operator>(int64_t rhs);
-  Bool operator>=(const Int64& rhs);
-  Bool operator>=(int64_t rhs);
-
-  std::unique_ptr<Int64> ToPointer();
-  std::unique_ptr<Value> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
-  void Print(Printer& printer) override;
   Int64 Hash() const override;
+  khir::Value Get() const override;
   bool IsNullable() const override;
   Bool GetNullableValue() const override;
+  void Print(Printer& printer) const override;
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type,
+      const Value& rhs) const override;
+
+  std::unique_ptr<Int64> ToPointer() const;
 
  private:
   khir::ProgramBuilder& program_;
@@ -215,36 +217,37 @@ class Float64 : public Value {
   Float64(khir::ProgramBuilder& program, const proxy::Int32& v);
   Float64(khir::ProgramBuilder& program, const proxy::Int64& v);
 
-  khir::Value Get() const override;
+  Float64 operator+(const Float64& rhs) const;
+  Float64 operator+(double value) const;
+  Float64 operator-(const Float64& rhs) const;
+  Float64 operator-(double value) const;
+  Float64 operator*(const Float64& rhs) const;
+  Float64 operator*(double value) const;
+  Float64 operator/(const Float64& rhs) const;
+  Float64 operator/(double value) const;
+  Bool operator==(const Float64& rhs) const;
+  Bool operator==(double value) const;
+  Bool operator!=(const Float64& rhs) const;
+  Bool operator!=(double value) const;
+  Bool operator<(const Float64& rhs) const;
+  Bool operator<(double value) const;
+  Bool operator<=(const Float64& rhs) const;
+  Bool operator<=(double value) const;
+  Bool operator>(const Float64& rhs) const;
+  Bool operator>(double value) const;
+  Bool operator>=(const Float64& rhs) const;
+  Bool operator>=(double value) const;
 
-  Float64 operator+(const Float64& rhs);
-  Float64 operator+(double value);
-  Float64 operator-(const Float64& rhs);
-  Float64 operator-(double value);
-  Float64 operator*(const Float64& rhs);
-  Float64 operator*(double value);
-  Float64 operator/(const Float64& rhs);
-  Float64 operator/(double value);
-  Bool operator==(const Float64& rhs);
-  Bool operator==(double value);
-  Bool operator!=(const Float64& rhs);
-  Bool operator!=(double value);
-  Bool operator<(const Float64& rhs);
-  Bool operator<(double value);
-  Bool operator<=(const Float64& rhs);
-  Bool operator<=(double value);
-  Bool operator>(const Float64& rhs);
-  Bool operator>(double value);
-  Bool operator>=(const Float64& rhs);
-  Bool operator>=(double value);
-
-  std::unique_ptr<Float64> ToPointer();
-  std::unique_ptr<Value> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
-  void Print(proxy::Printer& printer) override;
   Int64 Hash() const override;
+  khir::Value Get() const override;
   bool IsNullable() const override;
   Bool GetNullableValue() const override;
+  void Print(Printer& printer) const override;
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type,
+      const Value& rhs) const override;
+
+  std::unique_ptr<Float64> ToPointer() const;
 
  private:
   khir::ProgramBuilder& program_;
@@ -254,30 +257,30 @@ class Float64 : public Value {
 class String : public Value {
  public:
   String(khir::ProgramBuilder& program, const khir::Value& value);
-
   static String Global(khir::ProgramBuilder& program, std::string_view value);
   static khir::Value Constant(khir::ProgramBuilder& program,
                               std::string_view value);
 
-  void Copy(const String& rhs);
-  void Reset();
+  void Copy(const String& rhs) const;
+  void Reset() const;
+  Bool Contains(const String& rhs) const;
+  Bool StartsWith(const String& rhs) const;
+  Bool EndsWith(const String& rhs) const;
+  Bool Like(const String& rhs) const;
+  Bool operator==(const String& rhs) const;
+  Bool operator!=(const String& rhs) const;
+  Bool operator<(const String& rhs) const;
 
-  Bool Contains(const String& rhs);
-  Bool StartsWith(const String& rhs);
-  Bool EndsWith(const String& rhs);
-  Bool Like(const String& rhs);
-  Bool operator==(const String& rhs);
-  Bool operator!=(const String& rhs);
-  Bool operator<(const String& rhs);
-
-  std::unique_ptr<String> ToPointer();
-  std::unique_ptr<Value> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, Value& right_value) override;
-  void Print(Printer& printer) override;
   Int64 Hash() const override;
+  khir::Value Get() const override;
   bool IsNullable() const override;
   Bool GetNullableValue() const override;
-  khir::Value Get() const override;
+  void Print(Printer& printer) const override;
+  std::unique_ptr<Value> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type,
+      const Value& rhs) const override;
+
+  std::unique_ptr<String> ToPointer() const;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
   static const std::string_view StringStructName;
@@ -291,14 +294,14 @@ class Printer {
  public:
   Printer(khir::ProgramBuilder& program);
 
-  void Print(const Int8& t);
-  void Print(const Bool& t);
-  void Print(const Int16& t);
-  void Print(const Int32& t);
-  void Print(const Int64& t);
-  void Print(const Float64& t);
-  void Print(const String& t);
-  void PrintNewline();
+  void Print(const Int8& t) const;
+  void Print(const Bool& t) const;
+  void Print(const Int16& t) const;
+  void Print(const Int32& t) const;
+  void Print(const Int64& t) const;
+  void Print(const Float64& t) const;
+  void Print(const String& t) const;
+  void PrintNewline() const;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
