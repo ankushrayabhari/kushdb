@@ -2,8 +2,8 @@
 
 #include <functional>
 
-#include "compile/proxy/int.h"
 #include "compile/proxy/loop.h"
+#include "compile/proxy/value/value.h"
 #include "khir/program_builder.h"
 #include "runtime/tuple_idx_table.h"
 #include "util/vector_util.h"

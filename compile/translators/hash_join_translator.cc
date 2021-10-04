@@ -7,7 +7,7 @@
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/if.h"
 #include "compile/proxy/loop.h"
-#include "compile/proxy/value.h"
+#include "compile/proxy/value/value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"

@@ -3,8 +3,8 @@
 #include <functional>
 #include <vector>
 
-#include "compile/proxy/int.h"
 #include "compile/proxy/tuple_idx_table.h"
+#include "compile/proxy/value/value.h"
 #include "compile/translators/recompiling_join_translator.h"
 #include "khir/program_builder.h"
 #include "runtime/skinner_join_executor.h"

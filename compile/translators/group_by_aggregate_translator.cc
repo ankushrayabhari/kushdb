@@ -5,11 +5,11 @@
 #include <utility>
 #include <vector>
 
-#include "compile/proxy/float.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/if.h"
 #include "compile/proxy/loop.h"
 #include "compile/proxy/struct.h"
+#include "compile/proxy/value/value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"

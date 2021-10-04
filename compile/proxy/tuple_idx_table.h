@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "compile/proxy/int.h"
+#include "compile/proxy/value/value.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {

@@ -7,8 +7,8 @@ cc_library(
     srcs = ["struct.cc"],
     hdrs = ["struct.h"],
     deps = [
-        ":value",
         "//catalog:sql_type",
+        "//compile/proxy/value",
         "//khir:program_builder",
     ],
 )
@@ -34,8 +34,8 @@ cc_library(
     deps = [
         ":if",
         ":struct",
-        ":value",
         "//catalog:sql_type",
+        "//compile/proxy/value",
         "//khir:program_builder",
         "//runtime:vector",
     ],
@@ -47,7 +47,7 @@ cc_library(
     hdrs = ["tuple_idx_table.h"],
     deps = [
         ":loop",
-        ":value",
+        "//compile/proxy/value",
         "//khir:program_builder",
         "//runtime:tuple_idx_table",
         "//util:vector_util",
@@ -60,7 +60,7 @@ cc_library(
     hdrs = ["function.h"],
     deps = [
         ":struct",
-        ":value",
+        "//compile/proxy/value",
         "//khir:program_builder",
     ],
 )
@@ -71,7 +71,7 @@ cc_library(
     hdrs = ["skinner_join_executor.h"],
     deps = [
         ":tuple_idx_table",
-        ":value",
+        "//compile/proxy/value",
         "//compile/translators:recompiling_join_translator",
         "//khir:program_builder",
         "//runtime:skinner_join_executor",
@@ -83,8 +83,8 @@ cc_library(
     srcs = ["column_data.cc"],
     hdrs = ["column_data.h"],
     deps = [
-        ":value",
         "//catalog:sql_type",
+        "//compile/proxy/value",
         "//khir:program_builder",
         "//runtime:column_data",
     ],
@@ -95,8 +95,8 @@ cc_library(
     srcs = ["column_index.cc"],
     hdrs = ["column_index.h"],
     deps = [
-        ":value",
         "//catalog:sql_type",
+        "//compile/proxy/value",
         "//khir:program_builder",
         "//runtime:column_index",
     ],
@@ -107,7 +107,7 @@ cc_library(
     srcs = ["if.cc"],
     hdrs = ["if.h"],
     deps = [
-        ":bool",
+        "//compile/proxy/value",
         "//khir:program_builder",
     ],
 )
@@ -117,8 +117,7 @@ cc_library(
     srcs = ["loop.cc"],
     hdrs = ["loop.h"],
     deps = [
-        ":bool",
-        ":int",
+        "//compile/proxy/value",
         "//khir:program_builder",
     ],
 )

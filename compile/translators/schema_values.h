@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "compile/proxy/value.h"
+#include "compile/proxy/value/value.h"
 
 namespace kush::compile {
 

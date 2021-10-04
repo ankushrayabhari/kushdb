@@ -6,7 +6,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 
-#include "compile/proxy/int.h"
+#include "compile/proxy/value/value.h"
 #include "compile/translators/recompiling_join_translator.h"
 #include "khir/program_builder.h"
 

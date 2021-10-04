@@ -7,7 +7,7 @@
 
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/hash_table.h"
-#include "compile/proxy/printer.h"
+#include "compile/proxy/value/value.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"

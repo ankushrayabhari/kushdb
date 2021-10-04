@@ -6,7 +6,7 @@
 #include "absl/types/span.h"
 
 #include "catalog/sql_type.h"
-#include "compile/proxy/value.h"
+#include "compile/proxy/value/value.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {

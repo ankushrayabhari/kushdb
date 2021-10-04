@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "compile/proxy/value.h"
+#include "compile/proxy/value/value.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
 #include "plan/expression/expression.h"

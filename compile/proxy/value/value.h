@@ -16,8 +16,6 @@ class Value {
 
   virtual Int64 Hash() const = 0;
   virtual khir::Value Get() const = 0;
-  virtual bool IsNullable() const = 0;
-  virtual Bool GetNullableValue() const = 0;
   virtual void Print(Printer& printer) const = 0;
   virtual std::unique_ptr<Value> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type, const Value& rhs) const = 0;
@@ -34,8 +32,6 @@ class Bool : public Value {
 
   Int64 Hash() const override;
   khir::Value Get() const override;
-  bool IsNullable() const override;
-  Bool GetNullableValue() const override;
   void Print(Printer& printer) const override;
   std::unique_ptr<Value> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
@@ -74,8 +70,6 @@ class Int8 : public Value {
 
   Int64 Hash() const override;
   khir::Value Get() const override;
-  bool IsNullable() const override;
-  Bool GetNullableValue() const override;
   void Print(Printer& printer) const override;
   std::unique_ptr<Value> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
@@ -114,8 +108,6 @@ class Int16 : public Value {
 
   Int64 Hash() const override;
   khir::Value Get() const override;
-  bool IsNullable() const override;
-  Bool GetNullableValue() const override;
   void Print(Printer& printer) const override;
   std::unique_ptr<Value> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
@@ -154,8 +146,6 @@ class Int32 : public Value {
 
   Int64 Hash() const override;
   khir::Value Get() const override;
-  bool IsNullable() const override;
-  Bool GetNullableValue() const override;
   void Print(Printer& printer) const override;
   std::unique_ptr<Value> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
@@ -194,8 +184,6 @@ class Int64 : public Value {
 
   Int64 Hash() const override;
   khir::Value Get() const override;
-  bool IsNullable() const override;
-  Bool GetNullableValue() const override;
   void Print(Printer& printer) const override;
   std::unique_ptr<Value> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
@@ -240,8 +228,6 @@ class Float64 : public Value {
 
   Int64 Hash() const override;
   khir::Value Get() const override;
-  bool IsNullable() const override;
-  Bool GetNullableValue() const override;
   void Print(Printer& printer) const override;
   std::unique_ptr<Value> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
@@ -273,8 +259,6 @@ class String : public Value {
 
   Int64 Hash() const override;
   khir::Value Get() const override;
-  bool IsNullable() const override;
-  Bool GetNullableValue() const override;
   void Print(Printer& printer) const override;
   std::unique_ptr<Value> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,

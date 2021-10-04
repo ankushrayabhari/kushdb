@@ -116,8 +116,8 @@ Struct HashTable::Insert(
     std::vector<std::reference_wrapper<proxy::Value>> keys) {
   program_.StoreI32(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
-    auto k_hash = k.get().Hash();
-    program_.Call(program_.GetFunction(HashCombineFnName), {hash_ptr_, k_hash});
+    program_.Call(program_.GetFunction(HashCombineFnName),
+                  {hash_ptr_, k.get().Hash().Get()});
   }
   auto hash = program_.LoadI32(hash_ptr_);
 
@@ -129,8 +129,8 @@ Struct HashTable::Insert(
 Vector HashTable::Get(std::vector<std::reference_wrapper<proxy::Value>> keys) {
   program_.StoreI32(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
-    auto k_hash = k.get().Hash();
-    program_.Call(program_.GetFunction(HashCombineFnName), {hash_ptr_, k_hash});
+    program_.Call(program_.GetFunction(HashCombineFnName),
+                  {hash_ptr_, k.get().Hash().Get()});
   }
   auto hash = program_.LoadI32(hash_ptr_);
 

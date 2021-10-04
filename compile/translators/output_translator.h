@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compile/proxy/printer.h"
+#include "compile/proxy/value/value.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
 #include "khir/program_builder.h"

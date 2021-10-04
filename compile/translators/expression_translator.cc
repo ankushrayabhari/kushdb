@@ -4,11 +4,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include "compile/proxy/bool.h"
-#include "compile/proxy/float.h"
 #include "compile/proxy/if.h"
-#include "compile/proxy/int.h"
-#include "compile/proxy/string.h"
+#include "compile/proxy/value/value.h"
 #include "khir/program_builder.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
