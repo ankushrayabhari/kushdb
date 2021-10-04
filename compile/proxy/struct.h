@@ -33,10 +33,10 @@ class Struct {
   Struct(khir::ProgramBuilder& program, StructBuilder& fields,
          const khir::Value& value);
 
-  void Pack(std::vector<std::reference_wrapper<proxy::Value>> value);
-  void Update(int field, const proxy::Value& v);
+  void Pack(std::vector<std::reference_wrapper<IRValue>> value);
+  void Update(int field, const IRValue& v);
 
-  std::vector<std::unique_ptr<Value>> Unpack();
+  std::vector<std::unique_ptr<IRValue>> Unpack();
 
  private:
   khir::ProgramBuilder& program_;

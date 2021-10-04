@@ -197,7 +197,7 @@ Int32 ColumnData<S>::Size() {
 }
 
 template <catalog::SqlType S>
-std::unique_ptr<Value> ColumnData<S>::operator[](Int32& idx) {
+std::unique_ptr<IRValue> ColumnData<S>::operator[](Int32& idx) {
   if constexpr (catalog::SqlType::TEXT == S) {
     program_.Call(program_.GetFunction(GetFnName<S>()),
                   {value_.value(), idx.Get(), result_.value()});

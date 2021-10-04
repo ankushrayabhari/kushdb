@@ -23,7 +23,7 @@ class Loop {
        std::function<Bool(Loop&)> cond,
        std::function<Continuation(Loop&)> body);
 
-  void AddLoopVariable(const proxy::Value& v);
+  void AddLoopVariable(const IRValue& v);
 
   template <typename S>
   S GetLoopVariable(int i) {
@@ -36,7 +36,7 @@ class Loop {
   }
 
   template <typename... Args>
-  Continuation Continue(const proxy::Value& first, Args const&... rest) {
+  Continuation Continue(const IRValue& first, Args const&... rest) {
     int i = phi_nodes_.size() - 1 - sizeof...(rest);
     auto phi_member = program_.PhiMember(first.Get());
     program_.UpdatePhiMember(phi_nodes_[i], phi_member);

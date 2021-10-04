@@ -69,9 +69,9 @@ std::unique_ptr<String> String::ToPointer() const {
   return std::make_unique<String>(program_, value_);
 }
 
-std::unique_ptr<Value> String::EvaluateBinary(
+std::unique_ptr<IRValue> String::EvaluateBinary(
     plan::BinaryArithmeticOperatorType op_type,
-    const Value& rhs_generic) const {
+    const IRValue& rhs_generic) const {
   const String& rhs = dynamic_cast<const String&>(rhs_generic);
   switch (op_type) {
     case plan::BinaryArithmeticOperatorType::STARTS_WITH:

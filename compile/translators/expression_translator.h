@@ -14,7 +14,7 @@ namespace kush::compile {
 
 class ExpressionTranslator
     : public util::Visitor<plan::ImmutableExpressionVisitor,
-                           const plan::Expression&, proxy::Value> {
+                           const plan::Expression&, proxy::IRValue> {
  public:
   ExpressionTranslator(khir::ProgramBuilder& program_,
                        OperatorTranslator& source);

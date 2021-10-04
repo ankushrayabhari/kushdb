@@ -13,17 +13,17 @@ class SchemaValues {
   SchemaValues(int num_values);
 
   void ResetValues();
-  void AddVariable(std::unique_ptr<proxy::Value> value);
+  void AddVariable(std::unique_ptr<proxy::IRValue> value);
 
-  const proxy::Value& Value(int idx) const;
-  std::vector<std::reference_wrapper<const proxy::Value>> Values() const;
-  std::vector<std::reference_wrapper<proxy::Value>> Values();
+  const proxy::IRValue& Value(int idx) const;
+  std::vector<std::reference_wrapper<const proxy::IRValue>> Values() const;
+  std::vector<std::reference_wrapper<proxy::IRValue>> Values();
 
-  void SetValues(std::vector<std::unique_ptr<proxy::Value>> values);
-  void SetValue(int idx, std::unique_ptr<proxy::Value> value);
+  void SetValues(std::vector<std::unique_ptr<proxy::IRValue>> values);
+  void SetValue(int idx, std::unique_ptr<proxy::IRValue> value);
 
  private:
-  std::vector<std::unique_ptr<proxy::Value>> values_;
+  std::vector<std::unique_ptr<proxy::IRValue>> values_;
 };
 
 }  // namespace kush::compile

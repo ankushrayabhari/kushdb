@@ -60,7 +60,7 @@ Struct::Struct(khir::ProgramBuilder& program, StructBuilder& fields,
                const khir::Value& value)
     : program_(program), fields_(fields), value_(value) {}
 
-void Struct::Pack(std::vector<std::reference_wrapper<Value>> values) {
+void Struct::Pack(std::vector<std::reference_wrapper<IRValue>> values) {
   auto types = fields_.Types();
   if (values.size() != types.size()) {
     throw std::runtime_error(
@@ -72,10 +72,10 @@ void Struct::Pack(std::vector<std::reference_wrapper<Value>> values) {
   }
 }
 
-std::vector<std::unique_ptr<Value>> Struct::Unpack() {
+std::vector<std::unique_ptr<IRValue>> Struct::Unpack() {
   auto types = fields_.Types();
 
-  std::vector<std::unique_ptr<Value>> result;
+  std::vector<std::unique_ptr<IRValue>> result;
   for (int i = 0; i < types.size(); i++) {
     auto ptr = program_.GetElementPtr(fields_.Type(), value_, {0, i});
 
@@ -102,14 +102,14 @@ std::vector<std::unique_ptr<Value>> Struct::Unpack() {
         break;
       case catalog::SqlType::BOOLEAN:
         result.push_back(
-            (proxy::Int8(program_, program_.LoadI8(ptr)) != 0).ToPointer());
+            (Int8(program_, program_.LoadI8(ptr)) != 0).ToPointer());
         break;
     }
   }
   return result;
 }
 
-void Struct::Update(int field, const proxy::Value& v) {
+void Struct::Update(int field, const IRValue& v) {
   auto types = fields_.Types();
 
   auto ptr = program_.GetElementPtr(fields_.Type(), value_, {0, field});

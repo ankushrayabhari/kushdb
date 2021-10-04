@@ -108,9 +108,9 @@ void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
   }
 }
 
-std::unique_ptr<proxy::Value> CopyProxyValue(khir::ProgramBuilder& program,
-                                             catalog::SqlType type,
-                                             const khir::Value& value) {
+std::unique_ptr<proxy::IRValue> CopyProxyValue(khir::ProgramBuilder& program,
+                                               catalog::SqlType type,
+                                               const khir::Value& value) {
   switch (type) {
     case catalog::SqlType::SMALLINT:
       return std::make_unique<proxy::Int16>(program, value);

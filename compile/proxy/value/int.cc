@@ -98,8 +98,8 @@ std::unique_ptr<Int8> Int8::ToPointer() const {
   return std::make_unique<Int8>(program_, value_);
 }
 
-std::unique_ptr<Value> Int8::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, const Value& rhs) const {
+std::unique_ptr<IRValue> Int8::EvaluateBinary(
+    plan::BinaryArithmeticOperatorType op_type, const IRValue& rhs) const {
   return EvaluateBinaryNumeric<Int8>(op_type, *this, rhs);
 }
 
@@ -205,8 +205,8 @@ std::unique_ptr<Int16> Int16::ToPointer() const {
   return std::make_unique<Int16>(program_, value_);
 }
 
-std::unique_ptr<Value> Int16::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, const Value& rhs) const {
+std::unique_ptr<IRValue> Int16::EvaluateBinary(
+    plan::BinaryArithmeticOperatorType op_type, const IRValue& rhs) const {
   return EvaluateBinaryNumeric<Int16>(op_type, *this, rhs);
 }
 
@@ -312,8 +312,8 @@ std::unique_ptr<Int32> Int32::ToPointer() const {
   return std::make_unique<Int32>(program_, value_);
 }
 
-std::unique_ptr<Value> Int32::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, const Value& rhs) const {
+std::unique_ptr<IRValue> Int32::EvaluateBinary(
+    plan::BinaryArithmeticOperatorType op_type, const IRValue& rhs) const {
   return EvaluateBinaryNumeric<Int32>(op_type, *this, rhs);
 }
 
@@ -419,8 +419,8 @@ std::unique_ptr<Int64> Int64::ToPointer() const {
   return std::make_unique<Int64>(program_, value_);
 }
 
-std::unique_ptr<Value> Int64::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, const Value& rhs) const {
+std::unique_ptr<IRValue> Int64::EvaluateBinary(
+    plan::BinaryArithmeticOperatorType op_type, const IRValue& rhs) const {
   return EvaluateBinaryNumeric<Int64>(op_type, *this, rhs);
 }
 

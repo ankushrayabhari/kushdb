@@ -12,7 +12,7 @@ class Iterable {
  public:
   virtual ~Iterable() = default;
   virtual Int32 Size() = 0;
-  virtual std::unique_ptr<Value> operator[](Int32& idx) = 0;
+  virtual std::unique_ptr<IRValue> operator[](Int32& idx) = 0;
   virtual void Reset() = 0;
 };
 
@@ -23,7 +23,7 @@ class ColumnData : public Iterable {
   virtual ~ColumnData() = default;
 
   Int32 Size() override;
-  std::unique_ptr<Value> operator[](Int32& idx) override;
+  std::unique_ptr<IRValue> operator[](Int32& idx) override;
   void Reset() override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);

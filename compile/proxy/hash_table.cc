@@ -45,7 +45,7 @@ class BucketList {
   }
 
   Int32 Size() {
-    return proxy::Int32(
+    return Int32(
         program_,
         program_.Call(program_.GetFunction(BucketListSizeFnName), {value_}));
   }
@@ -112,8 +112,7 @@ void HashTable::Reset() {
   program_.Call(program_.GetFunction(FreeFnName), {value_});
 }
 
-Struct HashTable::Insert(
-    std::vector<std::reference_wrapper<proxy::Value>> keys) {
+Struct HashTable::Insert(std::vector<std::reference_wrapper<IRValue>> keys) {
   program_.StoreI32(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
     program_.Call(program_.GetFunction(HashCombineFnName),
@@ -126,7 +125,7 @@ Struct HashTable::Insert(
   return Struct(program_, content_, ptr);
 }
 
-Vector HashTable::Get(std::vector<std::reference_wrapper<proxy::Value>> keys) {
+Vector HashTable::Get(std::vector<std::reference_wrapper<IRValue>> keys) {
   program_.StoreI32(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
     program_.Call(program_.GetFunction(HashCombineFnName),
@@ -189,28 +188,25 @@ void HashTable::ForEach(std::function<void(Struct&)> handler) {
 
   BucketList bucket_list(program_, content_, bucket_list_);
 
-  proxy::Loop(
-      program_,
-      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
+  Loop(
+      program_, [&](auto& loop) { loop.AddLoopVariable(Int32(program_, 0)); },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+        auto i = loop.template GetLoopVariable<Int32>(0);
         return i < bucket_list.Size();
       },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+        auto i = loop.template GetLoopVariable<Int32>(0);
         auto bucket = bucket_list[i];
 
-        proxy::Loop(
+        Loop(
             program_,
+            [&](auto& loop) { loop.AddLoopVariable(Int32(program_, 0)); },
             [&](auto& loop) {
-              loop.AddLoopVariable(proxy::Int32(program_, 0));
-            },
-            [&](auto& loop) {
-              auto j = loop.template GetLoopVariable<proxy::Int32>(0);
+              auto j = loop.template GetLoopVariable<Int32>(0);
               return j < bucket.Size();
             },
             [&](auto& loop) {
-              auto j = loop.template GetLoopVariable<proxy::Int32>(0);
+              auto j = loop.template GetLoopVariable<Int32>(0);
               auto data = bucket[j];
 
               handler(data);

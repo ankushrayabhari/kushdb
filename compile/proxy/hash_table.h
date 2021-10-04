@@ -14,8 +14,8 @@ class HashTable {
   HashTable(khir::ProgramBuilder& program, StructBuilder& content);
 
   void Reset();
-  Struct Insert(std::vector<std::reference_wrapper<Value>> keys);
-  Vector Get(std::vector<std::reference_wrapper<Value>> keys);
+  Struct Insert(std::vector<std::reference_wrapper<IRValue>> keys);
+  Vector Get(std::vector<std::reference_wrapper<IRValue>> keys);
   void ForEach(std::function<void(Struct&)> handler);
 
   static void ForwardDeclare(khir::ProgramBuilder& program);

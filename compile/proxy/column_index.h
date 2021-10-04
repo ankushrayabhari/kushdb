@@ -12,10 +12,10 @@ class IndexBucket {
  public:
   IndexBucket(khir::ProgramBuilder& program, khir::Value v);
 
-  proxy::Int32 FastForwardToStart(const proxy::Int32& last_tuple);
-  proxy::Int32 Size();
-  proxy::Int32 operator[](const proxy::Int32& v);
-  proxy::Bool DoesNotExist();
+  Int32 FastForwardToStart(const Int32& last_tuple);
+  Int32 Size();
+  Int32 operator[](const Int32& v);
+  Bool DoesNotExist();
 
   khir::Value Get() const;
 
@@ -28,8 +28,8 @@ class IndexBucketList {
  public:
   IndexBucketList(khir::ProgramBuilder& program);
 
-  proxy::Int32 Size();
-  proxy::IndexBucket operator[](const proxy::Int32& idx);
+  Int32 Size();
+  IndexBucket operator[](const Int32& idx);
   void PushBack(const IndexBucket& bucket);
   void Reset();
 
@@ -45,8 +45,8 @@ class ColumnIndex {
   virtual khir::Value Get() const = 0;
   virtual catalog::SqlType Type() const = 0;
   virtual void Reset() = 0;
-  virtual void Insert(const proxy::Value& v, const proxy::Int32& tuple_idx) = 0;
-  virtual IndexBucket GetBucket(const proxy::Value& v) = 0;
+  virtual void Insert(const IRValue& v, const Int32& tuple_idx) = 0;
+  virtual IndexBucket GetBucket(const IRValue& v) = 0;
 };
 
 template <catalog::SqlType S>
@@ -57,10 +57,10 @@ class ColumnIndexImpl : public ColumnIndex {
   virtual ~ColumnIndexImpl() = default;
 
   void Reset() override;
-  void Insert(const proxy::Value& v, const proxy::Int32& tuple_idx) override;
+  void Insert(const IRValue& v, const Int32& tuple_idx) override;
   khir::Value Get() const override;
   catalog::SqlType Type() const override;
-  IndexBucket GetBucket(const proxy::Value& v) override;
+  IndexBucket GetBucket(const IRValue& v) override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 

@@ -95,7 +95,7 @@ void GroupByAggregateTranslator::Produce() {
 
 void CheckEquality(
     int i, khir::ProgramBuilder& program, ExpressionTranslator& expr_translator,
-    std::vector<std::reference_wrapper<proxy::Value>>& values,
+    std::vector<std::reference_wrapper<proxy::IRValue>>& values,
     std::vector<std::reference_wrapper<const kush::plan::Expression>>&
         group_by_exprs,
     std::function<void()> true_case) {
@@ -120,7 +120,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
   auto agg_exprs = group_by_agg_.AggExprs();
 
   // keys = all group by exprs
-  std::vector<std::unique_ptr<proxy::Value>> keys;
+  std::vector<std::unique_ptr<proxy::IRValue>> keys;
   for (const auto& group_by : group_by_exprs) {
     keys.push_back(expr_translator_.Compute(group_by.get()));
   }
@@ -233,7 +233,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
       program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1, [&]() {
         auto inserted = buffer_->Insert(util::ReferenceVector(keys));
 
-        std::vector<std::unique_ptr<proxy::Value>> values;
+        std::vector<std::unique_ptr<proxy::IRValue>> values;
 
         // Record Counter
         values.push_back(std::make_unique<proxy::Int64>(program_, 2));
@@ -267,7 +267,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
       });
 }
 
-proxy::Float64 GroupByAggregateTranslator::ToFloat(proxy::Value& v) {
+proxy::Float64 GroupByAggregateTranslator::ToFloat(proxy::IRValue& v) {
   if (auto x = dynamic_cast<proxy::Float64*>(&v)) {
     return proxy::Float64(*x);
   }

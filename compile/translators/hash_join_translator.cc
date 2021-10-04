@@ -62,7 +62,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
 
   // Build side
   if (&src == &left_translator) {
-    std::vector<std::unique_ptr<proxy::Value>> key_columns;
+    std::vector<std::unique_ptr<proxy::IRValue>> key_columns;
     for (const auto& left_key : left_keys) {
       key_columns.push_back(expr_translator_.Compute(left_key.get()));
     }
@@ -73,7 +73,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
   }
 
   // Probe Side
-  std::vector<std::unique_ptr<proxy::Value>> key_columns;
+  std::vector<std::unique_ptr<proxy::IRValue>> key_columns;
   for (const auto& right_key : right_keys) {
     key_columns.push_back(expr_translator_.Compute(right_key.get()));
   }

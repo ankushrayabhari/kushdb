@@ -10,18 +10,18 @@ class Int64;
 class Float64;
 class Printer;
 
-class Value {
+class IRValue {
  public:
-  virtual ~Value() = default;
+  virtual ~IRValue() = default;
 
   virtual Int64 Hash() const = 0;
   virtual khir::Value Get() const = 0;
   virtual void Print(Printer& printer) const = 0;
-  virtual std::unique_ptr<Value> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, const Value& rhs) const = 0;
+  virtual std::unique_ptr<IRValue> EvaluateBinary(
+      plan::BinaryArithmeticOperatorType op_type, const IRValue& rhs) const = 0;
 };
 
-class Bool : public Value {
+class Bool : public IRValue {
  public:
   Bool(khir::ProgramBuilder& program, const khir::Value& value);
   Bool(khir::ProgramBuilder& program, bool value);
@@ -33,9 +33,9 @@ class Bool : public Value {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<Value> EvaluateBinary(
+  std::unique_ptr<IRValue> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
-      const Value& rhs) const override;
+      const IRValue& rhs) const override;
   std::unique_ptr<Bool> ToPointer() const;
 
  private:
@@ -44,7 +44,7 @@ class Bool : public Value {
   std::optional<khir::Value> null_value_;
 };
 
-class Int8 : public Value {
+class Int8 : public IRValue {
  public:
   Int8(khir::ProgramBuilder& program, const khir::Value& value);
   Int8(khir::ProgramBuilder& program, int8_t value);
@@ -71,9 +71,9 @@ class Int8 : public Value {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<Value> EvaluateBinary(
+  std::unique_ptr<IRValue> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
-      const Value& rhs) const override;
+      const IRValue& rhs) const override;
 
   std::unique_ptr<Int8> ToPointer() const;
 
@@ -82,7 +82,7 @@ class Int8 : public Value {
   khir::Value value_;
 };
 
-class Int16 : public Value {
+class Int16 : public IRValue {
  public:
   Int16(khir::ProgramBuilder& program, const khir::Value& value);
   Int16(khir::ProgramBuilder& program, int16_t value);
@@ -109,9 +109,9 @@ class Int16 : public Value {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<Value> EvaluateBinary(
+  std::unique_ptr<IRValue> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
-      const Value& rhs) const override;
+      const IRValue& rhs) const override;
 
   std::unique_ptr<Int16> ToPointer() const;
 
@@ -120,7 +120,7 @@ class Int16 : public Value {
   khir::Value value_;
 };
 
-class Int32 : public Value {
+class Int32 : public IRValue {
  public:
   Int32(khir::ProgramBuilder& program, const khir::Value& value);
   Int32(khir::ProgramBuilder& program, int32_t value);
@@ -147,9 +147,9 @@ class Int32 : public Value {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<Value> EvaluateBinary(
+  std::unique_ptr<IRValue> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
-      const Value& rhs) const override;
+      const IRValue& rhs) const override;
 
   std::unique_ptr<Int32> ToPointer() const;
 
@@ -158,7 +158,7 @@ class Int32 : public Value {
   khir::Value value_;
 };
 
-class Int64 : public Value {
+class Int64 : public IRValue {
  public:
   Int64(khir::ProgramBuilder& program, const khir::Value& value);
   Int64(khir::ProgramBuilder& program, int64_t value);
@@ -185,9 +185,9 @@ class Int64 : public Value {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<Value> EvaluateBinary(
+  std::unique_ptr<IRValue> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
-      const Value& rhs) const override;
+      const IRValue& rhs) const override;
 
   std::unique_ptr<Int64> ToPointer() const;
 
@@ -196,7 +196,7 @@ class Int64 : public Value {
   khir::Value value_;
 };
 
-class Float64 : public Value {
+class Float64 : public IRValue {
  public:
   Float64(khir::ProgramBuilder& program, const khir::Value& value);
   Float64(khir::ProgramBuilder& program, double value);
@@ -229,9 +229,9 @@ class Float64 : public Value {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<Value> EvaluateBinary(
+  std::unique_ptr<IRValue> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
-      const Value& rhs) const override;
+      const IRValue& rhs) const override;
 
   std::unique_ptr<Float64> ToPointer() const;
 
@@ -240,7 +240,7 @@ class Float64 : public Value {
   khir::Value value_;
 };
 
-class String : public Value {
+class String : public IRValue {
  public:
   String(khir::ProgramBuilder& program, const khir::Value& value);
   static String Global(khir::ProgramBuilder& program, std::string_view value);
@@ -260,9 +260,9 @@ class String : public Value {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<Value> EvaluateBinary(
+  std::unique_ptr<IRValue> EvaluateBinary(
       plan::BinaryArithmeticOperatorType op_type,
-      const Value& rhs) const override;
+      const IRValue& rhs) const override;
 
   std::unique_ptr<String> ToPointer() const;
 

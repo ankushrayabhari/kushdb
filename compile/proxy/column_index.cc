@@ -239,14 +239,14 @@ catalog::SqlType ColumnIndexImpl<S>::Type() const {
 }
 
 template <catalog::SqlType S>
-void ColumnIndexImpl<S>::Insert(const proxy::Value& v,
+void ColumnIndexImpl<S>::Insert(const IRValue& v,
                                 const proxy::Int32& tuple_idx) {
   program_.Call(program_.GetFunction(InsertFnName<S>()),
                 {program_.LoadPtr(value_), v.Get(), tuple_idx.Get()});
 }
 
 template <catalog::SqlType S>
-IndexBucket ColumnIndexImpl<S>::GetBucket(const proxy::Value& v) {
+IndexBucket ColumnIndexImpl<S>::GetBucket(const IRValue& v) {
   return IndexBucket(program_,
                      program_.Call(program_.GetFunction(GetBucketFnName<S>()),
                                    {program_.LoadPtr(value_), v.Get()}));

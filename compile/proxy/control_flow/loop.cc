@@ -51,7 +51,7 @@ Loop::Loop(khir::ProgramBuilder& program, std::function<void(Loop&)> init,
   program_.SetCurrentBlock(end_);
 }
 
-void Loop::AddLoopVariable(const proxy::Value& v) {
+void Loop::AddLoopVariable(const IRValue& v) {
   // delay setting the initial value until all others have been computed
   phi_nodes_initial_values_.push_back(v.Get());
 }

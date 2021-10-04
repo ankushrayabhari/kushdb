@@ -6,13 +6,13 @@
 
 namespace kush::compile::proxy {
 
-class Value;
+class IRValue;
 class Float64;
 
 template <typename V>
-std::unique_ptr<Value> EvaluateBinaryNumeric(
+std::unique_ptr<IRValue> EvaluateBinaryNumeric(
     plan::BinaryArithmeticOperatorType op_type, const V& lhs,
-    const Value& rhs_generic) {
+    const IRValue& rhs_generic) {
   const V& rhs = dynamic_cast<const V&>(rhs_generic);
 
   switch (op_type) {

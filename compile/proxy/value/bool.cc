@@ -28,8 +28,8 @@ std::unique_ptr<Bool> Bool::ToPointer() const {
   return std::make_unique<Bool>(program_, value_);
 }
 
-std::unique_ptr<Value> Bool::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, const Value& rhs) const {
+std::unique_ptr<IRValue> Bool::EvaluateBinary(
+    plan::BinaryArithmeticOperatorType op_type, const IRValue& rhs) const {
   const Bool& rhs_bool = dynamic_cast<const Bool&>(rhs);
 
   switch (op_type) {

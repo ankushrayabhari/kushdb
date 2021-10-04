@@ -121,8 +121,8 @@ std::unique_ptr<Float64> Float64::ToPointer() const {
   return std::make_unique<Float64>(program_, value_);
 }
 
-std::unique_ptr<Value> Float64::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, const Value& rhs) const {
+std::unique_ptr<IRValue> Float64::EvaluateBinary(
+    plan::BinaryArithmeticOperatorType op_type, const IRValue& rhs) const {
   return EvaluateBinaryNumeric<Float64>(op_type, *this, rhs);
 }
 
