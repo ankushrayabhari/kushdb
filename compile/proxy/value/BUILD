@@ -24,6 +24,16 @@ cc_library(
 )
 
 cc_library(
+    name = "sql_value",
+    srcs = ["sql_value.cc"],
+    hdrs = ["sql_value.h"],
+    deps = [
+        ":ir_value",
+        "//catalog:sql_type",
+    ],
+)
+
+cc_library(
     name = "numeric",
     hdrs = ["numeric.h"],
     deps = [
