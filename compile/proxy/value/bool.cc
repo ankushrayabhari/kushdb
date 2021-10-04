@@ -12,6 +12,18 @@ Bool::Bool(khir::ProgramBuilder& program, const khir::Value& value)
 Bool::Bool(khir::ProgramBuilder& program, bool value)
     : program_(program), value_(program_.ConstI1(value)) {}
 
+Bool& Bool::operator=(const Bool& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
+Bool& Bool::operator=(Bool&& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
 khir::Value Bool::Get() const { return value_; }
 
 Bool Bool::operator!() const { return Bool(program_, program_.LNotI1(value_)); }

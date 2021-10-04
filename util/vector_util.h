@@ -56,12 +56,33 @@ std::vector<std::reference_wrapper<T>> ReferenceVector(
 }
 
 template <class T>
+std::vector<std::reference_wrapper<T>> ReferenceVector(std::vector<T>& vec) {
+  std::vector<std::reference_wrapper<T>> retval;
+  retval.reserve(vec.size());
+  for (auto& v : vec) {
+    retval.emplace_back(v);
+  }
+  return retval;
+}
+
+template <class T>
 std::vector<std::reference_wrapper<const T>> ImmutableReferenceVector(
     const std::vector<std::unique_ptr<T>>& vec) {
   std::vector<std::reference_wrapper<const T>> retval;
   retval.reserve(vec.size());
   for (auto& ptr : vec) {
     retval.push_back(*ptr);
+  }
+  return retval;
+}
+
+template <class T>
+std::vector<std::reference_wrapper<const T>> ImmutableReferenceVector(
+    const std::vector<T>& vec) {
+  std::vector<std::reference_wrapper<const T>> retval;
+  retval.reserve(vec.size());
+  for (auto& v : vec) {
+    retval.emplace_back(v);
   }
   return retval;
 }

@@ -4,7 +4,7 @@
 
 namespace kush::compile::proxy {
 
-SQLValue::SQLValue(const Int8& value, const Bool& null)
+SQLValue::SQLValue(const Bool& value, const Bool& null)
     : value_(value.ToPointer()),
       null_(null),
       type_(catalog::SqlType::BOOLEAN) {}
@@ -25,6 +25,18 @@ SQLValue::SQLValue(const Float64& value, const Bool& null)
 
 SQLValue::SQLValue(const String& value, const Bool& null)
     : value_(value.ToPointer()), null_(null), type_(catalog::SqlType::TEXT) {}
+
+SQLValue::SQLValue(SQLValue&& rhs)
+    : value_(std::move(rhs.value_)),
+      null_(std::move(rhs.null_)),
+      type_(rhs.type_) {}
+
+SQLValue& SQLValue::operator=(SQLValue&& rhs) {
+  value_ = std::move(rhs.value_);
+  null_ = std::move(rhs.null_);
+  type_ = rhs.type_;
+  return *this;
+}
 
 Bool SQLValue::IsNull() { return null_; }
 

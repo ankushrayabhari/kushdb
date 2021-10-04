@@ -197,28 +197,29 @@ Int32 ColumnData<S>::Size() {
 }
 
 template <catalog::SqlType S>
-std::unique_ptr<IRValue> ColumnData<S>::operator[](Int32& idx) {
+SQLValue ColumnData<S>::operator[](Int32& idx) {
+  // TODO: refactor this to check for null values as well
   if constexpr (catalog::SqlType::TEXT == S) {
     program_.Call(program_.GetFunction(GetFnName<S>()),
                   {value_.value(), idx.Get(), result_.value()});
-    return std::make_unique<String>(program_, result_.value());
+    return SQLValue(String(program_, result_.value()), Bool(program_, false));
   }
 
   auto elem = program_.Call(program_.GetFunction(GetFnName<S>()),
                             {value_.value(), idx.Get()});
 
   if constexpr (catalog::SqlType::SMALLINT == S) {
-    return std::make_unique<Int16>(program_, elem);
+    return SQLValue(Int16(program_, elem), Bool(program_, false));
   } else if constexpr (catalog::SqlType::INT == S) {
-    return std::make_unique<Int32>(program_, elem);
+    return SQLValue(Int32(program_, elem), Bool(program_, false));
   } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return std::make_unique<Int64>(program_, elem);
+    return SQLValue(Int64(program_, elem), Bool(program_, false));
   } else if constexpr (catalog::SqlType::REAL == S) {
-    return std::make_unique<Float64>(program_, elem);
+    return SQLValue(Float64(program_, elem), Bool(program_, false));
   } else if constexpr (catalog::SqlType::DATE == S) {
-    return std::make_unique<Int64>(program_, elem);
+    return SQLValue(Int64(program_, elem), Bool(program_, false));
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return std::make_unique<Bool>(program_, elem);
+    return SQLValue(Bool(program_, elem), Bool(program_, false));
   }
 }
 

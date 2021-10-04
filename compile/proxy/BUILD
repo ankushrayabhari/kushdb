@@ -85,6 +85,7 @@ cc_library(
     deps = [
         "//catalog:sql_type",
         "//compile/proxy/value:ir_value",
+        "//compile/proxy/value:sql_value",
         "//khir:program_builder",
         "//runtime:column_data",
     ],

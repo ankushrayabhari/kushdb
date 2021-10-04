@@ -4,26 +4,24 @@
 #include <string>
 #include <vector>
 
-#include "compile/proxy/value/ir_value.h"
+#include "compile/proxy/value/sql_value.h"
 
 namespace kush::compile {
 
 class SchemaValues {
  public:
-  SchemaValues(int num_values);
-
   void ResetValues();
-  void AddVariable(std::unique_ptr<proxy::IRValue> value);
+  void AddVariable(proxy::SQLValue value);
 
-  const proxy::IRValue& Value(int idx) const;
-  std::vector<std::reference_wrapper<const proxy::IRValue>> Values() const;
-  std::vector<std::reference_wrapper<proxy::IRValue>> Values();
+  const proxy::SQLValue& Value(int idx) const;
+  std::vector<std::reference_wrapper<const proxy::SQLValue>> Values() const;
+  std::vector<std::reference_wrapper<proxy::SQLValue>> Values();
 
-  void SetValues(std::vector<std::unique_ptr<proxy::IRValue>> values);
-  void SetValue(int idx, std::unique_ptr<proxy::IRValue> value);
+  void SetValues(std::vector<proxy::SQLValue> values);
+  void SetValue(int idx, proxy::SQLValue value);
 
  private:
-  std::vector<std::unique_ptr<proxy::IRValue>> values_;
+  std::vector<proxy::SQLValue> values_;
 };
 
 }  // namespace kush::compile

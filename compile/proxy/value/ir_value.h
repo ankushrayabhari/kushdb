@@ -25,6 +25,10 @@ class Bool : public IRValue {
  public:
   Bool(khir::ProgramBuilder& program, const khir::Value& value);
   Bool(khir::ProgramBuilder& program, bool value);
+  Bool(const Bool& rhs) = default;
+  Bool(Bool&& rhs) = default;
+  Bool& operator=(const Bool& rhs);
+  Bool& operator=(Bool&& rhs);
 
   Bool operator!() const;
   Bool operator==(const Bool& rhs) const;
@@ -48,6 +52,10 @@ class Int8 : public IRValue {
  public:
   Int8(khir::ProgramBuilder& program, const khir::Value& value);
   Int8(khir::ProgramBuilder& program, int8_t value);
+  Int8(const Int8& rhs) = default;
+  Int8(Int8&& rhs) = default;
+  Int8& operator=(const Int8& rhs);
+  Int8& operator=(Int8&& rhs);
 
   Int8 operator+(const Int8& rhs) const;
   Int8 operator+(int8_t rhs) const;
@@ -86,6 +94,10 @@ class Int16 : public IRValue {
  public:
   Int16(khir::ProgramBuilder& program, const khir::Value& value);
   Int16(khir::ProgramBuilder& program, int16_t value);
+  Int16(const Int16& rhs) = default;
+  Int16(Int16&& rhs) = default;
+  Int16& operator=(const Int16& rhs);
+  Int16& operator=(Int16&& rhs);
 
   Int16 operator+(const Int16& rhs) const;
   Int16 operator+(int16_t rhs) const;
@@ -124,6 +136,10 @@ class Int32 : public IRValue {
  public:
   Int32(khir::ProgramBuilder& program, const khir::Value& value);
   Int32(khir::ProgramBuilder& program, int32_t value);
+  Int32(const Int32& rhs) = default;
+  Int32(Int32&& rhs) = default;
+  Int32& operator=(const Int32& rhs);
+  Int32& operator=(Int32&& rhs);
 
   Int32 operator+(const Int32& rhs) const;
   Int32 operator+(int32_t rhs) const;
@@ -162,6 +178,10 @@ class Int64 : public IRValue {
  public:
   Int64(khir::ProgramBuilder& program, const khir::Value& value);
   Int64(khir::ProgramBuilder& program, int64_t value);
+  Int64(const Int64& rhs) = default;
+  Int64(Int64&& rhs) = default;
+  Int64& operator=(const Int64& rhs);
+  Int64& operator=(Int64&& rhs);
 
   Int64 operator+(const Int64& rhs) const;
   Int64 operator+(int64_t rhs) const;
@@ -204,6 +224,10 @@ class Float64 : public IRValue {
   Float64(khir::ProgramBuilder& program, const proxy::Int16& v);
   Float64(khir::ProgramBuilder& program, const proxy::Int32& v);
   Float64(khir::ProgramBuilder& program, const proxy::Int64& v);
+  Float64(const Float64& rhs) = default;
+  Float64(Float64&& rhs) = default;
+  Float64& operator=(const Float64& rhs);
+  Float64& operator=(Float64&& rhs);
 
   Float64 operator+(const Float64& rhs) const;
   Float64 operator+(double value) const;
@@ -243,6 +267,11 @@ class Float64 : public IRValue {
 class String : public IRValue {
  public:
   String(khir::ProgramBuilder& program, const khir::Value& value);
+  String(const String& rhs) = default;
+  String(String&& rhs) = default;
+  String& operator=(const String& rhs);
+  String& operator=(String&& rhs);
+
   static String Global(khir::ProgramBuilder& program, std::string_view value);
   static khir::Value Constant(khir::ProgramBuilder& program,
                               std::string_view value);

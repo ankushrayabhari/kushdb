@@ -14,6 +14,18 @@ Int8::Int8(khir::ProgramBuilder& program, const khir::Value& value)
 Int8::Int8(khir::ProgramBuilder& program, int8_t value)
     : program_(program), value_(program.ConstI8(value)) {}
 
+Int8& Int8::operator=(const Int8& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
+Int8& Int8::operator=(Int8&& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
 khir::Value Int8::Get() const { return value_; }
 
 Int8 Int8::operator+(const Int8& rhs) const {
@@ -114,6 +126,18 @@ Int16::Int16(khir::ProgramBuilder& program, const khir::Value& value)
 
 Int16::Int16(khir::ProgramBuilder& program, int16_t value)
     : program_(program), value_(program.ConstI16(value)) {}
+
+Int16& Int16::operator=(const Int16& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
+Int16& Int16::operator=(Int16&& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
 
 khir::Value Int16::Get() const { return value_; }
 
@@ -222,6 +246,18 @@ Int32::Int32(khir::ProgramBuilder& program, const khir::Value& value)
 Int32::Int32(khir::ProgramBuilder& program, int32_t value)
     : program_(program), value_(program.ConstI32(value)) {}
 
+Int32& Int32::operator=(const Int32& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
+Int32& Int32::operator=(Int32&& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
 khir::Value Int32::Get() const { return value_; }
 
 Int32 Int32::operator+(const Int32& rhs) const {
@@ -328,6 +364,18 @@ Int64::Int64(khir::ProgramBuilder& program, const khir::Value& value)
 
 Int64::Int64(khir::ProgramBuilder& program, int64_t value)
     : program_(program), value_(program.ConstI64(value)) {}
+
+Int64& Int64::operator=(const Int64& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
+Int64& Int64::operator=(Int64&& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
 
 khir::Value Int64::Get() const { return value_; }
 

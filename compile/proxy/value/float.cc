@@ -23,6 +23,18 @@ Float64::Float64(khir::ProgramBuilder& program, const proxy::Int32& v)
 Float64::Float64(khir::ProgramBuilder& program, const proxy::Int64& v)
     : program_(program), value_(program_.F64ConvI64(v.Get())) {}
 
+Float64& Float64::operator=(const Float64& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
+Float64& Float64::operator=(Float64&& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
 khir::Value Float64::Get() const { return value_; }
 
 Float64 Float64::operator+(const Float64& rhs) const {

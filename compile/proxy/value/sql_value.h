@@ -7,12 +7,14 @@ namespace kush::compile::proxy {
 
 class SQLValue {
  public:
-  SQLValue(const Int8& value, const Bool& null);
+  SQLValue(const Bool& value, const Bool& null);
   SQLValue(const Int16& value, const Bool& null);
   SQLValue(const Int32& value, const Bool& null);
   SQLValue(const Int64& value, const Bool& null);
   SQLValue(const Float64& value, const Bool& null);
   SQLValue(const String& value, const Bool& null);
+  SQLValue(SQLValue&&);
+  SQLValue& operator=(SQLValue&&);
 
   Bool IsNull();
   IRValue& Get();
