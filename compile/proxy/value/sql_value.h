@@ -7,8 +7,12 @@ namespace kush::compile::proxy {
 
 class SQLValue {
  public:
-  SQLValue(std::unique_ptr<IRValue> value, const Bool& null,
-           catalog::SqlType type);
+  SQLValue(const Int8& value, const Bool& null);
+  SQLValue(const Int16& value, const Bool& null);
+  SQLValue(const Int32& value, const Bool& null);
+  SQLValue(const Int64& value, const Bool& null);
+  SQLValue(const Float64& value, const Bool& null);
+  SQLValue(const String& value, const Bool& null);
 
   Bool IsNull();
   IRValue& Get();
