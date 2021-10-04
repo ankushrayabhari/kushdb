@@ -8,9 +8,9 @@
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_set.h"
 
+#include "compile/proxy/control_flow/if.h"
+#include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/function.h"
-#include "compile/proxy/if.h"
-#include "compile/proxy/loop.h"
 #include "compile/proxy/skinner_join_executor.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/tuple_idx_table.h"

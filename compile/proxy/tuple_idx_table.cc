@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "compile/proxy/loop.h"
+#include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/value/value.h"
 #include "khir/program_builder.h"
 #include "runtime/tuple_idx_table.h"

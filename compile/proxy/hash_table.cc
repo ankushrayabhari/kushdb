@@ -3,7 +3,7 @@
 #include <functional>
 #include <vector>
 
-#include "compile/proxy/loop.h"
+#include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
 #include "khir/program_builder.h"

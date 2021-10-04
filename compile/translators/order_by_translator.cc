@@ -6,9 +6,9 @@
 #include <vector>
 
 #include "catalog/sql_type.h"
+#include "compile/proxy/control_flow/if.h"
+#include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/function.h"
-#include "compile/proxy/if.h"
-#include "compile/proxy/loop.h"
 #include "compile/proxy/value/value.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"

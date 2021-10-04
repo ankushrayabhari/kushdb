@@ -1,6 +1,6 @@
 #include "compile/translators/select_translator.h"
 
-#include "compile/proxy/if.h"
+#include "compile/proxy/control_flow/if.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"

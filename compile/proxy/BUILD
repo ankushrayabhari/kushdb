@@ -18,9 +18,9 @@ cc_library(
     srcs = ["hash_table.cc"],
     hdrs = ["hash_table.h"],
     deps = [
-        ":loop",
         ":struct",
         ":vector",
+        "//compile/proxy/control_flow:loop",
         "//khir:program_builder",
         "//runtime:hash_table",
         "//util:vector_util",
@@ -32,9 +32,9 @@ cc_library(
     srcs = ["vector.cc"],
     hdrs = ["vector.h"],
     deps = [
-        ":if",
         ":struct",
         "//catalog:sql_type",
+        "//compile/proxy/control_flow:if",
         "//compile/proxy/value",
         "//khir:program_builder",
         "//runtime:vector",
@@ -46,7 +46,7 @@ cc_library(
     srcs = ["tuple_idx_table.cc"],
     hdrs = ["tuple_idx_table.h"],
     deps = [
-        ":loop",
+        "//compile/proxy/control_flow:loop",
         "//compile/proxy/value",
         "//khir:program_builder",
         "//runtime:tuple_idx_table",
@@ -99,25 +99,5 @@ cc_library(
         "//compile/proxy/value",
         "//khir:program_builder",
         "//runtime:column_index",
-    ],
-)
-
-cc_library(
-    name = "if",
-    srcs = ["if.cc"],
-    hdrs = ["if.h"],
-    deps = [
-        "//compile/proxy/value",
-        "//khir:program_builder",
-    ],
-)
-
-cc_library(
-    name = "loop",
-    srcs = ["loop.cc"],
-    hdrs = ["loop.h"],
-    deps = [
-        "//compile/proxy/value",
-        "//khir:program_builder",
     ],
 )
