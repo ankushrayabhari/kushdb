@@ -9,7 +9,7 @@
 #include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/struct.h"
-#include "compile/proxy/value/value.h"
+#include "compile/proxy/value/ir_value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"

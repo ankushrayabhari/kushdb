@@ -1,6 +1,6 @@
 #include "compile/translators/output_translator.h"
 
-#include "compile/proxy/value/value.h"
+#include "compile/proxy/value/ir_value.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
 #include "plan/output_operator.h"

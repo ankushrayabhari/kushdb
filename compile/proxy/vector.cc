@@ -1,7 +1,7 @@
 #include "compile/proxy/vector.h"
 
 #include "compile/proxy/struct.h"
-#include "compile/proxy/value/value.h"
+#include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
 #include "runtime/vector.h"
 

@@ -7,7 +7,7 @@ cc_library(
     srcs = ["if.cc"],
     hdrs = ["if.h"],
     deps = [
-        "//compile/proxy/value",
+        "//compile/proxy/value:ir_value",
         "//khir:program_builder",
     ],
 )
@@ -17,7 +17,7 @@ cc_library(
     srcs = ["loop.cc"],
     hdrs = ["loop.h"],
     deps = [
-        "//compile/proxy/value",
+        "//compile/proxy/value:ir_value",
         "//khir:program_builder",
     ],
 )

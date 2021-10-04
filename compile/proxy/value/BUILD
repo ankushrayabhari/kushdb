@@ -3,7 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "value",
+    name = "ir_value",
     srcs = [
         "bool.cc",
         "float.cc",
@@ -12,7 +12,7 @@ cc_library(
         "string.cc",
     ],
     hdrs = [
-        "value.h",
+        "ir_value.h",
     ],
     deps = [
         ":numeric",

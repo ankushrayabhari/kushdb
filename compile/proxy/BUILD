@@ -8,7 +8,7 @@ cc_library(
     hdrs = ["struct.h"],
     deps = [
         "//catalog:sql_type",
-        "//compile/proxy/value",
+        "//compile/proxy/value:ir_value",
         "//khir:program_builder",
     ],
 )
@@ -35,7 +35,7 @@ cc_library(
         ":struct",
         "//catalog:sql_type",
         "//compile/proxy/control_flow:if",
-        "//compile/proxy/value",
+        "//compile/proxy/value:ir_value",
         "//khir:program_builder",
         "//runtime:vector",
     ],
@@ -47,7 +47,7 @@ cc_library(
     hdrs = ["tuple_idx_table.h"],
     deps = [
         "//compile/proxy/control_flow:loop",
-        "//compile/proxy/value",
+        "//compile/proxy/value:ir_value",
         "//khir:program_builder",
         "//runtime:tuple_idx_table",
         "//util:vector_util",
@@ -60,7 +60,7 @@ cc_library(
     hdrs = ["function.h"],
     deps = [
         ":struct",
-        "//compile/proxy/value",
+        "//compile/proxy/value:ir_value",
         "//khir:program_builder",
     ],
 )
@@ -71,7 +71,7 @@ cc_library(
     hdrs = ["skinner_join_executor.h"],
     deps = [
         ":tuple_idx_table",
-        "//compile/proxy/value",
+        "//compile/proxy/value:ir_value",
         "//compile/translators:recompiling_join_translator",
         "//khir:program_builder",
         "//runtime:skinner_join_executor",
@@ -84,7 +84,7 @@ cc_library(
     hdrs = ["column_data.h"],
     deps = [
         "//catalog:sql_type",
-        "//compile/proxy/value",
+        "//compile/proxy/value:ir_value",
         "//khir:program_builder",
         "//runtime:column_data",
     ],
@@ -96,7 +96,7 @@ cc_library(
     hdrs = ["column_index.h"],
     deps = [
         "//catalog:sql_type",
-        "//compile/proxy/value",
+        "//compile/proxy/value:ir_value",
         "//khir:program_builder",
         "//runtime:column_index",
     ],

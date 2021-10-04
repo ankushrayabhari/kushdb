@@ -15,7 +15,7 @@
 #include "compile/proxy/skinner_join_executor.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/tuple_idx_table.h"
-#include "compile/proxy/value/value.h"
+#include "compile/proxy/value/ir_value.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"

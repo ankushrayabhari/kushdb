@@ -9,7 +9,7 @@
 #include "catalog/sql_type.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/control_flow/loop.h"
-#include "compile/proxy/value/value.h"
+#include "compile/proxy/value/ir_value.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
 #include "plan/scan_operator.h"

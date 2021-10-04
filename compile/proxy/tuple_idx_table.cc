@@ -3,7 +3,7 @@
 #include <functional>
 
 #include "compile/proxy/control_flow/loop.h"
-#include "compile/proxy/value/value.h"
+#include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
 #include "runtime/tuple_idx_table.h"
 #include "util/vector_util.h"

@@ -33,7 +33,7 @@ cc_library(
         "//compile/proxy:skinner_join_executor",
         "//compile/proxy:tuple_idx_table",
         "//compile/proxy:vector",
-        "//compile/proxy/value",
+        "//compile/proxy/value:ir_value",
         "//compile/translators:expression_translator",
         "//khir:program",
         "//khir:program_builder",
