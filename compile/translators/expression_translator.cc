@@ -47,13 +47,9 @@ void ExpressionTranslator::Visit(
 
       auto ret_val = proxy::Ternary(
           program_, left_value,
-          [&]() -> std::vector<khir::Value> {
-            return {Compute(arith.RightChild())->Get()};
-          },
-          [&]() -> std::vector<khir::Value> {
-            return {proxy::Bool(program_, false).Get()};
-          })[0];
-      this->Return(proxy::Bool(program_, ret_val).ToPointer());
+          [&]() { return ComputeAs<proxy::Bool>(arith.RightChild()); },
+          [&]() { return proxy::Bool(program_, false); });
+      this->Return(ret_val.ToPointer());
       break;
     }
 
@@ -61,14 +57,9 @@ void ExpressionTranslator::Visit(
       std::unique_ptr<proxy::Bool> th, el;
       auto left_value = ComputeAs<proxy::Bool>(arith.LeftChild());
       auto ret_val = proxy::Ternary(
-          program_, left_value,
-          [&]() -> std::vector<khir::Value> {
-            return {proxy::Bool(program_, true).Get()};
-          },
-          [&]() -> std::vector<khir::Value> {
-            return {Compute(arith.RightChild())->Get()};
-          })[0];
-      this->Return(proxy::Bool(program_, ret_val).ToPointer());
+          program_, left_value, [&]() { return proxy::Bool(program_, true); },
+          [&]() { return ComputeAs<proxy::Bool>(arith.RightChild()); });
+      this->Return(ret_val.ToPointer());
       break;
     }
 
@@ -159,14 +150,9 @@ std::unique_ptr<S> ExpressionTranslator::Ternary(
   std::unique_ptr<S> th, el;
   auto cond = ComputeAs<proxy::Bool>(case_expr.Cond());
   auto ret_val = proxy::Ternary(
-      program_, cond,
-      [&]() -> std::vector<khir::Value> {
-        return {this->Compute(case_expr.Then())->Get()};
-      },
-      [&]() -> std::vector<khir::Value> {
-        return {this->Compute(case_expr.Else())->Get()};
-      })[0];
-  return S(program_, ret_val).ToPointer();
+      program_, cond, [&]() { return this->ComputeAs<S>(case_expr.Then()); },
+      [&]() { return this->ComputeAs<S>(case_expr.Else()); });
+  return ret_val.ToPointer();
 }
 
 void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {

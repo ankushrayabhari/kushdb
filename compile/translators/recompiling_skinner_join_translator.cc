@@ -131,9 +131,9 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
         table_idx == left_column->GetChildIdx() ? *right_column : *left_column);
     auto bucket = indexes[index_idx]->GetBucket(*other_side_value);
 
-    auto bucket_dne_check = proxy::Ternary(
+    auto bucket_dne = proxy::Ternary(
         program, bucket.DoesNotExist(),
-        [&]() -> std::vector<khir::Value> {
+        [&]() {
           auto budget = initial_budget - 1;
           proxy::If(program, budget == 0, [&]() {
             auto idx_ptr = program.GetElementPtr(program.I32Type(), idx_array,
@@ -142,73 +142,55 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
             program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
             program.Return(program.ConstI32(-1));
           });
-
-          return {budget.Get()};
+          return budget;
         },
-        [&]() -> std::vector<khir::Value> {
+        [&]() {
           // Loop over bucket
           auto bucket_size = bucket.Size();
           proxy::Loop loop(
               program,
               [&](auto& loop) {
-                auto progress_check = proxy::Ternary(
+                auto progress_next_tuple = proxy::Ternary(
                     program, resume_progress,
-                    [&]() -> std::vector<khir::Value> {
+                    [&]() {
                       auto progress_ptr = program.GetElementPtr(
                           program.I32Type(), progress_arr, {table_idx});
                       auto next_tuple =
                           proxy::Int32(program, program.LoadI32(progress_ptr));
-                      return {next_tuple.Get()};
+                      return next_tuple;
                     },
-                    [&]() -> std::vector<khir::Value> {
-                      auto next_tuple = proxy::Int32(program, 0);
-                      return {next_tuple.Get()};
-                    });
-                auto progress_next_tuple =
-                    proxy::Int32(program, progress_check[0]);
+                    [&]() { return proxy::Int32(program, 0); });
                 auto offset_next_tuple =
                     proxy::Int32(program, program.LoadI32(program.GetElementPtr(
                                               program.I32Type(), offset_array,
                                               {table_idx}))) +
                     1;
-                auto offset_check = proxy::Ternary(
+                auto initial_next_tuple = proxy::Ternary(
                     program, offset_next_tuple > progress_next_tuple,
-                    [&]() -> std::vector<khir::Value> {
-                      return {offset_next_tuple.Get()};
-                    },
-                    [&]() -> std::vector<khir::Value> {
-                      return {progress_next_tuple.Get()};
-                    });
-                proxy::Int32 initial_next_tuple(program, offset_check[0]);
+                    [&]() { return offset_next_tuple; },
+                    [&]() { return progress_next_tuple; });
                 auto bucket_idx = bucket.FastForwardToStart(initial_next_tuple);
                 loop.AddLoopVariable(bucket_idx);
                 loop.AddLoopVariable(initial_budget);
 
                 auto continue_resume_progress = proxy::Ternary(
                     program, resume_progress,
-                    [&]() -> std::vector<khir::Value> {
-                      auto valid_bucket_idx = proxy::Ternary(
+                    [&]() {
+                      return proxy::Ternary(
                           program, bucket_idx < bucket_size,
-                          [&]() -> std::vector<khir::Value> {
+                          [&]() {
                             auto progress_ptr = program.GetElementPtr(
                                 program.I32Type(), progress_arr, {table_idx});
                             auto progress_next_tuple = proxy::Int32(
                                 program, program.LoadI32(progress_ptr));
 
                             auto bucket_next_tuple = bucket[bucket_idx];
-                            return {(bucket_next_tuple == progress_next_tuple)
-                                        .Get()};
+                            return bucket_next_tuple == progress_next_tuple;
                           },
-                          [&]() -> std::vector<khir::Value> {
-                            return {proxy::Bool(program, false).Get()};
-                          });
-                      return {valid_bucket_idx[0]};
+                          [&]() { return proxy::Bool(program, false); });
                     },
-                    [&]() -> std::vector<khir::Value> {
-                      return {proxy::Bool(program, false).Get()};
-                    });
-                loop.AddLoopVariable(
-                    proxy::Bool(program, continue_resume_progress[0]));
+                    [&]() { return proxy::Bool(program, false); });
+                loop.AddLoopVariable(continue_resume_progress);
               },
               [&](auto& loop) {
                 auto bucket_idx =
@@ -328,60 +310,47 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                                      proxy::Bool(program, false));
               });
 
-          return {loop.template GetLoopVariable<proxy::Int32>(1).Get()};
+          return loop.template GetLoopVariable<proxy::Int32>(1);
         });
 
-    return proxy::Int32(program, bucket_dne_check[0]);
+    return bucket_dne;
   }
 
   proxy::Loop loop(
       program,
       [&](auto& loop) {
-        auto progress_check = proxy::Ternary(
+        auto progress_next_tuple = proxy::Ternary(
             program, resume_progress,
-            [&]() -> std::vector<khir::Value> {
+            [&]() {
               auto progress_ptr = program.GetElementPtr(
                   program.I32Type(), progress_arr, {table_idx});
-              auto next_tuple =
-                  proxy::Int32(program, program.LoadI32(progress_ptr));
-              return {next_tuple.Get()};
+              return proxy::Int32(program, program.LoadI32(progress_ptr));
             },
-            [&]() -> std::vector<khir::Value> {
-              auto next_tuple = proxy::Int32(program, 0);
-              return {next_tuple.Get()};
-            });
-        auto progress_next_tuple = proxy::Int32(program, progress_check[0]);
+            [&]() { return proxy::Int32(program, 0); });
         auto offset_next_tuple =
             proxy::Int32(program,
                          program.LoadI32(program.GetElementPtr(
                              program.I32Type(), offset_array, {table_idx}))) +
             1;
-        auto offset_check = proxy::Ternary(
+        auto initial_next_tuple = proxy::Ternary(
             program, offset_next_tuple > progress_next_tuple,
-            [&]() -> std::vector<khir::Value> {
-              return {offset_next_tuple.Get()};
-            },
-            [&]() -> std::vector<khir::Value> {
-              return {progress_next_tuple.Get()};
-            });
-        proxy::Int32 initial_next_tuple(program, offset_check[0]);
+            [&]() { return offset_next_tuple; },
+            [&]() { return progress_next_tuple; });
 
         loop.AddLoopVariable(initial_next_tuple);
         loop.AddLoopVariable(initial_budget);
 
         auto continue_resume_progress = proxy::Ternary(
             program, resume_progress,
-            [&]() -> std::vector<khir::Value> {
+            [&]() {
               auto progress_ptr = program.GetElementPtr(
                   program.I32Type(), progress_arr, {table_idx});
               auto progress_next_tuple =
                   proxy::Int32(program, program.LoadI32(progress_ptr));
-              return {(initial_next_tuple == progress_next_tuple).Get()};
+              return initial_next_tuple == progress_next_tuple;
             },
-            [&]() -> std::vector<khir::Value> {
-              return {proxy::Bool(program, false).Get()};
-            });
-        loop.AddLoopVariable(proxy::Bool(program, continue_resume_progress[0]));
+            [&]() { return proxy::Bool(program, false); });
+        loop.AddLoopVariable(continue_resume_progress);
       },
       [&](auto& loop) {
         auto next_tuple = loop.template GetLoopVariable<proxy::Int32>(0);
@@ -669,51 +638,40 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   proxy::Loop loop(
       program,
       [&](auto& loop) {
-        auto progress_check = proxy::Ternary(
+        auto progress_next_tuple = proxy::Ternary(
             program, resume_progress,
-            [&]() -> std::vector<khir::Value> {
+            [&]() {
               auto progress_ptr = program.GetElementPtr(
                   program.I32Type(), progress_arr, {table_idx});
               auto next_tuple =
                   proxy::Int32(program, program.LoadI32(progress_ptr));
-              return {next_tuple.Get()};
+              return next_tuple;
             },
-            [&]() -> std::vector<khir::Value> {
-              auto next_tuple = proxy::Int32(program, 0);
-              return {next_tuple.Get()};
-            });
-        auto progress_next_tuple = proxy::Int32(program, progress_check[0]);
+            [&]() { return proxy::Int32(program, 0); });
         auto offset_next_tuple =
             proxy::Int32(program,
                          program.LoadI32(program.GetElementPtr(
                              program.I32Type(), offset_array, {table_idx}))) +
             1;
-        auto offset_check = proxy::Ternary(
+        auto initial_next_tuple = proxy::Ternary(
             program, offset_next_tuple > progress_next_tuple,
-            [&]() -> std::vector<khir::Value> {
-              return {offset_next_tuple.Get()};
-            },
-            [&]() -> std::vector<khir::Value> {
-              return {progress_next_tuple.Get()};
-            });
-        proxy::Int32 initial_next_tuple(program, offset_check[0]);
+            [&]() { return offset_next_tuple; },
+            [&]() { return progress_next_tuple; });
 
         loop.AddLoopVariable(initial_next_tuple);
         loop.AddLoopVariable(initial_budget);
 
         auto continue_resume_progress = proxy::Ternary(
             program, resume_progress,
-            [&]() -> std::vector<khir::Value> {
+            [&]() {
               auto progress_ptr = program.GetElementPtr(
                   program.I32Type(), progress_arr, {table_idx});
               auto progress_next_tuple =
                   proxy::Int32(program, program.LoadI32(progress_ptr));
-              return {(initial_next_tuple == progress_next_tuple).Get()};
+              return initial_next_tuple == progress_next_tuple;
             },
-            [&]() -> std::vector<khir::Value> {
-              return {proxy::Bool(program, false).Get()};
-            });
-        loop.AddLoopVariable(proxy::Bool(program, continue_resume_progress[0]));
+            [&]() { return proxy::Bool(program, false); });
+        loop.AddLoopVariable(continue_resume_progress);
       },
       [&](auto& loop) {
         auto next_tuple = loop.template GetLoopVariable<proxy::Int32>(0);

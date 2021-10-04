@@ -47,13 +47,9 @@ void If(khir::ProgramBuilder& program, const Bool& cond,
   program.SetCurrentBlock(dest_block);
 }
 
-std::vector<khir::Value> Ternary(
-    khir::ProgramBuilder& program, const Bool& cond,
-    std::function<std::vector<khir::Value>()> then_fn,
-    std::function<std::vector<khir::Value>()> else_fn) {
-  std::vector<khir::Type> phi_types;
-  std::vector<khir::Value> then_branch_phi_members;
-  std::vector<khir::Value> else_branch_phi_members;
+template <typename T>
+T TernaryImpl(khir::ProgramBuilder& program, const Bool& cond,
+              std::function<T()> then_fn, std::function<T()> else_fn) {
   auto dest_block = program.GenerateBlock();
 
   auto first_block = program.GenerateBlock();
@@ -62,42 +58,69 @@ std::vector<khir::Value> Ternary(
   program.Branch(cond.Get(), first_block, second_block);
 
   program.SetCurrentBlock(first_block);
-  const auto then_branch_values = then_fn();
-  if (!program.IsTerminated(program.CurrentBlock())) {
-    for (auto v : then_branch_values) {
-      then_branch_phi_members.push_back(program.PhiMember(v));
-      phi_types.push_back(program.TypeOf(v));
-    }
-    program.Branch(dest_block);
+  const auto then_branch_value = then_fn();
+  if (program.IsTerminated(program.CurrentBlock())) {
+    throw std::runtime_error("Current block cannot be terminated.");
   }
+  auto then_branch_phi_member = program.PhiMember(then_branch_value.Get());
+  khir::Type phi_type = program.TypeOf(then_branch_value.Get());
+  program.Branch(dest_block);
 
   program.SetCurrentBlock(second_block);
-  const auto else_branch_values = else_fn();
-
-  if (!program.IsTerminated(program.CurrentBlock())) {
-    for (auto v : else_branch_values) {
-      else_branch_phi_members.push_back(program.PhiMember(v));
-    }
-    program.Branch(dest_block);
+  const auto else_branch_value = else_fn();
+  if (program.IsTerminated(program.CurrentBlock())) {
+    throw std::runtime_error("Current block cannot be terminated.");
   }
+  auto else_branch_phi_member = program.PhiMember(else_branch_value.Get());
+  program.Branch(dest_block);
 
   program.SetCurrentBlock(dest_block);
+  auto phi_value = program.Phi(phi_type);
+  program.UpdatePhiMember(phi_value, then_branch_phi_member);
+  program.UpdatePhiMember(phi_value, else_branch_phi_member);
+  return T(program, phi_value);
+}
 
-  if (phi_types.size() > 0) {
-    std::vector<khir::Value> phi_values;
-    for (int i = 0; i < phi_types.size(); i++) {
-      phi_values.push_back(program.Phi(phi_types[i]));
-    }
-    for (int i = 0; i < then_branch_phi_members.size(); i++) {
-      program.UpdatePhiMember(phi_values[i], then_branch_phi_members[i]);
-    }
-    for (int i = 0; i < else_branch_phi_members.size(); i++) {
-      program.UpdatePhiMember(phi_values[i], else_branch_phi_members[i]);
-    }
-    return phi_values;
-  } else {
-    return {};
-  }
+proxy::Bool Ternary(khir::ProgramBuilder& program, const Bool& cond,
+                    std::function<proxy::Bool()> then_fn,
+                    std::function<proxy::Bool()> else_fn) {
+  return TernaryImpl<proxy::Bool>(program, cond, then_fn, else_fn);
+}
+
+proxy::Int8 Ternary(khir::ProgramBuilder& program, const Bool& cond,
+                    std::function<proxy::Int8()> then_fn,
+                    std::function<proxy::Int8()> else_fn) {
+  return TernaryImpl<proxy::Int8>(program, cond, then_fn, else_fn);
+}
+
+proxy::Int16 Ternary(khir::ProgramBuilder& program, const Bool& cond,
+                     std::function<proxy::Int16()> then_fn,
+                     std::function<proxy::Int16()> else_fn) {
+  return TernaryImpl<proxy::Int16>(program, cond, then_fn, else_fn);
+}
+
+proxy::Int32 Ternary(khir::ProgramBuilder& program, const Bool& cond,
+                     std::function<proxy::Int32()> then_fn,
+                     std::function<proxy::Int32()> else_fn) {
+  return TernaryImpl<proxy::Int32>(program, cond, then_fn, else_fn);
+}
+
+proxy::Int64 Ternary(khir::ProgramBuilder& program, const Bool& cond,
+                     std::function<proxy::Int64()> then_fn,
+                     std::function<proxy::Int64()> else_fn) {
+  return TernaryImpl<proxy::Int64>(program, cond, then_fn, else_fn);
+}
+
+proxy::Float64 Ternary(khir::ProgramBuilder& program, const Bool& cond,
+                       std::function<proxy::Float64()> then_fn,
+                       std::function<proxy::Float64()> else_fn) {
+  return TernaryImpl<proxy::Float64>(program, cond, then_fn, else_fn);
+}
+
+proxy::String Ternary(khir::ProgramBuilder& program, const Bool& cond,
+                      std::function<proxy::String()> then_fn,
+                      std::function<proxy::String()> else_fn) {
+  return TernaryImpl<proxy::String>(program, cond, then_fn, else_fn);
 }
 
 }  // namespace kush::compile::proxy

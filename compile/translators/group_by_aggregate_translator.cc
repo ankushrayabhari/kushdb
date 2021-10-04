@@ -223,12 +223,9 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         // If we didn't find, move to next element
         // Else, break out of loop
         std::unique_ptr<proxy::Int32> next_index;
-        proxy::Int32 next(
-            program_,
-            proxy::Ternary(
-                program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1,
-                [&]() -> std::vector<khir::Value> { return {(i + 1).Get()}; },
-                [&]() -> std::vector<khir::Value> { return {size.Get()}; })[0]);
+        proxy::Int32 next = proxy::Ternary(
+            program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1,
+            [&]() { return i + 1; }, [&]() { return size; });
         return loop.Continue(next);
       });
 
