@@ -114,6 +114,8 @@ proxy::Int64 Int8::Hash() const {
   return proxy::Int64(program_, program_.I64ZextI8(value_));
 }
 
+khir::ProgramBuilder& Int8::ProgramBuilder() const { return program_; }
+
 Int16::Int16(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
@@ -227,6 +229,8 @@ void Int16::Print(proxy::Printer& printer) const { printer.Print(*this); }
 proxy::Int64 Int16::Hash() const {
   return proxy::Int64(program_, program_.I64ZextI16(value_));
 }
+
+khir::ProgramBuilder& Int16::ProgramBuilder() const { return program_; }
 
 Int32::Int32(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
@@ -342,6 +346,8 @@ proxy::Int64 Int32::Hash() const {
   return proxy::Int64(program_, program_.I64ZextI32(value_));
 }
 
+khir::ProgramBuilder& Int32::ProgramBuilder() const { return program_; }
+
 Int64::Int64(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
@@ -453,5 +459,7 @@ std::unique_ptr<Int64> Int64::ToPointer() const {
 void Int64::Print(proxy::Printer& printer) const { printer.Print(*this); }
 
 proxy::Int64 Int64::Hash() const { return *this; }
+
+khir::ProgramBuilder& Int64::ProgramBuilder() const { return program_; }
 
 }  // namespace kush::compile::proxy

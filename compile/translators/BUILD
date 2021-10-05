@@ -29,6 +29,7 @@ cc_library(
     hdrs = ["expression_translator.h"],
     deps = [
         ":operator_translator",
+        "//compile/proxy:evaluate",
         "//compile/proxy/control_flow:if",
         "//compile/proxy/value:ir_value",
         "//khir:program_builder",

@@ -2,6 +2,8 @@
 
 #include "catalog/sql_type.h"
 #include "compile/proxy/value/ir_value.h"
+#include "khir/program_builder.h"
+#include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
@@ -21,8 +23,10 @@ class SQLValue {
   Bool IsNull() const;
   IRValue& Get() const;
   catalog::SqlType Type() const;
+  khir::ProgramBuilder& ProgramBuilder() const;
 
  private:
+  khir::ProgramBuilder& program_;
   std::unique_ptr<IRValue> value_;
   Bool null_;
   catalog::SqlType type_;

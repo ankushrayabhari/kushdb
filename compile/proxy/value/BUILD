@@ -28,5 +28,7 @@ cc_library(
     deps = [
         ":ir_value",
         "//catalog:sql_type",
+        "//khir:program_builder",
+        "//plan/expression:binary_arithmetic_expression",
     ],
 )

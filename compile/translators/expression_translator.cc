@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "compile/proxy/control_flow/if.h"
+#include "compile/proxy/evaluate.h"
 #include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
 #include "plan/expression/aggregate_expression.h"
@@ -35,169 +36,6 @@ void ExpressionTranslator::ForwardDeclare(khir::ProgramBuilder& program) {
 ExpressionTranslator::ExpressionTranslator(khir::ProgramBuilder& program,
                                            OperatorTranslator& source)
     : program_(program), source_(source) {}
-
-proxy::SQLValue ExpressionTranslator::EvaluateBinaryBool(
-    plan::BinaryArithmeticOperatorType op_type, const proxy::SQLValue& lhs,
-    const proxy::SQLValue& rhs) {
-  return proxy::NullableTernary<proxy::Bool>(
-      program_, lhs.IsNull() || rhs.IsNull(),
-      [&]() {
-        return proxy::SQLValue(proxy::Bool(program_, false),
-                               proxy::Bool(program_, true));
-      },
-      [&]() {
-        const proxy::Bool& lhs_bool =
-            dynamic_cast<const proxy::Bool&>(lhs.Get());
-        const proxy::Bool& rhs_bool =
-            dynamic_cast<const proxy::Bool&>(rhs.Get());
-        proxy::Bool null(program_, false);
-
-        switch (op_type) {
-          case plan::BinaryArithmeticOperatorType::EQ:
-            return proxy::SQLValue(lhs_bool == rhs_bool, null);
-
-          case plan::BinaryArithmeticOperatorType::NEQ:
-            return proxy::SQLValue(lhs_bool != rhs_bool, null);
-
-          default:
-            throw std::runtime_error("Invalid operator on Bool");
-        }
-      });
-}
-
-template <typename V>
-proxy::SQLValue ExpressionTranslator::EvaluateBinaryNumeric(
-    plan::BinaryArithmeticOperatorType op_type, const proxy::SQLValue& lhs,
-    const proxy::SQLValue& rhs) {
-  switch (op_type) {
-    case plan::BinaryArithmeticOperatorType::ADD:
-    case plan::BinaryArithmeticOperatorType::SUB:
-    case plan::BinaryArithmeticOperatorType::MUL:
-    case plan::BinaryArithmeticOperatorType::DIV: {
-      return proxy::NullableTernary<proxy::Bool>(
-          program_, lhs.IsNull() || rhs.IsNull(),
-          [&]() {
-            return proxy::SQLValue(proxy::Bool(program_, false),
-                                   proxy::Bool(program_, true));
-          },
-          [&]() {
-            const V& lhs_v = dynamic_cast<const V&>(lhs.Get());
-            const V& rhs_v = dynamic_cast<const V&>(rhs.Get());
-            proxy::Bool null(program_, false);
-
-            switch (op_type) {
-              case plan::BinaryArithmeticOperatorType::ADD:
-                return proxy::SQLValue(lhs_v + rhs_v, null);
-
-              case plan::BinaryArithmeticOperatorType::SUB:
-                return proxy::SQLValue(lhs_v - rhs_v, null);
-
-              case plan::BinaryArithmeticOperatorType::MUL:
-                return proxy::SQLValue(lhs_v * rhs_v, null);
-
-              case plan::BinaryArithmeticOperatorType::DIV:
-                if constexpr (std::is_same_v<V, proxy::Float64>) {
-                  return proxy::SQLValue(lhs_v / rhs_v, null);
-                } else {
-                  throw std::runtime_error("Invalid operator on numeric");
-                }
-
-              default:
-                throw std::runtime_error("Unreachable");
-            }
-          });
-    }
-
-    case plan::BinaryArithmeticOperatorType::EQ:
-    case plan::BinaryArithmeticOperatorType::NEQ:
-    case plan::BinaryArithmeticOperatorType::LT:
-    case plan::BinaryArithmeticOperatorType::LEQ:
-    case plan::BinaryArithmeticOperatorType::GT:
-    case plan::BinaryArithmeticOperatorType::GEQ: {
-      return proxy::NullableTernary<proxy::Bool>(
-          program_, lhs.IsNull() || rhs.IsNull(),
-          [&]() {
-            return proxy::SQLValue(proxy::Bool(program_, false),
-                                   proxy::Bool(program_, true));
-          },
-          [&]() {
-            const V& lhs_v = dynamic_cast<const V&>(lhs.Get());
-            const V& rhs_v = dynamic_cast<const V&>(rhs.Get());
-            proxy::Bool null(program_, false);
-
-            switch (op_type) {
-              case plan::BinaryArithmeticOperatorType::EQ:
-                return proxy::SQLValue(lhs_v == rhs_v, null);
-
-              case plan::BinaryArithmeticOperatorType::NEQ:
-                return proxy::SQLValue(lhs_v != rhs_v, null);
-
-              case plan::BinaryArithmeticOperatorType::LT:
-                return proxy::SQLValue(lhs_v < rhs_v, null);
-
-              case plan::BinaryArithmeticOperatorType::LEQ:
-                return proxy::SQLValue(lhs_v <= rhs_v, null);
-
-              case plan::BinaryArithmeticOperatorType::GT:
-                return proxy::SQLValue(lhs_v > rhs_v, null);
-
-              case plan::BinaryArithmeticOperatorType::GEQ:
-                return proxy::SQLValue(lhs_v >= rhs_v, null);
-
-              default:
-                throw std::runtime_error("Unreachable");
-            }
-          });
-    }
-
-    default:
-      throw std::runtime_error("Invalid operator on numeric");
-  }
-}
-
-proxy::SQLValue ExpressionTranslator::EvaluateBinaryString(
-    plan::BinaryArithmeticOperatorType op_type, const proxy::SQLValue& lhs,
-    const proxy::SQLValue& rhs) {
-  return proxy::NullableTernary<proxy::Bool>(
-      program_, lhs.IsNull() || rhs.IsNull(),
-      [&]() {
-        return proxy::SQLValue(proxy::Bool(program_, false),
-                               proxy::Bool(program_, true));
-      },
-      [&]() {
-        const proxy::String& lhs_v =
-            dynamic_cast<const proxy::String&>(lhs.Get());
-        const proxy::String& rhs_v =
-            dynamic_cast<const proxy::String&>(rhs.Get());
-        proxy::Bool null(program_, false);
-
-        switch (op_type) {
-          case plan::BinaryArithmeticOperatorType::STARTS_WITH:
-            return proxy::SQLValue(lhs_v.StartsWith(rhs_v), null);
-
-          case plan::BinaryArithmeticOperatorType::ENDS_WITH:
-            return proxy::SQLValue(lhs_v.EndsWith(rhs_v), null);
-
-          case plan::BinaryArithmeticOperatorType::CONTAINS:
-            return proxy::SQLValue(lhs_v.Contains(rhs_v), null);
-
-          case plan::BinaryArithmeticOperatorType::LIKE:
-            return proxy::SQLValue(lhs_v.Like(rhs_v), null);
-
-          case plan::BinaryArithmeticOperatorType::EQ:
-            return proxy::SQLValue(lhs_v == rhs_v, null);
-
-          case plan::BinaryArithmeticOperatorType::NEQ:
-            return proxy::SQLValue(lhs_v != rhs_v, null);
-
-          case plan::BinaryArithmeticOperatorType::LT:
-            return proxy::SQLValue(lhs_v < rhs_v, null);
-
-          default:
-            throw std::runtime_error("Invalid operator on string");
-        }
-      });
-}
 
 void ExpressionTranslator::Visit(
     const plan::BinaryArithmeticExpression& arith) {
@@ -244,29 +82,7 @@ void ExpressionTranslator::Visit(
     default:
       auto lhs = Compute(arith.LeftChild());
       auto rhs = Compute(arith.RightChild());
-
-      switch (lhs.Type()) {
-        case catalog::SqlType::BOOLEAN:
-          Return(EvaluateBinaryBool(arith.OpType(), lhs, rhs));
-          return;
-        case catalog::SqlType::SMALLINT:
-          Return(EvaluateBinaryNumeric<proxy::Int16>(arith.OpType(), lhs, rhs));
-          return;
-        case catalog::SqlType::INT:
-          Return(EvaluateBinaryNumeric<proxy::Int32>(arith.OpType(), lhs, rhs));
-          return;
-        case catalog::SqlType::DATE:
-        case catalog::SqlType::BIGINT:
-          Return(EvaluateBinaryNumeric<proxy::Int64>(arith.OpType(), lhs, rhs));
-          return;
-        case catalog::SqlType::REAL:
-          Return(
-              EvaluateBinaryNumeric<proxy::Float64>(arith.OpType(), lhs, rhs));
-          return;
-        case catalog::SqlType::TEXT:
-          Return(EvaluateBinaryString(arith.OpType(), lhs, rhs));
-          return;
-      }
+      Return(EvaluateBinary(arith.OpType(), lhs, rhs));
   }
 }
 

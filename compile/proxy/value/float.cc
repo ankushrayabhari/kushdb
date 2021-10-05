@@ -137,4 +137,6 @@ proxy::Int64 Float64::Hash() const {
   return proxy::Int64(program_, program_.I64ConvF64(value_));
 }
 
+khir::ProgramBuilder& Float64::ProgramBuilder() const { return program_; }
+
 }  // namespace kush::compile::proxy

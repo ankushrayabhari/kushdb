@@ -8,6 +8,7 @@
 #include "catalog/sql_type.h"
 #include "compile/proxy/control_flow/if.h"
 #include "compile/proxy/control_flow/loop.h"
+#include "compile/proxy/evaluate.h"
 #include "compile/proxy/function.h"
 #include "compile/proxy/value/ir_value.h"
 #include "compile/proxy/vector.h"
@@ -38,7 +39,7 @@ void OrderByTranslator::Produce() {
   proxy::StructBuilder packed(program_);
   const auto& child_schema = order_by_.Child().Schema().Columns();
   for (const auto& col : child_schema) {
-    packed.Add(col.Expr().Type());
+    packed.Add(col.Expr().Type(), col.Expr().Nullable());
   }
   packed.Build();
 
@@ -67,31 +68,22 @@ void OrderByTranslator::Produce() {
         for (int i = 0; i < sort_keys.size(); i++) {
           int field_idx = sort_keys[i].get().GetColumnIdx();
 
-          auto& s1_field = *s1_fields[field_idx];
-          auto& s2_field = *s2_fields[field_idx];
+          auto& s1_field = s1_fields[field_idx];
+          auto& s2_field = s2_fields[field_idx];
           auto asc = ascending[i];
 
-          if (asc) {
-            auto v1 = s1_field.EvaluateBinary(
-                plan::BinaryArithmeticOperatorType::LT, s2_field);
-            proxy::If(program_, static_cast<proxy::Bool&>(*v1),
-                      [&]() { Return(proxy::Bool(program_, true)); });
+          using OpType = plan::BinaryArithmeticOperatorType;
+          auto v1 = EvaluateBinary(OpType::LT, s1_field, s2_field);
+          auto v2 = EvaluateBinary(OpType::LT, s2_field, s1_field);
 
-            auto v2 = s2_field.EvaluateBinary(
-                plan::BinaryArithmeticOperatorType::LT, s1_field);
-            proxy::If(program_, static_cast<proxy::Bool&>(*v2),
-                      [&]() { Return(proxy::Bool(program_, false)); });
-          } else {
-            auto v1 = s1_field.EvaluateBinary(
-                plan::BinaryArithmeticOperatorType::LT, s2_field);
-            proxy::If(program_, static_cast<proxy::Bool&>(*v1),
-                      [&]() { Return(proxy::Bool(program_, false)); });
+          auto s1_lt_s2 = !v1.IsNull() && static_cast<proxy::Bool&>(v1.Get());
+          auto s2_lt_s1 = !v2.IsNull() && static_cast<proxy::Bool&>(v2.Get());
 
-            auto v2 = s2_field.EvaluateBinary(
-                plan::BinaryArithmeticOperatorType::LT, s1_field);
-            proxy::If(program_, static_cast<proxy::Bool&>(*v2),
-                      [&]() { Return(proxy::Bool(program_, true)); });
-          }
+          proxy::If(program_, s1_lt_s2,
+                    [&]() { Return(proxy::Bool(program_, asc)); });
+
+          proxy::If(program_, s2_lt_s1,
+                    [&]() { Return(proxy::Bool(program_, !asc)); });
         }
 
         Return(proxy::Bool(program_, false));

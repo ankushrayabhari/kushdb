@@ -33,16 +33,6 @@ class ExpressionTranslator
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
-  proxy::SQLValue EvaluateBinaryBool(plan::BinaryArithmeticOperatorType op_type,
-                                     const proxy::SQLValue& lhs,
-                                     const proxy::SQLValue& rhs);
-  proxy::SQLValue EvaluateBinaryString(
-      plan::BinaryArithmeticOperatorType op_type, const proxy::SQLValue& lhs,
-      const proxy::SQLValue& rhs);
-  template <typename V>
-  proxy::SQLValue EvaluateBinaryNumeric(
-      plan::BinaryArithmeticOperatorType op_type, const proxy::SQLValue& lhs,
-      const proxy::SQLValue& rhs_generic);
   template <typename S>
   proxy::SQLValue Ternary(const plan::CaseExpression& case_expr);
 

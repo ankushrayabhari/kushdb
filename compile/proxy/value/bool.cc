@@ -53,4 +53,6 @@ proxy::Int64 Bool::Hash() const {
   return proxy::Int64(program_, program_.I64ZextI1(value_));
 }
 
+khir::ProgramBuilder& Bool::ProgramBuilder() const { return program_; }
+
 }  // namespace kush::compile::proxy

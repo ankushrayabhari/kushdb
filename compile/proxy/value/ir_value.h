@@ -16,6 +16,7 @@ class IRValue {
   virtual Int64 Hash() const = 0;
   virtual khir::Value Get() const = 0;
   virtual void Print(Printer& printer) const = 0;
+  virtual khir::ProgramBuilder& ProgramBuilder() const = 0;
 };
 
 class Bool : public IRValue {
@@ -37,6 +38,7 @@ class Bool : public IRValue {
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
   std::unique_ptr<Bool> ToPointer() const;
+  khir::ProgramBuilder& ProgramBuilder() const override;
 
  private:
   khir::ProgramBuilder& program_;
@@ -75,8 +77,8 @@ class Int8 : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-
   std::unique_ptr<Int8> ToPointer() const;
+  khir::ProgramBuilder& ProgramBuilder() const override;
 
  private:
   khir::ProgramBuilder& program_;
@@ -114,8 +116,8 @@ class Int16 : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-
   std::unique_ptr<Int16> ToPointer() const;
+  khir::ProgramBuilder& ProgramBuilder() const override;
 
  private:
   khir::ProgramBuilder& program_;
@@ -153,8 +155,8 @@ class Int32 : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-
   std::unique_ptr<Int32> ToPointer() const;
+  khir::ProgramBuilder& ProgramBuilder() const override;
 
  private:
   khir::ProgramBuilder& program_;
@@ -192,8 +194,8 @@ class Int64 : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-
   std::unique_ptr<Int64> ToPointer() const;
+  khir::ProgramBuilder& ProgramBuilder() const override;
 
  private:
   khir::ProgramBuilder& program_;
@@ -237,8 +239,8 @@ class Float64 : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-
   std::unique_ptr<Float64> ToPointer() const;
+  khir::ProgramBuilder& ProgramBuilder() const override;
 
  private:
   khir::ProgramBuilder& program_;
@@ -270,8 +272,8 @@ class String : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-
   std::unique_ptr<String> ToPointer() const;
+  khir::ProgramBuilder& ProgramBuilder() const override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
   static const std::string_view StringStructName;

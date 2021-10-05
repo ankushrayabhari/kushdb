@@ -76,6 +76,8 @@ proxy::Int64 String::Hash() const {
       program_, program_.Call(program_.GetFunction(HashFnName), {value_}));
 }
 
+khir::ProgramBuilder& String::ProgramBuilder() const { return program_; }
+
 khir::Value String::Get() const { return value_; }
 
 khir::Value String::Constant(khir::ProgramBuilder& program,

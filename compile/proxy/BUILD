@@ -3,6 +3,19 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "evaluate",
+    srcs = ["evaluate.cc"],
+    hdrs = ["evaluate.h"],
+    deps = [
+        "//catalog:sql_type",
+        "//compile/proxy/control_flow:if",
+        "//compile/proxy/value:ir_value",
+        "//compile/proxy/value:sql_value",
+        "//khir:program_builder",
+    ],
+)
+
+cc_library(
     name = "struct",
     srcs = ["struct.cc"],
     hdrs = ["struct.h"],

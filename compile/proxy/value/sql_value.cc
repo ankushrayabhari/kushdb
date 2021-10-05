@@ -1,30 +1,47 @@
 #include "compile/proxy/value/sql_value.h"
 
+#include "catalog/sql_type.h"
 #include "compile/proxy/value/ir_value.h"
+#include "khir/program_builder.h"
+#include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
 SQLValue::SQLValue(const Bool& value, const Bool& null)
-    : value_(value.ToPointer()),
+    : program_(value.ProgramBuilder()),
+      value_(value.ToPointer()),
       null_(null),
       type_(catalog::SqlType::BOOLEAN) {}
 
 SQLValue::SQLValue(const Int16& value, const Bool& null)
-    : value_(value.ToPointer()),
+    : program_(value.ProgramBuilder()),
+      value_(value.ToPointer()),
       null_(null),
       type_(catalog::SqlType::SMALLINT) {}
 
 SQLValue::SQLValue(const Int32& value, const Bool& null)
-    : value_(value.ToPointer()), null_(null), type_(catalog::SqlType::INT) {}
+    : program_(value.ProgramBuilder()),
+      value_(value.ToPointer()),
+      null_(null),
+      type_(catalog::SqlType::INT) {}
 
 SQLValue::SQLValue(const Int64& value, const Bool& null)
-    : value_(value.ToPointer()), null_(null), type_(catalog::SqlType::BIGINT) {}
+    : program_(value.ProgramBuilder()),
+      value_(value.ToPointer()),
+      null_(null),
+      type_(catalog::SqlType::BIGINT) {}
 
 SQLValue::SQLValue(const Float64& value, const Bool& null)
-    : value_(value.ToPointer()), null_(null), type_(catalog::SqlType::REAL) {}
+    : program_(value.ProgramBuilder()),
+      value_(value.ToPointer()),
+      null_(null),
+      type_(catalog::SqlType::REAL) {}
 
 SQLValue::SQLValue(const String& value, const Bool& null)
-    : value_(value.ToPointer()), null_(null), type_(catalog::SqlType::TEXT) {}
+    : program_(value.ProgramBuilder()),
+      value_(value.ToPointer()),
+      null_(null),
+      type_(catalog::SqlType::TEXT) {}
 
 std::unique_ptr<IRValue> CopyIRValue(catalog::SqlType t, IRValue& v) {
   switch (t) {
@@ -45,16 +62,19 @@ std::unique_ptr<IRValue> CopyIRValue(catalog::SqlType t, IRValue& v) {
 }
 
 SQLValue::SQLValue(const SQLValue& rhs)
-    : value_(CopyIRValue(rhs.type_, *rhs.value_)),
+    : program_(rhs.program_),
+      value_(CopyIRValue(rhs.type_, *rhs.value_)),
       null_(rhs.null_),
       type_(rhs.type_) {}
 
 SQLValue::SQLValue(SQLValue&& rhs)
-    : value_(std::move(rhs.value_)),
+    : program_(rhs.program_),
+      value_(std::move(rhs.value_)),
       null_(std::move(rhs.null_)),
       type_(rhs.type_) {}
 
 SQLValue& SQLValue::operator=(const SQLValue& rhs) {
+  assert(&program_ == &rhs.program_);
   value_ = CopyIRValue(rhs.type_, *rhs.value_);
   null_ = rhs.null_;
   type_ = rhs.type_;
@@ -62,6 +82,7 @@ SQLValue& SQLValue::operator=(const SQLValue& rhs) {
 }
 
 SQLValue& SQLValue::operator=(SQLValue&& rhs) {
+  assert(&program_ == &rhs.program_);
   value_ = std::move(rhs.value_);
   null_ = std::move(rhs.null_);
   type_ = rhs.type_;
@@ -73,5 +94,9 @@ Bool SQLValue::IsNull() const { return null_; }
 IRValue& SQLValue::Get() const { return *value_; }
 
 catalog::SqlType SQLValue::Type() const { return type_; }
+
+khir::ProgramBuilder& SQLValue::ProgramBuilder() const {
+  return program_;
+}
 
 }  // namespace kush::compile::proxy
