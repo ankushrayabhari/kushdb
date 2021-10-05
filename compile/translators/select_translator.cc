@@ -19,17 +19,18 @@ SelectTranslator::SelectTranslator(
 void SelectTranslator::Produce() { this->Child().Produce(); }
 
 void SelectTranslator::Consume(OperatorTranslator& src) {
-  auto value = expr_translator_.template ComputeAs<proxy::Bool>(select_.Expr());
+  auto value = expr_translator_.Compute(select_.Expr());
+  proxy::If(program_, !value.IsNull(), [&]() {
+    proxy::If(program_, static_cast<proxy::Bool&>(value.Get()), [&]() {
+      this->values_.ResetValues();
+      for (const auto& column : select_.Schema().Columns()) {
+        this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+      }
 
-  proxy::If(program_, value, [&]() {
-    this->values_.ResetValues();
-    for (const auto& column : select_.Schema().Columns()) {
-      this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
-    }
-
-    if (auto parent = this->Parent()) {
-      parent->get().Consume(*this);
-    }
+      if (auto parent = this->Parent()) {
+        parent->get().Consume(*this);
+      }
+    });
   });
 }
 
