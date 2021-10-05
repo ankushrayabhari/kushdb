@@ -8,7 +8,9 @@ cc_library(
     hdrs = ["struct.h"],
     deps = [
         "//catalog:sql_type",
+        "//compile/proxy/control_flow:if",
         "//compile/proxy/value:ir_value",
+        "//compile/proxy/value:sql_value",
         "//khir:program_builder",
     ],
 )
