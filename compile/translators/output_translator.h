@@ -22,6 +22,7 @@ class OutputTranslator : public OperatorTranslator {
  private:
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
+  proxy::String empty_;
 };
 
 }  // namespace kush::compile
