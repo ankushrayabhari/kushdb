@@ -8,7 +8,6 @@ cc_library(
     deps = [
         ":vector_util",
         "//catalog",
-        "//compile:query_translator",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",

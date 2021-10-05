@@ -9,7 +9,6 @@
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "compile/query_translator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/case_expression.h"
