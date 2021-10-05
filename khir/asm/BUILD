@@ -124,39 +124,6 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "linear_scan_reg_alloc_test",
-    size = "small",
-    srcs = ["linear_scan_reg_alloc_test.cc"],
-    deps = [
-        ":linear_scan_reg_alloc",
-        ":live_intervals",
-        "//catalog",
-        "//compile:forward_declare",
-        "//compile:query_translator",
-        "//end_to_end_test:schema",
-        "//khir:program_builder",
-        "//khir:program_printer",
-        "//plan:group_by_aggregate_operator",
-        "//plan:hash_join_operator",
-        "//plan:operator",
-        "//plan:order_by_operator",
-        "//plan:output_operator",
-        "//plan:scan_operator",
-        "//plan:select_operator",
-        "//plan:skinner_join_operator",
-        "//plan/expression",
-        "//plan/expression:binary_arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
 cc_library(
     name = "register",
     srcs = ["register.cc"],

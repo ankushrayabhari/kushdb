@@ -579,6 +579,8 @@ Type ProgramBuilder::TypeOf(Value value) {
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
+    case Opcode::I1_AND:
+    case Opcode::I1_OR:
     case Opcode::I1_CMP_EQ:
     case Opcode::I1_CMP_NE:
     case Opcode::I1_LNOT:
@@ -860,6 +862,22 @@ Value ProgramBuilder::LNotI1(Value v) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I1_LNOT))
                                          .SetArg0(v.Serialize())
+                                         .Build());
+}
+
+Value ProgramBuilder::AndI1(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(OpcodeTo(Opcode::I1_AND))
+                                         .SetArg0(v1.Serialize())
+                                         .SetArg1(v2.Serialize())
+                                         .Build());
+}
+
+Value ProgramBuilder::OrI1(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(OpcodeTo(Opcode::I1_OR))
+                                         .SetArg0(v1.Serialize())
+                                         .SetArg1(v2.Serialize())
                                          .Build());
 }
 

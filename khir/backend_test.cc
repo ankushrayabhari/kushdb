@@ -555,6 +555,118 @@ TEST_P(BackendTest, I1_CONST) {
   }
 }
 
+TEST_P(BackendTest, I1_AND) {
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.I1Type(), program.I1Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.AndI1(args[0], args[1]));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<bool(bool, bool)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  EXPECT_EQ(true, compute(true, true));
+  EXPECT_EQ(false, compute(true, false));
+  EXPECT_EQ(false, compute(false, true));
+  EXPECT_EQ(false, compute(false, false));
+}
+
+TEST_P(BackendTest, I1_ANDConstArg0) {
+  for (auto c : {true, false}) {
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I1Type(),
+                                             {program.I1Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.AndI1(program.ConstI1(c), args[0]));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<bool(bool)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    EXPECT_EQ(c && true, compute(true));
+    EXPECT_EQ(c && false, compute(false));
+  }
+}
+
+TEST_P(BackendTest, I1_ANDConstArg1) {
+  for (auto c : {true, false}) {
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I1Type(),
+                                             {program.I1Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.AndI1(args[0], program.ConstI1(c)));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<bool(bool)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    EXPECT_EQ(true && c, compute(true));
+    EXPECT_EQ(false && c, compute(false));
+  }
+}
+
+TEST_P(BackendTest, I1_OR) {
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.I1Type(), program.I1Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.OrI1(args[0], args[1]));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<bool(bool, bool)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  EXPECT_EQ(true, compute(true, true));
+  EXPECT_EQ(true, compute(true, false));
+  EXPECT_EQ(true, compute(false, true));
+  EXPECT_EQ(false, compute(false, false));
+}
+
+TEST_P(BackendTest, I1_ORConstArg0) {
+  for (auto c : {true, false}) {
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I1Type(),
+                                             {program.I1Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.OrI1(program.ConstI1(c), args[0]));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<bool(bool)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    EXPECT_EQ(c || true, compute(true));
+    EXPECT_EQ(c || false, compute(false));
+  }
+}
+
+TEST_P(BackendTest, I1_ORConstArg1) {
+  for (auto c : {true, false}) {
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I1Type(),
+                                             {program.I1Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.OrI1(args[0], program.ConstI1(c)));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<bool(bool)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    EXPECT_EQ(true || c, compute(true));
+    EXPECT_EQ(false || c, compute(false));
+  }
+}
+
 TEST_P(BackendTest, I1_LNOT) {
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(program.I1Type(), {program.I1Type()},

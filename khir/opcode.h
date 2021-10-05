@@ -28,6 +28,8 @@ enum class Opcode : uint8_t {
   I1_CMP_EQ,
   I1_CMP_NE,
   I1_LNOT,
+  I1_AND,
+  I1_OR,
   I1_ZEXT_I64,
   I1_ZEXT_I8,
   I8_ADD,

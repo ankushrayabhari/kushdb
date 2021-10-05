@@ -36,13 +36,11 @@ Bool Bool::operator!=(const Bool& rhs) const {
 }
 
 Bool Bool::operator||(const Bool& rhs) const {
-  throw std::runtime_error("Unimplemented");
-  // return Bool(program_, program_.OrI1(value_, rhs.value_));
+  return Bool(program_, program_.OrI1(value_, rhs.value_));
 }
 
 Bool Bool::operator&&(const Bool& rhs) const {
-  throw std::runtime_error("Unimplemented");
-  // return Bool(program_, program_.AndI1(value_, rhs.value_));
+  return Bool(program_, program_.AndI1(value_, rhs.value_));
 }
 
 std::unique_ptr<Bool> Bool::ToPointer() const {

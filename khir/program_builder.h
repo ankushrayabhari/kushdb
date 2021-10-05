@@ -233,6 +233,8 @@ class ProgramBuilder {
   // I1
   Value ConstI1(bool v);
   Value LNotI1(Value v);
+  Value AndI1(Value v1, Value v2);
+  Value OrI1(Value v1, Value v2);
   Value CmpI1(CompType cmp, Value v1, Value v2);
   Value I64ZextI1(Value v);
   Value I8ZextI1(Value v);

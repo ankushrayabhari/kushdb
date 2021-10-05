@@ -113,6 +113,8 @@ void ProgramPrinter::OutputInstr(
 
   auto opcode = OpcodeFrom(GenericInstructionReader(instrs[idx]).Opcode());
   switch (opcode) {
+    case Opcode::I1_AND:
+    case Opcode::I1_OR:
     case Opcode::I1_CMP_EQ:
     case Opcode::I1_CMP_NE:
     case Opcode::I8_ADD:

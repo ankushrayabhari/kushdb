@@ -150,6 +150,8 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
+    case Opcode::I1_AND:
+    case Opcode::I1_OR:
     case Opcode::I1_CMP_EQ:
     case Opcode::I1_CMP_NE:
     case Opcode::I1_LNOT:
@@ -264,6 +266,8 @@ std::optional<Value> GetWrittenValue(int instr_idx,
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
+    case Opcode::I1_AND:
+    case Opcode::I1_OR:
     case Opcode::I1_CMP_EQ:
     case Opcode::I1_CMP_NE:
     case Opcode::I8_ADD:
@@ -378,6 +382,8 @@ std::vector<Value> GetReadValues(int instr_idx, int bb_start, int bb_end,
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
+    case Opcode::I1_AND:
+    case Opcode::I1_OR:
     case Opcode::I1_CMP_EQ:
     case Opcode::I1_CMP_NE:
     case Opcode::I8_ADD:

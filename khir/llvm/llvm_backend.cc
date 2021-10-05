@@ -372,6 +372,22 @@ void LLVMBackend::TranslateInstr(
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
+    case Opcode::I1_AND: {
+      Type2InstructionReader reader(instr);
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
+      values[instr_idx] = builder_->CreateAnd(v0, v1);
+      return;
+    }
+
+    case Opcode::I1_OR: {
+      Type2InstructionReader reader(instr);
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
+      values[instr_idx] = builder_->CreateOr(v0, v1);
+      return;
+    }
+
     case Opcode::I1_CMP_EQ:
     case Opcode::I1_CMP_NE:
     case Opcode::I8_CMP_EQ:

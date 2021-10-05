@@ -608,6 +608,50 @@ void ASMBackend::MoveByteValue(
 }
 
 template <typename T>
+void ASMBackend::AndByteValue(
+    T dest, Value v, std::vector<int32_t>& offsets,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (v.IsConstantGlobal()) {
+    int8_t c8 = Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+    asm_->and_(dest, c8);
+  } else if (register_assign[v.GetIdx()].IsRegister()) {
+    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    asm_->and_(dest, v_reg.GetB());
+  } else {
+    if constexpr (std::is_same_v<T, x86::Mem>) {
+      asm_->movzx(Register::RAX.GetD(),
+                  x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+      asm_->and_(dest, Register::RAX.GetB());
+    } else {
+      asm_->and_(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+    }
+  }
+}
+
+template <typename T>
+void ASMBackend::OrByteValue(
+    T dest, Value v, std::vector<int32_t>& offsets,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (v.IsConstantGlobal()) {
+    int8_t c8 = Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+    asm_->or_(dest, c8);
+  } else if (register_assign[v.GetIdx()].IsRegister()) {
+    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    asm_->or_(dest, v_reg.GetB());
+  } else {
+    if constexpr (std::is_same_v<T, x86::Mem>) {
+      asm_->movzx(Register::RAX.GetD(),
+                  x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+      asm_->or_(dest, Register::RAX.GetB());
+    } else {
+      asm_->or_(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+    }
+  }
+}
+
+template <typename T>
 void ASMBackend::AddByteValue(
     T dest, Value v, std::vector<int32_t>& offsets,
     const std::vector<uint64_t>& constant_instrs,
@@ -1921,6 +1965,44 @@ void ASMBackend::TranslateInstr(
         auto dest = x86::byte_ptr(x86::rbp, offset);
         MoveByteValue(dest, v, offsets, constant_instrs, register_assign);
         asm_->xor_(dest, 1);
+      }
+      return;
+    }
+
+    case Opcode::I1_AND: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      if (dest_assign.IsRegister()) {
+        auto dest = NormalRegister(dest_assign.Register()).GetB();
+        MoveByteValue(dest, v0, offsets, constant_instrs, register_assign);
+        AndByteValue(dest, v1, offsets, constant_instrs, register_assign);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        auto dest = x86::byte_ptr(x86::rbp, offset);
+        MoveByteValue(dest, v0, offsets, constant_instrs, register_assign);
+        AndByteValue(dest, v1, offsets, constant_instrs, register_assign);
+      }
+      return;
+    }
+
+    case Opcode::I1_OR: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      if (dest_assign.IsRegister()) {
+        auto dest = NormalRegister(dest_assign.Register()).GetB();
+        MoveByteValue(dest, v0, offsets, constant_instrs, register_assign);
+        OrByteValue(dest, v1, offsets, constant_instrs, register_assign);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        auto dest = x86::byte_ptr(x86::rbp, offset);
+        MoveByteValue(dest, v0, offsets, constant_instrs, register_assign);
+        OrByteValue(dest, v1, offsets, constant_instrs, register_assign);
       }
       return;
     }

@@ -89,6 +89,14 @@ class ASMBackend : public Backend, public Program {
                      const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
+  void AndByteValue(T dest, Value v, std::vector<int32_t>& offsets,
+                    const std::vector<uint64_t>& constant_instrs,
+                    const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
+  void OrByteValue(T dest, Value v, std::vector<int32_t>& offsets,
+                   const std::vector<uint64_t>& constant_instrs,
+                   const std::vector<RegisterAssignment>& register_assign);
+  template <typename T>
   void AddByteValue(T dest, Value v, std::vector<int32_t>& offsets,
                     const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
