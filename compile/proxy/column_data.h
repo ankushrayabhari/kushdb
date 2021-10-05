@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "catalog/sql_type.h"
-#include "compile/proxy/value/sql_value.h"
+#include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
@@ -12,7 +12,7 @@ class Iterable {
  public:
   virtual ~Iterable() = default;
   virtual Int32 Size() = 0;
-  virtual SQLValue operator[](Int32& idx) = 0;
+  virtual std::unique_ptr<IRValue> operator[](Int32& idx) = 0;
   virtual void Reset() = 0;
 };
 
@@ -23,7 +23,7 @@ class ColumnData : public Iterable {
   virtual ~ColumnData() = default;
 
   Int32 Size() override;
-  SQLValue operator[](Int32& idx) override;
+  std::unique_ptr<IRValue> operator[](Int32& idx) override;
   void Reset() override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);

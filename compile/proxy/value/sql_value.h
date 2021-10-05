@@ -15,6 +15,8 @@ class SQLValue {
   SQLValue(const Int64& value, const Bool& null);
   SQLValue(const Float64& value, const Bool& null);
   SQLValue(const String& value, const Bool& null);
+  SQLValue(std::unique_ptr<IRValue> value, catalog::SqlType type,
+           const Bool& null);
   SQLValue(const SQLValue&);
   SQLValue(SQLValue&&);
   SQLValue& operator=(SQLValue&&);

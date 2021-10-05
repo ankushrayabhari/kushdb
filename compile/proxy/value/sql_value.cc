@@ -43,6 +43,13 @@ SQLValue::SQLValue(const String& value, const Bool& null)
       null_(null),
       type_(catalog::SqlType::TEXT) {}
 
+SQLValue::SQLValue(std::unique_ptr<IRValue> value, catalog::SqlType type,
+                   const Bool& null)
+    : program_(value->ProgramBuilder()),
+      value_(std::move(value)),
+      null_(null),
+      type_(type) {}
+
 std::unique_ptr<IRValue> CopyIRValue(catalog::SqlType t, IRValue& v) {
   switch (t) {
     case catalog::SqlType::BOOLEAN:
@@ -95,8 +102,6 @@ IRValue& SQLValue::Get() const { return *value_; }
 
 catalog::SqlType SQLValue::Type() const { return type_; }
 
-khir::ProgramBuilder& SQLValue::ProgramBuilder() const {
-  return program_;
-}
+khir::ProgramBuilder& SQLValue::ProgramBuilder() const { return program_; }
 
 }  // namespace kush::compile::proxy

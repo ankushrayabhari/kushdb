@@ -10,6 +10,7 @@
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/value/ir_value.h"
+#include "compile/proxy/value/sql_value.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
 #include "plan/scan_operator.h"
@@ -28,12 +29,14 @@ void ScanTranslator::Produce() {
   const auto& table = scan_.Relation();
 
   std::vector<std::unique_ptr<proxy::Iterable>> column_data_vars;
-
-  column_data_vars.reserve(scan_.Schema().Columns().size());
-  for (const auto& column : scan_.Schema().Columns()) {
+  std::vector<std::unique_ptr<proxy::Iterable>> null_data_vars;
+  const auto& cols = scan_.Schema().Columns();
+  auto num_cols = cols.size();
+  column_data_vars.reserve(num_cols);
+  null_data_vars.reserve(num_cols);
+  for (const auto& column : cols) {
     using catalog::SqlType;
     auto type = column.Expr().Type();
-
     auto path = table[column.Name()].Path();
     switch (type) {
       case SqlType::SMALLINT:
@@ -68,6 +71,14 @@ void ScanTranslator::Produce() {
                                                                   path));
         break;
     }
+
+    if (table[column.Name()].Nullable()) {
+      null_data_vars.push_back(nullptr);
+    } else {
+      null_data_vars.push_back(
+          std::make_unique<proxy::ColumnData<SqlType::BOOLEAN>>(
+              program_, table[column.Name()].NullPath()));
+    }
   }
 
   auto card_var = column_data_vars[0]->Size();
@@ -83,8 +94,17 @@ void ScanTranslator::Produce() {
         auto i = loop.template GetLoopVariable<proxy::Int32>(0);
 
         this->values_.ResetValues();
-        for (auto& col_var : column_data_vars) {
-          this->values_.AddVariable((*col_var)[i]);
+        for (int k = 0; k < column_data_vars.size(); k++) {
+          auto& column_data = *column_data_vars[k];
+          auto type = cols[k].Expr().Type();
+          if (null_data_vars[k] == nullptr) {
+            this->values_.AddVariable(proxy::SQLValue(
+                column_data[i], type, proxy::Bool(program_, false)));
+          } else {
+            auto null = null_data_vars[k]->operator[](i);
+            this->values_.AddVariable(proxy::SQLValue(
+                column_data[i], type, static_cast<proxy::Bool&>(*null)));
+          }
         }
 
         if (auto parent = this->Parent()) {
