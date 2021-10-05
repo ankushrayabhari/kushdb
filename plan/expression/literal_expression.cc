@@ -14,19 +14,19 @@
 namespace kush::plan {
 
 LiteralExpression::LiteralExpression(int16_t value)
-    : Expression(catalog::SqlType::SMALLINT, {}), value_(value) {}
+    : Expression(catalog::SqlType::SMALLINT, false, {}), value_(value) {}
 
 LiteralExpression::LiteralExpression(int32_t value)
-    : Expression(catalog::SqlType::INT, {}), value_(value) {}
+    : Expression(catalog::SqlType::INT, false, {}), value_(value) {}
 
 LiteralExpression::LiteralExpression(int64_t value)
-    : Expression(catalog::SqlType::BIGINT, {}), value_(value) {}
+    : Expression(catalog::SqlType::BIGINT, false, {}), value_(value) {}
 
 LiteralExpression::LiteralExpression(double value)
-    : Expression(catalog::SqlType::REAL, {}), value_(value) {}
+    : Expression(catalog::SqlType::REAL, false, {}), value_(value) {}
 
 LiteralExpression::LiteralExpression(absl::CivilDay value)
-    : Expression(catalog::SqlType::DATE, {}) {
+    : Expression(catalog::SqlType::DATE, false, {}) {
   // set value to converted timestamp
   absl::TimeZone utc = absl::UTCTimeZone();
   absl::Time time = absl::FromCivil(value, utc);
@@ -34,10 +34,11 @@ LiteralExpression::LiteralExpression(absl::CivilDay value)
 }
 
 LiteralExpression::LiteralExpression(std::string_view value)
-    : Expression(catalog::SqlType::TEXT, {}), value_(std::string(value)) {}
+    : Expression(catalog::SqlType::TEXT, false, {}),
+      value_(std::string(value)) {}
 
 LiteralExpression::LiteralExpression(bool value)
-    : Expression(catalog::SqlType::BOOLEAN, {}), value_(value) {}
+    : Expression(catalog::SqlType::BOOLEAN, false, {}), value_(value) {}
 
 int16_t LiteralExpression::GetSmallintValue() const {
   return std::get<int16_t>(value_);

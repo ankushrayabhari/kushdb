@@ -10,8 +10,9 @@
 namespace kush::plan {
 
 VirtualColumnRefExpression::VirtualColumnRefExpression(catalog::SqlType type,
+                                                       bool nullable,
                                                        int column_idx)
-    : Expression(type, {}), column_idx_(column_idx) {}
+    : Expression(type, nullable, {}), column_idx_(column_idx) {}
 
 int VirtualColumnRefExpression::GetColumnIdx() const { return column_idx_; }
 

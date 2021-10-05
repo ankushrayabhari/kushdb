@@ -24,7 +24,8 @@ SqlType CalculateConvSqlType(catalog::SqlType child_type) {
 
 IntToFloatConversionExpression::IntToFloatConversionExpression(
     std::unique_ptr<Expression> child)
-    : UnaryExpression(CalculateConvSqlType(child->Type()), std::move(child)) {}
+    : UnaryExpression(CalculateConvSqlType(child->Type()), child->Nullable(),
+                      std::move(child)) {}
 
 nlohmann::json IntToFloatConversionExpression::ToJson() const {
   nlohmann::json j;

@@ -42,7 +42,8 @@ BinaryArithmeticExpression::BinaryArithmeticExpression(
     BinaryArithmeticOperatorType type, std::unique_ptr<Expression> left,
     std::unique_ptr<Expression> right)
     : BinaryExpression(CalculateType(type, left->Type(), right->Type()),
-                       std::move(left), std::move(right)),
+                       left->Nullable() || right->Nullable(), std::move(left),
+                       std::move(right)),
       type_(type) {}
 
 nlohmann::json BinaryArithmeticExpression::ToJson() const {

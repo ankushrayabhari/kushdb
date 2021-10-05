@@ -9,9 +9,11 @@
 
 namespace kush::plan {
 
-ColumnRefExpression::ColumnRefExpression(catalog::SqlType type, int child_idx,
-                                         int column_idx)
-    : Expression(type, {}), child_idx_(child_idx), column_idx_(column_idx) {}
+ColumnRefExpression::ColumnRefExpression(catalog::SqlType type, bool nullable,
+                                         int child_idx, int column_idx)
+    : Expression(type, nullable, {}),
+      child_idx_(child_idx),
+      column_idx_(column_idx) {}
 
 int ColumnRefExpression::GetChildIdx() const { return child_idx_; }
 

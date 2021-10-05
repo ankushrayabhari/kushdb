@@ -28,6 +28,7 @@ CaseExpression::CaseExpression(std::unique_ptr<Expression> cond,
                                std::unique_ptr<Expression> left,
                                std::unique_ptr<Expression> right)
     : Expression(CalculateType(cond->Type(), left->Type(), right->Type()),
+                 left->Nullable() || right->Nullable(),
                  util::MakeVector(std::move(cond), std::move(left),
                                   std::move(right))) {}
 

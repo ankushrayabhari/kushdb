@@ -50,7 +50,8 @@ SqlType CalculateAggSqlType(AggregateType type, const Expression& expr) {
 
 AggregateExpression::AggregateExpression(AggregateType type,
                                          std::unique_ptr<Expression> child)
-    : UnaryExpression(CalculateAggSqlType(type, *child), std::move(child)),
+    : UnaryExpression(CalculateAggSqlType(type, *child),
+                      type != AggregateType::COUNT, std::move(child)),
       type_(type) {}
 
 nlohmann::json AggregateExpression::ToJson() const {

@@ -23,7 +23,8 @@ SqlType CalculateExtractSqlType(catalog::SqlType child_type) {
 
 ExtractExpression::ExtractExpression(std::unique_ptr<Expression> child,
                                      ExtractValue value)
-    : UnaryExpression(CalculateExtractSqlType(child->Type()), std::move(child)),
+    : UnaryExpression(CalculateExtractSqlType(child->Type()), child->Nullable(),
+                      std::move(child)),
       value_to_extract_(value) {}
 
 ExtractValue ExtractExpression::ValueToExtract() const {

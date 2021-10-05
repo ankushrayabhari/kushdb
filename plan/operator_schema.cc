@@ -39,11 +39,12 @@ void OperatorSchema::AddGeneratedColumns(
     const kush::catalog::Table& table,
     const std::vector<std::string>& columns) {
   for (const auto& name : columns) {
-    auto type = table[name].Type();
+    const auto& catalog_column = table[name];
+    auto type = catalog_column.Type();
     int idx = columns_.size();
     column_name_to_idx_[name] = idx;
-    columns_.emplace_back(name,
-                          std::make_unique<ColumnRefExpression>(type, 0, idx));
+    columns_.emplace_back(name, std::make_unique<ColumnRefExpression>(
+                                    type, catalog_column.Nullable(), 0, idx));
   }
 }
 
@@ -53,8 +54,9 @@ void OperatorSchema::AddPassthroughColumns(const OperatorSchemaProvider& op,
   for (int i = 0; i < schema.Columns().size(); i++) {
     const auto& col = schema.Columns()[i];
     auto type = col.Expr().Type();
-    AddDerivedColumn(col.Name(),
-                     std::make_unique<ColumnRefExpression>(type, child_idx, i));
+    auto nullable = col.Expr().Nullable();
+    AddDerivedColumn(col.Name(), std::make_unique<ColumnRefExpression>(
+                                     type, nullable, child_idx, i));
   }
 }
 
@@ -64,9 +66,11 @@ void OperatorSchema::AddPassthroughColumns(
   const OperatorSchema& schema = op.Schema();
   for (const auto& name : columns) {
     auto idx = schema.GetColumnIndex(name);
-    auto type = schema.Columns()[idx].Expr().Type();
-    AddDerivedColumn(
-        name, std::make_unique<ColumnRefExpression>(type, child_idx, idx));
+    const auto& col = schema.Columns()[idx];
+    auto type = col.Expr().Type();
+    auto nullable = col.Expr().Nullable();
+    AddDerivedColumn(name, std::make_unique<ColumnRefExpression>(
+                               type, nullable, child_idx, idx));
   }
 }
 
@@ -76,9 +80,11 @@ void OperatorSchema::AddPassthroughColumn(const OperatorSchemaProvider& op,
                                           int child_idx) {
   const OperatorSchema& schema = op.Schema();
   auto idx = schema.GetColumnIndex(base_name);
-  auto type = schema.Columns()[idx].Expr().Type();
-  AddDerivedColumn(derived_name,
-                   std::make_unique<ColumnRefExpression>(type, child_idx, idx));
+  const auto& col = schema.Columns()[idx];
+  auto type = col.Expr().Type();
+  auto nullable = col.Expr().Nullable();
+  AddDerivedColumn(derived_name, std::make_unique<ColumnRefExpression>(
+                                     type, nullable, child_idx, idx));
 }
 
 const std::vector<OperatorSchema::Column>& OperatorSchema::Columns() const {

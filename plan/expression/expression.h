@@ -12,12 +12,13 @@ namespace kush::plan {
 
 class Expression {
  public:
-  Expression(catalog::SqlType type,
+  Expression(catalog::SqlType type, bool nullable,
              std::vector<std::unique_ptr<Expression>> children);
   virtual ~Expression() = default;
 
   std::vector<std::reference_wrapper<const Expression>> Children() const;
   catalog::SqlType Type() const;
+  bool Nullable() const;
 
   virtual void Accept(ExpressionVisitor& visitor) = 0;
   virtual void Accept(ImmutableExpressionVisitor& visitor) const = 0;
@@ -26,6 +27,7 @@ class Expression {
 
  private:
   catalog::SqlType type_;
+  bool nullable_;
 
  protected:
   std::vector<std::unique_ptr<Expression>> children_;
@@ -33,7 +35,8 @@ class Expression {
 
 class UnaryExpression : public Expression {
  public:
-  UnaryExpression(catalog::SqlType type, std::unique_ptr<Expression> child);
+  UnaryExpression(catalog::SqlType type, bool nullable,
+                  std::unique_ptr<Expression> child);
   virtual ~UnaryExpression() = default;
 
   Expression& Child();
@@ -42,7 +45,7 @@ class UnaryExpression : public Expression {
 
 class BinaryExpression : public Expression {
  public:
-  BinaryExpression(catalog::SqlType type,
+  BinaryExpression(catalog::SqlType type, bool nullable,
                    std::unique_ptr<Expression> left_child,
                    std::unique_ptr<Expression> right_child);
   virtual ~BinaryExpression() = default;
