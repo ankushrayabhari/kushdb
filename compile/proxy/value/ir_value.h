@@ -1,7 +1,6 @@
 #pragma once
 
 #include "khir/program_builder.h"
-#include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
@@ -17,8 +16,6 @@ class IRValue {
   virtual Int64 Hash() const = 0;
   virtual khir::Value Get() const = 0;
   virtual void Print(Printer& printer) const = 0;
-  virtual std::unique_ptr<IRValue> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type, const IRValue& rhs) const = 0;
 };
 
 class Bool : public IRValue {
@@ -33,13 +30,12 @@ class Bool : public IRValue {
   Bool operator!() const;
   Bool operator==(const Bool& rhs) const;
   Bool operator!=(const Bool& rhs) const;
+  Bool operator||(const Bool& rhs) const;
+  Bool operator&&(const Bool& rhs) const;
 
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<IRValue> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      const IRValue& rhs) const override;
   std::unique_ptr<Bool> ToPointer() const;
 
  private:
@@ -79,9 +75,6 @@ class Int8 : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<IRValue> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      const IRValue& rhs) const override;
 
   std::unique_ptr<Int8> ToPointer() const;
 
@@ -121,9 +114,6 @@ class Int16 : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<IRValue> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      const IRValue& rhs) const override;
 
   std::unique_ptr<Int16> ToPointer() const;
 
@@ -163,9 +153,6 @@ class Int32 : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<IRValue> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      const IRValue& rhs) const override;
 
   std::unique_ptr<Int32> ToPointer() const;
 
@@ -205,9 +192,6 @@ class Int64 : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<IRValue> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      const IRValue& rhs) const override;
 
   std::unique_ptr<Int64> ToPointer() const;
 
@@ -253,9 +237,6 @@ class Float64 : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<IRValue> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      const IRValue& rhs) const override;
 
   std::unique_ptr<Float64> ToPointer() const;
 
@@ -289,9 +270,6 @@ class String : public IRValue {
   Int64 Hash() const override;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
-  std::unique_ptr<IRValue> EvaluateBinary(
-      plan::BinaryArithmeticOperatorType op_type,
-      const IRValue& rhs) const override;
 
   std::unique_ptr<String> ToPointer() const;
 

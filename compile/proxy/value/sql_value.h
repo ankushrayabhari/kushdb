@@ -13,12 +13,14 @@ class SQLValue {
   SQLValue(const Int64& value, const Bool& null);
   SQLValue(const Float64& value, const Bool& null);
   SQLValue(const String& value, const Bool& null);
+  SQLValue(const SQLValue&);
   SQLValue(SQLValue&&);
   SQLValue& operator=(SQLValue&&);
+  SQLValue& operator=(const SQLValue&);
 
-  Bool IsNull();
-  IRValue& Get();
-  catalog::SqlType Type();
+  Bool IsNull() const;
+  IRValue& Get() const;
+  catalog::SqlType Type() const;
 
  private:
   std::unique_ptr<IRValue> value_;

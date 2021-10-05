@@ -10,21 +10,21 @@ class Visitor : public VisitorImplementation {
   Visitor() = default;
   virtual ~Visitor() = default;
 
-  std::unique_ptr<Data> Compute(Target target) {
+  Data Compute(Target target) {
     target.Accept(*this);
-    if (result_ == nullptr) {
+    if (!result_.has_value()) {
       throw std::runtime_error("No value was returned.");
     }
-    auto value = std::move(result_);
-    result_.reset();
-    return std::move(value);
+    auto v = std::move(result_.value());
+    result_ = std::nullopt;
+    return v;
   }
 
  protected:
-  void Return(std::unique_ptr<Data> result) { result_ = std::move(result); }
+  void Return(Data result) { result_ = std::move(result); }
 
  private:
-  std::unique_ptr<Data> result_;
+  std::optional<Data> result_;
 };
 
 }  // namespace kush::util

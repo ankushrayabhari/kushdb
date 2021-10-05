@@ -1,7 +1,5 @@
 #include "compile/proxy/value/ir_value.h"
-#include "compile/proxy/value/numeric.h"
 #include "khir/program_builder.h"
-#include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
@@ -131,11 +129,6 @@ Bool Float64::operator>=(double rhs) const {
 
 std::unique_ptr<Float64> Float64::ToPointer() const {
   return std::make_unique<Float64>(program_, value_);
-}
-
-std::unique_ptr<IRValue> Float64::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, const IRValue& rhs) const {
-  return EvaluateBinaryNumeric<Float64>(op_type, *this, rhs);
 }
 
 void Float64::Print(proxy::Printer& printer) const { printer.Print(*this); }

@@ -20,7 +20,7 @@ namespace kush::compile {
 
 class TranslatorFactory
     : public util::Visitor<plan::ImmutableOperatorVisitor,
-                           const plan::Operator&, OperatorTranslator> {
+                           const plan::Operator&, std::unique_ptr<OperatorTranslator>> {
  public:
   TranslatorFactory(khir::ProgramBuilder& program,
                     execution::PipelineBuilder& pipeline_builder);

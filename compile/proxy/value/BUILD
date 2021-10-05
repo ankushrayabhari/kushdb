@@ -15,9 +15,7 @@ cc_library(
         "ir_value.h",
     ],
     deps = [
-        ":numeric",
         "//khir:program_builder",
-        "//plan/expression:binary_arithmetic_expression",
         "//runtime:printer",
         "//runtime:string",
     ],
@@ -30,13 +28,5 @@ cc_library(
     deps = [
         ":ir_value",
         "//catalog:sql_type",
-    ],
-)
-
-cc_library(
-    name = "numeric",
-    hdrs = ["numeric.h"],
-    deps = [
-        "//plan/expression:binary_arithmetic_expression",
     ],
 )

@@ -36,38 +36,237 @@ ExpressionTranslator::ExpressionTranslator(khir::ProgramBuilder& program,
                                            OperatorTranslator& source)
     : program_(program), source_(source) {}
 
+proxy::SQLValue ExpressionTranslator::EvaluateBinaryBool(
+    plan::BinaryArithmeticOperatorType op_type, const proxy::SQLValue& lhs,
+    const proxy::SQLValue& rhs) {
+  return proxy::NullableTernary<proxy::Bool>(
+      program_, lhs.IsNull() || rhs.IsNull(),
+      [&]() {
+        return proxy::SQLValue(proxy::Bool(program_, false),
+                               proxy::Bool(program_, true));
+      },
+      [&]() {
+        const proxy::Bool& lhs_bool =
+            dynamic_cast<const proxy::Bool&>(lhs.Get());
+        const proxy::Bool& rhs_bool =
+            dynamic_cast<const proxy::Bool&>(rhs.Get());
+        proxy::Bool null(program_, false);
+
+        switch (op_type) {
+          case plan::BinaryArithmeticOperatorType::EQ:
+            return proxy::SQLValue(lhs_bool == rhs_bool, null);
+
+          case plan::BinaryArithmeticOperatorType::NEQ:
+            return proxy::SQLValue(lhs_bool != rhs_bool, null);
+
+          default:
+            throw std::runtime_error("Invalid operator on Bool");
+        }
+      });
+}
+
+template <typename V>
+proxy::SQLValue ExpressionTranslator::EvaluateBinaryNumeric(
+    plan::BinaryArithmeticOperatorType op_type, const proxy::SQLValue& lhs,
+    const proxy::SQLValue& rhs) {
+  switch (op_type) {
+    case plan::BinaryArithmeticOperatorType::ADD:
+    case plan::BinaryArithmeticOperatorType::SUB:
+    case plan::BinaryArithmeticOperatorType::MUL:
+    case plan::BinaryArithmeticOperatorType::DIV: {
+      return proxy::NullableTernary<proxy::Bool>(
+          program_, lhs.IsNull() || rhs.IsNull(),
+          [&]() {
+            return proxy::SQLValue(proxy::Bool(program_, false),
+                                   proxy::Bool(program_, true));
+          },
+          [&]() {
+            const V& lhs_v = dynamic_cast<const V&>(lhs.Get());
+            const V& rhs_v = dynamic_cast<const V&>(rhs.Get());
+            proxy::Bool null(program_, false);
+
+            switch (op_type) {
+              case plan::BinaryArithmeticOperatorType::ADD:
+                return proxy::SQLValue(lhs_v + rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::SUB:
+                return proxy::SQLValue(lhs_v - rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::MUL:
+                return proxy::SQLValue(lhs_v * rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::DIV:
+                if constexpr (std::is_same_v<V, proxy::Float64>) {
+                  return proxy::SQLValue(lhs_v / rhs_v, null);
+                } else {
+                  throw std::runtime_error("Invalid operator on numeric");
+                }
+
+              default:
+                throw std::runtime_error("Unreachable");
+            }
+          });
+    }
+
+    case plan::BinaryArithmeticOperatorType::EQ:
+    case plan::BinaryArithmeticOperatorType::NEQ:
+    case plan::BinaryArithmeticOperatorType::LT:
+    case plan::BinaryArithmeticOperatorType::LEQ:
+    case plan::BinaryArithmeticOperatorType::GT:
+    case plan::BinaryArithmeticOperatorType::GEQ: {
+      return proxy::NullableTernary<proxy::Bool>(
+          program_, lhs.IsNull() || rhs.IsNull(),
+          [&]() {
+            return proxy::SQLValue(proxy::Bool(program_, false),
+                                   proxy::Bool(program_, true));
+          },
+          [&]() {
+            const V& lhs_v = dynamic_cast<const V&>(lhs.Get());
+            const V& rhs_v = dynamic_cast<const V&>(rhs.Get());
+            proxy::Bool null(program_, false);
+
+            switch (op_type) {
+              case plan::BinaryArithmeticOperatorType::EQ:
+                return proxy::SQLValue(lhs_v == rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::NEQ:
+                return proxy::SQLValue(lhs_v != rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::LT:
+                return proxy::SQLValue(lhs_v < rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::LEQ:
+                return proxy::SQLValue(lhs_v <= rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::GT:
+                return proxy::SQLValue(lhs_v > rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::GEQ:
+                return proxy::SQLValue(lhs_v >= rhs_v, null);
+
+              default:
+                throw std::runtime_error("Unreachable");
+            }
+          });
+    }
+
+    default:
+      throw std::runtime_error("Invalid operator on numeric");
+  }
+}
+
+proxy::SQLValue ExpressionTranslator::EvaluateBinaryString(
+    plan::BinaryArithmeticOperatorType op_type, const proxy::SQLValue& lhs,
+    const proxy::SQLValue& rhs) {
+  return proxy::NullableTernary<proxy::Bool>(
+      program_, lhs.IsNull() || rhs.IsNull(),
+      [&]() {
+        return proxy::SQLValue(proxy::Bool(program_, false),
+                               proxy::Bool(program_, true));
+      },
+      [&]() {
+        const proxy::String& lhs_v =
+            dynamic_cast<const proxy::String&>(lhs.Get());
+        const proxy::String& rhs_v =
+            dynamic_cast<const proxy::String&>(rhs.Get());
+        proxy::Bool null(program_, false);
+
+        switch (op_type) {
+          case plan::BinaryArithmeticOperatorType::STARTS_WITH:
+            return proxy::SQLValue(lhs_v.StartsWith(rhs_v), null);
+
+          case plan::BinaryArithmeticOperatorType::ENDS_WITH:
+            return proxy::SQLValue(lhs_v.EndsWith(rhs_v), null);
+
+          case plan::BinaryArithmeticOperatorType::CONTAINS:
+            return proxy::SQLValue(lhs_v.Contains(rhs_v), null);
+
+          case plan::BinaryArithmeticOperatorType::LIKE:
+            return proxy::SQLValue(lhs_v.Like(rhs_v), null);
+
+          case plan::BinaryArithmeticOperatorType::EQ:
+            return proxy::SQLValue(lhs_v == rhs_v, null);
+
+          case plan::BinaryArithmeticOperatorType::NEQ:
+            return proxy::SQLValue(lhs_v != rhs_v, null);
+
+          case plan::BinaryArithmeticOperatorType::LT:
+            return proxy::SQLValue(lhs_v < rhs_v, null);
+
+          default:
+            throw std::runtime_error("Invalid operator on string");
+        }
+      });
+}
+
 void ExpressionTranslator::Visit(
     const plan::BinaryArithmeticExpression& arith) {
   using OpType = plan::BinaryArithmeticOperatorType;
   switch (arith.OpType()) {
     // Special handling for AND/OR for short circuiting
     case OpType::AND: {
-      std::unique_ptr<proxy::Bool> th, el;
-      auto left_value = ComputeAs<proxy::Bool>(arith.LeftChild());
-
-      auto ret_val = proxy::Ternary(
-          program_, left_value,
-          [&]() { return ComputeAs<proxy::Bool>(arith.RightChild()); },
-          [&]() { return proxy::Bool(program_, false); });
-      this->Return(ret_val.ToPointer());
-      break;
+      auto left_value = Compute(arith.LeftChild());
+      Return(proxy::NullableTernary<proxy::Bool>(
+          program_, left_value.IsNull(),
+          [&]() {
+            return proxy::SQLValue(proxy::Bool(program_, false),
+                                   proxy::Bool(program_, true));
+          },
+          [&]() {
+            return proxy::NullableTernary<proxy::Bool>(
+                program_, dynamic_cast<proxy::Bool&>(left_value.Get()),
+                [&]() { return Compute(arith.RightChild()); },
+                [&]() {
+                  return proxy::SQLValue(proxy::Bool(program_, false),
+                                         proxy::Bool(program_, false));
+                });
+          }));
+      return;
     }
 
     case OpType::OR: {
-      std::unique_ptr<proxy::Bool> th, el;
-      auto left_value = ComputeAs<proxy::Bool>(arith.LeftChild());
-      auto ret_val = proxy::Ternary(
-          program_, left_value, [&]() { return proxy::Bool(program_, true); },
-          [&]() { return ComputeAs<proxy::Bool>(arith.RightChild()); });
-      this->Return(ret_val.ToPointer());
-      break;
+      auto left_value = Compute(arith.LeftChild());
+      Return(proxy::NullableTernary<proxy::Bool>(
+          program_, left_value.IsNull(),
+          [&]() { return Compute(arith.RightChild()); },
+          [&]() {
+            return proxy::NullableTernary<proxy::Bool>(
+                program_, dynamic_cast<proxy::Bool&>(left_value.Get()),
+                [&]() {
+                  return proxy::SQLValue(proxy::Bool(program_, true),
+                                         proxy::Bool(program_, false));
+                },
+                [&]() { return Compute(arith.RightChild()); });
+          }));
+      return;
     }
 
     default:
-      auto left_value = this->Compute(arith.LeftChild());
-      auto right_value = this->Compute(arith.RightChild());
-      this->Return(left_value->EvaluateBinary(arith.OpType(), *right_value));
-      break;
+      auto lhs = Compute(arith.LeftChild());
+      auto rhs = Compute(arith.RightChild());
+
+      switch (lhs.Type()) {
+        case catalog::SqlType::BOOLEAN:
+          Return(EvaluateBinaryBool(arith.OpType(), lhs, rhs));
+          return;
+        case catalog::SqlType::SMALLINT:
+          Return(EvaluateBinaryNumeric<proxy::Int16>(arith.OpType(), lhs, rhs));
+          return;
+        case catalog::SqlType::INT:
+          Return(EvaluateBinaryNumeric<proxy::Int32>(arith.OpType(), lhs, rhs));
+          return;
+        case catalog::SqlType::DATE:
+        case catalog::SqlType::BIGINT:
+          Return(EvaluateBinaryNumeric<proxy::Int64>(arith.OpType(), lhs, rhs));
+          return;
+        case catalog::SqlType::REAL:
+          Return(
+              EvaluateBinaryNumeric<proxy::Float64>(arith.OpType(), lhs, rhs));
+          return;
+        case catalog::SqlType::TEXT:
+          Return(EvaluateBinaryString(arith.OpType(), lhs, rhs));
+          return;
+      }
   }
 }
 
@@ -76,153 +275,150 @@ void ExpressionTranslator::Visit(const plan::AggregateExpression& agg) {
 }
 
 void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
+  proxy::Bool null(program_, false);
   switch (literal.Type()) {
     case catalog::SqlType::SMALLINT:
-      this->Return(
-          std::make_unique<proxy::Int16>(program_, literal.GetSmallintValue()));
-      break;
+      Return(proxy::SQLValue(proxy::Int16(program_, literal.GetSmallintValue()),
+                             null));
+      return;
     case catalog::SqlType::INT:
-      this->Return(
-          std::make_unique<proxy::Int32>(program_, literal.GetIntValue()));
-      break;
+      Return(
+          proxy::SQLValue(proxy::Int32(program_, literal.GetIntValue()), null));
+      return;
     case catalog::SqlType::BIGINT:
-      this->Return(
-          std::make_unique<proxy::Int64>(program_, literal.GetBigintValue()));
-      break;
+      Return(proxy::SQLValue(proxy::Int64(program_, literal.GetBigintValue()),
+                             null));
+      return;
     case catalog::SqlType::DATE:
-      this->Return(
-          std::make_unique<proxy::Int64>(program_, literal.GetDateValue()));
-      break;
+      Return(proxy::SQLValue(proxy::Int64(program_, literal.GetDateValue()),
+                             null));
+      return;
     case catalog::SqlType::REAL:
-      this->Return(
-          std::make_unique<proxy::Float64>(program_, literal.GetRealValue()));
-      break;
+      Return(proxy::SQLValue(proxy::Float64(program_, literal.GetRealValue()),
+                             null));
+      return;
     case catalog::SqlType::TEXT:
-      this->Return(
-          proxy::String::Global(program_, literal.GetTextValue()).ToPointer());
-      break;
+      Return(proxy::SQLValue(
+          proxy::String::Global(program_, literal.GetTextValue()), null));
+      return;
     case catalog::SqlType::BOOLEAN:
-      this->Return(
-          std::make_unique<proxy::Bool>(program_, literal.GetBooleanValue()));
-      break;
-  }
-}
-
-std::unique_ptr<proxy::IRValue> CopyProxyValue(khir::ProgramBuilder& program,
-                                               catalog::SqlType type,
-                                               const khir::Value& value) {
-  switch (type) {
-    case catalog::SqlType::SMALLINT:
-      return std::make_unique<proxy::Int16>(program, value);
-    case catalog::SqlType::INT:
-      return std::make_unique<proxy::Int32>(program, value);
-    case catalog::SqlType::BIGINT:
-      return std::make_unique<proxy::Int64>(program, value);
-    case catalog::SqlType::DATE:
-      return std::make_unique<proxy::Int64>(program, value);
-    case catalog::SqlType::REAL:
-      return std::make_unique<proxy::Float64>(program, value);
-    case catalog::SqlType::TEXT:
-      return std::make_unique<proxy::String>(program, value);
-    case catalog::SqlType::BOOLEAN:
-      return std::make_unique<proxy::Bool>(program, value);
+      Return(proxy::SQLValue(proxy::Bool(program_, literal.GetBooleanValue()),
+                             null));
+      return;
   }
 }
 
 void ExpressionTranslator::Visit(const plan::ColumnRefExpression& col_ref) {
   auto& values = source_.Children()[col_ref.GetChildIdx()].get().SchemaValues();
-  auto type = col_ref.Type();
-  auto& value = values.Value(col_ref.GetColumnIdx());
-  this->Return(CopyProxyValue(program_, type, value.Get()));
+  Return(values.Value(col_ref.GetColumnIdx()));
 }
 
 void ExpressionTranslator::Visit(
     const plan::VirtualColumnRefExpression& col_ref) {
   auto& values = source_.VirtualSchemaValues();
-  auto type = col_ref.Type();
-  auto& value = values.Value(col_ref.GetColumnIdx());
-  this->Return(CopyProxyValue(program_, type, value.Get()));
+  Return(values.Value(col_ref.GetColumnIdx()));
 }
 
 template <typename S>
-std::unique_ptr<S> ExpressionTranslator::Ternary(
+proxy::SQLValue ExpressionTranslator::Ternary(
     const plan::CaseExpression& case_expr) {
-  std::unique_ptr<S> th, el;
-  auto cond = ComputeAs<proxy::Bool>(case_expr.Cond());
-  auto ret_val = proxy::Ternary(
-      program_, cond, [&]() { return this->ComputeAs<S>(case_expr.Then()); },
-      [&]() { return this->ComputeAs<S>(case_expr.Else()); });
-  return ret_val.ToPointer();
+  auto cond = Compute(case_expr.Cond());
+  return proxy::NullableTernary<S>(
+      program_, cond.IsNull(), [&]() { return Compute(case_expr.Else()); },
+      [&]() {
+        return proxy::NullableTernary<S>(
+            program_, static_cast<proxy::Bool&>(cond.Get()),
+            [&]() { return Compute(case_expr.Then()); },
+            [&]() { return Compute(case_expr.Else()); });
+      });
 }
 
 void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {
   switch (case_expr.Type()) {
     case catalog::SqlType::SMALLINT: {
-      this->Return(Ternary<proxy::Int16>(case_expr));
-      break;
+      Return(Ternary<proxy::Int16>(case_expr));
+      return;
     }
     case catalog::SqlType::INT: {
-      this->Return(Ternary<proxy::Int32>(case_expr));
-      break;
+      Return(Ternary<proxy::Int32>(case_expr));
+      return;
     }
     case catalog::SqlType::BIGINT: {
-      this->Return(Ternary<proxy::Int64>(case_expr));
-      break;
+      Return(Ternary<proxy::Int64>(case_expr));
+      return;
     }
     case catalog::SqlType::DATE: {
-      this->Return(Ternary<proxy::Int64>(case_expr));
-      break;
+      Return(Ternary<proxy::Int64>(case_expr));
+      return;
     }
     case catalog::SqlType::REAL: {
-      this->Return(Ternary<proxy::Float64>(case_expr));
-      break;
+      Return(Ternary<proxy::Float64>(case_expr));
+      return;
     }
     case catalog::SqlType::TEXT: {
-      this->Return(Ternary<proxy::String>(case_expr));
-      break;
+      Return(Ternary<proxy::String>(case_expr));
+      return;
     }
     case catalog::SqlType::BOOLEAN: {
-      this->Return(Ternary<proxy::Bool>(case_expr));
-      break;
+      Return(Ternary<proxy::Bool>(case_expr));
+      return;
     }
   }
 }
 
 void ExpressionTranslator::Visit(
     const plan::IntToFloatConversionExpression& conv_expr) {
-  auto v = this->Compute(conv_expr.Child());
+  auto v = Compute(conv_expr.Child());
 
-  if (auto i = dynamic_cast<proxy::Int8*>(v.get())) {
-    this->Return(proxy::Float64(program_, *i).ToPointer());
-    return;
-  }
+  Return(proxy::NullableTernary<proxy::Float64>(
+      program_, v.IsNull(),
+      [&]() {
+        return proxy::SQLValue(proxy::Float64(program_, 0),
+                               proxy::Bool(program_, false));
+      },
+      [&]() {
+        if (auto i = dynamic_cast<proxy::Int8*>(&v.Get())) {
+          return proxy::SQLValue(proxy::Float64(program_, *i),
+                                 proxy::Bool(program_, false));
+        }
 
-  if (auto i = dynamic_cast<proxy::Int16*>(v.get())) {
-    this->Return(proxy::Float64(program_, *i).ToPointer());
-    return;
-  }
+        if (auto i = dynamic_cast<proxy::Int16*>(&v.Get())) {
+          return proxy::SQLValue(proxy::Float64(program_, *i),
+                                 proxy::Bool(program_, false));
+        }
 
-  if (auto i = dynamic_cast<proxy::Int32*>(v.get())) {
-    this->Return(proxy::Float64(program_, *i).ToPointer());
-    return;
-  }
+        if (auto i = dynamic_cast<proxy::Int32*>(&v.Get())) {
+          return proxy::SQLValue(proxy::Float64(program_, *i),
+                                 proxy::Bool(program_, false));
+        }
 
-  if (auto i = dynamic_cast<proxy::Int64*>(v.get())) {
-    this->Return(proxy::Float64(program_, *i).ToPointer());
-    return;
-  }
+        if (auto i = dynamic_cast<proxy::Int64*>(&v.Get())) {
+          return proxy::SQLValue(proxy::Float64(program_, *i),
+                                 proxy::Bool(program_, false));
+        }
 
-  throw std::runtime_error("Not an integer input.");
+        throw std::runtime_error("Not an integer input.");
+      }));
 }
 
 void ExpressionTranslator::Visit(const plan::ExtractExpression& extract_expr) {
-  auto v = this->Compute(extract_expr.Child());
+  auto v = Compute(extract_expr.Child());
 
   switch (extract_expr.ValueToExtract()) {
     case plan::ExtractValue::YEAR:
-      auto result_v =
-          program_.Call(program_.GetFunction(ExtractYearFnName), {v->Get()});
-      this->Return(proxy::Int32(program_, result_v).ToPointer());
+      Return(proxy::NullableTernary<proxy::Int32>(
+          program_, v.IsNull(),
+          [&]() {
+            return proxy::SQLValue(proxy::Int32(program_, 0),
+                                   proxy::Bool(program_, true));
+          },
+          [&]() {
+            return proxy::SQLValue(
+                proxy::Int32(program_, program_.Call(program_.GetFunction(
+                                                         ExtractYearFnName),
+                                                     {v.Get().Get()})),
+                proxy::Bool(program_, false));
+          }));
       return;
   }
 }

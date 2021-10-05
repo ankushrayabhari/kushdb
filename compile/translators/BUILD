@@ -8,6 +8,7 @@ cc_library(
     hdrs = ["schema_values.h"],
     deps = [
         "//compile/proxy/value:sql_value",
+        "//util:vector_util",
     ],
 )
 

@@ -3,9 +3,10 @@
 #include <memory>
 #include <vector>
 
-#include "compile/proxy/value/ir_value.h"
+#include "compile/proxy/value/sql_value.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
+#include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "util/visitor.h"
@@ -14,7 +15,7 @@ namespace kush::compile {
 
 class ExpressionTranslator
     : public util::Visitor<plan::ImmutableExpressionVisitor,
-                           const plan::Expression&, proxy::IRValue> {
+                           const plan::Expression&, proxy::SQLValue> {
  public:
   ExpressionTranslator(khir::ProgramBuilder& program_,
                        OperatorTranslator& source);
@@ -31,18 +32,19 @@ class ExpressionTranslator
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
-  template <typename S>
-  S ComputeAs(const plan::Expression& e) {
-    auto p = this->Compute(e);
-    if (S* result = dynamic_cast<S*>(p.get())) {
-      return S(*result);
-    }
-    throw std::runtime_error("Invalid type.");
-  }
-
  private:
+  proxy::SQLValue EvaluateBinaryBool(plan::BinaryArithmeticOperatorType op_type,
+                                     const proxy::SQLValue& lhs,
+                                     const proxy::SQLValue& rhs);
+  proxy::SQLValue EvaluateBinaryString(
+      plan::BinaryArithmeticOperatorType op_type, const proxy::SQLValue& lhs,
+      const proxy::SQLValue& rhs);
+  template <typename V>
+  proxy::SQLValue EvaluateBinaryNumeric(
+      plan::BinaryArithmeticOperatorType op_type, const proxy::SQLValue& lhs,
+      const proxy::SQLValue& rhs_generic);
   template <typename S>
-  std::unique_ptr<S> Ternary(const plan::CaseExpression& case_expr);
+  proxy::SQLValue Ternary(const plan::CaseExpression& case_expr);
 
   khir::ProgramBuilder& program_;
   OperatorTranslator& source_;

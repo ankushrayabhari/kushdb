@@ -8,6 +8,7 @@ cc_library(
     hdrs = ["if.h"],
     deps = [
         "//compile/proxy/value:ir_value",
+        "//compile/proxy/value:sql_value",
         "//khir:program_builder",
     ],
 )

@@ -2,7 +2,6 @@
 
 #include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
-#include "plan/expression/binary_arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
@@ -36,24 +35,18 @@ Bool Bool::operator!=(const Bool& rhs) const {
   return Bool(program_, program_.CmpI1(khir::CompType::NE, value_, rhs.value_));
 }
 
-std::unique_ptr<Bool> Bool::ToPointer() const {
-  return std::make_unique<Bool>(program_, value_);
+Bool Bool::operator||(const Bool& rhs) const {
+  throw std::runtime_error("Unimplemented");
+  // return Bool(program_, program_.OrI1(value_, rhs.value_));
 }
 
-std::unique_ptr<IRValue> Bool::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type, const IRValue& rhs) const {
-  const Bool& rhs_bool = dynamic_cast<const Bool&>(rhs);
+Bool Bool::operator&&(const Bool& rhs) const {
+  throw std::runtime_error("Unimplemented");
+  // return Bool(program_, program_.AndI1(value_, rhs.value_));
+}
 
-  switch (op_type) {
-    case plan::BinaryArithmeticOperatorType::EQ:
-      return (*this == rhs_bool).ToPointer();
-
-    case plan::BinaryArithmeticOperatorType::NEQ:
-      return (*this != rhs_bool).ToPointer();
-
-    default:
-      throw std::runtime_error("Invalid operator on Bool");
-  }
+std::unique_ptr<Bool> Bool::ToPointer() const {
+  return std::make_unique<Bool>(program_, value_);
 }
 
 void Bool::Print(proxy::Printer& printer) const { printer.Print(*this); }

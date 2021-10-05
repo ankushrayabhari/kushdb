@@ -69,37 +69,6 @@ std::unique_ptr<String> String::ToPointer() const {
   return std::make_unique<String>(program_, value_);
 }
 
-std::unique_ptr<IRValue> String::EvaluateBinary(
-    plan::BinaryArithmeticOperatorType op_type,
-    const IRValue& rhs_generic) const {
-  const String& rhs = dynamic_cast<const String&>(rhs_generic);
-  switch (op_type) {
-    case plan::BinaryArithmeticOperatorType::STARTS_WITH:
-      return StartsWith(rhs).ToPointer();
-
-    case plan::BinaryArithmeticOperatorType::ENDS_WITH:
-      return EndsWith(rhs).ToPointer();
-
-    case plan::BinaryArithmeticOperatorType::CONTAINS:
-      return Contains(rhs).ToPointer();
-
-    case plan::BinaryArithmeticOperatorType::LIKE:
-      return Like(rhs).ToPointer();
-
-    case plan::BinaryArithmeticOperatorType::EQ:
-      return (*this == rhs).ToPointer();
-
-    case plan::BinaryArithmeticOperatorType::NEQ:
-      return (*this != rhs).ToPointer();
-
-    case plan::BinaryArithmeticOperatorType::LT:
-      return (*this < rhs).ToPointer();
-
-    default:
-      throw std::runtime_error("Invalid operator on string");
-  }
-}
-
 void String::Print(proxy::Printer& printer) const { printer.Print(*this); }
 
 proxy::Int64 String::Hash() const {
