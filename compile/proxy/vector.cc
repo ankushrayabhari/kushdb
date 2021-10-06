@@ -56,7 +56,7 @@ void Vector::Reset() {
 
 khir::Value Vector::Get() const { return value_; }
 
-Struct Vector::operator[](const proxy::Int32& idx) {
+Struct Vector::operator[](const Int32& idx) {
   auto ptr =
       program_.Call(program_.GetFunction(GetFnName), {value_, idx.Get()});
   auto ptr_type = program_.PointerType(content_type_);

@@ -13,7 +13,7 @@ class Vector {
   Vector(khir::ProgramBuilder& program, StructBuilder& content, bool global);
   Vector(khir::ProgramBuilder& program, StructBuilder& content, khir::Value v);
 
-  Struct operator[](const proxy::Int32& idx);
+  Struct operator[](const Int32& idx);
   Struct PushBack();
   Int32 Size();
   void Reset();

@@ -11,17 +11,16 @@
 
 namespace kush::compile::proxy {
 
-TableFunction::TableFunction(
-    khir::ProgramBuilder& program,
-    std::function<proxy::Int32(proxy::Int32&, proxy::Bool&)> body) {
+TableFunction::TableFunction(khir::ProgramBuilder& program,
+                             std::function<Int32(Int32&, Bool&)> body) {
   auto current_block = program.CurrentBlock();
 
   func_ = program.CreateFunction(program.I32Type(),
                                  {program.I32Type(), program.I1Type()});
 
   auto args = program.GetFunctionArguments(func_.value());
-  proxy::Int32 budget(program, args[0]);
-  proxy::Bool resume_progress(program, args[1]);
+  Int32 budget(program, args[0]);
+  Bool resume_progress(program, args[1]);
 
   auto x = body(budget, resume_progress);
   program.Return(x.Get());

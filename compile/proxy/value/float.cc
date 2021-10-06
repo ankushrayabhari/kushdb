@@ -9,16 +9,16 @@ Float64::Float64(khir::ProgramBuilder& program, const khir::Value& value)
 Float64::Float64(khir::ProgramBuilder& program, double value)
     : program_(program), value_(program.ConstF64(value)) {}
 
-Float64::Float64(khir::ProgramBuilder& program, const proxy::Int8& v)
+Float64::Float64(khir::ProgramBuilder& program, const Int8& v)
     : program_(program), value_(program_.F64ConvI8(v.Get())) {}
 
-Float64::Float64(khir::ProgramBuilder& program, const proxy::Int16& v)
+Float64::Float64(khir::ProgramBuilder& program, const Int16& v)
     : program_(program), value_(program_.F64ConvI16(v.Get())) {}
 
-Float64::Float64(khir::ProgramBuilder& program, const proxy::Int32& v)
+Float64::Float64(khir::ProgramBuilder& program, const Int32& v)
     : program_(program), value_(program_.F64ConvI32(v.Get())) {}
 
-Float64::Float64(khir::ProgramBuilder& program, const proxy::Int64& v)
+Float64::Float64(khir::ProgramBuilder& program, const Int64& v)
     : program_(program), value_(program_.F64ConvI64(v.Get())) {}
 
 Float64& Float64::operator=(const Float64& rhs) {
@@ -131,10 +131,10 @@ std::unique_ptr<Float64> Float64::ToPointer() const {
   return std::make_unique<Float64>(program_, value_);
 }
 
-void Float64::Print(proxy::Printer& printer) const { printer.Print(*this); }
+void Float64::Print(Printer& printer) const { printer.Print(*this); }
 
-proxy::Int64 Float64::Hash() const {
-  return proxy::Int64(program_, program_.I64ConvF64(value_));
+Int64 Float64::Hash() const {
+  return Int64(program_, program_.I64ConvF64(value_));
 }
 
 khir::ProgramBuilder& Float64::ProgramBuilder() const { return program_; }

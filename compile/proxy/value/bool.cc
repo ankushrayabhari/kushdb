@@ -47,11 +47,9 @@ std::unique_ptr<Bool> Bool::ToPointer() const {
   return std::make_unique<Bool>(program_, value_);
 }
 
-void Bool::Print(proxy::Printer& printer) const { printer.Print(*this); }
+void Bool::Print(Printer& printer) const { printer.Print(*this); }
 
-proxy::Int64 Bool::Hash() const {
-  return proxy::Int64(program_, program_.I64ZextI1(value_));
-}
+Int64 Bool::Hash() const { return Int64(program_, program_.I64ZextI1(value_)); }
 
 khir::ProgramBuilder& Bool::ProgramBuilder() const { return program_; }
 

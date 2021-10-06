@@ -108,11 +108,9 @@ std::unique_ptr<Int8> Int8::ToPointer() const {
   return std::make_unique<Int8>(program_, value_);
 }
 
-void Int8::Print(proxy::Printer& printer) const { printer.Print(*this); }
+void Int8::Print(Printer& printer) const { printer.Print(*this); }
 
-proxy::Int64 Int8::Hash() const {
-  return proxy::Int64(program_, program_.I64ZextI8(value_));
-}
+Int64 Int8::Hash() const { return Int64(program_, program_.I64ZextI8(value_)); }
 
 khir::ProgramBuilder& Int8::ProgramBuilder() const { return program_; }
 
@@ -224,10 +222,10 @@ std::unique_ptr<Int16> Int16::ToPointer() const {
   return std::make_unique<Int16>(program_, value_);
 }
 
-void Int16::Print(proxy::Printer& printer) const { printer.Print(*this); }
+void Int16::Print(Printer& printer) const { printer.Print(*this); }
 
-proxy::Int64 Int16::Hash() const {
-  return proxy::Int64(program_, program_.I64ZextI16(value_));
+Int64 Int16::Hash() const {
+  return Int64(program_, program_.I64ZextI16(value_));
 }
 
 khir::ProgramBuilder& Int16::ProgramBuilder() const { return program_; }
@@ -340,10 +338,10 @@ std::unique_ptr<Int32> Int32::ToPointer() const {
   return std::make_unique<Int32>(program_, value_);
 }
 
-void Int32::Print(proxy::Printer& printer) const { printer.Print(*this); }
+void Int32::Print(Printer& printer) const { printer.Print(*this); }
 
-proxy::Int64 Int32::Hash() const {
-  return proxy::Int64(program_, program_.I64ZextI32(value_));
+Int64 Int32::Hash() const {
+  return Int64(program_, program_.I64ZextI32(value_));
 }
 
 khir::ProgramBuilder& Int32::ProgramBuilder() const { return program_; }
@@ -456,9 +454,9 @@ std::unique_ptr<Int64> Int64::ToPointer() const {
   return std::make_unique<Int64>(program_, value_);
 }
 
-void Int64::Print(proxy::Printer& printer) const { printer.Print(*this); }
+void Int64::Print(Printer& printer) const { printer.Print(*this); }
 
-proxy::Int64 Int64::Hash() const { return *this; }
+Int64 Int64::Hash() const { return *this; }
 
 khir::ProgramBuilder& Int64::ProgramBuilder() const { return program_; }
 

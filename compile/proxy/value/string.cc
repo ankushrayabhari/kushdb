@@ -69,11 +69,11 @@ std::unique_ptr<String> String::ToPointer() const {
   return std::make_unique<String>(program_, value_);
 }
 
-void String::Print(proxy::Printer& printer) const { printer.Print(*this); }
+void String::Print(Printer& printer) const { printer.Print(*this); }
 
-proxy::Int64 String::Hash() const {
-  return proxy::Int64(
-      program_, program_.Call(program_.GetFunction(HashFnName), {value_}));
+Int64 String::Hash() const {
+  return Int64(program_,
+               program_.Call(program_.GetFunction(HashFnName), {value_}));
 }
 
 khir::ProgramBuilder& String::ProgramBuilder() const { return program_; }

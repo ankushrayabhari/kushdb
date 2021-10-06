@@ -206,10 +206,10 @@ class Float64 : public IRValue {
  public:
   Float64(khir::ProgramBuilder& program, const khir::Value& value);
   Float64(khir::ProgramBuilder& program, double value);
-  Float64(khir::ProgramBuilder& program, const proxy::Int8& v);
-  Float64(khir::ProgramBuilder& program, const proxy::Int16& v);
-  Float64(khir::ProgramBuilder& program, const proxy::Int32& v);
-  Float64(khir::ProgramBuilder& program, const proxy::Int64& v);
+  Float64(khir::ProgramBuilder& program, const Int8& v);
+  Float64(khir::ProgramBuilder& program, const Int16& v);
+  Float64(khir::ProgramBuilder& program, const Int32& v);
+  Float64(khir::ProgramBuilder& program, const Int64& v);
   Float64(const Float64& rhs) = default;
   Float64(Float64&& rhs) = default;
   Float64& operator=(const Float64& rhs);

@@ -59,34 +59,31 @@ void TupleIdxTable::Insert(const khir::Value& idx_arr,
 
 khir::Value TupleIdxTable::Get() { return program_.LoadPtr(value_); }
 
-proxy::Int32 TupleIdxTable::Size() {
+Int32 TupleIdxTable::Size() {
   auto tuple_idx_table = program_.LoadPtr(value_);
-  return proxy::Int32(
-      program_,
-      program_.Call(program_.GetFunction(size_fn_name), {tuple_idx_table}));
+  return Int32(program_, program_.Call(program_.GetFunction(size_fn_name),
+                                       {tuple_idx_table}));
 }
 
 void TupleIdxTable::ForEach(std::function<void(const khir::Value&)> handler) {
   auto tuple_idx_table = program_.LoadPtr(value_);
 
-  auto size = proxy::Int32(
-      program_,
-      program_.Call(program_.GetFunction(size_fn_name), {tuple_idx_table}));
+  auto size = Int32(program_, program_.Call(program_.GetFunction(size_fn_name),
+                                            {tuple_idx_table}));
 
   auto tuple_it = program_.Alloca(program_.PointerType(
       program_.GetOpaqueType(tuple_idx_table_iterator_name)));
   program_.Call(program_.GetFunction(begin_fn_name),
                 {tuple_idx_table, tuple_it});
 
-  proxy::Loop(
-      program_,
-      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
+  Loop(
+      program_, [&](auto& loop) { loop.AddLoopVariable(Int32(program_, 0)); },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+        auto i = loop.template GetLoopVariable<Int32>(0);
         return i < size;
       },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+        auto i = loop.template GetLoopVariable<Int32>(0);
 
         auto tuple_idx_arr =
             program_.Call(program_.GetFunction(get_fn_name), {tuple_it});

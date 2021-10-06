@@ -239,8 +239,7 @@ catalog::SqlType ColumnIndexImpl<S>::Type() const {
 }
 
 template <catalog::SqlType S>
-void ColumnIndexImpl<S>::Insert(const IRValue& v,
-                                const proxy::Int32& tuple_idx) {
+void ColumnIndexImpl<S>::Insert(const IRValue& v, const Int32& tuple_idx) {
   program_.Call(program_.GetFunction(InsertFnName<S>()),
                 {program_.LoadPtr(value_), v.Get(), tuple_idx.Get()});
 }
@@ -335,25 +334,24 @@ void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
 IndexBucket::IndexBucket(khir::ProgramBuilder& program, khir::Value v)
     : program_(program), value_(v) {}
 
-proxy::Int32 IndexBucket::FastForwardToStart(const proxy::Int32& last_tuple) {
-  return proxy::Int32(program_,
-                      program_.Call(program_.GetFunction(FastForwardBucketName),
-                                    {value_, last_tuple.Get()}));
+Int32 IndexBucket::FastForwardToStart(const Int32& last_tuple) {
+  return Int32(program_,
+               program_.Call(program_.GetFunction(FastForwardBucketName),
+                             {value_, last_tuple.Get()}));
 }
 
-proxy::Int32 IndexBucket::Size() {
-  return proxy::Int32(
-      program_, program_.Call(program_.GetFunction(BucketSizeName), {value_}));
+Int32 IndexBucket::Size() {
+  return Int32(program_,
+               program_.Call(program_.GetFunction(BucketSizeName), {value_}));
 }
 
-proxy::Int32 IndexBucket::operator[](const proxy::Int32& v) {
-  return proxy::Int32(
-      program_,
-      program_.Call(program_.GetFunction(BucketGetName), {value_, v.Get()}));
+Int32 IndexBucket::operator[](const Int32& v) {
+  return Int32(program_, program_.Call(program_.GetFunction(BucketGetName),
+                                       {value_, v.Get()}));
 }
 
-proxy::Bool IndexBucket::DoesNotExist() {
-  return proxy::Bool(program_, program_.IsNullPtr(value_));
+Bool IndexBucket::DoesNotExist() {
+  return Bool(program_, program_.IsNullPtr(value_));
 }
 
 khir::Value IndexBucket::Get() const { return value_; }
@@ -370,19 +368,18 @@ void IndexBucketList::Reset() {
                 {program_.LoadPtr(value_)});
 }
 
-proxy::Int32 IndexBucketList::Size() {
-  return proxy::Int32(program_,
-                      program_.Call(program_.GetFunction(BucketListSizeName),
-                                    {program_.LoadPtr(value_)}));
+Int32 IndexBucketList::Size() {
+  return Int32(program_, program_.Call(program_.GetFunction(BucketListSizeName),
+                                       {program_.LoadPtr(value_)}));
 }
 
-proxy::IndexBucket IndexBucketList::operator[](const proxy::Int32& idx) {
-  return proxy::IndexBucket(
-      program_, program_.Call(program_.GetFunction(BucketListGetName),
-                              {
-                                  program_.LoadPtr(value_),
-                                  idx.Get(),
-                              }));
+IndexBucket IndexBucketList::operator[](const Int32& idx) {
+  return IndexBucket(program_,
+                     program_.Call(program_.GetFunction(BucketListGetName),
+                                   {
+                                       program_.LoadPtr(value_),
+                                       idx.Get(),
+                                   }));
 }
 
 void IndexBucketList::PushBack(const IndexBucket& bucket) {
