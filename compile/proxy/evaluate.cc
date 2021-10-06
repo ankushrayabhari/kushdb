@@ -180,4 +180,112 @@ SQLValue EvaluateBinary(plan::BinaryArithmeticOperatorType op,
   }
 }
 
+Bool LessThan(const SQLValue& lhs, const SQLValue& rhs) {
+  auto& program = lhs.ProgramBuilder();
+  auto lhs_null = lhs.IsNull();
+  auto rhs_null = rhs.IsNull();
+
+  return Ternary(
+      program, lhs_null && rhs_null, [&]() { return Bool(program, false); },
+      [&]() {
+        return Ternary(
+            program, lhs_null, [&]() { return Bool(program, false); },
+            [&]() {
+              return Ternary(
+                  program, rhs_null, [&]() { return Bool(program, true); },
+                  [&]() {
+                    switch (lhs.Type()) {
+                      case catalog::SqlType::SMALLINT: {
+                        auto& lhs_v = static_cast<Int16&>(lhs.Get());
+                        auto& rhs_v = static_cast<Int16&>(rhs.Get());
+                        return lhs_v < rhs_v;
+                      }
+
+                      case catalog::SqlType::INT: {
+                        auto& lhs_v = static_cast<Int32&>(lhs.Get());
+                        auto& rhs_v = static_cast<Int32&>(rhs.Get());
+                        return lhs_v < rhs_v;
+                      }
+
+                      case catalog::SqlType::DATE:
+                      case catalog::SqlType::BIGINT: {
+                        auto& lhs_v = static_cast<Int64&>(lhs.Get());
+                        auto& rhs_v = static_cast<Int64&>(rhs.Get());
+                        return lhs_v < rhs_v;
+                      }
+
+                      case catalog::SqlType::REAL: {
+                        auto& lhs_v = static_cast<Float64&>(lhs.Get());
+                        auto& rhs_v = static_cast<Float64&>(rhs.Get());
+                        return lhs_v < rhs_v;
+                      }
+
+                      case catalog::SqlType::TEXT: {
+                        auto& lhs_v = static_cast<String&>(lhs.Get());
+                        auto& rhs_v = static_cast<String&>(rhs.Get());
+                        return lhs_v < rhs_v;
+                      }
+
+                      case catalog::SqlType::BOOLEAN:
+                        throw std::runtime_error("Can't be less than.");
+                    }
+                  });
+            });
+      });
+}
+
+Bool Equal(const SQLValue& lhs, const SQLValue& rhs) {
+  auto& program = lhs.ProgramBuilder();
+  auto lhs_null = lhs.IsNull();
+  auto rhs_null = rhs.IsNull();
+
+  return Ternary(
+      program, lhs_null && rhs_null, [&]() { return Bool(program, true); },
+      [&]() {
+        return Ternary(
+            program, lhs_null || rhs_null,
+            [&]() { return Bool(program, false); },
+            [&]() {
+              switch (lhs.Type()) {
+                case catalog::SqlType::BOOLEAN: {
+                  auto& lhs_v = static_cast<Bool&>(lhs.Get());
+                  auto& rhs_v = static_cast<Bool&>(rhs.Get());
+                  return lhs_v == rhs_v;
+                }
+
+                case catalog::SqlType::SMALLINT: {
+                  auto& lhs_v = static_cast<Int16&>(lhs.Get());
+                  auto& rhs_v = static_cast<Int16&>(rhs.Get());
+                  return lhs_v == rhs_v;
+                }
+
+                case catalog::SqlType::INT: {
+                  auto& lhs_v = static_cast<Int32&>(lhs.Get());
+                  auto& rhs_v = static_cast<Int32&>(rhs.Get());
+                  return lhs_v == rhs_v;
+                }
+
+                case catalog::SqlType::DATE:
+                case catalog::SqlType::BIGINT: {
+                  auto& lhs_v = static_cast<Int64&>(lhs.Get());
+                  auto& rhs_v = static_cast<Int64&>(rhs.Get());
+                  return lhs_v == rhs_v;
+                }
+
+                case catalog::SqlType::REAL: {
+                  auto& lhs_v = static_cast<Float64&>(lhs.Get());
+                  auto& rhs_v = static_cast<Float64&>(rhs.Get());
+                  return lhs_v == rhs_v;
+                }
+
+                case catalog::SqlType::TEXT: {
+                  auto& lhs_v = static_cast<String&>(lhs.Get());
+                  auto& rhs_v = static_cast<String&>(rhs.Get());
+                  return lhs_v == rhs_v;
+                }
+              }
+            });
+      });
+}
+
 }  // namespace kush::compile::proxy

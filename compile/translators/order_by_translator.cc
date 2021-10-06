@@ -72,18 +72,8 @@ void OrderByTranslator::Produce() {
           auto& s2_field = s2_fields[field_idx];
           auto asc = ascending[i];
 
-          using OpType = plan::BinaryArithmeticOperatorType;
-          auto v1 = EvaluateBinary(OpType::LT, s1_field, s2_field);
-          auto v2 = EvaluateBinary(OpType::LT, s2_field, s1_field);
-
-          auto s1_lt_s2 = !v1.IsNull() && static_cast<proxy::Bool&>(v1.Get());
-          auto s2_lt_s1 = !v2.IsNull() && static_cast<proxy::Bool&>(v2.Get());
-
-          proxy::If(program_, s1_lt_s2,
+          proxy::If(program_, LessThan(s1_field, s2_field),
                     [&]() { Return(proxy::Bool(program_, asc)); });
-
-          proxy::If(program_, s2_lt_s1,
-                    [&]() { Return(proxy::Bool(program_, !asc)); });
         }
 
         Return(proxy::Bool(program_, false));
