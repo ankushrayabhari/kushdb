@@ -6,8 +6,6 @@
 
 namespace kush::compile::proxy {
 
-class GlobalVector;
-
 class Vector {
  public:
   Vector(khir::ProgramBuilder& program, StructBuilder& content, bool global);
