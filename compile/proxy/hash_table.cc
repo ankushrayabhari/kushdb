@@ -3,6 +3,7 @@
 #include <functional>
 #include <vector>
 
+#include "compile/proxy/control_flow/if.h"
 #include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
@@ -112,11 +113,19 @@ void HashTable::Reset() {
   program_.Call(program_.GetFunction(FreeFnName), {value_});
 }
 
-Struct HashTable::Insert(std::vector<std::reference_wrapper<IRValue>> keys) {
+Struct HashTable::Insert(std::vector<std::reference_wrapper<SQLValue>> keys) {
   program_.StoreI32(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
-    program_.Call(program_.GetFunction(HashCombineFnName),
-                  {hash_ptr_, k.get().Hash().Get()});
+    If(
+        program_, k.get().IsNull(),
+        [&]() {
+          program_.Call(program_.GetFunction(HashCombineFnName),
+                        {hash_ptr_, program_.ConstI64(0)});
+        },
+        [&]() {
+          program_.Call(program_.GetFunction(HashCombineFnName),
+                        {hash_ptr_, k.get().Get().Hash().Get()});
+        });
   }
   auto hash = program_.LoadI32(hash_ptr_);
 
@@ -125,11 +134,19 @@ Struct HashTable::Insert(std::vector<std::reference_wrapper<IRValue>> keys) {
   return Struct(program_, content_, ptr);
 }
 
-Vector HashTable::Get(std::vector<std::reference_wrapper<IRValue>> keys) {
+Vector HashTable::Get(std::vector<std::reference_wrapper<SQLValue>> keys) {
   program_.StoreI32(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
-    program_.Call(program_.GetFunction(HashCombineFnName),
-                  {hash_ptr_, k.get().Hash().Get()});
+    If(
+        program_, k.get().IsNull(),
+        [&]() {
+          program_.Call(program_.GetFunction(HashCombineFnName),
+                        {hash_ptr_, program_.ConstI64(0)});
+        },
+        [&]() {
+          program_.Call(program_.GetFunction(HashCombineFnName),
+                        {hash_ptr_, k.get().Get().Hash().Get()});
+        });
   }
   auto hash = program_.LoadI32(hash_ptr_);
 
