@@ -183,19 +183,19 @@ Float64 AverageAggregator::ToFloat(IRValue& v) {
     return Float64(program_, v.Get());
   }
 
-  if (auto i = dynamic_cast<proxy::Int8*>(&v)) {
+  if (auto i = dynamic_cast<Int8*>(&v)) {
     return Float64(program_, *i);
   }
 
-  if (auto i = dynamic_cast<proxy::Int16*>(&v)) {
+  if (auto i = dynamic_cast<Int16*>(&v)) {
     return Float64(program_, *i);
   }
 
-  if (auto i = dynamic_cast<proxy::Int32*>(&v)) {
+  if (auto i = dynamic_cast<Int32*>(&v)) {
     return Float64(program_, *i);
   }
 
-  if (auto i = dynamic_cast<proxy::Int64*>(&v)) {
+  if (auto i = dynamic_cast<Int64*>(&v)) {
     return Float64(program_, *i);
   }
 
@@ -231,6 +231,30 @@ void AverageAggregator::Update(std::vector<SQLValue>& current_values,
                        SQLValue(next_record_count, Bool(program_, false)));
           entry.Update(value_field_, SQLValue(next_cma, Bool(program_, false)));
         });
+  });
+}
+
+CountAggregator::CountAggregator(
+    khir::ProgramBuilder& program,
+    util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
+                  SQLValue>& expr_translator,
+    const kush::plan::AggregateExpression& agg)
+    : program_(program), expr_translator_(expr_translator), agg_(agg) {}
+
+void CountAggregator::AddFields(StructBuilder& fields) {
+  field_ = fields.Add(catalog::SqlType::BIGINT, false);
+}
+
+void CountAggregator::AddInitialEntry(std::vector<SQLValue>& values) {
+  values.push_back(SQLValue(Float64(program_, 0), Bool(program_, false)));
+}
+
+void CountAggregator::Update(std::vector<SQLValue>& current_values,
+                             Struct& entry) {
+  const auto& record_count = static_cast<Int64&>(current_values[field_].Get());
+  auto next = expr_translator_.Compute(agg_.Child());
+  If(program_, !next.IsNull(), [&] {
+    entry.Update(field_, SQLValue(record_count + 1, Bool(program_, false)));
   });
 }
 

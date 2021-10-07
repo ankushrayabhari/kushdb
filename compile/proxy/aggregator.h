@@ -79,4 +79,23 @@ class AverageAggregator : public Aggregator {
   int count_field_;
 };
 
+class CountAggregator : public Aggregator {
+ public:
+  CountAggregator(
+      khir::ProgramBuilder& program,
+      util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
+                    SQLValue>& expr_translator,
+      const kush::plan::AggregateExpression& agg);
+  void AddFields(StructBuilder& fields) override;
+  void AddInitialEntry(std::vector<SQLValue>& values) override;
+  void Update(std::vector<SQLValue>& current_values, Struct& entry) override;
+
+ private:
+  khir::ProgramBuilder& program_;
+  util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
+                SQLValue>& expr_translator_;
+  const kush::plan::AggregateExpression& agg_;
+  int field_;
+};
+
 }  // namespace kush::compile::proxy
