@@ -6,8 +6,10 @@
 
 #include "compile/proxy/control_flow/if.h"
 #include "compile/proxy/control_flow/loop.h"
+#include "compile/proxy/evaluate.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/value/ir_value.h"
+#include "compile/proxy/value/sql_value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
@@ -36,7 +38,7 @@ void HashJoinTranslator::Produce() {
   proxy::StructBuilder packed(program_);
   const auto& child_schema = hash_join_.LeftChild().Schema().Columns();
   for (const auto& col : child_schema) {
-    packed.Add(col.Expr().Type());
+    packed.Add(col.Expr().Type(), col.Expr().Nullable());
   }
   packed.Build();
 
@@ -55,6 +57,28 @@ void HashJoinTranslator::Produce() {
   buffer_->Reset();
 }
 
+void CheckEquality(khir::ProgramBuilder& program,
+                   ExpressionTranslator& expr_translator,
+                   const std::vector<std::reference_wrapper<
+                       const kush::plan::ColumnRefExpression>>& left_keys,
+                   const std::vector<std::reference_wrapper<
+                       const kush::plan::ColumnRefExpression>>& right_keys,
+                   std::function<void()> true_case, int i = 0) {
+  if (i == left_keys.size()) {
+    // all of them panned out so do the true case
+    true_case();
+    return;
+  }
+
+  auto lhs = expr_translator.Compute(left_keys[i]);
+  auto rhs = expr_translator.Compute(right_keys[i]);
+
+  proxy::If(program, proxy::Equal(lhs, rhs), [&]() {
+    CheckEquality(program, expr_translator, left_keys, right_keys, true_case,
+                  i + 1);
+  });
+}
+
 void HashJoinTranslator::Consume(OperatorTranslator& src) {
   auto& left_translator = this->LeftChild();
   const auto left_keys = hash_join_.LeftColumns();
@@ -62,18 +86,17 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
 
   // Build side
   if (&src == &left_translator) {
-    std::vector<std::unique_ptr<proxy::IRValue>> key_columns;
+    std::vector<proxy::SQLValue> key_columns;
     for (const auto& left_key : left_keys) {
       key_columns.push_back(expr_translator_.Compute(left_key.get()));
     }
-
     auto entry = buffer_->Insert(util::ReferenceVector(key_columns));
     entry.Pack(left_translator.SchemaValues().Values());
     return;
   }
 
   // Probe Side
-  std::vector<std::unique_ptr<proxy::IRValue>> key_columns;
+  std::vector<proxy::SQLValue> key_columns;
   for (const auto& right_key : right_keys) {
     key_columns.push_back(expr_translator_.Compute(right_key.get()));
   }
@@ -91,36 +114,9 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
         auto i = loop.template GetLoopVariable<proxy::Int32>(0);
 
         auto left_tuple = bucket[i];
-
         left_translator.SchemaValues().SetValues(left_tuple.Unpack());
 
-        // construct boolean expression that compares each left column to right
-        // column
-        std::unique_ptr<plan::Expression> conj;
-        for (int i = 0; i < left_keys.size(); i++) {
-          const auto& left_key = left_keys[i].get();
-          const auto& right_key = right_keys[i].get();
-
-          auto eq = std::make_unique<plan::BinaryArithmeticExpression>(
-              plan::BinaryArithmeticOperatorType::EQ,
-              std::make_unique<plan::ColumnRefExpression>(
-                  left_key.Type(), left_key.GetChildIdx(),
-                  left_key.GetColumnIdx()),
-              std::make_unique<plan::ColumnRefExpression>(
-                  right_key.Type(), right_key.GetChildIdx(),
-                  right_key.GetColumnIdx()));
-
-          if (conj == nullptr) {
-            conj = std::move(eq);
-          } else {
-            conj = std::make_unique<plan::BinaryArithmeticExpression>(
-                plan::BinaryArithmeticOperatorType::AND, std::move(conj),
-                std::move(eq));
-          }
-        }
-
-        auto cond = expr_translator_.template ComputeAs<proxy::Bool>(*conj);
-        proxy::If(program_, cond, [&]() {
+        CheckEquality(program_, expr_translator_, left_keys, right_keys, [&]() {
           this->values_.ResetValues();
           for (const auto& column : hash_join_.Schema().Columns()) {
             this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
