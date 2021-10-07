@@ -129,12 +129,9 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
     auto other_side_value = expr_translator.Compute(
         table_idx == left_column->GetChildIdx() ? *right_column : *left_column);
-    // TODO: Update this
-    auto bucket = indexes[index_idx]->GetBucket(
-        other_side_value.Get() /*other_side_value*/);
 
-    auto bucket_dne = proxy::Ternary(
-        program, bucket.DoesNotExist(),
+    return proxy::Ternary(
+        program, other_side_value.IsNull(),
         [&]() {
           auto budget = initial_budget - 1;
           proxy::If(program, budget == 0, [&]() {
@@ -147,178 +144,223 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
           return budget;
         },
         [&]() {
-          // Loop over bucket
-          auto bucket_size = bucket.Size();
-          proxy::Loop loop(
-              program,
-              [&](auto& loop) {
-                auto progress_next_tuple = proxy::Ternary(
-                    program, resume_progress,
-                    [&]() {
-                      auto progress_ptr = program.GetElementPtr(
-                          program.I32Type(), progress_arr, {table_idx});
-                      auto next_tuple =
-                          proxy::Int32(program, program.LoadI32(progress_ptr));
-                      return next_tuple;
-                    },
-                    [&]() { return proxy::Int32(program, 0); });
-                auto offset_next_tuple =
-                    proxy::Int32(program, program.LoadI32(program.GetElementPtr(
-                                              program.I32Type(), offset_array,
-                                              {table_idx}))) +
-                    1;
-                auto initial_next_tuple = proxy::Ternary(
-                    program, offset_next_tuple > progress_next_tuple,
-                    [&]() { return offset_next_tuple; },
-                    [&]() { return progress_next_tuple; });
-                auto bucket_idx = bucket.FastForwardToStart(initial_next_tuple);
-                loop.AddLoopVariable(bucket_idx);
-                loop.AddLoopVariable(initial_budget);
-
-                auto continue_resume_progress = proxy::Ternary(
-                    program, resume_progress,
-                    [&]() {
-                      return proxy::Ternary(
-                          program, bucket_idx < bucket_size,
+          auto bucket = indexes[index_idx]->GetBucket(other_side_value.Get());
+          return proxy::Ternary(
+              program, bucket.DoesNotExist(),
+              [&]() {
+                auto budget = initial_budget - 1;
+                proxy::If(program, budget == 0, [&]() {
+                  auto idx_ptr = program.GetElementPtr(program.I32Type(),
+                                                       idx_array, {table_idx});
+                  program.StoreI32(idx_ptr, (cardinality - 1).Get());
+                  program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
+                  program.Return(program.ConstI32(-1));
+                });
+                return budget;
+              },
+              [&]() {
+                // Loop over bucket
+                auto bucket_size = bucket.Size();
+                proxy::Loop loop(
+                    program,
+                    [&](auto& loop) {
+                      auto progress_next_tuple = proxy::Ternary(
+                          program, resume_progress,
                           [&]() {
                             auto progress_ptr = program.GetElementPtr(
                                 program.I32Type(), progress_arr, {table_idx});
-                            auto progress_next_tuple = proxy::Int32(
+                            auto next_tuple = proxy::Int32(
                                 program, program.LoadI32(progress_ptr));
+                            return next_tuple;
+                          },
+                          [&]() { return proxy::Int32(program, 0); });
+                      auto offset_next_tuple =
+                          proxy::Int32(program,
+                                       program.LoadI32(program.GetElementPtr(
+                                           program.I32Type(), offset_array,
+                                           {table_idx}))) +
+                          1;
+                      auto initial_next_tuple = proxy::Ternary(
+                          program, offset_next_tuple > progress_next_tuple,
+                          [&]() { return offset_next_tuple; },
+                          [&]() { return progress_next_tuple; });
+                      auto bucket_idx =
+                          bucket.FastForwardToStart(initial_next_tuple);
+                      loop.AddLoopVariable(bucket_idx);
+                      loop.AddLoopVariable(initial_budget);
 
-                            auto bucket_next_tuple = bucket[bucket_idx];
-                            return bucket_next_tuple == progress_next_tuple;
+                      auto continue_resume_progress = proxy::Ternary(
+                          program, resume_progress,
+                          [&]() {
+                            return proxy::Ternary(
+                                program, bucket_idx < bucket_size,
+                                [&]() {
+                                  auto progress_ptr = program.GetElementPtr(
+                                      program.I32Type(), progress_arr,
+                                      {table_idx});
+                                  auto progress_next_tuple = proxy::Int32(
+                                      program, program.LoadI32(progress_ptr));
+
+                                  auto bucket_next_tuple = bucket[bucket_idx];
+                                  return bucket_next_tuple ==
+                                         progress_next_tuple;
+                                },
+                                [&]() { return proxy::Bool(program, false); });
                           },
                           [&]() { return proxy::Bool(program, false); });
+                      loop.AddLoopVariable(continue_resume_progress);
                     },
-                    [&]() { return proxy::Bool(program, false); });
-                loop.AddLoopVariable(continue_resume_progress);
-              },
-              [&](auto& loop) {
-                auto bucket_idx =
-                    loop.template GetLoopVariable<proxy::Int32>(0);
-                return bucket_idx < bucket_size;
-              },
-              [&](auto& loop) {
-                auto bucket_idx =
-                    loop.template GetLoopVariable<proxy::Int32>(0);
-                auto budget =
-                    loop.template GetLoopVariable<proxy::Int32>(1) - 1;
-                auto resume_progress =
-                    loop.template GetLoopVariable<proxy::Bool>(2);
+                    [&](auto& loop) {
+                      auto bucket_idx =
+                          loop.template GetLoopVariable<proxy::Int32>(0);
+                      return bucket_idx < bucket_size;
+                    },
+                    [&](auto& loop) {
+                      auto bucket_idx =
+                          loop.template GetLoopVariable<proxy::Int32>(0);
+                      auto budget =
+                          loop.template GetLoopVariable<proxy::Int32>(1) - 1;
+                      auto resume_progress =
+                          loop.template GetLoopVariable<proxy::Bool>(2);
 
-                auto next_tuple = bucket[bucket_idx];
-                // guaranteed that the index condition holds
-                evaluated_predicates.insert(indexed_predicate);
+                      auto next_tuple = bucket[bucket_idx];
+                      // guaranteed that the index condition holds
+                      evaluated_predicates.insert(indexed_predicate);
 
-                auto idx_ptr = program.GetElementPtr(program.I32Type(),
-                                                     idx_array, {table_idx});
-                program.StoreI32(idx_ptr, next_tuple.Get());
+                      auto idx_ptr = program.GetElementPtr(
+                          program.I32Type(), idx_array, {table_idx});
+                      program.StoreI32(idx_ptr, next_tuple.Get());
 
-                /*
-                proxy::Printer printer(program);
-                std::string x;
-                for (int i = 0; i < curr; i++) {
-                  x += " ";
-                }
-                auto str = proxy::String::Global(program, x);
-                printer.Print(str);
-                printer.Print(next_tuple);
-                printer.PrintNewline();
-                */
+                      /*
+                      proxy::Printer printer(program);
+                      std::string x;
+                      for (int i = 0; i < curr; i++) {
+                        x += " ";
+                      }
+                      auto str = proxy::String::Global(program, x);
+                      printer.Print(str);
+                      printer.Print(next_tuple);
+                      printer.PrintNewline();
+                      */
 
-                auto tuple = buffer[next_tuple];
-                child_translators[table_idx].get().SchemaValues().SetValues(
-                    tuple.Unpack());
-                available_tables.insert(table_idx);
+                      auto tuple = buffer[next_tuple];
+                      child_translators[table_idx]
+                          .get()
+                          .SchemaValues()
+                          .SetValues(tuple.Unpack());
+                      available_tables.insert(table_idx);
 
-                for (int predicate_idx : predicates_per_table[table_idx]) {
-                  if (evaluated_predicates.contains(predicate_idx)) {
-                    continue;
-                  }
+                      for (int predicate_idx :
+                           predicates_per_table[table_idx]) {
+                        if (evaluated_predicates.contains(predicate_idx)) {
+                          continue;
+                        }
 
-                  bool can_execute = true;
-                  for (int table : tables_per_predicate[predicate_idx]) {
-                    if (!available_tables.contains(table)) {
-                      can_execute = false;
-                      break;
-                    }
-                  }
-                  if (!can_execute) {
-                    continue;
-                  }
+                        bool can_execute = true;
+                        for (int table : tables_per_predicate[predicate_idx]) {
+                          if (!available_tables.contains(table)) {
+                            can_execute = false;
+                            break;
+                          }
+                        }
+                        if (!can_execute) {
+                          continue;
+                        }
 
-                  evaluated_predicates.insert(predicate_idx);
-                  auto cond =
-                      expr_translator.Compute(conditions[predicate_idx]);
-                  // TODO: Update this
-                  proxy::If(
-                      program, !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
-                      [&]() {
-                        // If budget, depleted return -1 and set table ctr
+                        evaluated_predicates.insert(predicate_idx);
+                        auto cond =
+                            expr_translator.Compute(conditions[predicate_idx]);
                         proxy::If(
-                            program, budget == 0,
+                            program, cond.IsNull(),
                             [&]() {
-                              program.StoreI32(table_ctr_ptr,
-                                               program.ConstI32(table_idx));
-                              program.Return(program.ConstI32(-1));
+                              // If budget, depleted return -1 and set table ctr
+                              proxy::If(
+                                  program, budget == 0,
+                                  [&]() {
+                                    program.StoreI32(
+                                        table_ctr_ptr,
+                                        program.ConstI32(table_idx));
+                                    program.Return(program.ConstI32(-1));
+                                  },
+                                  [&]() {
+                                    loop.Continue(next_tuple + 1, budget,
+                                                  proxy::Bool(program, false));
+                                  });
                             },
                             [&]() {
-                              loop.Continue(bucket_idx + 1, budget,
-                                            proxy::Bool(program, false));
+                              proxy::If(
+                                  program,
+                                  !static_cast<proxy::Bool&>(cond.Get()),
+                                  [&]() {
+                                    // If budget, depleted return -1 and set
+                                    // table ctr
+                                    proxy::If(
+                                        program, budget == 0,
+                                        [&]() {
+                                          program.StoreI32(
+                                              table_ctr_ptr,
+                                              program.ConstI32(table_idx));
+                                          program.Return(program.ConstI32(-1));
+                                        },
+                                        [&]() {
+                                          loop.Continue(
+                                              next_tuple + 1, budget,
+                                              proxy::Bool(program, false));
+                                        });
+                                  });
                             });
-                      });
-                }
+                      }
 
-                // Valid tuple
-                std::unique_ptr<proxy::Int32> next_budget;
-                if (curr + 1 == order.size()) {
-                  // Complete tuple - insert into HT
-                  tuple_idx_table.Insert(idx_array,
-                                         proxy::Int32(program, order.size()));
+                      // Valid tuple
+                      std::unique_ptr<proxy::Int32> next_budget;
+                      if (curr + 1 == order.size()) {
+                        // Complete tuple - insert into HT
+                        tuple_idx_table.Insert(
+                            idx_array, proxy::Int32(program, order.size()));
 
-                  proxy::Int32 num_result_tuples(
-                      program, program.LoadI32(num_result_tuples_ptr));
-                  program.StoreI32(num_result_tuples_ptr,
-                                   (num_result_tuples + 1).Get());
+                        proxy::Int32 num_result_tuples(
+                            program, program.LoadI32(num_result_tuples_ptr));
+                        program.StoreI32(num_result_tuples_ptr,
+                                         (num_result_tuples + 1).Get());
 
-                  // If budget depleted, return with -1 (i.e. finished entire
-                  // tables)
-                  proxy::If(program, budget == 0, [&]() {
-                    program.StoreI32(table_ctr_ptr,
-                                     program.ConstI32(table_idx));
-                    program.Return(program.ConstI32(-1));
-                  });
+                        // If budget depleted, return with -1 (i.e. finished
+                        // entire tables)
+                        proxy::If(program, budget == 0, [&]() {
+                          program.StoreI32(table_ctr_ptr,
+                                           program.ConstI32(table_idx));
+                          program.Return(program.ConstI32(-1));
+                        });
 
-                  next_budget = budget.ToPointer();
-                } else {
-                  // If budget depleted, return with -2 and store table_ctr
-                  proxy::If(program, budget == 0, [&]() {
-                    program.StoreI32(table_ctr_ptr,
-                                     program.ConstI32(table_idx));
-                    program.Return(program.ConstI32(-2));
-                  });
+                        next_budget = budget.ToPointer();
+                      } else {
+                        // If budget depleted, return with -2 and store
+                        // table_ctr
+                        proxy::If(program, budget == 0, [&]() {
+                          program.StoreI32(table_ctr_ptr,
+                                           program.ConstI32(table_idx));
+                          program.Return(program.ConstI32(-2));
+                        });
 
-                  // Partial tuple - loop over other tables to complete it
-                  next_budget =
-                      GenerateChildLoops(
-                          curr + 1, order, program, expr_translator, buffers,
-                          indexes, cardinalities, tuple_idx_table,
-                          evaluated_predicates, tables_per_predicate,
-                          predicates_per_table, available_tables, idx_array,
-                          offset_array, progress_arr, table_ctr_ptr,
-                          num_result_tuples_ptr, budget, resume_progress)
-                          .ToPointer();
-                }
+                        // Partial tuple - loop over other tables to complete it
+                        next_budget =
+                            GenerateChildLoops(
+                                curr + 1, order, program, expr_translator,
+                                buffers, indexes, cardinalities,
+                                tuple_idx_table, evaluated_predicates,
+                                tables_per_predicate, predicates_per_table,
+                                available_tables, idx_array, offset_array,
+                                progress_arr, table_ctr_ptr,
+                                num_result_tuples_ptr, budget, resume_progress)
+                                .ToPointer();
+                      }
 
-                return loop.Continue(bucket_idx + 1, *next_budget,
-                                     proxy::Bool(program, false));
+                      return loop.Continue(bucket_idx + 1, *next_budget,
+                                           proxy::Bool(program, false));
+                    });
+
+                return loop.template GetLoopVariable<proxy::Int32>(1);
               });
-
-          return loop.template GetLoopVariable<proxy::Int32>(1);
         });
-
-    return bucket_dne;
   }
 
   proxy::Loop loop(
@@ -405,22 +447,39 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
           evaluated_predicates.insert(predicate_idx);
           auto cond = expr_translator.Compute(conditions[predicate_idx]);
-          // TODO: Update this
-          proxy::If(program, !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
+          proxy::If(
+              program, cond.IsNull(),
+              [&]() {
+                // If budget, depleted return -1 and set table ctr
+                proxy::If(
+                    program, budget == 0,
                     [&]() {
-                      // If budget, depleted return -1 and set table ctr
-                      proxy::If(
-                          program, budget == 0,
-                          [&]() {
-                            program.StoreI32(table_ctr_ptr,
-                                             program.ConstI32(table_idx));
-                            program.Return(program.ConstI32(-1));
-                          },
-                          [&]() {
-                            loop.Continue(next_tuple + 1, budget,
-                                          proxy::Bool(program, false));
-                          });
+                      program.StoreI32(table_ctr_ptr,
+                                       program.ConstI32(table_idx));
+                      program.Return(program.ConstI32(-1));
+                    },
+                    [&]() {
+                      loop.Continue(next_tuple + 1, budget,
+                                    proxy::Bool(program, false));
                     });
+              },
+              [&]() {
+                proxy::If(program, !static_cast<proxy::Bool&>(cond.Get()),
+                          [&]() {
+                            // If budget, depleted return -1 and set table ctr
+                            proxy::If(
+                                program, budget == 0,
+                                [&]() {
+                                  program.StoreI32(table_ctr_ptr,
+                                                   program.ConstI32(table_idx));
+                                  program.Return(program.ConstI32(-1));
+                                },
+                                [&]() {
+                                  loop.Continue(next_tuple + 1, budget,
+                                                proxy::Bool(program, false));
+                                });
+                          });
+              });
         }
 
         // Valid tuple
@@ -528,8 +587,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
     structs.push_back(std::make_unique<proxy::StructBuilder>(program));
     const auto& child_schema = child_operator.Schema().Columns();
     for (const auto& col : child_schema) {
-      // TODO: Update this
-      // structs.back()->Add(col.Expr().Type());
+      structs.back()->Add(col.Expr().Type(), col.Expr().Nullable());
     }
     structs.back()->Build();
 
@@ -768,8 +826,7 @@ void RecompilingSkinnerJoinTranslator::Produce() {
     structs.push_back(std::make_unique<proxy::StructBuilder>(program_));
     const auto& child_schema = child_operator.Schema().Columns();
     for (const auto& col : child_schema) {
-      // TODO: Update this
-      // structs.back()->Add(col.Expr().Type());
+      structs.back()->Add(col.Expr().Type(), col.Expr().Nullable());
     }
     structs.back()->Build();
 
@@ -984,9 +1041,11 @@ void RecompilingSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
         {child_idx_, predicate_column.get().GetColumnIdx()});
     if (it != predicate_to_index_idx_.end()) {
       auto idx = it->second;
-      // TODO: Update this
-      // indexes_[idx]->Insert(values[predicate_column.get().GetColumnIdx()].get(),
-      //                      tuple_idx);
+      auto& value = values[predicate_column.get().GetColumnIdx()].get();
+
+      // only index not null values
+      proxy::If(program_, !value.IsNull(),
+                [&]() { indexes_[idx]->Insert(value.Get(), tuple_idx); });
     }
   }
 
