@@ -13,6 +13,8 @@ namespace kush::compile::proxy {
 
 class Aggregator {
  public:
+  virtual ~Aggregator() = default;
+
   virtual void AddFields(StructBuilder& fields) = 0;
   virtual void AddInitialEntry(std::vector<SQLValue>& values) = 0;
   virtual void Update(std::vector<SQLValue>& current_values, Struct& entry) = 0;
@@ -25,6 +27,8 @@ class SumAggregator : public Aggregator {
       util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
                     SQLValue>& expr_translator,
       const kush::plan::AggregateExpression& agg);
+  virtual ~SumAggregator() = default;
+
   void AddFields(StructBuilder& fields) override;
   void AddInitialEntry(std::vector<SQLValue>& values) override;
   void Update(std::vector<SQLValue>& current_values, Struct& entry) override;
@@ -44,6 +48,8 @@ class MinMaxAggregator : public Aggregator {
       util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
                     SQLValue>& expr_translator,
       const kush::plan::AggregateExpression& agg, bool min);
+  virtual ~MinMaxAggregator() = default;
+
   void AddFields(StructBuilder& fields) override;
   void AddInitialEntry(std::vector<SQLValue>& values) override;
   void Update(std::vector<SQLValue>& current_values, Struct& entry) override;
@@ -64,6 +70,8 @@ class AverageAggregator : public Aggregator {
       util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
                     SQLValue>& expr_translator,
       const kush::plan::AggregateExpression& agg);
+  virtual ~AverageAggregator() = default;
+
   void AddFields(StructBuilder& fields) override;
   void AddInitialEntry(std::vector<SQLValue>& values) override;
   void Update(std::vector<SQLValue>& current_values, Struct& entry) override;
@@ -86,6 +94,8 @@ class CountAggregator : public Aggregator {
       util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
                     SQLValue>& expr_translator,
       const kush::plan::AggregateExpression& agg);
+  virtual ~CountAggregator() = default;
+
   void AddFields(StructBuilder& fields) override;
   void AddInitialEntry(std::vector<SQLValue>& values) override;
   void Update(std::vector<SQLValue>& current_values, Struct& entry) override;

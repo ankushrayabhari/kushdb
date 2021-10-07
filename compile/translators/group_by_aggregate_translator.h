@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "compile/proxy/aggregator.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
@@ -26,13 +27,12 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   void Consume(OperatorTranslator& src) override;
 
  private:
-  proxy::Float64 ToFloat(proxy::IRValue& v);
-
   const plan::GroupByAggregateOperator& group_by_agg_;
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
   ExpressionTranslator expr_translator_;
   std::unique_ptr<proxy::HashTable> buffer_;
+  std::vector<std::unique_ptr<proxy::Aggregator>> aggregators_;
   khir::Value found_;
 };
 
