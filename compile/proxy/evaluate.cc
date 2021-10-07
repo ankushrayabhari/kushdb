@@ -45,11 +45,12 @@ SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticOperatorType op_type,
   switch (op_type) {
     case plan::BinaryArithmeticOperatorType::ADD:
     case plan::BinaryArithmeticOperatorType::SUB:
-    case plan::BinaryArithmeticOperatorType::MUL:
-    case plan::BinaryArithmeticOperatorType::DIV: {
-      return NullableTernary<Bool>(
+    case plan::BinaryArithmeticOperatorType::MUL: {
+      return NullableTernary<V>(
           program, lhs.IsNull() || rhs.IsNull(),
-          [&]() { return SQLValue(Bool(program, false), Bool(program, true)); },
+          [&]() {
+            return SQLValue(static_cast<V&>(lhs.Get()), Bool(program, true));
+          },
           [&]() {
             const V& lhs_v = dynamic_cast<const V&>(lhs.Get());
             const V& rhs_v = dynamic_cast<const V&>(rhs.Get());
@@ -65,16 +66,24 @@ SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticOperatorType op_type,
               case plan::BinaryArithmeticOperatorType::MUL:
                 return SQLValue(lhs_v * rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::DIV:
-                if constexpr (std::is_same_v<V, Float64>) {
-                  return SQLValue(lhs_v / rhs_v, null);
-                } else {
-                  throw std::runtime_error("Invalid operator on numeric");
-                }
-
               default:
                 throw std::runtime_error("Unreachable");
             }
+          });
+    }
+
+    case plan::BinaryArithmeticOperatorType::DIV: {
+      if constexpr (!std::is_same_v<V, Float64>) {
+        throw std::runtime_error("Invalid arguments to div");
+      }
+      return NullableTernary<Float64>(
+          program, lhs.IsNull() || rhs.IsNull(),
+          [&]() { return SQLValue(Float64(program, 0), Bool(program, true)); },
+          [&]() {
+            const Float64& lhs_v = dynamic_cast<const Float64&>(lhs.Get());
+            const Float64& rhs_v = dynamic_cast<const Float64&>(rhs.Get());
+            Bool null(program, false);
+            return SQLValue(lhs_v / rhs_v, null);
           });
     }
 

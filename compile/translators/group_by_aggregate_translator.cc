@@ -155,12 +155,11 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
             [&]() {
               auto inserted = buffer_->Insert(util::ReferenceVector(keys));
 
-              std::vector<proxy::SQLValue> values;
               for (auto& aggregator : aggregators_) {
-                aggregator->AddInitialEntry(values);
+                aggregator->AddInitialEntry(keys);
               }
 
-              inserted.Pack(util::ReferenceVector(values));
+              inserted.Pack(util::ReferenceVector(keys));
             });
 }
 

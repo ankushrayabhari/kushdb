@@ -12,13 +12,13 @@ user.bazelrc
 /perf-*
 
 # TPCH Data
-/tpch/data*
-/tpch/raw*
+/benchmark/tpch/data*
+/benchmark/tpch/raw*
 
 # JOB Data
-/job/data*
-/job/raw*
+/benchmark/job/data*
+/benchmark/job/raw*
 
 # JCC-H Data
-/jcch/data*
-/jcch/raw*
+/benchmark/jcch/data*
+/benchmark/jcch/raw*

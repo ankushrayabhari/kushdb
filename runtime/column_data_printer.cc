@@ -18,7 +18,7 @@ bool comp(int8_t* v1, int8_t* v2) {
 int main() {
   /*
   Float64ColumnData col;
-  Open(&col, "tpch/data/l_quantity.kdb");
+  Open(&col, "benchmark/tpch/data/l_quantity.kdb");
 
   auto size = Size(&col);
   for (int32_t i = 0; i < size; i++) {
