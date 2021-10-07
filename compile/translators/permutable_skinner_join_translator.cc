@@ -92,7 +92,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
     structs.push_back(std::make_unique<proxy::StructBuilder>(program_));
     const auto& child_schema = child_operator.Schema().Columns();
     for (const auto& col : child_schema) {
-      structs.back()->Add(col.Expr().Type());
+      // TODO: Update this
+      // structs.back()->Add(col.Expr().Type());
     }
     structs.back()->Build();
 
@@ -170,7 +171,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
     const auto& col =
         child.get().Schema().Columns()[predicate_column.get().GetColumnIdx()];
     auto type = col.Expr().Type();
-    predicate_struct->Add(type);
+    // TODO: Update this
+    // predicate_struct->Add(type);
   }
   predicate_struct->Build();
 
@@ -324,7 +326,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
               auto other_side_value = expr_translator_.Compute(
                   table_idx == left_column->GetChildIdx() ? *right_column
                                                           : *left_column);
-              auto bucket = indexes_[index_idx]->GetBucket(*other_side_value);
+              // TODO: Update this
+              auto bucket = indexes_[index_idx]->GetBucket(
+                  other_side_value.Get() /*other_side_value*/);
               bucket_list.PushBack(bucket);
 
               proxy::If(program_, bucket.DoesNotExist(), [&]() {
@@ -447,8 +451,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       for (int k = 0; k < predicate_columns_.size(); k++) {
                         auto& col_ref = predicate_columns_[k].get();
                         if (col_ref.GetChildIdx() == table_idx) {
+                          // TODO: Update this
                           global_predicate_struct.Update(
-                              k, *current_table_values[col_ref.GetColumnIdx()]);
+                              k, current_table_values[col_ref.GetColumnIdx()]);
 
                           // Additionally, update this table's values to read
                           // from the unpacked tuple instead of the old loaded
@@ -475,8 +480,10 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           auto cond = expr_translator_.Compute(
                               conditions[predicate_idx]);
 
+                          // TODO: Update this
                           proxy::If(
-                              program_, !static_cast<proxy::Bool&>(*cond),
+                              program_,
+                              !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
                               [&]() {
                                 // If budget, depleted return -1 and set
                                 // table ctr
@@ -603,8 +610,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       for (int k = 0; k < predicate_columns_.size(); k++) {
                         auto& col_ref = predicate_columns_[k].get();
                         if (col_ref.GetChildIdx() == table_idx) {
+                          // TODO: Update this
                           global_predicate_struct.Update(
-                              k, *current_table_values[col_ref.GetColumnIdx()]);
+                              k, current_table_values[col_ref.GetColumnIdx()]);
 
                           // Additionally, update this table's values to read
                           // from the unpacked tuple instead of the old loaded
@@ -631,8 +639,10 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           auto cond = expr_translator_.Compute(
                               conditions[predicate_idx]);
 
+                          // TODO: Update this
                           proxy::If(
-                              program_, !static_cast<proxy::Bool&>(*cond),
+                              program_,
+                              !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
                               [&]() {
                                 // If budget, depleted return -1 and set
                                 // table ctr
@@ -832,8 +842,9 @@ void PermutableSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
         {child_idx_, predicate_column.get().GetColumnIdx()});
     if (it != predicate_to_index_idx_.end()) {
       auto idx = it->second;
-      indexes_[idx]->Insert(values[predicate_column.get().GetColumnIdx()].get(),
-                            tuple_idx);
+      // TODO: Update this
+      // indexes_[idx]->Insert(values[predicate_column.get().GetColumnIdx()].get(),
+      //                      tuple_idx);
     }
   }
 

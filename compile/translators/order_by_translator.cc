@@ -74,6 +74,9 @@ void OrderByTranslator::Produce() {
 
           proxy::If(program_, LessThan(s1_field, s2_field),
                     [&]() { Return(proxy::Bool(program_, asc)); });
+
+          proxy::If(program_, LessThan(s2_field, s1_field),
+                    [&]() { Return(proxy::Bool(program_, !asc)); });
         }
 
         Return(proxy::Bool(program_, false));

@@ -18,6 +18,8 @@ std::vector<std::reference_wrapper<const Expression>> Expression::Children()
   return util::ImmutableReferenceVector(children_);
 }
 
+bool Expression::Nullable() const { return nullable_; }
+
 catalog::SqlType Expression::Type() const { return type_; }
 
 UnaryExpression::UnaryExpression(catalog::SqlType type, bool nullable,

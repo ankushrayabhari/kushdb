@@ -73,11 +73,11 @@ void ScanTranslator::Produce() {
     }
 
     if (table[column.Name()].Nullable()) {
-      null_data_vars.push_back(nullptr);
-    } else {
       null_data_vars.push_back(
           std::make_unique<proxy::ColumnData<SqlType::BOOLEAN>>(
               program_, table[column.Name()].NullPath()));
+    } else {
+      null_data_vars.push_back(nullptr);
     }
   }
 

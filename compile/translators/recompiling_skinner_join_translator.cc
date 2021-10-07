@@ -129,7 +129,9 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
     auto other_side_value = expr_translator.Compute(
         table_idx == left_column->GetChildIdx() ? *right_column : *left_column);
-    auto bucket = indexes[index_idx]->GetBucket(*other_side_value);
+    // TODO: Update this
+    auto bucket = indexes[index_idx]->GetBucket(
+        other_side_value.Get() /*other_side_value*/);
 
     auto bucket_dne = proxy::Ternary(
         program, bucket.DoesNotExist(),
@@ -249,20 +251,23 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                   evaluated_predicates.insert(predicate_idx);
                   auto cond =
                       expr_translator.Compute(conditions[predicate_idx]);
-                  proxy::If(program, !static_cast<proxy::Bool&>(*cond), [&]() {
-                    // If budget, depleted return -1 and set table ctr
-                    proxy::If(
-                        program, budget == 0,
-                        [&]() {
-                          program.StoreI32(table_ctr_ptr,
-                                           program.ConstI32(table_idx));
-                          program.Return(program.ConstI32(-1));
-                        },
-                        [&]() {
-                          loop.Continue(bucket_idx + 1, budget,
-                                        proxy::Bool(program, false));
-                        });
-                  });
+                  // TODO: Update this
+                  proxy::If(
+                      program, !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
+                      [&]() {
+                        // If budget, depleted return -1 and set table ctr
+                        proxy::If(
+                            program, budget == 0,
+                            [&]() {
+                              program.StoreI32(table_ctr_ptr,
+                                               program.ConstI32(table_idx));
+                              program.Return(program.ConstI32(-1));
+                            },
+                            [&]() {
+                              loop.Continue(bucket_idx + 1, budget,
+                                            proxy::Bool(program, false));
+                            });
+                      });
                 }
 
                 // Valid tuple
@@ -400,19 +405,22 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
           evaluated_predicates.insert(predicate_idx);
           auto cond = expr_translator.Compute(conditions[predicate_idx]);
-          proxy::If(program, !static_cast<proxy::Bool&>(*cond), [&]() {
-            // If budget, depleted return -1 and set table ctr
-            proxy::If(
-                program, budget == 0,
-                [&]() {
-                  program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
-                  program.Return(program.ConstI32(-1));
-                },
-                [&]() {
-                  loop.Continue(next_tuple + 1, budget,
-                                proxy::Bool(program, false));
-                });
-          });
+          // TODO: Update this
+          proxy::If(program, !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
+                    [&]() {
+                      // If budget, depleted return -1 and set table ctr
+                      proxy::If(
+                          program, budget == 0,
+                          [&]() {
+                            program.StoreI32(table_ctr_ptr,
+                                             program.ConstI32(table_idx));
+                            program.Return(program.ConstI32(-1));
+                          },
+                          [&]() {
+                            loop.Continue(next_tuple + 1, budget,
+                                          proxy::Bool(program, false));
+                          });
+                    });
         }
 
         // Valid tuple
@@ -520,7 +528,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
     structs.push_back(std::make_unique<proxy::StructBuilder>(program));
     const auto& child_schema = child_operator.Schema().Columns();
     for (const auto& col : child_schema) {
-      structs.back()->Add(col.Expr().Type());
+      // TODO: Update this
+      // structs.back()->Add(col.Expr().Type());
     }
     structs.back()->Build();
 
@@ -759,7 +768,8 @@ void RecompilingSkinnerJoinTranslator::Produce() {
     structs.push_back(std::make_unique<proxy::StructBuilder>(program_));
     const auto& child_schema = child_operator.Schema().Columns();
     for (const auto& col : child_schema) {
-      structs.back()->Add(col.Expr().Type());
+      // TODO: Update this
+      // structs.back()->Add(col.Expr().Type());
     }
     structs.back()->Build();
 
@@ -974,8 +984,9 @@ void RecompilingSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
         {child_idx_, predicate_column.get().GetColumnIdx()});
     if (it != predicate_to_index_idx_.end()) {
       auto idx = it->second;
-      indexes_[idx]->Insert(values[predicate_column.get().GetColumnIdx()].get(),
-                            tuple_idx);
+      // TODO: Update this
+      // indexes_[idx]->Insert(values[predicate_column.get().GetColumnIdx()].get(),
+      //                      tuple_idx);
     }
   }
 

@@ -1,5 +1,7 @@
 #include "compile/translators/output_translator.h"
 
+#include <iostream>
+
 #include "compile/proxy/control_flow/if.h"
 #include "compile/proxy/value/ir_value.h"
 #include "compile/translators/operator_translator.h"

@@ -89,16 +89,18 @@ void GroupByAggregateTranslator::Produce() {
   program_.SetCurrentBlock(output_pipeline_func);
   buffer_->ForEach([&](proxy::Struct& packed) {
     auto values = packed.Unpack();
-
-    // everything except the group row counter is a virtual column
-    for (int i = 1; i < values.size(); i++) {
+    for (int i = 0; i < group_by_exprs.size(); i++) {
       this->virtual_values_.AddVariable(std::move(values[i]));
+    }
+    for (auto& aggregator : aggregators_) {
+      this->virtual_values_.AddVariable(aggregator->Get(values));
     }
 
     // generate output variables
     this->values_.ResetValues();
     for (const auto& column : group_by_agg_.Schema().Columns()) {
-      this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+      auto val = expr_translator_.Compute(column.Expr());
+      this->values_.AddVariable(val);
     }
 
     if (auto parent = this->Parent()) {
@@ -106,27 +108,6 @@ void GroupByAggregateTranslator::Produce() {
     }
   });
   buffer_->Reset();
-}
-
-void CheckEquality(
-    khir::ProgramBuilder& program, ExpressionTranslator& expr_translator,
-    std::vector<std::reference_wrapper<proxy::SQLValue>>& values,
-    std::vector<std::reference_wrapper<const kush::plan::Expression>>&
-        group_by_exprs,
-    std::function<void()> true_case, int i = 0) {
-  if (i == group_by_exprs.size()) {
-    // all of them panned out so do the true case
-    true_case();
-    return;
-  }
-
-  auto& lhs = values[i + 1].get();
-  auto rhs = expr_translator.Compute(group_by_exprs[i]);
-
-  proxy::If(program, proxy::Equal(lhs, rhs), [&]() {
-    CheckEquality(program, expr_translator, values, group_by_exprs, true_case,
-                  i + 1);
-  });
 }
 
 void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
@@ -138,7 +119,6 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
   for (const auto& group_by : group_by_exprs) {
     keys.push_back(expr_translator_.Compute(group_by.get()));
   }
-
   program_.StoreI8(found_, proxy::Int8(program_, 0).Get());
 
   // Loop over bucket if exists
@@ -158,18 +138,17 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         auto packed = bucket[i];
         auto values = packed.Unpack();
 
-        auto values_ref = util::ReferenceVector(values);
-        CheckEquality(
-            program_, expr_translator_, values_ref, group_by_exprs, [&]() {
-              program_.StoreI8(found_, proxy::Int8(program_, 1).Get());
-              // update each aggregator
-              for (auto& aggregator : aggregators_) {
-                aggregator->Update(values, packed);
-              }
-              loop.Continue(size);
-            });
+        for (int expr_idx = 0; expr_idx < keys.size(); expr_idx++) {
+          proxy::If(program_, !proxy::Equal(values[expr_idx], keys[expr_idx]),
+                    [&]() { loop.Continue(i + 1); });
+        }
 
-        return loop.Continue(i + 1);
+        program_.StoreI8(found_, proxy::Int8(program_, 1).Get());
+        // update each aggregator
+        for (auto& aggregator : aggregators_) {
+          aggregator->Update(values, packed);
+        }
+        return loop.Continue(size);
       });
 
   proxy::If(program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1,

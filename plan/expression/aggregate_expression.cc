@@ -24,7 +24,6 @@ SqlType CalculateAggSqlType(AggregateType type, const Expression& expr) {
       } else {
         throw std::runtime_error("Invalid input type for sum aggregate");
       }
-      break;
 
     case AggregateType::AVG:
       if (child_type == SqlType::INT || child_type == SqlType::SMALLINT ||
@@ -34,9 +33,10 @@ SqlType CalculateAggSqlType(AggregateType type, const Expression& expr) {
         std::cout << magic_enum::enum_name(child_type) << std::endl;
         throw std::runtime_error("Invalid input type for avg aggregate");
       }
-      break;
+
     case AggregateType::COUNT:
       return SqlType::BIGINT;
+
     case AggregateType::MIN:
     case AggregateType::MAX:
       if (child_type == SqlType::INT || child_type == SqlType::SMALLINT ||

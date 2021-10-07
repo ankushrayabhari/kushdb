@@ -81,6 +81,10 @@ void SumAggregator::Update(std::vector<SQLValue>& current_values,
   });
 }
 
+SQLValue SumAggregator::Get(std::vector<SQLValue>& current_values) {
+  return std::move(current_values[field_]);
+}
+
 MinMaxAggregator::MinMaxAggregator(
     khir::ProgramBuilder& program,
     util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
@@ -159,6 +163,10 @@ void MinMaxAggregator::Update(std::vector<SQLValue>& current_values,
   });
 }
 
+SQLValue MinMaxAggregator::Get(std::vector<SQLValue>& current_values) {
+  return std::move(current_values[field_]);
+}
+
 AverageAggregator::AverageAggregator(
     khir::ProgramBuilder& program,
     util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
@@ -234,6 +242,10 @@ void AverageAggregator::Update(std::vector<SQLValue>& current_values,
   });
 }
 
+SQLValue AverageAggregator::Get(std::vector<SQLValue>& current_values) {
+  return std::move(current_values[value_field_]);
+}
+
 CountAggregator::CountAggregator(
     khir::ProgramBuilder& program,
     util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
@@ -246,7 +258,7 @@ void CountAggregator::AddFields(StructBuilder& fields) {
 }
 
 void CountAggregator::AddInitialEntry(std::vector<SQLValue>& values) {
-  values.push_back(SQLValue(Float64(program_, 0), Bool(program_, false)));
+  values.push_back(SQLValue(Int64(program_, 1), Bool(program_, false)));
 }
 
 void CountAggregator::Update(std::vector<SQLValue>& current_values,
@@ -256,6 +268,10 @@ void CountAggregator::Update(std::vector<SQLValue>& current_values,
   If(program_, !next.IsNull(), [&] {
     entry.Update(field_, SQLValue(record_count + 1, Bool(program_, false)));
   });
+}
+
+SQLValue CountAggregator::Get(std::vector<SQLValue>& current_values) {
+  return std::move(current_values[field_]);
 }
 
 }  // namespace kush::compile::proxy

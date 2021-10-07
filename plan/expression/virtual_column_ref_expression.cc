@@ -18,7 +18,7 @@ int VirtualColumnRefExpression::GetColumnIdx() const { return column_idx_; }
 
 nlohmann::json VirtualColumnRefExpression::ToJson() const {
   nlohmann::json j;
-  j["column_idx"] = column_idx_;
+  j["virt_column_idx"] = column_idx_;
   return j;
 }
 

@@ -36,7 +36,7 @@ std::unique_ptr<kush::plan::ColumnRefExpression> ColRef(
   int idx = op->Schema().GetColumnIndex(col);
   const auto& cols = op->Schema().Columns();
   return std::make_unique<kush::plan::ColumnRefExpression>(
-      cols[idx].Expr().Type(), child_idx, idx);
+      cols[idx].Expr().Type(), cols[idx].Expr().Nullable(), child_idx, idx);
 }
 
 std::unique_ptr<kush::plan::Expression> ColRefE(
@@ -48,8 +48,8 @@ std::unique_ptr<kush::plan::Expression> ColRefE(
 template <typename T>
 std::unique_ptr<kush::plan::VirtualColumnRefExpression> VirtColRef(
     const T& expr, int idx) {
-  return std::make_unique<kush::plan::VirtualColumnRefExpression>(expr->Type(),
-                                                                  idx);
+  return std::make_unique<kush::plan::VirtualColumnRefExpression>(
+      expr->Type(), expr->Nullable(), idx);
 }
 
 template <typename T>
