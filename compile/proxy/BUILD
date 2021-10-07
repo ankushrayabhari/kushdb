@@ -117,3 +117,17 @@ cc_library(
         "//runtime:column_index",
     ],
 )
+
+cc_library(
+    name = "aggregator",
+    srcs = ["aggregator.cc"],
+    hdrs = ["aggregator.h"],
+    deps = [
+        ":struct",
+        "//catalog:sql_type",
+        "//compile/proxy/value:sql_value",
+        "//khir:program_builder",
+        "//plan/expression:aggregate_expression",
+        "//util:visitor",
+    ],
+)

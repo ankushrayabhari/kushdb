@@ -15,7 +15,7 @@ namespace kush::compile::proxy {
 class StructBuilder {
  public:
   StructBuilder(khir::ProgramBuilder& program);
-  void Add(catalog::SqlType type, bool nullable);
+  int Add(catalog::SqlType type, bool nullable);
   void Build();
 
   khir::Type Type() const;
@@ -43,6 +43,7 @@ class Struct {
   std::vector<SQLValue> Unpack();
 
  private:
+  void Store(catalog::SqlType t, khir::Value ptr, const IRValue& v);
   khir::ProgramBuilder& program_;
   StructBuilder& fields_;
   khir::Value value_;

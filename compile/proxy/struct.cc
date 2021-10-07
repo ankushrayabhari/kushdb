@@ -16,8 +16,9 @@ namespace kush::compile::proxy {
 StructBuilder::StructBuilder(khir::ProgramBuilder& program)
     : program_(program) {}
 
-void StructBuilder::Add(catalog::SqlType type, bool nullable) {
-  field_to_struct_field_nullable_idx[types_.size()] = {
+int StructBuilder::Add(catalog::SqlType type, bool nullable) {
+  auto field_idx = types_.size();
+  field_to_struct_field_nullable_idx[field_idx] = {
       fields_.size(), nullable ? fields_.size() + 1 : -1};
 
   types_.push_back(type);
@@ -56,6 +57,8 @@ void StructBuilder::Add(catalog::SqlType type, bool nullable) {
     fields_.push_back(program_.I8Type());
     values_.push_back(program_.ConstI8(0));
   }
+
+  return field_idx;
 }
 
 std::pair<int, int> StructBuilder::GetFieldNullableIdx(int field) const {
@@ -130,46 +133,61 @@ std::vector<SQLValue> Struct::Unpack() {
   return result;
 }
 
+void Struct::Store(catalog::SqlType t, khir::Value ptr, const IRValue& v) {
+  auto value = v.Get();
+  switch (t) {
+    case catalog::SqlType::SMALLINT:
+      program_.StoreI16(ptr, value);
+      break;
+    case catalog::SqlType::INT:
+      program_.StoreI32(ptr, value);
+      break;
+    case catalog::SqlType::BIGINT:
+    case catalog::SqlType::DATE:
+      program_.StoreI64(ptr, value);
+      break;
+    case catalog::SqlType::REAL:
+      program_.StoreF64(ptr, value);
+      break;
+    case catalog::SqlType::TEXT:
+      String(program_, ptr).Copy(dynamic_cast<const String&>(v));
+      break;
+    case catalog::SqlType::BOOLEAN:
+      program_.StoreI8(ptr, program_.I8ZextI1(value));
+      break;
+  }
+}
+
 void Struct::Update(int field, const SQLValue& v) {
   auto [f, nf] = fields_.GetFieldNullableIdx(field);
   int field_idx = f;
   int null_field_idx = nf;
 
-  Bool nullable(program_, null_field_idx >= 0);
-  If(
-      program_, nullable && v.IsNull(),
-      [&]() {
-        auto ptr = program_.GetElementPtr(program_.I8Type(), value_,
-                                          {0, null_field_idx});
-        program_.StoreI8(ptr, program_.ConstI8(1));
-      },
-      [&]() {
-        auto ptr =
-            program_.GetElementPtr(fields_.Type(), value_, {0, field_idx});
-        auto value = v.Get().Get();
+  if (null_field_idx >= 0) {
+    auto ptr = program_.GetElementPtr(fields_.Type(), value_, {0, field_idx});
+    const auto& value = v.Get();
+    auto type = v.Type();
+    Store(type, ptr, value);
+  } else {
+    If(
+        program_, v.IsNull(),
+        [&]() {
+          auto null_ptr = program_.GetElementPtr(program_.I8Type(), value_,
+                                                 {0, null_field_idx});
+          program_.StoreI8(null_ptr, program_.ConstI8(1));
+        },
+        [&]() {
+          auto null_ptr = program_.GetElementPtr(program_.I8Type(), value_,
+                                                 {0, null_field_idx});
+          program_.StoreI8(null_ptr, program_.ConstI8(0));
 
-        switch (v.Type()) {
-          case catalog::SqlType::SMALLINT:
-            program_.StoreI16(ptr, value);
-            break;
-          case catalog::SqlType::INT:
-            program_.StoreI32(ptr, value);
-            break;
-          case catalog::SqlType::BIGINT:
-          case catalog::SqlType::DATE:
-            program_.StoreI64(ptr, value);
-            break;
-          case catalog::SqlType::REAL:
-            program_.StoreF64(ptr, value);
-            break;
-          case catalog::SqlType::TEXT:
-            String(program_, ptr).Copy(dynamic_cast<const String&>(v.Get()));
-            break;
-          case catalog::SqlType::BOOLEAN:
-            program_.StoreI8(ptr, program_.I8ZextI1(value));
-            break;
-        }
-      });
+          auto ptr =
+              program_.GetElementPtr(fields_.Type(), value_, {0, field_idx});
+          const auto& value = v.Get();
+          auto type = v.Type();
+          Store(type, ptr, value);
+        });
+  }
 }
 
 }  // namespace kush::compile::proxy

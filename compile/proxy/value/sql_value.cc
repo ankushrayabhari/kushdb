@@ -104,4 +104,9 @@ catalog::SqlType SQLValue::Type() const { return type_; }
 
 khir::ProgramBuilder& SQLValue::ProgramBuilder() const { return program_; }
 
+SQLValue SQLValue::GetNotNullable() const {
+  return SQLValue(CopyIRValue(type_, *value_), type_,
+                  proxy::Bool(program_, false));
+}
+
 }  // namespace kush::compile::proxy

@@ -27,6 +27,8 @@ class SQLValue {
   catalog::SqlType Type() const;
   khir::ProgramBuilder& ProgramBuilder() const;
 
+  SQLValue GetNotNullable() const;
+
  private:
   khir::ProgramBuilder& program_;
   std::unique_ptr<IRValue> value_;
