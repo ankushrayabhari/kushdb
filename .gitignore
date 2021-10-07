@@ -18,3 +18,7 @@ user.bazelrc
 # JOB Data
 /job/data*
 /job/raw*
+
+# JCC-H Data
+/jcch/data*
+/jcch/raw*
