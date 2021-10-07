@@ -109,11 +109,11 @@ void GroupByAggregateTranslator::Produce() {
 }
 
 void CheckEquality(
-    int i, khir::ProgramBuilder& program, ExpressionTranslator& expr_translator,
+    khir::ProgramBuilder& program, ExpressionTranslator& expr_translator,
     std::vector<std::reference_wrapper<proxy::SQLValue>>& values,
     std::vector<std::reference_wrapper<const kush::plan::Expression>>&
         group_by_exprs,
-    std::function<void()> true_case) {
+    std::function<void()> true_case, int i = 0) {
   if (i == group_by_exprs.size()) {
     // all of them panned out so do the true case
     true_case();
@@ -124,8 +124,8 @@ void CheckEquality(
   auto rhs = expr_translator.Compute(group_by_exprs[i]);
 
   proxy::If(program, proxy::Equal(lhs, rhs), [&]() {
-    CheckEquality(i + 1, program, expr_translator, values, group_by_exprs,
-                  true_case);
+    CheckEquality(program, expr_translator, values, group_by_exprs, true_case,
+                  i + 1);
   });
 }
 
@@ -160,7 +160,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
 
         auto values_ref = util::ReferenceVector(values);
         CheckEquality(
-            0, program_, expr_translator_, values_ref, group_by_exprs, [&]() {
+            program_, expr_translator_, values_ref, group_by_exprs, [&]() {
               program_.StoreI8(found_, proxy::Int8(program_, 1).Get());
               // update each aggregator
               for (auto& aggregator : aggregators_) {
