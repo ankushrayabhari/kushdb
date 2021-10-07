@@ -92,8 +92,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
     structs.push_back(std::make_unique<proxy::StructBuilder>(program_));
     const auto& child_schema = child_operator.Schema().Columns();
     for (const auto& col : child_schema) {
-      // TODO: Update this
-      // structs.back()->Add(col.Expr().Type());
+      structs.back()->Add(col.Expr().Type(), col.Expr().Nullable());
     }
     structs.back()->Build();
 
@@ -170,9 +169,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
     const auto& child = child_operators[predicate_column.get().GetChildIdx()];
     const auto& col =
         child.get().Schema().Columns()[predicate_column.get().GetColumnIdx()];
-    auto type = col.Expr().Type();
-    // TODO: Update this
-    // predicate_struct->Add(type);
+    predicate_struct->Add(col.Expr().Type(), col.Expr().Nullable());
   }
   predicate_struct->Build();
 
@@ -326,32 +323,57 @@ void PermutableSkinnerJoinTranslator::Produce() {
               auto other_side_value = expr_translator_.Compute(
                   table_idx == left_column->GetChildIdx() ? *right_column
                                                           : *left_column);
-              // TODO: Update this
-              auto bucket = indexes_[index_idx]->GetBucket(
-                  other_side_value.Get() /*other_side_value*/);
-              bucket_list.PushBack(bucket);
 
-              proxy::If(program_, bucket.DoesNotExist(), [&]() {
-                auto budget = initial_budget - 1;
-                proxy::If(
-                    program_, budget == 0,
-                    [&]() {
-                      auto idx_ptr = program_.GetElementPtr(
-                          idx_array_type, idx_array, {0, table_idx});
-                      program_.StoreI32(idx_ptr, (cardinality - 1).Get());
-                      program_.StoreI32(
-                          program_.GetElementPtr(table_ctr_type, table_ctr_ptr,
-                                                 {0, 0}),
-                          program_.ConstI32(table_idx));
+              proxy::If(
+                  program_, other_side_value.IsNull(),
+                  [&]() {
+                    auto budget = initial_budget - 1;
+                    proxy::If(
+                        program_, budget == 0,
+                        [&]() {
+                          auto idx_ptr = program_.GetElementPtr(
+                              idx_array_type, idx_array, {0, table_idx});
+                          program_.StoreI32(idx_ptr, (cardinality - 1).Get());
+                          program_.StoreI32(
+                              program_.GetElementPtr(table_ctr_type,
+                                                     table_ctr_ptr, {0, 0}),
+                              program_.ConstI32(table_idx));
 
-                      bucket_list.Reset();
-                      program_.Return(program_.ConstI32(-1));
-                    },
-                    [&]() {
-                      bucket_list.Reset();
-                      program_.Return(budget.Get());
+                          bucket_list.Reset();
+                          program_.Return(program_.ConstI32(-1));
+                        },
+                        [&]() {
+                          bucket_list.Reset();
+                          program_.Return(budget.Get());
+                        });
+                  },
+                  [&]() {
+                    auto bucket = indexes_[index_idx]->GetBucket(
+                        other_side_value.Get() /*other_side_value*/);
+                    bucket_list.PushBack(bucket);
+
+                    proxy::If(program_, bucket.DoesNotExist(), [&]() {
+                      auto budget = initial_budget - 1;
+                      proxy::If(
+                          program_, budget == 0,
+                          [&]() {
+                            auto idx_ptr = program_.GetElementPtr(
+                                idx_array_type, idx_array, {0, table_idx});
+                            program_.StoreI32(idx_ptr, (cardinality - 1).Get());
+                            program_.StoreI32(
+                                program_.GetElementPtr(table_ctr_type,
+                                                       table_ctr_ptr, {0, 0}),
+                                program_.ConstI32(table_idx));
+
+                            bucket_list.Reset();
+                            program_.Return(program_.ConstI32(-1));
+                          },
+                          [&]() {
+                            bucket_list.Reset();
+                            program_.Return(budget.Get());
+                          });
                     });
-              });
+                  });
             });
           }
 
@@ -451,7 +473,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       for (int k = 0; k < predicate_columns_.size(); k++) {
                         auto& col_ref = predicate_columns_[k].get();
                         if (col_ref.GetChildIdx() == table_idx) {
-                          // TODO: Update this
                           global_predicate_struct.Update(
                               k, current_table_values[col_ref.GetColumnIdx()]);
 
@@ -480,10 +501,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           auto cond = expr_translator_.Compute(
                               conditions[predicate_idx]);
 
-                          // TODO: Update this
                           proxy::If(
-                              program_,
-                              !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
+                              program_, cond.IsNull(),
                               [&]() {
                                 // If budget, depleted return -1 and set
                                 // table ctr
@@ -501,6 +520,31 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                       loop.Continue(
                                           bucket_idx + 1, budget,
                                           proxy::Bool(program_, false));
+                                    });
+                              },
+                              [&]() {
+                                proxy::If(
+                                    program_,
+                                    !static_cast<proxy::Bool&>(cond.Get()),
+                                    [&]() {
+                                      // If budget, depleted return -1 and set
+                                      // table ctr
+                                      proxy::If(
+                                          program_, budget == 0,
+                                          [&]() {
+                                            program_.StoreI32(
+                                                program_.GetElementPtr(
+                                                    table_ctr_type,
+                                                    table_ctr_ptr, {0, 0}),
+                                                program_.ConstI32(table_idx));
+                                            program_.Return(
+                                                program_.ConstI32(-1));
+                                          },
+                                          [&]() {
+                                            loop.Continue(
+                                                bucket_idx + 1, budget,
+                                                proxy::Bool(program_, false));
+                                          });
                                     });
                               });
                         });
@@ -610,7 +654,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       for (int k = 0; k < predicate_columns_.size(); k++) {
                         auto& col_ref = predicate_columns_[k].get();
                         if (col_ref.GetChildIdx() == table_idx) {
-                          // TODO: Update this
                           global_predicate_struct.Update(
                               k, current_table_values[col_ref.GetColumnIdx()]);
 
@@ -641,8 +684,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
                           // TODO: Update this
                           proxy::If(
-                              program_,
-                              !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
+                              program_, cond.IsNull(),
                               [&]() {
                                 // If budget, depleted return -1 and set
                                 // table ctr
@@ -660,6 +702,32 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                       loop.Continue(
                                           next_tuple + 1, budget,
                                           proxy::Bool(program_, false));
+                                    });
+                              },
+                              [&]() {
+                                proxy::If(
+                                    program_,
+                                    !static_cast<proxy::Bool&>(
+                                        cond.Get() /*cond*/),
+                                    [&]() {
+                                      // If budget, depleted return -1 and set
+                                      // table ctr
+                                      proxy::If(
+                                          program_, budget == 0,
+                                          [&]() {
+                                            program_.StoreI32(
+                                                program_.GetElementPtr(
+                                                    table_ctr_type,
+                                                    table_ctr_ptr, {0, 0}),
+                                                program_.ConstI32(table_idx));
+                                            program_.Return(
+                                                program_.ConstI32(-1));
+                                          },
+                                          [&]() {
+                                            loop.Continue(
+                                                next_tuple + 1, budget,
+                                                proxy::Bool(program_, false));
+                                          });
                                     });
                               });
                         });
@@ -842,9 +910,10 @@ void PermutableSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
         {child_idx_, predicate_column.get().GetColumnIdx()});
     if (it != predicate_to_index_idx_.end()) {
       auto idx = it->second;
-      // TODO: Update this
-      // indexes_[idx]->Insert(values[predicate_column.get().GetColumnIdx()].get(),
-      //                      tuple_idx);
+      auto& value = values[predicate_column.get().GetColumnIdx()].get();
+      // only index not null values
+      proxy::If(program_, !value.IsNull(),
+                [&]() { indexes_[idx]->Insert(value.Get(), tuple_idx); });
     }
   }
 
