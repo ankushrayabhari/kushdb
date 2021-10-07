@@ -57,4 +57,26 @@ class MinMaxAggregator : public Aggregator {
   int field_;
 };
 
+class AverageAggregator : public Aggregator {
+ public:
+  AverageAggregator(
+      khir::ProgramBuilder& program,
+      util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
+                    SQLValue>& expr_translator,
+      const kush::plan::AggregateExpression& agg);
+  void AddFields(StructBuilder& fields) override;
+  void AddInitialEntry(std::vector<SQLValue>& values) override;
+  void Update(std::vector<SQLValue>& current_values, Struct& entry) override;
+
+ private:
+  Float64 ToFloat(IRValue& v);
+
+  khir::ProgramBuilder& program_;
+  util::Visitor<plan::ImmutableExpressionVisitor, const plan::Expression&,
+                SQLValue>& expr_translator_;
+  const kush::plan::AggregateExpression& agg_;
+  int value_field_;
+  int count_field_;
+};
+
 }  // namespace kush::compile::proxy
