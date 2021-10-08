@@ -46,41 +46,37 @@ TEST_P(GroupByAggregateTest, BigIntColAgg) {
     std::unique_ptr<Operator> base;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"cheated", "num1"});
+      schema.AddGeneratedColumns(db["info"], {"cheated", "date"});
       base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
     // Group By
-    auto cheated = ColRefE(base, "cheated");
+    std::unique_ptr<Expression> cheated =
+        Case(ColRefE(base, "cheated"), Literal(absl::CivilDay(1993, 1, 1)),
+             Literal(absl::CivilDay(1200, 12, 31)));
 
     // Aggregate
-    auto sum = Sum(ColRef(base, "num1"));
-    auto min = Min(ColRef(base, "num1"));
-    auto max = Max(ColRef(base, "num1"));
-    auto avg = Avg(ColRef(base, "num1"));
+    auto min = Min(ColRef(base, "date"));
+    auto max = Max(ColRef(base, "date"));
     auto count1 = Count();
-    auto count2 = Count(ColRef(base, "num1"));
+    auto count2 = Count(ColRef(base, "date"));
 
     // output
     OperatorSchema schema;
-    schema.AddDerivedColumn("sum", VirtColRef(sum, 1));
-    schema.AddDerivedColumn("min", VirtColRef(min, 2));
-    schema.AddDerivedColumn("max", VirtColRef(max, 3));
-    schema.AddDerivedColumn("avg", VirtColRef(avg, 4));
-    schema.AddDerivedColumn("count1", VirtColRef(count1, 5));
-    schema.AddDerivedColumn("count2", VirtColRef(count2, 6));
+    schema.AddDerivedColumn("min", VirtColRef(min, 1));
+    schema.AddDerivedColumn("max", VirtColRef(max, 2));
+    schema.AddDerivedColumn("count1", VirtColRef(count1, 3));
+    schema.AddDerivedColumn("count2", VirtColRef(count2, 4));
 
     query = std::make_unique<OutputOperator>(
         std::make_unique<GroupByAggregateOperator>(
             std::move(schema), std::move(base),
             util::MakeVector(std::move(cheated)),
-            util::MakeVector(std::move(sum), std::move(min), std::move(max),
-                             std::move(avg), std::move(count1),
+            util::MakeVector(std::move(min), std::move(max), std::move(count1),
                              std::move(count2))));
   }
 
-  auto expected_file =
-      "end_to_end_test/group_by_aggregate/smallint_col_agg_expected.tbl";
+  auto expected_file = "end_to_end_test/group_by_aggregate/date_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

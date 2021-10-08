@@ -1,11 +1,11 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "smallint_col_agg",
+    name = "smallint_test",
     size = "small",
-    srcs = ["smallint_col_agg_test.cc"],
+    srcs = ["smallint_test.cc"],
     data = [
-        "smallint_col_agg_expected.tbl",
+        "smallint_expected.tbl",
     ],
     deps = [
         "//catalog",
@@ -34,11 +34,11 @@ cc_test(
 )
 
 cc_test(
-    name = "int_col_agg",
+    name = "int_test",
     size = "small",
-    srcs = ["int_col_agg_test.cc"],
+    srcs = ["int_test.cc"],
     data = [
-        "int_col_agg_expected.tbl",
+        "int_expected.tbl",
     ],
     deps = [
         "//catalog",
@@ -67,11 +67,11 @@ cc_test(
 )
 
 cc_test(
-    name = "bigint_col_agg",
+    name = "bigint_test",
     size = "small",
-    srcs = ["bigint_col_agg_test.cc"],
+    srcs = ["bigint_test.cc"],
     data = [
-        "bigint_col_agg_expected.tbl",
+        "bigint_expected.tbl",
     ],
     deps = [
         "//catalog",
@@ -100,11 +100,11 @@ cc_test(
 )
 
 cc_test(
-    name = "date_col_agg",
+    name = "date_test",
     size = "small",
-    srcs = ["date_col_agg_test.cc"],
+    srcs = ["date_test.cc"],
     data = [
-        "date_col_agg_expected.tbl",
+        "date_expected.tbl",
     ],
     deps = [
         "//catalog",
@@ -133,11 +133,11 @@ cc_test(
 )
 
 cc_test(
-    name = "real_col_agg",
+    name = "real_test",
     size = "small",
-    srcs = ["real_col_agg_test.cc"],
+    srcs = ["real_test.cc"],
     data = [
-        "real_col_agg_expected.tbl",
+        "real_expected.tbl",
     ],
     deps = [
         "//catalog",
@@ -166,11 +166,11 @@ cc_test(
 )
 
 cc_test(
-    name = "text_col_agg",
+    name = "text_test",
     size = "small",
-    srcs = ["text_col_agg_test.cc"],
+    srcs = ["text_test.cc"],
     data = [
-        "text_col_agg_expected.tbl",
+        "text_expected.tbl",
     ],
     deps = [
         "//catalog",

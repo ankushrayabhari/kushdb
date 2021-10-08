@@ -51,7 +51,8 @@ TEST_P(GroupByAggregateTest, BigIntColAgg) {
     }
 
     // Group By
-    std::unique_ptr<Expression> gp = Gt(ColRef(base, "id"), Literal(500));
+    std::unique_ptr<Expression> gp = Case(Gt(ColRef(base, "id"), Literal(500)),
+                                          Literal("hello"sv), Literal(""sv));
 
     // Aggregate
     auto min = Min(ColRef(base, "name"));
@@ -73,8 +74,7 @@ TEST_P(GroupByAggregateTest, BigIntColAgg) {
                              std::move(count2))));
   }
 
-  auto expected_file =
-      "end_to_end_test/group_by_aggregate/text_col_agg_expected.tbl";
+  auto expected_file = "end_to_end_test/group_by_aggregate/text_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

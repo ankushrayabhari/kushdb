@@ -36,7 +36,7 @@ using namespace std::literals;
 
 class GroupByAggregateTest : public testing::TestWithParam<ParameterValues> {};
 
-TEST_P(GroupByAggregateTest, BigIntColAgg) {
+TEST_P(GroupByAggregateTest, RealColAgg) {
   SetFlags(GetParam());
 
   auto db = Schema();
@@ -46,20 +46,21 @@ TEST_P(GroupByAggregateTest, BigIntColAgg) {
     std::unique_ptr<Operator> base;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"cheated", "num2"});
+      schema.AddGeneratedColumns(db["info"], {"cheated", "zscore"});
       base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
     // Group By
-    auto cheated = ColRefE(base, "cheated");
+    std::unique_ptr<Expression> cheated =
+        Case(ColRefE(base, "cheated"), Literal(DBL_MIN), Literal(DBL_MAX));
 
     // Aggregate
-    auto sum = Sum(ColRef(base, "num2"));
-    auto min = Min(ColRef(base, "num2"));
-    auto max = Max(ColRef(base, "num2"));
-    auto avg = Avg(ColRef(base, "num2"));
+    auto sum = Sum(ColRef(base, "zscore"));
+    auto min = Min(ColRef(base, "zscore"));
+    auto max = Max(ColRef(base, "zscore"));
+    auto avg = Avg(ColRef(base, "zscore"));
     auto count1 = Count();
-    auto count2 = Count(ColRef(base, "num2"));
+    auto count2 = Count(ColRef(base, "zscore"));
 
     // output
     OperatorSchema schema;
@@ -79,8 +80,7 @@ TEST_P(GroupByAggregateTest, BigIntColAgg) {
                              std::move(count2))));
   }
 
-  auto expected_file =
-      "end_to_end_test/group_by_aggregate/bigint_col_agg_expected.tbl";
+  auto expected_file = "end_to_end_test/group_by_aggregate/real_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);
