@@ -46,9 +46,12 @@ TEST_P(GroupByAggregateTest, RealCol) {
     std::unique_ptr<Operator> base;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"zscore"});
+      schema.AddGeneratedColumns(db["info"], {"cheated", "zscore"});
       base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
+
+    // Group By
+    auto cheated = ColRefE(base, "cheated");
 
     // Aggregate
     auto sum = Sum(ColRef(base, "zscore"));
@@ -65,12 +68,12 @@ TEST_P(GroupByAggregateTest, RealCol) {
     schema.AddDerivedColumn("max", VirtColRef(max, 2));
     schema.AddDerivedColumn("avg", VirtColRef(avg, 3));
     schema.AddDerivedColumn("count1", VirtColRef(count1, 4));
-    schema.AddDerivedColumn("count2", VirtColRef(count2, 4));
+    schema.AddDerivedColumn("count2", VirtColRef(count2, 5));
 
     query = std::make_unique<OutputOperator>(
         std::make_unique<GroupByAggregateOperator>(
             std::move(schema), std::move(base),
-            std::vector<std::unique_ptr<Expression>>(),
+            util::MakeVector(std::move(cheated)),
             util::MakeVector(std::move(sum), std::move(min), std::move(max),
                              std::move(avg), std::move(count1),
                              std::move(count2))));
