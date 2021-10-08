@@ -182,7 +182,14 @@ void AverageAggregator::AddFields(StructBuilder& fields) {
 }
 
 void AverageAggregator::AddInitialEntry(std::vector<SQLValue>& values) {
-  values.push_back(expr_translator_.Compute(agg_.Child()));
+  auto value = expr_translator_.Compute(agg_.Child());
+  values.push_back(proxy::NullableTernary<Float64>(
+      program_, value.IsNull(),
+      [&]() { return SQLValue(Float64(program_, 0), Bool(program_, true)); },
+      [&]() {
+        // checked that it's not null so this is safe
+        return SQLValue(ToFloat(value.Get()), Bool(program_, false));
+      }));
   values.push_back(SQLValue(Float64(program_, 1), Bool(program_, false)));
 }
 

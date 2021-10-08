@@ -36,7 +36,7 @@ using namespace std::literals;
 
 class GroupByAggregateTest : public testing::TestWithParam<ParameterValues> {};
 
-TEST_P(GroupByAggregateTest, RealCol) {
+TEST_P(GroupByAggregateTest, RealColAgg) {
   SetFlags(GetParam());
 
   auto db = Schema();
@@ -63,12 +63,12 @@ TEST_P(GroupByAggregateTest, RealCol) {
 
     // output
     OperatorSchema schema;
-    schema.AddDerivedColumn("sum", VirtColRef(sum, 0));
-    schema.AddDerivedColumn("min", VirtColRef(min, 1));
-    schema.AddDerivedColumn("max", VirtColRef(max, 2));
-    schema.AddDerivedColumn("avg", VirtColRef(avg, 3));
-    schema.AddDerivedColumn("count1", VirtColRef(count1, 4));
-    schema.AddDerivedColumn("count2", VirtColRef(count2, 5));
+    schema.AddDerivedColumn("sum", VirtColRef(sum, 1));
+    schema.AddDerivedColumn("min", VirtColRef(min, 2));
+    schema.AddDerivedColumn("max", VirtColRef(max, 3));
+    schema.AddDerivedColumn("avg", VirtColRef(avg, 4));
+    schema.AddDerivedColumn("count1", VirtColRef(count1, 5));
+    schema.AddDerivedColumn("count2", VirtColRef(count2, 6));
 
     query = std::make_unique<OutputOperator>(
         std::make_unique<GroupByAggregateOperator>(
@@ -80,7 +80,7 @@ TEST_P(GroupByAggregateTest, RealCol) {
   }
 
   auto expected_file =
-      "end_to_end_test/group_by_aggregate/real_col_group_by_agg_expected.tbl";
+      "end_to_end_test/group_by_aggregate/real_col_agg_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);
