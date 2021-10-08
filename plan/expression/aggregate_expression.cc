@@ -40,7 +40,8 @@ SqlType CalculateAggSqlType(AggregateType type, const Expression& expr) {
     case AggregateType::MIN:
     case AggregateType::MAX:
       if (child_type == SqlType::INT || child_type == SqlType::SMALLINT ||
-          child_type == SqlType::BIGINT || child_type == SqlType::REAL) {
+          child_type == SqlType::BIGINT || child_type == SqlType::REAL ||
+          child_type == SqlType::DATE || child_type == SqlType::TEXT) {
         return child_type;
       } else {
         throw std::runtime_error("Invalid input type for max/min aggregate");
