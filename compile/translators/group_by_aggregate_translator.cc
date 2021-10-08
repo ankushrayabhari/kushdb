@@ -122,7 +122,7 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
   program_.StoreI8(found_, proxy::Int8(program_, 0).Get());
 
   // Loop over bucket if exists
-  auto bucket = buffer_->Get(util::ReferenceVector(keys));
+  auto bucket = buffer_->Get(keys);
   auto size = bucket.Size();
 
   proxy::Loop(
@@ -153,13 +153,13 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
 
   proxy::If(program_, proxy::Int8(program_, program_.LoadI8(found_)) != 1,
             [&]() {
-              auto inserted = buffer_->Insert(util::ReferenceVector(keys));
+              auto inserted = buffer_->Insert(keys);
 
               for (auto& aggregator : aggregators_) {
                 aggregator->AddInitialEntry(keys);
               }
 
-              inserted.Pack(util::ReferenceVector(keys));
+              inserted.Pack(keys);
             });
 }
 

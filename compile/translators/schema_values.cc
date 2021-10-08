@@ -19,14 +19,11 @@ const proxy::SQLValue& SchemaValues::Value(int idx) const {
   return values_[idx];
 }
 
-std::vector<std::reference_wrapper<const proxy::SQLValue>>
-SchemaValues::Values() const {
-  return util::ImmutableReferenceVector(values_);
+const std::vector<proxy::SQLValue>& SchemaValues::Values() const {
+  return values_;
 }
 
-std::vector<std::reference_wrapper<proxy::SQLValue>> SchemaValues::Values() {
-  return util::ReferenceVector(values_);
-}
+std::vector<proxy::SQLValue>& SchemaValues::Values() { return values_; }
 
 void SchemaValues::SetValues(std::vector<proxy::SQLValue> values) {
   values_ = std::move(values);

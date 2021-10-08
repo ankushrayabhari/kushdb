@@ -27,10 +27,8 @@ void OutputTranslator::Produce() {
 }
 
 void OutputTranslator::Consume(OperatorTranslator& src) {
-  auto values = this->Child().SchemaValues().Values();
   proxy::Printer printer(program_);
-  for (auto& value_ref : values) {
-    const auto& value = value_ref.get();
+  for (const auto& value : this->Child().SchemaValues().Values()) {
     proxy::If(
         program_, value.IsNull(), [&]() { printer.Print(empty_); },
         [&]() { value.Get().Print(printer); });

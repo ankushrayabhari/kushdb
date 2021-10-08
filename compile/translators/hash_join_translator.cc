@@ -90,7 +90,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
     for (const auto& left_key : left_keys) {
       key_columns.push_back(expr_translator_.Compute(left_key.get()));
     }
-    auto entry = buffer_->Insert(util::ReferenceVector(key_columns));
+    auto entry = buffer_->Insert(key_columns);
     entry.Pack(left_translator.SchemaValues().Values());
     return;
   }
@@ -101,7 +101,7 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
     key_columns.push_back(expr_translator_.Compute(right_key.get()));
   }
 
-  auto bucket = buffer_->Get(util::ReferenceVector(key_columns));
+  auto bucket = buffer_->Get(key_columns);
 
   proxy::Loop(
       program_,

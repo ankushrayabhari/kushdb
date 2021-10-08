@@ -14,8 +14,8 @@ class SchemaValues {
   void AddVariable(proxy::SQLValue value);
 
   const proxy::SQLValue& Value(int idx) const;
-  std::vector<std::reference_wrapper<const proxy::SQLValue>> Values() const;
-  std::vector<std::reference_wrapper<proxy::SQLValue>> Values();
+  const std::vector<proxy::SQLValue>& Values() const;
+  std::vector<proxy::SQLValue>& Values();
 
   void SetValues(std::vector<proxy::SQLValue> values);
   void SetValue(int idx, proxy::SQLValue value);

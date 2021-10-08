@@ -81,7 +81,7 @@ Struct::Struct(khir::ProgramBuilder& program, StructBuilder& fields,
                const khir::Value& value)
     : program_(program), fields_(fields), value_(value) {}
 
-void Struct::Pack(std::vector<std::reference_wrapper<SQLValue>> values) {
+void Struct::Pack(const std::vector<SQLValue>& values) {
   auto types = fields_.Types();
   if (values.size() != types.size()) {
     throw std::runtime_error(
@@ -89,7 +89,7 @@ void Struct::Pack(std::vector<std::reference_wrapper<SQLValue>> values) {
   }
 
   for (int i = 0; i < values.size(); i++) {
-    Update(i, values[i].get());
+    Update(i, values[i]);
   }
 }
 

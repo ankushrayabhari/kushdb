@@ -38,7 +38,7 @@ class Struct {
   Struct(khir::ProgramBuilder& program, StructBuilder& fields,
          const khir::Value& value);
 
-  void Pack(std::vector<std::reference_wrapper<SQLValue>> value);
+  void Pack(const std::vector<SQLValue>& value);
   void Update(int field, const SQLValue& v);
   std::vector<SQLValue> Unpack();
 

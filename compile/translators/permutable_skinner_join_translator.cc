@@ -910,7 +910,7 @@ void PermutableSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
         {child_idx_, predicate_column.get().GetColumnIdx()});
     if (it != predicate_to_index_idx_.end()) {
       auto idx = it->second;
-      auto& value = values[predicate_column.get().GetColumnIdx()].get();
+      const auto& value = values[predicate_column.get().GetColumnIdx()];
       // only index not null values
       proxy::If(program_, !value.IsNull(),
                 [&]() { indexes_[idx]->Insert(value.Get(), tuple_idx); });

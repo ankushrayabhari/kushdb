@@ -113,18 +113,18 @@ void HashTable::Reset() {
   program_.Call(program_.GetFunction(FreeFnName), {value_});
 }
 
-Struct HashTable::Insert(std::vector<std::reference_wrapper<SQLValue>> keys) {
+Struct HashTable::Insert(const std::vector<SQLValue>& keys) {
   program_.StoreI32(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
     If(
-        program_, k.get().IsNull(),
+        program_, k.IsNull(),
         [&]() {
           program_.Call(program_.GetFunction(HashCombineFnName),
                         {hash_ptr_, program_.ConstI64(0)});
         },
         [&]() {
           program_.Call(program_.GetFunction(HashCombineFnName),
-                        {hash_ptr_, k.get().Get().Hash().Get()});
+                        {hash_ptr_, k.Get().Hash().Get()});
         });
   }
   auto hash = program_.LoadI32(hash_ptr_);
@@ -134,18 +134,18 @@ Struct HashTable::Insert(std::vector<std::reference_wrapper<SQLValue>> keys) {
   return Struct(program_, content_, ptr);
 }
 
-Vector HashTable::Get(std::vector<std::reference_wrapper<SQLValue>> keys) {
+Vector HashTable::Get(const std::vector<SQLValue>& keys) {
   program_.StoreI32(hash_ptr_, program_.ConstI32(0));
   for (auto& k : keys) {
     If(
-        program_, k.get().IsNull(),
+        program_, k.IsNull(),
         [&]() {
           program_.Call(program_.GetFunction(HashCombineFnName),
                         {hash_ptr_, program_.ConstI64(0)});
         },
         [&]() {
           program_.Call(program_.GetFunction(HashCombineFnName),
-                        {hash_ptr_, k.get().Get().Hash().Get()});
+                        {hash_ptr_, k.Get().Hash().Get()});
         });
   }
   auto hash = program_.LoadI32(hash_ptr_);
