@@ -48,25 +48,22 @@ TEST_P(OrderByTest, RealCol) {
     std::unique_ptr<Operator> base;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"zscore", "id"});
+      schema.AddGeneratedColumns(db["info"], {"date", "id"});
       base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
-    // Aggregate
-    auto zscore = ColRef(base, "zscore");
+    auto date = ColRef(base, "date");
     auto id = ColRef(base, "id");
 
-    // output
     OperatorSchema schema;
     schema.AddPassthroughColumns(*base);
     query = std::make_unique<OutputOperator>(std::make_unique<OrderByOperator>(
         std::move(schema), std::move(base),
-        util::MakeVector(std::move(zscore), std::move(id)),
+        util::MakeVector(std::move(date), std::move(id)),
         std::vector<bool>{asc, asc}));
   }
 
-  auto expected_file =
-      "end_to_end_test/order_by/real_col_order_by_expected.tbl";
+  auto expected_file = "end_to_end_test/order_by/date_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);
