@@ -10,36 +10,44 @@ kush::catalog::Database Schema() {
   {
     /*
       CREATE TABLE people (
-        id INTEGER NOT NULL,
-        name TEXT NOT NULL,
+        id INTEGER,
+        name TEXT,
       );
     */
     auto& table = db.Insert("people");
-    table.Insert("id", SqlType::INT, "end_to_end_test/data/people_id.kdb");
-    table.Insert("name", SqlType::TEXT, "end_to_end_test/data/people_name.kdb");
+    table.Insert("id", SqlType::INT, "end_to_end_test/data/people_id.kdb",
+                 "end_to_end_test/data/people_id_null.kdb");
+    table.Insert("name", SqlType::TEXT, "end_to_end_test/data/people_name.kdb",
+                 "end_to_end_test/data/people_name_null.kdb");
   }
 
   {
     /*
       CREATE TABLE info (
-        id INTEGER NOT NULL,
-        cheated BOOLEAN NOT NULL,
-        date TIMESTAMP NOT NULL,
-        zscore REAL NOT NULL,
-        num1 SMALLINT NOT NULL,
-        num2 BIGINT NOT NULL,
+        id INTEGER,
+        cheated BOOLEAN,
+        date TIMESTAMP,
+        zscore REAL,
+        num1 SMALLINT,
+        num2 BIGINT,
       );
     */
     auto& table = db.Insert("info");
-    table.Insert("id", SqlType::INT, "end_to_end_test/data/info_id.kdb");
+    table.Insert("id", SqlType::INT, "end_to_end_test/data/info_id.kdb",
+                 "end_to_end_test/data/info_id_null.kdb");
     table.Insert("cheated", SqlType::BOOLEAN,
-                 "end_to_end_test/data/info_cheated.kdb");
-    table.Insert("date", SqlType::DATE, "end_to_end_test/data/info_date.kdb");
+                 "end_to_end_test/data/info_cheated.kdb",
+                 "end_to_end_test/data/info_cheated_null.kdb");
+    table.Insert("date", SqlType::DATE, "end_to_end_test/data/info_date.kdb",
+                 "end_to_end_test/data/info_date_null.kdb");
     table.Insert("zscore", SqlType::REAL,
-                 "end_to_end_test/data/info_zscore.kdb");
+                 "end_to_end_test/data/info_zscore.kdb",
+                 "end_to_end_test/data/info_zscore_null.kdb");
     table.Insert("num1", SqlType::SMALLINT,
-                 "end_to_end_test/data/info_num1.kdb");
-    table.Insert("num2", SqlType::BIGINT, "end_to_end_test/data/info_num2.kdb");
+                 "end_to_end_test/data/info_num1.kdb",
+                 "end_to_end_test/data/info_num1_null.kdb");
+    table.Insert("num2", SqlType::BIGINT, "end_to_end_test/data/info_num2.kdb",
+                 "end_to_end_test/data/info_num2_null.kdb");
   }
 
   return db;

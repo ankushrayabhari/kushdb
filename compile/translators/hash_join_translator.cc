@@ -43,6 +43,7 @@ void HashJoinTranslator::Produce() {
   packed.Build();
 
   buffer_ = std::make_unique<proxy::HashTable>(program_, packed);
+  all_not_null_ptr_ = program_.Alloca(program_.I8Type());
 
   this->LeftChild().Produce();
 
@@ -86,12 +87,22 @@ void HashJoinTranslator::Consume(OperatorTranslator& src) {
 
   // Build side
   if (&src == &left_translator) {
+    program_.StoreI8(all_not_null_ptr_, proxy::Int8(program_, 1).Get());
     std::vector<proxy::SQLValue> key_columns;
     for (const auto& left_key : left_keys) {
-      key_columns.push_back(expr_translator_.Compute(left_key.get()));
+      auto val = expr_translator_.Compute(left_key.get());
+      key_columns.push_back(val);
+      proxy::If(program_, val.IsNull(), [&]() {
+        program_.StoreI8(all_not_null_ptr_, proxy::Int8(program_, 0).Get());
+      });
     }
-    auto entry = buffer_->Insert(key_columns);
-    entry.Pack(left_translator.SchemaValues().Values());
+
+    proxy::If(program_,
+              proxy::Int8(program_, program_.LoadI8(all_not_null_ptr_)) != 0,
+              [&]() {
+                auto entry = buffer_->Insert(key_columns);
+                entry.Pack(left_translator.SchemaValues().Values());
+              });
     return;
   }
 
