@@ -36,7 +36,7 @@ using namespace std::literals;
 
 class GroupByAggregateTest : public testing::TestWithParam<ParameterValues> {};
 
-TEST_P(GroupByAggregateTest, IntColAgg) {
+TEST_P(GroupByAggregateTest, IntCol) {
   SetFlags(GetParam());
 
   auto db = Schema();

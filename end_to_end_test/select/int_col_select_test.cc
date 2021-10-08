@@ -36,7 +36,7 @@ using namespace std::literals;
 
 class SelectTest : public testing::TestWithParam<ParameterValues> {};
 
-TEST_P(SelectTest, RealCol) {
+TEST_P(SelectTest, IntCol) {
   SetFlags(GetParam());
 
   auto db = Schema();

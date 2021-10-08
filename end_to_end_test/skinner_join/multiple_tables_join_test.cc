@@ -42,7 +42,7 @@ std::unique_ptr<Operator> Scan(const Database& db) {
   return std::make_unique<ScanOperator>(std::move(schema), db["info"]);
 }
 
-TEST_P(SkinnerJoinTest, IntCol) {
+TEST_P(SkinnerJoinTest, MultipleTablesJoin) {
   SetFlags(GetParam());
 
   auto db = Schema();

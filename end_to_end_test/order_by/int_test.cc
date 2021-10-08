@@ -37,7 +37,7 @@ using namespace std::literals;
 class OrderByTest
     : public testing::TestWithParam<std::pair<ParameterValues, bool>> {};
 
-TEST_P(OrderByTest, RealCol) {
+TEST_P(OrderByTest, IntCol) {
   auto [params, asc] = GetParam();
   SetFlags(params);
 
