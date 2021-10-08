@@ -225,6 +225,12 @@ std::unique_ptr<kush::plan::AggregateExpression> Min(
       kush::plan::AggregateType::MIN, std::move(expr));
 }
 
+std::unique_ptr<kush::plan::AggregateExpression> Count(
+    std::unique_ptr<kush::plan::Expression> e) {
+  return std::make_unique<kush::plan::AggregateExpression>(
+      kush::plan::AggregateType::COUNT, std::move(e));
+}
+
 std::unique_ptr<kush::plan::AggregateExpression> Count() {
   return std::make_unique<kush::plan::AggregateExpression>(
       kush::plan::AggregateType::COUNT, Literal(true));

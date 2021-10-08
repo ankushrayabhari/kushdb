@@ -55,7 +55,8 @@ TEST_P(GroupByAggregateTest, RealCol) {
     auto min = Min(ColRef(base, "zscore"));
     auto max = Max(ColRef(base, "zscore"));
     auto avg = Avg(ColRef(base, "zscore"));
-    auto count = Count();
+    auto count1 = Count();
+    auto count2 = Count(ColRef(base, "zscore"));
 
     // output
     OperatorSchema schema;
@@ -63,14 +64,16 @@ TEST_P(GroupByAggregateTest, RealCol) {
     schema.AddDerivedColumn("min", VirtColRef(min, 1));
     schema.AddDerivedColumn("max", VirtColRef(max, 2));
     schema.AddDerivedColumn("avg", VirtColRef(avg, 3));
-    schema.AddDerivedColumn("count", VirtColRef(count, 4));
+    schema.AddDerivedColumn("count1", VirtColRef(count1, 4));
+    schema.AddDerivedColumn("count2", VirtColRef(count2, 4));
 
     query = std::make_unique<OutputOperator>(
         std::make_unique<GroupByAggregateOperator>(
             std::move(schema), std::move(base),
             std::vector<std::unique_ptr<Expression>>(),
             util::MakeVector(std::move(sum), std::move(min), std::move(max),
-                             std::move(avg), std::move(count))));
+                             std::move(avg), std::move(count1),
+                             std::move(count2))));
   }
 
   auto expected_file =
