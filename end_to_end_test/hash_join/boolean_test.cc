@@ -67,8 +67,7 @@ TEST_P(HashJoinTest, BooleanCol) {
         std::move(schema), std::move(s1), std::move(s2),
         util::MakeVector(std::move(col1)), util::MakeVector(std::move(col2))));
   }
-  auto expected_file =
-      "end_to_end_test/hash_join/boolean_col_join_expected.tbl";
+  auto expected_file = "end_to_end_test/hash_join/boolean_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

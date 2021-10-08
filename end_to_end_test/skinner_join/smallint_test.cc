@@ -69,8 +69,7 @@ TEST_P(SkinnerJoinTest, SmallIntCol) {
             std::move(conditions)));
   }
 
-  auto expected_file =
-      "end_to_end_test/skinner_join/smallint_col_join_expected.tbl";
+  auto expected_file = "end_to_end_test/skinner_join/smallint_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

@@ -36,7 +36,7 @@ using namespace std::literals;
 
 class HashJoinTest : public testing::TestWithParam<ParameterValues> {};
 
-TEST_P(HashJoinTest, SmallIntCol) {
+TEST_P(HashJoinTest, TextCol) {
   SetFlags(GetParam());
 
   auto db = Schema();
@@ -46,19 +46,19 @@ TEST_P(HashJoinTest, SmallIntCol) {
     std::unique_ptr<Operator> s1;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"num1"});
-      s1 = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
+      schema.AddGeneratedColumns(db["people"], {"name"});
+      s1 = std::make_unique<ScanOperator>(std::move(schema), db["people"]);
     }
 
     std::unique_ptr<Operator> s2;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"num1"});
-      s2 = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
+      schema.AddGeneratedColumns(db["people"], {"name"});
+      s2 = std::make_unique<ScanOperator>(std::move(schema), db["people"]);
     }
 
-    auto col1 = ColRef(s1, "num1", 0);
-    auto col2 = ColRef(s2, "num1", 1);
+    auto col1 = ColRef(s1, "name", 0);
+    auto col2 = ColRef(s2, "name", 1);
 
     OperatorSchema schema;
     schema.AddPassthroughColumns(*s1, 0);
@@ -68,8 +68,7 @@ TEST_P(HashJoinTest, SmallIntCol) {
         util::MakeVector(std::move(col1)), util::MakeVector(std::move(col2))));
   }
 
-  auto expected_file =
-      "end_to_end_test/hash_join/smallint_col_join_expected.tbl";
+  auto expected_file = "end_to_end_test/hash_join/text_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

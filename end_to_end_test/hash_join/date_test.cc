@@ -68,7 +68,7 @@ TEST_P(HashJoinTest, DateCol) {
         util::MakeVector(std::move(col1)), util::MakeVector(std::move(col2))));
   }
 
-  auto expected_file = "end_to_end_test/hash_join/date_col_join_expected.tbl";
+  auto expected_file = "end_to_end_test/hash_join/date_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

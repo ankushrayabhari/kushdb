@@ -36,7 +36,7 @@ using namespace std::literals;
 
 class SkinnerJoinTest : public testing::TestWithParam<ParameterValues> {};
 
-TEST_P(SkinnerJoinTest, RealCol) {
+TEST_P(SkinnerJoinTest, BooleanCol) {
   SetFlags(GetParam());
 
   auto db = Schema();
@@ -46,19 +46,20 @@ TEST_P(SkinnerJoinTest, RealCol) {
     std::unique_ptr<Operator> s1;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"zscore"});
+      schema.AddGeneratedColumns(db["info"], {"cheated"});
       s1 = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
     std::unique_ptr<Operator> s2;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"zscore"});
+      schema.AddGeneratedColumns(db["info"], {"cheated"});
       s2 = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
     std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
-    conditions.push_back(Eq(ColRef(s1, "zscore", 0), ColRef(s2, "zscore", 1)));
+    conditions.push_back(
+        Eq(ColRef(s1, "cheated", 0), ColRef(s2, "cheated", 1)));
 
     OperatorSchema schema;
     schema.AddPassthroughColumns(*s1, 0);
@@ -69,8 +70,7 @@ TEST_P(SkinnerJoinTest, RealCol) {
             std::move(conditions)));
   }
 
-  auto expected_file =
-      "end_to_end_test/skinner_join/real_col_join_expected.tbl";
+  auto expected_file = "end_to_end_test/skinner_join/boolean_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

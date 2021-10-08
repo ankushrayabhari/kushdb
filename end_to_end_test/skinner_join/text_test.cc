@@ -69,8 +69,7 @@ TEST_P(SkinnerJoinTest, TextCol) {
             std::move(conditions)));
   }
 
-  auto expected_file =
-      "end_to_end_test/skinner_join/text_col_join_expected.tbl";
+  auto expected_file = "end_to_end_test/skinner_join/text_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);
