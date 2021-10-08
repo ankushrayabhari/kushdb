@@ -268,6 +268,9 @@ class String : public IRValue {
   Bool operator==(const String& rhs) const;
   Bool operator!=(const String& rhs) const;
   Bool operator<(const String& rhs) const;
+  Bool operator<=(const String& rhs) const;
+  Bool operator>(const String& rhs) const;
+  Bool operator>=(const String& rhs) const;
 
   Int64 Hash() const override;
   khir::Value Get() const override;

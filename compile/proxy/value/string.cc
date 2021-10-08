@@ -17,6 +17,12 @@ constexpr std::string_view StartsWithFnName(
 constexpr std::string_view EqualsFnName("kush::runtime::String::Equals");
 constexpr std::string_view NotEqualsFnName("kush::runtime::String::NotEquals");
 constexpr std::string_view LessThanFnName("kush::runtime::String::LessThan");
+constexpr std::string_view LessThanEqualsFnName(
+    "kush::runtime::String::LessThanEquals");
+constexpr std::string_view GreaterThanFnName(
+    "kush::runtime::String::GreaterThan");
+constexpr std::string_view GreaterThanEqualsFnName(
+    "kush::runtime::String::GreaterThanEquals");
 constexpr std::string_view HashFnName("kush::runtime::String::Hash");
 
 String::String(khir::ProgramBuilder& program, const khir::Value& value)
@@ -63,6 +69,23 @@ Bool String::operator!=(const String& rhs) const {
 Bool String::operator<(const String& rhs) const {
   return Bool(program_, program_.Call(program_.GetFunction(LessThanFnName),
                                       {value_, rhs.Get()}));
+}
+
+Bool String::operator>(const String& rhs) const {
+  return Bool(program_, program_.Call(program_.GetFunction(GreaterThanFnName),
+                                      {value_, rhs.Get()}));
+}
+
+Bool String::operator<=(const String& rhs) const {
+  return Bool(program_,
+              program_.Call(program_.GetFunction(LessThanEqualsFnName),
+                            {value_, rhs.Get()}));
+}
+
+Bool String::operator>=(const String& rhs) const {
+  return Bool(program_,
+              program_.Call(program_.GetFunction(GreaterThanEqualsFnName),
+                            {value_, rhs.Get()}));
 }
 
 std::unique_ptr<String> String::ToPointer() const {
@@ -134,6 +157,15 @@ void String::ForwardDeclare(khir::ProgramBuilder& program) {
   program.DeclareExternalFunction(
       LessThanFnName, program.I1Type(), {struct_ptr, struct_ptr},
       reinterpret_cast<void*>(runtime::String::LessThan));
+  program.DeclareExternalFunction(
+      LessThanEqualsFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::LessThanEquals));
+  program.DeclareExternalFunction(
+      GreaterThanFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::GreaterThan));
+  program.DeclareExternalFunction(
+      GreaterThanEqualsFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      reinterpret_cast<void*>(runtime::String::GreaterThanEquals));
   program.DeclareExternalFunction(
       HashFnName, program.I64Type(), {struct_ptr},
       reinterpret_cast<void*>(runtime::String::Hash));

@@ -61,6 +61,21 @@ bool LessThan(String* s1, String* s2) {
          std::string_view(s2->data, s2->length);
 }
 
+bool LessThanEquals(String* s1, String* s2) {
+  return std::string_view(s1->data, s1->length) <=
+         std::string_view(s2->data, s2->length);
+}
+
+bool GreaterThan(String* s1, String* s2) {
+  return std::string_view(s1->data, s1->length) >
+         std::string_view(s2->data, s2->length);
+}
+
+bool GreaterThanEquals(String* s1, String* s2) {
+  return std::string_view(s1->data, s1->length) >=
+         std::string_view(s2->data, s2->length);
+}
+
 int64_t Hash(String* s1) {
   auto sv1 = std::string_view(s1->data, s1->length);
   return std::hash<std::string_view>{}(sv1);

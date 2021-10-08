@@ -164,6 +164,15 @@ SQLValue EvaluateBinaryString(plan::BinaryArithmeticOperatorType op_type,
           case plan::BinaryArithmeticOperatorType::LT:
             return SQLValue(lhs_v < rhs_v, null);
 
+          case plan::BinaryArithmeticOperatorType::LEQ:
+            return SQLValue(lhs_v <= rhs_v, null);
+
+          case plan::BinaryArithmeticOperatorType::GT:
+            return SQLValue(lhs_v > rhs_v, null);
+
+          case plan::BinaryArithmeticOperatorType::GEQ:
+            return SQLValue(lhs_v >= rhs_v, null);
+
           default:
             throw std::runtime_error("Invalid operator on string");
         }

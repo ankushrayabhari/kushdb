@@ -21,6 +21,9 @@ bool StartsWith(String* s1, String* s2);
 bool Equals(String* s1, String* s2);
 bool NotEquals(String* s1, String* s2);
 bool LessThan(String* s1, String* s2);
+bool GreaterThan(String* s1, String* s2);
+bool LessThanEquals(String* s1, String* s2);
+bool GreaterThanEquals(String* s1, String* s2);
 int64_t Hash(String* s1);
 bool Like(String* s1, String* s2);
 
