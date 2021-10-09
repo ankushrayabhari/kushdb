@@ -252,6 +252,20 @@ IndexBucket ColumnIndexImpl<S>::GetBucket(const IRValue& v) {
 }
 
 template <catalog::SqlType S>
+khir::Value ColumnIndexImpl<S>::Serialize() {
+  return program_.PointerCast(Get(), program_.PointerType(program_.I8Type()));
+}
+
+template <catalog::SqlType S>
+std::unique_ptr<ColumnIndex> ColumnIndexImpl<S>::Regenerate(
+    khir::ProgramBuilder& program, khir::Value value) {
+  return std::make_unique<ColumnIndexImpl<S>>(
+      program,
+      program.PointerCast(
+          value, program.PointerType(program.GetOpaqueType(TypeName()))));
+}
+
+template <catalog::SqlType S>
 void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   std::optional<khir::Type> index_type;
   if constexpr (catalog::SqlType::DATE == S) {

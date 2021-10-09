@@ -532,7 +532,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 RecompilingJoinTranslator::ExecuteJoinFn
 RecompilingSkinnerJoinTranslator::CompileJoinOrder(
     const std::vector<int>& order, void** materialized_buffers_raw,
-    void** materialized_indexes, void* tuple_idx_table_ptr) {
+    void** materialized_indexes_raw, void* tuple_idx_table_ptr) {
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
   auto conditions = join_.Conditions();
@@ -590,72 +590,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   // Regenerate all indexes in new program
   std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes;
   for (int i = 0; i < indexes_.size(); i++) {
-    switch (indexes_[i]->Type()) {
-      case catalog::SqlType::SMALLINT:
-        indexes.push_back(std::make_unique<
-                          proxy::ColumnIndexImpl<catalog::SqlType::SMALLINT>>(
-            program, program.PointerCast(
-                         program.ConstPtr(materialized_indexes[i]),
-                         program.PointerType(program.GetOpaqueType(
-                             proxy::ColumnIndexImpl<
-                                 catalog::SqlType::SMALLINT>::TypeName())))));
-        break;
-      case catalog::SqlType::INT:
-        indexes.push_back(
-            std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::INT>>(
-                program, program.PointerCast(
-                             program.ConstPtr(materialized_indexes[i]),
-                             program.PointerType(program.GetOpaqueType(
-                                 proxy::ColumnIndexImpl<
-                                     catalog::SqlType::INT>::TypeName())))));
-        break;
-      case catalog::SqlType::BIGINT:
-        indexes.push_back(
-            std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::BIGINT>>(
-                program, program.PointerCast(
-                             program.ConstPtr(materialized_indexes[i]),
-                             program.PointerType(program.GetOpaqueType(
-                                 proxy::ColumnIndexImpl<
-                                     catalog::SqlType::BIGINT>::TypeName())))));
-        break;
-      case catalog::SqlType::REAL:
-        indexes.push_back(
-            std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::REAL>>(
-                program, program.PointerCast(
-                             program.ConstPtr(materialized_indexes[i]),
-                             program.PointerType(program.GetOpaqueType(
-                                 proxy::ColumnIndexImpl<
-                                     catalog::SqlType::REAL>::TypeName())))));
-        break;
-      case catalog::SqlType::DATE:
-        indexes.push_back(
-            std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::DATE>>(
-                program, program.PointerCast(
-                             program.ConstPtr(materialized_indexes[i]),
-                             program.PointerType(program.GetOpaqueType(
-                                 proxy::ColumnIndexImpl<
-                                     catalog::SqlType::DATE>::TypeName())))));
-        break;
-      case catalog::SqlType::TEXT:
-        indexes.push_back(
-            std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::TEXT>>(
-                program, program.PointerCast(
-                             program.ConstPtr(materialized_indexes[i]),
-                             program.PointerType(program.GetOpaqueType(
-                                 proxy::ColumnIndexImpl<
-                                     catalog::SqlType::TEXT>::TypeName())))));
-        break;
-      case catalog::SqlType::BOOLEAN:
-        indexes.push_back(
-            std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::BOOLEAN>>(
-                program,
-                program.PointerCast(
-                    program.ConstPtr(materialized_indexes[i]),
-                    program.PointerType(program.GetOpaqueType(
-                        proxy::ColumnIndexImpl<
-                            catalog::SqlType::BOOLEAN>::TypeName())))));
-        break;
-    }
+    indexes.push_back(indexes_[i]->Regenerate(
+        program, program.ConstPtr(materialized_indexes_raw[i])));
   }
 
   // Create tuple idx table
@@ -921,11 +857,9 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       program_.Global(false, true, materialized_index_array_type,
                       materialized_index_array_init);
   for (int i = 0; i < indexes_.size(); i++) {
-    program_.StorePtr(
-        program_.GetElementPtr(materialized_index_array_type,
-                               materialized_index_array, {0, i}),
-        program_.PointerCast(indexes_[i]->Get(),
-                             program_.PointerType(program_.I8Type())));
+    program_.StorePtr(program_.GetElementPtr(materialized_index_array_type,
+                                             materialized_index_array, {0, i}),
+                      indexes_[i]->Serialize());
   }
 
   // pass all cardinalities to the executor

@@ -47,6 +47,16 @@ class ColumnIndex {
   virtual void Reset() = 0;
   virtual void Insert(const IRValue& v, const Int32& tuple_idx) = 0;
   virtual IndexBucket GetBucket(const IRValue& v) = 0;
+
+  // Serializes the data needed to generate a reference to this index in a
+  // different program builder.
+  // Returns an i8* typed Value
+  virtual khir::Value Serialize() = 0;
+
+  // Regenerates a reference to the index inside program. value's content is
+  // the same as the one returned by the above Serialize method.
+  virtual std::unique_ptr<ColumnIndex> Regenerate(khir::ProgramBuilder& program,
+                                                  khir::Value value) = 0;
 };
 
 template <catalog::SqlType S>
@@ -61,6 +71,9 @@ class ColumnIndexImpl : public ColumnIndex {
   khir::Value Get() const override;
   catalog::SqlType Type() const override;
   IndexBucket GetBucket(const IRValue& v) override;
+  khir::Value Serialize() override;
+  std::unique_ptr<ColumnIndex> Regenerate(khir::ProgramBuilder& program,
+                                          khir::Value value) override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
