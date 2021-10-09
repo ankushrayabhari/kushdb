@@ -174,12 +174,9 @@ std::string_view StructName() {
 
 template <catalog::SqlType S>
 ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
-    : program_(program) {
-  auto path_value = program_.GlobalConstCharArray(path);
-  value_ = program_.Alloca(program.GetStructType(StructName<S>()));
-  program_.Call(program_.GetFunction(OpenFnName<S>()),
-                {value_.value(), path_value});
-
+    : program_(program),
+      path_value_(program_.GlobalConstCharArray(path)),
+      value_(program_.Alloca(program.GetStructType(StructName<S>()))) {
   if constexpr (S == catalog::SqlType::TEXT) {
     result_ = program_.Alloca(program_.GetStructType(String::StringStructName));
   }
@@ -187,26 +184,30 @@ ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
 
 template <catalog::SqlType S>
 void ColumnData<S>::Reset() {
-  program_.Call(program_.GetFunction(CloseFnName<S>()), {value_.value()});
+  program_.Call(program_.GetFunction(CloseFnName<S>()), {value_});
+}
+
+template <catalog::SqlType S>
+void ColumnData<S>::Init() {
+  program_.Call(program_.GetFunction(OpenFnName<S>()), {value_, path_value_});
 }
 
 template <catalog::SqlType S>
 Int32 ColumnData<S>::Size() {
-  return Int32(program_, program_.Call(program_.GetFunction(SizeFnName<S>()),
-                                       {value_.value()}));
+  return Int32(program_,
+               program_.Call(program_.GetFunction(SizeFnName<S>()), {value_}));
 }
 
 template <catalog::SqlType S>
 std::unique_ptr<IRValue> ColumnData<S>::operator[](Int32& idx) {
-  // TODO: refactor this to check for null values as well
   if constexpr (catalog::SqlType::TEXT == S) {
     program_.Call(program_.GetFunction(GetFnName<S>()),
-                  {value_.value(), idx.Get(), result_.value()});
+                  {value_, idx.Get(), result_.value()});
     return std::make_unique<String>(program_, result_.value());
   }
 
-  auto elem = program_.Call(program_.GetFunction(GetFnName<S>()),
-                            {value_.value(), idx.Get()});
+  auto elem =
+      program_.Call(program_.GetFunction(GetFnName<S>()), {value_, idx.Get()});
 
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return std::make_unique<Int16>(program_, elem);
@@ -221,6 +222,11 @@ std::unique_ptr<IRValue> ColumnData<S>::operator[](Int32& idx) {
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
     return std::make_unique<Bool>(program_, elem);
   }
+}
+
+template <catalog::SqlType S>
+catalog::SqlType ColumnData<S>::Type() {
+  return S;
 }
 
 template <catalog::SqlType S>

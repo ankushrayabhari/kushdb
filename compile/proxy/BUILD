@@ -16,6 +16,19 @@ cc_library(
 )
 
 cc_library(
+    name = "materialized_buffer",
+    srcs = ["materialized_buffer.cc"],
+    hdrs = ["materialized_buffer.h"],
+    deps = [
+        ":column_data",
+        "//compile/proxy/control_flow:if",
+        "//compile/proxy/value:ir_value",
+        "//compile/proxy/value:sql_value",
+        "//khir:program_builder",
+    ],
+)
+
+cc_library(
     name = "struct",
     srcs = ["struct.cc"],
     hdrs = ["struct.h"],

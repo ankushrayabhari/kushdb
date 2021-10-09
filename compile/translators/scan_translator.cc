@@ -25,87 +25,81 @@ ScanTranslator::ScanTranslator(
       scan_(scan),
       program_(program) {}
 
-void ScanTranslator::Produce() {
+std::unique_ptr<proxy::MaterializedBuffer> ScanTranslator::GenerateBuffer() {
   const auto& table = scan_.Relation();
-
-  std::vector<std::unique_ptr<proxy::Iterable>> column_data_vars;
-  std::vector<std::unique_ptr<proxy::Iterable>> null_data_vars;
   const auto& cols = scan_.Schema().Columns();
   auto num_cols = cols.size();
-  column_data_vars.reserve(num_cols);
-  null_data_vars.reserve(num_cols);
+
+  std::vector<std::unique_ptr<proxy::Iterable>> column_data;
+  std::vector<std::unique_ptr<proxy::Iterable>> null_data;
+  column_data.reserve(num_cols);
+  null_data.reserve(num_cols);
   for (const auto& column : cols) {
     using catalog::SqlType;
     auto type = column.Expr().Type();
     auto path = table[column.Name()].Path();
     switch (type) {
       case SqlType::SMALLINT:
-        column_data_vars.push_back(
+        column_data.push_back(
             std::make_unique<proxy::ColumnData<SqlType::SMALLINT>>(program_,
                                                                    path));
         break;
       case SqlType::INT:
-        column_data_vars.push_back(
+        column_data.push_back(
             std::make_unique<proxy::ColumnData<SqlType::INT>>(program_, path));
         break;
       case SqlType::BIGINT:
-        column_data_vars.push_back(
+        column_data.push_back(
             std::make_unique<proxy::ColumnData<SqlType::BIGINT>>(program_,
                                                                  path));
         break;
       case SqlType::REAL:
-        column_data_vars.push_back(
+        column_data.push_back(
             std::make_unique<proxy::ColumnData<SqlType::REAL>>(program_, path));
         break;
       case SqlType::DATE:
-        column_data_vars.push_back(
+        column_data.push_back(
             std::make_unique<proxy::ColumnData<SqlType::DATE>>(program_, path));
         break;
       case SqlType::TEXT:
-        column_data_vars.push_back(
+        column_data.push_back(
             std::make_unique<proxy::ColumnData<SqlType::TEXT>>(program_, path));
         break;
       case SqlType::BOOLEAN:
-        column_data_vars.push_back(
+        column_data.push_back(
             std::make_unique<proxy::ColumnData<SqlType::BOOLEAN>>(program_,
                                                                   path));
         break;
     }
 
     if (table[column.Name()].Nullable()) {
-      null_data_vars.push_back(
-          std::make_unique<proxy::ColumnData<SqlType::BOOLEAN>>(
-              program_, table[column.Name()].NullPath()));
+      null_data.push_back(std::make_unique<proxy::ColumnData<SqlType::BOOLEAN>>(
+          program_, table[column.Name()].NullPath()));
     } else {
-      null_data_vars.push_back(nullptr);
+      null_data.push_back(nullptr);
     }
   }
 
-  auto card_var = column_data_vars[0]->Size();
+  return std::make_unique<proxy::DiskMaterializedBuffer>(
+      program_, std::move(column_data), std::move(null_data));
+}
 
+void ScanTranslator::Produce() {
+  auto materialized_buffer = GenerateBuffer();
+  materialized_buffer->Init();
+
+  auto cardinality = materialized_buffer->Size();
   proxy::Loop loop(
       program_,
       [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
       [&](auto& loop) {
         auto i = loop.template GetLoopVariable<proxy::Int32>(0);
-        return i < card_var;
+        return i < cardinality;
       },
       [&](auto& loop) {
         auto i = loop.template GetLoopVariable<proxy::Int32>(0);
 
-        this->values_.ResetValues();
-        for (int k = 0; k < column_data_vars.size(); k++) {
-          auto& column_data = *column_data_vars[k];
-          auto type = cols[k].Expr().Type();
-          if (null_data_vars[k] == nullptr) {
-            this->values_.AddVariable(proxy::SQLValue(
-                column_data[i], type, proxy::Bool(program_, false)));
-          } else {
-            auto null = null_data_vars[k]->operator[](i);
-            this->values_.AddVariable(proxy::SQLValue(
-                column_data[i], type, static_cast<proxy::Bool&>(*null)));
-          }
-        }
+        this->values_.SetValues((*materialized_buffer)[i]);
 
         if (auto parent = this->Parent()) {
           parent->get().Consume(*this);
@@ -114,9 +108,7 @@ void ScanTranslator::Produce() {
         return loop.Continue(i + 1);
       });
 
-  for (auto& col : column_data_vars) {
-    col->Reset();
-  }
+  materialized_buffer->Reset();
 }
 
 void ScanTranslator::Consume(OperatorTranslator& src) {

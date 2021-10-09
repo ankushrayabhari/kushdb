@@ -11,9 +11,11 @@ namespace kush::compile::proxy {
 class Iterable {
  public:
   virtual ~Iterable() = default;
+  virtual void Init() = 0;
+  virtual void Reset() = 0;
   virtual Int32 Size() = 0;
   virtual std::unique_ptr<IRValue> operator[](Int32& idx) = 0;
-  virtual void Reset() = 0;
+  virtual catalog::SqlType Type() = 0;
 };
 
 template <catalog::SqlType S>
@@ -22,15 +24,18 @@ class ColumnData : public Iterable {
   ColumnData(khir::ProgramBuilder& program, std::string_view path);
   virtual ~ColumnData() = default;
 
+  void Init() override;
+  void Reset() override;
   Int32 Size() override;
   std::unique_ptr<IRValue> operator[](Int32& idx) override;
-  void Reset() override;
+  catalog::SqlType Type() override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
   khir::ProgramBuilder& program_;
-  std::optional<khir::Value> value_;
+  khir::Value path_value_;
+  khir::Value value_;
   std::optional<khir::Value> result_;
 };
 
