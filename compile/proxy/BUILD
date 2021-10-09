@@ -21,6 +21,7 @@ cc_library(
     hdrs = ["materialized_buffer.h"],
     deps = [
         ":column_data",
+        ":vector",
         "//compile/proxy/control_flow:if",
         "//compile/proxy/value:ir_value",
         "//compile/proxy/value:sql_value",

@@ -30,8 +30,6 @@ void DiskMaterializedBuffer::Init() {
       null_column->Init();
     }
   }
-
-  size_var_ = column_data_[0]->Size().ToPointer();
 }
 
 void DiskMaterializedBuffer::Reset() {
@@ -46,7 +44,7 @@ void DiskMaterializedBuffer::Reset() {
   }
 }
 
-Int32 DiskMaterializedBuffer::Size() { return *size_var_; }
+Int32 DiskMaterializedBuffer::Size() { return column_data_[0]->Size(); }
 
 std::vector<SQLValue> DiskMaterializedBuffer::operator[](Int32 i) {
   std::vector<SQLValue> output;
@@ -62,6 +60,22 @@ std::vector<SQLValue> DiskMaterializedBuffer::operator[](Int32 i) {
     output.emplace_back((*column)[i], column->Type(), null_value);
   }
   return output;
+}
+
+MemoryMaterializedBuffer::MemoryMaterializedBuffer(
+    khir::ProgramBuilder& program, Vector vector)
+    : program_(program), vector_(std::move(vector)) {}
+
+void MemoryMaterializedBuffer::Init() {
+  // vector already built so do nothing
+}
+
+void MemoryMaterializedBuffer::Reset() { vector_.Reset(); }
+
+Int32 MemoryMaterializedBuffer::Size() { return vector_.Size(); }
+
+std::vector<SQLValue> MemoryMaterializedBuffer::operator[](Int32 i) {
+  return vector_[i].Unpack();
 }
 
 }  // namespace kush::compile::proxy
