@@ -22,6 +22,7 @@ int StructBuilder::Add(catalog::SqlType type, bool nullable) {
       fields_.size(), nullable ? fields_.size() + 1 : -1};
 
   types_.push_back(type);
+  nullable_.push_back(nullable);
   switch (type) {
     case catalog::SqlType::SMALLINT:
       fields_.push_back(program_.I16Type());
@@ -72,6 +73,8 @@ khir::Type StructBuilder::Type() const { return struct_type_.value(); }
 absl::Span<const catalog::SqlType> StructBuilder::Types() const {
   return types_;
 }
+
+const std::vector<bool>& StructBuilder::Nullable() const { return nullable_; }
 
 absl::Span<const khir::Value> StructBuilder::DefaultValues() const {
   return values_;

@@ -8,6 +8,7 @@
 #include "absl/container/flat_hash_set.h"
 
 #include "compile/proxy/column_index.h"
+#include "compile/proxy/materialized_buffer.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/tuple_idx_table.h"
 #include "compile/proxy/vector.h"
@@ -39,7 +40,8 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   proxy::Int32 GenerateChildLoops(
       int curr, const std::vector<int>& order, khir::ProgramBuilder& program,
       ExpressionTranslator& expr_translator,
-      std::vector<proxy::Vector>& buffers,
+      std::vector<std::unique_ptr<proxy::MaterializedBuffer>>&
+          materialized_buffers,
       std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
       const std::vector<proxy::Int32>& cardinalities,
       proxy::TupleIdxTable& tuple_idx_table,
@@ -56,7 +58,8 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
   ExpressionTranslator expr_translator_;
-  std::vector<proxy::Vector> buffers_;
+  proxy::Vector* buffer_;
+  std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers_;
   std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes_;
   std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
       predicate_columns_;

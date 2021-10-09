@@ -12,6 +12,7 @@
 #include "compile/proxy/control_flow/if.h"
 #include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/function.h"
+#include "compile/proxy/materialized_buffer.h"
 #include "compile/proxy/skinner_join_executor.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/tuple_idx_table.h"
@@ -84,7 +85,9 @@ int IndexAvailableForTable(
 
 proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
     int curr, const std::vector<int>& order, khir::ProgramBuilder& program,
-    ExpressionTranslator& expr_translator, std::vector<proxy::Vector>& buffers,
+    ExpressionTranslator& expr_translator,
+    std::vector<std::unique_ptr<proxy::MaterializedBuffer>>&
+        materialized_buffers,
     std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
     const std::vector<proxy::Int32>& cardinalities,
     proxy::TupleIdxTable& tuple_idx_table,
@@ -99,7 +102,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
   auto conditions = join_.Conditions();
 
   int table_idx = order[curr];
-  auto& buffer = buffers[table_idx];
+  auto& buffer = *materialized_buffers[table_idx];
   auto cardinality = cardinalities[table_idx];
 
   // TODO: change to look at multiple potential index predicates rather than
@@ -243,11 +246,10 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                       printer.PrintNewline();
                       */
 
-                      auto tuple = buffer[next_tuple];
                       child_translators[table_idx]
                           .get()
                           .SchemaValues()
-                          .SetValues(tuple.Unpack());
+                          .SetValues(buffer[next_tuple]);
                       available_tables.insert(table_idx);
 
                       for (int predicate_idx :
@@ -345,7 +347,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                         next_budget =
                             GenerateChildLoops(
                                 curr + 1, order, program, expr_translator,
-                                buffers, indexes, cardinalities,
+                                materialized_buffers, indexes, cardinalities,
                                 tuple_idx_table, evaluated_predicates,
                                 tables_per_predicate, predicates_per_table,
                                 available_tables, idx_array, offset_array,
@@ -424,9 +426,8 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
         printer.PrintNewline();
         */
 
-        auto tuple = buffer[next_tuple];
         child_translators[table_idx].get().SchemaValues().SetValues(
-            tuple.Unpack());
+            buffer[next_tuple]);
         available_tables.insert(table_idx);
 
         for (int predicate_idx : predicates_per_table[table_idx]) {
@@ -511,12 +512,13 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
           // Partial tuple - loop over other tables to complete it
           next_budget =
-              GenerateChildLoops(
-                  curr + 1, order, program, expr_translator, buffers, indexes,
-                  cardinalities, tuple_idx_table, evaluated_predicates,
-                  tables_per_predicate, predicates_per_table, available_tables,
-                  idx_array, offset_array, progress_arr, table_ctr_ptr,
-                  num_result_tuples_ptr, budget, resume_progress)
+              GenerateChildLoops(curr + 1, order, program, expr_translator,
+                                 materialized_buffers, indexes, cardinalities,
+                                 tuple_idx_table, evaluated_predicates,
+                                 tables_per_predicate, predicates_per_table,
+                                 available_tables, idx_array, offset_array,
+                                 progress_arr, table_ctr_ptr,
+                                 num_result_tuples_ptr, budget, resume_progress)
                   .ToPointer();
         }
 
@@ -529,7 +531,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
 RecompilingJoinTranslator::ExecuteJoinFn
 RecompilingSkinnerJoinTranslator::CompileJoinOrder(
-    const std::vector<int>& order, void** materialized_buffers,
+    const std::vector<int>& order, void** materialized_buffers_raw,
     void** materialized_indexes, void* tuple_idx_table_ptr) {
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
@@ -579,23 +581,10 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
       program.GetElementPtr(program.I32Type(), idx_array, {num_tables});
 
   // Regenerate all child struct types/buffers in new program
-  std::vector<std::unique_ptr<proxy::StructBuilder>> structs;
-  std::vector<proxy::Vector> buffers;
+  std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers;
   for (int i = 0; i < child_operators.size(); i++) {
-    auto& child_operator = child_operators[i].get();
-
-    structs.push_back(std::make_unique<proxy::StructBuilder>(program));
-    const auto& child_schema = child_operator.Schema().Columns();
-    for (const auto& col : child_schema) {
-      structs.back()->Add(col.Expr().Type(), col.Expr().Nullable());
-    }
-    structs.back()->Build();
-
-    buffers.emplace_back(
-        program, *structs.back(),
-        program.PointerCast(program.ConstPtr(materialized_buffers[i]),
-                            program.PointerType(program.GetStructType(
-                                proxy::Vector::VectorStructName))));
+    materialized_buffers.push_back(materialized_buffers_[i]->Regenerate(
+        program, program.ConstPtr(materialized_buffers_raw[i])));
   }
 
   // Regenerate all indexes in new program
@@ -678,11 +667,11 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   // Generate loop over base table
   std::vector<proxy::Int32> cardinalities;
   for (int i = 0; i < order.size(); i++) {
-    cardinalities.push_back(buffers[i].Size());
+    cardinalities.push_back(materialized_buffers[i]->Size());
   }
 
   auto table_idx = order[0];
-  auto& buffer = buffers[table_idx];
+  auto& buffer = *materialized_buffers[table_idx];
   const auto& cardinality = cardinalities[table_idx];
 
   absl::flat_hash_set<int> available_tables;
@@ -764,17 +753,16 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
           program.Return(program.ConstI32(-2));
         });
 
-        auto tuple = buffer[next_tuple];
         child_translators[table_idx].get().SchemaValues().SetValues(
-            tuple.Unpack());
+            buffer[next_tuple]);
         available_tables.insert(table_idx);
 
         auto next_budget = GenerateChildLoops(
-            1, order, program, expr_translator, buffers, indexes, cardinalities,
-            tuple_idx_table, evaluated_predicates, tables_per_predicate,
-            predicates_per_table, available_tables, idx_array, offset_array,
-            progress_arr, table_ctr_ptr, num_result_tuples_ptr, budget,
-            resume_progress);
+            1, order, program, expr_translator, materialized_buffers, indexes,
+            cardinalities, tuple_idx_table, evaluated_predicates,
+            tables_per_predicate, predicates_per_table, available_tables,
+            idx_array, offset_array, progress_arr, table_ctr_ptr,
+            num_result_tuples_ptr, budget, resume_progress);
 
         return loop.Continue(next_tuple + 1, next_budget,
                              proxy::Bool(program, false));
@@ -815,7 +803,6 @@ void RecompilingSkinnerJoinTranslator::Produce() {
 
   std::vector<std::unique_ptr<execution::Pipeline>> child_pipelines;
   // 1. Materialize each child.
-  std::vector<std::unique_ptr<proxy::StructBuilder>> structs;
   for (int i = 0; i < child_translators.size(); i++) {
     auto& pipeline = pipeline_builder_.CreatePipeline();
     program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
@@ -823,15 +810,14 @@ void RecompilingSkinnerJoinTranslator::Produce() {
     auto& child_operator = child_operators[i].get();
 
     // Create struct for materialization
-    structs.push_back(std::make_unique<proxy::StructBuilder>(program_));
+    auto struct_builder = std::make_unique<proxy::StructBuilder>(program_);
     const auto& child_schema = child_operator.Schema().Columns();
     for (const auto& col : child_schema) {
-      structs.back()->Add(col.Expr().Type(), col.Expr().Nullable());
+      struct_builder->Add(col.Expr().Type(), col.Expr().Nullable());
     }
-    structs.back()->Build();
+    struct_builder->Build();
 
-    // Init vector of structs
-    buffers_.emplace_back(program_, *structs.back(), true);
+    proxy::Vector buffer(program_, *struct_builder, true);
 
     // For each predicate column on this table, declare an index.
     for (auto& predicate_column : predicate_columns_) {
@@ -885,9 +871,15 @@ void RecompilingSkinnerJoinTranslator::Produce() {
 
     // Fill buffer/indexes
     child_idx_ = i;
+    buffer_ = &buffer;
     child_translator.Produce();
+    buffer_ = nullptr;
     program_.Return();
     child_pipelines.push_back(pipeline_builder_.FinishPipeline());
+
+    materialized_buffers_.push_back(
+        std::make_unique<proxy::MemoryMaterializedBuffer>(
+            program_, std::move(struct_builder), std::move(buffer)));
   }
 
   auto& join_pipeline = pipeline_builder_.CreatePipeline();
@@ -902,21 +894,19 @@ void RecompilingSkinnerJoinTranslator::Produce() {
 
   // pass all materialized buffers to the executor
   auto materialized_buffer_array_type = program_.ArrayType(
-      program_.PointerType(program_.I8Type()), buffers_.size());
+      program_.PointerType(program_.I8Type()), materialized_buffers_.size());
   auto materialized_buffer_array_init = program_.ConstantArray(
       materialized_buffer_array_type,
       std::vector<khir::Value>(
-          buffers_.size(),
+          materialized_buffers_.size(),
           program_.NullPtr(program_.PointerType(program_.I8Type()))));
   auto materialized_buffer_array =
       program_.Global(false, true, materialized_buffer_array_type,
                       materialized_buffer_array_init);
-  for (int i = 0; i < buffers_.size(); i++) {
-    program_.StorePtr(
-        program_.GetElementPtr(materialized_buffer_array_type,
-                               materialized_buffer_array, {0, i}),
-        program_.PointerCast(buffers_[i].Get(),
-                             program_.PointerType(program_.I8Type())));
+  for (int i = 0; i < materialized_buffers_.size(); i++) {
+    program_.StorePtr(program_.GetElementPtr(materialized_buffer_array_type,
+                                             materialized_buffer_array, {0, i}),
+                      materialized_buffers_[i]->Serialize());
   }
 
   // pass all materialized indexes to the executor
@@ -940,17 +930,17 @@ void RecompilingSkinnerJoinTranslator::Produce() {
 
   // pass all cardinalities to the executor
   auto cardinalities_array_type =
-      program_.ArrayType(program_.I32Type(), buffers_.size());
+      program_.ArrayType(program_.I32Type(), materialized_buffers_.size());
   auto cardinalities_array_init = program_.ConstantArray(
       cardinalities_array_type,
       std::vector<khir::Value>(child_translators.size(), program_.ConstI32(0)));
   auto cardinalities_array = program_.Global(
       false, true, cardinalities_array_type, cardinalities_array_init);
 
-  for (int i = 0; i < buffers_.size(); i++) {
+  for (int i = 0; i < materialized_buffers_.size(); i++) {
     program_.StoreI32(program_.GetElementPtr(cardinalities_array_type,
                                              cardinalities_array, {0, i}),
-                      buffers_[i].Size().Get());
+                      materialized_buffers_[i]->Size().Get());
   }
 
   // Serialize the tables_per_predicate map.
@@ -1005,10 +995,10 @@ void RecompilingSkinnerJoinTranslator::Produce() {
           program_.GetElementPtr(program_.I32Type(), tuple_idx_arr, {i});
       auto tuple_idx = proxy::Int32(program_, program_.LoadI32(tuple_idx_ptr));
 
-      auto& buffer = buffers_[current_buffer++];
+      auto& buffer = *materialized_buffers_[current_buffer++];
       // set the schema values of child to be the tuple_idx'th tuple of
       // current table.
-      child_translator.SchemaValues().SetValues(buffer[tuple_idx].Unpack());
+      child_translator.SchemaValues().SetValues(buffer[tuple_idx]);
     }
 
     // Compute the output schema
@@ -1027,8 +1017,7 @@ void RecompilingSkinnerJoinTranslator::Produce() {
 
 void RecompilingSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
   auto values = src.SchemaValues().Values();
-  auto& buffer = buffers_[child_idx_];
-  auto tuple_idx = buffer.Size();
+  auto tuple_idx = buffer_->Size();
 
   // for each predicate column on this table, insert tuple idx into
   // corresponding HT
@@ -1050,7 +1039,7 @@ void RecompilingSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
   }
 
   // insert tuple into buffer
-  buffer.PushBack().Pack(values);
+  buffer_->PushBack().Pack(values);
 }
 
 }  // namespace kush::compile

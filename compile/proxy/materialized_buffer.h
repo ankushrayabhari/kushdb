@@ -17,7 +17,7 @@ namespace kush::compile::proxy {
  * - a proxy::Vector
  *
  * This is a wrapper object mainly for use in the SkinnerJoinTranslators as
- * this allows for easy duplication in a new ProgramBuidler.
+ * this allows for easy regeneration in a new ProgramBuidler.
  */
 
 class MaterializedBuffer {
@@ -26,9 +26,18 @@ class MaterializedBuffer {
 
   virtual void Init() = 0;
   virtual void Reset() = 0;
-
   virtual Int32 Size() = 0;
   virtual std::vector<SQLValue> operator[](Int32 i) = 0;
+
+  // Serializes the data needed to regenerate a reference to this buffer in a
+  // different program builder.
+  // Returns an i8* typed Value
+  virtual khir::Value Serialize() = 0;
+
+  // Regenerates a reference to the buffer inside program. value's content is
+  // the same as the one returned by the above Serialize method.
+  virtual std::unique_ptr<MaterializedBuffer> Regenerate(
+      khir::ProgramBuilder& program, khir::Value value) = 0;
 };
 
 class DiskMaterializedBuffer : public MaterializedBuffer {
@@ -42,6 +51,9 @@ class DiskMaterializedBuffer : public MaterializedBuffer {
   void Reset() override;
   Int32 Size() override;
   std::vector<SQLValue> operator[](Int32 i) override;
+  khir::Value Serialize() override;
+  std::unique_ptr<MaterializedBuffer> Regenerate(khir::ProgramBuilder& program,
+                                                 khir::Value value) override;
 
  private:
   khir::ProgramBuilder& program_;
@@ -51,16 +63,22 @@ class DiskMaterializedBuffer : public MaterializedBuffer {
 
 class MemoryMaterializedBuffer : public MaterializedBuffer {
  public:
-  MemoryMaterializedBuffer(khir::ProgramBuilder& program, Vector vector);
+  MemoryMaterializedBuffer(khir::ProgramBuilder& program,
+                           std::unique_ptr<StructBuilder> vector_content,
+                           Vector vector);
   ~MemoryMaterializedBuffer() = default;
 
   void Init() override;
   void Reset() override;
   Int32 Size() override;
   std::vector<SQLValue> operator[](Int32 i) override;
+  khir::Value Serialize() override;
+  std::unique_ptr<MaterializedBuffer> Regenerate(khir::ProgramBuilder& program,
+                                                 khir::Value value) override;
 
  private:
   khir::ProgramBuilder& program_;
+  std::unique_ptr<StructBuilder> vector_content_;
   proxy::Vector vector_;
 };
 

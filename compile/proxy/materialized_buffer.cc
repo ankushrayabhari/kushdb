@@ -62,9 +62,21 @@ std::vector<SQLValue> DiskMaterializedBuffer::operator[](Int32 i) {
   return output;
 }
 
+khir::Value DiskMaterializedBuffer::Serialize() {
+  throw std::runtime_error("Unimplemented");
+}
+
+std::unique_ptr<MaterializedBuffer> DiskMaterializedBuffer::Regenerate(
+    khir::ProgramBuilder& program, khir::Value value) {
+  throw std::runtime_error("Unimplemented");
+}
+
 MemoryMaterializedBuffer::MemoryMaterializedBuffer(
-    khir::ProgramBuilder& program, Vector vector)
-    : program_(program), vector_(std::move(vector)) {}
+    khir::ProgramBuilder& program,
+    std::unique_ptr<StructBuilder> vector_content, Vector vector)
+    : program_(program),
+      vector_content_(std::move(vector_content)),
+      vector_(std::move(vector)) {}
 
 void MemoryMaterializedBuffer::Init() {
   // vector already built so do nothing
@@ -76,6 +88,31 @@ Int32 MemoryMaterializedBuffer::Size() { return vector_.Size(); }
 
 std::vector<SQLValue> MemoryMaterializedBuffer::operator[](Int32 i) {
   return vector_[i].Unpack();
+}
+
+khir::Value MemoryMaterializedBuffer::Serialize() {
+  return program_.PointerCast(vector_.Get(),
+                              program_.PointerType(program_.I8Type()));
+}
+
+std::unique_ptr<MaterializedBuffer> MemoryMaterializedBuffer::Regenerate(
+    khir::ProgramBuilder& program, khir::Value value) {
+  // regenerate the struct type
+  auto types = vector_content_->Types();
+  const auto& nullables = vector_content_->Nullable();
+  auto struct_builder = std::make_unique<proxy::StructBuilder>(program);
+  for (int i = 0; i < types.size(); i++) {
+    struct_builder->Add(types[i], nullables[i]);
+  }
+  struct_builder->Build();
+
+  proxy::Vector vector(
+      program, *struct_builder,
+      program.PointerCast(value, program.PointerType(program.GetStructType(
+                                     proxy::Vector::VectorStructName))));
+
+  return std::make_unique<MemoryMaterializedBuffer>(
+      program, std::move(struct_builder), std::move(vector));
 }
 
 }  // namespace kush::compile::proxy

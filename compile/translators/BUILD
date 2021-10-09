@@ -157,6 +157,7 @@ cc_library(
         "//compile:forward_declare",
         "//compile/proxy:column_index",
         "//compile/proxy:function",
+        "//compile/proxy:materialized_buffer",
         "//compile/proxy:skinner_join_executor",
         "//compile/proxy:struct",
         "//compile/proxy:tuple_idx_table",
