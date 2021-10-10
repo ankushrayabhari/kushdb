@@ -584,14 +584,14 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers;
   for (int i = 0; i < child_operators.size(); i++) {
     materialized_buffers.push_back(materialized_buffers_[i]->Regenerate(
-        program, program.ConstPtr(materialized_buffers_raw[i])));
+        program, materialized_buffers_raw[i]));
   }
 
   // Regenerate all indexes in new program
   std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes;
   for (int i = 0; i < indexes_.size(); i++) {
-    indexes.push_back(indexes_[i]->Regenerate(
-        program, program.ConstPtr(materialized_indexes_raw[i])));
+    indexes.push_back(
+        indexes_[i]->Regenerate(program, materialized_indexes_raw[i]));
   }
 
   // Create tuple idx table

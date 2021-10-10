@@ -56,7 +56,7 @@ class ColumnIndex {
   // Regenerates a reference to the index inside program. value's content is
   // the same as the one returned by the above Serialize method.
   virtual std::unique_ptr<ColumnIndex> Regenerate(khir::ProgramBuilder& program,
-                                                  khir::Value value) = 0;
+                                                  void* value) = 0;
 };
 
 template <catalog::SqlType S>
@@ -73,7 +73,7 @@ class ColumnIndexImpl : public ColumnIndex {
   IndexBucket GetBucket(const IRValue& v) override;
   khir::Value Serialize() override;
   std::unique_ptr<ColumnIndex> Regenerate(khir::ProgramBuilder& program,
-                                          khir::Value value) override;
+                                          void* value) override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 

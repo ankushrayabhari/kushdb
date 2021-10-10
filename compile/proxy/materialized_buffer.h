@@ -37,7 +37,7 @@ class MaterializedBuffer {
   // Regenerates a reference to the buffer inside program. value's content is
   // the same as the one returned by the above Serialize method.
   virtual std::unique_ptr<MaterializedBuffer> Regenerate(
-      khir::ProgramBuilder& program, khir::Value value) = 0;
+      khir::ProgramBuilder& program, void* value) = 0;
 };
 
 class DiskMaterializedBuffer : public MaterializedBuffer {
@@ -53,7 +53,7 @@ class DiskMaterializedBuffer : public MaterializedBuffer {
   std::vector<SQLValue> operator[](Int32 i) override;
   khir::Value Serialize() override;
   std::unique_ptr<MaterializedBuffer> Regenerate(khir::ProgramBuilder& program,
-                                                 khir::Value value) override;
+                                                 void* value) override;
 
  private:
   khir::ProgramBuilder& program_;
@@ -74,7 +74,7 @@ class MemoryMaterializedBuffer : public MaterializedBuffer {
   std::vector<SQLValue> operator[](Int32 i) override;
   khir::Value Serialize() override;
   std::unique_ptr<MaterializedBuffer> Regenerate(khir::ProgramBuilder& program,
-                                                 khir::Value value) override;
+                                                 void* value) override;
 
  private:
   khir::ProgramBuilder& program_;

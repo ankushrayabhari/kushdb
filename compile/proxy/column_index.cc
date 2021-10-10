@@ -258,11 +258,11 @@ khir::Value ColumnIndexImpl<S>::Serialize() {
 
 template <catalog::SqlType S>
 std::unique_ptr<ColumnIndex> ColumnIndexImpl<S>::Regenerate(
-    khir::ProgramBuilder& program, khir::Value value) {
+    khir::ProgramBuilder& program, void* value) {
   return std::make_unique<ColumnIndexImpl<S>>(
-      program,
-      program.PointerCast(
-          value, program.PointerType(program.GetOpaqueType(TypeName()))));
+      program, program.PointerCast(
+                   program.ConstPtr(value),
+                   program.PointerType(program.GetOpaqueType(TypeName()))));
 }
 
 template <catalog::SqlType S>

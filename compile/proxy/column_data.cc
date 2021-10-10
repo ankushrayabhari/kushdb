@@ -175,8 +175,21 @@ std::string_view StructName() {
 template <catalog::SqlType S>
 ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
     : program_(program),
+      path_(path),
       path_value_(program_.GlobalConstCharArray(path)),
       value_(program_.Alloca(program.GetStructType(StructName<S>()))) {
+  if constexpr (S == catalog::SqlType::TEXT) {
+    result_ = program_.Alloca(program_.GetStructType(String::StringStructName));
+  }
+}
+
+template <catalog::SqlType S>
+ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path,
+                          khir::Value value)
+    : program_(program),
+      path_(path),
+      path_value_(program_.GlobalConstCharArray(path)),
+      value_(value) {
   if constexpr (S == catalog::SqlType::TEXT) {
     result_ = program_.Alloca(program_.GetStructType(String::StringStructName));
   }
@@ -196,6 +209,17 @@ template <catalog::SqlType S>
 Int32 ColumnData<S>::Size() {
   return Int32(program_,
                program_.Call(program_.GetFunction(SizeFnName<S>()), {value_}));
+}
+
+template <catalog::SqlType S>
+khir::Value ColumnData<S>::Get() {
+  return value_;
+}
+
+template <catalog::SqlType S>
+std::unique_ptr<Iterable> ColumnData<S>::Regenerate(
+    khir::ProgramBuilder& program, khir::Value value) {
+  return std::make_unique<ColumnData<S>>(program, path_, value);
 }
 
 template <catalog::SqlType S>
