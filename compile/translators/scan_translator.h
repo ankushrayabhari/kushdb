@@ -18,7 +18,7 @@ class ScanTranslator : public OperatorTranslator {
 
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
-  std::unique_ptr<proxy::MaterializedBuffer> GenerateBuffer();
+  std::unique_ptr<proxy::DiskMaterializedBuffer> GenerateBuffer();
 
  private:
   const plan::ScanOperator& scan_;

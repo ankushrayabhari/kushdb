@@ -745,16 +745,6 @@ void RecompilingSkinnerJoinTranslator::Produce() {
     auto& child_translator = child_translators[i].get();
     auto& child_operator = child_operators[i].get();
 
-    // Create struct for materialization
-    auto struct_builder = std::make_unique<proxy::StructBuilder>(program_);
-    const auto& child_schema = child_operator.Schema().Columns();
-    for (const auto& col : child_schema) {
-      struct_builder->Add(col.Expr().Type(), col.Expr().Nullable());
-    }
-    struct_builder->Build();
-
-    proxy::Vector buffer(program_, *struct_builder, true);
-
     // For each predicate column on this table, declare an index.
     for (auto& predicate_column : predicate_columns_) {
       if (i != predicate_column.get().GetChildIdx()) {
@@ -805,17 +795,54 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       }
     }
 
-    // Fill buffer/indexes
-    child_idx_ = i;
-    buffer_ = &buffer;
-    child_translator.Produce();
-    buffer_ = nullptr;
+    if (auto scan = dynamic_cast<ScanTranslator*>(&child_translator)) {
+      auto disk_materialized_buffer = scan->GenerateBuffer();
+
+      // for each indexed column on this table, scan and append to index
+      for (auto& predicate_column : predicate_columns_) {
+        if (i != predicate_column.get().GetChildIdx()) {
+          continue;
+        }
+
+        auto col_idx = predicate_column.get().GetColumnIdx();
+
+        auto index_idx = predicate_to_index_idx_[{i, col_idx}];
+
+        disk_materialized_buffer->Init();
+        disk_materialized_buffer->Scan(
+            col_idx, [&](auto tuple_idx, auto value) {
+              // only index not null values
+              proxy::If(program_, !value.IsNull(), [&]() {
+                indexes_[index_idx]->Insert(value.Get(), tuple_idx);
+              });
+            });
+      }
+
+      materialized_buffers_.push_back(std::move(disk_materialized_buffer));
+    } else {
+      // Create struct for materialization
+      auto struct_builder = std::make_unique<proxy::StructBuilder>(program_);
+      const auto& child_schema = child_operator.Schema().Columns();
+      for (const auto& col : child_schema) {
+        struct_builder->Add(col.Expr().Type(), col.Expr().Nullable());
+      }
+      struct_builder->Build();
+
+      proxy::Vector buffer(program_, *struct_builder, true);
+
+      // Fill buffer/indexes
+      child_idx_ = i;
+      buffer_ = &buffer;
+      child_translator.Produce();
+      buffer_ = nullptr;
+
+      materialized_buffers_.push_back(
+          std::make_unique<proxy::MemoryMaterializedBuffer>(
+              program_, std::move(struct_builder), std::move(buffer)));
+    }
+
     program_.Return();
     child_pipelines.push_back(pipeline_builder_.FinishPipeline());
-
-    materialized_buffers_.push_back(
-        std::make_unique<proxy::MemoryMaterializedBuffer>(
-            program_, std::move(struct_builder), std::move(buffer)));
   }
 
   auto& join_pipeline = pipeline_builder_.CreatePipeline();
@@ -946,6 +973,10 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       parent->get().Consume(*this);
     }
   });
+
+  for (auto& buffer : materialized_buffers_) {
+    buffer->Reset();
+  }
   tuple_idx_table.Reset();
 }
 

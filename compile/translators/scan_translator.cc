@@ -25,7 +25,8 @@ ScanTranslator::ScanTranslator(
       scan_(scan),
       program_(program) {}
 
-std::unique_ptr<proxy::MaterializedBuffer> ScanTranslator::GenerateBuffer() {
+std::unique_ptr<proxy::DiskMaterializedBuffer>
+ScanTranslator::GenerateBuffer() {
   const auto& table = scan_.Relation();
   const auto& cols = scan_.Schema().Columns();
   auto num_cols = cols.size();

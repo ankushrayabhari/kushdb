@@ -54,6 +54,7 @@ class DiskMaterializedBuffer : public MaterializedBuffer {
   khir::Value Serialize() override;
   std::unique_ptr<MaterializedBuffer> Regenerate(khir::ProgramBuilder& program,
                                                  void* value) override;
+  void Scan(int col_idx, std::function<void(Int32, SQLValue)> handler);
 
  private:
   khir::ProgramBuilder& program_;

@@ -23,6 +23,7 @@ cc_library(
         ":column_data",
         ":vector",
         "//compile/proxy/control_flow:if",
+        "//compile/proxy/control_flow:loop",
         "//compile/proxy/value:ir_value",
         "//compile/proxy/value:sql_value",
         "//khir:program_builder",

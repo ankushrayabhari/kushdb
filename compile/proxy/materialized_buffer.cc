@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "compile/proxy/column_data.h"
+#include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/value/ir_value.h"
 #include "compile/proxy/value/sql_value.h"
 #include "khir/program_builder.h"
@@ -34,7 +35,7 @@ void DiskMaterializedBuffer::Init() {
 
 void DiskMaterializedBuffer::Reset() {
   for (auto& column : column_data_) {
-    column->Init();
+    column->Reset();
   }
 
   for (auto& null_column : null_data_) {
@@ -62,6 +63,32 @@ std::vector<SQLValue> DiskMaterializedBuffer::operator[](Int32 i) {
   return output;
 }
 
+void DiskMaterializedBuffer::Scan(
+    int col_idx, std::function<void(Int32, SQLValue)> handler) {
+  auto cardinality = Size();
+  auto& column = *column_data_[col_idx];
+  auto& null_column = null_data_[col_idx];
+  Loop loop(
+      program_,
+      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
+      [&](auto& loop) {
+        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+        return i < cardinality;
+      },
+      [&](auto& loop) {
+        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+
+        Bool null_value(program_, false);
+        if (null_column != nullptr) {
+          null_value = static_cast<Bool&>(*(*null_column)[i]);
+        }
+
+        handler(i, SQLValue(column[i], column.Type(), null_value));
+
+        return loop.Continue(i + 1);
+      });
+}
+
 khir::Value DiskMaterializedBuffer::Serialize() {
   auto i8_ptr_ty = program_.PointerType(program_.I8Type());
 
@@ -73,17 +100,16 @@ khir::Value DiskMaterializedBuffer::Serialize() {
   auto serialization_type = program_.StructType(serialization_fields_);
   auto value = program_.Alloca(serialization_type);
 
-  for (int i = 0, j = 0; i < serialization_fields_.size(); i += 2, j++) {
-    program_.StorePtr(program_.GetElementPtr(serialization_type, value, {0, i}),
-                      program_.PointerCast(column_data_[j]->Get(), i8_ptr_ty));
-
-    auto null_val = null_data_[j] == nullptr
-                        ? program_.NullPtr(i8_ptr_ty)
-                        : program_.PointerCast(null_data_[j]->Get(), i8_ptr_ty);
-
+  for (int i = 0; i < column_data_.size(); i++) {
     program_.StorePtr(
-        program_.GetElementPtr(serialization_type, value, {0, i + 1}),
-        null_val);
+        program_.GetElementPtr(serialization_type, value, {0, 2 * i}),
+        program_.PointerCast(column_data_[i]->Get(), i8_ptr_ty));
+
+    if (null_data_[i] != nullptr) {
+      program_.StorePtr(
+          program_.GetElementPtr(serialization_type, value, {0, 2 * i + 1}),
+          program_.PointerCast(null_data_[i]->Get(), i8_ptr_ty));
+    }
   }
 
   return program_.PointerCast(value, i8_ptr_ty);
@@ -97,20 +123,20 @@ std::unique_ptr<MaterializedBuffer> DiskMaterializedBuffer::Regenerate(
   void** values = static_cast<void**>(value);
   for (int i = 0; i < column_data_.size(); i++) {
     void* col_data_val = values[2 * i];
-    void* null_data_val = values[2 * i + 1];
 
     column_data.push_back(
         column_data_[i]->Regenerate(program, program.ConstPtr(col_data_val)));
     if (null_data_[i] == nullptr) {
       null_data.push_back(nullptr);
     } else {
+      void* null_data_val = values[2 * i + 1];
       null_data.push_back(
           null_data_[i]->Regenerate(program, program.ConstPtr(null_data_val)));
     }
   }
 
   return std::make_unique<DiskMaterializedBuffer>(
-      program_, std::move(column_data_), std::move(null_data_));
+      program, std::move(column_data), std::move(null_data));
 }
 
 MemoryMaterializedBuffer::MemoryMaterializedBuffer(

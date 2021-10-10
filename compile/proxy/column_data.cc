@@ -173,13 +173,43 @@ std::string_view StructName() {
 }
 
 template <catalog::SqlType S>
+khir::Value GetStructInit(khir::ProgramBuilder& program) {
+  auto st = program.GetStructType(StructName<S>());
+
+  std::optional<khir::Type> elem_type;
+
+  // Initialize all the mangled names and the corresponding data type
+  if constexpr (catalog::SqlType::SMALLINT == S) {
+    elem_type = program.I16Type();
+  } else if constexpr (catalog::SqlType::INT == S) {
+    elem_type = program.I32Type();
+  } else if constexpr (catalog::SqlType::BIGINT == S ||
+                       catalog::SqlType::DATE == S) {
+    elem_type = program.I64Type();
+  } else if constexpr (catalog::SqlType::REAL == S) {
+    elem_type = program.F64Type();
+  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+    elem_type = program.I1Type();
+  } else if constexpr (catalog::SqlType::TEXT == S) {
+    elem_type = program.ArrayType(
+        program.StructType({program.I32Type(), program.I32Type()}));
+  }
+
+  return program.ConstantStruct(
+      st, {program.NullPtr(program.PointerType(elem_type.value())),
+           program.ConstI32(0)});
+}
+
+template <catalog::SqlType S>
 ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
     : program_(program),
       path_(path),
       path_value_(program_.GlobalConstCharArray(path)),
-      value_(program_.Alloca(program.GetStructType(StructName<S>()))) {
+      value_(program_.Global(false, true,
+                             program.GetStructType(StructName<S>()),
+                             GetStructInit<S>(program))) {
   if constexpr (S == catalog::SqlType::TEXT) {
-    result_ = program_.Alloca(program_.GetStructType(String::StringStructName));
+    result_ = String::Global(program_, "").Get();
   }
 }
 
@@ -191,7 +221,7 @@ ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path,
       path_value_(program_.GlobalConstCharArray(path)),
       value_(value) {
   if constexpr (S == catalog::SqlType::TEXT) {
-    result_ = program_.Alloca(program_.GetStructType(String::StringStructName));
+    result_ = String::Global(program_, "").Get();
   }
 }
 
@@ -219,7 +249,10 @@ khir::Value ColumnData<S>::Get() {
 template <catalog::SqlType S>
 std::unique_ptr<Iterable> ColumnData<S>::Regenerate(
     khir::ProgramBuilder& program, khir::Value value) {
-  return std::make_unique<ColumnData<S>>(program, path_, value);
+  return std::make_unique<ColumnData<S>>(
+      program, path_,
+      program.PointerCast(
+          value, program.PointerType(program.GetStructType(StructName<S>()))));
 }
 
 template <catalog::SqlType S>
