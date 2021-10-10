@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "compile/proxy/column_index.h"
+#include "compile/proxy/materialized_buffer.h"
 #include "compile/proxy/struct.h"
-#include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
@@ -30,7 +30,8 @@ class PermutableSkinnerJoinTranslator : public OperatorTranslator {
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
   ExpressionTranslator expr_translator_;
-  std::vector<proxy::Vector> buffers_;
+  proxy::Vector* buffer_;
+  std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers_;
   std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes_;
   std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
       predicate_columns_;

@@ -81,23 +81,11 @@ void PermutableSkinnerJoinTranslator::Produce() {
   std::vector<std::unique_ptr<execution::Pipeline>> child_pipelines;
 
   // 1. Materialize each child.
-  std::vector<std::unique_ptr<proxy::StructBuilder>> structs;
   for (int i = 0; i < child_translators.size(); i++) {
     auto& pipeline = pipeline_builder_.CreatePipeline();
     program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
     auto& child_translator = child_translators[i].get();
     auto& child_operator = child_operators[i].get();
-
-    // Create struct for materialization
-    structs.push_back(std::make_unique<proxy::StructBuilder>(program_));
-    const auto& child_schema = child_operator.Schema().Columns();
-    for (const auto& col : child_schema) {
-      structs.back()->Add(col.Expr().Type(), col.Expr().Nullable());
-    }
-    structs.back()->Build();
-
-    // Init vector of structs
-    buffers_.emplace_back(program_, *structs.back(), true);
 
     // For each predicate column on this table, declare an index.
     for (auto& predicate_column : predicate_columns_) {
@@ -149,9 +137,52 @@ void PermutableSkinnerJoinTranslator::Produce() {
       }
     }
 
-    // Fill buffer/indexes
-    child_idx_ = i;
-    child_translator.Produce();
+    if (auto scan = dynamic_cast<ScanTranslator*>(&child_translator)) {
+      auto disk_materialized_buffer = scan->GenerateBuffer();
+
+      // for each indexed column on this table, scan and append to index
+      for (auto& predicate_column : predicate_columns_) {
+        if (i != predicate_column.get().GetChildIdx()) {
+          continue;
+        }
+
+        auto col_idx = predicate_column.get().GetColumnIdx();
+
+        auto index_idx = predicate_to_index_idx_[{i, col_idx}];
+
+        disk_materialized_buffer->Init();
+        disk_materialized_buffer->Scan(
+            col_idx, [&](auto tuple_idx, auto value) {
+              // only index not null values
+              proxy::If(program_, !value.IsNull(), [&]() {
+                indexes_[index_idx]->Insert(value.Get(), tuple_idx);
+              });
+            });
+      }
+
+      materialized_buffers_.push_back(std::move(disk_materialized_buffer));
+    } else {
+      // Create struct for materialization
+      auto struct_builder = std::make_unique<proxy::StructBuilder>(program_);
+      const auto& child_schema = child_operator.Schema().Columns();
+      for (const auto& col : child_schema) {
+        struct_builder->Add(col.Expr().Type(), col.Expr().Nullable());
+      }
+      struct_builder->Build();
+
+      proxy::Vector buffer(program_, *struct_builder, true);
+
+      // Fill buffer/indexes
+      child_idx_ = i;
+      buffer_ = &buffer;
+      child_translator.Produce();
+      buffer_ = nullptr;
+
+      materialized_buffers_.push_back(
+          std::make_unique<proxy::MemoryMaterializedBuffer>(
+              program_, std::move(struct_builder), std::move(buffer)));
+    }
+
     program_.Return();
     child_pipelines.push_back(pipeline_builder_.FinishPipeline());
   }
@@ -258,6 +289,48 @@ void PermutableSkinnerJoinTranslator::Produce() {
       false, true, handler_pointer_array_type, handler_pointer_init);
 
   std::vector<proxy::TableFunction> table_functions;
+  // initially fill the child_translators schema values with garbage
+  // this will get overwritten when we actually load tuples/update predicate
+  // struct
+  for (int i = 0; i < child_translators.size(); i++) {
+    auto& child_translator = child_translators[i].get();
+    auto& child_operator = child_operators[i].get();
+
+    const auto& schema = child_operator.Schema().Columns();
+
+    child_translator.SchemaValues().ResetValues();
+    for (int i = 0; i < schema.size(); i++) {
+      switch (schema[i].Expr().Type()) {
+        case catalog::SqlType::SMALLINT:
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Int16(program_, 0), proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::INT:
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Int32(program_, 0), proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::DATE:
+        case catalog::SqlType::BIGINT:
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Int64(program_, 0), proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::BOOLEAN:
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Bool(program_, false), proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::REAL:
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Float64(program_, 0), proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::TEXT:
+          child_translator.SchemaValues().AddVariable(
+              proxy::SQLValue(proxy::String::Global(program_, ""),
+                              proxy::Bool(program_, false)));
+          break;
+      }
+    }
+  }
+
   for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
     table_functions.push_back(proxy::TableFunction(
         program_, [&](auto& initial_budget, auto& resume_progress) {
@@ -284,7 +357,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
             }
           }
 
-          auto& buffer = buffers_[table_idx];
+          auto& buffer = *materialized_buffers_[table_idx];
           auto cardinality = buffer.Size();
 
           // for each indexed predicate, if the buffer DNE, then return since
@@ -465,8 +538,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       printer.PrintNewline();
                       */
 
-                      auto tuple = buffer[next_tuple];
-                      auto current_table_values = tuple.Unpack();
+                      auto current_table_values = buffer[next_tuple];
 
                       // Store each of this table's predicate column values
                       // into the global_predicate_struct
@@ -645,9 +717,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       printer.Print(next_tuple);
                       printer.PrintNewline();
                       */
-
-                      auto tuple = buffer[next_tuple];
-                      auto current_table_values = tuple.Unpack();
+                      auto current_table_values = buffer[next_tuple];
 
                       // Store each of this table's predicate column values
                       // into the global_predicate_struct
@@ -682,7 +752,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           auto cond = expr_translator_.Compute(
                               conditions[predicate_idx]);
 
-                          // TODO: Update this
                           proxy::If(
                               program_, cond.IsNull(),
                               [&]() {
@@ -827,10 +896,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
   // Write out cardinalities to idx_array
   for (int i = 0; i < child_operators.size(); i++) {
-    auto& buffer = buffers_[i];
-    auto cardinality = buffer.Size();
     program_.StoreI32(program_.GetElementPtr(idx_array_type, idx_array, {0, i}),
-                      cardinality.Get());
+                      materialized_buffers_[i]->Size().Get());
   }
 
   // Execute build side of skinner join
@@ -873,10 +940,10 @@ void PermutableSkinnerJoinTranslator::Produce() {
           program_.GetElementPtr(program_.I32Type(), tuple_idx_arr, {i});
       auto tuple_idx = proxy::Int32(program_, program_.LoadI32(tuple_idx_ptr));
 
-      auto& buffer = buffers_[current_buffer++];
+      auto& buffer = *materialized_buffers_[current_buffer++];
       // set the schema values of child to be the tuple_idx'th tuple of
       // current table.
-      child_translator.SchemaValues().SetValues(buffer[tuple_idx].Unpack());
+      child_translator.SchemaValues().SetValues(buffer[tuple_idx]);
     }
 
     // Compute the output schema
@@ -896,8 +963,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
 void PermutableSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
   auto values = src.SchemaValues().Values();
-  auto& buffer = buffers_[child_idx_];
-  auto tuple_idx = buffer.Size();
+  auto tuple_idx = buffer_->Size();
 
   // for each predicate column on this table, insert tuple idx into
   // corresponding HT
@@ -911,6 +977,7 @@ void PermutableSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
     if (it != predicate_to_index_idx_.end()) {
       auto idx = it->second;
       const auto& value = values[predicate_column.get().GetColumnIdx()];
+
       // only index not null values
       proxy::If(program_, !value.IsNull(),
                 [&]() { indexes_[idx]->Insert(value.Get(), tuple_idx); });
@@ -918,7 +985,7 @@ void PermutableSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
   }
 
   // insert tuple into buffer
-  buffer.PushBack().Pack(values);
+  buffer_->PushBack().Pack(values);
 }
 
 }  // namespace kush::compile
