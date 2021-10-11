@@ -94,14 +94,6 @@ cc_library(
 )
 
 cc_library(
-    name = "column_data_builder",
-    hdrs = ["column_data_builder.h"],
-    deps = [
-        ":column_data",
-    ],
-)
-
-cc_library(
     name = "printer",
     srcs = ["printer.cc"],
     hdrs = ["printer.h"],
