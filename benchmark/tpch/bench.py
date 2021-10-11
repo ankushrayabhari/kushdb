@@ -12,7 +12,7 @@ def bench(database, benchmark, data_path, use_skinner, flags):
     queries = ['q02', 'q03', 'q04', 'q05', 'q07', 'q08', 'q09', 'q10', 'q11',
                'q12', 'q14', 'q18', 'q19']
     for query in queries:
-        binary = 'bazel run -c opt --ui_event_filters=-info,-stdout,-stderr --noshow_progress //benchmark/benchmark/tpch/queries:' + query
+        binary = 'bazel run -c opt --ui_event_filters=-info,-stdout,-stderr --noshow_progress //benchmark/tpch/queries:' + query
         if use_skinner:
             binary += '_skinner'
 
@@ -37,7 +37,7 @@ def bench(database, benchmark, data_path, use_skinner, flags):
             print(database, benchmark, query_num, times[0], sep=',')
 
 if __name__ == "__main__":
-    num_trials = 3
+    num_trials = 5
     for _ in range(num_trials):
         bench('kushdb ASM (Hash Join)', 'TPC-H SF1', 'benchmark/tpch/data-1', False, ['--backend=asm'])
         bench('kushdb ASM (Skinner Join Permutable)', 'TPC-H SF1', 'benchmark/tpch/data-1', True, ['--backend=asm', '--skinner=permute'])
