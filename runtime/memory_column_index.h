@@ -11,7 +11,7 @@
 
 #include "runtime/string.h"
 
-namespace kush::runtime::ColumnIndex {
+namespace kush::runtime::MemoryColumnIndex {
 
 // Create the column index
 absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt8Index();
@@ -75,4 +75,4 @@ std::vector<int32_t>* BucketListGet(
     std::vector<std::vector<int32_t>*>* bucket_list, int32_t idx);
 void FreeBucketList(std::vector<std::vector<int32_t>*>* bucket_list);
 
-}  // namespace kush::runtime::ColumnIndex
+}  // namespace kush::runtime::MemoryColumnIndex

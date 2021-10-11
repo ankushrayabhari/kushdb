@@ -1,4 +1,4 @@
-#include "runtime/column_index.h"
+#include "runtime/memory_column_index.h"
 
 #include <cstdint>
 #include <cstring>
@@ -12,7 +12,7 @@
 
 #include "absl/container/flat_hash_map.h"
 
-namespace kush::runtime::ColumnIndex {
+namespace kush::runtime::MemoryColumnIndex {
 
 // ---------- Create Index -------------
 absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt8Index() {
@@ -200,4 +200,4 @@ void FreeBucketList(std::vector<std::vector<int32_t>*>* bucket_list) {
   delete bucket_list;
 }
 
-}  // namespace kush::runtime::ColumnIndex
+}  // namespace kush::runtime::MemoryColumnIndex

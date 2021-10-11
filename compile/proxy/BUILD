@@ -129,7 +129,7 @@ cc_library(
         "//catalog:sql_type",
         "//compile/proxy/value:ir_value",
         "//khir:program_builder",
-        "//runtime:column_index",
+        "//runtime:memory_column_index",
     ],
 )
 

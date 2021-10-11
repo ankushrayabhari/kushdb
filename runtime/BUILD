@@ -13,9 +13,9 @@ cc_library(
 )
 
 cc_library(
-    name = "column_index",
-    srcs = ["column_index.cc"],
-    hdrs = ["column_index.h"],
+    name = "memory_column_index",
+    srcs = ["memory_column_index.cc"],
+    hdrs = ["memory_column_index.h"],
     linkstatic = True,
     deps = [
         ":string",
@@ -28,7 +28,7 @@ cc_test(
     size = "small",
     srcs = ["column_index_test.cc"],
     deps = [
-        ":column_index",
+        ":memory_column_index",
         "@com_google_googletest//:gtest_main",
     ],
 )
