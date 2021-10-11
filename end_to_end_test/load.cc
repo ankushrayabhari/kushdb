@@ -23,7 +23,7 @@
 #define APPEND(x, parse, data, tuple_idx) \
   x.push_back(parse(data));               \
   x##_null.push_back(data.empty());       \
-  x##_index[x.back()].push_back(tuple_idx);
+  if (!x##_null.back()) x##_index[x.back()].push_back(tuple_idx);
 
 #define SERIALIZE(T, id, file)                                                 \
   kush::runtime::ColumnData::Serialize<T>("end_to_end_test/data/" file ".kdb", \

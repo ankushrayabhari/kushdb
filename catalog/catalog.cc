@@ -7,12 +7,9 @@
 
 namespace kush::catalog {
 
-Column::Column(std::string_view n, SqlType t, std::string_view p)
-    : name_(n), type_(t), path_(p) {}
-
 Column::Column(std::string_view n, SqlType t, std::string_view p,
-               std::string_view np)
-    : name_(n), type_(t), path_(p), null_path_(np) {}
+               std::string_view np, std::string_view ip)
+    : name_(n), type_(t), path_(p), null_path_(np), index_path_(ip) {}
 
 std::string_view Column::Name() const { return name_; }
 
@@ -24,17 +21,17 @@ std::string_view Column::NullPath() const { return null_path_; }
 
 bool Column::Nullable() const { return !null_path_.empty(); }
 
+std::string_view Column::IndexPath() const { return index_path_; }
+
+bool Column::HasIndex() const { return !index_path_.empty(); }
+
 Table::Table(std::string_view name) : name_(name) {}
 
 Column& Table::Insert(std::string_view attr, SqlType type,
-                      std::string_view path, std::string_view null_path) {
-  name_to_col_.insert({std::string(attr), Column(attr, type, path, null_path)});
-  return name_to_col_.at(attr);
-}
-
-Column& Table::Insert(std::string_view attr, SqlType type,
-                      std::string_view path) {
-  name_to_col_.insert({std::string(attr), Column(attr, type, path)});
+                      std::string_view path, std::string_view null_path,
+                      std::string_view index_path) {
+  name_to_col_.insert(
+      {std::string(attr), Column(attr, type, path, null_path, index_path)});
   return name_to_col_.at(attr);
 }
 
