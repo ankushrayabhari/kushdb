@@ -6,11 +6,32 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "absl/time/civil_time.h"
 #include "absl/time/time.h"
 
 #include "runtime/column_data.h"
+#include "runtime/column_index.h"
+
+#define DECLARE_COL_IDX(T, x)   \
+  std::vector<T> x;             \
+  std::vector<int8_t> x##_null; \
+  std::unordered_map<T, std::vector<int32_t>> x##_index;
+
+#define APPEND(x, parse, data, tuple_idx) \
+  x.push_back(parse(data));               \
+  x##_null.push_back(data.empty());       \
+  x##_index[x.back()].push_back(tuple_idx);
+
+#define SERIALIZE(T, id, file)                                                 \
+  kush::runtime::ColumnData::Serialize<T>("end_to_end_test/data/" file ".kdb", \
+                                          id);                                 \
+  kush::runtime::ColumnData::Serialize<int8_t>(                                \
+      "end_to_end_test/data/" file "_null.kdb", id##_null);                    \
+  kush::runtime::ColumnIndex::Serialize<T>(                                    \
+      "end_to_end_test/data/" file ".kdbindex", id##_index);
 
 std::vector<std::string> split(const std::string& s, char delim) {
   std::stringstream ss(s);
@@ -75,6 +96,8 @@ int8_t ParseBool(const std::string& s) {
   return s == "true" ? 1 : 0;
 }
 
+const std::string& ParseString(const std::string& s) { return s; }
+
 void People() {
   /*
     CREATE TABLE people (
@@ -83,30 +106,21 @@ void People() {
     );
   */
 
-  std::vector<int32_t> id;
-  std::vector<int8_t> id_null;
-  std::vector<std::string> name;
-  std::vector<int8_t> name_null;
+  DECLARE_COL_IDX(int32_t, id);
+  DECLARE_COL_IDX(std::string, name);
 
   std::ifstream fin("end_to_end_test/raw/people.tbl");
+  int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
     auto data = split(line, '|');
 
-    id.push_back(ParseInt32(data[0]));
-    id_null.push_back(data[0].empty());
-    name.push_back(data[1]);
-    name_null.push_back(data[1].empty());
+    APPEND(id, ParseInt32, data[0], tuple_idx);
+    APPEND(name, ParseString, data[1], tuple_idx);
+    tuple_idx++;
   }
 
-  kush::runtime::ColumnData::Serialize<int32_t>(
-      "end_to_end_test/data/people_id.kdb", id);
-  kush::runtime::ColumnData::Serialize<std::string>(
-      "end_to_end_test/data/people_name.kdb", name);
-
-  kush::runtime::ColumnData::Serialize<int8_t>(
-      "end_to_end_test/data/people_id_null.kdb", id_null);
-  kush::runtime::ColumnData::Serialize<int8_t>(
-      "end_to_end_test/data/people_name_null.kdb", name_null);
+  SERIALIZE(int32_t, id, "people_id");
+  SERIALIZE(std::string, name, "people_name");
   std::cout << "people complete" << std::endl;
 }
 
@@ -122,63 +136,34 @@ void Info() {
     );
   */
 
-  std::vector<int32_t> id;
-  std::vector<int8_t> id_null;
-  std::vector<int8_t> cheated;
-  std::vector<int8_t> cheated_null;
-  std::vector<int64_t> date;
-  std::vector<int8_t> date_null;
-  std::vector<double> zscore;
-  std::vector<int8_t> zscore_null;
-  std::vector<int16_t> num1;
-  std::vector<int8_t> num1_null;
-  std::vector<int64_t> num2;
-  std::vector<int8_t> num2_null;
+  DECLARE_COL_IDX(int32_t, id);
+  DECLARE_COL_IDX(int8_t, cheated);
+  DECLARE_COL_IDX(int64_t, date);
+  DECLARE_COL_IDX(double, zscore);
+  DECLARE_COL_IDX(int16_t, num1);
+  DECLARE_COL_IDX(int64_t, num2);
 
   std::ifstream fin("end_to_end_test/raw/info.tbl");
+  int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
     auto data = split(line, '|');
 
-    id.push_back(ParseInt32(data[0]));
-    cheated.push_back(ParseBool(data[1]));
-    date.push_back(ParseDate(data[2]));
-    zscore.push_back(ParseDouble(data[3]));
-    num1.push_back(ParseInt16(data[4]));
-    num2.push_back(ParseInt64(data[5]));
+    APPEND(id, ParseInt32, data[0], tuple_idx);
+    APPEND(cheated, ParseBool, data[1], tuple_idx);
+    APPEND(date, ParseDate, data[2], tuple_idx);
+    APPEND(zscore, ParseDouble, data[3], tuple_idx);
+    APPEND(num1, ParseInt16, data[4], tuple_idx);
+    APPEND(num2, ParseInt64, data[5], tuple_idx);
 
-    id_null.push_back(data[0].empty());
-    cheated_null.push_back(data[1].empty());
-    date_null.push_back(data[2].empty());
-    zscore_null.push_back(data[3].empty());
-    num1_null.push_back(data[4].empty());
-    num2_null.push_back(data[5].empty());
+    tuple_idx++;
   }
 
-  kush::runtime::ColumnData::Serialize<int32_t>(
-      "end_to_end_test/data/info_id.kdb", id);
-  kush::runtime::ColumnData::Serialize<int8_t>(
-      "end_to_end_test/data/info_cheated.kdb", cheated);
-  kush::runtime::ColumnData::Serialize<int64_t>(
-      "end_to_end_test/data/info_date.kdb", date);
-  kush::runtime::ColumnData::Serialize<double>(
-      "end_to_end_test/data/info_zscore.kdb", zscore);
-  kush::runtime::ColumnData::Serialize<int16_t>(
-      "end_to_end_test/data/info_num1.kdb", num1);
-  kush::runtime::ColumnData::Serialize<int64_t>(
-      "end_to_end_test/data/info_num2.kdb", num2);
-
-  kush::runtime::ColumnData::Serialize<int8_t>(
-      "end_to_end_test/data/info_id_null.kdb", id_null);
-  kush::runtime::ColumnData::Serialize<int8_t>(
-      "end_to_end_test/data/info_cheated_null.kdb", cheated_null);
-  kush::runtime::ColumnData::Serialize<int8_t>(
-      "end_to_end_test/data/info_date_null.kdb", date_null);
-  kush::runtime::ColumnData::Serialize<int8_t>(
-      "end_to_end_test/data/info_zscore_null.kdb", zscore_null);
-  kush::runtime::ColumnData::Serialize<int8_t>(
-      "end_to_end_test/data/info_num1_null.kdb", num1_null);
-  kush::runtime::ColumnData::Serialize<int8_t>(
-      "end_to_end_test/data/info_num2_null.kdb", num2_null);
+  SERIALIZE(int32_t, id, "info_id");
+  SERIALIZE(int8_t, cheated, "info_cheated");
+  SERIALIZE(int64_t, date, "info_date");
+  SERIALIZE(double, zscore, "info_zscore");
+  SERIALIZE(int16_t, num1, "info_num1");
+  SERIALIZE(int64_t, num2, "info_num2");
   std::cout << "info complete" << std::endl;
 }
 

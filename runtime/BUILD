@@ -6,7 +6,6 @@ cc_library(
     name = "date_extractor",
     srcs = ["date_extractor.cc"],
     hdrs = ["date_extractor.h"],
-    linkstatic = True,
     deps = [
         "@absl//absl/time",
     ],
@@ -16,7 +15,6 @@ cc_library(
     name = "memory_column_index",
     srcs = ["memory_column_index.cc"],
     hdrs = ["memory_column_index.h"],
-    linkstatic = True,
     deps = [
         ":string",
         "@absl//absl/container:flat_hash_map",
@@ -34,10 +32,18 @@ cc_test(
 )
 
 cc_library(
+    name = "column_index",
+    srcs = ["column_index.cc"],
+    hdrs = ["column_index.h"],
+    deps = [
+        ":string",
+    ],
+)
+
+cc_library(
     name = "column_data",
     srcs = ["column_data.cc"],
     hdrs = ["column_data.h"],
-    linkstatic = True,
     deps = [
         ":string",
     ],
@@ -47,7 +53,6 @@ cc_library(
     name = "string",
     srcs = ["string.cc"],
     hdrs = ["string.h"],
-    linkstatic = True,
     deps = [
         "@re2",
     ],
@@ -57,7 +62,6 @@ cc_library(
     name = "vector",
     srcs = ["vector.cc"],
     hdrs = ["vector.h"],
-    linkstatic = True,
     deps = [],
 )
 
@@ -65,7 +69,6 @@ cc_library(
     name = "hash_table",
     srcs = ["hash_table.cc"],
     hdrs = ["hash_table.h"],
-    linkstatic = True,
     deps = [
         ":vector",
     ],
@@ -75,7 +78,6 @@ cc_library(
     name = "tuple_idx_table",
     srcs = ["tuple_idx_table.cc"],
     hdrs = ["tuple_idx_table.h"],
-    linkstatic = True,
     deps = [],
 )
 
@@ -83,7 +85,6 @@ cc_library(
     name = "skinner_join_executor",
     srcs = ["skinner_join_executor.cc"],
     hdrs = ["skinner_join_executor.h"],
-    linkstatic = True,
     deps = [
         "//compile/translators:recompiling_join_translator",
         "@absl//absl/container:btree",
@@ -97,7 +98,6 @@ cc_library(
     name = "printer",
     srcs = ["printer.cc"],
     hdrs = ["printer.h"],
-    linkstatic = True,
     deps = [
         ":string",
     ],

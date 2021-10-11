@@ -30,6 +30,7 @@ cc_binary(
     ],
     deps = [
         "//runtime:column_data",
+        "//runtime:column_index",
         "@absl//absl/time",
     ],
 )
