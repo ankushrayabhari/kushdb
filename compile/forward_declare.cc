@@ -40,6 +40,7 @@ void ForwardDeclare(khir::ProgramBuilder& program) {
   proxy::ColumnData<catalog::SqlType::TEXT>::ForwardDeclare(program);
 
   // Forward declare the column index implementations
+  proxy::ColumnIndexBucket::ForwardDeclare(program);
   proxy::ColumnIndexImpl<catalog::SqlType::SMALLINT>::ForwardDeclare(program);
   proxy::ColumnIndexImpl<catalog::SqlType::INT>::ForwardDeclare(program);
   proxy::ColumnIndexImpl<catalog::SqlType::BIGINT>::ForwardDeclare(program);

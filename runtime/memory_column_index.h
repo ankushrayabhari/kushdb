@@ -9,6 +9,7 @@
 
 #include "absl/container/flat_hash_map.h"
 
+#include "runtime/column_index_bucket.h"
 #include "runtime/string.h"
 
 namespace kush::runtime::MemoryColumnIndex {
@@ -47,32 +48,23 @@ void InsertTextIndex(
     String::String* value, int32_t tuple_idx);
 
 // Get the bucket of tuple idx from index
-std::vector<int32_t>* GetBucketInt8Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int8_t value);
-std::vector<int32_t>* GetBucketInt16Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int16_t value);
-std::vector<int32_t>* GetBucketInt32Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int32_t value);
-std::vector<int32_t>* GetBucketInt64Index(
-    absl::flat_hash_map<int64_t, std::vector<int32_t>>* index, int64_t value);
-std::vector<int32_t>* GetBucketFloat64Index(
-    absl::flat_hash_map<double, std::vector<int32_t>>* index, double value);
-std::vector<int32_t>* GetBucketTextIndex(
+void GetBucketInt8Index(
+    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int8_t value,
+    ColumnIndexBucket* result);
+void GetBucketInt16Index(
+    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int16_t value,
+    ColumnIndexBucket* result);
+void GetBucketInt32Index(
+    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int32_t value,
+    ColumnIndexBucket* result);
+void GetBucketInt64Index(
+    absl::flat_hash_map<int64_t, std::vector<int32_t>>* index, int64_t value,
+    ColumnIndexBucket* result);
+void GetBucketFloat64Index(
+    absl::flat_hash_map<double, std::vector<int32_t>>* index, double value,
+    ColumnIndexBucket* result);
+void GetBucketTextIndex(
     absl::flat_hash_map<std::string, std::vector<int32_t>>* index,
-    String::String* value);
-
-// Fast forward to the next greater position in the index bucket
-int32_t FastForwardBucket(std::vector<int32_t>* bucket, int32_t prev_tuple);
-int32_t BucketSize(std::vector<int32_t>* bucket);
-int32_t BucketGet(std::vector<int32_t>* bucket, int32_t idx);
-
-// Bucket List
-std::vector<std::vector<int32_t>*>* CreateBucketList();
-int32_t BucketListSize(std::vector<std::vector<int32_t>*>* bucket_list);
-void BucketListPushBack(std::vector<std::vector<int32_t>*>* bucket_list,
-                        std::vector<int32_t>* bucket);
-std::vector<int32_t>* BucketListGet(
-    std::vector<std::vector<int32_t>*>* bucket_list, int32_t idx);
-void FreeBucketList(std::vector<std::vector<int32_t>*>* bucket_list);
+    String::String* value, ColumnIndexBucket* result);
 
 }  // namespace kush::runtime::MemoryColumnIndex

@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "runtime/column_index_bucket.h"
 #include "runtime/string.h"
 
 namespace kush::runtime::ColumnIndex {
@@ -46,12 +47,12 @@ struct ColumnIndex {
 
 void Open(ColumnIndex* col, const char* path);
 
-ColumnIndexEntry<int8_t>* GetInt8(ColumnIndex* col, int8_t key);
-ColumnIndexEntry<int16_t>* GetInt16(ColumnIndex* col, int16_t key);
-ColumnIndexEntry<int32_t>* GetInt32(ColumnIndex* col, int32_t key);
-ColumnIndexEntry<int64_t>* GetInt64(ColumnIndex* col, int64_t key);
-ColumnIndexEntry<double>* GetFloat64(ColumnIndex* col, double key);
-ColumnIndexEntry<std::string>* GetText(ColumnIndex* col, String::String* key);
+void GetInt8(ColumnIndex* col, int8_t key, ColumnIndexBucket* dest);
+void GetInt16(ColumnIndex* col, int16_t key, ColumnIndexBucket* dest);
+void GetInt32(ColumnIndex* col, int32_t key, ColumnIndexBucket* dest);
+void GetInt64(ColumnIndex* col, int64_t key, ColumnIndexBucket* dest);
+void GetFloat64(ColumnIndex* col, double key, ColumnIndexBucket* dest);
+void GetText(ColumnIndex* col, String::String* key, ColumnIndexBucket* dest);
 
 void Close(ColumnIndex* col);
 

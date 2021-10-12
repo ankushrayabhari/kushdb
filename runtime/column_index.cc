@@ -61,7 +61,7 @@ void Open(ColumnIndex* col, const char* path) {
 }
 
 template <typename T>
-ColumnIndexEntry<T>* GetImpl(ColumnIndex* col, T key) {
+void GetImpl(ColumnIndex* col, T key, ColumnIndexBucket* dest) {
   uint64_t key_as_64;
   if constexpr (std::is_same_v<T, double>) {
     std::memcpy(&key_as_64, &key, sizeof(uint64_t));
@@ -74,34 +74,39 @@ ColumnIndexEntry<T>* GetImpl(ColumnIndex* col, T key) {
     auto entry = reinterpret_cast<ColumnIndexEntry<T>*>(
         reinterpret_cast<uint8_t*>(col->data) + pos);
     if (entry->key == key) {
-      return entry;
+      dest->data = entry->values;
+      dest->size = entry->size;
+      return;
     }
     pos = entry->next;
   }
-  return nullptr;
+
+  dest->data = nullptr;
+  dest->size = 0;
+  return;
 }
 
-ColumnIndexEntry<int8_t>* GetInt8(ColumnIndex* col, int8_t key) {
-  return GetImpl(col, key);
+void GetInt8(ColumnIndex* col, int8_t key, ColumnIndexBucket* dest) {
+  GetImpl(col, key, dest);
 }
 
-ColumnIndexEntry<int16_t>* GetInt16(ColumnIndex* col, int16_t key) {
-  return GetImpl(col, key);
+void GetInt16(ColumnIndex* col, int16_t key, ColumnIndexBucket* dest) {
+  GetImpl(col, key, dest);
 }
 
-ColumnIndexEntry<int32_t>* GetInt32(ColumnIndex* col, int32_t key) {
-  return GetImpl(col, key);
+void GetInt32(ColumnIndex* col, int32_t key, ColumnIndexBucket* dest) {
+  GetImpl(col, key, dest);
 }
 
-ColumnIndexEntry<int64_t>* GetInt64(ColumnIndex* col, int64_t key) {
-  return GetImpl(col, key);
+void GetInt64(ColumnIndex* col, int64_t key, ColumnIndexBucket* dest) {
+  GetImpl(col, key, dest);
 }
 
-ColumnIndexEntry<double>* GetFloat64(ColumnIndex* col, double key) {
-  return GetImpl(col, key);
+void GetFloat64(ColumnIndex* col, double key, ColumnIndexBucket* dest) {
+  GetImpl(col, key, dest);
 }
 
-ColumnIndexEntry<std::string>* GetText(ColumnIndex* col, String::String* key) {
+void GetText(ColumnIndex* col, String::String* key, ColumnIndexBucket* dest) {
   std::string_view key_as_sv(key->data, key->length);
 
   std::hash<std::string_view> hasher;
@@ -114,11 +119,16 @@ ColumnIndexEntry<std::string>* GetText(ColumnIndex* col, String::String* key) {
         reinterpret_cast<const char*>(col->data) + entry->str_offset,
         entry->str_len);
     if (entry_key_as_sv == key_as_sv) {
-      return entry;
+      dest->data = entry->values;
+      dest->size = entry->size;
+      return;
     }
     pos = entry->next;
   }
-  return nullptr;
+
+  dest->data = nullptr;
+  dest->size = 0;
+  return;
 }
 
 void Close(ColumnIndex* col) {

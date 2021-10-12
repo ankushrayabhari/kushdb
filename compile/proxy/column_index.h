@@ -8,30 +8,19 @@
 
 namespace kush::compile::proxy {
 
-class IndexBucket {
+class ColumnIndexBucket {
  public:
-  IndexBucket(khir::ProgramBuilder& program, khir::Value v);
+  ColumnIndexBucket(khir::ProgramBuilder& program);
+  ColumnIndexBucket(khir::ProgramBuilder& program, khir::Value v);
 
-  Int32 FastForwardToStart(const Int32& last_tuple);
   Int32 Size();
   Int32 operator[](const Int32& v);
+  Int32 FastForwardToStart(const Int32& last_tuple);
   Bool DoesNotExist();
-
+  void Copy(const ColumnIndexBucket& rhs);
   khir::Value Get() const;
 
- private:
-  khir::ProgramBuilder& program_;
-  khir::Value value_;
-};
-
-class IndexBucketList {
- public:
-  IndexBucketList(khir::ProgramBuilder& program);
-
-  Int32 Size();
-  IndexBucket operator[](const Int32& idx);
-  void PushBack(const IndexBucket& bucket);
-  void Reset();
+  static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
   khir::ProgramBuilder& program_;
@@ -46,7 +35,7 @@ class ColumnIndex {
   virtual catalog::SqlType Type() const = 0;
   virtual void Reset() = 0;
   virtual void Insert(const IRValue& v, const Int32& tuple_idx) = 0;
-  virtual IndexBucket GetBucket(const IRValue& v) = 0;
+  virtual ColumnIndexBucket GetBucket(const IRValue& v) = 0;
 
   // Serializes the data needed to generate a reference to this index in a
   // different program builder.
@@ -70,7 +59,7 @@ class ColumnIndexImpl : public ColumnIndex {
   void Insert(const IRValue& v, const Int32& tuple_idx) override;
   khir::Value Get() const override;
   catalog::SqlType Type() const override;
-  IndexBucket GetBucket(const IRValue& v) override;
+  ColumnIndexBucket GetBucket(const IRValue& v) override;
   khir::Value Serialize() override;
   std::unique_ptr<ColumnIndex> Regenerate(khir::ProgramBuilder& program,
                                           void* value) override;
@@ -82,6 +71,7 @@ class ColumnIndexImpl : public ColumnIndex {
  private:
   khir::ProgramBuilder& program_;
   khir::Value value_;
+  khir::Value get_value_;
 };
 
 }  // namespace kush::compile::proxy

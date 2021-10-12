@@ -12,21 +12,29 @@ cc_library(
 )
 
 cc_library(
+    name = "column_index_bucket",
+    srcs = ["column_index_bucket.cc"],
+    hdrs = ["column_index_bucket.h"],
+    deps = [],
+)
+
+cc_library(
     name = "memory_column_index",
     srcs = ["memory_column_index.cc"],
     hdrs = ["memory_column_index.h"],
     deps = [
+        ":column_index_bucket",
         ":string",
         "@absl//absl/container:flat_hash_map",
     ],
 )
 
 cc_test(
-    name = "column_index_test",
+    name = "column_index_bucket_test",
     size = "small",
-    srcs = ["column_index_test.cc"],
+    srcs = ["column_index_bucket_test.cc"],
     deps = [
-        ":memory_column_index",
+        ":column_index_bucket",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -36,6 +44,7 @@ cc_library(
     srcs = ["column_index.cc"],
     hdrs = ["column_index.h"],
     deps = [
+        ":column_index_bucket",
         ":string",
     ],
 )

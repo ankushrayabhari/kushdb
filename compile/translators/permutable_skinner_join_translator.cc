@@ -362,7 +362,10 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
           // for each indexed predicate, if the buffer DNE, then return since
           // no result tuples with current column values.
-          proxy::IndexBucketList bucket_list(program_);
+          proxy::ColumnIndexBucket bucket(program_);
+          auto bucket_initialized = program_.Alloca(program_.I8Type());
+          program_.StoreI8(bucket_initialized, program_.ConstI8(0));
+
           for (int predicate_idx : predicates_per_table[table_idx]) {
             const auto& predicate = conditions[predicate_idx].get();
             if (!IsEqualityPredicate(predicate)) {
@@ -411,52 +414,44 @@ void PermutableSkinnerJoinTranslator::Produce() {
                               program_.GetElementPtr(table_ctr_type,
                                                      table_ctr_ptr, {0, 0}),
                               program_.ConstI32(table_idx));
-
-                          bucket_list.Reset();
                           program_.Return(program_.ConstI32(-1));
                         },
-                        [&]() {
-                          bucket_list.Reset();
-                          program_.Return(budget.Get());
-                        });
+                        [&]() { program_.Return(budget.Get()); });
                   },
                   [&]() {
-                    auto bucket = indexes_[index_idx]->GetBucket(
+                    auto bucket_from_index = indexes_[index_idx]->GetBucket(
                         other_side_value.Get() /*other_side_value*/);
-                    bucket_list.PushBack(bucket);
+                    bucket.Copy(bucket_from_index);
+                    program_.StoreI8(bucket_initialized, program_.ConstI8(1));
 
-                    proxy::If(program_, bucket.DoesNotExist(), [&]() {
-                      auto budget = initial_budget - 1;
-                      proxy::If(
-                          program_, budget == 0,
-                          [&]() {
-                            auto idx_ptr = program_.GetElementPtr(
-                                idx_array_type, idx_array, {0, table_idx});
-                            program_.StoreI32(idx_ptr, (cardinality - 1).Get());
-                            program_.StoreI32(
-                                program_.GetElementPtr(table_ctr_type,
-                                                       table_ctr_ptr, {0, 0}),
-                                program_.ConstI32(table_idx));
-
-                            bucket_list.Reset();
-                            program_.Return(program_.ConstI32(-1));
-                          },
-                          [&]() {
-                            bucket_list.Reset();
-                            program_.Return(budget.Get());
-                          });
-                    });
+                    proxy::If(
+                        program_, bucket_from_index.DoesNotExist(), [&]() {
+                          auto budget = initial_budget - 1;
+                          proxy::If(
+                              program_, budget == 0,
+                              [&]() {
+                                auto idx_ptr = program_.GetElementPtr(
+                                    idx_array_type, idx_array, {0, table_idx});
+                                program_.StoreI32(idx_ptr,
+                                                  (cardinality - 1).Get());
+                                program_.StoreI32(
+                                    program_.GetElementPtr(
+                                        table_ctr_type, table_ctr_ptr, {0, 0}),
+                                    program_.ConstI32(table_idx));
+                                program_.Return(program_.ConstI32(-1));
+                              },
+                              [&]() { program_.Return(budget.Get()); });
+                        });
                   });
             });
           }
 
           auto use_index = proxy::Ternary(
-              program_, bucket_list.Size() > 0,
+              program_,
+              proxy::Int8(program_, program_.LoadI8(bucket_initialized)) != 0,
               [&]() {
-                // TODO: check all buckets not just the first
-                auto bucket = bucket_list[proxy::Int32(program_, 0)];
+                // TODO: check all buckets
                 auto bucket_size = bucket.Size();
-                bucket_list.Reset();
 
                 proxy::Loop loop(
                     program_,
@@ -645,9 +640,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
                 return loop.template GetLoopVariable<proxy::Int32>(1);
               },
               [&]() {
-                // No indexes
-                bucket_list.Reset();
-
                 // Loop over tuples in buffer
                 proxy::Loop loop(
                     program_,

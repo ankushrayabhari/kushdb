@@ -10,7 +10,73 @@
 
 namespace kush::compile::proxy {
 
-std::string_view bucket_type_name("kush::runtime::MemoryColumnIndex::Bucket");
+constexpr std::string_view ColumnIndexBucketName(
+    "kush::runtime::ColumnIndexBucket");
+
+constexpr std::string_view FastForwardBucketName(
+    "kush::runtime::ColumnIndexBucket::FastForwardBucket");
+
+constexpr std::string_view ColumnIndexBucketGetName(
+    "kush::runtime::ColumnIndexBucket::GetBucketValue");
+
+ColumnIndexBucket::ColumnIndexBucket(khir::ProgramBuilder& program)
+    : program_(program),
+      value_(program_.Alloca(program_.GetStructType(ColumnIndexBucketName))) {}
+
+ColumnIndexBucket::ColumnIndexBucket(khir::ProgramBuilder& program,
+                                     khir::Value v)
+    : program_(program), value_(v) {}
+
+void ColumnIndexBucket::Copy(const ColumnIndexBucket& rhs) {
+  auto st = program_.GetStructType(ColumnIndexBucketName);
+  program_.StorePtr(
+      program_.GetElementPtr(st, value_, {0, 0}),
+      program_.LoadPtr(program_.GetElementPtr(st, rhs.value_, {0, 0})));
+  program_.StoreI32(
+      program_.GetElementPtr(st, value_, {0, 1}),
+      program_.LoadI32(program_.GetElementPtr(st, rhs.value_, {0, 1})));
+}
+
+Int32 ColumnIndexBucket::FastForwardToStart(const Int32& last_tuple) {
+  return Int32(program_,
+               program_.Call(program_.GetFunction(FastForwardBucketName),
+                             {value_, last_tuple.Get()}));
+}
+
+Int32 ColumnIndexBucket::Size() {
+  auto size_ptr = program_.GetElementPtr(
+      program_.GetStructType(ColumnIndexBucketName), value_, {0, 1});
+  return Int32(program_, program_.LoadI32(size_ptr));
+}
+
+Int32 ColumnIndexBucket::operator[](const Int32& v) {
+  return Int32(program_,
+               program_.Call(program_.GetFunction(ColumnIndexBucketGetName),
+                             {value_, v.Get()}));
+}
+
+Bool ColumnIndexBucket::DoesNotExist() {
+  return Bool(program_, program_.IsNullPtr(value_));
+}
+
+void ColumnIndexBucket::ForwardDeclare(khir::ProgramBuilder& program) {
+  auto index_bucket_type = program.StructType(
+      {program.PointerType(program.I32Type()), program.I32Type()},
+      ColumnIndexBucketName);
+  auto index_bucket_ptr_type = program.PointerType(index_bucket_type);
+
+  program.DeclareExternalFunction(
+      FastForwardBucketName, program.I32Type(),
+      {index_bucket_ptr_type, program.I32Type()},
+      reinterpret_cast<void*>(&runtime::FastForwardBucket));
+
+  program.DeclareExternalFunction(
+      ColumnIndexBucketGetName, program.I32Type(),
+      {index_bucket_ptr_type, program.I32Type()},
+      reinterpret_cast<void*>(&runtime::GetBucketValue));
+}
+
+khir::Value ColumnIndexBucket::Get() const { return value_; }
 
 template <catalog::SqlType S>
 std::string_view ColumnIndexImpl<S>::TypeName() {
@@ -151,30 +217,6 @@ void* GetBucketFn() {
   }
 }
 
-constexpr std::string_view FastForwardBucketName(
-    "kush::runtime::MemoryColumnIndex::FastForwardBucket");
-
-constexpr std::string_view BucketSizeName(
-    "kush::runtime::MemoryColumnIndex::BucketSize");
-
-constexpr std::string_view BucketGetName(
-    "kush::runtime::MemoryColumnIndex::BucketGet");
-
-constexpr std::string_view CreateBucketListName(
-    "kush::runtime::MemoryColumnIndex::CreateBucketList");
-
-constexpr std::string_view BucketListGetName(
-    "kush::runtime::MemoryColumnIndex::BucketListGet");
-
-constexpr std::string_view BucketListPushBackName(
-    "kush::runtime::MemoryColumnIndex::BucketListPushBack");
-
-constexpr std::string_view BucketListSizeName(
-    "kush::runtime::MemoryColumnIndex::BucketListSize");
-
-constexpr std::string_view FreeBucketListName(
-    "kush::runtime::MemoryColumnIndex::FreeBucketList");
-
 template <catalog::SqlType S>
 std::string_view InsertFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
@@ -226,13 +268,20 @@ void ColumnIndexImpl<S>::Reset() {
 template <catalog::SqlType S>
 ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program, bool global)
     : program_(program),
-      value_(global ? program.Global(false, false,
-                                     program.PointerType(
-                                         program.GetOpaqueType(TypeName())),
-                                     program.NullPtr(program.PointerType(
-                                         program.GetOpaqueType(TypeName()))))
-                    : program_.Alloca(program.PointerType(
-                          program.GetOpaqueType(TypeName())))) {
+      value_(global
+                 ? program.Global(
+                       false, false,
+                       program.PointerType(program.GetOpaqueType(TypeName())),
+                       program.NullPtr(program.PointerType(
+                           program.GetOpaqueType(TypeName()))))
+                 : program_.Alloca(
+                       program.PointerType(program.GetOpaqueType(TypeName())))),
+      get_value_(program.Global(
+          false, true, program.GetStructType(ColumnIndexBucketName),
+          program.ConstantStruct(
+              program.GetStructType(ColumnIndexBucketName),
+              {program.NullPtr(program.PointerType(program.I32Type())),
+               program.ConstI32(0)}))) {
   program_.StorePtr(value_,
                     program_.Call(program_.GetFunction(CreateFnName<S>()), {}));
 }
@@ -242,7 +291,13 @@ ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program,
                                     khir::Value v)
     : program_(program),
       value_(program_.Alloca(
-          program.PointerType(program.GetOpaqueType(TypeName())))) {
+          program.PointerType(program.GetOpaqueType(TypeName())))),
+      get_value_(program.Global(
+          false, true, program.GetStructType(ColumnIndexBucketName),
+          program.ConstantStruct(
+              program.GetStructType(ColumnIndexBucketName),
+              {program.NullPtr(program.PointerType(program.I32Type())),
+               program.ConstI32(0)}))) {
   program_.StorePtr(value_, v);
 }
 
@@ -263,10 +318,10 @@ void ColumnIndexImpl<S>::Insert(const IRValue& v, const Int32& tuple_idx) {
 }
 
 template <catalog::SqlType S>
-IndexBucket ColumnIndexImpl<S>::GetBucket(const IRValue& v) {
-  return IndexBucket(program_,
-                     program_.Call(program_.GetFunction(GetBucketFnName<S>()),
-                                   {program_.LoadPtr(value_), v.Get()}));
+ColumnIndexBucket ColumnIndexImpl<S>::GetBucket(const IRValue& v) {
+  program_.Call(program_.GetFunction(GetBucketFnName<S>()),
+                {program_.LoadPtr(value_), v.Get(), get_value_});
+  return ColumnIndexBucket(program_, get_value_);
 }
 
 template <catalog::SqlType S>
@@ -292,14 +347,6 @@ void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
     index_type = program.OpaqueType(TypeName());
   }
   auto index_ptr_type = program.PointerType(index_type.value());
-
-  std::optional<khir::Type> bucket_type;
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    bucket_type = program.OpaqueType(bucket_type_name);
-  } else {
-    bucket_type = program.GetOpaqueType(bucket_type_name);
-  }
-  auto bucket_ptr_type = program.PointerType(bucket_type.value());
 
   std::optional<khir::Type> value_type;
   if constexpr (catalog::SqlType::SMALLINT == S) {
@@ -327,96 +374,11 @@ void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
       {index_ptr_type, value_type.value(), program.I32Type()}, InsertFn<S>());
 
   // Bucket related functionality
-  program.DeclareExternalFunction(GetBucketFnName<S>(), bucket_ptr_type,
-                                  {index_ptr_type, value_type.value()},
-                                  GetBucketFn<S>());
+  auto bucket_ptr_type =
+      program.PointerType(program.GetStructType(ColumnIndexBucketName));
   program.DeclareExternalFunction(
-      FastForwardBucketName, program.I32Type(),
-      {bucket_ptr_type, program.I32Type()},
-      reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FastForwardBucket));
-  program.DeclareExternalFunction(
-      BucketSizeName, program.I32Type(), {bucket_ptr_type},
-      reinterpret_cast<void*>(&runtime::MemoryColumnIndex::BucketSize));
-  program.DeclareExternalFunction(
-      BucketGetName, program.I32Type(), {bucket_ptr_type, program.I32Type()},
-      reinterpret_cast<void*>(&runtime::MemoryColumnIndex::BucketGet));
-
-  // Bucket list related functionality
-  auto bucket_list_type = program.I8Type();
-  auto bucket_list_ptr_type = program.PointerType(bucket_list_type);
-  program.DeclareExternalFunction(
-      CreateBucketListName, bucket_list_ptr_type, {},
-      reinterpret_cast<void*>(&runtime::MemoryColumnIndex::CreateBucketList));
-  program.DeclareExternalFunction(
-      FreeBucketListName, program.VoidType(), {bucket_list_ptr_type},
-      reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FreeBucketList));
-  program.DeclareExternalFunction(
-      BucketListSizeName, program.I32Type(), {bucket_list_ptr_type},
-      reinterpret_cast<void*>(&runtime::MemoryColumnIndex::BucketListSize));
-  program.DeclareExternalFunction(
-      BucketListGetName, bucket_ptr_type,
-      {bucket_list_ptr_type, program.I32Type()},
-      reinterpret_cast<void*>(&runtime::MemoryColumnIndex::BucketListGet));
-  program.DeclareExternalFunction(
-      BucketListPushBackName, program.VoidType(),
-      {bucket_list_ptr_type, bucket_ptr_type},
-      reinterpret_cast<void*>(&runtime::MemoryColumnIndex::BucketListPushBack));
-}
-
-IndexBucket::IndexBucket(khir::ProgramBuilder& program, khir::Value v)
-    : program_(program), value_(v) {}
-
-Int32 IndexBucket::FastForwardToStart(const Int32& last_tuple) {
-  return Int32(program_,
-               program_.Call(program_.GetFunction(FastForwardBucketName),
-                             {value_, last_tuple.Get()}));
-}
-
-Int32 IndexBucket::Size() {
-  return Int32(program_,
-               program_.Call(program_.GetFunction(BucketSizeName), {value_}));
-}
-
-Int32 IndexBucket::operator[](const Int32& v) {
-  return Int32(program_, program_.Call(program_.GetFunction(BucketGetName),
-                                       {value_, v.Get()}));
-}
-
-Bool IndexBucket::DoesNotExist() {
-  return Bool(program_, program_.IsNullPtr(value_));
-}
-
-khir::Value IndexBucket::Get() const { return value_; }
-
-IndexBucketList::IndexBucketList(khir::ProgramBuilder& program)
-    : program_(program),
-      value_(program.Alloca(program.PointerType(program.I8Type()))) {
-  program_.StorePtr(
-      value_, program_.Call(program_.GetFunction(CreateBucketListName), {}));
-}
-
-void IndexBucketList::Reset() {
-  program_.Call(program_.GetFunction(FreeBucketListName),
-                {program_.LoadPtr(value_)});
-}
-
-Int32 IndexBucketList::Size() {
-  return Int32(program_, program_.Call(program_.GetFunction(BucketListSizeName),
-                                       {program_.LoadPtr(value_)}));
-}
-
-IndexBucket IndexBucketList::operator[](const Int32& idx) {
-  return IndexBucket(program_,
-                     program_.Call(program_.GetFunction(BucketListGetName),
-                                   {
-                                       program_.LoadPtr(value_),
-                                       idx.Get(),
-                                   }));
-}
-
-void IndexBucketList::PushBack(const IndexBucket& bucket) {
-  program_.Call(program_.GetFunction(BucketListPushBackName),
-                {program_.LoadPtr(value_), bucket.Get()});
+      GetBucketFnName<S>(), program.VoidType(),
+      {index_ptr_type, value_type.value(), bucket_ptr_type}, GetBucketFn<S>());
 }
 
 template class ColumnIndexImpl<catalog::SqlType::SMALLINT>;

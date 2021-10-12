@@ -135,69 +135,54 @@ int32_t BucketGet(std::vector<int32_t>* bucket, int32_t idx) {
 
 // Get the next tuple from index or cardinality
 template <typename T, typename S>
-inline std::vector<int32_t>* GetBucketImpl(
-    absl::flat_hash_map<T, std::vector<int32_t>>* index, S value) {
+void GetBucketImpl(absl::flat_hash_map<T, std::vector<int32_t>>* index, S value,
+                   ColumnIndexBucket* result) {
   auto it = index->find(value);
 
   if (it == index->end()) {
-    return nullptr;
+    result->size = 0;
+    result->data = nullptr;
+    return;
   }
 
-  // Get bucket
-  return &it->second;
+  result->size = it->second.size();
+  result->data = it->second.data();
 }
 
-std::vector<int32_t>* GetBucketInt8Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int8_t value) {
-  return GetBucketImpl(index, value);
+void GetBucketInt8Index(
+    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int8_t value,
+    ColumnIndexBucket* result) {
+  GetBucketImpl(index, value, result);
 }
 
-std::vector<int32_t>* GetBucketInt16Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int16_t value) {
-  return GetBucketImpl(index, value);
+void GetBucketInt16Index(
+    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int16_t value,
+    ColumnIndexBucket* result) {
+  GetBucketImpl(index, value, result);
 }
 
-std::vector<int32_t>* GetBucketInt32Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int32_t value) {
-  return GetBucketImpl(index, value);
+void GetBucketInt32Index(
+    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int32_t value,
+    ColumnIndexBucket* result) {
+  GetBucketImpl(index, value, result);
 }
 
-std::vector<int32_t>* GetBucketInt64Index(
-    absl::flat_hash_map<int64_t, std::vector<int32_t>>* index, int64_t value) {
-  return GetBucketImpl(index, value);
+void GetBucketInt64Index(
+    absl::flat_hash_map<int64_t, std::vector<int32_t>>* index, int64_t value,
+    ColumnIndexBucket* result) {
+  GetBucketImpl(index, value, result);
 }
 
-std::vector<int32_t>* GetBucketFloat64Index(
-    absl::flat_hash_map<double, std::vector<int32_t>>* index, double value) {
-  return GetBucketImpl(index, value);
+void GetBucketFloat64Index(
+    absl::flat_hash_map<double, std::vector<int32_t>>* index, double value,
+    ColumnIndexBucket* result) {
+  GetBucketImpl(index, value, result);
 }
 
-std::vector<int32_t>* GetBucketTextIndex(
+void GetBucketTextIndex(
     absl::flat_hash_map<std::string, std::vector<int32_t>>* index,
-    String::String* value) {
-  return GetBucketImpl(index, std::string_view(value->data, value->length));
-}
-
-std::vector<std::vector<int32_t>*>* CreateBucketList() {
-  return new std::vector<std::vector<int32_t>*>();
-}
-
-int32_t BucketListSize(std::vector<std::vector<int32_t>*>* bucket_list) {
-  return bucket_list->size();
-}
-
-void BucketListPushBack(std::vector<std::vector<int32_t>*>* bucket_list,
-                        std::vector<int32_t>* bucket) {
-  bucket_list->push_back(bucket);
-}
-
-std::vector<int32_t>* BucketListGet(
-    std::vector<std::vector<int32_t>*>* bucket_list, int32_t idx) {
-  return bucket_list->at(idx);
-}
-
-void FreeBucketList(std::vector<std::vector<int32_t>*>* bucket_list) {
-  delete bucket_list;
+    String::String* value, ColumnIndexBucket* result) {
+  GetBucketImpl(index, std::string_view(value->data, value->length), result);
 }
 
 }  // namespace kush::runtime::MemoryColumnIndex
