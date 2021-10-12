@@ -811,13 +811,14 @@ void RecompilingSkinnerJoinTranslator::Produce() {
         auto index_idx = predicate_to_index_idx_[{i, col_idx}];
 
         disk_materialized_buffer->Init();
-        disk_materialized_buffer->Scan(
-            col_idx, [&](auto tuple_idx, auto value) {
-              // only index not null values
-              proxy::If(program_, !value.IsNull(), [&]() {
-                indexes_[index_idx]->Insert(value.Get(), tuple_idx);
-              });
-            });
+        disk_materialized_buffer->Scan(col_idx, [&](auto tuple_idx,
+                                                    auto value) {
+          // only index not null values
+          proxy::If(program_, !value.IsNull(), [&]() {
+            dynamic_cast<proxy::ColumnIndexBuilder*>(indexes_[index_idx].get())
+                ->Insert(value.Get(), tuple_idx);
+          });
+        });
       }
 
       materialized_buffers_.push_back(std::move(disk_materialized_buffer));
@@ -1000,8 +1001,10 @@ void RecompilingSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
       const auto& value = values[predicate_column.get().GetColumnIdx()];
 
       // only index not null values
-      proxy::If(program_, !value.IsNull(),
-                [&]() { indexes_[idx]->Insert(value.Get(), tuple_idx); });
+      proxy::If(program_, !value.IsNull(), [&]() {
+        dynamic_cast<proxy::ColumnIndexBuilder*>(indexes_[idx].get())
+            ->Insert(value.Get(), tuple_idx);
+      });
     }
   }
 

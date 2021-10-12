@@ -79,7 +79,7 @@ void ColumnIndexBucket::ForwardDeclare(khir::ProgramBuilder& program) {
 khir::Value ColumnIndexBucket::Get() const { return value_; }
 
 template <catalog::SqlType S>
-std::string_view MemoryColumnIndex<S>::TypeName() {
+std::string_view TypeName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return "kush::runtime::MemoryColumnIndex::Int16Index";
   } else if constexpr (catalog::SqlType::INT == S) {
@@ -269,14 +269,13 @@ template <catalog::SqlType S>
 MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program,
                                         bool global)
     : program_(program),
-      value_(global
-                 ? program.Global(
-                       false, false,
-                       program.PointerType(program.GetOpaqueType(TypeName())),
-                       program.NullPtr(program.PointerType(
-                           program.GetOpaqueType(TypeName()))))
-                 : program_.Alloca(
-                       program.PointerType(program.GetOpaqueType(TypeName())))),
+      value_(global ? program.Global(false, false,
+                                     program.PointerType(
+                                         program.GetOpaqueType(TypeName<S>())),
+                                     program.NullPtr(program.PointerType(
+                                         program.GetOpaqueType(TypeName<S>()))))
+                    : program_.Alloca(program.PointerType(
+                          program.GetOpaqueType(TypeName<S>())))),
       get_value_(program.Global(
           false, true, program.GetStructType(ColumnIndexBucketName),
           program.ConstantStruct(
@@ -292,7 +291,7 @@ MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program,
                                         khir::Value v)
     : program_(program),
       value_(program_.Alloca(
-          program.PointerType(program.GetOpaqueType(TypeName())))),
+          program.PointerType(program.GetOpaqueType(TypeName<S>())))),
       get_value_(program.Global(
           false, true, program.GetStructType(ColumnIndexBucketName),
           program.ConstantStruct(
@@ -336,16 +335,16 @@ std::unique_ptr<ColumnIndex> MemoryColumnIndex<S>::Regenerate(
   return std::make_unique<MemoryColumnIndex<S>>(
       program, program.PointerCast(
                    program.ConstPtr(value),
-                   program.PointerType(program.GetOpaqueType(TypeName()))));
+                   program.PointerType(program.GetOpaqueType(TypeName<S>()))));
 }
 
 template <catalog::SqlType S>
 void MemoryColumnIndex<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   std::optional<khir::Type> index_type;
   if constexpr (catalog::SqlType::DATE == S) {
-    index_type = program.GetOpaqueType(TypeName());
+    index_type = program.GetOpaqueType(TypeName<S>());
   } else {
-    index_type = program.OpaqueType(TypeName());
+    index_type = program.OpaqueType(TypeName<S>());
   }
   auto index_ptr_type = program.PointerType(index_type.value());
 

@@ -34,7 +34,6 @@ class ColumnIndex {
   virtual khir::Value Get() const = 0;
   virtual catalog::SqlType Type() const = 0;
   virtual void Reset() = 0;
-  virtual void Insert(const IRValue& v, const Int32& tuple_idx) = 0;
   virtual ColumnIndexBucket GetBucket(const IRValue& v) = 0;
 
   // Serializes the data needed to generate a reference to this index in a
@@ -48,8 +47,14 @@ class ColumnIndex {
                                                   void* value) = 0;
 };
 
+class ColumnIndexBuilder {
+ public:
+  virtual ~ColumnIndexBuilder() = default;
+  virtual void Insert(const IRValue& v, const Int32& tuple_idx) = 0;
+};
+
 template <catalog::SqlType S>
-class MemoryColumnIndex : public ColumnIndex {
+class MemoryColumnIndex : public ColumnIndex, public ColumnIndexBuilder {
  public:
   MemoryColumnIndex(khir::ProgramBuilder& program, bool global);
   MemoryColumnIndex(khir::ProgramBuilder& program, khir::Value v);
@@ -65,8 +70,6 @@ class MemoryColumnIndex : public ColumnIndex {
                                           void* value) override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
-
-  static std::string_view TypeName();
 
  private:
   khir::ProgramBuilder& program_;
