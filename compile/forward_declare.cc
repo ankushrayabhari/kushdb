@@ -41,13 +41,13 @@ void ForwardDeclare(khir::ProgramBuilder& program) {
 
   // Forward declare the column index implementations
   proxy::ColumnIndexBucket::ForwardDeclare(program);
-  proxy::ColumnIndexImpl<catalog::SqlType::SMALLINT>::ForwardDeclare(program);
-  proxy::ColumnIndexImpl<catalog::SqlType::INT>::ForwardDeclare(program);
-  proxy::ColumnIndexImpl<catalog::SqlType::BIGINT>::ForwardDeclare(program);
-  proxy::ColumnIndexImpl<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
-  proxy::ColumnIndexImpl<catalog::SqlType::DATE>::ForwardDeclare(program);
-  proxy::ColumnIndexImpl<catalog::SqlType::REAL>::ForwardDeclare(program);
-  proxy::ColumnIndexImpl<catalog::SqlType::TEXT>::ForwardDeclare(program);
+  proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>::ForwardDeclare(program);
+  proxy::MemoryColumnIndex<catalog::SqlType::INT>::ForwardDeclare(program);
+  proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>::ForwardDeclare(program);
+  proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
+  proxy::MemoryColumnIndex<catalog::SqlType::DATE>::ForwardDeclare(program);
+  proxy::MemoryColumnIndex<catalog::SqlType::REAL>::ForwardDeclare(program);
+  proxy::MemoryColumnIndex<catalog::SqlType::TEXT>::ForwardDeclare(program);
 
   proxy::TupleIdxTable::ForwardDeclare(program);
   proxy::SkinnerJoinExecutor::ForwardDeclare(program);

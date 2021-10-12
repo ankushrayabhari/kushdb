@@ -101,38 +101,40 @@ void PermutableSkinnerJoinTranslator::Produce() {
         case catalog::SqlType::SMALLINT:
           indexes_.push_back(
               std::make_unique<
-                  proxy::ColumnIndexImpl<catalog::SqlType::SMALLINT>>(program_,
-                                                                      true));
+                  proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>>(
+                  program_, true));
           break;
         case catalog::SqlType::INT:
           indexes_.push_back(
-              std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::INT>>(
+              std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::INT>>(
                   program_, true));
           break;
         case catalog::SqlType::BIGINT:
-          indexes_.push_back(std::make_unique<
-                             proxy::ColumnIndexImpl<catalog::SqlType::BIGINT>>(
-              program_, true));
+          indexes_.push_back(
+              std::make_unique<
+                  proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>>(program_,
+                                                                      true));
           break;
         case catalog::SqlType::REAL:
-          indexes_.push_back(
-              std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::REAL>>(
-                  program_, true));
+          indexes_.push_back(std::make_unique<
+                             proxy::MemoryColumnIndex<catalog::SqlType::REAL>>(
+              program_, true));
           break;
         case catalog::SqlType::DATE:
-          indexes_.push_back(
-              std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::DATE>>(
-                  program_, true));
+          indexes_.push_back(std::make_unique<
+                             proxy::MemoryColumnIndex<catalog::SqlType::DATE>>(
+              program_, true));
           break;
         case catalog::SqlType::TEXT:
-          indexes_.push_back(
-              std::make_unique<proxy::ColumnIndexImpl<catalog::SqlType::TEXT>>(
-                  program_, true));
+          indexes_.push_back(std::make_unique<
+                             proxy::MemoryColumnIndex<catalog::SqlType::TEXT>>(
+              program_, true));
           break;
         case catalog::SqlType::BOOLEAN:
-          indexes_.push_back(std::make_unique<
-                             proxy::ColumnIndexImpl<catalog::SqlType::BOOLEAN>>(
-              program_, true));
+          indexes_.push_back(
+              std::make_unique<
+                  proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>>(program_,
+                                                                       true));
           break;
       }
     }

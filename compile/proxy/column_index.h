@@ -49,11 +49,11 @@ class ColumnIndex {
 };
 
 template <catalog::SqlType S>
-class ColumnIndexImpl : public ColumnIndex {
+class MemoryColumnIndex : public ColumnIndex {
  public:
-  ColumnIndexImpl(khir::ProgramBuilder& program, bool global);
-  ColumnIndexImpl(khir::ProgramBuilder& program, khir::Value v);
-  virtual ~ColumnIndexImpl() = default;
+  MemoryColumnIndex(khir::ProgramBuilder& program, bool global);
+  MemoryColumnIndex(khir::ProgramBuilder& program, khir::Value v);
+  virtual ~MemoryColumnIndex() = default;
 
   void Reset() override;
   void Insert(const IRValue& v, const Int32& tuple_idx) override;

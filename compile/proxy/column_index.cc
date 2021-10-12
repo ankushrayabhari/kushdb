@@ -79,7 +79,7 @@ void ColumnIndexBucket::ForwardDeclare(khir::ProgramBuilder& program) {
 khir::Value ColumnIndexBucket::Get() const { return value_; }
 
 template <catalog::SqlType S>
-std::string_view ColumnIndexImpl<S>::TypeName() {
+std::string_view MemoryColumnIndex<S>::TypeName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return "kush::runtime::MemoryColumnIndex::Int16Index";
   } else if constexpr (catalog::SqlType::INT == S) {
@@ -260,13 +260,14 @@ void* InsertFn() {
 }
 
 template <catalog::SqlType S>
-void ColumnIndexImpl<S>::Reset() {
+void MemoryColumnIndex<S>::Reset() {
   program_.Call(program_.GetFunction(FreeFnName<S>()),
                 {program_.LoadPtr(value_)});
 }
 
 template <catalog::SqlType S>
-ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program, bool global)
+MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program,
+                                        bool global)
     : program_(program),
       value_(global
                  ? program.Global(
@@ -287,8 +288,8 @@ ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program, bool global)
 }
 
 template <catalog::SqlType S>
-ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program,
-                                    khir::Value v)
+MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program,
+                                        khir::Value v)
     : program_(program),
       value_(program_.Alloca(
           program.PointerType(program.GetOpaqueType(TypeName())))),
@@ -302,44 +303,44 @@ ColumnIndexImpl<S>::ColumnIndexImpl(khir::ProgramBuilder& program,
 }
 
 template <catalog::SqlType S>
-khir::Value ColumnIndexImpl<S>::Get() const {
+khir::Value MemoryColumnIndex<S>::Get() const {
   return program_.LoadPtr(value_);
 }
 
 template <catalog::SqlType S>
-catalog::SqlType ColumnIndexImpl<S>::Type() const {
+catalog::SqlType MemoryColumnIndex<S>::Type() const {
   return S;
 }
 
 template <catalog::SqlType S>
-void ColumnIndexImpl<S>::Insert(const IRValue& v, const Int32& tuple_idx) {
+void MemoryColumnIndex<S>::Insert(const IRValue& v, const Int32& tuple_idx) {
   program_.Call(program_.GetFunction(InsertFnName<S>()),
                 {program_.LoadPtr(value_), v.Get(), tuple_idx.Get()});
 }
 
 template <catalog::SqlType S>
-ColumnIndexBucket ColumnIndexImpl<S>::GetBucket(const IRValue& v) {
+ColumnIndexBucket MemoryColumnIndex<S>::GetBucket(const IRValue& v) {
   program_.Call(program_.GetFunction(GetBucketFnName<S>()),
                 {program_.LoadPtr(value_), v.Get(), get_value_});
   return ColumnIndexBucket(program_, get_value_);
 }
 
 template <catalog::SqlType S>
-khir::Value ColumnIndexImpl<S>::Serialize() {
+khir::Value MemoryColumnIndex<S>::Serialize() {
   return program_.PointerCast(Get(), program_.PointerType(program_.I8Type()));
 }
 
 template <catalog::SqlType S>
-std::unique_ptr<ColumnIndex> ColumnIndexImpl<S>::Regenerate(
+std::unique_ptr<ColumnIndex> MemoryColumnIndex<S>::Regenerate(
     khir::ProgramBuilder& program, void* value) {
-  return std::make_unique<ColumnIndexImpl<S>>(
+  return std::make_unique<MemoryColumnIndex<S>>(
       program, program.PointerCast(
                    program.ConstPtr(value),
                    program.PointerType(program.GetOpaqueType(TypeName()))));
 }
 
 template <catalog::SqlType S>
-void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
+void MemoryColumnIndex<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   std::optional<khir::Type> index_type;
   if constexpr (catalog::SqlType::DATE == S) {
     index_type = program.GetOpaqueType(TypeName());
@@ -381,12 +382,12 @@ void ColumnIndexImpl<S>::ForwardDeclare(khir::ProgramBuilder& program) {
       {index_ptr_type, value_type.value(), bucket_ptr_type}, GetBucketFn<S>());
 }
 
-template class ColumnIndexImpl<catalog::SqlType::SMALLINT>;
-template class ColumnIndexImpl<catalog::SqlType::INT>;
-template class ColumnIndexImpl<catalog::SqlType::BIGINT>;
-template class ColumnIndexImpl<catalog::SqlType::REAL>;
-template class ColumnIndexImpl<catalog::SqlType::DATE>;
-template class ColumnIndexImpl<catalog::SqlType::BOOLEAN>;
-template class ColumnIndexImpl<catalog::SqlType::TEXT>;
+template class MemoryColumnIndex<catalog::SqlType::SMALLINT>;
+template class MemoryColumnIndex<catalog::SqlType::INT>;
+template class MemoryColumnIndex<catalog::SqlType::BIGINT>;
+template class MemoryColumnIndex<catalog::SqlType::REAL>;
+template class MemoryColumnIndex<catalog::SqlType::DATE>;
+template class MemoryColumnIndex<catalog::SqlType::BOOLEAN>;
+template class MemoryColumnIndex<catalog::SqlType::TEXT>;
 
 }  // namespace kush::compile::proxy
