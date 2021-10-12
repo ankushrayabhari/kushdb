@@ -183,7 +183,13 @@ void Serialize(const char* path,
     memcpy(entry->values, values.data(), values.size() * sizeof(int32_t));
 
     // prepend to linked list of entries
-    uint64_t pos = hash(key) & mask;
+    uint64_t key_as_64;
+    if constexpr (std::is_same_v<T, double>) {
+      std::memcpy(&key_as_64, &key, sizeof(uint64_t));
+    } else {
+      key_as_64 = key;
+    }
+    uint64_t pos = hash(key_as_64) & mask;
     entry->next = data->array[pos];
     data->array[pos] = offset;
 

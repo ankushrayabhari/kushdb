@@ -85,6 +85,45 @@ ScanTranslator::GenerateBuffer() {
       program_, std::move(column_data), std::move(null_data));
 }
 
+bool ScanTranslator::HasIndex(int col_idx) {
+  const auto& table = scan_.Relation();
+  const auto& cols = scan_.Schema().Columns();
+  auto col_name = cols[col_idx].Name();
+  return table[col_name].HasIndex();
+}
+
+std::unique_ptr<proxy::ColumnIndex> ScanTranslator::GenerateIndex(int col_idx) {
+  const auto& table = scan_.Relation();
+  const auto& cols = scan_.Schema().Columns();
+  const auto& column = cols[col_idx];
+  auto type = column.Expr().Type();
+  auto path = table[column.Name()].IndexPath();
+  using catalog::SqlType;
+  switch (type) {
+    case SqlType::SMALLINT:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::SMALLINT>>(
+          program_, path);
+    case SqlType::INT:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::INT>>(program_,
+                                                                    path);
+    case SqlType::BIGINT:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::BIGINT>>(program_,
+                                                                       path);
+    case SqlType::REAL:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::REAL>>(program_,
+                                                                     path);
+    case SqlType::DATE:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::DATE>>(program_,
+                                                                     path);
+    case SqlType::TEXT:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::TEXT>>(program_,
+                                                                     path);
+    case SqlType::BOOLEAN:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::BOOLEAN>>(
+          program_, path);
+  }
+}
+
 void ScanTranslator::Produce() {
   auto materialized_buffer = GenerateBuffer();
   materialized_buffer->Init();

@@ -17,6 +17,7 @@ filegroup(
     srcs = glob(
         [
             "data/*.kdb",
+            "data/*.kdbindex",
         ],
         allow_empty = True,
     ),

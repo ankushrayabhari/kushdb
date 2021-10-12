@@ -31,8 +31,7 @@ class ColumnIndex {
  public:
   virtual ~ColumnIndex() = default;
 
-  virtual khir::Value Get() const = 0;
-  virtual catalog::SqlType Type() const = 0;
+  virtual void Init() = 0;
   virtual void Reset() = 0;
   virtual ColumnIndexBucket GetBucket(const IRValue& v) = 0;
 
@@ -60,10 +59,9 @@ class MemoryColumnIndex : public ColumnIndex, public ColumnIndexBuilder {
   MemoryColumnIndex(khir::ProgramBuilder& program, khir::Value v);
   virtual ~MemoryColumnIndex() = default;
 
+  void Init() override;
   void Reset() override;
   void Insert(const IRValue& v, const Int32& tuple_idx) override;
-  khir::Value Get() const override;
-  catalog::SqlType Type() const override;
   ColumnIndexBucket GetBucket(const IRValue& v) override;
   khir::Value Serialize() override;
   std::unique_ptr<ColumnIndex> Regenerate(khir::ProgramBuilder& program,
@@ -73,6 +71,31 @@ class MemoryColumnIndex : public ColumnIndex, public ColumnIndexBuilder {
 
  private:
   khir::ProgramBuilder& program_;
+  khir::Value value_;
+  khir::Value get_value_;
+};
+
+template <catalog::SqlType S>
+class DiskColumnIndex : public ColumnIndex {
+ public:
+  DiskColumnIndex(khir::ProgramBuilder& program, std::string_view path);
+  DiskColumnIndex(khir::ProgramBuilder& program, std::string_view path,
+                  khir::Value v);
+  virtual ~DiskColumnIndex() = default;
+
+  void Init() override;
+  void Reset() override;
+  ColumnIndexBucket GetBucket(const IRValue& v) override;
+  khir::Value Serialize() override;
+  std::unique_ptr<ColumnIndex> Regenerate(khir::ProgramBuilder& program,
+                                          void* value) override;
+
+  static void ForwardDeclare(khir::ProgramBuilder& program);
+
+ private:
+  khir::ProgramBuilder& program_;
+  std::string path_;
+  khir::Value path_value_;
   khir::Value value_;
   khir::Value get_value_;
 };

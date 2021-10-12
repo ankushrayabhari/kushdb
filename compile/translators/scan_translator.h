@@ -3,6 +3,7 @@
 #include "absl/container/flat_hash_map.h"
 
 #include "compile/proxy/column_data.h"
+#include "compile/proxy/column_index.h"
 #include "compile/proxy/materialized_buffer.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
@@ -19,6 +20,8 @@ class ScanTranslator : public OperatorTranslator {
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
   std::unique_ptr<proxy::DiskMaterializedBuffer> GenerateBuffer();
+  bool HasIndex(int col_idx);
+  std::unique_ptr<proxy::ColumnIndex> GenerateIndex(int col_idx);
 
  private:
   const plan::ScanOperator& scan_;

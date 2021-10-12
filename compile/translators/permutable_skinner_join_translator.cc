@@ -87,60 +87,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
     auto& child_translator = child_translators[i].get();
     auto& child_operator = child_operators[i].get();
 
-    // For each predicate column on this table, declare an index.
-    for (auto& predicate_column : predicate_columns_) {
-      if (i != predicate_column.get().GetChildIdx()) {
-        continue;
-      }
-
-      predicate_to_index_idx_[{predicate_column.get().GetChildIdx(),
-                               predicate_column.get().GetColumnIdx()}] =
-          indexes_.size();
-
-      switch (predicate_column.get().Type()) {
-        case catalog::SqlType::SMALLINT:
-          indexes_.push_back(
-              std::make_unique<
-                  proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>>(
-                  program_, true));
-          break;
-        case catalog::SqlType::INT:
-          indexes_.push_back(
-              std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::INT>>(
-                  program_, true));
-          break;
-        case catalog::SqlType::BIGINT:
-          indexes_.push_back(
-              std::make_unique<
-                  proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>>(program_,
-                                                                      true));
-          break;
-        case catalog::SqlType::REAL:
-          indexes_.push_back(std::make_unique<
-                             proxy::MemoryColumnIndex<catalog::SqlType::REAL>>(
-              program_, true));
-          break;
-        case catalog::SqlType::DATE:
-          indexes_.push_back(std::make_unique<
-                             proxy::MemoryColumnIndex<catalog::SqlType::DATE>>(
-              program_, true));
-          break;
-        case catalog::SqlType::TEXT:
-          indexes_.push_back(std::make_unique<
-                             proxy::MemoryColumnIndex<catalog::SqlType::TEXT>>(
-              program_, true));
-          break;
-        case catalog::SqlType::BOOLEAN:
-          indexes_.push_back(
-              std::make_unique<
-                  proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>>(program_,
-                                                                       true));
-          break;
-      }
-    }
-
     if (auto scan = dynamic_cast<ScanTranslator*>(&child_translator)) {
       auto disk_materialized_buffer = scan->GenerateBuffer();
+      disk_materialized_buffer->Init();
 
       // for each indexed column on this table, scan and append to index
       for (auto& predicate_column : predicate_columns_) {
@@ -149,22 +98,126 @@ void PermutableSkinnerJoinTranslator::Produce() {
         }
 
         auto col_idx = predicate_column.get().GetColumnIdx();
-
-        auto index_idx = predicate_to_index_idx_[{i, col_idx}];
-
-        disk_materialized_buffer->Init();
-        disk_materialized_buffer->Scan(col_idx, [&](auto tuple_idx,
-                                                    auto value) {
-          // only index not null values
-          proxy::If(program_, !value.IsNull(), [&]() {
-            dynamic_cast<proxy::ColumnIndexBuilder*>(indexes_[index_idx].get())
-                ->Insert(value.Get(), tuple_idx);
-          });
-        });
+        auto index_idx = indexes_.size();
+        predicate_to_index_idx_[{i, col_idx}] = index_idx;
+        if (scan->HasIndex(col_idx)) {
+          indexes_.push_back(scan->GenerateIndex(col_idx));
+          indexes_.back()->Init();
+        } else {
+          switch (predicate_column.get().Type()) {
+            case catalog::SqlType::SMALLINT:
+              indexes_.push_back(
+                  std::make_unique<
+                      proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>>(
+                      program_, true));
+              break;
+            case catalog::SqlType::INT:
+              indexes_.push_back(
+                  std::make_unique<
+                      proxy::MemoryColumnIndex<catalog::SqlType::INT>>(program_,
+                                                                       true));
+              break;
+            case catalog::SqlType::BIGINT:
+              indexes_.push_back(
+                  std::make_unique<
+                      proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>>(
+                      program_, true));
+              break;
+            case catalog::SqlType::REAL:
+              indexes_.push_back(
+                  std::make_unique<
+                      proxy::MemoryColumnIndex<catalog::SqlType::REAL>>(
+                      program_, true));
+              break;
+            case catalog::SqlType::DATE:
+              indexes_.push_back(
+                  std::make_unique<
+                      proxy::MemoryColumnIndex<catalog::SqlType::DATE>>(
+                      program_, true));
+              break;
+            case catalog::SqlType::TEXT:
+              indexes_.push_back(
+                  std::make_unique<
+                      proxy::MemoryColumnIndex<catalog::SqlType::TEXT>>(
+                      program_, true));
+              break;
+            case catalog::SqlType::BOOLEAN:
+              indexes_.push_back(
+                  std::make_unique<
+                      proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>>(
+                      program_, true));
+              break;
+          }
+          indexes_.back()->Init();
+          disk_materialized_buffer->Scan(
+              col_idx, [&](auto tuple_idx, auto value) {
+                // only index not null values
+                proxy::If(program_, !value.IsNull(), [&]() {
+                  dynamic_cast<proxy::ColumnIndexBuilder*>(
+                      indexes_[index_idx].get())
+                      ->Insert(value.Get(), tuple_idx);
+                });
+              });
+        }
       }
 
       materialized_buffers_.push_back(std::move(disk_materialized_buffer));
     } else {
+      // For each predicate column on this table, declare a memory index.
+      for (auto& predicate_column : predicate_columns_) {
+        if (i != predicate_column.get().GetChildIdx()) {
+          continue;
+        }
+
+        predicate_to_index_idx_[{predicate_column.get().GetChildIdx(),
+                                 predicate_column.get().GetColumnIdx()}] =
+            indexes_.size();
+
+        switch (predicate_column.get().Type()) {
+          case catalog::SqlType::SMALLINT:
+            indexes_.push_back(
+                std::make_unique<
+                    proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>>(
+                    program_, true));
+            break;
+          case catalog::SqlType::INT:
+            indexes_.push_back(std::make_unique<
+                               proxy::MemoryColumnIndex<catalog::SqlType::INT>>(
+                program_, true));
+            break;
+          case catalog::SqlType::BIGINT:
+            indexes_.push_back(
+                std::make_unique<
+                    proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>>(
+                    program_, true));
+            break;
+          case catalog::SqlType::REAL:
+            indexes_.push_back(
+                std::make_unique<
+                    proxy::MemoryColumnIndex<catalog::SqlType::REAL>>(program_,
+                                                                      true));
+            break;
+          case catalog::SqlType::DATE:
+            indexes_.push_back(
+                std::make_unique<
+                    proxy::MemoryColumnIndex<catalog::SqlType::DATE>>(program_,
+                                                                      true));
+            break;
+          case catalog::SqlType::TEXT:
+            indexes_.push_back(
+                std::make_unique<
+                    proxy::MemoryColumnIndex<catalog::SqlType::TEXT>>(program_,
+                                                                      true));
+            break;
+          case catalog::SqlType::BOOLEAN:
+            indexes_.push_back(
+                std::make_unique<
+                    proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>>(
+                    program_, true));
+            break;
+        }
+      }
+
       // Create struct for materialization
       auto struct_builder = std::make_unique<proxy::StructBuilder>(program_);
       const auto& child_schema = child_operator.Schema().Columns();
@@ -952,6 +1005,13 @@ void PermutableSkinnerJoinTranslator::Produce() {
       parent->get().Consume(*this);
     }
   });
+
+  for (auto& buffer : materialized_buffers_) {
+    buffer->Reset();
+  }
+  for (auto& index : indexes_) {
+    index->Reset();
+  }
   tuple_idx_table.Reset();
   predicate_struct.reset();
 }

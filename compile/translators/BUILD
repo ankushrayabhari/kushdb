@@ -56,6 +56,7 @@ cc_library(
         ":operator_translator",
         "//catalog:sql_type",
         "//compile/proxy:column_data",
+        "//compile/proxy:column_index",
         "//compile/proxy:materialized_buffer",
         "//compile/proxy/control_flow:loop",
         "//khir:program_builder",
