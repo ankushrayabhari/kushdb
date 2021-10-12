@@ -175,14 +175,13 @@ void Serialize(const char* path,
   uint8_t* ptr = reinterpret_cast<uint8_t*>(data);
   uint64_t offset =
       sizeof(ColumnIndexData) + ((1ull << bits) * sizeof(uint64_t));
-  for (const auto& [key, values] : index) {
-    // write out the column index entry
-    auto entry = reinterpret_cast<ColumnIndexEntry<T>*>(ptr + offset);
-    entry->key = key;
-    entry->size = values.size();
-    memcpy(entry->values, values.data(), values.size() * sizeof(int32_t));
 
-    // prepend to linked list of entries
+  using iterator =
+      typename std::unordered_map<T, std::vector<int32_t>>::iterator;
+  std::unordered_map<uint64_t, std::vector<iterator>> pos_to_entries;
+  for (auto it = index.begin(); it != index.end(); it++) {
+    auto key = it->first;
+
     uint64_t key_as_64;
     if constexpr (std::is_same_v<T, double>) {
       std::memcpy(&key_as_64, &key, sizeof(uint64_t));
@@ -190,10 +189,34 @@ void Serialize(const char* path,
       key_as_64 = key;
     }
     uint64_t pos = hash(key_as_64) & mask;
-    entry->next = data->array[pos];
-    data->array[pos] = offset;
+    pos_to_entries[pos].push_back(it);
+  }
 
-    offset += sizeof(ColumnIndexEntry<T>) + values.size() * sizeof(int32_t);
+  for (const auto& [pos, entries] : pos_to_entries) {
+    std::vector<uint64_t> offsets;
+    for (const auto& index_entry : entries) {
+      const auto& key = index_entry->first;
+      const auto& values = index_entry->second;
+
+      // write out the column index entry
+      auto entry = reinterpret_cast<ColumnIndexEntry<T>*>(ptr + offset);
+      entry->key = key;
+      entry->size = values.size();
+      memcpy(entry->values, values.data(), values.size() * sizeof(int32_t));
+
+      offsets.push_back(offset);
+
+      offset += sizeof(ColumnIndexEntry<T>) + values.size() * sizeof(int32_t);
+    }
+
+    // update linked list of offsets
+    for (int i = offsets.size() - 1; i >= 0; i--) {
+      auto offset = offsets[i];
+      auto entry = reinterpret_cast<ColumnIndexEntry<T>*>(ptr + offset);
+
+      entry->next = data->array[pos];
+      data->array[pos] = offset;
+    }
   }
   assert(offset == length);
 
@@ -238,14 +261,10 @@ void Serialize(const char* path,
   int32_t length =
       sizeof(ColumnIndexData) + ((1ull << bits) * sizeof(uint64_t));
   //           + (index entry + number of values for each value)
+  //           + (key.size() + 1 for each key)
   for (const auto& [key, values] : index) {
     length += sizeof(ColumnIndexEntry<std::string>) +
-              (sizeof(int32_t) * values.size());
-  }
-  //           + (key.size() + 1 for each key)
-  uint64_t string_data_base = length;
-  for (const auto& [key, values] : index) {
-    length += key.size() + 1;
+              (sizeof(int32_t) * values.size()) + key.size() + 1;
   }
 
   if (posix_fallocate(fd, 0, length) != 0) {
@@ -265,30 +284,53 @@ void Serialize(const char* path,
   uint8_t* ptr = reinterpret_cast<uint8_t*>(data);
   uint64_t offset =
       sizeof(ColumnIndexData) + ((1ull << bits) * sizeof(uint64_t));
-  uint64_t string_data_offset = string_data_base;
   std::hash<std::string> hasher;
-  for (const auto& [key, values] : index) {
-    // write out the column index entry
-    auto entry = reinterpret_cast<ColumnIndexEntry<std::string>*>(ptr + offset);
-    entry->str_len = key.size();
-    entry->str_offset = string_data_offset;
-    entry->size = values.size();
-    memcpy(entry->values, values.data(), values.size() * sizeof(int32_t));
-    // write out string data
-    auto string_entry = reinterpret_cast<char*>(ptr + string_data_offset);
-    memcpy(string_entry, key.c_str(), key.size() + 1);
 
-    // prepend to linked list of entries
-    uint64_t pos = hasher(key) & mask;
-    entry->next = data->array[pos];
-    data->array[pos] = offset;
-
-    offset +=
-        sizeof(ColumnIndexEntry<std::string>) + values.size() * sizeof(int32_t);
-    string_data_offset += key.size() + 1;
+  using iterator =
+      typename std::unordered_map<std::string, std::vector<int32_t>>::iterator;
+  std::unordered_map<uint64_t, std::vector<iterator>> pos_to_entries;
+  for (auto it = index.begin(); it != index.end(); it++) {
+    uint64_t pos = hasher(it->first) & mask;
+    pos_to_entries[pos].push_back(it);
   }
-  assert(offset == string_data_base);
-  assert(string_data_offset == length);
+
+  for (const auto& [pos, entries] : pos_to_entries) {
+    std::vector<uint64_t> offsets;
+
+    for (const auto& index_entry : entries) {
+      const auto& key = index_entry->first;
+      const auto& values = index_entry->second;
+
+      auto entry_offset = offset;
+
+      // write out the column index entry
+      auto entry =
+          reinterpret_cast<ColumnIndexEntry<std::string>*>(ptr + entry_offset);
+      entry->str_len = key.size();
+      entry->size = values.size();
+      memcpy(entry->values, values.data(), values.size() * sizeof(int32_t));
+      offset += sizeof(ColumnIndexEntry<std::string>) +
+                values.size() * sizeof(int32_t);
+
+      // write out string data
+      entry->str_offset = offset;
+      auto string_entry = reinterpret_cast<char*>(ptr + offset);
+      memcpy(string_entry, key.c_str(), key.size() + 1);
+      offset += key.size() + 1;
+
+      offsets.push_back(entry_offset);
+    }
+
+    // update linked list of offsets
+    for (int i = offsets.size() - 1; i >= 0; i--) {
+      auto offset = offsets[i];
+      auto entry =
+          reinterpret_cast<ColumnIndexEntry<std::string>*>(ptr + offset);
+      entry->next = data->array[pos];
+      data->array[pos] = offset;
+    }
+  }
+  assert(offset == length);
 
   if (munmap(data, length) != 0) {
     throw std::system_error(errno, std::generic_category());
