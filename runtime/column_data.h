@@ -88,6 +88,6 @@ double GetFloat64(Float64ColumnData* col, int32_t idx);
 void GetText(TextColumnData* col, int32_t idx, String::String* dest);
 
 template <typename T>
-extern void Serialize(std::string_view path, const std::vector<T>& contents);
+void Serialize(std::string_view path, const std::vector<T>& contents);
 
 }  // namespace kush::runtime::ColumnData

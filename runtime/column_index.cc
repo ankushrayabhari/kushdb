@@ -138,7 +138,7 @@ void Close(ColumnIndex* col) {
 }
 
 template <typename T>
-void Serialize(const char* path,
+void Serialize(std::string_view path,
                std::unordered_map<T, std::vector<int32_t>>& index) {
   int fd = open(std::string(path).c_str(), O_RDWR | O_CREAT,
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -230,22 +230,27 @@ void Serialize(const char* path,
 }
 
 template void Serialize(
-    const char* path, std::unordered_map<int8_t, std::vector<int32_t>>& index);
+    std::string_view path,
+    std::unordered_map<int8_t, std::vector<int32_t>>& index);
 
 template void Serialize(
-    const char* path, std::unordered_map<int16_t, std::vector<int32_t>>& index);
+    std::string_view path,
+    std::unordered_map<int16_t, std::vector<int32_t>>& index);
 
 template void Serialize(
-    const char* path, std::unordered_map<int32_t, std::vector<int32_t>>& index);
+    std::string_view path,
+    std::unordered_map<int32_t, std::vector<int32_t>>& index);
 
 template void Serialize(
-    const char* path, std::unordered_map<int64_t, std::vector<int32_t>>& index);
+    std::string_view path,
+    std::unordered_map<int64_t, std::vector<int32_t>>& index);
 
 template void Serialize(
-    const char* path, std::unordered_map<double, std::vector<int32_t>>& index);
+    std::string_view path,
+    std::unordered_map<double, std::vector<int32_t>>& index);
 
 template <>
-void Serialize(const char* path,
+void Serialize(std::string_view path,
                std::unordered_map<std::string, std::vector<int32_t>>& index) {
   int fd = open(std::string(path).c_str(), O_RDWR | O_CREAT,
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);

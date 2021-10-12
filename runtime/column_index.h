@@ -57,7 +57,7 @@ void GetText(ColumnIndex* col, String::String* key, ColumnIndexBucket* dest);
 void Close(ColumnIndex* col);
 
 template <typename T>
-void Serialize(const char* path,
+void Serialize(std::string_view path,
                std::unordered_map<T, std::vector<int32_t>>& index);
 
 }  // namespace kush::runtime::ColumnIndex

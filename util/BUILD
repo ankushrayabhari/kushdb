@@ -3,6 +3,16 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "load",
+    hdrs = ["load.h"],
+    deps = [
+        "//runtime:column_data",
+        "//runtime:column_index",
+        "@absl//absl/time",
+    ],
+)
+
+cc_library(
     name = "builder",
     hdrs = ["builder.h"],
     deps = [
