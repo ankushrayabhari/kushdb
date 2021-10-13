@@ -26,7 +26,7 @@ template struct ColumnIndexEntry<int32_t>;
 template struct ColumnIndexEntry<int64_t>;
 template struct ColumnIndexEntry<double>;
 
-uint64_t hash(uint64_t k) {
+uint64_t Hash(uint64_t k) {
   const uint64_t m = 0xc6a4a7935bd1e995;
   const int r = 47;
   uint64_t h = 0x8445d61a4e774912 ^ (8 * m);
@@ -41,6 +41,29 @@ uint64_t hash(uint64_t k) {
   return h | (1ull << 63);
 }
 
+template <typename T>
+uint64_t ToUInt64(T key) {
+  uint64_t key_as_64;
+  if constexpr (std::is_same_v<T, double>) {
+    std::memcpy(&key_as_64, &key, sizeof(uint64_t));
+  } else if constexpr (std::is_same_v<T, int8_t>) {
+    key_as_64 = key;
+    key_as_64 &= 0xFF;
+  } else if constexpr (std::is_same_v<T, int16_t>) {
+    key_as_64 = key;
+    key_as_64 &= 0xFFFF;
+  } else if constexpr (std::is_same_v<T, int32_t>) {
+    key_as_64 = key;
+    key_as_64 &= 0xFFFFFFFF;
+  } else if constexpr (std::is_same_v<T, int32_t>) {
+    key_as_64 = key;
+    key_as_64 &= 0xFFFFFFFF;
+  } else if constexpr (std::is_same_v<T, int64_t>) {
+    key_as_64 = key;
+  }
+  return key_as_64;
+}
+
 void Open(ColumnIndex* col, const char* path) {
   auto fi = BufferPoolManager::Get().Open(path);
   col->data = reinterpret_cast<ColumnIndexData*>(fi.data);
@@ -49,14 +72,8 @@ void Open(ColumnIndex* col, const char* path) {
 
 template <typename T>
 void GetImpl(ColumnIndex* col, T key, ColumnIndexBucket* dest) {
-  uint64_t key_as_64;
-  if constexpr (std::is_same_v<T, double>) {
-    std::memcpy(&key_as_64, &key, sizeof(uint64_t));
-  } else {
-    key_as_64 = key;
-  }
-
-  uint64_t pos = col->data->array[hash(key_as_64) & col->data->mask];
+  uint64_t key_as_64 = ToUInt64(key);
+  uint64_t pos = col->data->array[Hash(key_as_64) & col->data->mask];
   while (pos > 0) {
     auto entry = reinterpret_cast<ColumnIndexEntry<T>*>(
         reinterpret_cast<uint8_t*>(col->data) + pos);
@@ -173,13 +190,8 @@ void Serialize(std::string_view path,
   for (auto it = index.begin(); it != index.end(); it++) {
     auto key = it->first;
 
-    uint64_t key_as_64;
-    if constexpr (std::is_same_v<T, double>) {
-      std::memcpy(&key_as_64, &key, sizeof(uint64_t));
-    } else {
-      key_as_64 = key;
-    }
-    uint64_t pos = hash(key_as_64) & mask;
+    uint64_t key_as_64 = ToUInt64(key);
+    uint64_t pos = Hash(key_as_64) & mask;
     pos_to_entries[pos].push_back(it);
   }
 
