@@ -34,39 +34,22 @@ def bench(database, benchmark, data_path, use_skinner, flags):
                     times.append(float(t))
                 except ValueError as e:
                     continue
-            print(database, benchmark, query_num, times[0], sep=',')
+            for t in times:
+                print(database, benchmark, query_num, t, sep=',')
 
 if __name__ == "__main__":
-    num_trials = 5
-    for _ in range(num_trials):
-        bench('kushdb ASM (Hash Join)', 'TPC-H SF1', 'benchmark/tpch/data-1', False, ['--backend=asm'])
-        bench('kushdb ASM (Skinner Join Permutable)', 'TPC-H SF1', 'benchmark/tpch/data-1', True, ['--backend=asm', '--skinner=permute'])
-        bench('kushdb ASM (Skinner Join Recompiling)', 'TPC-H SF1', 'benchmark/tpch/data-1', True, ['--backend=asm', '--skinner=recompile'])
+    bench('kushdb ASM (Hash Join)', 'TPC-H SF1', 'benchmark/tpch/data-1', False, ['--backend=asm'])
+    bench('kushdb ASM (Skinner Join Permutable)', 'TPC-H SF1', 'benchmark/tpch/data-1', True, ['--backend=asm', '--skinner=permute'])
+    bench('kushdb ASM (Skinner Join Recompiling)', 'TPC-H SF1', 'benchmark/tpch/data-1', True, ['--backend=asm', '--skinner=recompile'])
 
-        bench('kushdb ASM (Hash Join)', 'TPC-H Skewed SF1', 'benchmark/tpch/data-skewed-1', False, ['--backend=asm'])
-        bench('kushdb ASM (Skinner Join Permutable)', 'TPC-H Skewed SF1', 'benchmark/tpch/data-skewed-1', True, ['--backend=asm', '--skinner=permute'])
-        bench('kushdb ASM (Skinner Join Recompiling)', 'TPC-H Skewed SF1', 'benchmark/tpch/data-skewed-1', True, ['--backend=asm', '--skinner=recompile'])
+    bench('kushdb ASM (Hash Join)', 'TPC-H SF10', 'benchmark/tpch/data-10', False, ['--backend=asm'])
+    bench('kushdb ASM (Skinner Join Permutable)', 'TPC-H SF10', 'benchmark/tpch/data-10', True, ['--backend=asm', '--skinner=permute'])
+    bench('kushdb ASM (Skinner Join Recompiling)', 'TPC-H SF10', 'benchmark/tpch/data-10', True, ['--backend=asm', '--skinner=recompile'])
 
-        bench('kushdb ASM (Hash Join)', 'TPC-H SF10', 'benchmark/tpch/data-10', False, ['--backend=asm'])
-        bench('kushdb ASM (Skinner Join Permutable)', 'TPC-H SF10', 'benchmark/tpch/data-10', True, ['--backend=asm', '--skinner=permute'])
-        bench('kushdb ASM (Skinner Join Recompiling)', 'TPC-H SF10', 'benchmark/tpch/data-10', True, ['--backend=asm', '--skinner=recompile'])
+    bench('kushdb LLVM (Hash Join)', 'TPC-H SF1', 'benchmark/tpch/data-1', False, ['--backend=llvm'])
+    bench('kushdb LLVM (Skinner Join Permutable)', 'TPC-H SF1', 'benchmark/tpch/data-1', True, ['--backend=llvm', '--skinner=permute'])
+    bench('kushdb LLVM (Skinner Join Recompiling)', 'TPC-H SF1', 'benchmark/tpch/data-1', True, ['--backend=llvm', '--skinner=recompile'])
 
-        bench('kushdb ASM (Hash Join)', 'TPC-H Skewed SF10', 'benchmark/tpch/data-skewed-10', False, ['--backend=asm'])
-        bench('kushdb ASM (Skinner Join Permutable)', 'TPC-H Skewed SF10', 'benchmark/tpch/data-skewed-10', True, ['--backend=asm', '--skinner=permute'])
-        bench('kushdb ASM (Skinner Join Recompiling)', 'TPC-H Skewed SF10', 'benchmark/tpch/data-skewed-10', True, ['--backend=asm', '--skinner=recompile'])
-
-        bench('kushdb LLVM (Hash Join)', 'TPC-H SF1', 'benchmark/tpch/data-1', False, ['--backend=llvm'])
-        bench('kushdb LLVM (Skinner Join Permutable)', 'TPC-H SF1', 'benchmark/tpch/data-1', True, ['--backend=llvm', '--skinner=permute'])
-        bench('kushdb LLVM (Skinner Join Recompiling)', 'TPC-H SF1', 'benchmark/tpch/data-1', True, ['--backend=llvm', '--skinner=recompile'])
-
-        bench('kushdb LLVM (Hash Join)', 'TPC-H Skewed SF1', 'benchmark/tpch/data-skewed-1', False, ['--backend=llvm'])
-        bench('kushdb LLVM (Skinner Join Permutable)', 'TPC-H Skewed SF1', 'benchmark/tpch/data-skewed-1', True, ['--backend=llvm', '--skinner=permute'])
-        bench('kushdb LLVM (Skinner Join Recompiling)', 'TPC-H Skewed SF1', 'benchmark/tpch/data-skewed-1', True, ['--backend=llvm', '--skinner=recompile'])
-
-        bench('kushdb LLVM (Hash Join)', 'TPC-H SF10', 'benchmark/tpch/data-10', False, ['--backend=llvm'])
-        bench('kushdb LLVM (Skinner Join Permutable)', 'TPC-H SF10', 'benchmark/tpch/data-10', True, ['--backend=llvm', '--skinner=permute'])
-        bench('kushdb LLVM (Skinner Join Recompiling)', 'TPC-H SF10', 'benchmark/tpch/data-10', True, ['--backend=llvm', '--skinner=recompile'])
-
-        bench('kushdb LLVM (Hash Join)', 'TPC-H Skewed SF10', 'benchmark/tpch/data-skewed-10', False, ['--backend=llvm'])
-        bench('kushdb LLVM (Skinner Join Permutable)', 'TPC-H Skewed SF10', 'benchmark/tpch/data-skewed-10', True, ['--backend=llvm', '--skinner=permute'])
-        bench('kushdb LLVM (Skinner Join Recompiling)', 'TPC-H Skewed SF10', 'benchmark/tpch/data-skewed-10', True, ['--backend=llvm', '--skinner=recompile'])
+    bench('kushdb LLVM (Hash Join)', 'TPC-H SF10', 'benchmark/tpch/data-10', False, ['--backend=llvm'])
+    bench('kushdb LLVM (Skinner Join Permutable)', 'TPC-H SF10', 'benchmark/tpch/data-10', True, ['--backend=llvm', '--skinner=permute'])
+    bench('kushdb LLVM (Skinner Join Recompiling)', 'TPC-H SF10', 'benchmark/tpch/data-10', True, ['--backend=llvm', '--skinner=recompile'])
