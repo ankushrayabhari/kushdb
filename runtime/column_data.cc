@@ -15,40 +15,17 @@
 #include <unistd.h>
 #include <vector>
 
+#include "runtime/buffer_pool_manager.h"
+
 namespace kush::runtime::ColumnData {
 
 // ------ Open --------
 
 template <typename T>
 inline void OpenImpl(T*& data, uint64_t& file_length, const char* path) {
-  int fd = open(path, O_RDONLY);
-  if (fd == -1) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        std::string(__FILE__) + ":" + std::to_string(__LINE__));
-  }
-
-  struct stat sb;
-  if (fstat(fd, &sb) == -1) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        std::string(__FILE__) + ":" + std::to_string(__LINE__));
-  }
-  file_length = static_cast<uint64_t>(sb.st_size);
-
-  data = reinterpret_cast<T*>(
-      mmap(nullptr, file_length, PROT_READ, MAP_PRIVATE, fd, 0));
-  if (data == MAP_FAILED) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        std::string(__FILE__) + ":" + std::to_string(__LINE__));
-  }
-
-  if (close(fd) != 0) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        std::string(__FILE__) + ":" + std::to_string(__LINE__));
-  }
+  auto fi = BufferPoolManager::Get().Open(path);
+  file_length = fi.file_length;
+  data = reinterpret_cast<T*>(fi.data);
 }
 
 void OpenInt8(Int8ColumnData* col, const char* path) {
@@ -79,11 +56,7 @@ void OpenText(TextColumnData* col, const char* path) {
 
 template <typename T>
 inline void CloseImpl(T* column) {
-  if (munmap(column->data, column->file_length) != 0) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        std::string(__FILE__) + ":" + std::to_string(__LINE__));
-  }
+  // TODO: update buffer pool manager to close
 }
 
 void CloseInt8(Int8ColumnData* col) { CloseImpl(col); }

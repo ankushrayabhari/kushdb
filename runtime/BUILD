@@ -3,6 +3,15 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "buffer_pool_manager",
+    srcs = ["buffer_pool_manager.cc"],
+    hdrs = ["buffer_pool_manager.h"],
+    deps = [
+        "@absl//absl/container:flat_hash_map",
+    ],
+)
+
+cc_library(
     name = "date_extractor",
     srcs = ["date_extractor.cc"],
     hdrs = ["date_extractor.h"],
@@ -44,6 +53,7 @@ cc_library(
     srcs = ["column_index.cc"],
     hdrs = ["column_index.h"],
     deps = [
+        ":buffer_pool_manager",
         ":column_index_bucket",
         ":string",
     ],
@@ -54,6 +64,7 @@ cc_library(
     srcs = ["column_data.cc"],
     hdrs = ["column_data.h"],
     deps = [
+        ":buffer_pool_manager",
         ":string",
     ],
 )

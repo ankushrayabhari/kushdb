@@ -16,6 +16,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "runtime/buffer_pool_manager.h"
+
 namespace kush::runtime::ColumnIndex {
 
 template struct ColumnIndexEntry<int8_t>;
@@ -40,34 +42,9 @@ uint64_t hash(uint64_t k) {
 }
 
 void Open(ColumnIndex* col, const char* path) {
-  int fd = open(path, O_RDONLY);
-  if (fd == -1) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        std::string(__FILE__) + ":" + std::to_string(__LINE__));
-  }
-
-  struct stat sb;
-  if (fstat(fd, &sb) == -1) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        std::string(__FILE__) + ":" + std::to_string(__LINE__));
-  }
-  col->file_length = static_cast<uint64_t>(sb.st_size);
-
-  col->data = reinterpret_cast<ColumnIndexData*>(
-      mmap(nullptr, col->file_length, PROT_READ, MAP_PRIVATE, fd, 0));
-  if (col->data == MAP_FAILED) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        std::string(__FILE__) + ":" + std::to_string(__LINE__));
-  }
-
-  if (close(fd) != 0) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        std::string(__FILE__) + ":" + std::to_string(__LINE__));
-  }
+  auto fi = BufferPoolManager::Get().Open(path);
+  col->data = reinterpret_cast<ColumnIndexData*>(fi.data);
+  col->file_length = fi.file_length;
 }
 
 template <typename T>
@@ -142,11 +119,7 @@ void GetText(ColumnIndex* col, String::String* key, ColumnIndexBucket* dest) {
 }
 
 void Close(ColumnIndex* col) {
-  if (munmap(col->data, col->file_length) != 0) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        std::string(__FILE__) + ":" + std::to_string(__LINE__));
-  }
+  // TODO: Update buffer pool manager to close
 }
 
 template <typename T>
