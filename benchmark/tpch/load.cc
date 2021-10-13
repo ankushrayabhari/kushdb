@@ -409,11 +409,8 @@ void Supplier() {
 }
 
 int main() {
-  Lineitem();
-  /*
   std::vector<std::add_pointer<void()>::type> loads{
       Supplier, Part, Partsupp, Customer, Orders, Lineitem, Nation, Region};
   std::for_each(std::execution::par_unseq, loads.begin(), loads.end(),
                 [](auto&& item) { item(); });
-                */
 }
