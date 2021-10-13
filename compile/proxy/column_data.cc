@@ -304,12 +304,12 @@ void ColumnData<S>::ForwardDeclare(khir::ProgramBuilder& program) {
     elem_type = program.I1Type();
   } else if constexpr (catalog::SqlType::TEXT == S) {
     elem_type = program.ArrayType(
-        program.StructType({program.I32Type(), program.I32Type()}));
+        program.StructType({program.I32Type(), program.I64Type()}));
   }
 
   auto string_type = program.PointerType(program.I8Type());
   auto struct_type = program.StructType(
-      {program.PointerType(elem_type.value()), program.I32Type()},
+      {program.PointerType(elem_type.value()), program.I64Type()},
       StructName<S>());
   auto struct_ptr = program.PointerType(struct_type);
 

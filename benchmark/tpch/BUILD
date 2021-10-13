@@ -29,8 +29,7 @@ cc_binary(
         ":raw",
     ],
     deps = [
-        "//runtime:column_data",
-        "@absl//absl/time",
+        "//util:load",
     ],
 )
 

@@ -42,7 +42,7 @@ struct ColumnIndexEntry<std::string> {
 
 struct ColumnIndex {
   ColumnIndexData* data;
-  int32_t file_length;
+  uint64_t file_length;
 };
 
 void Open(ColumnIndex* col, const char* path);

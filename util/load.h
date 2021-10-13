@@ -1,8 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <iostream>
+#include <mutex>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -30,12 +33,12 @@
   x.push_back(parse(data));                        \
   x##_index[x.back()].push_back(tuple_idx);
 
-#define SERIALIZE_NULL(T, id, dest, file)                               \
-  kush::runtime::ColumnData::Serialize<T>(                              \
-      std::string(dest) + std::string(file) + ".kdb", id); \
-  kush::runtime::ColumnData::Serialize<int8_t>(                         \
-      std::string(dest) + std::string(file) + "_null.kdb", id##_null);  \
-  kush::runtime::ColumnIndex::Serialize<T>(                             \
+#define SERIALIZE_NULL(T, id, dest, file)                              \
+  kush::runtime::ColumnData::Serialize<T>(                             \
+      std::string(dest) + std::string(file) + ".kdb", id);             \
+  kush::runtime::ColumnData::Serialize<int8_t>(                        \
+      std::string(dest) + std::string(file) + "_null.kdb", id##_null); \
+  kush::runtime::ColumnIndex::Serialize<T>(                            \
       std::string(dest) + std::string(file) + ".kdbindex", id##_index);
 
 #define SERIALIZE_NOT_NULL(T, id, dest, file)              \
@@ -125,6 +128,12 @@ std::string ParseString(const std::string& s) {
   } else {
     return s;
   }
+}
+
+std::mutex cout_mutex;
+void Print(std::string_view x) {
+  const std::lock_guard<std::mutex> lock(cout_mutex);
+  std::cout << x << std::endl;
 }
 
 }  // namespace kush::util

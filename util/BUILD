@@ -5,6 +5,10 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "load",
     hdrs = ["load.h"],
+    linkopts = [
+        "-lpthread",
+        "-ltbb",
+    ],
     deps = [
         "//runtime:column_data",
         "//runtime:column_index",

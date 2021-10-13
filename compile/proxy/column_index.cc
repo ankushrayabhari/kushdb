@@ -445,7 +445,7 @@ DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
               program.GetStructType(DiskColumnIndexName),
               {program.NullPtr(program.PointerType(
                    program.GetOpaqueType(DiskColumnIndexDataName))),
-               program.ConstI32(0)}))),
+               program.ConstI64(0)}))),
       get_value_(program.Global(
           false, true, program.GetStructType(ColumnIndexBucketName),
           program.ConstantStruct(
@@ -505,7 +505,7 @@ void DiskColumnIndex<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   if constexpr (S == catalog::SqlType::SMALLINT) {
     auto col_idx_data = program.OpaqueType(DiskColumnIndexDataName);
     auto st = program.StructType(
-        {program.PointerType(col_idx_data), program.I32Type()},
+        {program.PointerType(col_idx_data), program.I64Type()},
         DiskColumnIndexName);
     auto struct_ptr = program.PointerType(st);
     auto string_type = program.PointerType(program.I8Type());

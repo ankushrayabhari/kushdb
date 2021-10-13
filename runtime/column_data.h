@@ -19,40 +19,41 @@ namespace kush::runtime::ColumnData {
 
 struct Int8ColumnData {
   int8_t* data;
-  int32_t file_length;
+  uint64_t file_length;
 };
 
 struct Int16ColumnData {
   int16_t* data;
-  int32_t file_length;
+  uint64_t file_length;
 };
 
 struct Int32ColumnData {
   int32_t* data;
-  int32_t file_length;
+  uint64_t file_length;
 };
 
 struct Int64ColumnData {
   int64_t* data;
-  int32_t file_length;
+  uint64_t file_length;
 };
 
 struct Float64ColumnData {
   double* data;
-  int32_t file_length;
+  uint64_t file_length;
 };
 
+struct StringEntry {
+  int32_t length;
+  uint64_t offset;
+};
 struct StringMetadata {
   int32_t cardinality;
-  struct {
-    int32_t length;
-    int32_t offset;
-  } slot[];
+  struct StringEntry slot[];
 };
 
 struct TextColumnData {
   StringMetadata* data;
-  int32_t file_length;
+  uint64_t file_length;
 };
 
 // Open column data file

@@ -20,25 +20,35 @@ namespace kush::runtime::ColumnData {
 // ------ Open --------
 
 template <typename T>
-inline void OpenImpl(T*& data, int32_t& file_length, const char* path) {
+inline void OpenImpl(T*& data, uint64_t& file_length, const char* path) {
   int fd = open(path, O_RDONLY);
   if (fd == -1) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
 
   struct stat sb;
   if (fstat(fd, &sb) == -1) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
-  file_length = static_cast<int32_t>(sb.st_size);
+  file_length = static_cast<uint64_t>(sb.st_size);
 
   data = reinterpret_cast<T*>(
       mmap(nullptr, file_length, PROT_READ, MAP_PRIVATE, fd, 0));
   if (data == MAP_FAILED) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
 
-  close(fd);
+  if (close(fd) != 0) {
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
+  }
 }
 
 void OpenInt8(Int8ColumnData* col, const char* path) {
@@ -69,7 +79,11 @@ void OpenText(TextColumnData* col, const char* path) {
 
 template <typename T>
 inline void CloseImpl(T* column) {
-  munmap(column->data, column->file_length);
+  if (munmap(column->data, column->file_length) != 0) {
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
+  }
 }
 
 void CloseInt8(Int8ColumnData* col) { CloseImpl(col); }
@@ -135,28 +149,38 @@ void Serialize(std::string_view path, const std::vector<T>& contents) {
   int fd = open(std::string(path).c_str(), O_RDWR | O_CREAT,
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
   if (fd == -1) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
 
-  int length = sizeof(T) * contents.size();
+  uint64_t length = sizeof(T) * contents.size();
 
   if (posix_fallocate(fd, 0, length) != 0) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::runtime_error(
+        std::string(__FILE__) + ":" + std::to_string(__LINE__) +
+        " fallocate failed with length " + std::to_string(length));
   }
 
   T* data = reinterpret_cast<T*>(
       mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   if (data == MAP_FAILED) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
   memcpy(data, contents.data(), length);
 
   if (munmap(data, length) != 0) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
 
   if (close(fd) != 0) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
 }
 
@@ -181,27 +205,33 @@ void Serialize(std::string_view path,
   int fd = open(std::string(path).c_str(), O_RDWR | O_CREAT,
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
   if (fd == -1) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
 
-  // 4 bytes for the metadata cardinality + (4 + 4) bytes per slot
-  int32_t length = 4 + 8 * contents.size();
+  // 8 bytes for the metadata cardinality + sizeof(StringEntry) bytes per slot
+  uint64_t length = 8 + sizeof(StringEntry) * contents.size();
 
   // 1 byte per character + 1 null terminator
   for (auto s : contents) length += s.size() + 1;
 
   if (posix_fallocate(fd, 0, length) != 0) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::runtime_error(
+        std::string(__FILE__) + ":" + std::to_string(__LINE__) +
+        " fallocate failed with length " + std::to_string(length));
   }
 
   auto data = reinterpret_cast<runtime::ColumnData::StringMetadata*>(
       mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   if (data == MAP_FAILED) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
 
   data->cardinality = contents.size();
-  int32_t offset = 4 + 8 * contents.size();
+  uint64_t offset = 8 + sizeof(StringEntry) * contents.size();
   char* string_data_ = reinterpret_cast<char*>(data);
 
   for (int slot = 0; slot < contents.size(); slot++) {
@@ -213,11 +243,15 @@ void Serialize(std::string_view path,
   }
 
   if (munmap(data, length) != 0) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
 
   if (close(fd) != 0) {
-    throw std::system_error(errno, std::generic_category());
+    throw std::system_error(
+        errno, std::generic_category(),
+        std::string(__FILE__) + ":" + std::to_string(__LINE__));
   }
 }
 

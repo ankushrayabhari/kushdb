@@ -6,11 +6,10 @@ Compilation-based execution engine for a database
 [skewed DBGEN](https://www.microsoft.com/en-us/download/details.aspx?id=52430)
 to generate .tbl files. For skewed DBGEN, rename `order.tbl` with `orders.tbl`.
 2. Move them to `benchmark/tpch/raw/`.
-3. Run: `for i in benchmark/tpch/raw/*; do sed -i 's/.$//' $i; done`.
 
 #### KushDB
 1. Create `benchmark/tpch/data/`.
-2. Run `bazel build //benchmark/tpch:load && bazel-bin/benchmark/benchmark/tpch/load` .
+2. Run `bazel build //benchmark/tpch:load && bazel-bin/benchmark/tpch/load` .
 3. Execute queries in `benchmark/tpch/queries/`.
 
 #### MonetDB

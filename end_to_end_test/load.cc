@@ -1,9 +1,12 @@
 
 #include "util/load.h"
 
+#include <cstdint>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <string>
+#include <string_view>
 
 using namespace kush::util;
 
