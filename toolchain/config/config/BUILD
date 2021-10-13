@@ -17,7 +17,6 @@
 
 package(default_visibility = ["//visibility:public"])
 
-
 toolchain(
     name = "cc-toolchain",
     exec_compatible_with = [
@@ -29,13 +28,12 @@ toolchain(
         "@bazel_tools//platforms:linux",
         "@bazel_tools//platforms:x86_64",
     ],
-    toolchain = "//cc:cc-compiler-k8",
+    toolchain = "//toolchain/config/cc:cc-compiler-k8",
     toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
 )
 
 platform(
     name = "platform",
-    parents = ["@local_config_platform//:host"],
     constraint_values = [
         "@bazel_tools//platforms:linux",
         "@bazel_tools//platforms:x86_64",
@@ -45,4 +43,5 @@ platform(
         "container-image": "docker://ankushrayabhari/kushdb_platform@sha256:6602c72bcfd6d1be1cd62133746decc3d0bca9644b7cbf386a7e671cc34fd51f",
         "OSFamily": "Linux",
     },
+    parents = ["@local_config_platform//:host"],
 )
