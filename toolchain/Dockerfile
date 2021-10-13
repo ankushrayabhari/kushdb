@@ -9,3 +9,4 @@ RUN ln -s /usr/bin/clang-10 /usr/bin/clang
 RUN ln -s /usr/bin/clang++-10 /usr/bin/clang++
 RUN ln -s /usr/bin/clang-10 /usr/local/bin/clang
 RUN ln -s /usr/bin/clang++-10 /usr/local/bin/clang++
+RUN apt-get install -y libtbb-dev
