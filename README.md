@@ -12,5 +12,11 @@ Compilation-based execution engine for a database
 3. To bench, run `python benchmark/tpch/bench.py`.
 
 #### MonetDB
-1. Run `python benchmark/tpch/monetdb_load.py`.
+1. MonetDB must be installed. `monetdbd`, `mclient`, `monetdb` must be available on PATH.
+2. Run `python benchmark/tpch/monetdb_load.py`.
 3. To bench, run `python benchmark/tpch/monetdb_bench.py`.
+
+#### DuckDB
+1. DuckDB must be installed. `duckdb` must be available on PATH.
+2. Run `python benchmark/tpch/duckdb_load.py`.
+3. To bench, run `python benchmark/tpch/duckdb_load.py`.
