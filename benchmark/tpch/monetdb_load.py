@@ -1,7 +1,7 @@
 import os
 import sys
 
-tables = ['customer', 'lineitem', 'nation', 'orders', 'part', 'partsupp', 'region', 'supplier']
+tables = ['region', 'nation', 'part', 'supplier', 'partsupp', 'customer', 'orders', 'lineitem']
 
 def execute(cmd):
     print(cmd, file=sys.stderr)

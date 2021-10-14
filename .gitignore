@@ -23,7 +23,9 @@ user.bazelrc
 /benchmark/tpch/monetdb/*
 !/benchmark/tpch/monetdb
 !/benchmark/tpch/monetdb/README.md
-
+/benchmark/tpch/duckdb/*
+!/benchmark/tpch/duckdb
+!/benchmark/tpch/duckdb/README.md
 
 # JOB Data
 /benchmark/job/data*
