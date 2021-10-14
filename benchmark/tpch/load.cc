@@ -10,7 +10,8 @@
 
 using namespace kush::util;
 
-constexpr std::string_view dest("benchmark/tpch/data/");
+std::string dest;
+std::string raw;
 
 void Region() {
   /*
@@ -25,7 +26,7 @@ void Region() {
   DECLARE_NOT_NULL_COL(std::string, r_name);
   DECLARE_NOT_NULL_COL(std::string, r_comment);
 
-  std::ifstream fin("benchmark/tpch/raw/region.tbl");
+  std::ifstream fin(raw + "region.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
     auto data = Split(line, '|');
@@ -58,7 +59,7 @@ void Nation() {
   DECLARE_NOT_NULL_COL(int32_t, n_regionkey);
   DECLARE_NOT_NULL_COL(std::string, n_comment);
 
-  std::ifstream fin("benchmark/tpch/raw/nation.tbl");
+  std::ifstream fin(raw + "nation.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
     auto data = Split(line, '|');
@@ -117,7 +118,7 @@ void Lineitem() {
   DECLARE_NOT_NULL_COL(std::string, l_shipmode);
   DECLARE_NOT_NULL_COL(std::string, l_comment);
 
-  std::ifstream fin("benchmark/tpch/raw/lineitem.tbl");
+  std::ifstream fin(raw + "lineitem.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
     auto data = Split(line, '|');
@@ -186,7 +187,7 @@ void Orders() {
   DECLARE_NOT_NULL_COL(int32_t, o_shippriority);
   DECLARE_NOT_NULL_COL(std::string, o_comment);
 
-  std::ifstream fin("benchmark/tpch/raw/orders.tbl");
+  std::ifstream fin(raw + "orders.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
     auto data = Split(line, '|');
@@ -239,7 +240,7 @@ void Customer() {
   DECLARE_NOT_NULL_COL(std::string, c_mktsegment);
   DECLARE_NOT_NULL_COL(std::string, c_comment);
 
-  std::ifstream fin("benchmark/tpch/raw/customer.tbl");
+  std::ifstream fin(raw + "customer.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
     auto data = Split(line, '|');
@@ -284,7 +285,7 @@ void Partsupp() {
   DECLARE_NOT_NULL_COL(double, ps_supplycost);
   DECLARE_NOT_NULL_COL(std::string, ps_comment);
 
-  std::ifstream fin("benchmark/tpch/raw/partsupp.tbl");
+  std::ifstream fin(raw + "partsupp.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
     auto data = Split(line, '|');
@@ -331,7 +332,7 @@ void Part() {
   DECLARE_NOT_NULL_COL(double, p_retailprice);
   DECLARE_NOT_NULL_COL(std::string, p_comment);
 
-  std::ifstream fin("benchmark/tpch/raw/part.tbl");
+  std::ifstream fin(raw + "part.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
     auto data = Split(line, '|');
@@ -382,7 +383,7 @@ void Supplier() {
   DECLARE_NOT_NULL_COL(double, s_acctbal);
   DECLARE_NOT_NULL_COL(std::string, s_comment);
 
-  std::ifstream fin("benchmark/tpch/raw/supplier.tbl");
+  std::ifstream fin(raw + "supplier.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
     auto data = Split(line, '|');
@@ -408,9 +409,21 @@ void Supplier() {
   Print("supplier complete");
 }
 
-int main() {
+void Load() {
   std::vector<std::add_pointer<void()>::type> loads{
       Supplier, Part, Partsupp, Customer, Orders, Lineitem, Nation, Region};
   std::for_each(std::execution::par_unseq, loads.begin(), loads.end(),
                 [](auto&& item) { item(); });
+}
+
+int main() {
+  dest = "benchmark/tpch/data-1/";
+  raw = "benchmark/tpch/raw-1/";
+  Print("Working on " + dest);
+  Load();
+
+  dest = "benchmark/tpch/data-10/";
+  raw = "benchmark/tpch/raw-10/";
+  Print("Working on " + dest);
+  Load();
 }
