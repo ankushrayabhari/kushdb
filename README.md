@@ -9,14 +9,14 @@ Compilation-based execution engine for a database
 #### KushDB
 1. Run `bazel build //benchmark/tpch:load`.
 2. Run `bazel-bin/benchmark/tpch/load`.
-3. To bench, run `python benchmark/tpch/bench.py`.
+3. To bench, run `python benchmark/tpch/bench.py > tpch.csv`.
 
 #### MonetDB
 1. MonetDB must be installed. `monetdbd`, `mclient`, `monetdb` must be available on PATH.
 2. Run `python benchmark/tpch/monetdb_load.py`.
-3. To bench, run `python benchmark/tpch/monetdb_bench.py`.
+3. To bench, run `python benchmark/tpch/monetdb_bench.py > monetdb_tpch.csv`.
 
 #### DuckDB
 1. DuckDB must be installed. `duckdb` must be available on PATH.
 2. Run `python benchmark/tpch/duckdb_load.py`.
-3. To bench, run `python benchmark/tpch/duckdb_load.py`.
+3. To bench, run `python benchmark/tpch/duckdb_load.py > duckdb_tpch.csv`.
