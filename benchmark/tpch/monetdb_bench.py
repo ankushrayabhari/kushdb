@@ -31,7 +31,7 @@ def bench(benchmark, db):
 if __name__ == "__main__":
     execute('monetdbd start benchmark/tpch/monetdb')
 
-    bench('TPC-H SF1', 'tpch-1')
-    bench('TPC-H SF10', 'tpch-10')
+    bench('TPC-H SF1', 'tpch1')
+    bench('TPC-H SF10', 'tpch10')
 
     execute('monetdbd stop benchmark/tpch/monetdb')

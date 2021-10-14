@@ -10,7 +10,7 @@ CREATE TABLE nation (
     n_name TEXT NOT NULL,
     n_regionkey INTEGER NOT NULL,
     n_comment TEXT NOT NULL,
-    PRIMARY KEY (n_nationkey),
+    PRIMARY KEY (n_nationkey)
 );
 
 CREATE TABLE supplier (
