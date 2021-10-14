@@ -20,9 +20,9 @@ user.bazelrc
 /benchmark/tpch/data-10/*.kdbindex
 /benchmark/tpch/raw-1/*.tbl
 /benchmark/tpch/raw-10/*.tbl
-/benchmark/tpch/monetdb-farm/*
-!/benchmark/tpch/monetdb-farm
-!/benchmark/tpch/monetdb-farm/README.md
+/benchmark/tpch/monetdb/*
+!/benchmark/tpch/monetdb
+!/benchmark/tpch/monetdb/README.md
 
 
 # JOB Data
