@@ -1,1 +1,1 @@
-TPC-H SF1 .tbl files go here.
+TPC-H SF1 Raw Files

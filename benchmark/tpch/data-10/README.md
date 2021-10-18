@@ -1,1 +1,1 @@
-TPC-H Data Files for SF10
+TPC-H SF10 Data Files

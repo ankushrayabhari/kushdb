@@ -16,3 +16,5 @@ IncludeCategories:
     Priority:        7
   - Regex:           '"magic_enum'
     Priority:        8
+  - Regex:           '"hyper'
+    Priority:        9

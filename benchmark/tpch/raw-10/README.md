@@ -1,1 +1,1 @@
-TPC-H SF10 .tbl files go here.
+TPC-H SF10 Raw Files

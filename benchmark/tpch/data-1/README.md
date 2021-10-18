@@ -1,1 +1,1 @@
-TPC-H Data Files for SF1
+TPC-H SF1 Data Files

@@ -119,3 +119,11 @@ http_archive(
     strip_prefix = "re2-2021-08-01",
     urls = ["https://github.com/google/re2/archive/refs/tags/2021-08-01.zip"],
 )
+
+http_archive(
+    name = "hyper",
+    build_file = "@//third_party:hyper.BUILD",
+    sha256 = "737343a5e33f50de98ebfc8aadcb32b8734f59bc3d54ba3afe90e5aa9b96a8be",
+    strip_prefix = "tableauhyperapi-cxx-linux-x86_64-release-hyperapi_release_25.0.0.13617.r04e16b7b",
+    urls = ["https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-linux-x86_64-release-hyperapi_release_25.0.0.13617.r04e16b7b.zip"],
+)

@@ -26,9 +26,6 @@ filegroup(
 cc_binary(
     name = "load",
     srcs = ["load.cc"],
-    data = [
-        ":raw",
-    ],
     deps = [
         "//util:load",
     ],
@@ -44,4 +41,12 @@ cc_library(
         "//catalog",
         "//catalog:sql_type",
     ],
+)
+
+cc_binary(
+    name = "hyper_load",
+    srcs = ["hyper_load.cc"],
+    copts = ["-Wno-absolute-value"],
+    data = ["@hyper//:hyperd"],
+    deps = ["@hyper"],
 )

@@ -1,1 +1,1 @@
-DuckDB Persistent Database
+DuckDB Data Files
