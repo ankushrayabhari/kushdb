@@ -35,6 +35,9 @@ user.bazelrc
 /benchmark/job/monetdb/*
 !/benchmark/job/monetdb
 !/benchmark/job/monetdb/README.md
+/benchmark/job/duckdb/*
+!/benchmark/job/duckdb
+!/benchmark/job/duckdb/README.md
 
 # JCC-H Data
 /benchmark/jcch/data*

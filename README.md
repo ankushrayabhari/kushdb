@@ -20,16 +20,21 @@ Compilation-based execution engine for a database
 #### DuckDB
 1. DuckDB must be installed. `duckdb` must be available on PATH.
 2. Run `python benchmark/tpch/duckdb_load.py`.
-3. To bench, run `python benchmark/tpch/duckdb_load.py > duckdb_tpch.csv`.
+3. To bench, run `python benchmark/tpch/duckdb_bench.py > duckdb_tpch.csv`.
 
 ### Execute JOB
 1. Download CSV Files from JOB [here](https://github.com/gregrahn/join-order-benchmark).
 2. Make the following changes to the CSV files:
-- Update line 268268 of person_info.csv to escape the \ in "Canada\US"
-- Update line 2671662 of person_info.csv to escape the \ in "(qv); \,"
-- Update line 2514451 of title.csv to escape the \ in "\Frag'ile\"
+- Update line 268268 of `person_info.csv` to escape the `\` in `Canada\US`
+- Update line 2671662 of `person_info.csv` to escape the `\` in `(qv); \,`
+- Update line 2514451 of `title.csv` to escape the `\` in `\Frag'ile\`
 
 #### MonetDB
 1. MonetDB must be installed. `monetdbd`, `mclient`, `monetdb` must be available on PATH.
 2. Run `python benchmark/job/monetdb_load.py`.
 3. To bench, run `python benchmark/job/monetdb_bench.py > monetdb_job.csv`.
+
+#### DuckDB
+1. DuckDB must be installed. `duckdb` must be available on PATH.
+2. Run `python benchmark/tpch/duckdb_load.py`.
+3. To bench, run `python benchmark/tpch/duckdb_bench.py > duckdb_job.csv`.
