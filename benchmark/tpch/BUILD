@@ -42,11 +42,3 @@ cc_library(
         "//catalog:sql_type",
     ],
 )
-
-cc_binary(
-    name = "hyper_load",
-    srcs = ["hyper_load.cc"],
-    copts = ["-Wno-absolute-value"],
-    data = ["@hyper//:hyperd"],
-    deps = ["@hyper"],
-)
