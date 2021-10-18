@@ -28,10 +28,6 @@ user.bazelrc
 /benchmark/tpch/duckdb/*
 !/benchmark/tpch/duckdb
 !/benchmark/tpch/duckdb/README.md
-/benchmark/tpch/hyper/*
-!/benchmark/tpch/hyper
-!/benchmark/tpch/hyper/README.md
-hyperd.log
 
 # JOB Data
 /benchmark/job/raw

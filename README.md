@@ -22,10 +22,6 @@ Compilation-based execution engine for a database
 2. Run `python benchmark/tpch/duckdb_load.py`.
 3. To bench, run `python benchmark/tpch/duckdb_load.py > duckdb_tpch.csv`.
 
-#### Hyper
-1. Run `bazel build //benchmark/tpch:hyper_load`.
-2. Run `bazel-bin/benchmark/tpch/hyper_load`.
-
 ### Execute JOB
 1. Download CSV Files from JOB [here](https://github.com/gregrahn/join-order-benchmark).
 2. Make the following changes to the CSV files:
