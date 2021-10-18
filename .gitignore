@@ -34,8 +34,11 @@ user.bazelrc
 hyperd.log
 
 # JOB Data
-/benchmark/job/data*
-/benchmark/job/raw*
+/benchmark/job/raw
+/benchmark/job/data
+/benchmark/job/monetdb/*
+!/benchmark/job/monetdb
+!/benchmark/job/monetdb/README.md
 
 # JCC-H Data
 /benchmark/jcch/data*

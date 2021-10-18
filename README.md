@@ -25,3 +25,15 @@ Compilation-based execution engine for a database
 #### Hyper
 1. Run `bazel build //benchmark/tpch:hyper_load`.
 2. Run `bazel-bin/benchmark/tpch/hyper_load`.
+
+### Execute JOB
+1. Download CSV Files from JOB [here](https://github.com/gregrahn/join-order-benchmark).
+2. Make the following changes to the CSV files:
+- Update line 268268 of person_info.csv to escape the \ in "Canada\US"
+- Update line 2671662 of person_info.csv to escape the \ in "(qv); \,"
+- Update line 2514451 of title.csv to escape the \ in "\Frag'ile\"
+
+#### MonetDB
+1. MonetDB must be installed. `monetdbd`, `mclient`, `monetdb` must be available on PATH.
+2. Run `python benchmark/job/monetdb_load.py`.
+3. To bench, run `python benchmark/job/monetdb_bench.py > monetdb_job.csv`.
