@@ -275,7 +275,7 @@ std::unique_ptr<IRValue> ColumnData<S>::operator[](Int32& idx) {
   } else if constexpr (catalog::SqlType::REAL == S) {
     return std::make_unique<Float64>(program_, elem);
   } else if constexpr (catalog::SqlType::DATE == S) {
-    return std::make_unique<Int64>(program_, elem);
+    return std::make_unique<Date>(program_, elem);
   } else if constexpr (catalog::SqlType::BOOLEAN == S) {
     return std::make_unique<Bool>(program_, elem);
   }

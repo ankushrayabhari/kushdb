@@ -106,8 +106,8 @@ void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
                              null));
       return;
     case catalog::SqlType::DATE:
-      Return(proxy::SQLValue(proxy::Int64(program_, literal.GetDateValue()),
-                             null));
+      Return(
+          proxy::SQLValue(proxy::Date(program_, literal.GetDateValue()), null));
       return;
     case catalog::SqlType::REAL:
       Return(proxy::SQLValue(proxy::Float64(program_, literal.GetRealValue()),
@@ -164,7 +164,7 @@ void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {
       return;
     }
     case catalog::SqlType::DATE: {
-      Return(Ternary<proxy::Int64>(case_expr));
+      Return(Ternary<proxy::Date>(case_expr));
       return;
     }
     case catalog::SqlType::REAL: {

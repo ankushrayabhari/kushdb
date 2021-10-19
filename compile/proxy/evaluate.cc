@@ -38,6 +38,54 @@ SQLValue EvaluateBinaryBool(plan::BinaryArithmeticOperatorType op_type,
       });
 }
 
+SQLValue EvaluateBinaryDate(plan::BinaryArithmeticOperatorType op_type,
+                            const SQLValue& lhs, const SQLValue& rhs) {
+  auto& program = lhs.ProgramBuilder();
+  switch (op_type) {
+    case plan::BinaryArithmeticOperatorType::EQ:
+    case plan::BinaryArithmeticOperatorType::NEQ:
+    case plan::BinaryArithmeticOperatorType::LT:
+    case plan::BinaryArithmeticOperatorType::LEQ:
+    case plan::BinaryArithmeticOperatorType::GT:
+    case plan::BinaryArithmeticOperatorType::GEQ: {
+      return NullableTernary<Bool>(
+          program, lhs.IsNull() || rhs.IsNull(),
+          [&]() { return SQLValue(Bool(program, false), Bool(program, true)); },
+          [&]() {
+            const Date& lhs_v = dynamic_cast<const Date&>(lhs.Get());
+            const Date& rhs_v = dynamic_cast<const Date&>(rhs.Get());
+            Bool null(program, false);
+
+            switch (op_type) {
+              case plan::BinaryArithmeticOperatorType::EQ:
+                return SQLValue(lhs_v == rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::NEQ:
+                return SQLValue(lhs_v != rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::LT:
+                return SQLValue(lhs_v < rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::LEQ:
+                return SQLValue(lhs_v <= rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::GT:
+                return SQLValue(lhs_v > rhs_v, null);
+
+              case plan::BinaryArithmeticOperatorType::GEQ:
+                return SQLValue(lhs_v >= rhs_v, null);
+
+              default:
+                throw std::runtime_error("Unreachable");
+            }
+          });
+    }
+
+    default:
+      throw std::runtime_error("Invalid operator on numeric");
+  }
+}
+
 template <typename V>
 SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticOperatorType op_type,
                                const SQLValue& lhs, const SQLValue& rhs) {
@@ -189,6 +237,7 @@ SQLValue EvaluateBinary(plan::BinaryArithmeticOperatorType op,
     case catalog::SqlType::INT:
       return EvaluateBinaryNumeric<Int32>(op, lhs, rhs);
     case catalog::SqlType::DATE:
+      return EvaluateBinaryDate(op, lhs, rhs);
     case catalog::SqlType::BIGINT:
       return EvaluateBinaryNumeric<Int64>(op, lhs, rhs);
     case catalog::SqlType::REAL:
@@ -225,7 +274,12 @@ Bool LessThan(const SQLValue& lhs, const SQLValue& rhs) {
                         return lhs_v < rhs_v;
                       }
 
-                      case catalog::SqlType::DATE:
+                      case catalog::SqlType::DATE: {
+                        auto& lhs_v = static_cast<Date&>(lhs.Get());
+                        auto& rhs_v = static_cast<Date&>(rhs.Get());
+                        return lhs_v < rhs_v;
+                      }
+
                       case catalog::SqlType::BIGINT: {
                         auto& lhs_v = static_cast<Int64&>(lhs.Get());
                         auto& rhs_v = static_cast<Int64&>(rhs.Get());
@@ -283,7 +337,12 @@ Bool Equal(const SQLValue& lhs, const SQLValue& rhs) {
                   return lhs_v == rhs_v;
                 }
 
-                case catalog::SqlType::DATE:
+                case catalog::SqlType::DATE: {
+                  auto& lhs_v = static_cast<Date&>(lhs.Get());
+                  auto& rhs_v = static_cast<Date&>(rhs.Get());
+                  return lhs_v == rhs_v;
+                }
+
                 case catalog::SqlType::BIGINT: {
                   auto& lhs_v = static_cast<Int64&>(lhs.Get());
                   auto& rhs_v = static_cast<Int64&>(rhs.Get());

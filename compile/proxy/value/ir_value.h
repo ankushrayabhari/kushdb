@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
+#include "absl/time/civil_time.h"
+
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
@@ -286,6 +290,33 @@ class String : public IRValue {
   khir::Value value_;
 };
 
+class Date : public IRValue {
+ public:
+  Date(khir::ProgramBuilder& program, const khir::Value& value);
+  Date(khir::ProgramBuilder& program, absl::CivilDay value);
+  Date(const Date& rhs) = default;
+  Date(Date&& rhs) = default;
+  Date& operator=(const Date& rhs);
+  Date& operator=(Date&& rhs);
+
+  Bool operator==(const Date& rhs) const;
+  Bool operator!=(const Date& rhs) const;
+  Bool operator<(const Date& rhs) const;
+  Bool operator<=(const Date& rhs) const;
+  Bool operator>(const Date& rhs) const;
+  Bool operator>=(const Date& rhs) const;
+
+  Int64 Hash() const override;
+  khir::Value Get() const override;
+  void Print(Printer& printer) const override;
+  std::unique_ptr<Date> ToPointer() const;
+  khir::ProgramBuilder& ProgramBuilder() const override;
+
+ private:
+  khir::ProgramBuilder& program_;
+  khir::Value value_;
+};
+
 class Printer {
  public:
   Printer(khir::ProgramBuilder& program);
@@ -297,6 +328,7 @@ class Printer {
   void Print(const Int64& t) const;
   void Print(const Float64& t) const;
   void Print(const String& t) const;
+  void Print(const Date& t) const;
   void PrintNewline() const;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);

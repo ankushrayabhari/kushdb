@@ -191,6 +191,11 @@ template SQLValue NullableTernary<Int64>(khir::ProgramBuilder& program,
                                          std::function<SQLValue()> then_fn,
                                          std::function<SQLValue()> else_fn);
 
+template SQLValue NullableTernary<Date>(khir::ProgramBuilder& program,
+                                        const Bool& cond,
+                                        std::function<SQLValue()> then_fn,
+                                        std::function<SQLValue()> else_fn);
+
 template SQLValue NullableTernary<Float64>(khir::ProgramBuilder& program,
                                            const Bool& cond,
                                            std::function<SQLValue()> then_fn,

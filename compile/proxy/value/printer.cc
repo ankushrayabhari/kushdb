@@ -10,6 +10,7 @@ constexpr std::string_view i8_fn_name("kush::runtime::Printer::PrintInt8");
 constexpr std::string_view i16_fn_name("kush::runtime::Printer::PrintInt16");
 constexpr std::string_view i32_fn_name("kush::runtime::Printer::PrintInt32");
 constexpr std::string_view i64_fn_name("kush::runtime::Printer::PrintInt64");
+constexpr std::string_view date_fn_name("kush::runtime::Printer::PrintDate");
 constexpr std::string_view f64_fn_name("kush::runtime::Printer::PrintFloat64");
 constexpr std::string_view newline_fn_name(
     "kush::runtime::Printer::PrintNewline");
@@ -46,6 +47,10 @@ void Printer::Print(const String& t) const {
   program_.Call(program_.GetFunction(string_fn_name), {t.Get()});
 }
 
+void Printer::Print(const Date& t) const {
+  program_.Call(program_.GetFunction(date_fn_name), {t.Get()});
+}
+
 void Printer::PrintNewline() const {
   program_.Call(program_.GetFunction(newline_fn_name), {});
 }
@@ -66,6 +71,9 @@ void Printer::ForwardDeclare(khir::ProgramBuilder& program) {
   program.DeclareExternalFunction(
       i64_fn_name, program.VoidType(), {program.I64Type()},
       reinterpret_cast<void*>(&runtime::Printer::PrintInt64));
+  program.DeclareExternalFunction(
+      date_fn_name, program.VoidType(), {program.I64Type()},
+      reinterpret_cast<void*>(&runtime::Printer::PrintDate));
   program.DeclareExternalFunction(
       f64_fn_name, program.VoidType(), {program.F64Type()},
       reinterpret_cast<void*>(&runtime::Printer::PrintFloat64));

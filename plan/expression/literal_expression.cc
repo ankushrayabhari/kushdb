@@ -26,12 +26,7 @@ LiteralExpression::LiteralExpression(double value)
     : Expression(catalog::SqlType::REAL, false, {}), value_(value) {}
 
 LiteralExpression::LiteralExpression(absl::CivilDay value)
-    : Expression(catalog::SqlType::DATE, false, {}) {
-  // set value to converted timestamp
-  absl::TimeZone utc = absl::UTCTimeZone();
-  absl::Time time = absl::FromCivil(value, utc);
-  value_ = absl::ToUnixMillis(time);
-}
+    : Expression(catalog::SqlType::DATE, false, {}), value_(value) {}
 
 LiteralExpression::LiteralExpression(std::string_view value)
     : Expression(catalog::SqlType::TEXT, false, {}),
@@ -56,8 +51,8 @@ double LiteralExpression::GetRealValue() const {
   return std::get<double>(value_);
 }
 
-int64_t LiteralExpression::GetDateValue() const {
-  return std::get<int64_t>(value_);
+absl::CivilDay LiteralExpression::GetDateValue() const {
+  return std::get<absl::CivilDay>(value_);
 }
 
 std::string_view LiteralExpression::GetTextValue() const {
@@ -81,7 +76,7 @@ nlohmann::json LiteralExpression::ToJson() const {
       j["value"] = GetBigintValue();
       break;
     case catalog::SqlType::DATE:
-      j["value"] = GetDateValue();
+      j["value"] = absl::FormatCivilTime(GetDateValue());
       break;
     case catalog::SqlType::REAL:
       j["value"] = GetRealValue();

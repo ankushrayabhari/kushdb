@@ -366,6 +366,10 @@ void PermutableSkinnerJoinTranslator::Produce() {
               proxy::Int32(program_, 0), proxy::Bool(program_, false)));
           break;
         case catalog::SqlType::DATE:
+          child_translator.SchemaValues().AddVariable(
+              proxy::SQLValue(proxy::Date(program_, absl::CivilDay(2000, 1, 1)),
+                              proxy::Bool(program_, false)));
+          break;
         case catalog::SqlType::BIGINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int64(program_, 0), proxy::Bool(program_, false)));

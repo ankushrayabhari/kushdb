@@ -120,8 +120,10 @@ std::vector<SQLValue> Struct::Unpack() {
         result.emplace_back(Int32(program_, program_.LoadI32(ptr)), null);
         break;
       case catalog::SqlType::BIGINT:
-      case catalog::SqlType::DATE:
         result.emplace_back(Int64(program_, program_.LoadI64(ptr)), null);
+        break;
+      case catalog::SqlType::DATE:
+        result.emplace_back(Date(program_, program_.LoadI64(ptr)), null);
         break;
       case catalog::SqlType::REAL:
         result.emplace_back(Float64(program_, program_.LoadF64(ptr)), null);

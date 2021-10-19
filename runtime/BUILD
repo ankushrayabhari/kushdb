@@ -120,5 +120,6 @@ cc_library(
     hdrs = ["printer.h"],
     deps = [
         ":string",
+        "@absl//absl/time",
     ],
 )

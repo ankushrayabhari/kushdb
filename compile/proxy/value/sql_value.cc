@@ -31,6 +31,12 @@ SQLValue::SQLValue(const Int64& value, const Bool& null)
       null_(null),
       type_(catalog::SqlType::BIGINT) {}
 
+SQLValue::SQLValue(const Date& value, const Bool& null)
+    : program_(value.ProgramBuilder()),
+      value_(value.ToPointer()),
+      null_(null),
+      type_(catalog::SqlType::DATE) {}
+
 SQLValue::SQLValue(const Float64& value, const Bool& null)
     : program_(value.ProgramBuilder()),
       value_(value.ToPointer()),
@@ -59,8 +65,9 @@ std::unique_ptr<IRValue> CopyIRValue(catalog::SqlType t, IRValue& v) {
     case catalog::SqlType::INT:
       return dynamic_cast<Int32&>(v).ToPointer();
     case catalog::SqlType::BIGINT:
-    case catalog::SqlType::DATE:
       return dynamic_cast<Int64&>(v).ToPointer();
+    case catalog::SqlType::DATE:
+      return dynamic_cast<Date&>(v).ToPointer();
     case catalog::SqlType::REAL:
       return dynamic_cast<Float64&>(v).ToPointer();
     case catalog::SqlType::TEXT:

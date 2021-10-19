@@ -28,7 +28,7 @@ class LiteralExpression : public Expression {
   int32_t GetIntValue() const;
   int64_t GetBigintValue() const;
   double GetRealValue() const;
-  int64_t GetDateValue() const;
+  absl::CivilDay GetDateValue() const;
   std::string_view GetTextValue() const;
   bool GetBooleanValue() const;
 
@@ -38,7 +38,9 @@ class LiteralExpression : public Expression {
   nlohmann::json ToJson() const override;
 
  private:
-  std::variant<int16_t, int32_t, int64_t, double, std::string, bool> value_;
+  std::variant<int16_t, int32_t, int64_t, double, std::string, bool,
+               absl::CivilDay>
+      value_;
 };
 
 }  // namespace kush::plan

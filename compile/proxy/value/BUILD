@@ -6,6 +6,7 @@ cc_library(
     name = "ir_value",
     srcs = [
         "bool.cc",
+        "date.cc",
         "float.cc",
         "int.cc",
         "printer.cc",

@@ -1,7 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "int",
+    name = "int_test",
     size = "small",
     srcs = ["int_test.cc"],
     data = [
@@ -67,7 +67,7 @@ cc_test(
 )
 
 cc_test(
-    name = "smallint",
+    name = "smallint_test",
     size = "small",
     srcs = ["smallint_test.cc"],
     data = [
@@ -100,7 +100,7 @@ cc_test(
 )
 
 cc_test(
-    name = "bigint",
+    name = "bigint_test",
     size = "small",
     srcs = ["bigint_test.cc"],
     data = [
@@ -133,7 +133,7 @@ cc_test(
 )
 
 cc_test(
-    name = "real",
+    name = "real_test",
     size = "small",
     srcs = ["real_test.cc"],
     data = [
@@ -166,7 +166,7 @@ cc_test(
 )
 
 cc_test(
-    name = "date",
+    name = "date_test",
     size = "small",
     srcs = ["date_test.cc"],
     data = [
@@ -199,7 +199,7 @@ cc_test(
 )
 
 cc_test(
-    name = "text",
+    name = "text_test",
     size = "small",
     srcs = ["text_test.cc"],
     data = [
@@ -232,7 +232,7 @@ cc_test(
 )
 
 cc_test(
-    name = "boolean",
+    name = "boolean_test",
     size = "small",
     srcs = ["boolean_test.cc"],
     data = [
