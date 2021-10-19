@@ -10,9 +10,9 @@ cc_test(
     deps = [
         "//catalog",
         "//compile:query_translator",
-        "//end_to_end_test:execute_capture",
         "//end_to_end_test:parameters",
         "//end_to_end_test:schema",
+        "//end_to_end_test:test_util",
         "//plan:group_by_aggregate_operator",
         "//plan:hash_join_operator",
         "//plan:operator",

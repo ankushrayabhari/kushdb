@@ -9,9 +9,9 @@
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "compile/query_translator.h"
-#include "end_to_end_test/execute_capture.h"
 #include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
+#include "end_to_end_test/test_util.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -122,55 +122,6 @@ std::unique_ptr<Operator> OrderBy(const Database& db) {
       std::vector<bool>{true, true});
 }
 
-std::vector<std::string> Split(const std::string& s, char delim) {
-  std::stringstream ss(s);
-  std::string item;
-  std::vector<std::string> elems;
-  while (std::getline(ss, item, delim)) {
-    elems.push_back(std::move(item));
-  }
-  return elems;
-}
-
-void EXPECT_EQ_TBL(
-    const std::vector<std::string>& expected,
-    const std::vector<std::string>& output,
-    const std::vector<kush::plan::OperatorSchema::Column>& columns,
-    double threshold) {
-  EXPECT_EQ(expected.size(), output.size());
-
-  for (int i = 0; i < expected.size(); i++) {
-    auto split_e = Split(expected[i], '|');
-    auto split_o = Split(output[i], '|');
-
-    EXPECT_EQ(split_e.size(), columns.size());
-    EXPECT_EQ(split_o.size(), columns.size());
-
-    for (int j = 0; j < columns.size(); j++) {
-      const auto& e_value = split_e[j];
-      const auto& o_value = split_o[j];
-
-      switch (columns[j].Expr().Type()) {
-        case catalog::SqlType::REAL: {
-          double e_value_as_d = std::stod(e_value);
-          double o_value_as_d = std::stod(o_value);
-          EXPECT_NEAR(e_value_as_d, o_value_as_d, threshold);
-          break;
-        }
-
-        case catalog::SqlType::SMALLINT:
-        case catalog::SqlType::INT:
-        case catalog::SqlType::BIGINT:
-        case catalog::SqlType::DATE:
-        case catalog::SqlType::TEXT:
-        case catalog::SqlType::BOOLEAN:
-          EXPECT_EQ(e_value, o_value);
-          break;
-      }
-    }
-  }
-}
-
 class TPCHTest : public testing::TestWithParam<ParameterValues> {};
 
 TEST_P(TPCHTest, Q01) {
@@ -186,7 +137,7 @@ TEST_P(TPCHTest, Q01) {
   auto output = GetFileContents(output_file);
   EXPECT_EQ_TBL(expected, output, query->Child().Schema().Columns(), 1e-5);
 }
-/*
+
 INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Recompile_HighBudget, TPCHTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
@@ -257,8 +208,7 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     LLVMBackend_Recompile_LowBudget, TPCHTest,
     testing::Values(ParameterValues{
-        .backend = "llvm", .skinner = "recompile", .budget_per_episode =
-10}));*/
+        .backend = "llvm", .skinner = "recompile", .budget_per_episode = 10}));
 
 INSTANTIATE_TEST_SUITE_P(
     LLVMBackend_Permute_LowBudget, TPCHTest,

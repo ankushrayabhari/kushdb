@@ -45,11 +45,12 @@ cc_library(
 )
 
 cc_library(
-    name = "execute_capture",
-    hdrs = ["execute_capture.h"],
+    name = "test_util",
+    hdrs = ["test_util.h"],
     deps = [
         "//compile:query_translator",
         "//execution:executable_query",
+        "@com_google_googletest//:gtest",
     ],
 )
 
