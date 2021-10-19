@@ -11,7 +11,7 @@
 
 namespace kush::runtime::Printer {
 
-void PrintBool(bool v) { std::cout << v << "|"; }
+void PrintBool(bool v) { std::cout << (v ? 't' : 'f') << "|"; }
 
 void PrintInt8(int8_t v) { std::cout << v << "|"; }
 
