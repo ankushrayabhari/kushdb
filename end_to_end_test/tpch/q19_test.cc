@@ -12,6 +12,7 @@
 #include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
 #include "end_to_end_test/test_util.h"
+#include "plan/cross_product_operator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -301,11 +302,29 @@ std::unique_ptr<Operator> Agg() {
       util::MakeVector(std::move(revenue)));
 }
 
-int main(int argc, char** argv) {
-  absl::SetProgramUsageMessage("Executes query.");
-  absl::ParseCommandLine(argc, argv);
-  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(Agg());
+class TPCHTest : public testing::TestWithParam<ParameterValues> {};
 
-  kush::util::ExecuteAndTime(*query);
-  return 0;
+TEST_P(TPCHTest, Q19) {
+  SetFlags(GetParam());
+
+  auto db = Schema();
+  auto query = std::make_unique<OutputOperator>(Agg());
+
+  auto expected_file = "end_to_end_test/tpch/q19_expected.tbl";
+  auto output_file = ExecuteAndCapture(*query);
+
+  auto expected = GetFileContents(expected_file);
+  auto output = GetFileContents(output_file);
+  EXPECT_EQ_TBL(expected, output, query->Child().Schema().Columns(), 1e-5);
 }
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill, TPCHTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm", .reg_alloc = "stack_spill"}));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan, TPCHTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm", .reg_alloc = "linear_scan"}));
+
+INSTANTIATE_TEST_SUITE_P(LLVMBackend, TPCHTest,
+                         testing::Values(ParameterValues{.backend = "llvm"}));

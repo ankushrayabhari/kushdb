@@ -7,8 +7,8 @@ as (
     from
             lineitem
     where
-            l_shipdate >= timestamp '1994-06-01'
-            and l_shipdate < timestamp '1994-06-01' + interval '3' month
+            l_shipdate >= date '1994-06-01'
+            and l_shipdate < date '1994-06-01' + interval '3' month
     group by
             l_suppkey
 )

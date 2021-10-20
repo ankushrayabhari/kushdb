@@ -12,6 +12,7 @@
 #include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
 #include "end_to_end_test/test_util.h"
+#include "plan/cross_product_operator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -36,7 +37,7 @@ using namespace kush::catalog;
 const Database db = Schema();
 
 // Scan(lineitem)
-std::unique_ptr<Operator> ScanLineitem(const Database& db) {
+std::unique_ptr<Operator> ScanLineitem() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(
       db["lineitem"], {"l_returnflag", "l_linestatus", "l_quantity",
@@ -45,8 +46,8 @@ std::unique_ptr<Operator> ScanLineitem(const Database& db) {
 }
 
 // Select (l_shipdate <= 1998-09-13)
-std::unique_ptr<Operator> SelectLineitem(const Database& db) {
-  auto scan_lineitem = ScanLineitem(db);
+std::unique_ptr<Operator> SelectLineitem() {
+  auto scan_lineitem = ScanLineitem();
 
   auto leq = std::make_unique<BinaryArithmeticExpression>(
       BinaryArithmeticOperatorType::LEQ, ColRef(scan_lineitem, "l_shipdate"),
@@ -62,8 +63,8 @@ std::unique_ptr<Operator> SelectLineitem(const Database& db) {
 }
 
 // Group By l_returnflag, l_linestatus -> Aggregate
-std::unique_ptr<Operator> GroupByAgg(const Database& db) {
-  auto select_lineitem = SelectLineitem(db);
+std::unique_ptr<Operator> GroupByAgg() {
+  auto select_lineitem = SelectLineitem();
 
   // Group by
   auto l_returnflag = ColRefE(select_lineitem, "l_returnflag");
@@ -107,8 +108,8 @@ std::unique_ptr<Operator> GroupByAgg(const Database& db) {
 }
 
 // Order By l_returnflag, l_linestatus
-std::unique_ptr<Operator> OrderBy(const Database& db) {
-  auto agg = GroupByAgg(db);
+std::unique_ptr<Operator> OrderBy() {
+  auto agg = GroupByAgg();
 
   auto l_returnflag = ColRef(agg, "l_returnflag");
   auto l_linestatus = ColRef(agg, "l_linestatus");
@@ -128,7 +129,7 @@ TEST_P(TPCHTest, Q01) {
   SetFlags(GetParam());
 
   auto db = Schema();
-  auto query = std::make_unique<OutputOperator>(OrderBy(db));
+  auto query = std::make_unique<OutputOperator>(OrderBy());
 
   auto expected_file = "end_to_end_test/tpch/q01_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
@@ -144,7 +145,7 @@ INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill, TPCHTest,
 
 INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan, TPCHTest,
                          testing::Values(ParameterValues{
-                             .backend = "asm", .reg_alloc = "stack_spill"}));
+                             .backend = "asm", .reg_alloc = "linear_scan"}));
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackend, TPCHTest,
                          testing::Values(ParameterValues{.backend = "llvm"}));

@@ -12,6 +12,7 @@
 #include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
 #include "end_to_end_test/test_util.h"
+#include "plan/cross_product_operator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -26,6 +27,7 @@
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
 #include "util/builder.h"
+
 using namespace kush;
 using namespace kush::util;
 using namespace kush::plan;
@@ -36,15 +38,15 @@ using namespace std::literals;
 const Database db = Schema();
 
 // Scan(region)
-std::unique_ptr<Operator> ScanRegion(const Database& db) {
+std::unique_ptr<Operator> ScanRegion() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["region"], {"r_regionkey", "r_name"});
   return std::make_unique<ScanOperator>(std::move(schema), db["region"]);
 }
 
 // Select(r_name = 'MIDDLE EAST')
-std::unique_ptr<Operator> SelectRegion(const Database& db) {
-  auto region = ScanRegion(db);
+std::unique_ptr<Operator> SelectRegion() {
+  auto region = ScanRegion();
   auto eq = Eq(ColRef(region, "r_name"), Literal("MIDDLE EAST"sv));
 
   OperatorSchema schema;
@@ -54,7 +56,7 @@ std::unique_ptr<Operator> SelectRegion(const Database& db) {
 }
 
 // Scan(nation)
-std::unique_ptr<Operator> ScanNation(const Database& db) {
+std::unique_ptr<Operator> ScanNation() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["nation"],
                              {"n_name", "n_nationkey", "n_regionkey"});
@@ -62,9 +64,9 @@ std::unique_ptr<Operator> ScanNation(const Database& db) {
 }
 
 // region JOIN nation ON r_regionkey = n_regionkey
-std::unique_ptr<Operator> RegionNation(const Database& db) {
-  auto region = SelectRegion(db);
-  auto nation = ScanNation(db);
+std::unique_ptr<Operator> RegionNation() {
+  auto region = SelectRegion();
+  auto nation = ScanNation();
 
   auto r_regionkey = ColRef(region, "r_regionkey", 0);
   auto n_regionkey = ColRef(nation, "n_regionkey", 1);
@@ -78,7 +80,7 @@ std::unique_ptr<Operator> RegionNation(const Database& db) {
 }
 
 // Scan(supplier)
-std::unique_ptr<Operator> ScanSupplier(const Database& db) {
+std::unique_ptr<Operator> ScanSupplier() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["supplier"],
                              {"s_acctbal", "s_name", "s_address", "s_phone",
@@ -87,9 +89,9 @@ std::unique_ptr<Operator> ScanSupplier(const Database& db) {
 }
 
 // region_nation JOIN supplier ON n_nationkey = s_nationkey
-std::unique_ptr<Operator> RegionNationSupplier(const Database& db) {
-  auto region_nation = RegionNation(db);
-  auto supplier = ScanSupplier(db);
+std::unique_ptr<Operator> RegionNationSupplier() {
+  auto region_nation = RegionNation();
+  auto supplier = ScanSupplier();
 
   auto n_nationkey = ColRef(region_nation, "n_nationkey", 0);
   auto s_nationkey = ColRef(supplier, "s_nationkey", 1);
@@ -107,7 +109,7 @@ std::unique_ptr<Operator> RegionNationSupplier(const Database& db) {
 }
 
 // Scan(part)
-std::unique_ptr<Operator> ScanPart(const Database& db) {
+std::unique_ptr<Operator> ScanPart() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["part"],
                              {"p_partkey", "p_mfgr", "p_size", "p_type"});
@@ -115,8 +117,8 @@ std::unique_ptr<Operator> ScanPart(const Database& db) {
 }
 
 // Select(p_size = 35 and p_type ENDS WITH 'TIN')
-std::unique_ptr<Operator> SelectPart(const Database& db) {
-  auto part = ScanPart(db);
+std::unique_ptr<Operator> SelectPart() {
+  auto part = ScanPart();
 
   std::unique_ptr<Expression> cond;
   {
@@ -134,7 +136,7 @@ std::unique_ptr<Operator> SelectPart(const Database& db) {
 }
 
 // Scan(partsupp)
-std::unique_ptr<Operator> ScanPartsupp(const Database& db) {
+std::unique_ptr<Operator> ScanPartsupp() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["partsupp"],
                              {"ps_partkey", "ps_suppkey", "ps_supplycost"});
@@ -142,9 +144,9 @@ std::unique_ptr<Operator> ScanPartsupp(const Database& db) {
 }
 
 // part JOIN partsupp ON p_partkey = ps_partkey
-std::unique_ptr<Operator> PartPartsupp(const Database& db) {
-  auto part = SelectPart(db);
-  auto partsupp = ScanPartsupp(db);
+std::unique_ptr<Operator> PartPartsupp() {
+  auto part = SelectPart();
+  auto partsupp = ScanPartsupp();
 
   auto p_partkey = ColRef(part, "p_partkey", 0);
   auto ps_partkey = ColRef(partsupp, "ps_partkey", 1);
@@ -159,9 +161,9 @@ std::unique_ptr<Operator> PartPartsupp(const Database& db) {
 }
 
 // region_nation_supplier JOIN part_partsupp ON s_suppkey = ps_suppkey
-std::unique_ptr<Operator> RegionNationSupplierPartPartsupp(const Database& db) {
-  auto rns = RegionNationSupplier(db);
-  auto pps = PartPartsupp(db);
+std::unique_ptr<Operator> RegionNationSupplierPartPartsupp() {
+  auto rns = RegionNationSupplier();
+  auto pps = PartPartsupp();
 
   auto s_suppkey = ColRef(rns, "s_suppkey", 0);
   auto ps_suppkey = ColRef(pps, "ps_suppkey", 1);
@@ -180,16 +182,16 @@ std::unique_ptr<Operator> RegionNationSupplierPartPartsupp(const Database& db) {
 }
 
 // Scan(nation)
-std::unique_ptr<Operator> SubqueryScanNation(const Database& db) {
+std::unique_ptr<Operator> SubqueryScanNation() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["nation"], {"n_nationkey", "n_regionkey"});
   return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
 // region JOIN nation ON r_regionkey = n_regionkey
-std::unique_ptr<Operator> SubqueryRegionNation(const Database& db) {
-  auto region = SelectRegion(db);
-  auto nation = SubqueryScanNation(db);
+std::unique_ptr<Operator> SubqueryRegionNation() {
+  auto region = SelectRegion();
+  auto nation = SubqueryScanNation();
 
   auto r_regionkey = ColRef(region, "r_regionkey", 0);
   auto n_regionkey = ColRef(nation, "n_regionkey", 1);
@@ -203,16 +205,16 @@ std::unique_ptr<Operator> SubqueryRegionNation(const Database& db) {
 }
 
 // Scan(supplier)
-std::unique_ptr<Operator> SubqueryScanSupplier(const Database& db) {
+std::unique_ptr<Operator> SubqueryScanSupplier() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["supplier"], {"s_suppkey", "s_nationkey"});
   return std::make_unique<ScanOperator>(std::move(schema), db["supplier"]);
 }
 
 // region_nation JOIN supplier ON n_nationkey = s_nationkey
-std::unique_ptr<Operator> SubqueryRegionNationSupplier(const Database& db) {
-  auto region_nation = SubqueryRegionNation(db);
-  auto supplier = SubqueryScanSupplier(db);
+std::unique_ptr<Operator> SubqueryRegionNationSupplier() {
+  auto region_nation = SubqueryRegionNation();
+  auto supplier = SubqueryScanSupplier();
 
   auto n_nationkey = ColRef(region_nation, "n_nationkey", 0);
   auto s_nationkey = ColRef(supplier, "s_nationkey", 1);
@@ -226,7 +228,7 @@ std::unique_ptr<Operator> SubqueryRegionNationSupplier(const Database& db) {
 }
 
 // Scan(partsupp)
-std::unique_ptr<Operator> SubqueryScanPartsupp(const Database& db) {
+std::unique_ptr<Operator> SubqueryScanPartsupp() {
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["partsupp"],
                              {"ps_suppkey", "ps_supplycost", "ps_partkey"});
@@ -234,10 +236,9 @@ std::unique_ptr<Operator> SubqueryScanPartsupp(const Database& db) {
 }
 
 // region_nation_supplier JOIN partsupp ON s_suppkey = ps_suppkey
-std::unique_ptr<Operator> SubqueryRegionNationSupplierPartsupp(
-    const Database& db) {
-  auto rns = SubqueryRegionNationSupplier(db);
-  auto partsupp = SubqueryScanPartsupp(db);
+std::unique_ptr<Operator> SubqueryRegionNationSupplierPartsupp() {
+  auto rns = SubqueryRegionNationSupplier();
+  auto partsupp = SubqueryScanPartsupp();
 
   auto s_suppkey = ColRef(rns, "s_suppkey", 0);
   auto ps_suppkey = ColRef(partsupp, "ps_suppkey", 1);
@@ -250,8 +251,8 @@ std::unique_ptr<Operator> SubqueryRegionNationSupplierPartsupp(
       util::MakeVector(std::move(ps_suppkey)));
 }
 
-std::unique_ptr<Operator> Subquery(const Database& db) {
-  auto rnsps = SubqueryRegionNationSupplierPartsupp(db);
+std::unique_ptr<Operator> Subquery() {
+  auto rnsps = SubqueryRegionNationSupplierPartsupp();
   auto ps_partkey = ColRefE(rnsps, "ps_partkey");
   auto min_supplycost = Min(ColRef(rnsps, "ps_supplycost"));
 
@@ -267,9 +268,9 @@ std::unique_ptr<Operator> Subquery(const Database& db) {
 }
 
 // rnspps JOIN subquery ON ps_supplycost = min_ps_supplycost
-std::unique_ptr<Operator> RNSPPSJoinSubquery(const Database& db) {
-  auto rnspps = RegionNationSupplierPartPartsupp(db);
-  auto subquery = Subquery(db);
+std::unique_ptr<Operator> RNSPPSJoinSubquery() {
+  auto rnspps = RegionNationSupplierPartPartsupp();
+  auto subquery = Subquery();
 
   auto p_partkey = ColRef(rnspps, "p_partkey", 0);
   auto ps_supplycost = ColRef(rnspps, "ps_supplycost", 0);
@@ -288,8 +289,8 @@ std::unique_ptr<Operator> RNSPPSJoinSubquery(const Database& db) {
 }
 
 // Order By s_acctbal desc, n_name, s_name, p_partkey
-std::unique_ptr<Operator> OrderBy(const Database& db) {
-  auto base = RNSPPSJoinSubquery(db);
+std::unique_ptr<Operator> OrderBy() {
+  auto base = RNSPPSJoinSubquery();
 
   auto s_acctbal = ColRef(base, "s_acctbal");
   auto n_name = ColRef(base, "n_name");
@@ -314,7 +315,7 @@ TEST_P(TPCHTest, Q02) {
   SetFlags(GetParam());
 
   auto db = Schema();
-  auto query = std::make_unique<OutputOperator>(OrderBy(db));
+  auto query = std::make_unique<OutputOperator>(OrderBy());
 
   auto expected_file = "end_to_end_test/tpch/q02_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
@@ -330,7 +331,7 @@ INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill, TPCHTest,
 
 INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan, TPCHTest,
                          testing::Values(ParameterValues{
-                             .backend = "asm", .reg_alloc = "stack_spill"}));
+                             .backend = "asm", .reg_alloc = "linear_scan"}));
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackend, TPCHTest,
                          testing::Values(ParameterValues{.backend = "llvm"}));
