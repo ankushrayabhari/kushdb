@@ -285,7 +285,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                                     program.Return(program.ConstI32(-1));
                                   },
                                   [&]() {
-                                    loop.Continue(next_tuple + 1, budget,
+                                    loop.Continue(bucket_idx + 1, budget,
                                                   proxy::Bool(program, false));
                                   });
                             },
@@ -306,7 +306,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                                         },
                                         [&]() {
                                           loop.Continue(
-                                              next_tuple + 1, budget,
+                                              bucket_idx + 1, budget,
                                               proxy::Bool(program, false));
                                         });
                                   });

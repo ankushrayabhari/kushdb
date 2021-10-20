@@ -319,7 +319,7 @@ class Date : public IRValue {
 
 class Printer {
  public:
-  Printer(khir::ProgramBuilder& program);
+  Printer(khir::ProgramBuilder& program, bool debug = false);
 
   void Print(const Int8& t) const;
   void Print(const Bool& t) const;
@@ -335,6 +335,7 @@ class Printer {
 
  private:
   khir::ProgramBuilder& program_;
+  bool debug_;
 };
 
 }  // namespace kush::compile::proxy

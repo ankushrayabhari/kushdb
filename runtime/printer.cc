@@ -36,4 +36,29 @@ void PrintString(kush::runtime::String::String* str) {
   std::cout << std::string_view(str->data, str->length) << "|";
 }
 
+void PrintBoolDebug(bool v) { std::cerr << (v ? 't' : 'f') << "|"; }
+
+void PrintInt8Debug(int8_t v) { std::cerr << v << "|"; }
+
+void PrintInt16Debug(int16_t v) { std::cerr << v << "|"; }
+
+void PrintInt32Debug(int32_t v) { std::cerr << v << "|"; }
+
+void PrintInt64Debug(int64_t v) { std::cerr << v << "|"; }
+
+void PrintDateDebug(int64_t v) {
+  auto time = absl::FromUnixMillis(v);
+  auto utc = absl::UTCTimeZone();
+  auto day = absl::ToCivilDay(time, utc);
+  std::cerr << absl::FormatCivilTime(day) << "|";
+}
+
+void PrintFloat64Debug(double v) { std::cerr << std::fixed << v << "|"; }
+
+void PrintNewlineDebug() { std::cerr << std::endl; }
+
+void PrintStringDebug(kush::runtime::String::String* str) {
+  std::cerr << std::string_view(str->data, str->length) << "|";
+}
+
 }  // namespace kush::runtime::Printer
