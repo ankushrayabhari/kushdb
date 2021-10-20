@@ -93,7 +93,7 @@ cc_library(
 
 cc_test(
     name = "backend_test",
-    size = "large",
+    size = "medium",
     srcs = ["backend_test.cc"],
     deps = [
         "//khir:backend",

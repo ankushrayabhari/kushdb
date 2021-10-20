@@ -25,6 +25,7 @@ cc_library(
 
 cc_test(
     name = "loops_test",
+    size = "small",
     srcs = ["loops_test.cc"],
     deps = [
         ":dominators",
@@ -44,6 +45,7 @@ cc_library(
 
 cc_test(
     name = "dominators_test",
+    size = "small",
     srcs = ["dominators_test.cc"],
     deps = [
         ":dominators",
@@ -60,6 +62,7 @@ cc_library(
 
 cc_test(
     name = "dfs_label_test",
+    size = "small",
     srcs = ["dfs_label_test.cc"],
     deps = [
         ":dfs_label",

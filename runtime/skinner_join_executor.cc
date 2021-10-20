@@ -250,6 +250,7 @@ class JoinEnvironment {
     for (int i = 0; i < order.size(); i++) {
       int table = order[i];
       int remaining_card = cardinalities[table] - offset[table];
+      assert(remaining_card > 0);
       weight *= 1.0 / remaining_card;
 
       int start = std::max(offset[table], initial_last_completed_tuple[table]);
@@ -480,25 +481,23 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
                       initial_last_completed_tuple.value_or(
                           std::vector<int32_t>(order.size(), -1)),
                       offset);
-
     /*
-    std::cout << "Order:";
-    for (int i = 0; i < order.size(); i++) {
-      std::cout << ' ' << order[i];
-    }
-    std::cout << std::endl;
-    std::cout << "Progress:";
-    for (int i = 0; i < order.size(); i++) {
-      std::cout << ' ' << execution_engine_.progress_arr[i];
-    }
-    std::cout << std::endl;
-    std::cout << "Cardinalities:";
-    for (int i = 0; i < order.size(); i++) {
-      std::cout << ' ' << cardinalities_[i];
-    }
-    std::cout << std::endl;
+        std::cerr << "Order:";
+        for (int i = 0; i < order.size(); i++) {
+          std::cerr << ' ' << order[i];
+        }
+        std::cerr << std::endl;
+        std::cerr << "Progress:";
+        for (int i = 0; i < order.size(); i++) {
+          std::cerr << ' ' << execution_engine_.progress_arr[i];
+        }
+        std::cerr << std::endl;
+        std::cerr << "Cardinalities:";
+        for (int i = 0; i < order.size(); i++) {
+          std::cerr << ' ' << cardinalities_[i];
+        }
+        std::cerr << std::endl;
     */
-
     auto execute_fn = codegen_->CompileJoinOrder(
         order, materialized_buffers_, materialized_indexes_, tuple_idx_table_);
 
@@ -506,36 +505,35 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
         budget_per_episode_, initial_last_completed_tuple.has_value(),
         execution_engine_.progress_arr, execution_engine_.table_ctr,
         execution_engine_.num_result_tuples, execution_engine_.idx_arr);
-
     /*
-    std::cout << "Status: " << status << std::endl;
-    std::cout << "Table CTR: " << *execution_engine_.table_ctr << std::endl;
-    std::cout << "IDX:";
-    for (int i = 0; i < order.size(); i++) {
-      std::cout << ' ' << execution_engine_.idx_arr[i];
-    }
-    std::cout << std::endl;
+        std::cerr << "Status: " << status << std::endl;
+        std::cerr << "Table CTR: " << *execution_engine_.table_ctr << std::endl;
+        std::cerr << "IDX:";
+        for (int i = 0; i < order.size(); i++) {
+          std::cerr << ' ' << execution_engine_.idx_arr[i];
+        }
+        std::cerr << std::endl;
     */
-
     auto final_last_completed_tuple = ComputeLastCompletedTuple(
         order, cardinalities_, status, *execution_engine_.table_ctr,
         execution_engine_.idx_arr);
-
     /*
-    std::cout << "Final Completed Tuple:";
-    for (int i = 0; i < order.size(); i++) {
-      std::cout << ' ' << final_last_completed_tuple[i];
-    }
-    std::cout << std::endl;
+        std::cerr << "Final Completed Tuple:";
+        for (int i = 0; i < order.size(); i++) {
+          std::cerr << ' ' << final_last_completed_tuple[i];
+        }
+        std::cerr << std::endl;
     */
-
     state_.Update(order, final_last_completed_tuple);
 
-    return Reward(order, offset,
-                  initial_last_completed_tuple.value_or(
-                      std::vector<int32_t>(order.size(), -1)),
-                  final_last_completed_tuple, cardinalities_,
-                  *execution_engine_.num_result_tuples, budget_per_episode_);
+    auto reward =
+        Reward(order, offset,
+               initial_last_completed_tuple.value_or(
+                   std::vector<int32_t>(order.size(), -1)),
+               final_last_completed_tuple, cardinalities_,
+               *execution_engine_.num_result_tuples, budget_per_episode_);
+    //    std::cerr << "Reward: " << reward << std::endl;
+    return reward;
   }
 
  private:
@@ -576,7 +574,7 @@ class UctNode {
         num_tries_per_action_(num_actions_, 0),
         acc_reward_per_action_(num_actions_, 0),
         table_per_action_(num_actions_),
-        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+        rng_(0) {
     for (int i = 0; i < num_actions_; i++) {
       priority_actions_.push_back(i);
       recommended_actions_.insert(i);
@@ -601,7 +599,7 @@ class UctNode {
         joined_tables_(parent.joined_tables_),
         unjoined_tables_(parent.unjoined_tables_),
         table_per_action_(num_actions_),
-        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+        rng_(0) {
     joined_tables_.insert(joined_table);
 
     auto it = std::find(unjoined_tables_.begin(), unjoined_tables_.end(),
@@ -663,48 +661,45 @@ class UctNode {
   double Playout(std::vector<int>& order) {
     int last_table = order[tree_level_];
 
-    if (USE_HEURISTIC_) {
-      absl::btree_set<int> newly_joined;
-      newly_joined.insert(joined_tables_.begin(), joined_tables_.end());
-      newly_joined.insert(last_table);
+    absl::btree_set<int> current_joined;
+    current_joined.insert(joined_tables_.begin(), joined_tables_.end());
+    current_joined.insert(last_table);
 
-      std::vector<int> unjoined_tables_shuffled(unjoined_tables_.begin(),
-                                                unjoined_tables_.end());
-      std::shuffle(unjoined_tables_shuffled.begin(),
-                   unjoined_tables_shuffled.end(), rng_);
+    std::vector<int> current_unjoined;
+    for (int i = 0; i < num_tables_; i++) {
+      if (!joined_tables_.contains(i) && i != last_table) {
+        current_unjoined.push_back(i);
+      }
+    }
+
+    if (USE_HEURISTIC_) {
+      std::shuffle(current_unjoined.begin(), current_unjoined.end(), rng_);
       for (int pos = tree_level_ + 1; pos < num_tables_; pos++) {
         bool found_table = false;
-        for (int table : unjoined_tables_shuffled) {
-          if (newly_joined.find(table) == newly_joined.end() &&
-              environment_.IsConnected(newly_joined, table)) {
+        for (int table : current_unjoined) {
+          if (current_joined.find(table) == current_joined.end() &&
+              environment_.IsConnected(current_joined, table)) {
             order[pos] = table;
-            newly_joined.insert(table);
+            current_joined.insert(table);
             found_table = true;
             break;
           }
         }
         if (!found_table) {
-          for (int table : unjoined_tables_shuffled) {
-            if (newly_joined.find(table) == newly_joined.end()) {
+          for (int table : current_unjoined) {
+            if (current_joined.find(table) == current_joined.end()) {
               order[pos] = table;
-              newly_joined.insert(table);
+              current_joined.insert(table);
               break;
             }
           }
         }
       }
     } else {
-      std::shuffle(unjoined_tables_.begin(), unjoined_tables_.end(), rng_);
-
-      auto it = unjoined_tables_.begin();
-      for (int level = tree_level_ + 1; level < num_tables_; ++level) {
-        int table = *it++;
-
-        if (table == last_table) {
-          table = *it++;
-        }
-
-        order[level] = table;
+      std::shuffle(current_unjoined.begin(), current_unjoined.end(), rng_);
+      for (int i = 0; i < current_unjoined.size(); i++) {
+        int table = current_unjoined[i];
+        order[(tree_level_ + 1) + i] = table;
       }
     }
 
@@ -746,7 +741,7 @@ class UctNode {
         best_quality = quality;
       }
     }
-
+    assert(best_action >= 0);
     return best_action;
   }
 
@@ -754,6 +749,7 @@ class UctNode {
     num_visits_++;
     num_tries_per_action_[action]++;
     acc_reward_per_action_[action] += reward;
+    assert(acc_reward_per_action_[action] >= 0);
   }
 
  private:
@@ -862,6 +858,13 @@ void ExecutePermutableSkinnerJoin(
   auto tables_per_predicate =
       ReconstructTablesPerPredicate(num_predicates, tables_per_predicate_arr);
   auto cardinalities = ReconstructCardinalities(num_tables, idx_arr);
+  for (int x : cardinalities) {
+    // one of the inputs is empty
+    if (x == 0) {
+      return;
+    }
+  }
+
   PermutableExecutionEngineFlags execution_engine{
       .join_handler_fn_arr = join_handler_fn_arr,
       .flag_arr = flag_arr,
@@ -892,6 +895,13 @@ void ExecuteRecompilingSkinnerJoin(int32_t num_tables, int32_t num_predicates,
                                    void** materialized_indexes,
                                    void* tuple_idx_table) {
   auto cardinalities = ReconstructCardinalities(num_tables, cardinality_arr);
+  for (int x : cardinalities) {
+    // one of the inputs is empty
+    if (x == 0) {
+      return;
+    }
+  }
+
   auto tables_per_predicate =
       ReconstructTablesPerPredicate(num_predicates, tables_per_predicate_arr);
 
