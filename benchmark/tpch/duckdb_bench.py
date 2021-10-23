@@ -12,7 +12,7 @@ def execute_duckdb(cmds):
             print(cmd, file=f)
     execute('duckdb < /tmp/duckdb.txt > /tmp/bench_time.txt')
 
-queries = ['q02', 'q03', 'q04', 'q05', 'q07', 'q08', 'q09', 'q10', 'q11', 'q12', 'q14', 'q18', 'q19']
+queries = ['q02', 'q03', 'q05', 'q07', 'q08', 'q09', 'q10', 'q11', 'q12', 'q14', 'q18', 'q19']
 
 def bench(benchmark, db):
     cmd_base = ['.open benchmark/tpch/duckdb/' + db + '.ddb',
