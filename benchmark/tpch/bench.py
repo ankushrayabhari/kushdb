@@ -9,7 +9,7 @@ def bench(database, benchmark, data_path, use_skinner, flags):
     execute('rm -f benchmark/tpch/data')
     execute('ln -s ' + os.path.abspath(data_path) + ' benchmark/tpch/data')
 
-    queries = ['q02', 'q03', 'q04', 'q05', 'q07', 'q08', 'q09', 'q10', 'q11',
+    queries = ['q02', 'q03', 'q05', 'q07', 'q08', 'q09', 'q10', 'q11',
                'q12', 'q14', 'q18', 'q19']
     for query in queries:
         binary = 'bazel run -c opt --ui_event_filters=-info,-stdout,-stderr --noshow_progress //benchmark/tpch/queries:' + query
