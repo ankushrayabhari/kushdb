@@ -57,11 +57,6 @@ void TranslatorFactory::Visit(const plan::OutputOperator& output) {
 }
 
 void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
-  this->Return(std::make_unique<RecompilingSkinnerJoinTranslator>(
-      skinner_join, program_, pipeline_builder_,
-      GetChildTranslators(skinner_join)));
-  return;
-  /*
   if (FLAGS_skinner.CurrentValue() == "permute") {
     this->Return(std::make_unique<PermutableSkinnerJoinTranslator>(
         skinner_join, program_, pipeline_builder_,
@@ -77,7 +72,6 @@ void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
   }
 
   throw std::runtime_error("Unknown skinner join implementation.");
-  */
 }
 
 void TranslatorFactory::Visit(const plan::HashJoinOperator& hash_join) {

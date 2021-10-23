@@ -16,6 +16,8 @@ void Pipeline::AddPredecessor(std::unique_ptr<Pipeline> pred) {
   predecessors_.push_back(std::move(pred));
 }
 
+int PipelineBuilder::id_ = 0;
+
 std::vector<std::reference_wrapper<const Pipeline>> Pipeline::Predecessors()
     const {
   return util::ImmutableReferenceVector(predecessors_);

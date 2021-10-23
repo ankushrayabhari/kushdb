@@ -835,6 +835,7 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
           break;
         }
 
+        case Opcode::CALL_INDIRECT:
         case Opcode::CALL: {
           // add in live intervals for all remaining arg regs since they are
           // clobbered

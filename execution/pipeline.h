@@ -28,7 +28,7 @@ class PipelineBuilder {
 
  private:
   std::stack<std::unique_ptr<Pipeline>> pipelines_;
-  int id_;
+  static int id_;
 };
 
 }  // namespace kush::execution
