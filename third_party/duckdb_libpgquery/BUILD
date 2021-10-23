@@ -1,9 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
-package(default_visibility = ["//visibility:public"])
-
 cc_library(
-    name = "duckdb_libpgquery",
+    name = "duckdb_libpgquery_base",
     srcs = glob([
         "*.cpp",
     ]),
@@ -14,4 +12,12 @@ cc_library(
         "include",
     ],
     deps = [],
+)
+
+cc_library(
+    name = "duckdb_libpgquery",
+    hdrs = ["parser.h"],
+    strip_include_prefix = "/third_party/",
+    visibility = ["//visibility:public"],
+    deps = [":duckdb_libpgquery_base"],
 )

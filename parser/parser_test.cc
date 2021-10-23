@@ -1,7 +1,7 @@
+#include "duckdb_libpgquery/parser.h"
+
 #include <stdexcept>
 #include <string>
-
-#include "third_party/duckdb_libpgquery/include/postgres_parser.hpp"
 
 int main() {
   std::string query = "SELECT * FROM lineitem;";

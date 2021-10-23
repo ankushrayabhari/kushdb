@@ -16,5 +16,5 @@ IncludeCategories:
     Priority:        7
   - Regex:           '"magic_enum'
     Priority:        8
-  - Regex:           '"third_party'
+  - Regex:           '"duckdb_libpgquery'
     Priority:        9
