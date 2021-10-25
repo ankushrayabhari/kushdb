@@ -4,6 +4,7 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "table",
+    srcs = ["table.cc"],
     hdrs = ["table.h"],
     deps = [],
 )
