@@ -13,9 +13,23 @@
 
 namespace kush::parse {
 
+std::unique_ptr<Expression> TransformResTarget(
+    duckdb_libpgquery::PGResTarget& root) {
+  auto expr = TransformExpression(*root.val);
+
+  if (root.name != nullptr) {
+    expr->SetAlias(root.name);
+  }
+
+  return expr;
+}
+
 std::unique_ptr<Expression> TransformExpression(
     duckdb_libpgquery::PGNode& expr) {
   switch (expr.type) {
+    case duckdb_libpgquery::T_PGResTarget:
+      return TransformResTarget(
+          reinterpret_cast<duckdb_libpgquery::PGResTarget&>(expr));
     case duckdb_libpgquery::T_PGColumnRef:
       return TransformColumnRefExpression(
           reinterpret_cast<duckdb_libpgquery::PGColumnRef&>(expr));
@@ -48,9 +62,6 @@ std::unique_ptr<Expression> TransformExpression(
     case duckdb_libpgquery::T_PGNullTest:
       return TransformNullTest(
           reinterpret_cast<duckdb_libpgquery::PGNullTest*>(node));
-    case duckdb_libpgquery::T_PGResTarget:
-      return TransformResTarget(
-          reinterpret_cast<duckdb_libpgquery::PGResTarget*>(node));
     case duckdb_libpgquery::T_PGParamRef:
       return TransformParamRef(
           reinterpret_cast<duckdb_libpgquery::PGParamRef*>(node));
@@ -83,7 +94,7 @@ std::unique_ptr<Expression> TransformExpression(
     */
     default:
       throw std::runtime_error("Expr not implemented: " +
-                               std::string(magic_enum::enum_name(expr.type)));
+                               std::to_string(expr.type));
   }
 }
 

@@ -9,9 +9,8 @@ namespace kush::parse {
 
 class ColumnRefExpression : public Expression {
  public:
-  ColumnRefExpression(std::string_view column_name);
   ColumnRefExpression(std::string_view column_name,
-                      std::string_view table_name);
+                      std::string_view table_name = "");
 
  private:
   std::string column_name_;

@@ -13,11 +13,15 @@ namespace kush::parse {
 
 std::unique_ptr<Statement> TransformStatement(duckdb_libpgquery::PGNode& stmt) {
   switch (stmt.type) {
+    case duckdb_libpgquery::T_PGRawStmt: {
+      auto& raw_stmt = (duckdb_libpgquery::PGRawStmt&)stmt;
+      return TransformStatement(*raw_stmt.stmt);
+    }
     case duckdb_libpgquery::T_PGSelectStmt:
       return TransformSelectStatement(stmt);
     default:
       throw std::runtime_error("Unimplemented statement: " +
-                               std::string(magic_enum::enum_name(stmt.type)));
+                               std::to_string(stmt.type));
   }
 }
 

@@ -4,6 +4,7 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "expression",
+    srcs = ["expression.cc"],
     hdrs = ["expression.h"],
     deps = [],
 )
