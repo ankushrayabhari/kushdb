@@ -9,6 +9,7 @@
 
 #include "parse/expression/expression.h"
 #include "parse/transform/transform_column_ref_expression.h"
+#include "parse/transform/transform_literal_expression.h"
 #include "third_party/duckdb_libpgquery/parser.h"
 
 namespace kush::parse {
@@ -33,11 +34,11 @@ std::unique_ptr<Expression> TransformExpression(
     case duckdb_libpgquery::T_PGColumnRef:
       return TransformColumnRefExpression(
           reinterpret_cast<duckdb_libpgquery::PGColumnRef&>(expr));
+    case duckdb_libpgquery::T_PGAConst:
+      return TransformLiteralExpression(
+          reinterpret_cast<duckdb_libpgquery::PGAConst&>(expr).val);
 
     /*
-    case duckdb_libpgquery::T_PGAConst:
-      return TransformConstant(
-          reinterpret_cast<duckdb_libpgquery::PGAConst*>(node));
     case duckdb_libpgquery::T_PGAExpr:
       return TransformAExpr(
           reinterpret_cast<duckdb_libpgquery::PGAExpr*>(node));

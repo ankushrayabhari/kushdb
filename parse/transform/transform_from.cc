@@ -4,10 +4,21 @@
 #include <vector>
 
 #include "parse/table/table.h"
-#include "parse/transform/transform_alias.h"
 #include "third_party/duckdb_libpgquery/parser.h"
 
 namespace kush::parse {
+
+std::string TransformAlias(duckdb_libpgquery::PGAlias* root) {
+  if (root == nullptr) {
+    return "";
+  }
+
+  if (root->colnames) {
+    throw std::runtime_error("Column aliases not supported.");
+  }
+
+  return root->aliasname;
+}
 
 std::unique_ptr<BaseTable> TransformBaseTable(
     duckdb_libpgquery::PGRangeVar& base_table) {

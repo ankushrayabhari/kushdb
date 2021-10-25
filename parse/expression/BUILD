@@ -17,3 +17,13 @@ cc_library(
         ":expression",
     ],
 )
+
+cc_library(
+    name = "literal_expression",
+    srcs = ["literal_expression.cc"],
+    hdrs = ["literal_expression.h"],
+    deps = [
+        ":expression",
+        "@absl//absl/time",
+    ],
+)
