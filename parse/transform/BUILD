@@ -4,8 +4,15 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "transform",
-    srcs = ["transform_statement.cc"],
+    srcs = [
+        "transform_alias.cc",
+        "transform_from.cc",
+        "transform_order_by.cc",
+        "transform_select_statement.cc",
+        "transform_statement.cc",
+    ],
     hdrs = [
+        "transform_alias.h",
         "transform_expression.h",
         "transform_from.h",
         "transform_group_by.h",

@@ -8,7 +8,7 @@
 
 namespace kush::parse {
 
-enum class OrderType { ASCENDING, DESCENDING };
+enum class OrderType { DEFAULT, ASCENDING, DESCENDING };
 
 class SelectStatement : public Statement {
  public:

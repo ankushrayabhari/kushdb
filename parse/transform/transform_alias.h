@@ -4,12 +4,10 @@
 #include <vector>
 
 #include "parse/expression/expression.h"
-#include "parse/statement/select_statement.h"
 #include "third_party/duckdb_libpgquery/parser.h"
 
 namespace kush::parse {
 
-std::vector<std::pair<std::unique_ptr<Expression>, OrderType>> TransformOrderBy(
-    duckdb_libpgquery::PGList& order_by);
+std::string TransformAlias(duckdb_libpgquery::PGAlias* root);
 
 }  // namespace kush::parse
