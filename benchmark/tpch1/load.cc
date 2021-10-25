@@ -10,8 +10,8 @@
 
 using namespace kush::util;
 
-std::string dest;
-std::string raw;
+std::string dest = "benchmark/tpch1/data/";
+std::string raw = "benchmark/tpch1/raw/";
 
 void Region() {
   /*
@@ -416,14 +416,4 @@ void Load() {
                 [](auto&& item) { item(); });
 }
 
-int main() {
-  dest = "benchmark/tpch/data-1/";
-  raw = "benchmark/tpch/raw-1/";
-  Print("Working on " + dest);
-  Load();
-
-  dest = "benchmark/tpch/data-10/";
-  raw = "benchmark/tpch/raw-10/";
-  Print("Working on " + dest);
-  Load();
-}
+int main() { Load(); }

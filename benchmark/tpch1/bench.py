@@ -5,10 +5,7 @@ def execute(cmd):
     print(cmd, file=sys.stderr)
     os.system(cmd)
 
-def bench(database, benchmark, data_path, use_skinner, flags):
-    execute('rm -f benchmark/tpch/data')
-    execute('ln -s ' + os.path.abspath(data_path) + ' benchmark/tpch/data')
-
+def bench(database, use_skinner, flags):
     queries = ['q02', 'q03', 'q05', 'q07', 'q08', 'q09', 'q10', 'q11',
                'q12', 'q14', 'q18', 'q19']
     for query in queries:
@@ -35,13 +32,13 @@ def bench(database, benchmark, data_path, use_skinner, flags):
                 except ValueError as e:
                     continue
             for t in times:
-                print(database, benchmark, query_num, t, sep=',')
+                print(database, 'TPC-H SF1', query_num, t, sep=',')
 
 if __name__ == "__main__":
-    bench('kushdb ASM (Hash Join)', 'TPC-H SF1', 'benchmark/tpch1/data', False, ['--backend=asm'])
-    bench('kushdb ASM (Skinner Join Permutable)', 'TPC-H SF1', 'benchmark/tpch1/data', True, ['--backend=asm', '--skinner=permute'])
-    bench('kushdb ASM (Skinner Join Recompiling)', 'TPC-H SF1', 'benchmark/tpch1/data', True, ['--backend=asm', '--skinner=recompile'])
+    bench('kushdb ASM (Hash Join)', False, ['--backend=asm'])
+    bench('kushdb ASM (Skinner Join Permutable)', True, ['--backend=asm', '--skinner=permute'])
+    bench('kushdb ASM (Skinner Join Recompiling)', True, ['--backend=asm', '--skinner=recompile'])
 
-    bench('kushdb LLVM (Hash Join)', 'TPC-H SF1', 'benchmark/tpch1/data', False, ['--backend=llvm'])
-    bench('kushdb LLVM (Skinner Join Permutable)', 'TPC-H SF1', 'benchmark/tpch1/data', True, ['--backend=llvm', '--skinner=permute'])
-    bench('kushdb LLVM (Skinner Join Recompiling)', 'TPC-H SF1', 'benchmark/tpch1/data', True, ['--backend=llvm', '--skinner=recompile'])
+    bench('kushdb LLVM (Hash Join)', False, ['--backend=llvm'])
+    bench('kushdb LLVM (Skinner Join Permutable)', True, ['--backend=llvm', '--skinner=permute'])
+    bench('kushdb LLVM (Skinner Join Recompiling)', True, ['--backend=llvm', '--skinner=recompile'])

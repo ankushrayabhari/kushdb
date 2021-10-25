@@ -12,8 +12,12 @@ user.bazelrc
 /perf-*
 
 # TPC-H SF1 Data
-/benchmark/tpch1/raw
-/benchmark/tpch1/data
+/benchmark/tpch1/raw/*
+!/benchmark/tpch1/raw
+!/benchmark/tpch1/raw/README.md
+/benchmark/tpch1/data/*
+!/benchmark/tpch1/data
+!/benchmark/tpch1/data/README.md
 /benchmark/tpch1/monetdb/*
 !/benchmark/tpch1/monetdb
 !/benchmark/tpch1/monetdb/README.md
