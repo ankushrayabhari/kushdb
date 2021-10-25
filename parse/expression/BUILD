@@ -7,3 +7,12 @@ cc_library(
     hdrs = ["expression.h"],
     deps = [],
 )
+
+cc_library(
+    name = "column_ref_expression",
+    srcs = ["column_ref_expression.cc"],
+    hdrs = ["column_ref_expression.h"],
+    deps = [
+        ":expression",
+    ],
+)

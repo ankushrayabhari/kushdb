@@ -6,6 +6,8 @@ cc_library(
     name = "transform",
     srcs = [
         "transform_alias.cc",
+        "transform_column_ref_expression.cc",
+        "transform_expression.cc",
         "transform_from.cc",
         "transform_order_by.cc",
         "transform_select_statement.cc",
@@ -13,6 +15,7 @@ cc_library(
     ],
     hdrs = [
         "transform_alias.h",
+        "transform_column_ref_expression.h",
         "transform_expression.h",
         "transform_from.h",
         "transform_group_by.h",
@@ -21,6 +24,8 @@ cc_library(
         "transform_statement.h",
     ],
     deps = [
+        "//parse/expression",
+        "//parse/expression:column_ref_expression",
         "//parse/statement",
         "//parse/statement:select_statement",
         "//parse/table",
