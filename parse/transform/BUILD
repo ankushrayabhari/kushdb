@@ -9,6 +9,7 @@ cc_library(
         "transform_column_ref_expression.cc",
         "transform_expression.cc",
         "transform_from.cc",
+        "transform_group_by.cc",
         "transform_order_by.cc",
         "transform_select_statement.cc",
         "transform_statement.cc",
