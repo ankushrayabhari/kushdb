@@ -11,23 +11,15 @@ user.bazelrc
 # Profiling
 /perf-*
 
-# TPCH Data
-/benchmark/tpch/raw
-/benchmark/tpch/data
-/benchmark/tpch/data-1/*.kdb
-/benchmark/tpch/data-1/*.kdbindex
-/benchmark/tpch/data-10/*.kdb
-/benchmark/tpch/data-10/*.kdbindex
-/benchmark/tpch/raw-1/*.tbl
-/benchmark/tpch/raw-10/*.tbl
-/benchmark/tpch/raw-1/*.tbl.tight
-/benchmark/tpch/raw-10/*.tbl.tight
-/benchmark/tpch/monetdb/*
-!/benchmark/tpch/monetdb
-!/benchmark/tpch/monetdb/README.md
-/benchmark/tpch/duckdb/*
-!/benchmark/tpch/duckdb
-!/benchmark/tpch/duckdb/README.md
+# TPC-H SF1 Data
+/benchmark/tpch1/raw
+/benchmark/tpch1/data
+/benchmark/tpch1/monetdb/*
+!/benchmark/tpch1/monetdb
+!/benchmark/tpch1/monetdb/README.md
+/benchmark/tpch1/duckdb/*
+!/benchmark/tpch1/duckdb
+!/benchmark/tpch1/duckdb/README.md
 
 # JOB Data
 /benchmark/job/raw
