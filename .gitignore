@@ -25,6 +25,21 @@ user.bazelrc
 !/benchmark/tpch1/duckdb
 !/benchmark/tpch1/duckdb/README.md
 
+
+# TPC-H SF10 Data
+/benchmark/tpch10/raw/*
+!/benchmark/tpch10/raw
+!/benchmark/tpch10/raw/README.md
+/benchmark/tpch10/data/*
+!/benchmark/tpch10/data
+!/benchmark/tpch10/data/README.md
+/benchmark/tpch10/monetdb/*
+!/benchmark/tpch10/monetdb
+!/benchmark/tpch10/monetdb/README.md
+/benchmark/tpch10/duckdb/*
+!/benchmark/tpch10/duckdb
+!/benchmark/tpch10/duckdb/README.md
+
 # JOB Data
 /benchmark/job/raw
 /benchmark/job/data
