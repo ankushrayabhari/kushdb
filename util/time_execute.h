@@ -3,6 +3,7 @@
 #include <cassert>
 #include <chrono>
 #include <iostream>
+#include <stdexcept>
 
 #include "compile/query_translator.h"
 #include "execution/executable_query.h"
@@ -12,13 +13,16 @@
 namespace kush::util {
 
 void BenchVerify(kush::plan::OutputOperator& query,
-                 const std::string& expected_file) {
+                 const std::string& expected_file, double threshold = 1e-5) {
   {
     // Verify (counts as a warmup)
     auto output_file = ExecuteAndCapture(query);
     auto expected = GetFileContents(expected_file);
     auto output = GetFileContents(output_file);
-    assert(CHECK_EQ_TBL(expected, output, query.Child().Schema().Columns()));
+    if (!CHECK_EQ_TBL(expected, output, query.Child().Schema().Columns(),
+                      threshold)) {
+      throw std::runtime_error("Correctness error!");
+    }
   }
 
   for (int i = 0; i < 5; i++) {

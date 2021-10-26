@@ -83,7 +83,7 @@ std::unique_ptr<Operator> SelectPart() {
   auto part = ScanPart();
 
   std::unique_ptr<Expression> eq =
-      Eq(ColRef(part, "p_type"), Literal("LARGE PLATED STEEL"sv));
+      Eq(ColRef(part, "p_type"), Literal("SHINY MINED GOLD"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*part, {"p_partkey"});

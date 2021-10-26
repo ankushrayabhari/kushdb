@@ -88,7 +88,7 @@ std::unique_ptr<Operator> SelectPart() {
   {
     std::unique_ptr<Expression> ends_with =
         EndsWith(ColRef(part, "p_type"), Literal("INED GOLD"sv));
-    std::unique_ptr<Expression> eq = Eq(ColRef(part, "p_size"), Literal(35));
+    std::unique_ptr<Expression> eq = Eq(ColRef(part, "p_size"), Literal(1));
     cond = And(util::MakeVector(std::move(eq), std::move(ends_with)));
   }
 

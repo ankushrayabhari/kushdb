@@ -51,7 +51,7 @@ std::unique_ptr<Operator> ScanPart() {
   return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
 }
 
-// Select(p_name LIKE '%moccasin%')
+// Select(p_name LIKE '%hiny mined gold%')
 std::unique_ptr<Operator> SelectPart() {
   auto part = ScanPart();
 
@@ -235,6 +235,6 @@ int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   auto query = std::make_unique<OutputOperator>(OrderBy());
 
-  BenchVerify(*query, "benchmark/jcch1/raw/q09.tbl");
+  BenchVerify(*query, "benchmark/jcch1/raw/q09.tbl", 1e-3);
   return 0;
 }

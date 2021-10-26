@@ -57,12 +57,19 @@ std::vector<std::string> GetFileContents(const std::string& filename) {
 }
 
 std::vector<std::string> Split(const std::string& s, char delim) {
-  std::stringstream ss(s);
-  std::string item;
+  std::string copy = s;
   std::vector<std::string> elems;
-  while (std::getline(ss, item, delim)) {
-    elems.push_back(std::move(item));
+  size_t pos = 0;
+  std::string token;
+  while ((pos = copy.find(delim)) != std::string::npos) {
+    token = copy.substr(0, pos);
+    elems.push_back(token);
+    copy.erase(0, pos + 1);
   }
+  if (!copy.empty()) {
+    elems.push_back(copy);
+  }
+
   return elems;
 }
 
@@ -82,9 +89,13 @@ bool CHECK_EQ_TBL(
     auto split_o = Split(output[i], '|');
 
     if (split_e.size() != columns.size()) {
+      std::cerr << "Differing number of expected columns: " << split_e.size()
+                << " vs " << columns.size() << std::endl;
       return false;
     }
     if (split_o.size() != columns.size()) {
+      std::cerr << "Differing number of output columns: " << split_o.size()
+                << " vs " << columns.size() << std::endl;
       return false;
     }
 
@@ -97,8 +108,29 @@ bool CHECK_EQ_TBL(
           double e_value_as_d = std::stod(e_value);
           double o_value_as_d = std::stod(o_value);
           if (fabs(e_value_as_d - o_value_as_d) >= threshold) {
-            std::cerr << "Expected column equal (" << i << "," << j
-                      << ") : " << e_value << " vs " << o_value << std::endl;
+            std::cerr << "Expected column equal (" << i << "," << j << ")"
+                      << std::endl;
+            std::cerr << e_value << std::endl;
+            std::cerr << o_value << std::endl;
+            return false;
+          }
+          break;
+        }
+
+        case catalog::SqlType::TEXT: {
+          std::string_view expected_without_quotes = e_value;
+          if (expected_without_quotes.size() >= 2 &&
+              expected_without_quotes.front() == '\"' &&
+              expected_without_quotes.back() == '\"') {
+            expected_without_quotes.remove_prefix(1);
+            expected_without_quotes.remove_suffix(1);
+          }
+
+          if (expected_without_quotes != o_value) {
+            std::cerr << "Expected column equal (" << i << "," << j << ")"
+                      << std::endl;
+            std::cerr << expected_without_quotes << std::endl;
+            std::cerr << o_value << std::endl;
             return false;
           }
           break;
@@ -108,11 +140,12 @@ bool CHECK_EQ_TBL(
         case catalog::SqlType::INT:
         case catalog::SqlType::BIGINT:
         case catalog::SqlType::DATE:
-        case catalog::SqlType::TEXT:
         case catalog::SqlType::BOOLEAN:
           if (e_value != o_value) {
-            std::cerr << "Expected column equal (" << i << "," << j
-                      << ") : " << e_value << " vs " << o_value << std::endl;
+            std::cerr << "Expected column equal (" << i << "," << j << ")"
+                      << std::endl;
+            std::cerr << e_value << std::endl;
+            std::cerr << o_value << std::endl;
             return false;
           }
           break;
