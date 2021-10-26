@@ -19,5 +19,4 @@ group by
 	o_shippriority
 order by
 	revenue desc,
-	o_orderdate,
-	l_orderkey;
+	o_orderdate;

@@ -198,20 +198,18 @@ std::unique_ptr<Operator> GroupByAgg() {
       util::MakeVector(std::move(revenue)));
 }
 
-// Order By revenue desc, c_custkey
+// Order By revenue desc
 std::unique_ptr<Operator> OrderBy() {
   auto agg = GroupByAgg();
 
   auto revenue = ColRef(agg, "revenue");
-  auto c_custkey = ColRef(agg, "c_custkey");
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*agg);
 
-  return std::make_unique<OrderByOperator>(
-      std::move(schema), std::move(agg),
-      util::MakeVector(std::move(revenue), std::move(c_custkey)),
-      std::vector<bool>{false, true});
+  return std::make_unique<OrderByOperator>(std::move(schema), std::move(agg),
+                                           util::MakeVector(std::move(revenue)),
+                                           std::vector<bool>{false});
 }
 
 int main(int argc, char** argv) {

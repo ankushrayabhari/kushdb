@@ -28,5 +28,4 @@ group by
 	c_address,
 	c_comment
 order by
-	revenue desc,
-	c_custkey;
+	revenue desc;
