@@ -10,7 +10,6 @@ Compilation-based execution engine for a database
 3. Run `bazel build //benchmark/tpch1:load && bazel-bin/benchmark/tpch1/load`.
 4. Run `python benchmark/tpch1/monetdb_load.py`.
 5. Run `python benchmark/tpch1/duckdb_load.py`.
-6. Run: `duckdb benchmark/tpch1/duckdb/tpch.ddb < benchmark/tpch1/generate_outputs.sql`
 
 #### KushDB
 To bench, run `python benchmark/tpch1/bench.py > tpch1.csv`.

@@ -44,8 +44,16 @@ std::string ExecuteAndCapture(kush::plan::Operator& query) {
   return test_file;
 }
 
-std::vector<std::string> GetFileContents(const std::string& filename) {
+bool Exists(const std::string& filename) {
   std::ifstream in(filename, std::ios::in | std::ios::binary);
+  return in.good();
+}
+
+std::vector<std::string> GetFileContents(const std::string& filename) {
+  std::ifstream in(filename, std::ios::in);
+  if (!in.good()) {
+    return {};
+  }
 
   std::vector<std::string> output;
   std::string str;

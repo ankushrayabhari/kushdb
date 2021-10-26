@@ -17,11 +17,14 @@ void BenchVerify(kush::plan::OutputOperator& query,
   {
     // Verify (counts as a warmup)
     auto output_file = ExecuteAndCapture(query);
-    auto expected = GetFileContents(expected_file);
-    auto output = GetFileContents(output_file);
-    if (!CHECK_EQ_TBL(expected, output, query.Child().Schema().Columns(),
-                      threshold)) {
-      throw std::runtime_error("Correctness error!");
+
+    if (Exists(expected_file)) {
+      auto expected = GetFileContents(expected_file);
+      auto output = GetFileContents(output_file);
+      if (!CHECK_EQ_TBL(expected, output, query.Child().Schema().Columns(),
+                        threshold)) {
+        throw std::runtime_error("Correctness error!");
+      }
     }
   }
 
