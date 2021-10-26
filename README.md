@@ -2,7 +2,7 @@
 Compilation-based execution engine for a database
 
 ## Execute TPC-H, JCC-H
-0. Instructions will be for scale factor 1 but same holds for other scale factors.
+0. Instructions will be for SF 1 but same holds for other scale factors.
 1. Run dbgen to generate .tbl files.
     - For TPC-H, use [https://github.com/electrum/tpch-dbgen](https://github.com/electrum/tpch-dbgen).
     - For JCC-H, use [https://github.com/ldbc/dbgen.JCC-H](https://github.com/ldbc/dbgen.JCC-H).
@@ -10,8 +10,7 @@ Compilation-based execution engine for a database
 3. Run `bazel build //benchmark/tpch1:load && bazel-bin/benchmark/tpch1/load`.
 4. Run `python benchmark/tpch1/monetdb_load.py`.
 5. Run `python benchmark/tpch1/duckdb_load.py`.
-6. Generate expected outputs (first follow the duckdb load step below):
-    - `duckdb benchmark/tpch1/duckdb/tpch.ddb < benchmark/tpch1/generate_outputs.sql`
+6. Run: `duckdb benchmark/tpch1/duckdb/tpch.ddb < benchmark/tpch1/generate_outputs.sql`
 
 #### KushDB
 To bench, run `python benchmark/tpch1/bench.py > tpch1.csv`.

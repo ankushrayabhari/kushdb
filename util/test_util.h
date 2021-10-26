@@ -7,12 +7,10 @@
 #include <string>
 #include <unistd.h>
 
-#include "gtest/gtest.h"
-
 #include "compile/query_translator.h"
 #include "execution/executable_query.h"
 
-namespace kush {
+namespace kush::util {
 
 class RedirectStdout {
  public:
@@ -68,19 +66,27 @@ std::vector<std::string> Split(const std::string& s, char delim) {
   return elems;
 }
 
-void EXPECT_EQ_TBL(
+bool CHECK_EQ_TBL(
     const std::vector<std::string>& expected,
     const std::vector<std::string>& output,
     const std::vector<kush::plan::OperatorSchema::Column>& columns,
-    double threshold) {
-  EXPECT_EQ(expected.size(), output.size());
+    double threshold = 1e-5) {
+  if (expected.size() != output.size()) {
+    std::cerr << "Differing table sizes: " << expected.size() << " vs "
+              << output.size() << std::endl;
+    return false;
+  }
 
   for (int i = 0; i < expected.size(); i++) {
     auto split_e = Split(expected[i], '|');
     auto split_o = Split(output[i], '|');
 
-    EXPECT_EQ(split_e.size(), columns.size());
-    EXPECT_EQ(split_o.size(), columns.size());
+    if (split_e.size() != columns.size()) {
+      return false;
+    }
+    if (split_o.size() != columns.size()) {
+      return false;
+    }
 
     for (int j = 0; j < columns.size(); j++) {
       const auto& e_value = split_e[j];
@@ -90,7 +96,11 @@ void EXPECT_EQ_TBL(
         case catalog::SqlType::REAL: {
           double e_value_as_d = std::stod(e_value);
           double o_value_as_d = std::stod(o_value);
-          EXPECT_NEAR(e_value_as_d, o_value_as_d, threshold);
+          if (fabs(e_value_as_d - o_value_as_d) >= threshold) {
+            std::cerr << "Expected column equal (" << i << "," << j
+                      << ") : " << e_value << " vs " << o_value << std::endl;
+            return false;
+          }
           break;
         }
 
@@ -100,11 +110,17 @@ void EXPECT_EQ_TBL(
         case catalog::SqlType::DATE:
         case catalog::SqlType::TEXT:
         case catalog::SqlType::BOOLEAN:
-          EXPECT_EQ(e_value, o_value);
+          if (e_value != o_value) {
+            std::cerr << "Expected column equal (" << i << "," << j
+                      << ") : " << e_value << " vs " << o_value << std::endl;
+            return false;
+          }
           break;
       }
     }
   }
+
+  return true;
 }
 
-}  // namespace kush
+}  // namespace kush::util

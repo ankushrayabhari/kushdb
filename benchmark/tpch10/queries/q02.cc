@@ -314,6 +314,6 @@ int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   auto query = std::make_unique<OutputOperator>(OrderBy());
 
-  kush::util::ExecuteAndTime(*query);
+  BenchVerify(*query, "benchmark/tpch10/raw/q02.tbl");
   return 0;
 }

@@ -79,7 +79,19 @@ cc_library(
     name = "time_execute",
     hdrs = ["time_execute.h"],
     deps = [
+        ":test_util",
         "//compile:query_translator",
         "//execution:executable_query",
+        "//plan:output_operator",
+    ],
+)
+
+cc_library(
+    name = "test_util",
+    hdrs = ["test_util.h"],
+    deps = [
+        "//compile:query_translator",
+        "//execution:executable_query",
+        "//plan:operator_schema",
     ],
 )

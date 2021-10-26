@@ -93,8 +93,8 @@ std::unique_ptr<Operator> Agg() {
 int main(int argc, char** argv) {
   absl::SetProgramUsageMessage("Executes query.");
   absl::ParseCommandLine(argc, argv);
-  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(Agg());
+  auto query = std::make_unique<OutputOperator>(Agg());
 
-  kush::util::ExecuteAndTime(*query);
+  BenchVerify(*query, "benchmark/tpch1/raw/q06.tbl");
   return 0;
 }

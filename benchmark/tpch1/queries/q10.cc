@@ -215,8 +215,8 @@ std::unique_ptr<Operator> OrderBy() {
 int main(int argc, char** argv) {
   absl::SetProgramUsageMessage("Executes query.");
   absl::ParseCommandLine(argc, argv);
-  std::unique_ptr<Operator> query = std::make_unique<OutputOperator>(OrderBy());
+  auto query = std::make_unique<OutputOperator>(OrderBy());
 
-  kush::util::ExecuteAndTime(*query);
+  BenchVerify(*query, "benchmark/tpch1/raw/q10.tbl");
   return 0;
 }

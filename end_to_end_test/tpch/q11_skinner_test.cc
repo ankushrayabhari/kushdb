@@ -11,7 +11,6 @@
 #include "compile/query_translator.h"
 #include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
-#include "end_to_end_test/test_util.h"
 #include "plan/cross_product_operator.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/binary_arithmetic_expression.h"
@@ -27,6 +26,7 @@
 #include "plan/scan_operator.h"
 #include "plan/select_operator.h"
 #include "util/builder.h"
+#include "util/test_util.h"
 
 using namespace kush;
 using namespace kush::util;
@@ -212,7 +212,8 @@ TEST_P(TPCHTest, Q11Skinner) {
 
   auto expected = GetFileContents(expected_file);
   auto output = GetFileContents(output_file);
-  EXPECT_EQ_TBL(expected, output, query->Child().Schema().Columns(), 1e-5);
+  EXPECT_TRUE(
+      CHECK_EQ_TBL(expected, output, query->Child().Schema().Columns()));
 }
 
 INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Recompile_HighBudget, TPCHTest,
