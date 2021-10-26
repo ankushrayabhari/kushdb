@@ -45,10 +45,10 @@ std::unique_ptr<Operator> ScanNation() {
   return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
-// Select(n_name = 'GERMANY')
+// Select(n_name = 'VIETNAM')
 std::unique_ptr<Operator> SelectNation() {
   auto nation = ScanNation();
-  auto eq = Eq(ColRef(nation, "n_name"), Literal("GERMANY"sv));
+  auto eq = Eq(ColRef(nation, "n_name"), Literal("VIETNAM"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*nation, {"n_nationkey"});
@@ -112,7 +112,8 @@ std::unique_ptr<Operator> SubqueryAgg() {
       Mul(ColRef(base, "ps_supplycost"), Float(ColRef(base, "ps_availqty"))));
 
   OperatorSchema schema;
-  schema.AddDerivedColumn("value1", Mul(VirtColRef(value, 0), Literal(0.0001)));
+  schema.AddDerivedColumn("value1",
+                          Mul(VirtColRef(value, 0), Literal(0.00001)));
 
   return std::make_unique<GroupByAggregateOperator>(
       std::move(schema), std::move(base),

@@ -44,14 +44,14 @@ std::unique_ptr<Operator> ScanNation() {
   return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
-// Select(n_name in 'EGYPT' or n_name in 'KENYA')
+// Select(n_name in 'IRAQ' or n_name in 'ALGERIA')
 std::unique_ptr<Operator> SelectNation() {
   auto nation = ScanNation();
 
   std::unique_ptr<Expression> eq1 =
-      Eq(ColRef(nation, "n_name"), Literal("EGYPT"sv));
+      Eq(ColRef(nation, "n_name"), Literal("IRAQ"sv));
   std::unique_ptr<Expression> eq2 =
-      Eq(ColRef(nation, "n_name"), Literal("KENYA"sv));
+      Eq(ColRef(nation, "n_name"), Literal("ALGERIA"sv));
   std::unique_ptr<Expression> cond =
       Or(util::MakeVector(std::move(eq1), std::move(eq2)));
 
@@ -203,20 +203,20 @@ std::unique_ptr<Operator> NationSupplierNationCustomerOrdersLineitem() {
 }
 
 // select(
-//  (n1.n_name = 'EGYPT' and n2.n_name = 'KENYA') or
-//  (n1.n_name = 'KENYA' and n2.n_name = 'EGYPT')
+//  (n1.n_name = 'IRAQ' and n2.n_name = 'ALGERIA') or
+//  (n1.n_name = 'ALGERIA' and n2.n_name = 'IRAQ')
 // )
 std::unique_ptr<Operator> SelectNationSupplierNationCustomerOrdersLineitem() {
   auto base = NationSupplierNationCustomerOrdersLineitem();
 
   std::unique_ptr<Expression> eq1 =
-      Eq(ColRef(base, "n1_n_name"), Literal("EGYPT"sv));
+      Eq(ColRef(base, "n1_n_name"), Literal("IRAQ"sv));
   std::unique_ptr<Expression> eq2 =
-      Eq(ColRef(base, "n2_n_name"), Literal("KENYA"sv));
+      Eq(ColRef(base, "n2_n_name"), Literal("ALGERIA"sv));
   std::unique_ptr<Expression> eq3 =
-      Eq(ColRef(base, "n1_n_name"), Literal("KENYA"sv));
+      Eq(ColRef(base, "n1_n_name"), Literal("ALGERIA"sv));
   std::unique_ptr<Expression> eq4 =
-      Eq(ColRef(base, "n2_n_name"), Literal("EGYPT"sv));
+      Eq(ColRef(base, "n2_n_name"), Literal("IRAQ"sv));
 
   std::unique_ptr<Expression> or1 =
       And(util::MakeVector(std::move(eq1), std::move(eq2)));

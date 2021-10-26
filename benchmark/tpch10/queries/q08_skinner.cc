@@ -78,12 +78,12 @@ std::unique_ptr<Operator> ScanPart() {
   return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
 }
 
-// Select(p_type = 'LARGE PLATED STEEL')
+// Select(p_type = 'MEDIUM POLISHED COPPER')
 std::unique_ptr<Operator> SelectPart() {
   auto part = ScanPart();
 
   std::unique_ptr<Expression> eq =
-      Eq(ColRef(part, "p_type"), Literal("LARGE PLATED STEEL"sv));
+      Eq(ColRef(part, "p_type"), Literal("MEDIUM POLISHED COPPER"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*part, {"p_partkey"});
@@ -198,7 +198,7 @@ std::unique_ptr<Operator> GroupByAgg() {
   auto o_year = ColRefE(base, "o_year");
 
   // aggregate
-  auto kenya_vol = Sum(Case(Eq(ColRef(base, "nation"), Literal("KENYA"sv)),
+  auto kenya_vol = Sum(Case(Eq(ColRef(base, "nation"), Literal("ALGERIA"sv)),
                             ColRef(base, "volume"), Literal(0.0)));
   auto sum_vol = Sum(ColRef(base, "volume"));
 

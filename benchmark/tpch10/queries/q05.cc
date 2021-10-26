@@ -44,11 +44,11 @@ std::unique_ptr<Operator> ScanRegion() {
   return std::make_unique<ScanOperator>(std::move(schema), db["region"]);
 }
 
-// Select(r_name = 'MIDDLE EAST')
+// Select(r_name = 'EUROPE')
 std::unique_ptr<Operator> SelectRegion() {
   auto region = ScanRegion();
 
-  auto eq = Eq(ColRef(region, "r_name"), Literal("MIDDLE EAST"sv));
+  auto eq = Eq(ColRef(region, "r_name"), Literal("EUROPE"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*region, {"r_regionkey"});
@@ -112,16 +112,16 @@ std::unique_ptr<Operator> ScanOrders() {
   return std::make_unique<ScanOperator>(std::move(schema), db["orders"]);
 }
 
-// Select(o_orderdate >= date '1993-01-01' and o_orderdate < date '1994-01-01')
+// Select(o_orderdate >= date '1997-01-01' and o_orderdate < date '1998-01-01')
 std::unique_ptr<Operator> SelectOrders() {
   auto orders = ScanOrders();
 
   std::unique_ptr<Expression> cond;
   {
     std::unique_ptr<Expression> geq =
-        Geq(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1993, 1, 1)));
+        Geq(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1997, 1, 1)));
     std::unique_ptr<Expression> lt =
-        Lt(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1994, 1, 1)));
+        Lt(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1998, 1, 1)));
 
     cond = And(util::MakeVector(std::move(geq), std::move(lt)));
   }

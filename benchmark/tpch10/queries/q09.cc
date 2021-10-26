@@ -51,12 +51,12 @@ std::unique_ptr<Operator> ScanPart() {
   return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
 }
 
-// Select(p_name LIKE '%moccasin%')
+// Select(p_name LIKE '%lawn%')
 std::unique_ptr<Operator> SelectPart() {
   auto part = ScanPart();
 
   std::unique_ptr<Expression> contains =
-      Contains(ColRef(part, "p_name"), Literal("moccasin"sv));
+      Contains(ColRef(part, "p_name"), Literal("lawn"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*part, {"p_partkey"});

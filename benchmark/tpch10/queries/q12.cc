@@ -47,16 +47,16 @@ std::unique_ptr<Operator> ScanLineitem() {
   return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
-// Select((l_shipmode = 'RAIL' OR l_shipmode = 'MAIL') AND l_commitdate <
+// Select((l_shipmode = 'AIR' OR l_shipmode = 'REG AIR') AND l_commitdate <
 // l_receiptdate AND l_shipdate < l_commitdate AND l_receiptdate >=
-// '1994-01-01' and l_receiptdate < '1995-01-01')
+// '1996-01-01' and l_receiptdate < '1997-01-01')
 std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLineitem();
 
   std::unique_ptr<Expression> p1 =
-      Eq(ColRef(lineitem, "l_shipmode"), Literal("RAIL"sv));
+      Eq(ColRef(lineitem, "l_shipmode"), Literal("AIR"sv));
   std::unique_ptr<Expression> p2 =
-      Eq(ColRef(lineitem, "l_shipmode"), Literal("MAIL"sv));
+      Eq(ColRef(lineitem, "l_shipmode"), Literal("REG AIR"sv));
   std::unique_ptr<Expression> or_expr =
       Or(util::MakeVector(std::move(p1), std::move(p2)));
 
@@ -65,9 +65,9 @@ std::unique_ptr<Operator> SelectLineitem() {
   std::unique_ptr<Expression> p4 =
       Lt(ColRef(lineitem, "l_shipdate"), ColRef(lineitem, "l_commitdate"));
   std::unique_ptr<Expression> p5 = Geq(ColRef(lineitem, "l_receiptdate"),
-                                       Literal(absl::CivilDay(1994, 1, 1)));
+                                       Literal(absl::CivilDay(1996, 1, 1)));
   std::unique_ptr<Expression> p6 = Lt(ColRef(lineitem, "l_receiptdate"),
-                                      Literal(absl::CivilDay(1995, 1, 1)));
+                                      Literal(absl::CivilDay(1997, 1, 1)));
 
   auto cond =
       And(util::MakeVector(std::move(or_expr), std::move(p3), std::move(p4),
