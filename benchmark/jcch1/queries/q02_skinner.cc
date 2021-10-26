@@ -44,10 +44,10 @@ std::unique_ptr<Operator> ScanRegion() {
   return std::make_unique<ScanOperator>(std::move(schema), db["region"]);
 }
 
-// Select(r_name = 'MIDDLE EAST')
+// Select(r_name = 'AFRICA')
 std::unique_ptr<Operator> SelectRegion() {
   auto region = ScanRegion();
-  auto eq = Eq(ColRef(region, "r_name"), Literal("MIDDLE EAST"sv));
+  auto eq = Eq(ColRef(region, "r_name"), Literal("AFRICA"sv));
 
   OperatorSchema schema;
   schema.AddGeneratedColumns(db["region"], {"r_regionkey"});
@@ -80,14 +80,14 @@ std::unique_ptr<Operator> ScanPart() {
   return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
 }
 
-// Select(p_size = 38 and p_type ENDS WITH 'TIN')
+// Select(p_size = 38 and p_type ENDS WITH 'INED GOLD')
 std::unique_ptr<Operator> SelectPart() {
   auto part = ScanPart();
 
   std::unique_ptr<Expression> cond;
   {
     std::unique_ptr<Expression> ends_with =
-        EndsWith(ColRef(part, "p_type"), Literal("TIN"sv));
+        EndsWith(ColRef(part, "p_type"), Literal("INED GOLD"sv));
     std::unique_ptr<Expression> eq = Eq(ColRef(part, "p_size"), Literal(35));
     cond = And(util::MakeVector(std::move(eq), std::move(ends_with)));
   }

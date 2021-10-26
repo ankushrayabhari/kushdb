@@ -44,11 +44,11 @@ std::unique_ptr<Operator> ScanCustomer() {
   return std::make_unique<ScanOperator>(std::move(schema), db["customer"]);
 }
 
-// Select(c_mktsegment = 'FURNITURE')
+// Select(c_mktsegment = 'BUILDING')
 std::unique_ptr<Operator> SelectCustomer() {
   auto scan_customer = ScanCustomer();
 
-  auto eq = Eq(ColRef(scan_customer, "c_mktsegment"), Literal("AUTOMOBILE"sv));
+  auto eq = Eq(ColRef(scan_customer, "c_mktsegment"), Literal("BUILDING"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*scan_customer, {"c_custkey"});
@@ -64,11 +64,11 @@ std::unique_ptr<Operator> ScanOrders() {
   return std::make_unique<ScanOperator>(std::move(schema), db["orders"]);
 }
 
-// Select(o_orderdate < '1995-03-30')
+// Select(o_orderdate < '1993-05-29')
 std::unique_ptr<Operator> SelectOrders() {
   auto scan_orders = ScanOrders();
   auto lt = Lt(ColRef(scan_orders, "o_orderdate"),
-               Literal(absl::CivilDay(1995, 3, 30)));
+               Literal(absl::CivilDay(1993, 5, 29)));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*scan_orders, {"o_orderdate", "o_shippriority",
@@ -85,11 +85,11 @@ std::unique_ptr<Operator> ScanLineitem() {
   return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
-// Select(l_shipdate > '1995-03-30')
+// Select(l_shipdate > '1993-05-29')
 std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLineitem();
   auto gt =
-      Gt(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1995, 3, 30)));
+      Gt(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1993, 5, 29)));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*lineitem,

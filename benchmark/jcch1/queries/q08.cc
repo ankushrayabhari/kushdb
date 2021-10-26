@@ -58,12 +58,12 @@ std::unique_ptr<Operator> ScanRegion() {
   return std::make_unique<ScanOperator>(std::move(schema), db["region"]);
 }
 
-// Select(r_name = 'AFRICA')
+// Select(r_name = 'MIDDLE EAST')
 std::unique_ptr<Operator> SelectRegion() {
   auto region = ScanRegion();
 
   std::unique_ptr<Expression> eq =
-      Eq(ColRef(region, "r_name"), Literal("AFRICA"sv));
+      Eq(ColRef(region, "r_name"), Literal("MIDDLE EAST"sv));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*region, {"r_regionkey"});
@@ -78,7 +78,7 @@ std::unique_ptr<Operator> ScanPart() {
   return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
 }
 
-// Select(p_type = 'LARGE PLATED STEEL')
+// Select(p_type = 'SHINY MINED GOLD')
 std::unique_ptr<Operator> SelectPart() {
   auto part = ScanPart();
 
@@ -108,14 +108,14 @@ std::unique_ptr<Operator> ScanOrders() {
   return std::make_unique<ScanOperator>(std::move(schema), db["orders"]);
 }
 
-// Select(o_orderdate >= '1995-01-01' and o_orderdate <= '1996-12-31')
+// Select(o_orderdate >= '1993-01-01' and o_orderdate <= '1994-12-31')
 std::unique_ptr<Operator> SelectOrders() {
   auto orders = ScanOrders();
 
   std::unique_ptr<Expression> geq =
-      Geq(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1995, 1, 1)));
+      Geq(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1993, 1, 1)));
   std::unique_ptr<Expression> leq =
-      Leq(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1996, 12, 31)));
+      Leq(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1994, 12, 31)));
   std::unique_ptr<Expression> cond =
       And(util::MakeVector(std::move(geq), std::move(leq)));
 
@@ -280,7 +280,7 @@ std::unique_ptr<Operator> GroupByAgg() {
   auto o_year = ColRefE(base, "o_year");
 
   // aggregate
-  auto kenya_vol = Sum(Case(Eq(ColRef(base, "nation"), Literal("KENYA"sv)),
+  auto kenya_vol = Sum(Case(Eq(ColRef(base, "nation"), Literal("EGYPT"sv)),
                             ColRef(base, "volume"), Literal(0.0)));
   auto sum_vol = Sum(ColRef(base, "volume"));
 

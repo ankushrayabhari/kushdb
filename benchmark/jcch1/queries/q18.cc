@@ -43,9 +43,22 @@ std::unique_ptr<Operator> SubqueryScanLineitem() {
   return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
 }
 
+// Scan(lineitem)
+std::unique_ptr<Operator> SubquerySelectLineitem() {
+  auto lineitem = SubqueryScanLineitem();
+
+  std::unique_ptr<Expression> cond =
+      Leq(ColRef(lineitem, "l_quantity"), Literal(100.0));
+
+  OperatorSchema schema;
+  schema.AddPassthroughColumns(*lineitem, {"l_orderkey", "l_quantity"});
+  return std::make_unique<SelectOperator>(std::move(schema),
+                                          std::move(lineitem), std::move(cond));
+}
+
 // Group By l_orderkey -> sum(l_quantity)
 std::unique_ptr<Operator> SubqueryAgg() {
-  auto lineitem = SubqueryScanLineitem();
+  auto lineitem = SubquerySelectLineitem();
 
   auto l_orderkey = ColRefE(lineitem, "l_orderkey");
 
@@ -60,12 +73,12 @@ std::unique_ptr<Operator> SubqueryAgg() {
       util::MakeVector(std::move(sum_l_quantity)));
 }
 
-// Select(sum(l_quantity) > 315)
+// Select(sum(l_quantity) > 812)
 std::unique_ptr<Operator> SubquerySelect() {
   auto subquery = SubqueryAgg();
 
   std::unique_ptr<Expression> cond =
-      Gt(ColRef(subquery, "sum_l_quantity"), Literal(315.0));
+      Gt(ColRef(subquery, "sum_l_quantity"), Literal(812.0));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*subquery, {"l_orderkey"});
