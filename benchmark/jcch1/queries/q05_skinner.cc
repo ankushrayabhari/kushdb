@@ -193,6 +193,6 @@ int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   auto query = std::make_unique<OutputOperator>(OrderBy());
 
-  BenchVerify(*query, "benchmark/jcch1/raw/q05.tbl", 1e-3);
+  BenchVerify(*query, "benchmark/jcch1/raw/q05.tbl", 1e-2);
   return 0;
 }
