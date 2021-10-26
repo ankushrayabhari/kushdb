@@ -12,20 +12,12 @@
 
 namespace kush::util {
 
-void BenchVerify(kush::plan::OutputOperator& query,
-                 const std::string& expected_file, double threshold = 1e-5) {
+void TimeExecute(kush::plan::OutputOperator& query) {
   {
-    // Verify (counts as a warmup)
-    auto output_file = ExecuteAndCapture(query);
-
-    if (Exists(expected_file)) {
-      auto expected = GetFileContents(expected_file);
-      auto output = GetFileContents(output_file);
-      if (!CHECK_EQ_TBL(expected, output, query.Child().Schema().Columns(),
-                        threshold)) {
-        throw std::runtime_error("Correctness error!");
-      }
-    }
+    kush::compile::QueryTranslator translator(query);
+    auto executable_query = translator.Translate();
+    executable_query.Compile();
+    executable_query.Execute();
   }
 
   for (int i = 0; i < 5; i++) {

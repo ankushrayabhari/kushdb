@@ -148,17 +148,17 @@ std::unique_ptr<Operator> SelectLineitem() {
   std::unique_ptr<Expression> and3;
   {
     std::unique_ptr<Expression> p1 =
-        Geq(ColRef(lineitem, "l_quantity"), Literal(6.0));
+        Geq(ColRef(lineitem, "l_quantity"), Literal(10.0));
     std::unique_ptr<Expression> p2 =
-        Leq(ColRef(lineitem, "l_quantity"), Literal(16.0));
+        Leq(ColRef(lineitem, "l_quantity"), Literal(20.0));
     std::unique_ptr<Expression> p3 =
-        Geq(ColRef(lineitem, "l_quantity"), Literal(13.0));
+        Geq(ColRef(lineitem, "l_quantity"), Literal(11.0));
     std::unique_ptr<Expression> p4 =
-        Leq(ColRef(lineitem, "l_quantity"), Literal(23.0));
+        Leq(ColRef(lineitem, "l_quantity"), Literal(21.0));
     std::unique_ptr<Expression> p5 =
-        Geq(ColRef(lineitem, "l_quantity"), Literal(49.0));
+        Geq(ColRef(lineitem, "l_quantity"), Literal(48.0));
     std::unique_ptr<Expression> p6 =
-        Leq(ColRef(lineitem, "l_quantity"), Literal(59.0));
+        Leq(ColRef(lineitem, "l_quantity"), Literal(58.0));
 
     std::unique_ptr<Expression> or1 =
         And(util::MakeVector(std::move(p1), std::move(p2)));
@@ -217,9 +217,9 @@ std::unique_ptr<Operator> SelectPartLineitem() {
     std::unique_ptr<Expression> p7 =
         Eq(ColRef(base, "p_container"), Literal("SM PKG"sv));
     std::unique_ptr<Expression> p8 =
-        Geq(ColRef(base, "l_quantity"), Literal(6.0));
+        Geq(ColRef(base, "l_quantity"), Literal(10.0));
     std::unique_ptr<Expression> p9 =
-        Leq(ColRef(base, "l_quantity"), Literal(16.0));
+        Leq(ColRef(base, "l_quantity"), Literal(20.0));
     or1 =
         And(util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                              Or(util::MakeVector(std::move(p4), std::move(p5),
@@ -242,9 +242,9 @@ std::unique_ptr<Operator> SelectPartLineitem() {
     std::unique_ptr<Expression> p7 =
         Eq(ColRef(base, "p_container"), Literal("MED PACK"sv));
     std::unique_ptr<Expression> p8 =
-        Geq(ColRef(base, "l_quantity"), Literal(13.0));
+        Geq(ColRef(base, "l_quantity"), Literal(11.0));
     std::unique_ptr<Expression> p9 =
-        Leq(ColRef(base, "l_quantity"), Literal(23.0));
+        Leq(ColRef(base, "l_quantity"), Literal(21.0));
     or2 =
         And(util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                              Or(util::MakeVector(std::move(p4), std::move(p5),
@@ -267,9 +267,9 @@ std::unique_ptr<Operator> SelectPartLineitem() {
     std::unique_ptr<Expression> p7 =
         Eq(ColRef(base, "p_container"), Literal("LG PKG"sv));
     std::unique_ptr<Expression> p8 =
-        Geq(ColRef(base, "l_quantity"), Literal(49.0));
+        Geq(ColRef(base, "l_quantity"), Literal(48.0));
     std::unique_ptr<Expression> p9 =
-        Leq(ColRef(base, "l_quantity"), Literal(59.0));
+        Leq(ColRef(base, "l_quantity"), Literal(58.0));
     or3 =
         And(util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                              Or(util::MakeVector(std::move(p4), std::move(p5),
@@ -308,6 +308,6 @@ int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   auto query = std::make_unique<OutputOperator>(Agg());
 
-  BenchVerify(*query, "benchmark/jcch10/raw/q19.tbl");
+  TimeExecute(*query);
   return 0;
 }

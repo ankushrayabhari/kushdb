@@ -27,7 +27,7 @@ class RedirectStdout {
 
 std::string ExecuteAndCapture(kush::plan::Operator& query) {
   auto unique = std::chrono::system_clock::now().time_since_epoch().count();
-  auto test_file = "/tmp/query_output_test" + std::to_string(unique) + ".csv";
+  auto test_file = "/tmp/query_output_test" + std::to_string(unique) + ".tbl";
 
   int fd = open(test_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0660);
   RedirectStdout redirect(fd);

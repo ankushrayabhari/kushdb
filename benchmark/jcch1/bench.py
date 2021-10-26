@@ -6,7 +6,7 @@ def execute(cmd):
     os.system(cmd)
 
 def bench(database, use_skinner, flags):
-    queries = ['q02', 'q03', 'q05', 'q07', 'q08', 'q09', 'q10', 'q11',
+    queries = ['q02', 'q03', 'q05', 'q07', 'q08', 'q10', 'q11',
                'q12', 'q14', 'q18', 'q19']
     for query in queries:
         binary = 'bazel run -c opt --ui_event_filters=-info,-stdout,-stderr --noshow_progress //benchmark/jcch1/queries:' + query

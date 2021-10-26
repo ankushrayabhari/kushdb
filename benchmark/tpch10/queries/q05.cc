@@ -242,6 +242,6 @@ int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   auto query = std::make_unique<OutputOperator>(OrderBy());
 
-  BenchVerify(*query, "benchmark/tpch10/raw/q05.tbl");
+  TimeExecute(*query);
   return 0;
 }

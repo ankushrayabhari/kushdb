@@ -55,7 +55,7 @@ std::unique_ptr<Operator> SelectPart() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(part, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(part, "p_size"), Literal(5));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(part, "p_brand"), Literal("Brand#31"sv));
+        Eq(ColRef(part, "p_brand"), Literal("Brand#00"sv));
     std::unique_ptr<Expression> p4 =
         Eq(ColRef(part, "p_container"), Literal("SM CASE"sv));
     std::unique_ptr<Expression> p5 =
@@ -75,7 +75,7 @@ std::unique_ptr<Operator> SelectPart() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(part, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(part, "p_size"), Literal(10));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(part, "p_brand"), Literal("Brand#52"sv));
+        Eq(ColRef(part, "p_brand"), Literal("Brand#00"sv));
     std::unique_ptr<Expression> p4 =
         Eq(ColRef(part, "p_container"), Literal("MED BAG"sv));
     std::unique_ptr<Expression> p5 =
@@ -95,7 +95,7 @@ std::unique_ptr<Operator> SelectPart() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(part, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(part, "p_size"), Literal(15));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(part, "p_brand"), Literal("Brand#42"sv));
+        Eq(ColRef(part, "p_brand"), Literal("Brand#55"sv));
     std::unique_ptr<Expression> p4 =
         Eq(ColRef(part, "p_container"), Literal("LG CASE"sv));
     std::unique_ptr<Expression> p5 =
@@ -207,7 +207,7 @@ std::unique_ptr<Operator> SelectPartLineitem() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(base, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(base, "p_size"), Literal(5));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(base, "p_brand"), Literal("Brand#31"sv));
+        Eq(ColRef(base, "p_brand"), Literal("Brand#00"sv));
     std::unique_ptr<Expression> p4 =
         Eq(ColRef(base, "p_container"), Literal("SM CASE"sv));
     std::unique_ptr<Expression> p5 =
@@ -232,7 +232,7 @@ std::unique_ptr<Operator> SelectPartLineitem() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(base, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(base, "p_size"), Literal(10));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(base, "p_brand"), Literal("Brand#52"sv));
+        Eq(ColRef(base, "p_brand"), Literal("Brand#00"sv));
     std::unique_ptr<Expression> p4 =
         Eq(ColRef(base, "p_container"), Literal("MED BAG"sv));
     std::unique_ptr<Expression> p5 =
@@ -257,7 +257,7 @@ std::unique_ptr<Operator> SelectPartLineitem() {
     std::unique_ptr<Expression> p1 = Geq(ColRef(base, "p_size"), Literal(1));
     std::unique_ptr<Expression> p2 = Leq(ColRef(base, "p_size"), Literal(15));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(base, "p_brand"), Literal("Brand#42"sv));
+        Eq(ColRef(base, "p_brand"), Literal("Brand#55"sv));
     std::unique_ptr<Expression> p4 =
         Eq(ColRef(base, "p_container"), Literal("LG CASE"sv));
     std::unique_ptr<Expression> p5 =
@@ -308,6 +308,6 @@ int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   auto query = std::make_unique<OutputOperator>(Agg());
 
-  BenchVerify(*query, "benchmark/jcch10/raw/q19.tbl");
+  TimeExecute(*query);
   return 0;
 }

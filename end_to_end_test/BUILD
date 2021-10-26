@@ -45,16 +45,6 @@ cc_library(
 )
 
 cc_library(
-    name = "test_util",
-    hdrs = ["test_util.h"],
-    deps = [
-        "//compile:query_translator",
-        "//execution:executable_query",
-        "@com_google_googletest//:gtest",
-    ],
-)
-
-cc_library(
     name = "schema",
     hdrs = ["schema.h"],
     data = [
