@@ -40,6 +40,35 @@ user.bazelrc
 !/benchmark/tpch10/duckdb
 !/benchmark/tpch10/duckdb/README.md
 
+# JCC-H SF1 Data
+/benchmark/jcch1/raw/*
+!/benchmark/jcch1/raw
+!/benchmark/jcch1/raw/README.md
+/benchmark/jcch1/data/*
+!/benchmark/jcch1/data
+!/benchmark/jcch1/data/README.md
+/benchmark/jcch1/monetdb/*
+!/benchmark/jcch1/monetdb
+!/benchmark/jcch1/monetdb/README.md
+/benchmark/jcch1/duckdb/*
+!/benchmark/jcch1/duckdb
+!/benchmark/jcch1/duckdb/README.md
+
+
+# JCC-H SF10 Data
+/benchmark/jcch10/raw/*
+!/benchmark/jcch10/raw
+!/benchmark/jcch10/raw/README.md
+/benchmark/jcch10/data/*
+!/benchmark/jcch10/data
+!/benchmark/jcch10/data/README.md
+/benchmark/jcch10/monetdb/*
+!/benchmark/jcch10/monetdb
+!/benchmark/jcch10/monetdb/README.md
+/benchmark/jcch10/duckdb/*
+!/benchmark/jcch10/duckdb
+!/benchmark/jcch10/duckdb/README.md
+
 # JOB Data
 /benchmark/job/raw
 /benchmark/job/data
