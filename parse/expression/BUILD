@@ -54,3 +54,12 @@ cc_library(
         ":expression",
     ],
 )
+
+cc_library(
+    name = "case_expression",
+    srcs = ["case_expression.cc"],
+    hdrs = ["case_expression.h"],
+    deps = [
+        ":expression",
+    ],
+)

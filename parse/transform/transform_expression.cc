@@ -9,6 +9,7 @@
 
 #include "parse/expression/expression.h"
 #include "parse/transform/transform_arithmetic_expression.h"
+#include "parse/transform/transform_case_expression.h"
 #include "parse/transform/transform_column_ref_expression.h"
 #include "parse/transform/transform_literal_expression.h"
 #include "third_party/duckdb_libpgquery/parser.h"
@@ -47,6 +48,9 @@ std::unique_ptr<Expression> TransformExpression(
     case duckdb_libpgquery::T_PGBoolExpr:
       return TransformBoolExpression(
           reinterpret_cast<duckdb_libpgquery::PGBoolExpr&>(expr));
+    case duckdb_libpgquery::T_PGCaseExpr:
+      return TransformCaseExpression(
+          reinterpret_cast<duckdb_libpgquery::PGCaseExpr&>(expr));
       /*
       case duckdb_libpgquery::T_PGFuncCall:
         return TransformFuncCall(
@@ -54,9 +58,7 @@ std::unique_ptr<Expression> TransformExpression(
       case duckdb_libpgquery::T_PGTypeCast:
         return TransformTypeCast(
             reinterpret_cast<duckdb_libpgquery::PGTypeCast*>(node));
-      case duckdb_libpgquery::T_PGCaseExpr:
-        return TransformCase(
-            reinterpret_cast<duckdb_libpgquery::PGCaseExpr*>(node));
+
       */
     default:
       throw std::runtime_error("Expr not implemented: " +
