@@ -10,16 +10,16 @@
 
 namespace kush::plan {
 
-CrossProductOperator::CrossProductOperator(OperatorSchema schema,
-                                           std::unique_ptr<Operator> left,
-                                           std::unique_ptr<Operator> right)
-    : BinaryOperator(std::move(schema), std::move(left), std::move(right)) {}
+CrossProductOperator::CrossProductOperator(
+    OperatorSchema schema, std::vector<std::unique_ptr<Operator>> children)
+    : Operator(std::move(schema), std::move(children)) {}
 
 nlohmann::json CrossProductOperator::ToJson() const {
   nlohmann::json j;
   j["op"] = "CROSS_PRODUCT";
-  j["left_relation"] = LeftChild().ToJson();
-  j["right_relation"] = RightChild().ToJson();
+  for (auto child : Children()) {
+    j["children"].push_back(child.get().ToJson());
+  }
   j["output"] = Schema().ToJson();
   return j;
 }

@@ -22,4 +22,6 @@ SelectStatement::SelectStatement(
       having_(std::move(having)),
       order_by_(std::move(order_by)) {}
 
+const Table& SelectStatement::From() const { return *from_; }
+
 }  // namespace kush::parse

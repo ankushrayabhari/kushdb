@@ -7,6 +7,7 @@ namespace kush::parse {
 
 class Expression {
  public:
+  virtual ~Expression() = default;
   void SetAlias(std::string_view alias);
 
  private:

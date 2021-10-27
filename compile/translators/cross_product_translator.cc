@@ -15,23 +15,25 @@ CrossProductTranslator::CrossProductTranslator(
       cross_product_(cross_product),
       expr_translator_(program, *this) {}
 
-void CrossProductTranslator::Produce() { this->LeftChild().Produce(); }
+void CrossProductTranslator::Produce() { this->Children()[0].get().Produce(); }
 
 void CrossProductTranslator::Consume(OperatorTranslator& src) {
-  auto& left_child = this->LeftChild();
-  auto& right_child = this->RightChild();
+  auto children = this->Children();
 
-  if (&src == &left_child) {
-    right_child.Produce();
-  } else {
-    this->values_.ResetValues();
-    for (const auto& column : cross_product_.Schema().Columns()) {
-      this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+  for (int i = 0; i < children.size() - 1; i++) {
+    if (&src == &children[i].get()) {
+      children[i + 1].get().Produce();
+      return;
     }
+  }
 
-    if (auto parent = this->Parent()) {
-      parent->get().Consume(*this);
-    }
+  this->values_.ResetValues();
+  for (const auto& column : cross_product_.Schema().Columns()) {
+    this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+  }
+
+  if (auto parent = this->Parent()) {
+    parent->get().Consume(*this);
   }
 }
 

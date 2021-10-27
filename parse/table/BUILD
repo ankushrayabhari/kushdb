@@ -6,5 +6,7 @@ cc_library(
     name = "table",
     srcs = ["table.cc"],
     hdrs = ["table.h"],
-    deps = [],
+    deps = [
+        "//util:vector_util",
+    ],
 )

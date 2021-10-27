@@ -35,6 +35,18 @@ void OperatorSchema::AddDerivedColumn(std::string_view name,
   columns_.emplace_back(name, std::move(expr));
 }
 
+void OperatorSchema::AddGeneratedColumns(const kush::catalog::Table& table) {
+  for (auto catalog_column : table.Columns()) {
+    auto name = catalog_column.get().Name();
+    auto type = catalog_column.get().Type();
+    int idx = columns_.size();
+    column_name_to_idx_[name] = idx;
+    columns_.emplace_back(name,
+                          std::make_unique<ColumnRefExpression>(
+                              type, catalog_column.get().Nullable(), 0, idx));
+  }
+}
+
 void OperatorSchema::AddGeneratedColumns(
     const kush::catalog::Table& table,
     const std::vector<std::string>& columns) {

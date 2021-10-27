@@ -2,6 +2,9 @@
 
 namespace kush::parse {
 
-class Statement {};
+class Statement {
+ public:
+  virtual ~Statement() = default;
+};
 
 }  // namespace kush::parse

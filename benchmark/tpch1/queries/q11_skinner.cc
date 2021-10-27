@@ -172,7 +172,8 @@ std::unique_ptr<Operator> JoinQuerySubquery() {
   schema.AddPassthroughColumns(*subquery, 0);
   schema.AddPassthroughColumns(*query, 1);
   return std::make_unique<CrossProductOperator>(
-      std::move(schema), std::move(subquery), std::move(query));
+      std::move(schema),
+      util::MakeVector(std::move(subquery), std::move(query)));
 }
 
 // Select(subquery JOIN query ON value > value1)

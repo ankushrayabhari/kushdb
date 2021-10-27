@@ -19,6 +19,8 @@ class SelectStatement : public Statement {
       std::unique_ptr<Expression> having,
       std::vector<std::pair<std::unique_ptr<Expression>, OrderType>> order_by);
 
+  const Table& From() const;
+
  private:
   std::vector<std::unique_ptr<Expression>> selects_;
   std::unique_ptr<Table> from_;

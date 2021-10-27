@@ -9,10 +9,10 @@
 
 namespace kush::plan {
 
-class CrossProductOperator final : public BinaryOperator {
+class CrossProductOperator final : public Operator {
  public:
-  CrossProductOperator(OperatorSchema schema, std::unique_ptr<Operator> left,
-                       std::unique_ptr<Operator> right);
+  CrossProductOperator(OperatorSchema schema,
+                       std::vector<std::unique_ptr<Operator>> children);
 
   void Accept(OperatorVisitor& visitor) override;
   void Accept(ImmutableOperatorVisitor& visitor) const override;
