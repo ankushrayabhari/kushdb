@@ -6,14 +6,7 @@
 
 namespace kush::parse {
 
-enum ComparisonType {
-  EQ,
-  NEQ,
-  LT,
-  LEQ,
-  GT,
-  GEQ,
-};
+enum ComparisonType { EQ, NEQ, LT, LEQ, GT, GEQ, LIKE };
 
 class ComparisonExpression : public Expression {
  public:

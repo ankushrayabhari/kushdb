@@ -15,7 +15,7 @@ namespace kush::parse {
 
 std::unique_ptr<Expression> TransformUnaryOperator(
     const std::string& op, std::unique_ptr<Expression> child) {
-  throw std::runtime_error("Unknown operator: " + op);
+  throw std::runtime_error("Unknown unary operator: " + op);
 }
 
 std::unique_ptr<Expression> TransformBinaryOperator(
@@ -51,7 +51,21 @@ std::unique_ptr<Expression> TransformBinaryOperator(
         ComparisonType::GEQ, std::move(left), std::move(right));
   }
 
-  throw std::runtime_error("Unknown operator: " + op);
+  if (op == "~~" || op == "!~~") {
+    bool invert = op == "!~~";
+
+    auto result = std::make_unique<ComparisonExpression>(
+        ComparisonType::LIKE, std::move(left), std::move(right));
+
+    if (invert) {
+      return std::make_unique<UnaryArithmeticExpression>(
+          UnaryArithmeticExpressionType::NOT, std::move(result));
+    }
+
+    return result;
+  }
+
+  throw std::runtime_error("Unknown binary operator: " + op);
 }
 
 std::unique_ptr<Expression> TransformArithmeticExpression(
