@@ -18,7 +18,7 @@ cc_library(
     hdrs = ["operator_translator.h"],
     deps = [
         ":schema_values",
-        "//plan:operator",
+        "//plan/operator",
         "//util:vector_util",
     ],
 )
@@ -60,7 +60,7 @@ cc_library(
         "//compile/proxy:materialized_buffer",
         "//compile/proxy/control_flow:loop",
         "//khir:program_builder",
-        "//plan:scan_operator",
+        "//plan/operator:scan_operator",
     ],
 )
 
@@ -74,7 +74,7 @@ cc_library(
         "//compile/proxy/value:ir_value",
         "//execution:pipeline",
         "//khir:program_builder",
-        "//plan:output_operator",
+        "//plan/operator:output_operator",
     ],
 )
 
@@ -86,7 +86,7 @@ cc_library(
         ":expression_translator",
         ":operator_translator",
         "//khir:program_builder",
-        "//plan:select_operator",
+        "//plan/operator:select_operator",
     ],
 )
 
@@ -98,7 +98,7 @@ cc_library(
         ":expression_translator",
         ":operator_translator",
         "//khir:program_builder",
-        "//plan:cross_product_operator",
+        "//plan/operator:cross_product_operator",
     ],
 )
 
@@ -115,7 +115,7 @@ cc_library(
         "//compile/proxy/value:ir_value",
         "//execution:pipeline",
         "//khir:program_builder",
-        "//plan:hash_join_operator",
+        "//plan/operator:hash_join_operator",
         "//util:vector_util",
     ],
 )
@@ -170,7 +170,7 @@ cc_library(
         "//khir:backend",
         "//khir:compilation_cache",
         "//khir:program_builder",
-        "//plan:skinner_join_operator",
+        "//plan/operator:skinner_join_operator",
         "//util:vector_util",
         "@absl//absl/container:btree",
         "@absl//absl/container:flat_hash_map",
@@ -198,7 +198,7 @@ cc_library(
         "//compile/proxy/value:ir_value",
         "//execution:pipeline",
         "//khir:program_builder",
-        "//plan:skinner_join_operator",
+        "//plan/operator:skinner_join_operator",
         "//util:vector_util",
         "@absl//absl/container:btree",
         "@absl//absl/container:flat_hash_set",
@@ -220,8 +220,8 @@ cc_library(
         "//compile/proxy/value:ir_value",
         "//execution:pipeline",
         "//khir:program_builder",
-        "//plan:group_by_aggregate_operator",
-        "//plan:hash_join_operator",
+        "//plan/operator:group_by_aggregate_operator",
+        "//plan/operator:hash_join_operator",
         "//util:vector_util",
     ],
 )
@@ -240,7 +240,7 @@ cc_library(
         "//compile/proxy/value:ir_value",
         "//execution:pipeline",
         "//khir:program_builder",
-        "//plan:order_by_operator",
+        "//plan/operator:order_by_operator",
         "//util:vector_util",
     ],
 )
@@ -264,12 +264,12 @@ cc_library(
         "//compile/proxy:vector",
         "//execution:pipeline",
         "//khir:program_builder",
-        "//plan:hash_join_operator",
-        "//plan:operator",
-        "//plan:output_operator",
-        "//plan:scan_operator",
-        "//plan:select_operator",
-        "//plan:skinner_join_operator",
+        "//plan/operator",
+        "//plan/operator:hash_join_operator",
+        "//plan/operator:output_operator",
+        "//plan/operator:scan_operator",
+        "//plan/operator:select_operator",
+        "//plan/operator:skinner_join_operator",
         "@absl//absl/flags:flag",
     ],
 )

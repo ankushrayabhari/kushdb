@@ -13,7 +13,7 @@
 #include "compile/proxy/value/sql_value.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
-#include "plan/scan_operator.h"
+#include "plan/operator/scan_operator.h"
 #include "util/vector_util.h"
 
 namespace kush::compile {

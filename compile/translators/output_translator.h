@@ -4,7 +4,7 @@
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
 #include "khir/program_builder.h"
-#include "plan/output_operator.h"
+#include "plan/operator/output_operator.h"
 
 namespace kush::compile {
 

@@ -15,7 +15,7 @@
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
 #include "plan/expression/aggregate_expression.h"
-#include "plan/group_by_aggregate_operator.h"
+#include "plan/operator/group_by_aggregate_operator.h"
 #include "util/vector_util.h"
 
 namespace kush::compile {

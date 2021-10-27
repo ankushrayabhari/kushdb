@@ -3,7 +3,7 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
-#include "plan/operator.h"
+#include "plan/operator/operator.h"
 
 namespace kush::compile {
 

@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "compile/translators/schema_values.h"
-#include "plan/operator.h"
+#include "plan/operator/operator.h"
 
 namespace kush::compile {
 

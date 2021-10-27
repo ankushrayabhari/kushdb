@@ -7,7 +7,7 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
-#include "plan/cross_product_operator.h"
+#include "plan/operator/cross_product_operator.h"
 
 namespace kush::compile {
 

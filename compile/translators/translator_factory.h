@@ -12,15 +12,16 @@
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
 #include "khir/program_builder.h"
-#include "plan/operator.h"
-#include "plan/operator_visitor.h"
+#include "plan/operator/operator.h"
+#include "plan/operator/operator_visitor.h"
 #include "util/visitor.h"
 
 namespace kush::compile {
 
 class TranslatorFactory
     : public util::Visitor<plan::ImmutableOperatorVisitor,
-                           const plan::Operator&, std::unique_ptr<OperatorTranslator>> {
+                           const plan::Operator&,
+                           std::unique_ptr<OperatorTranslator>> {
  public:
   TranslatorFactory(khir::ProgramBuilder& program,
                     execution::PipelineBuilder& pipeline_builder);

@@ -14,7 +14,7 @@
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
 #include "khir/program_builder.h"
-#include "plan/hash_join_operator.h"
+#include "plan/operator/hash_join_operator.h"
 #include "util/vector_util.h"
 
 namespace kush::compile {

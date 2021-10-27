@@ -7,7 +7,7 @@
 
 #include "compile/query_translator.h"
 #include "execution/executable_query.h"
-#include "plan/output_operator.h"
+#include "plan/operator/output_operator.h"
 #include "util/test_util.h"
 
 namespace kush::util {

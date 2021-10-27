@@ -9,8 +9,8 @@
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "expression/expression.h"
 #include "nlohmann/json.hpp"
+#include "plan/expression/expression.h"
 
 namespace kush::plan {
 

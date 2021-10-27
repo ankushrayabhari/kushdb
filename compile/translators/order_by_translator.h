@@ -9,7 +9,7 @@
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
 #include "khir/program_builder.h"
-#include "plan/order_by_operator.h"
+#include "plan/operator/order_by_operator.h"
 
 namespace kush::compile {
 

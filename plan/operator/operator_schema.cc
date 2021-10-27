@@ -1,4 +1,4 @@
-#include "plan/operator_schema.h"
+#include "plan/operator/operator_schema.h"
 
 #include <memory>
 #include <stdexcept>
@@ -10,9 +10,9 @@
 
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
-#include "expression/column_ref_expression.h"
-#include "expression/expression.h"
 #include "nlohmann/json.hpp"
+#include "plan/expression/column_ref_expression.h"
+#include "plan/expression/expression.h"
 
 namespace kush::plan {
 

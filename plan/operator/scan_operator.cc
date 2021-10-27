@@ -1,12 +1,12 @@
-#include "plan/scan_operator.h"
+#include "plan/operator/scan_operator.h"
 
 #include <string>
 #include <string_view>
 
 #include "nlohmann/json.hpp"
-#include "plan/operator.h"
-#include "plan/operator_schema.h"
-#include "plan/operator_visitor.h"
+#include "plan/operator/operator.h"
+#include "plan/operator/operator_schema.h"
+#include "plan/operator/operator_visitor.h"
 
 namespace kush::plan {
 

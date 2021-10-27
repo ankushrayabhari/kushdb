@@ -6,7 +6,7 @@
 #include "compile/proxy/value/ir_value.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
-#include "plan/output_operator.h"
+#include "plan/operator/output_operator.h"
 
 namespace kush::compile {
 

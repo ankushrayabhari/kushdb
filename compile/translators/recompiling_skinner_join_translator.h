@@ -19,7 +19,7 @@
 #include "khir/compilation_cache.h"
 #include "khir/program.h"
 #include "khir/program_builder.h"
-#include "plan/skinner_join_operator.h"
+#include "plan/operator/skinner_join_operator.h"
 
 namespace kush::compile {
 

@@ -7,7 +7,7 @@
 #include "compile/proxy/materialized_buffer.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
-#include "plan/scan_operator.h"
+#include "plan/operator/scan_operator.h"
 
 namespace kush::compile {
 

@@ -15,7 +15,7 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
-#include "plan/order_by_operator.h"
+#include "plan/operator/order_by_operator.h"
 #include "util/vector_util.h"
 
 namespace kush::compile {

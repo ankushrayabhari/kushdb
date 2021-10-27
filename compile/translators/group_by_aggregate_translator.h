@@ -10,7 +10,7 @@
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
 #include "khir/program_builder.h"
-#include "plan/group_by_aggregate_operator.h"
+#include "plan/operator/group_by_aggregate_operator.h"
 
 namespace kush::compile {
 

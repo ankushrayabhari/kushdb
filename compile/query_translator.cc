@@ -11,7 +11,7 @@
 #include "khir/llvm/llvm_backend.h"
 #include "khir/program_builder.h"
 #include "khir/program_printer.h"
-#include "plan/operator.h"
+#include "plan/operator/operator.h"
 
 namespace kush::compile {
 

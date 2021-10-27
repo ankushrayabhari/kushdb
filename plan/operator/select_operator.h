@@ -5,9 +5,9 @@
 
 #include "nlohmann/json.hpp"
 #include "plan/expression/expression.h"
-#include "plan/operator.h"
-#include "plan/operator_schema.h"
-#include "plan/operator_visitor.h"
+#include "plan/operator/operator.h"
+#include "plan/operator/operator_schema.h"
+#include "plan/operator/operator_visitor.h"
 
 namespace kush::plan {
 

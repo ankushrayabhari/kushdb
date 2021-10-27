@@ -15,13 +15,13 @@
 #include "compile/translators/scan_translator.h"
 #include "compile/translators/select_translator.h"
 #include "khir/program_builder.h"
-#include "plan/hash_join_operator.h"
-#include "plan/operator.h"
-#include "plan/operator_visitor.h"
-#include "plan/output_operator.h"
-#include "plan/scan_operator.h"
-#include "plan/select_operator.h"
-#include "plan/skinner_join_operator.h"
+#include "plan/operator/hash_join_operator.h"
+#include "plan/operator/operator.h"
+#include "plan/operator/operator_visitor.h"
+#include "plan/operator/output_operator.h"
+#include "plan/operator/scan_operator.h"
+#include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_join_operator.h"
 
 ABSL_FLAG(std::string, skinner, "permute",
           "Skinner Join Implementation: permute or recompile");

@@ -1,4 +1,4 @@
-#include "plan/operator.h"
+#include "plan/operator/operator.h"
 
 #include <memory>
 #include <optional>
@@ -8,8 +8,8 @@
 #include "nlohmann/json.hpp"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/expression.h"
-#include "plan/operator_schema.h"
-#include "plan/operator_visitor.h"
+#include "plan/operator/operator_schema.h"
+#include "plan/operator/operator_visitor.h"
 #include "util/vector_util.h"
 
 namespace kush::plan {

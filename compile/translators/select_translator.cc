@@ -4,7 +4,7 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
-#include "plan/select_operator.h"
+#include "plan/operator/select_operator.h"
 
 namespace kush::compile {
 

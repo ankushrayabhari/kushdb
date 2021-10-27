@@ -22,14 +22,6 @@ cc_library(
     deps = [
         ":vector_util",
         "//catalog",
-        "//plan:group_by_aggregate_operator",
-        "//plan:hash_join_operator",
-        "//plan:operator",
-        "//plan:order_by_operator",
-        "//plan:output_operator",
-        "//plan:scan_operator",
-        "//plan:select_operator",
-        "//plan:skinner_join_operator",
         "//plan/expression",
         "//plan/expression:binary_arithmetic_expression",
         "//plan/expression:case_expression",
@@ -37,6 +29,14 @@ cc_library(
         "//plan/expression:conversion_expression",
         "//plan/expression:literal_expression",
         "//plan/expression:virtual_column_ref_expression",
+        "//plan/operator",
+        "//plan/operator:group_by_aggregate_operator",
+        "//plan/operator:hash_join_operator",
+        "//plan/operator:order_by_operator",
+        "//plan/operator:output_operator",
+        "//plan/operator:scan_operator",
+        "//plan/operator:select_operator",
+        "//plan/operator:skinner_join_operator",
     ],
 )
 
@@ -82,7 +82,7 @@ cc_library(
         ":test_util",
         "//compile:query_translator",
         "//execution:executable_query",
-        "//plan:output_operator",
+        "//plan/operator:output_operator",
     ],
 )
 
@@ -92,6 +92,6 @@ cc_library(
     deps = [
         "//compile:query_translator",
         "//execution:executable_query",
-        "//plan:operator_schema",
+        "//plan/operator:operator_schema",
     ],
 )
