@@ -14,12 +14,12 @@
 namespace kush::parse {
 
 std::unique_ptr<Expression> TransformUnaryOperator(
-    const std::string &op, std::unique_ptr<Expression> child) {
+    const std::string& op, std::unique_ptr<Expression> child) {
   throw std::runtime_error("Unknown operator: " + op);
 }
 
 std::unique_ptr<Expression> TransformBinaryOperator(
-    const std::string &op, std::unique_ptr<Expression> left,
+    const std::string& op, std::unique_ptr<Expression> left,
     std::unique_ptr<Expression> right) {
   if (op == "=" || op == "==") {
     return std::make_unique<ComparisonExpression>(
@@ -55,8 +55,8 @@ std::unique_ptr<Expression> TransformBinaryOperator(
 }
 
 std::unique_ptr<Expression> TransformArithmeticExpression(
-    duckdb_libpgquery::PGAExpr &expr) {
-  auto name = std::string((reinterpret_cast<duckdb_libpgquery::PGValue *>(
+    duckdb_libpgquery::PGAExpr& expr) {
+  auto name = std::string((reinterpret_cast<duckdb_libpgquery::PGValue*>(
                                expr.name->head->data.ptr_value))
                               ->val.str);
 
@@ -82,7 +82,7 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
     case duckdb_libpgquery::PG_AEXPR_IN: {
       auto child = TransformExpression(*expr.lexpr);
       auto valid =
-          TransformExpressionList(*((duckdb_libpgquery::PGList *)expr.rexpr));
+          TransformExpressionList(*((duckdb_libpgquery::PGList*)expr.rexpr));
 
       auto base =
           std::make_unique<InExpression>(std::move(child), std::move(valid));
@@ -100,7 +100,7 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
     case duckdb_libpgquery::PG_AEXPR_BETWEEN:
     case duckdb_libpgquery::PG_AEXPR_NOT_BETWEEN: {
       auto between_args =
-          reinterpret_cast<duckdb_libpgquery::PGList *>(expr.rexpr);
+          reinterpret_cast<duckdb_libpgquery::PGList*>(expr.rexpr);
       if (between_args->length != 2 || !between_args->head->data.ptr_value ||
           !between_args->tail->data.ptr_value) {
         throw std::runtime_error("(NOT) BETWEEN needs two args");
@@ -109,10 +109,10 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
       auto left_input = TransformExpression(*expr.lexpr);
       auto right_input = TransformExpression(*expr.lexpr);
       auto between_left =
-          TransformExpression(*reinterpret_cast<duckdb_libpgquery::PGNode *>(
+          TransformExpression(*reinterpret_cast<duckdb_libpgquery::PGNode*>(
               between_args->head->data.ptr_value));
       auto between_right =
-          TransformExpression(*reinterpret_cast<duckdb_libpgquery::PGNode *>(
+          TransformExpression(*reinterpret_cast<duckdb_libpgquery::PGNode*>(
               between_args->tail->data.ptr_value));
 
       auto geq = std::make_unique<ComparisonExpression>(
@@ -146,6 +146,24 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
   }
 
   throw std::runtime_error("Invalid expression.");
+}
+
+std::unique_ptr<Expression> TransformNullTest(
+    duckdb_libpgquery::PGNullTest& expr) {
+  auto arg = TransformExpression(
+      *reinterpret_cast<duckdb_libpgquery::PGNode*>(expr.arg));
+  if (expr.argisrow) {
+    throw std::runtime_error("IS NULL argisrow not supported.");
+  }
+
+  auto base = std::make_unique<UnaryArithmeticExpression>(
+      UnaryArithmeticExpressionType::IS_NULL, std::move(arg));
+  if (expr.nulltesttype == duckdb_libpgquery::PG_IS_NULL) {
+    return std::move(base);
+  } else {
+    return std::make_unique<UnaryArithmeticExpression>(
+        UnaryArithmeticExpressionType::NOT, std::move(base));
+  }
 }
 
 }  // namespace kush::parse

@@ -6,7 +6,7 @@
 
 namespace kush::parse {
 
-enum class UnaryArithmeticExpressionType { NOT };
+enum class UnaryArithmeticExpressionType { NOT, IS_NULL };
 
 class UnaryArithmeticExpression : public Expression {
  public:
