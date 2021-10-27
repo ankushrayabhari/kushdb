@@ -5,6 +5,7 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "transform",
     srcs = [
+        "transform_arithmetic_expression.cc",
         "transform_column_ref_expression.cc",
         "transform_expression.cc",
         "transform_from.cc",
@@ -15,6 +16,7 @@ cc_library(
         "transform_statement.cc",
     ],
     hdrs = [
+        "transform_arithmetic_expression.h",
         "transform_column_ref_expression.h",
         "transform_expression.h",
         "transform_from.h",
@@ -26,7 +28,10 @@ cc_library(
     ],
     deps = [
         "//parse/expression",
+        "//parse/expression:arithmetic_expression",
         "//parse/expression:column_ref_expression",
+        "//parse/expression:comparison_expression",
+        "//parse/expression:in_expression",
         "//parse/expression:literal_expression",
         "//parse/statement",
         "//parse/statement:select_statement",

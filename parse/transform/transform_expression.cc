@@ -8,6 +8,7 @@
 #include "magic_enum.hpp"
 
 #include "parse/expression/expression.h"
+#include "parse/transform/transform_arithmetic_expression.h"
 #include "parse/transform/transform_column_ref_expression.h"
 #include "parse/transform/transform_literal_expression.h"
 #include "third_party/duckdb_libpgquery/parser.h"
@@ -37,11 +38,10 @@ std::unique_ptr<Expression> TransformExpression(
     case duckdb_libpgquery::T_PGAConst:
       return TransformLiteralExpression(
           reinterpret_cast<duckdb_libpgquery::PGAConst&>(expr).val);
-
-    /*
     case duckdb_libpgquery::T_PGAExpr:
-      return TransformAExpr(
-          reinterpret_cast<duckdb_libpgquery::PGAExpr*>(node));
+      return TransformArithmeticExpression(
+          reinterpret_cast<duckdb_libpgquery::PGAExpr&>(expr));
+    /*
     case duckdb_libpgquery::T_PGFuncCall:
       return TransformFuncCall(
           reinterpret_cast<duckdb_libpgquery::PGFuncCall*>(node));
