@@ -63,3 +63,12 @@ cc_library(
         ":expression",
     ],
 )
+
+cc_library(
+    name = "aggregate_expression",
+    srcs = ["aggregate_expression.cc"],
+    hdrs = ["aggregate_expression.h"],
+    deps = [
+        ":expression",
+    ],
+)

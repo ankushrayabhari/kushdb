@@ -10,6 +10,7 @@ cc_library(
         "transform_column_ref_expression.cc",
         "transform_expression.cc",
         "transform_from.cc",
+        "transform_function_call_expression.cc",
         "transform_group_by.cc",
         "transform_literal_expression.cc",
         "transform_order_by.cc",
@@ -22,6 +23,7 @@ cc_library(
         "transform_column_ref_expression.h",
         "transform_expression.h",
         "transform_from.h",
+        "transform_function_call_expression.h",
         "transform_group_by.h",
         "transform_literal_expression.h",
         "transform_order_by.h",
@@ -30,6 +32,7 @@ cc_library(
     ],
     deps = [
         "//parse/expression",
+        "//parse/expression:aggregate_expression",
         "//parse/expression:arithmetic_expression",
         "//parse/expression:case_expression",
         "//parse/expression:column_ref_expression",
