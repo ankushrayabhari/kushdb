@@ -42,15 +42,15 @@ std::unique_ptr<Expression> TransformExpression(
       return TransformArithmeticExpression(
           reinterpret_cast<duckdb_libpgquery::PGAExpr&>(expr));
     case duckdb_libpgquery::T_PGNullTest:
-      return TransformNullTest(
+      return TransformNullTestExpression(
           reinterpret_cast<duckdb_libpgquery::PGNullTest&>(expr));
+    case duckdb_libpgquery::T_PGBoolExpr:
+      return TransformBoolExpression(
+          reinterpret_cast<duckdb_libpgquery::PGBoolExpr&>(expr));
       /*
       case duckdb_libpgquery::T_PGFuncCall:
         return TransformFuncCall(
             reinterpret_cast<duckdb_libpgquery::PGFuncCall*>(node));
-      case duckdb_libpgquery::T_PGBoolExpr:
-        return TransformBoolExpr(
-            reinterpret_cast<duckdb_libpgquery::PGBoolExpr*>(node));
       case duckdb_libpgquery::T_PGTypeCast:
         return TransformTypeCast(
             reinterpret_cast<duckdb_libpgquery::PGTypeCast*>(node));

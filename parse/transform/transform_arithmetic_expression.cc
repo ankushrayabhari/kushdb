@@ -148,7 +148,7 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
   throw std::runtime_error("Invalid expression.");
 }
 
-std::unique_ptr<Expression> TransformNullTest(
+std::unique_ptr<Expression> TransformNullTestExpression(
     duckdb_libpgquery::PGNullTest& expr) {
   auto arg = TransformExpression(
       *reinterpret_cast<duckdb_libpgquery::PGNode*>(expr.arg));
@@ -164,6 +164,45 @@ std::unique_ptr<Expression> TransformNullTest(
     return std::make_unique<UnaryArithmeticExpression>(
         UnaryArithmeticExpressionType::NOT, std::move(base));
   }
+}
+
+std::unique_ptr<Expression> TransformBoolExpression(
+    duckdb_libpgquery::PGBoolExpr& expr) {
+  std::unique_ptr<Expression> result;
+  for (auto node = expr.args->head; node != nullptr; node = node->next) {
+    auto next = TransformExpression(
+        *reinterpret_cast<duckdb_libpgquery::PGNode*>(node->data.ptr_value));
+
+    switch (expr.boolop) {
+      case duckdb_libpgquery::PG_AND_EXPR: {
+        if (!result) {
+          result = std::move(next);
+        } else {
+          result = std::make_unique<BinaryArithmeticExpression>(
+              BinaryArithmeticExpressionType::AND, std::move(result),
+              std::move(next));
+        }
+        break;
+      }
+
+      case duckdb_libpgquery::PG_OR_EXPR: {
+        if (!result) {
+          result = std::move(next);
+        } else {
+          result = std::make_unique<BinaryArithmeticExpression>(
+              BinaryArithmeticExpressionType::OR, move(result), move(next));
+        }
+        break;
+      }
+
+      case duckdb_libpgquery::PG_NOT_EXPR: {
+        result = std::make_unique<UnaryArithmeticExpression>(
+            UnaryArithmeticExpressionType::NOT, std::move(next));
+        break;
+      }
+    }
+  }
+  return result;
 }
 
 }  // namespace kush::parse

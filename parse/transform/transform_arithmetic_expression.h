@@ -8,7 +8,10 @@
 
 namespace kush::parse {
 
-std::unique_ptr<Expression> TransformNullTest(
+std::unique_ptr<Expression> TransformBoolExpression(
+    duckdb_libpgquery::PGBoolExpr& expr);
+
+std::unique_ptr<Expression> TransformNullTestExpression(
     duckdb_libpgquery::PGNullTest& expr);
 
 std::unique_ptr<Expression> TransformArithmeticExpression(
