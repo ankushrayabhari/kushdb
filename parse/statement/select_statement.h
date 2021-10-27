@@ -20,6 +20,7 @@ class SelectStatement : public Statement {
       std::vector<std::pair<std::unique_ptr<Expression>, OrderType>> order_by);
 
   const Table& From() const;
+  const Expression* Where() const;
 
  private:
   std::vector<std::unique_ptr<Expression>> selects_;

@@ -24,4 +24,6 @@ SelectStatement::SelectStatement(
 
 const Table& SelectStatement::From() const { return *from_; }
 
+const Expression* SelectStatement::Where() const { return where_.get(); }
+
 }  // namespace kush::parse
