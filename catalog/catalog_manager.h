@@ -16,7 +16,7 @@ class CatalogManager {
 
  private:
   CatalogManager() = default;
-  ~CatalogManager();
+  ~CatalogManager() = default;
 
  public:
   CatalogManager(CatalogManager const&) = delete;

@@ -18,9 +18,11 @@ namespace kush::plan {
 
 class Planner {
  public:
-  std::unique_ptr<Operator> Plan(const parse::SelectStatement& stmt);
+  std::unique_ptr<Operator> Plan(const parse::Statement& stmt);
 
  private:
+  std::unique_ptr<Operator> Plan(const parse::SelectStatement& stmt);
+
   struct ColumnInfo {
     int child_idx, col_idx;
     catalog::SqlType type;

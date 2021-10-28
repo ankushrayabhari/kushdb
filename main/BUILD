@@ -5,5 +5,6 @@ cc_binary(
     srcs = ["main.cc"],
     deps = [
         "//parse:parser",
+        "//plan:planner",
     ],
 )

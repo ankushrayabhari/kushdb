@@ -346,4 +346,12 @@ std::unique_ptr<Operator> Planner::Plan(const parse::SelectStatement& stmt) {
   return result;
 }
 
+std::unique_ptr<Operator> Planner::Plan(const parse::Statement& stmt) {
+  if (auto v = dynamic_cast<const parse::SelectStatement*>(&stmt)) {
+    return Plan(*v);
+  }
+
+  throw std::runtime_error("Unknown statement");
+}
+
 }  // namespace kush::plan
