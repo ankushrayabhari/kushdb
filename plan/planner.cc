@@ -12,6 +12,7 @@
 #include "parse/statement/select_statement.h"
 #include "parse/table/table.h"
 #include "plan/expression/aggregate_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/operator/cross_product_operator.h"
 #include "plan/operator/operator.h"
@@ -100,7 +101,16 @@ std::unique_ptr<Expression> Planner::Plan(
 
 std::unique_ptr<Expression> Planner::Plan(
     const parse::UnaryArithmeticExpression& expr) {
-  return nullptr;
+  auto child = Plan(expr.Child());
+  switch (expr.Type()) {
+    case parse::UnaryArithmeticExpressionType::NOT:
+      return std::make_unique<UnaryArithmeticExpression>(
+          UnaryArithmeticExpressionType::NOT, std::move(child));
+
+    case parse::UnaryArithmeticExpressionType::IS_NULL:
+      return std::make_unique<UnaryArithmeticExpression>(
+          UnaryArithmeticExpressionType::IS_NULL, std::move(child));
+  }
 }
 
 std::unique_ptr<Expression> Planner::Plan(

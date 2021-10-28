@@ -10,6 +10,12 @@ UnaryArithmeticExpression::UnaryArithmeticExpression(
     UnaryArithmeticExpressionType type, std::unique_ptr<Expression> child)
     : type_(type), child_(std::move(child)) {}
 
+UnaryArithmeticExpressionType UnaryArithmeticExpression::Type() const {
+  return type_;
+}
+
+const Expression& UnaryArithmeticExpression::Child() const { return *child_; }
+
 BinaryArithmeticExpression::BinaryArithmeticExpression(
     BinaryArithmeticExpressionType type, std::unique_ptr<Expression> left,
     std::unique_ptr<Expression> right)

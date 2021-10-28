@@ -13,6 +13,9 @@ class UnaryArithmeticExpression : public Expression {
   UnaryArithmeticExpression(UnaryArithmeticExpressionType type,
                             std::unique_ptr<Expression> child);
 
+  UnaryArithmeticExpressionType Type() const;
+  const Expression& Child() const;
+
  private:
   UnaryArithmeticExpressionType type_;
   std::unique_ptr<Expression> child_;
