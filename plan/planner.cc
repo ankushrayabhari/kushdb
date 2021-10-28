@@ -101,20 +101,38 @@ std::unique_ptr<Expression> Planner::Plan(
 
 std::unique_ptr<Expression> Planner::Plan(
     const parse::UnaryArithmeticExpression& expr) {
-  auto child = Plan(expr.Child());
   switch (expr.Type()) {
     case parse::UnaryArithmeticExpressionType::NOT:
       return std::make_unique<UnaryArithmeticExpression>(
-          UnaryArithmeticExpressionType::NOT, std::move(child));
+          UnaryArithmeticExpressionType::NOT, Plan(expr.Child()));
 
     case parse::UnaryArithmeticExpressionType::IS_NULL:
       return std::make_unique<UnaryArithmeticExpression>(
-          UnaryArithmeticExpressionType::IS_NULL, std::move(child));
+          UnaryArithmeticExpressionType::IS_NULL, Plan(expr.Child()));
   }
 }
 
 std::unique_ptr<Expression> Planner::Plan(
     const parse::BinaryArithmeticExpression& expr) {
+  switch (expr.Type()) {
+    case parse::BinaryArithmeticExpressionType::AND:
+      return std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::AND, Plan(expr.LeftChild()),
+          Plan(expr.RightChild()));
+
+    case parse::BinaryArithmeticExpressionType::OR:
+      return std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::OR, Plan(expr.LeftChild()),
+          Plan(expr.RightChild()));
+  }
+}
+
+std::unique_ptr<Expression> Planner::Plan(
+    const parse::ComparisonExpression& expr) {
+  return nullptr;
+}
+
+std::unique_ptr<Expression> Planner::Plan(const parse::InExpression& expr) {
   return nullptr;
 }
 
@@ -131,16 +149,6 @@ std::unique_ptr<Expression> Planner::Plan(
   return std::make_unique<ColumnRefExpression>(v.type, v.nullable, v.child_idx,
                                                v.col_idx);
 }
-
-std::unique_ptr<Expression> Planner::Plan(
-    const parse::ComparisonExpression& expr) {
-  return nullptr;
-}
-
-std::unique_ptr<Expression> Planner::Plan(const parse::InExpression& expr) {
-  return nullptr;
-}
-
 std::unique_ptr<Expression> Planner::Plan(
     const parse::LiteralExpression& expr) {
   std::unique_ptr<Expression> result;

@@ -21,4 +21,16 @@ BinaryArithmeticExpression::BinaryArithmeticExpression(
     std::unique_ptr<Expression> right)
     : type_(type), left_(std::move(left)), right_(std::move(right)) {}
 
+BinaryArithmeticExpressionType BinaryArithmeticExpression::Type() const {
+  return type_;
+}
+
+const Expression& BinaryArithmeticExpression::LeftChild() const {
+  return *left_;
+}
+
+const Expression& BinaryArithmeticExpression::RightChild() const {
+  return *right_;
+}
+
 }  // namespace kush::parse

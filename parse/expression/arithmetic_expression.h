@@ -21,13 +21,17 @@ class UnaryArithmeticExpression : public Expression {
   std::unique_ptr<Expression> child_;
 };
 
-enum class BinaryArithmeticExpressionType { PLUS, MINUS, TIMES, AND, OR };
+enum class BinaryArithmeticExpressionType { AND, OR };
 
 class BinaryArithmeticExpression : public Expression {
  public:
   BinaryArithmeticExpression(BinaryArithmeticExpressionType type,
                              std::unique_ptr<Expression> left,
                              std::unique_ptr<Expression> right);
+
+  BinaryArithmeticExpressionType Type() const;
+  const Expression& LeftChild() const;
+  const Expression& RightChild() const;
 
  private:
   BinaryArithmeticExpressionType type_;
