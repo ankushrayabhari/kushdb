@@ -91,37 +91,35 @@ void ExpressionTranslator::Visit(const plan::AggregateExpression& agg) {
 }
 
 void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
-  proxy::Bool null(program_, false);
-  switch (literal.Type()) {
-    case catalog::SqlType::SMALLINT:
-      Return(proxy::SQLValue(proxy::Int16(program_, literal.GetSmallintValue()),
-                             null));
-      return;
-    case catalog::SqlType::INT:
-      Return(
-          proxy::SQLValue(proxy::Int32(program_, literal.GetIntValue()), null));
-      return;
-    case catalog::SqlType::BIGINT:
-      Return(proxy::SQLValue(proxy::Int64(program_, literal.GetBigintValue()),
-                             null));
-      return;
-    case catalog::SqlType::DATE:
-      Return(
-          proxy::SQLValue(proxy::Date(program_, literal.GetDateValue()), null));
-      return;
-    case catalog::SqlType::REAL:
-      Return(proxy::SQLValue(proxy::Float64(program_, literal.GetRealValue()),
-                             null));
-      return;
-    case catalog::SqlType::TEXT:
-      Return(proxy::SQLValue(
-          proxy::String::Global(program_, literal.GetTextValue()), null));
-      return;
-    case catalog::SqlType::BOOLEAN:
-      Return(proxy::SQLValue(proxy::Bool(program_, literal.GetBooleanValue()),
-                             null));
-      return;
-  }
+  literal.Visit(
+      [&](int16_t v, bool null) {
+        Return(proxy::SQLValue(proxy::Int16(program_, v),
+                               proxy::Bool(program_, null)));
+      },
+      [&](int32_t v, bool null) {
+        Return(proxy::SQLValue(proxy::Int32(program_, v),
+                               proxy::Bool(program_, null)));
+      },
+      [&](int64_t v, bool null) {
+        Return(proxy::SQLValue(proxy::Int64(program_, v),
+                               proxy::Bool(program_, null)));
+      },
+      [&](double v, bool null) {
+        Return(proxy::SQLValue(proxy::Float64(program_, v),
+                               proxy::Bool(program_, null)));
+      },
+      [&](std::string v, bool null) {
+        Return(proxy::SQLValue(proxy::String::Global(program_, v),
+                               proxy::Bool(program_, null)));
+      },
+      [&](bool v, bool null) {
+        Return(proxy::SQLValue(proxy::Bool(program_, v),
+                               proxy::Bool(program_, null)));
+      },
+      [&](absl::CivilDay v, bool null) {
+        Return(proxy::SQLValue(proxy::Date(program_, v),
+                               proxy::Bool(program_, null)));
+      });
 }
 
 void ExpressionTranslator::Visit(const plan::ColumnRefExpression& col_ref) {

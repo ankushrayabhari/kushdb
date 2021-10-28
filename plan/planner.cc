@@ -11,6 +11,7 @@
 #include "parse/expression/literal_expression.h"
 #include "parse/statement/select_statement.h"
 #include "parse/table/table.h"
+#include "plan/expression/literal_expression.h"
 #include "plan/operator/cross_product_operator.h"
 #include "plan/operator/operator.h"
 #include "plan/operator/scan_operator.h"
@@ -84,6 +85,19 @@ std::unique_ptr<Expression> Plan(const parse::InExpression& expr) {
 }
 
 std::unique_ptr<Expression> Plan(const parse::LiteralExpression& expr) {
+  std::unique_ptr<Expression> result;
+  expr.Visit(
+      [&](int16_t arg) { result = std::make_unique<LiteralExpression>(arg); },
+      [&](int32_t arg) { result = std::make_unique<LiteralExpression>(arg); },
+      [&](int64_t arg) { result = std::make_unique<LiteralExpression>(arg); },
+      [&](double arg) { result = std::make_unique<LiteralExpression>(arg); },
+      [&](std::string arg) {
+        result = std::make_unique<LiteralExpression>(arg);
+      },
+      [&](bool arg) { result = std::make_unique<LiteralExpression>(arg); },
+      [&](absl::CivilDay arg) {
+        result = std::make_unique<LiteralExpression>(arg);
+      });
   return nullptr;
 }
 

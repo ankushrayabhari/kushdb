@@ -20,9 +20,6 @@ std::unique_ptr<LiteralExpression> TransformLiteralExpression(
       return std::make_unique<LiteralExpression>(
           std::string_view(value.val.str));
 
-    case duckdb_libpgquery::T_PGNull:
-      return std::make_unique<LiteralExpression>(nullptr);
-
     case duckdb_libpgquery::T_PGFloat: {
       std::string str_val(value.val.str);
       bool try_cast_as_integer = true;
