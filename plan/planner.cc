@@ -251,11 +251,25 @@ std::unique_ptr<Expression> Planner::Plan(
 }
 
 std::unique_ptr<Expression> Planner::Plan(const parse::InExpression& expr) {
-  return nullptr;
+  std::unique_ptr<Expression> result;
+
+  for (auto x : expr.Cases()) {
+    auto eq = std::make_unique<BinaryArithmeticExpression>(
+        BinaryArithmeticExpressionType::EQ, Plan(expr.Base()), Plan(x.get()));
+
+    if (result == nullptr) {
+      result = std::move(eq);
+    } else {
+      result = std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::OR, std::move(result), std::move(eq));
+    }
+  }
+
+  return result;
 }
 
 std::unique_ptr<Expression> Planner::Plan(const parse::CaseExpression& expr) {
-  return nullptr;
+  throw std::runtime_error("Unsupported case expression");
 }
 
 std::unique_ptr<Expression> Planner::Plan(

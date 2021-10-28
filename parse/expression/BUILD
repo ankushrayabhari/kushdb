@@ -43,6 +43,7 @@ cc_library(
     hdrs = ["in_expression.h"],
     deps = [
         ":expression",
+        "//util:vector_util",
     ],
 )
 

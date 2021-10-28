@@ -12,6 +12,9 @@ class InExpression : public Expression {
   InExpression(std::unique_ptr<Expression> child,
                std::vector<std::unique_ptr<Expression>> valid);
 
+  const Expression& Base() const;
+  std::vector<std::reference_wrapper<const Expression>> Cases() const;
+
  private:
   std::unique_ptr<Expression> child_;
   std::vector<std::unique_ptr<Expression>> valid_;
