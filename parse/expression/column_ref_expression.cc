@@ -11,4 +11,10 @@ ColumnRefExpression::ColumnRefExpression(std::string_view column_name,
                                          std::string_view table_name)
     : column_name_(column_name), table_name_(table_name) {}
 
+std::string_view ColumnRefExpression::ColumnName() const {
+  return column_name_;
+}
+
+std::string_view ColumnRefExpression::TableName() const { return table_name_; }
+
 }  // namespace kush::parse

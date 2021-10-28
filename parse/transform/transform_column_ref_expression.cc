@@ -19,10 +19,13 @@ std::unique_ptr<ColumnRefExpression> TransformColumnRefExpression(
       }
 
       if (fields->length == 1) {
+        /*
         std::string column_name(reinterpret_cast<duckdb_libpgquery::PGValue*>(
                                     fields->head->data.ptr_value)
                                     ->val.str);
         return std::make_unique<ColumnRefExpression>(column_name);
+        */
+        throw std::runtime_error("Unqualified column ref unsupported.");
       }
 
       if (fields->length == 2) {

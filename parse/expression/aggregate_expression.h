@@ -6,11 +6,14 @@
 
 namespace kush::parse {
 
-enum class AggregateType { COUNT, MIN, MAX, SUM, AVG };
+enum class AggregateType { SUM, AVG, COUNT, MAX, MIN };
 
 class AggregateExpression : public Expression {
  public:
   AggregateExpression(AggregateType type, std::unique_ptr<Expression> child);
+
+  AggregateType Type() const;
+  const Expression& Child() const;
 
  private:
   AggregateType type_;

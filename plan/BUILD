@@ -18,6 +18,7 @@ cc_library(
         "//parse/expression:literal_expression",
         "//parse/statement:select_statement",
         "//plan/expression",
+        "//plan/expression:aggregate_expression",
         "//plan/expression:literal_expression",
         "//plan/operator",
         "//plan/operator:cross_product_operator",
