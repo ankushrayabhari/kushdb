@@ -37,6 +37,32 @@ ExpressionTranslator::ExpressionTranslator(khir::ProgramBuilder& program,
                                            OperatorTranslator& source)
     : program_(program), source_(source) {}
 
+void ExpressionTranslator::Visit(const plan::UnaryArithmeticExpression& arith) {
+  using OpType = plan::UnaryArithmeticExpressionType;
+  switch (arith.OpType()) {
+    case OpType::IS_NULL: {
+      auto value = Compute(arith.Child());
+      Return(proxy::SQLValue(value.IsNull(), proxy::Bool(program_, false)));
+      return;
+    }
+
+    case OpType::NOT: {
+      auto value = Compute(arith.Child());
+      Return(proxy::NullableTernary<proxy::Bool>(
+          program_, value.IsNull(),
+          [&]() {
+            return proxy::SQLValue(proxy::Bool(program_, false),
+                                   proxy::Bool(program_, true));
+          },
+          [&]() {
+            auto& boolean = dynamic_cast<proxy::Bool&>(value.Get());
+            return proxy::SQLValue(!boolean, proxy::Bool(program_, false));
+          }));
+      return;
+    }
+  }
+}
+
 void ExpressionTranslator::Visit(
     const plan::BinaryArithmeticExpression& arith) {
   using OpType = plan::BinaryArithmeticExpressionType;

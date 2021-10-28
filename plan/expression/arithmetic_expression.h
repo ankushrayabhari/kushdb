@@ -8,6 +8,27 @@
 
 namespace kush::plan {
 
+enum class UnaryArithmeticExpressionType {
+  NOT,
+  IS_NULL,
+};
+
+class UnaryArithmeticExpression : public UnaryExpression {
+ public:
+  UnaryArithmeticExpression(UnaryArithmeticExpressionType type,
+                            std::unique_ptr<Expression> child);
+
+  UnaryArithmeticExpressionType OpType() const;
+
+  void Accept(ExpressionVisitor& visitor) override;
+  void Accept(ImmutableExpressionVisitor& visitor) const override;
+
+  nlohmann::json ToJson() const override;
+
+ private:
+  UnaryArithmeticExpressionType type_;
+};
+
 enum class BinaryArithmeticExpressionType {
   ADD,
   SUB,

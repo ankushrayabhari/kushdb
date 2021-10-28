@@ -16,6 +16,7 @@ class PredicateColumnCollector : public plan::ImmutableExpressionVisitor {
   PredicateColumns();
 
   void Visit(const plan::ColumnRefExpression& col_ref) override;
+  void Visit(const plan::UnaryArithmeticExpression& arith) override;
   void Visit(const plan::BinaryArithmeticExpression& arith) override;
   void Visit(const plan::CaseExpression& case_expr) override;
   void Visit(const plan::IntToFloatConversionExpression& conv) override;

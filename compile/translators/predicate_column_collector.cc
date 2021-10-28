@@ -65,6 +65,11 @@ void PredicateColumnCollector::Visit(const plan::ExtractExpression& conv) {
   VisitChildren(conv);
 }
 
+void PredicateColumnCollector::Visit(
+    const plan::UnaryArithmeticExpression& conv) {
+  VisitChildren(conv);
+}
+
 void PredicateColumnCollector::Visit(const plan::LiteralExpression& literal) {}
 
 void PredicateColumnCollector::Visit(const plan::AggregateExpression& agg) {

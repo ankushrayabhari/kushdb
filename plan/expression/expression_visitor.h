@@ -8,6 +8,7 @@ class AggregateExpression;
 class ColumnRefExpression;
 class LiteralExpression;
 class VirtualColumnRefExpression;
+class UnaryArithmeticExpression;
 class BinaryArithmeticExpression;
 class CaseExpression;
 class IntToFloatConversionExpression;
@@ -16,6 +17,7 @@ class ExtractExpression;
 class ExpressionVisitor {
  public:
   virtual ~ExpressionVisitor() = default;
+  virtual void Visit(UnaryArithmeticExpression& arith) = 0;
   virtual void Visit(BinaryArithmeticExpression& arith) = 0;
   virtual void Visit(AggregateExpression& agg) = 0;
   virtual void Visit(ColumnRefExpression& col_ref) = 0;
@@ -29,6 +31,7 @@ class ExpressionVisitor {
 class ImmutableExpressionVisitor {
  public:
   virtual ~ImmutableExpressionVisitor() = default;
+  virtual void Visit(const UnaryArithmeticExpression& arith) = 0;
   virtual void Visit(const BinaryArithmeticExpression& arith) = 0;
   virtual void Visit(const AggregateExpression& agg) = 0;
   virtual void Visit(const ColumnRefExpression& col_ref) = 0;
