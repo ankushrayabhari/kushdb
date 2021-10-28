@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "nlohmann/json.hpp"
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 #include "plan/operator/operator.h"
 #include "plan/operator/operator_schema.h"
 #include "plan/operator/operator_visitor.h"

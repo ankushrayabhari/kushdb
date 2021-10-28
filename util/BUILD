@@ -23,7 +23,7 @@ cc_library(
         ":vector_util",
         "//catalog",
         "//plan/expression",
-        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:arithmetic_expression",
         "//plan/expression:case_expression",
         "//plan/expression:column_ref_expression",
         "//plan/expression:conversion_expression",

@@ -4,11 +4,11 @@
 #include "compile/proxy/control_flow/if.h"
 #include "compile/proxy/value/ir_value.h"
 #include "compile/proxy/value/sql_value.h"
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
-SQLValue EvaluateBinaryBool(plan::BinaryArithmeticOperatorType op_type,
+SQLValue EvaluateBinaryBool(plan::BinaryArithmeticExpressionType op_type,
                             const SQLValue& lhs, const SQLValue& rhs) {
   auto& program = lhs.ProgramBuilder();
   return NullableTernary<Bool>(
@@ -20,16 +20,16 @@ SQLValue EvaluateBinaryBool(plan::BinaryArithmeticOperatorType op_type,
         Bool null(program, false);
 
         switch (op_type) {
-          case plan::BinaryArithmeticOperatorType::AND:
+          case plan::BinaryArithmeticExpressionType::AND:
             return SQLValue(lhs_bool && rhs_bool, null);
 
-          case plan::BinaryArithmeticOperatorType::OR:
+          case plan::BinaryArithmeticExpressionType::OR:
             return SQLValue(lhs_bool || rhs_bool, null);
 
-          case plan::BinaryArithmeticOperatorType::EQ:
+          case plan::BinaryArithmeticExpressionType::EQ:
             return SQLValue(lhs_bool == rhs_bool, null);
 
-          case plan::BinaryArithmeticOperatorType::NEQ:
+          case plan::BinaryArithmeticExpressionType::NEQ:
             return SQLValue(lhs_bool != rhs_bool, null);
 
           default:
@@ -38,16 +38,16 @@ SQLValue EvaluateBinaryBool(plan::BinaryArithmeticOperatorType op_type,
       });
 }
 
-SQLValue EvaluateBinaryDate(plan::BinaryArithmeticOperatorType op_type,
+SQLValue EvaluateBinaryDate(plan::BinaryArithmeticExpressionType op_type,
                             const SQLValue& lhs, const SQLValue& rhs) {
   auto& program = lhs.ProgramBuilder();
   switch (op_type) {
-    case plan::BinaryArithmeticOperatorType::EQ:
-    case plan::BinaryArithmeticOperatorType::NEQ:
-    case plan::BinaryArithmeticOperatorType::LT:
-    case plan::BinaryArithmeticOperatorType::LEQ:
-    case plan::BinaryArithmeticOperatorType::GT:
-    case plan::BinaryArithmeticOperatorType::GEQ: {
+    case plan::BinaryArithmeticExpressionType::EQ:
+    case plan::BinaryArithmeticExpressionType::NEQ:
+    case plan::BinaryArithmeticExpressionType::LT:
+    case plan::BinaryArithmeticExpressionType::LEQ:
+    case plan::BinaryArithmeticExpressionType::GT:
+    case plan::BinaryArithmeticExpressionType::GEQ: {
       return NullableTernary<Bool>(
           program, lhs.IsNull() || rhs.IsNull(),
           [&]() { return SQLValue(Bool(program, false), Bool(program, true)); },
@@ -57,22 +57,22 @@ SQLValue EvaluateBinaryDate(plan::BinaryArithmeticOperatorType op_type,
             Bool null(program, false);
 
             switch (op_type) {
-              case plan::BinaryArithmeticOperatorType::EQ:
+              case plan::BinaryArithmeticExpressionType::EQ:
                 return SQLValue(lhs_v == rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::NEQ:
+              case plan::BinaryArithmeticExpressionType::NEQ:
                 return SQLValue(lhs_v != rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::LT:
+              case plan::BinaryArithmeticExpressionType::LT:
                 return SQLValue(lhs_v < rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::LEQ:
+              case plan::BinaryArithmeticExpressionType::LEQ:
                 return SQLValue(lhs_v <= rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::GT:
+              case plan::BinaryArithmeticExpressionType::GT:
                 return SQLValue(lhs_v > rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::GEQ:
+              case plan::BinaryArithmeticExpressionType::GEQ:
                 return SQLValue(lhs_v >= rhs_v, null);
 
               default:
@@ -87,13 +87,13 @@ SQLValue EvaluateBinaryDate(plan::BinaryArithmeticOperatorType op_type,
 }
 
 template <typename V>
-SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticOperatorType op_type,
+SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticExpressionType op_type,
                                const SQLValue& lhs, const SQLValue& rhs) {
   auto& program = lhs.ProgramBuilder();
   switch (op_type) {
-    case plan::BinaryArithmeticOperatorType::ADD:
-    case plan::BinaryArithmeticOperatorType::SUB:
-    case plan::BinaryArithmeticOperatorType::MUL: {
+    case plan::BinaryArithmeticExpressionType::ADD:
+    case plan::BinaryArithmeticExpressionType::SUB:
+    case plan::BinaryArithmeticExpressionType::MUL: {
       return NullableTernary<V>(
           program, lhs.IsNull() || rhs.IsNull(),
           [&]() {
@@ -105,13 +105,13 @@ SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticOperatorType op_type,
             Bool null(program, false);
 
             switch (op_type) {
-              case plan::BinaryArithmeticOperatorType::ADD:
+              case plan::BinaryArithmeticExpressionType::ADD:
                 return SQLValue(lhs_v + rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::SUB:
+              case plan::BinaryArithmeticExpressionType::SUB:
                 return SQLValue(lhs_v - rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::MUL:
+              case plan::BinaryArithmeticExpressionType::MUL:
                 return SQLValue(lhs_v * rhs_v, null);
 
               default:
@@ -120,7 +120,7 @@ SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticOperatorType op_type,
           });
     }
 
-    case plan::BinaryArithmeticOperatorType::DIV: {
+    case plan::BinaryArithmeticExpressionType::DIV: {
       if constexpr (!std::is_same_v<V, Float64>) {
         throw std::runtime_error("Invalid arguments to div");
       }
@@ -135,12 +135,12 @@ SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticOperatorType op_type,
           });
     }
 
-    case plan::BinaryArithmeticOperatorType::EQ:
-    case plan::BinaryArithmeticOperatorType::NEQ:
-    case plan::BinaryArithmeticOperatorType::LT:
-    case plan::BinaryArithmeticOperatorType::LEQ:
-    case plan::BinaryArithmeticOperatorType::GT:
-    case plan::BinaryArithmeticOperatorType::GEQ: {
+    case plan::BinaryArithmeticExpressionType::EQ:
+    case plan::BinaryArithmeticExpressionType::NEQ:
+    case plan::BinaryArithmeticExpressionType::LT:
+    case plan::BinaryArithmeticExpressionType::LEQ:
+    case plan::BinaryArithmeticExpressionType::GT:
+    case plan::BinaryArithmeticExpressionType::GEQ: {
       return NullableTernary<Bool>(
           program, lhs.IsNull() || rhs.IsNull(),
           [&]() { return SQLValue(Bool(program, false), Bool(program, true)); },
@@ -150,22 +150,22 @@ SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticOperatorType op_type,
             Bool null(program, false);
 
             switch (op_type) {
-              case plan::BinaryArithmeticOperatorType::EQ:
+              case plan::BinaryArithmeticExpressionType::EQ:
                 return SQLValue(lhs_v == rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::NEQ:
+              case plan::BinaryArithmeticExpressionType::NEQ:
                 return SQLValue(lhs_v != rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::LT:
+              case plan::BinaryArithmeticExpressionType::LT:
                 return SQLValue(lhs_v < rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::LEQ:
+              case plan::BinaryArithmeticExpressionType::LEQ:
                 return SQLValue(lhs_v <= rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::GT:
+              case plan::BinaryArithmeticExpressionType::GT:
                 return SQLValue(lhs_v > rhs_v, null);
 
-              case plan::BinaryArithmeticOperatorType::GEQ:
+              case plan::BinaryArithmeticExpressionType::GEQ:
                 return SQLValue(lhs_v >= rhs_v, null);
 
               default:
@@ -179,7 +179,7 @@ SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticOperatorType op_type,
   }
 }
 
-SQLValue EvaluateBinaryString(plan::BinaryArithmeticOperatorType op_type,
+SQLValue EvaluateBinaryString(plan::BinaryArithmeticExpressionType op_type,
                               const SQLValue& lhs, const SQLValue& rhs) {
   auto& program = lhs.ProgramBuilder();
   return NullableTernary<Bool>(
@@ -191,34 +191,34 @@ SQLValue EvaluateBinaryString(plan::BinaryArithmeticOperatorType op_type,
         Bool null(program, false);
 
         switch (op_type) {
-          case plan::BinaryArithmeticOperatorType::STARTS_WITH:
+          case plan::BinaryArithmeticExpressionType::STARTS_WITH:
             return SQLValue(lhs_v.StartsWith(rhs_v), null);
 
-          case plan::BinaryArithmeticOperatorType::ENDS_WITH:
+          case plan::BinaryArithmeticExpressionType::ENDS_WITH:
             return SQLValue(lhs_v.EndsWith(rhs_v), null);
 
-          case plan::BinaryArithmeticOperatorType::CONTAINS:
+          case plan::BinaryArithmeticExpressionType::CONTAINS:
             return SQLValue(lhs_v.Contains(rhs_v), null);
 
-          case plan::BinaryArithmeticOperatorType::LIKE:
+          case plan::BinaryArithmeticExpressionType::LIKE:
             return SQLValue(lhs_v.Like(rhs_v), null);
 
-          case plan::BinaryArithmeticOperatorType::EQ:
+          case plan::BinaryArithmeticExpressionType::EQ:
             return SQLValue(lhs_v == rhs_v, null);
 
-          case plan::BinaryArithmeticOperatorType::NEQ:
+          case plan::BinaryArithmeticExpressionType::NEQ:
             return SQLValue(lhs_v != rhs_v, null);
 
-          case plan::BinaryArithmeticOperatorType::LT:
+          case plan::BinaryArithmeticExpressionType::LT:
             return SQLValue(lhs_v < rhs_v, null);
 
-          case plan::BinaryArithmeticOperatorType::LEQ:
+          case plan::BinaryArithmeticExpressionType::LEQ:
             return SQLValue(lhs_v <= rhs_v, null);
 
-          case plan::BinaryArithmeticOperatorType::GT:
+          case plan::BinaryArithmeticExpressionType::GT:
             return SQLValue(lhs_v > rhs_v, null);
 
-          case plan::BinaryArithmeticOperatorType::GEQ:
+          case plan::BinaryArithmeticExpressionType::GEQ:
             return SQLValue(lhs_v >= rhs_v, null);
 
           default:
@@ -227,7 +227,7 @@ SQLValue EvaluateBinaryString(plan::BinaryArithmeticOperatorType op_type,
       });
 }
 
-SQLValue EvaluateBinary(plan::BinaryArithmeticOperatorType op,
+SQLValue EvaluateBinary(plan::BinaryArithmeticExpressionType op,
                         const SQLValue& lhs, const SQLValue& rhs) {
   switch (lhs.Type()) {
     case catalog::SqlType::BOOLEAN:

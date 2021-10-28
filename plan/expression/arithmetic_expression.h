@@ -8,7 +8,7 @@
 
 namespace kush::plan {
 
-enum class BinaryArithmeticOperatorType {
+enum class BinaryArithmeticExpressionType {
   ADD,
   SUB,
   MUL,
@@ -29,11 +29,11 @@ enum class BinaryArithmeticOperatorType {
 
 class BinaryArithmeticExpression : public BinaryExpression {
  public:
-  BinaryArithmeticExpression(BinaryArithmeticOperatorType type,
+  BinaryArithmeticExpression(BinaryArithmeticExpressionType type,
                              std::unique_ptr<Expression> left,
                              std::unique_ptr<Expression> right);
 
-  BinaryArithmeticOperatorType OpType() const;
+  BinaryArithmeticExpressionType OpType() const;
 
   void Accept(ExpressionVisitor& visitor) override;
   void Accept(ImmutableExpressionVisitor& visitor) const override;
@@ -41,7 +41,7 @@ class BinaryArithmeticExpression : public BinaryExpression {
   nlohmann::json ToJson() const override;
 
  private:
-  BinaryArithmeticOperatorType type_;
+  BinaryArithmeticExpressionType type_;
 };
 
 }  // namespace kush::plan

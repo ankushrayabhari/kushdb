@@ -35,7 +35,7 @@ cc_library(
         "//khir:program_builder",
         "//plan/expression",
         "//plan/expression:aggregate_expression",
-        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:arithmetic_expression",
         "//plan/expression:case_expression",
         "//plan/expression:column_ref_expression",
         "//plan/expression:conversion_expression",
@@ -127,7 +127,7 @@ cc_library(
     deps = [
         "//plan/expression",
         "//plan/expression:aggregate_expression",
-        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:arithmetic_expression",
         "//plan/expression:case_expression",
         "//plan/expression:column_ref_expression",
         "//plan/expression:conversion_expression",

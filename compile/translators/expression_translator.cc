@@ -9,7 +9,7 @@
 #include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
 #include "plan/expression/aggregate_expression.h"
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/conversion_expression.h"
@@ -39,7 +39,7 @@ ExpressionTranslator::ExpressionTranslator(khir::ProgramBuilder& program,
 
 void ExpressionTranslator::Visit(
     const plan::BinaryArithmeticExpression& arith) {
-  using OpType = plan::BinaryArithmeticOperatorType;
+  using OpType = plan::BinaryArithmeticExpressionType;
   switch (arith.OpType()) {
     // Special handling for AND/OR for short circuiting
     case OpType::AND: {

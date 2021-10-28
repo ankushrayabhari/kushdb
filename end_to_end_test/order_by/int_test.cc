@@ -12,7 +12,7 @@
 #include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
 #include "plan/expression/aggregate_expression.h"
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"

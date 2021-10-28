@@ -12,7 +12,7 @@
 #include "catalog/sql_type.h"
 #include "compile/query_translator.h"
 #include "plan/expression/aggregate_expression.h"
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
@@ -50,7 +50,7 @@ std::unique_ptr<Operator> SelectLineitem() {
   auto scan_lineitem = ScanLineitem();
 
   auto leq = std::make_unique<BinaryArithmeticExpression>(
-      BinaryArithmeticOperatorType::LEQ, ColRef(scan_lineitem, "l_shipdate"),
+      BinaryArithmeticExpressionType::LEQ, ColRef(scan_lineitem, "l_shipdate"),
       Literal(absl::CivilDay(1998, 9, 13)));
 
   OperatorSchema schema;

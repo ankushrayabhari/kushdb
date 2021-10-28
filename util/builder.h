@@ -10,7 +10,7 @@
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "plan/expression/aggregate_expression.h"
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/conversion_expression.h"
@@ -61,7 +61,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Eq(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::EQ, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::EQ, std::move(e1),
       std::move(e2));
 }
 
@@ -69,7 +69,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Neq(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::NEQ, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::NEQ, std::move(e1),
       std::move(e2));
 }
 
@@ -77,7 +77,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Lt(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::LT, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::LT, std::move(e1),
       std::move(e2));
 }
 
@@ -85,7 +85,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Leq(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::LEQ, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::LEQ, std::move(e1),
       std::move(e2));
 }
 
@@ -93,7 +93,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Gt(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::GT, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::GT, std::move(e1),
       std::move(e2));
 }
 
@@ -101,7 +101,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Geq(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::GEQ, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::GEQ, std::move(e1),
       std::move(e2));
 }
 
@@ -109,7 +109,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> EndsWith(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::ENDS_WITH, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::ENDS_WITH, std::move(e1),
       std::move(e2));
 }
 
@@ -117,7 +117,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> StartsWith(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::STARTS_WITH, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::STARTS_WITH, std::move(e1),
       std::move(e2));
 }
 
@@ -125,7 +125,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Contains(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::CONTAINS, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::CONTAINS, std::move(e1),
       std::move(e2));
 }
 
@@ -133,7 +133,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Like(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::LIKE, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::LIKE, std::move(e1),
       std::move(e2));
 }
 
@@ -141,12 +141,12 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> And(
     std::vector<std::unique_ptr<kush::plan::Expression>> expr) {
   std::unique_ptr<kush::plan::BinaryArithmeticExpression> output =
       std::make_unique<kush::plan::BinaryArithmeticExpression>(
-          kush::plan::BinaryArithmeticOperatorType::AND, std::move(expr[0]),
+          kush::plan::BinaryArithmeticExpressionType::AND, std::move(expr[0]),
           std::move(expr[1]));
 
   for (int i = 2; i < expr.size(); i++) {
     output = std::make_unique<kush::plan::BinaryArithmeticExpression>(
-        kush::plan::BinaryArithmeticOperatorType::AND, std::move(output),
+        kush::plan::BinaryArithmeticExpressionType::AND, std::move(output),
         std::move(expr[i]));
   }
 
@@ -157,12 +157,12 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Or(
     std::vector<std::unique_ptr<kush::plan::Expression>> expr) {
   std::unique_ptr<kush::plan::BinaryArithmeticExpression> output =
       std::make_unique<kush::plan::BinaryArithmeticExpression>(
-          kush::plan::BinaryArithmeticOperatorType::OR, std::move(expr[0]),
+          kush::plan::BinaryArithmeticExpressionType::OR, std::move(expr[0]),
           std::move(expr[1]));
 
   for (int i = 2; i < expr.size(); i++) {
     output = std::make_unique<kush::plan::BinaryArithmeticExpression>(
-        kush::plan::BinaryArithmeticOperatorType::OR, std::move(output),
+        kush::plan::BinaryArithmeticExpressionType::OR, std::move(output),
         std::move(expr[i]));
   }
 
@@ -173,7 +173,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Mul(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::MUL, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::MUL, std::move(e1),
       std::move(e2));
 }
 
@@ -181,7 +181,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Div(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::DIV, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::DIV, std::move(e1),
       std::move(e2));
 }
 
@@ -189,7 +189,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Sub(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::SUB, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::SUB, std::move(e1),
       std::move(e2));
 }
 
@@ -197,7 +197,7 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Add(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticOperatorType::ADD, std::move(e1),
+      kush::plan::BinaryArithmeticExpressionType::ADD, std::move(e1),
       std::move(e2));
 }
 

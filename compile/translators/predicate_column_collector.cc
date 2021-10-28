@@ -6,7 +6,7 @@
 #include "absl/container/flat_hash_set.h"
 
 #include "plan/expression/aggregate_expression.h"
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/conversion_expression.h"

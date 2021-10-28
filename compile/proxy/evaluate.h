@@ -1,11 +1,11 @@
 #pragma once
 
 #include "compile/proxy/value/sql_value.h"
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 
-SQLValue EvaluateBinary(plan::BinaryArithmeticOperatorType op,
+SQLValue EvaluateBinary(plan::BinaryArithmeticExpressionType op,
                         const SQLValue& lhs, const SQLValue& rhs);
 
 // Differs from the above in that LT(x, y) is null when x is null or y is null

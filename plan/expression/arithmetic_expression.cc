@@ -1,5 +1,5 @@
 
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 
 #include <memory>
 
@@ -12,25 +12,25 @@
 
 namespace kush::plan {
 
-catalog::SqlType CalculateType(BinaryArithmeticOperatorType type,
+catalog::SqlType CalculateType(BinaryArithmeticExpressionType type,
                                catalog::SqlType left, catalog::SqlType right) {
   if (left != right) {
     std::runtime_error("Require same type arguments");
   }
 
   switch (type) {
-    case BinaryArithmeticOperatorType::AND:
-    case BinaryArithmeticOperatorType::OR:
-    case BinaryArithmeticOperatorType::EQ:
-    case BinaryArithmeticOperatorType::NEQ:
-    case BinaryArithmeticOperatorType::LT:
-    case BinaryArithmeticOperatorType::LEQ:
-    case BinaryArithmeticOperatorType::GT:
-    case BinaryArithmeticOperatorType::GEQ:
-    case BinaryArithmeticOperatorType::STARTS_WITH:
-    case BinaryArithmeticOperatorType::ENDS_WITH:
-    case BinaryArithmeticOperatorType::CONTAINS:
-    case BinaryArithmeticOperatorType::LIKE:
+    case BinaryArithmeticExpressionType::AND:
+    case BinaryArithmeticExpressionType::OR:
+    case BinaryArithmeticExpressionType::EQ:
+    case BinaryArithmeticExpressionType::NEQ:
+    case BinaryArithmeticExpressionType::LT:
+    case BinaryArithmeticExpressionType::LEQ:
+    case BinaryArithmeticExpressionType::GT:
+    case BinaryArithmeticExpressionType::GEQ:
+    case BinaryArithmeticExpressionType::STARTS_WITH:
+    case BinaryArithmeticExpressionType::ENDS_WITH:
+    case BinaryArithmeticExpressionType::CONTAINS:
+    case BinaryArithmeticExpressionType::LIKE:
       return catalog::SqlType::BOOLEAN;
 
     default:
@@ -39,7 +39,7 @@ catalog::SqlType CalculateType(BinaryArithmeticOperatorType type,
 }
 
 BinaryArithmeticExpression::BinaryArithmeticExpression(
-    BinaryArithmeticOperatorType type, std::unique_ptr<Expression> left,
+    BinaryArithmeticExpressionType type, std::unique_ptr<Expression> left,
     std::unique_ptr<Expression> right)
     : BinaryExpression(CalculateType(type, left->Type(), right->Type()),
                        left->Nullable() || right->Nullable(), std::move(left),
@@ -63,7 +63,7 @@ void BinaryArithmeticExpression::Accept(
   return visitor.Visit(*this);
 }
 
-BinaryArithmeticOperatorType BinaryArithmeticExpression::OpType() const {
+BinaryArithmeticExpressionType BinaryArithmeticExpression::OpType() const {
   return type_;
 }
 

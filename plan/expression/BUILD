@@ -67,9 +67,9 @@ cc_library(
 )
 
 cc_library(
-    name = "binary_arithmetic_expression",
-    srcs = ["binary_arithmetic_expression.cc"],
-    hdrs = ["binary_arithmetic_expression.h"],
+    name = "arithmetic_expression",
+    srcs = ["arithmetic_expression.cc"],
+    hdrs = ["arithmetic_expression.h"],
     deps = [
         ":expression",
         ":expression_visitor",

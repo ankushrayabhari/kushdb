@@ -6,7 +6,7 @@
 #include "compile/proxy/value/sql_value.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "util/visitor.h"

@@ -30,6 +30,6 @@ cc_library(
         ":ir_value",
         "//catalog:sql_type",
         "//khir:program_builder",
-        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:arithmetic_expression",
     ],
 )

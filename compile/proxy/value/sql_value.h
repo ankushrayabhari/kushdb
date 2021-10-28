@@ -3,7 +3,7 @@
 #include "catalog/sql_type.h"
 #include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
-#include "plan/expression/binary_arithmetic_expression.h"
+#include "plan/expression/arithmetic_expression.h"
 
 namespace kush::compile::proxy {
 

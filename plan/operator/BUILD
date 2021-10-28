@@ -106,7 +106,7 @@ cc_library(
         ":operator",
         ":operator_schema",
         ":operator_visitor",
-        "//plan/expression:binary_arithmetic_expression",
+        "//plan/expression:arithmetic_expression",
         "@json",
     ],
 )
