@@ -30,6 +30,14 @@ LiteralExpression::LiteralExpression(std::string_view value)
 
 LiteralExpression::LiteralExpression(bool value) : value_(value) {}
 
+std::string LiteralExpression::GetValue() const {
+  if (!std::holds_alternative<std::string>(value_)) {
+    throw std::runtime_error("variant does not hold string value.");
+  }
+
+  return std::get<std::string>(value_);
+}
+
 void LiteralExpression::Visit(std::function<void(int16_t)> f1,
                               std::function<void(int32_t)> f2,
                               std::function<void(int64_t)> f3,

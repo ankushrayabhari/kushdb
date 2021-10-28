@@ -3,8 +3,8 @@
 #include <memory>
 #include <vector>
 
+#include "parse/expression/arithmetic_expression.h"
 #include "parse/expression/case_expression.h"
-#include "parse/expression/comparison_expression.h"
 #include "parse/expression/literal_expression.h"
 #include "parse/transform/transform_expression.h"
 #include "third_party/duckdb_libpgquery/parser.h"
@@ -26,8 +26,9 @@ std::unique_ptr<CaseExpression> TransformCaseExpression(
     if (expr.arg) {
       auto arg = TransformExpression(
           *reinterpret_cast<duckdb_libpgquery::PGNode *>(expr.arg));
-      when = std::make_unique<ComparisonExpression>(
-          ComparisonType::EQ, std::move(arg), std::move(test_raw));
+      when = std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::EQ, std::move(arg),
+          std::move(test_raw));
     } else {
       when = move(test_raw);
     }

@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "parse/expression/arithmetic_expression.h"
-#include "parse/expression/comparison_expression.h"
 #include "parse/expression/expression.h"
 #include "parse/expression/in_expression.h"
 #include "parse/transform/transform_expression.h"
@@ -22,40 +21,41 @@ std::unique_ptr<Expression> TransformBinaryOperator(
     const std::string& op, std::unique_ptr<Expression> left,
     std::unique_ptr<Expression> right) {
   if (op == "=" || op == "==") {
-    return std::make_unique<ComparisonExpression>(
-        ComparisonType::EQ, std::move(left), std::move(right));
+    return std::make_unique<BinaryArithmeticExpression>(
+        BinaryArithmeticExpressionType::EQ, std::move(left), std::move(right));
   }
 
   if (op == "!=" || op == "<>") {
-    return std::make_unique<ComparisonExpression>(
-        ComparisonType::NEQ, std::move(left), std::move(right));
+    return std::make_unique<BinaryArithmeticExpression>(
+        BinaryArithmeticExpressionType::NEQ, std::move(left), std::move(right));
   }
 
   if (op == "<") {
-    return std::make_unique<ComparisonExpression>(
-        ComparisonType::LT, std::move(left), std::move(right));
+    return std::make_unique<BinaryArithmeticExpression>(
+        BinaryArithmeticExpressionType::LT, std::move(left), std::move(right));
   }
 
   if (op == ">") {
-    return std::make_unique<ComparisonExpression>(
-        ComparisonType::GT, std::move(left), std::move(right));
+    return std::make_unique<BinaryArithmeticExpression>(
+        BinaryArithmeticExpressionType::GT, std::move(left), std::move(right));
   }
 
   if (op == "<=") {
-    return std::make_unique<ComparisonExpression>(
-        ComparisonType::LEQ, std::move(left), std::move(right));
+    return std::make_unique<BinaryArithmeticExpression>(
+        BinaryArithmeticExpressionType::LEQ, std::move(left), std::move(right));
   }
 
   if (op == ">=") {
-    return std::make_unique<ComparisonExpression>(
-        ComparisonType::GEQ, std::move(left), std::move(right));
+    return std::make_unique<BinaryArithmeticExpression>(
+        BinaryArithmeticExpressionType::GEQ, std::move(left), std::move(right));
   }
 
   if (op == "~~" || op == "!~~") {
     bool invert = op == "!~~";
 
-    auto result = std::make_unique<ComparisonExpression>(
-        ComparisonType::LIKE, std::move(left), std::move(right));
+    auto result = std::make_unique<BinaryArithmeticExpression>(
+        BinaryArithmeticExpressionType::LIKE, std::move(left),
+        std::move(right));
 
     if (invert) {
       return std::make_unique<UnaryArithmeticExpression>(
@@ -129,11 +129,13 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
           TransformExpression(*reinterpret_cast<duckdb_libpgquery::PGNode*>(
               between_args->tail->data.ptr_value));
 
-      auto geq = std::make_unique<ComparisonExpression>(
-          ComparisonType::GEQ, std::move(left_input), move(between_left));
+      auto geq = std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::GEQ, std::move(left_input),
+          move(between_left));
 
-      auto leq = std::make_unique<ComparisonExpression>(
-          ComparisonType::LEQ, std::move(right_input), move(between_left));
+      auto leq = std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::LEQ, std::move(right_input),
+          move(between_left));
 
       auto both = std::make_unique<BinaryArithmeticExpression>(
           BinaryArithmeticExpressionType::AND, std::move(leq), std::move(geq));

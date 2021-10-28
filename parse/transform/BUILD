@@ -36,7 +36,6 @@ cc_library(
         "//parse/expression:arithmetic_expression",
         "//parse/expression:case_expression",
         "//parse/expression:column_ref_expression",
-        "//parse/expression:comparison_expression",
         "//parse/expression:in_expression",
         "//parse/expression:literal_expression",
         "//parse/statement",

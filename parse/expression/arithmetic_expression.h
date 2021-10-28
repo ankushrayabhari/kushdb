@@ -21,7 +21,17 @@ class UnaryArithmeticExpression : public Expression {
   std::unique_ptr<Expression> child_;
 };
 
-enum class BinaryArithmeticExpressionType { AND, OR };
+enum class BinaryArithmeticExpressionType {
+  AND,
+  OR,
+  EQ,
+  NEQ,
+  LT,
+  LEQ,
+  GT,
+  GEQ,
+  LIKE
+};
 
 class BinaryArithmeticExpression : public Expression {
  public:

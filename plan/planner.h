@@ -7,7 +7,6 @@
 #include "parse/expression/arithmetic_expression.h"
 #include "parse/expression/case_expression.h"
 #include "parse/expression/column_ref_expression.h"
-#include "parse/expression/comparison_expression.h"
 #include "parse/expression/expression.h"
 #include "parse/expression/in_expression.h"
 #include "parse/expression/literal_expression.h"
@@ -38,7 +37,6 @@ class Planner {
       const parse::BinaryArithmeticExpression& expr);
   std::unique_ptr<Expression> Plan(const parse::CaseExpression& expr);
   std::unique_ptr<Expression> Plan(const parse::ColumnRefExpression& expr);
-  std::unique_ptr<Expression> Plan(const parse::ComparisonExpression& expr);
   std::unique_ptr<Expression> Plan(const parse::InExpression& expr);
   std::unique_ptr<Expression> Plan(const parse::LiteralExpression& expr);
   std::unique_ptr<Expression> Plan(const parse::Expression& expr);

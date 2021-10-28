@@ -38,15 +38,6 @@ cc_library(
 )
 
 cc_library(
-    name = "comparison_expression",
-    srcs = ["comparison_expression.cc"],
-    hdrs = ["comparison_expression.h"],
-    deps = [
-        ":expression",
-    ],
-)
-
-cc_library(
     name = "in_expression",
     srcs = ["in_expression.cc"],
     hdrs = ["in_expression.h"],

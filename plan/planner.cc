@@ -5,7 +5,6 @@
 #include "parse/expression/arithmetic_expression.h"
 #include "parse/expression/case_expression.h"
 #include "parse/expression/column_ref_expression.h"
-#include "parse/expression/comparison_expression.h"
 #include "parse/expression/expression.h"
 #include "parse/expression/in_expression.h"
 #include "parse/expression/literal_expression.h"
@@ -124,12 +123,131 @@ std::unique_ptr<Expression> Planner::Plan(
       return std::make_unique<BinaryArithmeticExpression>(
           BinaryArithmeticExpressionType::OR, Plan(expr.LeftChild()),
           Plan(expr.RightChild()));
-  }
-}
 
-std::unique_ptr<Expression> Planner::Plan(
-    const parse::ComparisonExpression& expr) {
-  return nullptr;
+    case parse::BinaryArithmeticExpressionType::EQ:
+      return std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::EQ, Plan(expr.LeftChild()),
+          Plan(expr.RightChild()));
+
+    case parse::BinaryArithmeticExpressionType::NEQ:
+      return std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::NEQ, Plan(expr.LeftChild()),
+          Plan(expr.RightChild()));
+
+    case parse::BinaryArithmeticExpressionType::LT:
+      return std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::LT, Plan(expr.LeftChild()),
+          Plan(expr.RightChild()));
+
+    case parse::BinaryArithmeticExpressionType::LEQ:
+      return std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::LEQ, Plan(expr.LeftChild()),
+          Plan(expr.RightChild()));
+
+    case parse::BinaryArithmeticExpressionType::GT:
+      return std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::GT, Plan(expr.LeftChild()),
+          Plan(expr.RightChild()));
+
+    case parse::BinaryArithmeticExpressionType::GEQ:
+      return std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::GEQ, Plan(expr.LeftChild()),
+          Plan(expr.RightChild()));
+
+    case parse::BinaryArithmeticExpressionType::LIKE: {
+      const auto& right_parsed = expr.RightChild();
+      if (auto literal =
+              dynamic_cast<const parse::LiteralExpression*>(&right_parsed)) {
+        auto match = literal->GetValue();
+
+        if (match.size() >= 1 && match.front() == '%') {
+          std::string_view match_info(match);
+          match_info.remove_prefix(1);
+
+          if (match_info.find('%') == std::string::npos) {
+            return std::make_unique<BinaryArithmeticExpression>(
+                BinaryArithmeticExpressionType::STARTS_WITH,
+                Plan(expr.LeftChild()),
+                std::make_unique<LiteralExpression>(match_info));
+          }
+        }
+
+        if (match.size() >= 1 && match.back() == '%') {
+          std::string_view match_info(match);
+          match_info.remove_suffix(1);
+          if (match_info.find('%') == std::string::npos) {
+            return std::make_unique<BinaryArithmeticExpression>(
+                BinaryArithmeticExpressionType::ENDS_WITH,
+                Plan(expr.LeftChild()),
+                std::make_unique<LiteralExpression>(match_info));
+          }
+        }
+
+        if (match.size() >= 2 && match.front() == '%' && match.back() == '%') {
+          std::string_view match_info(match);
+          match_info.remove_prefix(1);
+          match_info.remove_suffix(1);
+          if (match_info.find('%') == std::string::npos) {
+            return std::make_unique<BinaryArithmeticExpression>(
+                BinaryArithmeticExpressionType::CONTAINS,
+                Plan(expr.LeftChild()),
+                std::make_unique<LiteralExpression>(match_info));
+          }
+        }
+
+        // convert each paren into escape
+        std::string regex;
+        for (auto c : match) {
+          switch (c) {
+            case '(':
+              regex.push_back('\\');
+              regex.push_back('(');
+              break;
+            case ')':
+              regex.push_back('\\');
+              regex.push_back(')');
+              break;
+            case '+':
+              regex.push_back('\\');
+              regex.push_back('+');
+              break;
+            case '*':
+              regex.push_back('\\');
+              regex.push_back('*');
+              break;
+            case '?':
+              regex.push_back('\\');
+              regex.push_back('?');
+              break;
+            case '|':
+              regex.push_back('\\');
+              regex.push_back('|');
+              break;
+
+            case '_':
+              regex.push_back('.');
+              break;
+
+            case '%':
+              regex.push_back('.');
+              regex.push_back('*');
+              break;
+
+            default:
+              regex.push_back(c);
+              break;
+          }
+        }
+
+        return std::make_unique<BinaryArithmeticExpression>(
+            BinaryArithmeticExpressionType::LIKE, Plan(expr.LeftChild()),
+            std::make_unique<LiteralExpression>(regex));
+
+      } else {
+        throw std::runtime_error("Non const argument to like");
+      }
+    }
+  }
 }
 
 std::unique_ptr<Expression> Planner::Plan(const parse::InExpression& expr) {
@@ -185,10 +303,6 @@ std::unique_ptr<Expression> Planner::Plan(const parse::Expression& expr) {
   }
 
   if (auto v = dynamic_cast<const parse::ColumnRefExpression*>(&expr)) {
-    return Plan(*v);
-  }
-
-  if (auto v = dynamic_cast<const parse::ComparisonExpression*>(&expr)) {
     return Plan(*v);
   }
 

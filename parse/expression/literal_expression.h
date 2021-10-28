@@ -27,6 +27,8 @@ class LiteralExpression : public Expression {
              std::function<void(std::string)>, std::function<void(bool)>,
              std::function<void(absl::CivilDay)>) const;
 
+  std::string GetValue() const;
+
  private:
   std::variant<int16_t, int32_t, int64_t, double, std::string, bool,
                absl::CivilDay>
