@@ -225,4 +225,31 @@ void char_name() {
   Print("char_name complete");
 }
 
-int main() { char_name(); }
+void comp_cast_type() {
+  /*
+    CREATE TABLE comp_cast_type (
+        id INTEGER NOT NULL PRIMARY KEY,
+        kind TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NULL_COL(std::string, imdb_index);
+
+  std::ifstream fin(raw + "comp_cast_type.tbl");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|');
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NULL(imdb_index, ParseString, data[1], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "cct_id");
+  SERIALIZE_NULL(std::string, imdb_index, dest, "cct_imdb_index");
+  Print("comp_cast_type complete");
+}
+
+int main() { comp_cast_type(); }

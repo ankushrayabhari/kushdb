@@ -129,5 +129,15 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/cn_md5sum.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("comp_cast_type");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/cct_id.kdb", "",
+                 "benchmark/job/data/cct_id.kdbindex");
+    table.Insert("imdb_index", SqlType::TEXT,
+                 "benchmark/job/data/cct_imdb_index.kdb",
+                 "benchmark/job/data/cct_imdb_index_null.kdb",
+                 "benchmark/job/data/cct_imdb_index.kdbindex");
+  }
+
   return db;
 }
