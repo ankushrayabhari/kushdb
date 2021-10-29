@@ -146,9 +146,9 @@ kush::catalog::Database Schema() {
     table.Insert("name", SqlType::TEXT, "benchmark/job/data/cmpn_name.kdb", "",
                  "benchmark/job/data/cmpn_name.kdbindex");
     table.Insert("country_code", SqlType::TEXT,
-                 "benchmark/job/data/cmpn_imdb_index.kdb",
-                 "benchmark/job/data/cmpn_imdb_index_null.kdb",
-                 "benchmark/job/data/cmpn_imdb_index.kdbindex");
+                 "benchmark/job/data/cmpn_country_code.kdb",
+                 "benchmark/job/data/cmpn_country_code_null.kdb",
+                 "benchmark/job/data/cmpn_country_code.kdbindex");
     table.Insert("imdb_id", SqlType::INT, "benchmark/job/data/cmpn_imdb_id.kdb",
                  "benchmark/job/data/cmpn_imdb_id_null.kdb",
                  "benchmark/job/data/cmpn_imdb_id.kdbindex");
@@ -193,9 +193,21 @@ kush::catalog::Database Schema() {
     auto& table = db.Insert("info_type");
     table.Insert("id", SqlType::INT, "benchmark/job/data/it_id.kdb", "",
                  "benchmark/job/data/it_id.kdbindex");
-    table.Insert("kind", SqlType::TEXT, "benchmark/job/data/it_info.kdb",
+    table.Insert("info", SqlType::TEXT, "benchmark/job/data/it_info.kdb",
                  "benchmark/job/data/it_info_null.kdb",
                  "benchmark/job/data/it_info.kdbindex");
+  }
+
+  {
+    auto& table = db.Insert("keyword");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/k_id.kdb", "",
+                 "benchmark/job/data/k_id.kdbindex");
+    table.Insert("keyword", SqlType::TEXT, "benchmark/job/data/k_keyword.kdb",
+                 "", "benchmark/job/data/k_keyword.kdbindex");
+    table.Insert("phonetic_code", SqlType::TEXT,
+                 "benchmark/job/data/k_phonetic_code.kdb",
+                 "benchmark/job/data/k_phonetic_code_null.kdb",
+                 "benchmark/job/data/k_phonetic_code.kdbindex");
   }
 
   return db;

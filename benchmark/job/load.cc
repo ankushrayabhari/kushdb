@@ -291,7 +291,7 @@ void company_name() {
 
   SERIALIZE_NOT_NULL(int32_t, id, dest, "cmpn_id");
   SERIALIZE_NOT_NULL(std::string, name, dest, "cmpn_name");
-  SERIALIZE_NULL(std::string, country_code, dest, "cmpn_imdb_index");
+  SERIALIZE_NULL(std::string, country_code, dest, "cmpn_country_code");
   SERIALIZE_NULL(int32_t, imdb_id, dest, "cmpn_imdb_id");
   SERIALIZE_NULL(std::string, name_pcode_nf, dest, "cmpn_name_pcode_nf");
   SERIALIZE_NULL(std::string, name_pcode_sf, dest, "cmpn_surname_pcode");
@@ -388,4 +388,41 @@ void info_type() {
   Print("info_type complete");
 }
 
-int main() { info_type(); }
+void keyword() {
+  /*
+    CREATE TABLE keyword (
+        id INTEGER NOT NULL PRIMARY KEY,
+        keyword TEXT NOT NULL,
+        phonetic_code TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NOT_NULL_COL(std::string, keyword);
+  DECLARE_NULL_COL(std::string, phonetic_code);
+
+  std::ifstream fin(raw + "keyword.tbl");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|');
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(keyword, ParseString, data[1], tuple_idx);
+
+    if (data.size() == 3) {
+      APPEND_NULL(phonetic_code, ParseString, data[2], tuple_idx);
+    } else {
+      std::string pc = "";
+      APPEND_NULL(phonetic_code, ParseString, pc, tuple_idx);
+    }
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "k_id");
+  SERIALIZE_NOT_NULL(std::string, keyword, dest, "k_keyword");
+  SERIALIZE_NULL(std::string, phonetic_code, dest, "k_phonetic_code");
+  Print("keyword complete");
+}
+
+int main() { keyword(); }
