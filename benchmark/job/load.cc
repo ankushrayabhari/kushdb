@@ -299,4 +299,31 @@ void company_name() {
   Print("company_name complete");
 }
 
-int main() { company_name(); }
+void company_type() {
+  /*
+    CREATE TABLE company_type (
+        id INTEGER NOT NULL PRIMARY KEY,
+        kind TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NULL_COL(std::string, kind);
+
+  std::ifstream fin(raw + "company_type.tbl");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|');
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NULL(kind, ParseString, data[1], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "ct_id");
+  SERIALIZE_NULL(std::string, kind, dest, "ct_kind");
+  Print("company_type complete");
+}
+
+int main() { company_type(); }
