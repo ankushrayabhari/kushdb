@@ -16,5 +16,6 @@ cc_library(
         ":statement",
         "//parse/expression",
         "//parse/table",
+        "//util:vector_util",
     ],
 )

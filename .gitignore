@@ -70,8 +70,12 @@ user.bazelrc
 !/benchmark/jcch10/duckdb/README.md
 
 # JOB Data
-/benchmark/job/raw
-/benchmark/job/data
+/benchmark/job/raw/*
+!/benchmark/job/raw
+!/benchmark/job/raw/README.md
+/benchmark/job/data/*
+!/benchmark/job/data
+!/benchmark/job/data/README.md
 /benchmark/job/monetdb/*
 !/benchmark/job/monetdb
 !/benchmark/job/monetdb/README.md

@@ -13,7 +13,9 @@
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/literal_expression.h"
+#include "plan/expression/virtual_column_ref_expression.h"
 #include "plan/operator/cross_product_operator.h"
+#include "plan/operator/group_by_aggregate_operator.h"
 #include "plan/operator/operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
@@ -343,7 +345,24 @@ std::unique_ptr<Operator> Planner::Plan(const parse::SelectStatement& stmt) {
         std::move(schema), std::move(result), std::move(expr));
   }
 
-  return result;
+  // for now just no group by handling, only aggregates
+  // additionally assume everything is aggregated
+  OperatorSchema schema;
+  int col_idx = 0;
+
+  std::vector<std::unique_ptr<AggregateExpression>> aggs;
+  for (auto select : stmt.Selects()) {
+    auto agg = Plan(select.get());
+    schema.AddDerivedColumn(std::to_string(col_idx),
+                            std::make_unique<VirtualColumnRefExpression>(
+                                agg->Type(), agg->Nullable(), col_idx));
+
+    aggs.emplace_back(dynamic_cast<AggregateExpression*>(agg.release()));
+  }
+
+  return std::make_unique<GroupByAggregateOperator>(
+      std::move(schema), std::move(result),
+      std::vector<std::unique_ptr<Expression>>(), std::move(aggs));
 }
 
 std::unique_ptr<Operator> Planner::Plan(const parse::Statement& stmt) {
