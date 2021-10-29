@@ -234,7 +234,7 @@ void comp_cast_type() {
   */
 
   DECLARE_NOT_NULL_COL(int32_t, id);
-  DECLARE_NULL_COL(std::string, imdb_index);
+  DECLARE_NULL_COL(std::string, kind);
 
   std::ifstream fin(raw + "comp_cast_type.csv");
   int tuple_idx = 0;
@@ -242,13 +242,13 @@ void comp_cast_type() {
     auto data = Split(line, ',', 2);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
-    APPEND_NULL(imdb_index, ParseString, data[1], tuple_idx);
+    APPEND_NULL(kind, ParseString, data[1], tuple_idx);
 
     tuple_idx++;
   }
 
   SERIALIZE_NOT_NULL(int32_t, id, dest, "cct_id");
-  SERIALIZE_NULL(std::string, imdb_index, dest, "cct_imdb_index");
+  SERIALIZE_NULL(std::string, kind, dest, "cct_kind");
   Print("comp_cast_type complete");
 }
 

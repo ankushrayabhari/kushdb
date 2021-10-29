@@ -133,10 +133,9 @@ kush::catalog::Database Schema() {
     auto& table = db.Insert("comp_cast_type");
     table.Insert("id", SqlType::INT, "benchmark/job/data/cct_id.kdb", "",
                  "benchmark/job/data/cct_id.kdbindex");
-    table.Insert("imdb_index", SqlType::TEXT,
-                 "benchmark/job/data/cct_imdb_index.kdb",
-                 "benchmark/job/data/cct_imdb_index_null.kdb",
-                 "benchmark/job/data/cct_imdb_index.kdbindex");
+    table.Insert("kind", SqlType::TEXT, "benchmark/job/data/cct_kind.kdb",
+                 "benchmark/job/data/cct_kind_null.kdb",
+                 "benchmark/job/data/cct_kind.kdbindex");
   }
 
   {
@@ -366,8 +365,8 @@ kush::catalog::Database Schema() {
     auto& table = db.Insert("title");
     table.Insert("id", SqlType::INT, "benchmark/job/data/t_id.kdb", "",
                  "benchmark/job/data/t_id.kdbindex");
-    table.Insert("movie_id", SqlType::INT, "benchmark/job/data/t_movie_id.kdb",
-                 "", "benchmark/job/data/t_movie_id.kdbindex");
+    table.Insert("title", SqlType::TEXT, "benchmark/job/data/t_title.kdb", "",
+                 "benchmark/job/data/t_title.kdbindex");
     table.Insert("imdb_index", SqlType::TEXT,
                  "benchmark/job/data/t_imdb_index.kdb",
                  "benchmark/job/data/t_imdb_index_null.kdb",

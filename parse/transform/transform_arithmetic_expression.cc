@@ -135,7 +135,7 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
 
       auto leq = std::make_unique<BinaryArithmeticExpression>(
           BinaryArithmeticExpressionType::LEQ, std::move(right_input),
-          move(between_left));
+          move(between_right));
 
       auto both = std::make_unique<BinaryArithmeticExpression>(
           BinaryArithmeticExpressionType::AND, std::move(leq), std::move(geq));
