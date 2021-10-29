@@ -219,5 +219,14 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/kt_kind.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("link_type");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/lt_id.kdb", "",
+                 "benchmark/job/data/lt_id.kdbindex");
+    table.Insert("link", SqlType::TEXT, "benchmark/job/data/lt_link.kdb",
+                 "benchmark/job/data/lt_link_null.kdb",
+                 "benchmark/job/data/lt_link.kdbindex");
+  }
+
   return db;
 }

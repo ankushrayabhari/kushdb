@@ -452,4 +452,31 @@ void kind_type() {
   Print("kind_type complete");
 }
 
-int main() { kind_type(); }
+void link_type() {
+  /*
+    CREATE TABLE link_type (
+        id INTEGER NOT NULL PRIMARY KEY,
+        link TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NULL_COL(std::string, link);
+
+  std::ifstream fin(raw + "link_type.tbl");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|');
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NULL(link, ParseString, data[1], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "lt_id");
+  SERIALIZE_NULL(std::string, link, dest, "lt_link");
+  Print("link_type complete");
+}
+
+int main() { link_type(); }
