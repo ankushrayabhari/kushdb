@@ -49,12 +49,14 @@
 
 namespace kush::util {
 
-std::vector<std::string> Split(const std::string& s, char delim) {
+std::vector<std::string> Split(const std::string& s, char delim, int num_cols) {
   std::stringstream ss(s);
   std::string item;
-  std::vector<std::string> elems;
+  std::vector<std::string> elems(num_cols);
+  int i = 0;
   while (std::getline(ss, item, delim)) {
-    elems.push_back(std::move(item));
+    elems[i] = std::move(item);
+    i++;
   }
   return elems;
 }
@@ -64,7 +66,7 @@ int64_t ParseDate(const std::string& s) {
     return 0;
   }
 
-  auto parts = Split(s, '-');
+  auto parts = Split(s, '-', 3);
   auto day = absl::CivilDay(std::stoi(parts[0]), std::stoi(parts[1]),
                             std::stoi(parts[2]));
   absl::TimeZone utc = absl::UTCTimeZone();

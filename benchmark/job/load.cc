@@ -39,7 +39,7 @@ void aka_name() {
   std::ifstream fin(raw + "aka_name.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 8);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(person_id, ParseInt32, data[1], tuple_idx);
@@ -98,7 +98,7 @@ void aka_title() {
   std::ifstream fin(raw + "aka_title.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 12);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(movie_id, ParseInt32, data[1], tuple_idx);
@@ -155,7 +155,7 @@ void cast_info() {
   std::ifstream fin(raw + "cast_info.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 7);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(person_id, ParseInt32, data[1], tuple_idx);
@@ -202,7 +202,7 @@ void char_name() {
   std::ifstream fin(raw + "char_name.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 7);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(name, ParseString, data[1], tuple_idx);
@@ -239,7 +239,7 @@ void comp_cast_type() {
   std::ifstream fin(raw + "comp_cast_type.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 2);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NULL(imdb_index, ParseString, data[1], tuple_idx);
@@ -276,7 +276,7 @@ void company_name() {
   std::ifstream fin(raw + "company_name.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 7);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(name, ParseString, data[1], tuple_idx);
@@ -313,7 +313,7 @@ void company_type() {
   std::ifstream fin(raw + "company_type.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 2);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NULL(kind, ParseString, data[1], tuple_idx);
@@ -344,7 +344,7 @@ void complete_cast() {
   std::ifstream fin(raw + "complete_cast.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 4);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NULL(movie_id, ParseInt32, data[1], tuple_idx);
@@ -375,7 +375,7 @@ void info_type() {
   std::ifstream fin(raw + "info_type.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 2);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NULL(info, ParseString, data[1], tuple_idx);
@@ -404,17 +404,11 @@ void keyword() {
   std::ifstream fin(raw + "keyword.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 3);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(keyword, ParseString, data[1], tuple_idx);
-
-    if (data.size() == 3) {
-      APPEND_NULL(phonetic_code, ParseString, data[2], tuple_idx);
-    } else {
-      std::string pc = "";
-      APPEND_NULL(phonetic_code, ParseString, pc, tuple_idx);
-    }
+    APPEND_NULL(phonetic_code, ParseString, data[2], tuple_idx);
 
     tuple_idx++;
   }
@@ -439,7 +433,7 @@ void kind_type() {
   std::ifstream fin(raw + "kind_type.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 2);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NULL(kind, ParseString, data[1], tuple_idx);
@@ -466,7 +460,7 @@ void link_type() {
   std::ifstream fin(raw + "link_type.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 2);
 
     APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
     APPEND_NULL(link, ParseString, data[1], tuple_idx);
@@ -479,4 +473,43 @@ void link_type() {
   Print("link_type complete");
 }
 
-int main() { link_type(); }
+void movie_companies() {
+  /*
+    CREATE TABLE movie_companies (
+        id INTEGER NOT NULL PRIMARY KEY,
+        movie_id INTEGER NOT NULL,
+        company_id INTEGER NOT NULL,
+        company_type_id INTEGER NOT NULL,
+        note TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NOT_NULL_COL(int32_t, movie_id);
+  DECLARE_NOT_NULL_COL(int32_t, company_id);
+  DECLARE_NOT_NULL_COL(int32_t, company_type_id);
+  DECLARE_NULL_COL(std::string, note);
+
+  std::ifstream fin(raw + "movie_companies.tbl");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|', 5);
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(movie_id, ParseInt32, data[1], tuple_idx);
+    APPEND_NOT_NULL(company_id, ParseInt32, data[2], tuple_idx);
+    APPEND_NOT_NULL(company_type_id, ParseInt32, data[3], tuple_idx);
+    APPEND_NULL(note, ParseString, data[4], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "mc_id");
+  SERIALIZE_NOT_NULL(int32_t, movie_id, dest, "mc_movie_id");
+  SERIALIZE_NOT_NULL(int32_t, company_id, dest, "mc_company_id");
+  SERIALIZE_NOT_NULL(int32_t, company_type_id, dest, "mc_company_type_id");
+  SERIALIZE_NULL(std::string, note, dest, "mc_note");
+  Print("movie_companies complete");
+}
+
+int main() { movie_companies(); }

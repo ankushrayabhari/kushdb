@@ -29,7 +29,7 @@ void Region() {
   std::ifstream fin(raw + "region.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 3);
 
     APPEND_NOT_NULL(r_regionkey, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(r_name, ParseString, data[1], tuple_idx);
@@ -62,7 +62,7 @@ void Nation() {
   std::ifstream fin(raw + "nation.tbl");
   int tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 4);
 
     APPEND_NOT_NULL(n_nationkey, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(n_name, ParseString, data[1], tuple_idx);
@@ -117,7 +117,7 @@ void Lineitem() {
     std::ifstream fin(raw + "lineitem.tbl");
     int32_t tuple_idx = 0;
     for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|');
+      auto data = Split(line, '|', 16);
 
       APPEND_NOT_NULL(l_orderkey, ParseInt32, data[0], tuple_idx);
       APPEND_NOT_NULL(l_partkey, ParseInt32, data[1], tuple_idx);
@@ -153,7 +153,7 @@ void Lineitem() {
     std::ifstream fin(raw + "lineitem.tbl");
     int32_t tuple_idx = 0;
     for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|');
+      auto data = Split(line, '|', 16);
 
       APPEND_NOT_NULL(l_returnflag, ParseString, data[8], tuple_idx);
 
@@ -169,7 +169,7 @@ void Lineitem() {
     std::ifstream fin(raw + "lineitem.tbl");
     int32_t tuple_idx = 0;
     for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|');
+      auto data = Split(line, '|', 16);
       APPEND_NOT_NULL(l_linestatus, ParseString, data[9], tuple_idx);
       tuple_idx++;
     }
@@ -183,7 +183,7 @@ void Lineitem() {
     std::ifstream fin(raw + "lineitem.tbl");
     int32_t tuple_idx = 0;
     for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|');
+      auto data = Split(line, '|', 16);
       APPEND_NOT_NULL(l_shipinstruct, ParseString, data[13], tuple_idx);
       tuple_idx++;
     }
@@ -197,7 +197,7 @@ void Lineitem() {
     std::ifstream fin(raw + "lineitem.tbl");
     int32_t tuple_idx = 0;
     for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|');
+      auto data = Split(line, '|', 16);
       APPEND_NOT_NULL(l_shipmode, ParseString, data[14], tuple_idx);
 
       tuple_idx++;
@@ -212,7 +212,7 @@ void Lineitem() {
     std::ifstream fin(raw + "lineitem.tbl");
     int32_t tuple_idx = 0;
     for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|');
+      auto data = Split(line, '|', 16);
       APPEND_NOT_NULL(l_comment, ParseString, data[15], tuple_idx);
       tuple_idx++;
     }
@@ -251,7 +251,7 @@ void Orders() {
   std::ifstream fin(raw + "orders.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 9);
 
     APPEND_NOT_NULL(o_orderkey, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(o_custkey, ParseInt32, data[1], tuple_idx);
@@ -304,7 +304,7 @@ void Customer() {
   std::ifstream fin(raw + "customer.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 8);
 
     APPEND_NOT_NULL(c_custkey, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(c_name, ParseString, data[1], tuple_idx);
@@ -349,7 +349,7 @@ void Partsupp() {
   std::ifstream fin(raw + "partsupp.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 5);
 
     APPEND_NOT_NULL(ps_partkey, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(ps_suppkey, ParseInt32, data[1], tuple_idx);
@@ -396,7 +396,7 @@ void Part() {
   std::ifstream fin(raw + "part.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 9);
 
     APPEND_NOT_NULL(p_partkey, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(p_name, ParseString, data[1], tuple_idx);
@@ -447,7 +447,7 @@ void Supplier() {
   std::ifstream fin(raw + "supplier.tbl");
   int32_t tuple_idx = 0;
   for (std::string line; std::getline(fin, line);) {
-    auto data = Split(line, '|');
+    auto data = Split(line, '|', 7);
 
     APPEND_NOT_NULL(s_suppkey, ParseInt32, data[0], tuple_idx);
     APPEND_NOT_NULL(s_name, ParseString, data[1], tuple_idx);
