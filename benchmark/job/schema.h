@@ -210,5 +210,14 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/k_phonetic_code.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("kind_type");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/kt_id.kdb", "",
+                 "benchmark/job/data/kt_id.kdbindex");
+    table.Insert("kind", SqlType::TEXT, "benchmark/job/data/kt_kind.kdb",
+                 "benchmark/job/data/kt_kind_null.kdb",
+                 "benchmark/job/data/kt_kind.kdbindex");
+  }
+
   return db;
 }

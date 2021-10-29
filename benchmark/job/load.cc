@@ -425,4 +425,31 @@ void keyword() {
   Print("keyword complete");
 }
 
-int main() { keyword(); }
+void kind_type() {
+  /*
+    CREATE TABLE kind_type (
+        id INTEGER NOT NULL PRIMARY KEY,
+        kind TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NULL_COL(std::string, kind);
+
+  std::ifstream fin(raw + "kind_type.tbl");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|');
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NULL(kind, ParseString, data[1], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "kt_id");
+  SERIALIZE_NULL(std::string, kind, dest, "kt_kind");
+  Print("kind_type complete");
+}
+
+int main() { kind_type(); }
