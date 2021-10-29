@@ -711,6 +711,45 @@ void name() {
   Print("name complete");
 }
 
+void person_info() {
+  /*
+    CREATE TABLE person_info (
+        id INTEGER NOT NULL PRIMARY KEY,
+        person_id INTEGER NOT NULL,
+        info_type_id INTEGER NOT NULL,
+        info TEXT NOT NULL,
+        note TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NOT_NULL_COL(int32_t, person_id);
+  DECLARE_NOT_NULL_COL(int32_t, info_type_id);
+  DECLARE_NOT_NULL_COL(std::string, info);
+  DECLARE_NULL_COL(std::string, note);
+
+  std::ifstream fin(raw + "person_info.csv");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, ',', 5);
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(person_id, ParseInt32, data[1], tuple_idx);
+    APPEND_NOT_NULL(info_type_id, ParseInt32, data[2], tuple_idx);
+    APPEND_NOT_NULL(info, ParseString, data[3], tuple_idx);
+    APPEND_NULL(note, ParseString, data[4], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "pi_id");
+  SERIALIZE_NOT_NULL(int32_t, person_id, dest, "pi_person_id");
+  SERIALIZE_NOT_NULL(int32_t, info_type_id, dest, "pi_info_type_id");
+  SERIALIZE_NOT_NULL(std::string, info, dest, "pi_info");
+  SERIALIZE_NULL(std::string, note, dest, "pi_note");
+  Print("person_info complete");
+}
+
 int main() {
   // aka_name();
   // aka_title();
@@ -730,4 +769,5 @@ int main() {
   // movie_keyword();
   // movie_link();
   // name();
+  person_info();
 }

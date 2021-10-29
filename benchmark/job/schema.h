@@ -336,5 +336,22 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/n_md5sum.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("person_info");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/pi_id.kdb", "",
+                 "benchmark/job/data/pi_id.kdbindex");
+    table.Insert("person_id", SqlType::INT,
+                 "benchmark/job/data/pi_person_id.kdb", "",
+                 "benchmark/job/data/pi_person_id.kdbindex");
+    table.Insert("info_type_id", SqlType::INT,
+                 "benchmark/job/data/pi_info_type_id.kdb", "",
+                 "benchmark/job/data/pi_info_type_id.kdbindex");
+    table.Insert("info", SqlType::TEXT, "benchmark/job/data/pi_info.kdb", "",
+                 "benchmark/job/data/pi_info.kdbindex");
+    table.Insert("note", SqlType::TEXT, "benchmark/job/data/pi_note.kdb",
+                 "benchmark/job/data/pi_note_null.kdb",
+                 "benchmark/job/data/pi_note.kdbindex");
+  }
+
   return db;
 }
