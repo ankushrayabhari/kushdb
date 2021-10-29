@@ -173,5 +173,21 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/ct_kind_null.kdb",
                  "benchmark/job/data/ct_kind.kdbindex");
   }
+
+  {
+    auto& table = db.Insert("complete_cast");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/cc_id.kdb", "",
+                 "benchmark/job/data/cc_id.kdbindex");
+    table.Insert("movie_id", SqlType::INT, "benchmark/job/data/cc_movie_id.kdb",
+                 "benchmark/job/data/cc_movie_id_null.kdb",
+                 "benchmark/job/data/cc_movie_id.kdbindex");
+    table.Insert("subject_id", SqlType::INT,
+                 "benchmark/job/data/cc_subject_id.kdb", "",
+                 "benchmark/job/data/cc_subject_id.kdbindex");
+    table.Insert("status_id", SqlType::INT,
+                 "benchmark/job/data/cc_status_id.kdb", "",
+                 "benchmark/job/data/cc_status_id.kdbindex");
+  }
+
   return db;
 }

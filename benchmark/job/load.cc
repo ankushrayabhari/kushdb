@@ -326,4 +326,39 @@ void company_type() {
   Print("company_type complete");
 }
 
-int main() { company_type(); }
+void complete_cast() {
+  /*
+    CREATE TABLE complete_cast (
+        id INTEGER NOT NULL PRIMARY KEY,
+        movie_id INTEGER,
+        subject_id INTEGER NOT NULL,
+        status_id INTEGER NOT NULL
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NULL_COL(int32_t, movie_id);
+  DECLARE_NOT_NULL_COL(int32_t, subject_id);
+  DECLARE_NOT_NULL_COL(int32_t, status_id);
+
+  std::ifstream fin(raw + "complete_cast.tbl");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|');
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NULL(movie_id, ParseInt32, data[1], tuple_idx);
+    APPEND_NOT_NULL(subject_id, ParseInt32, data[2], tuple_idx);
+    APPEND_NOT_NULL(status_id, ParseInt32, data[3], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "cc_id");
+  SERIALIZE_NULL(int32_t, movie_id, dest, "cc_movie_id");
+  SERIALIZE_NOT_NULL(int32_t, subject_id, dest, "cc_subject_id");
+  SERIALIZE_NOT_NULL(int32_t, status_id, dest, "cc_status_id");
+  Print("complete_cast complete");
+}
+
+int main() { complete_cast(); }
