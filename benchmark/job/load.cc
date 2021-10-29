@@ -361,4 +361,31 @@ void complete_cast() {
   Print("complete_cast complete");
 }
 
-int main() { complete_cast(); }
+void info_type() {
+  /*
+    CREATE TABLE info_type (
+        id INTEGER NOT NULL PRIMARY KEY,
+        info TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NULL_COL(std::string, info);
+
+  std::ifstream fin(raw + "info_type.tbl");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|');
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NULL(info, ParseString, data[1], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "it_id");
+  SERIALIZE_NULL(std::string, info, dest, "it_info");
+  Print("info_type complete");
+}
+
+int main() { info_type(); }

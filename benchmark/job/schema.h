@@ -189,5 +189,14 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/cc_status_id.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("info_type");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/it_id.kdb", "",
+                 "benchmark/job/data/it_id.kdbindex");
+    table.Insert("kind", SqlType::TEXT, "benchmark/job/data/it_info.kdb",
+                 "benchmark/job/data/it_info_null.kdb",
+                 "benchmark/job/data/it_info.kdbindex");
+  }
+
   return db;
 }
