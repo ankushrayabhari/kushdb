@@ -777,25 +777,93 @@ void role_type() {
   Print("role_type complete");
 }
 
+void title() {
+  /*
+    CREATE TABLE title (
+        id INTEGER NOT NULL PRIMARY KEY,
+        title TEXT NOT NULL,
+        imdb_index TEXT,
+        kind_id INTEGER NOT NULL,
+        production_year INTEGER,
+        imdb_id INTEGER,
+        phonetic_code TEXT,
+        episode_of_id INTEGER,
+        season_nr INTEGER,
+        episode_nr INTEGER,
+        series_years TEXT,
+        md5sum TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NOT_NULL_COL(std::string, title);
+  DECLARE_NULL_COL(std::string, imdb_index);
+  DECLARE_NOT_NULL_COL(int32_t, kind_id);
+  DECLARE_NULL_COL(int32_t, production_year);
+  DECLARE_NULL_COL(int32_t, imdb_id);
+  DECLARE_NULL_COL(std::string, phonetic_code);
+  DECLARE_NULL_COL(int32_t, episode_of_id);
+  DECLARE_NULL_COL(int32_t, season_nr);
+  DECLARE_NULL_COL(int32_t, episode_nr);
+  DECLARE_NULL_COL(std::string, series_years);
+  DECLARE_NULL_COL(std::string, md5sum);
+
+  std::ifstream fin(raw + "title.csv");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, ',', 12);
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(title, ParseString, data[1], tuple_idx);
+    APPEND_NULL(imdb_index, ParseString, data[2], tuple_idx);
+    APPEND_NOT_NULL(kind_id, ParseInt32, data[3], tuple_idx);
+    APPEND_NULL(production_year, ParseInt32, data[4], tuple_idx);
+    APPEND_NULL(imdb_id, ParseInt32, data[5], tuple_idx);
+    APPEND_NULL(phonetic_code, ParseString, data[6], tuple_idx);
+    APPEND_NULL(episode_of_id, ParseInt32, data[7], tuple_idx);
+    APPEND_NULL(season_nr, ParseInt32, data[8], tuple_idx);
+    APPEND_NULL(episode_nr, ParseInt32, data[9], tuple_idx);
+    APPEND_NULL(series_years, ParseString, data[10], tuple_idx);
+    APPEND_NULL(md5sum, ParseString, data[11], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "t_id");
+  SERIALIZE_NOT_NULL(std::string, title, dest, "t_title");
+  SERIALIZE_NULL(std::string, imdb_index, dest, "t_imdb_index");
+  SERIALIZE_NOT_NULL(int32_t, kind_id, dest, "t_kind_id");
+  SERIALIZE_NULL(int32_t, production_year, dest, "t_production_year");
+  SERIALIZE_NULL(int32_t, imdb_id, dest, "t_imdb_id");
+  SERIALIZE_NULL(std::string, phonetic_code, dest, "t_phonetic_code");
+  SERIALIZE_NULL(int32_t, episode_of_id, dest, "t_episode_of_id");
+  SERIALIZE_NULL(int32_t, season_nr, dest, "t_season_nr");
+  SERIALIZE_NULL(int32_t, episode_nr, dest, "t_episode_nr");
+  SERIALIZE_NULL(std::string, series_years, dest, "t_series_years");
+  SERIALIZE_NULL(std::string, md5sum, dest, "t_md5sum");
+  Print("title complete");
+}
+
 int main() {
-  // aka_name();
-  // aka_title();
-  // cast_info();
-  // char_name();
-  // comp_cast_type();
-  // company_name();
-  // company_type();
-  // complete_cast();
-  // info_type();
-  // keyword();
-  // kind_type();
-  // link_type();
-  // movie_companies();
-  // movie_info();
-  // movie_info_idx();
-  // movie_keyword();
-  // movie_link();
-  // name();
-  // person_info();
+  aka_name();
+  aka_title();
+  cast_info();
+  char_name();
+  comp_cast_type();
+  company_name();
+  company_type();
+  complete_cast();
+  info_type();
+  keyword();
+  kind_type();
+  link_type();
+  movie_companies();
+  movie_info();
+  movie_info_idx();
+  movie_keyword();
+  movie_link();
+  name();
+  person_info();
   role_type();
+  title();
 }
