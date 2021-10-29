@@ -131,4 +131,51 @@ void aka_title() {
   Print("aka_title complete");
 }
 
-int main() { aka_title(); }
+void cast_info() {
+  /*
+    CREATE TABLE cast_info (
+        id INTEGER NOT NULL PRIMARY KEY,
+        person_id INTEGER NOT NULL,
+        movie_id INTEGER NOT NULL,
+        person_role_id INTEGER,
+        note TEXT,
+        nr_order INTEGER,
+        role_id INTEGER NOT NULL
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NOT_NULL_COL(int32_t, person_id);
+  DECLARE_NOT_NULL_COL(int32_t, movie_id);
+  DECLARE_NULL_COL(int32_t, person_role_id);
+  DECLARE_NULL_COL(std::string, note);
+  DECLARE_NULL_COL(int32_t, nr_order);
+  DECLARE_NOT_NULL_COL(int32_t, role_id);
+
+  std::ifstream fin(raw + "cast_info.tbl");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|');
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(person_id, ParseInt32, data[1], tuple_idx);
+    APPEND_NOT_NULL(movie_id, ParseInt32, data[2], tuple_idx);
+    APPEND_NULL(person_role_id, ParseInt32, data[3], tuple_idx);
+    APPEND_NULL(note, ParseString, data[4], tuple_idx);
+    APPEND_NULL(nr_order, ParseInt32, data[5], tuple_idx);
+    APPEND_NOT_NULL(role_id, ParseInt32, data[6], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "ci_id");
+  SERIALIZE_NOT_NULL(int32_t, person_id, dest, "ci_person_id");
+  SERIALIZE_NOT_NULL(int32_t, movie_id, dest, "ci_movie_id");
+  SERIALIZE_NULL(int32_t, person_role_id, dest, "ci_person_role_id");
+  SERIALIZE_NULL(std::string, note, dest, "ci_note");
+  SERIALIZE_NULL(int32_t, nr_order, dest, "ci_nr_order");
+  SERIALIZE_NOT_NULL(int32_t, role_id, dest, "ci_role_id");
+  Print("cast_info complete");
+}
+
+int main() { cast_info(); }

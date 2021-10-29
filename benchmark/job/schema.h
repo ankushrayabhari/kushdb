@@ -80,5 +80,28 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/akat_md5sum.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("cast_info");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/ci_id.kdb", "",
+                 "benchmark/job/data/ci_id.kdbindex");
+    table.Insert("person_id", SqlType::INT,
+                 "benchmark/job/data/ci_person_id.kdb", "",
+                 "benchmark/job/data/ci_person_id.kdbindex");
+    table.Insert("movie_id", SqlType::INT, "benchmark/job/data/ci_movie_id.kdb",
+                 "", "benchmark/job/data/ci_movie_id.kdbindex");
+    table.Insert("person_role_id", SqlType::INT,
+                 "benchmark/job/data/ci_person_role_id.kdb",
+                 "benchmark/job/data/ci_person_role_id_null.kdb",
+                 "benchmark/job/data/ci_person_role_id.kdbindex");
+    table.Insert("note", SqlType::TEXT, "benchmark/job/data/ci_note.kdb",
+                 "benchmark/job/data/ci_note_null.kdb",
+                 "benchmark/job/data/ci_note.kdbindex");
+    table.Insert("nr_order", SqlType::INT, "benchmark/job/data/ci_nr_order.kdb",
+                 "benchmark/job/data/ci_nr_order_null.kdb",
+                 "benchmark/job/data/ci_nr_order.kdbindex");
+    table.Insert("role_id", SqlType::TEXT, "benchmark/job/data/ci_role_id.kdb",
+                 "", "benchmark/job/data/ci_role_id.kdbindex");
+  }
+
   return db;
 }
