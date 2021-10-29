@@ -656,6 +656,61 @@ void movie_link() {
   Print("movie_link complete");
 }
 
+void name() {
+  /*
+    CREATE TABLE name (
+        id INTEGER NOT NULL PRIMARY KEY,
+        name TEXT NOT NULL,
+        imdb_index TEXT,
+        imdb_id INTEGER,
+        gender TEXT,
+        name_pcode_cf TEXT,
+        name_pcode_nf TEXT,
+        surname_pcode TEXT,
+        md5sum TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NOT_NULL_COL(std::string, name);
+  DECLARE_NULL_COL(std::string, imdb_index);
+  DECLARE_NULL_COL(int32_t, imdb_id);
+  DECLARE_NULL_COL(std::string, gender);
+  DECLARE_NULL_COL(std::string, name_pcode_cf);
+  DECLARE_NULL_COL(std::string, name_pcode_nf);
+  DECLARE_NULL_COL(std::string, surname_pcode);
+  DECLARE_NULL_COL(std::string, md5sum);
+
+  std::ifstream fin(raw + "name.csv");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, ',', 9);
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(name, ParseString, data[1], tuple_idx);
+    APPEND_NULL(imdb_index, ParseString, data[2], tuple_idx);
+    APPEND_NULL(imdb_id, ParseInt32, data[3], tuple_idx);
+    APPEND_NULL(gender, ParseString, data[4], tuple_idx);
+    APPEND_NULL(name_pcode_cf, ParseString, data[5], tuple_idx);
+    APPEND_NULL(name_pcode_nf, ParseString, data[6], tuple_idx);
+    APPEND_NULL(surname_pcode, ParseString, data[7], tuple_idx);
+    APPEND_NULL(md5sum, ParseString, data[8], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "n_id");
+  SERIALIZE_NOT_NULL(std::string, name, dest, "n_name");
+  SERIALIZE_NULL(std::string, imdb_index, dest, "n_imdb_index");
+  SERIALIZE_NULL(int32_t, imdb_id, dest, "n_imdb_id");
+  SERIALIZE_NULL(std::string, gender, dest, "n_gender");
+  SERIALIZE_NULL(std::string, name_pcode_cf, dest, "n_name_pcode_cf");
+  SERIALIZE_NULL(std::string, name_pcode_nf, dest, "n_name_pcode_nf");
+  SERIALIZE_NULL(std::string, surname_pcode, dest, "n_surname_pcode");
+  SERIALIZE_NULL(std::string, md5sum, dest, "n_md5sum");
+  Print("name complete");
+}
+
 int main() {
   // aka_name();
   // aka_title();
@@ -674,4 +729,5 @@ int main() {
   // movie_info_idx();
   // movie_keyword();
   // movie_link();
+  // name();
 }

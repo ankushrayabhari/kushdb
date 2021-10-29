@@ -303,5 +303,38 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/ml_link_type_id.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("name");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/n_id.kdb", "",
+                 "benchmark/job/data/n_id.kdbindex");
+    table.Insert("name", SqlType::TEXT, "benchmark/job/data/n_name.kdb", "",
+                 "benchmark/job/data/n_name.kdbindex");
+    table.Insert("imdb_index", SqlType::TEXT,
+                 "benchmark/job/data/n_imdb_index.kdb",
+                 "benchmark/job/data/n_imdb_index_null.kdb",
+                 "benchmark/job/data/n_imdb_index.kdbindex");
+    table.Insert("imdb_id", SqlType::INT, "benchmark/job/data/n_imdb_id.kdb",
+                 "benchmark/job/data/n_imdb_id_null.kdb",
+                 "benchmark/job/data/n_imdb_id.kdbindex");
+    table.Insert("gender", SqlType::TEXT, "benchmark/job/data/n_gender.kdb",
+                 "benchmark/job/data/n_gender_null.kdb",
+                 "benchmark/job/data/n_gender.kdbindex");
+    table.Insert("name_pcode_cf", SqlType::TEXT,
+                 "benchmark/job/data/n_name_pcode_cf.kdb",
+                 "benchmark/job/data/n_name_pcode_cf_null.kdb",
+                 "benchmark/job/data/n_name_pcode_cf.kdbindex");
+    table.Insert("name_pcode_nf", SqlType::TEXT,
+                 "benchmark/job/data/n_name_pcode_nf.kdb",
+                 "benchmark/job/data/n_name_pcode_nf_null.kdb",
+                 "benchmark/job/data/n_name_pcode_nf.kdbindex");
+    table.Insert("surname_pcode", SqlType::TEXT,
+                 "benchmark/job/data/n_surname_pcode.kdb",
+                 "benchmark/job/data/n_surname_pcode_null.kdb",
+                 "benchmark/job/data/n_surname_pcode.kdbindex");
+    table.Insert("md5sum", SqlType::TEXT, "benchmark/job/data/n_md5sum.kdb",
+                 "benchmark/job/data/n_md5sum_null.kdb",
+                 "benchmark/job/data/n_md5sum.kdbindex");
+  }
+
   return db;
 }
