@@ -353,5 +353,14 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/pi_note.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("role_type");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/r_id.kdb", "",
+                 "benchmark/job/data/r_id.kdbindex");
+    table.Insert("role", SqlType::TEXT, "benchmark/job/data/r_role.kdb",
+                 "benchmark/job/data/r_role_null.kdb",
+                 "benchmark/job/data/r_role.kdbindex");
+  }
+
   return db;
 }

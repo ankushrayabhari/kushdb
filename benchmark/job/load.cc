@@ -750,6 +750,33 @@ void person_info() {
   Print("person_info complete");
 }
 
+void role_type() {
+  /*
+    CREATE TABLE role_type (
+        id INTEGER NOT NULL PRIMARY KEY,
+        role TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NULL_COL(std::string, role);
+
+  std::ifstream fin(raw + "role_type.csv");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, ',', 2);
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NULL(role, ParseString, data[1], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "r_id");
+  SERIALIZE_NULL(std::string, role, dest, "r_role");
+  Print("role_type complete");
+}
+
 int main() {
   // aka_name();
   // aka_title();
@@ -769,5 +796,6 @@ int main() {
   // movie_keyword();
   // movie_link();
   // name();
-  person_info();
+  // person_info();
+  role_type();
 }
