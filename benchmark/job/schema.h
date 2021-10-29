@@ -139,5 +139,31 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/cct_imdb_index.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("company_name");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/cmpn_id.kdb", "",
+                 "benchmark/job/data/cmpn_id.kdbindex");
+    table.Insert("name", SqlType::TEXT, "benchmark/job/data/cmpn_name.kdb", "",
+                 "benchmark/job/data/cmpn_name.kdbindex");
+    table.Insert("country_code", SqlType::TEXT,
+                 "benchmark/job/data/cmpn_imdb_index.kdb",
+                 "benchmark/job/data/cmpn_imdb_index_null.kdb",
+                 "benchmark/job/data/cmpn_imdb_index.kdbindex");
+    table.Insert("imdb_id", SqlType::INT, "benchmark/job/data/cmpn_imdb_id.kdb",
+                 "benchmark/job/data/cmpn_imdb_id_null.kdb",
+                 "benchmark/job/data/cmpn_imdb_id.kdbindex");
+    table.Insert("name_pcode_nf", SqlType::TEXT,
+                 "benchmark/job/data/cmpn_name_pcode_nf.kdb",
+                 "benchmark/job/data/cmpn_name_pcode_nf_null.kdb",
+                 "benchmark/job/data/cmpn_name_pcode_nf.kdbindex");
+    table.Insert("surname_pcode", SqlType::TEXT,
+                 "benchmark/job/data/cmpn_surname_pcode.kdb",
+                 "benchmark/job/data/cmpn_surname_pcode_null.kdb",
+                 "benchmark/job/data/cmpn_surname_pcode.kdbindex");
+    table.Insert("md5sum", SqlType::TEXT, "benchmark/job/data/cmpn_md5sum.kdb",
+                 "benchmark/job/data/cmpn_md5sum_null.kdb",
+                 "benchmark/job/data/cmpn_md5sum.kdbindex");
+  }
+
   return db;
 }

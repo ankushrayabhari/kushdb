@@ -252,4 +252,51 @@ void comp_cast_type() {
   Print("comp_cast_type complete");
 }
 
-int main() { comp_cast_type(); }
+void company_name() {
+  /*
+    CREATE TABLE company_name (
+        id INTEGER NOT NULL PRIMARY KEY,
+        name TEXT NOT NULL,
+        country_code TEXT,
+        imdb_id INTEGER,
+        name_pcode_nf TEXT,
+        name_pcode_sf TEXT,
+        md5sum TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NOT_NULL_COL(std::string, name);
+  DECLARE_NULL_COL(std::string, country_code);
+  DECLARE_NULL_COL(int32_t, imdb_id);
+  DECLARE_NULL_COL(std::string, name_pcode_nf);
+  DECLARE_NULL_COL(std::string, name_pcode_sf);
+  DECLARE_NULL_COL(std::string, md5sum);
+
+  std::ifstream fin(raw + "company_name.tbl");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|');
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(name, ParseString, data[1], tuple_idx);
+    APPEND_NULL(country_code, ParseString, data[2], tuple_idx);
+    APPEND_NULL(imdb_id, ParseInt32, data[3], tuple_idx);
+    APPEND_NULL(name_pcode_nf, ParseString, data[4], tuple_idx);
+    APPEND_NULL(name_pcode_sf, ParseString, data[5], tuple_idx);
+    APPEND_NULL(md5sum, ParseString, data[6], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "cmpn_id");
+  SERIALIZE_NOT_NULL(std::string, name, dest, "cmpn_name");
+  SERIALIZE_NULL(std::string, country_code, dest, "cmpn_imdb_index");
+  SERIALIZE_NULL(int32_t, imdb_id, dest, "cmpn_imdb_id");
+  SERIALIZE_NULL(std::string, name_pcode_nf, dest, "cmpn_name_pcode_nf");
+  SERIALIZE_NULL(std::string, name_pcode_sf, dest, "cmpn_surname_pcode");
+  SERIALIZE_NULL(std::string, md5sum, dest, "cmpn_md5sum");
+  Print("company_name complete");
+}
+
+int main() { company_name(); }
