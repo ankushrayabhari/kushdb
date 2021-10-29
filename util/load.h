@@ -81,7 +81,7 @@ std::vector<std::string> Split(const std::string& s, char delim, int num_cols) {
       std::string item;
       std::getline(ss, item, delim);
 
-      to_add.push_back('|');
+      to_add.push_back(delim);
       to_add += item;
     }
 
