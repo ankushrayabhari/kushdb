@@ -551,6 +551,45 @@ void movie_info() {
   Print("movie_info complete");
 }
 
+void movie_info_idx() {
+  /*
+    CREATE TABLE movie_info_idx (
+        id INTEGER NOT NULL PRIMARY KEY,
+        movie_id INTEGER NOT NULL,
+        info_type_id INTEGER NOT NULL,
+        info TEXT NOT NULL,
+        note TEXT
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NOT_NULL_COL(int32_t, movie_id);
+  DECLARE_NOT_NULL_COL(int32_t, info_type_id);
+  DECLARE_NOT_NULL_COL(std::string, info);
+  DECLARE_NULL_COL(std::string, note);
+
+  std::ifstream fin(raw + "movie_info_idx.csv");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, ',', 5);
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(movie_id, ParseInt32, data[1], tuple_idx);
+    APPEND_NOT_NULL(info_type_id, ParseInt32, data[2], tuple_idx);
+    APPEND_NOT_NULL(info, ParseString, data[3], tuple_idx);
+    APPEND_NULL(note, ParseString, data[4], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "mii_id");
+  SERIALIZE_NOT_NULL(int32_t, movie_id, dest, "mii_movie_id");
+  SERIALIZE_NOT_NULL(int32_t, info_type_id, dest, "mii_info_type_id");
+  SERIALIZE_NOT_NULL(std::string, info, dest, "mii_info");
+  SERIALIZE_NULL(std::string, note, dest, "mii_note");
+  Print("movie_info_idx complete");
+}
+
 int main() {
   // aka_name();
   // aka_title();
@@ -566,4 +605,5 @@ int main() {
   // link_type();
   // movie_companies();
   // movie_info();
+  movie_info_idx();
 }

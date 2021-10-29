@@ -261,5 +261,22 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/mi_note.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("movie_info_idx");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/mii_id.kdb", "",
+                 "benchmark/job/data/mii_id.kdbindex");
+    table.Insert("movie_id", SqlType::INT,
+                 "benchmark/job/data/mii_movie_id.kdb", "",
+                 "benchmark/job/data/mii_movie_id.kdbindex");
+    table.Insert("info_type_id", SqlType::INT,
+                 "benchmark/job/data/mii_info_type_id.kdb", "",
+                 "benchmark/job/data/mii_info_type_id.kdbindex");
+    table.Insert("info", SqlType::TEXT, "benchmark/job/data/mii_info.kdb", "",
+                 "benchmark/job/data/mii_info.kdbindex");
+    table.Insert("note", SqlType::TEXT, "benchmark/job/data/mii_note.kdb",
+                 "benchmark/job/data/mii_note_null.kdb",
+                 "benchmark/job/data/mii_note.kdbindex");
+  }
+
   return db;
 }
