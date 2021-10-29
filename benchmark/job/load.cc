@@ -621,6 +621,41 @@ void movie_keyword() {
   Print("movie_keyword complete");
 }
 
+void movie_link() {
+  /*
+    CREATE TABLE movie_link (
+        id INTEGER NOT NULL PRIMARY KEY,
+        movie_id INTEGER NOT NULL,
+        linked_movie_id INTEGER NOT NULL,
+        link_type_id INTEGER NOT NULL
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NOT_NULL_COL(int32_t, movie_id);
+  DECLARE_NOT_NULL_COL(int32_t, linked_movie_id);
+  DECLARE_NOT_NULL_COL(int32_t, link_type_id);
+
+  std::ifstream fin(raw + "movie_link.csv");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, ',', 4);
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(movie_id, ParseInt32, data[1], tuple_idx);
+    APPEND_NOT_NULL(linked_movie_id, ParseInt32, data[2], tuple_idx);
+    APPEND_NOT_NULL(link_type_id, ParseInt32, data[3], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "ml_id");
+  SERIALIZE_NOT_NULL(int32_t, movie_id, dest, "ml_movie_id");
+  SERIALIZE_NOT_NULL(int32_t, linked_movie_id, dest, "ml_linked_movie_id");
+  SERIALIZE_NOT_NULL(int32_t, link_type_id, dest, "ml_link_type_id");
+  Print("movie_link complete");
+}
+
 int main() {
   // aka_name();
   // aka_title();
@@ -638,4 +673,5 @@ int main() {
   // movie_info();
   // movie_info_idx();
   // movie_keyword();
+  // movie_link();
 }

@@ -289,5 +289,19 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/mk_keyword_id.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("movie_link");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/ml_id.kdb", "",
+                 "benchmark/job/data/ml_id.kdbindex");
+    table.Insert("movie_id", SqlType::INT, "benchmark/job/data/ml_movie_id.kdb",
+                 "", "benchmark/job/data/ml_movie_id.kdbindex");
+    table.Insert("linked_movie_id", SqlType::INT,
+                 "benchmark/job/data/ml_linked_movie_id.kdb", "",
+                 "benchmark/job/data/ml_linked_movie_id.kdbindex");
+    table.Insert("link_type_id", SqlType::INT,
+                 "benchmark/job/data/ml_link_type_id.kdb", "",
+                 "benchmark/job/data/ml_link_type_id.kdbindex");
+  }
+
   return db;
 }
