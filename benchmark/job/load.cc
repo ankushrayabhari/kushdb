@@ -590,6 +590,37 @@ void movie_info_idx() {
   Print("movie_info_idx complete");
 }
 
+void movie_keyword() {
+  /*
+    CREATE TABLE movie_keyword (
+        id INTEGER NOT NULL PRIMARY KEY,
+        movie_id INTEGER NOT NULL,
+        keyword_id INTEGER NOT NULL
+    );
+  */
+
+  DECLARE_NOT_NULL_COL(int32_t, id);
+  DECLARE_NOT_NULL_COL(int32_t, movie_id);
+  DECLARE_NOT_NULL_COL(int32_t, keyword_id);
+
+  std::ifstream fin(raw + "movie_keyword.csv");
+  int tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, ',', 3);
+
+    APPEND_NOT_NULL(id, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(movie_id, ParseInt32, data[1], tuple_idx);
+    APPEND_NOT_NULL(keyword_id, ParseInt32, data[2], tuple_idx);
+
+    tuple_idx++;
+  }
+
+  SERIALIZE_NOT_NULL(int32_t, id, dest, "mk_id");
+  SERIALIZE_NOT_NULL(int32_t, movie_id, dest, "mk_movie_id");
+  SERIALIZE_NOT_NULL(int32_t, keyword_id, dest, "mk_keyword_id");
+  Print("movie_keyword complete");
+}
+
 int main() {
   // aka_name();
   // aka_title();
@@ -605,5 +636,6 @@ int main() {
   // link_type();
   // movie_companies();
   // movie_info();
-  movie_info_idx();
+  // movie_info_idx();
+  // movie_keyword();
 }
