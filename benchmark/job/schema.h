@@ -37,5 +37,48 @@ kush::catalog::Database Schema() {
                  "benchmark/job/data/akan_md5sum.kdbindex");
   }
 
+  {
+    auto& table = db.Insert("aka_title");
+    table.Insert("id", SqlType::INT, "benchmark/job/data/akat_id.kdb", "",
+                 "benchmark/job/data/akat_id.kdbindex");
+    table.Insert("movie_id", SqlType::INT,
+                 "benchmark/job/data/akat_movie_id.kdb", "",
+                 "benchmark/job/data/akat_movie_id.kdbindex");
+    table.Insert("title", SqlType::TEXT, "benchmark/job/data/akat_title.kdb",
+                 "", "benchmark/job/data/akat_title.kdbindex");
+    table.Insert("imdb_index", SqlType::TEXT,
+                 "benchmark/job/data/akat_imdb_index.kdb",
+                 "benchmark/job/data/akat_imdb_index_null.kdb",
+                 "benchmark/job/data/akat_imdb_index.kdbindex");
+    table.Insert("kind_id", SqlType::INT, "benchmark/job/data/akat_kind_id.kdb",
+                 "", "benchmark/job/data/akat_kind_id.kdbindex");
+    table.Insert("production_year", SqlType::INT,
+                 "benchmark/job/data/akat_production_year.kdb",
+                 "benchmark/job/data/akat_production_year_null.kdb",
+                 "benchmark/job/data/akat_production_year.kdbindex");
+    table.Insert("phonetic_code", SqlType::TEXT,
+                 "benchmark/job/data/akat_phonetic_code.kdb",
+                 "benchmark/job/data/akat_phonetic_code_null.kdb",
+                 "benchmark/job/data/akat_phonetic_code.kdbindex");
+    table.Insert("episode_of_id", SqlType::INT,
+                 "benchmark/job/data/akat_episode_of_id.kdb",
+                 "benchmark/job/data/akat_episode_of_id_null.kdb",
+                 "benchmark/job/data/akat_episode_of_id.kdbindex");
+    table.Insert("season_nr", SqlType::INT,
+                 "benchmark/job/data/akat_season_nr.kdb",
+                 "benchmark/job/data/akat_season_nr_null.kdb",
+                 "benchmark/job/data/akat_season_nr.kdbindex");
+    table.Insert("episode_nr", SqlType::INT,
+                 "benchmark/job/data/akat_episode_nr.kdb",
+                 "benchmark/job/data/akat_episode_nr_null.kdb",
+                 "benchmark/job/data/akat_episode_nr.kdbindex");
+    table.Insert("note", SqlType::TEXT, "benchmark/job/data/akat_note.kdb",
+                 "benchmark/job/data/akat_note_null.kdb",
+                 "benchmark/job/data/akat_note.kdbindex");
+    table.Insert("md5sum", SqlType::TEXT, "benchmark/job/data/akat_md5sum.kdb",
+                 "benchmark/job/data/akat_md5sum_null.kdb",
+                 "benchmark/job/data/akat_md5sum.kdbindex");
+  }
+
   return db;
 }
