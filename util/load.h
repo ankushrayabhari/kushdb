@@ -49,15 +49,45 @@
 
 namespace kush::util {
 
+bool keepgoing(const std::string& s) {
+  if (s.size() < 2) {
+    return true;
+  }
+
+  if (s.size() == 2) {
+    return s.back() != '"';
+  }
+
+  if (s.back() == '"') {
+    return s[s.size() - 2] == '\\';
+  }
+
+  return true;
+}
+
 std::vector<std::string> Split(const std::string& s, char delim, int num_cols) {
   std::stringstream ss(s);
-  std::string item;
-  std::vector<std::string> elems(num_cols);
-  int i = 0;
-  while (std::getline(ss, item, delim)) {
-    elems[i] = std::move(item);
-    i++;
+  std::vector<std::string> elems;
+  for (int i = 0; i < num_cols; i++) {
+    std::string to_add;
+    std::getline(ss, to_add, delim);
+
+    if (to_add.empty() || to_add[0] != '"') {
+      elems.push_back(to_add);
+      continue;
+    }
+
+    while (ss.good() && keepgoing(to_add)) {
+      std::string item;
+      std::getline(ss, item, delim);
+
+      to_add.push_back('|');
+      to_add += item;
+    }
+
+    elems.push_back(to_add);
   }
+
   return elems;
 }
 
