@@ -12,8 +12,6 @@ class IntToFloatConversionExpression : public UnaryExpression {
  public:
   IntToFloatConversionExpression(std::unique_ptr<Expression> child);
 
-  catalog::SqlType Type() const;
-
   void Accept(ExpressionVisitor& visitor) override;
   void Accept(ImmutableExpressionVisitor& visitor) const override;
 
