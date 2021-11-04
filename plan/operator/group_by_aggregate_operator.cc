@@ -29,6 +29,10 @@ nlohmann::json GroupByAggregateOperator::ToJson() const {
     j["group_by"].push_back(expr->ToJson());
   }
 
+  for (const auto& expr : aggregate_exprs_) {
+    j["agg"].push_back(expr->ToJson());
+  }
+
   j["output"] = Schema().ToJson();
   return j;
 }

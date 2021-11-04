@@ -49,6 +49,7 @@ BinaryArithmeticExpression::BinaryArithmeticExpression(
 
 nlohmann::json BinaryArithmeticExpression::ToJson() const {
   nlohmann::json j;
+  j["type"] = magic_enum::enum_name(this->Type());
   j["op"] = magic_enum::enum_name(OpType());
   j["left"] = LeftChild().ToJson();
   j["right"] = RightChild().ToJson();

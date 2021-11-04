@@ -29,6 +29,7 @@ IntToFloatConversionExpression::IntToFloatConversionExpression(
 
 nlohmann::json IntToFloatConversionExpression::ToJson() const {
   nlohmann::json j;
+  j["type"] = magic_enum::enum_name(this->Type());
   j["child"] = Child().ToJson();
   return j;
 }

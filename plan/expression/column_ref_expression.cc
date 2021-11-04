@@ -2,6 +2,8 @@
 
 #include <optional>
 
+#include "magic_enum.hpp"
+
 #include "catalog/sql_type.h"
 #include "nlohmann/json.hpp"
 #include "plan/expression/expression.h"
@@ -21,6 +23,7 @@ int ColumnRefExpression::GetColumnIdx() const { return column_idx_; }
 
 nlohmann::json ColumnRefExpression::ToJson() const {
   nlohmann::json j;
+  j["type"] = magic_enum::enum_name(this->Type());
   j["child_idx"] = child_idx_;
   j["column_idx"] = column_idx_;
   return j;
@@ -35,5 +38,7 @@ void ColumnRefExpression::Accept(ImmutableExpressionVisitor& visitor) const {
 }
 
 void ColumnRefExpression::SetColumnIdx(int x) { column_idx_ = x; }
+
+void ColumnRefExpression::SetChildIdx(int x) { child_idx_ = x; }
 
 }  // namespace kush::plan

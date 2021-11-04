@@ -34,6 +34,7 @@ CaseExpression::CaseExpression(std::unique_ptr<Expression> cond,
 
 nlohmann::json CaseExpression::ToJson() const {
   nlohmann::json j;
+  j["type"] = magic_enum::enum_name(this->Type());
   j["cond"] = Cond().ToJson();
   j["then"] = Then().ToJson();
   j["else"] = Else().ToJson();

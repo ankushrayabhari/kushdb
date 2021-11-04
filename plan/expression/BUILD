@@ -17,6 +17,7 @@ cc_library(
         "//catalog:sql_type",
         "//util:vector_util",
         "@json",
+        "@magic_enum",
     ],
 )
 
@@ -29,6 +30,7 @@ cc_library(
         ":expression_visitor",
         "@absl//absl/time",
         "@json",
+        "@magic_enum",
     ],
 )
 
@@ -40,6 +42,7 @@ cc_library(
         ":expression",
         ":expression_visitor",
         "@json",
+        "@magic_enum",
     ],
 )
 
@@ -51,6 +54,7 @@ cc_library(
         ":expression",
         ":expression_visitor",
         "@json",
+        "@magic_enum",
     ],
 )
 

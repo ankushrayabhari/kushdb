@@ -12,7 +12,7 @@
 
 namespace kush::util {
 
-void TimeExecute(kush::plan::OutputOperator& query) {
+void TimeExecute(kush::plan::Operator& query) {
   {
     kush::compile::QueryTranslator translator(query);
     auto executable_query = translator.Translate();

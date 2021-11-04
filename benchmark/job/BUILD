@@ -8,6 +8,7 @@ cc_binary(
         "//catalog:catalog_manager",
         "//parse:parser",
         "//plan:planner",
+        "//util:time_execute",
     ],
 )
 

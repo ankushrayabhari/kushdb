@@ -1,5 +1,8 @@
 #include "plan/planner.h"
 
+#include <iostream>
+
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 
 #include "catalog/catalog_manager.h"
@@ -18,12 +21,44 @@
 #include "plan/expression/virtual_column_ref_expression.h"
 #include "plan/operator/group_by_aggregate_operator.h"
 #include "plan/operator/operator.h"
+#include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
 #include "plan/operator/skinner_join_operator.h"
 #include "util/vector_util.h"
 
 namespace kush::plan {
+
+void GetReferencedChildren(const Expression& expr,
+                           absl::flat_hash_set<std::pair<int, int>>& result) {
+  if (auto v = dynamic_cast<const plan::ColumnRefExpression*>(&expr)) {
+    result.emplace(v->GetChildIdx(), v->GetColumnIdx());
+    return;
+  }
+
+  for (auto c : expr.Children()) {
+    GetReferencedChildren(c.get(), result);
+  }
+}
+
+void RewriteColumnReferences(
+    Expression& expr,
+    const absl::flat_hash_map<std::pair<int, int>, std::pair<int, int>>&
+        col_ref_to_rewrite_idx) {
+  if (auto v = dynamic_cast<plan::ColumnRefExpression*>(&expr)) {
+    std::pair<int, int> key{v->GetChildIdx(), v->GetColumnIdx()};
+    if (col_ref_to_rewrite_idx.contains(key)) {
+      const auto& value = col_ref_to_rewrite_idx.at(key);
+      v->SetChildIdx(value.first);
+      v->SetColumnIdx(value.second);
+    }
+    return;
+  }
+
+  for (auto c : expr.MutableChildren()) {
+    RewriteColumnReferences(c.get(), col_ref_to_rewrite_idx);
+  }
+}
 
 std::vector<std::unique_ptr<Operator>> Planner::Plan(const parse::Table& table,
                                                      int child_idx) {
@@ -65,7 +100,6 @@ std::vector<std::unique_ptr<Operator>> Planner::Plan(const parse::Table& table,
 
   if (auto cross_product =
           dynamic_cast<const parse::CrossProductTable*>(&table)) {
-    OperatorSchema schema;
     std::vector<std::unique_ptr<Operator>> children;
 
     int child_idx = 0;
@@ -73,7 +107,6 @@ std::vector<std::unique_ptr<Operator>> Planner::Plan(const parse::Table& table,
       for (auto& x : Plan(table.get(), child_idx)) {
         children.push_back(std::move(x));
       }
-      schema.AddPassthroughColumns(*children.back(), child_idx);
       child_idx++;
     }
 
@@ -415,10 +448,27 @@ std::unique_ptr<Operator> Planner::Plan(const parse::SelectStatement& stmt) {
             std::move(filter));
       }
 
+      // rewrite filter expression to set child idx to 0
+      absl::flat_hash_set<std::pair<int, int>> refs;
+      absl::flat_hash_map<std::pair<int, int>, std::pair<int, int>> rewrites;
+      GetReferencedChildren(*filter, refs);
+      for (auto ref : refs) {
+        rewrites[ref] = {0, ref.second};
+      }
+      RewriteColumnReferences(*filter, rewrites);
+
       OperatorSchema schema;
       schema.AddPassthroughColumns(*base_tables[i]);
       input_tables.push_back(std::make_unique<SelectOperator>(
           std::move(schema), std::move(base_tables[i]), std::move(filter)));
+    }
+
+    absl::flat_hash_map<std::pair<int, int>, int> rewritten_child_col_idx;
+    int output_col_idx = 0;
+    for (int i = 0; i < input_tables.size(); i++) {
+      for (int j = 0; j < input_tables[i]->Schema().Columns().size(); j++) {
+        rewritten_child_col_idx[{i, j}] = output_col_idx++;
+      }
     }
 
     // generate a skinner join with all the join predicates
@@ -426,11 +476,20 @@ std::unique_ptr<Operator> Planner::Plan(const parse::SelectStatement& stmt) {
       result = std::move(input_tables[0]);
     } else {
       OperatorSchema schema;
+      int child_idx = 0;
       for (auto& v : input_tables) {
-        schema.AddPassthroughColumns(*v);
+        schema.AddPassthroughColumns(*v, child_idx++);
       }
       result = std::make_unique<SkinnerJoinOperator>(
           std::move(schema), std::move(input_tables), std::move(join_preds));
+    }
+
+    {
+      for (auto& [key, col_info] : table_col_to_info_) {
+        col_info.col_idx =
+            rewritten_child_col_idx.at({col_info.child_idx, col_info.col_idx});
+        col_info.child_idx = 0;
+      }
     }
   }
 
@@ -445,41 +504,14 @@ std::unique_ptr<Operator> Planner::Plan(const parse::SelectStatement& stmt) {
     schema.AddDerivedColumn(std::to_string(col_idx),
                             std::make_unique<VirtualColumnRefExpression>(
                                 agg->Type(), agg->Nullable(), col_idx));
-
     aggs.emplace_back(dynamic_cast<AggregateExpression*>(agg.release()));
+    col_idx++;
   }
 
-  return std::make_unique<GroupByAggregateOperator>(
-      std::move(schema), std::move(result),
-      std::vector<std::unique_ptr<Expression>>(), std::move(aggs));
-}
-
-void GetReferencedChildren(const Expression& expr,
-                           absl::flat_hash_set<std::pair<int, int>>& result) {
-  if (auto v = dynamic_cast<const plan::ColumnRefExpression*>(&expr)) {
-    result.emplace(v->GetChildIdx(), v->GetColumnIdx());
-    return;
-  }
-
-  for (auto c : expr.Children()) {
-    GetReferencedChildren(c.get(), result);
-  }
-}
-
-void RewriteColumnReferences(
-    Expression& expr, const absl::flat_hash_map<std::pair<int, int>, int>&
-                          col_ref_to_rewrite_idx) {
-  if (auto v = dynamic_cast<plan::ColumnRefExpression*>(&expr)) {
-    std::pair<int, int> key{v->GetChildIdx(), v->GetColumnIdx()};
-    if (col_ref_to_rewrite_idx.contains(key)) {
-      v->SetColumnIdx(col_ref_to_rewrite_idx.at(key));
-    }
-    return;
-  }
-
-  for (auto c : expr.MutableChildren()) {
-    RewriteColumnReferences(c.get(), col_ref_to_rewrite_idx);
-  }
+  return std::make_unique<OutputOperator>(
+      std::make_unique<GroupByAggregateOperator>(
+          std::move(schema), std::move(result),
+          std::vector<std::unique_ptr<Expression>>(), std::move(aggs)));
 }
 
 void EarlyProjection(Operator& op) {
@@ -491,14 +523,15 @@ void EarlyProjection(Operator& op) {
       GetReferencedChildren(x.get(), refs);
     }
 
-    absl::flat_hash_map<std::pair<int, int>, int> col_ref_to_rewrite_idx;
+    absl::flat_hash_map<std::pair<int, int>, std::pair<int, int>>
+        col_ref_to_rewrite_idx;
     int current_offset = 0;
     auto& child = group_by->Child();
     auto& child_schema = child.MutableSchema();
     auto& child_cols = child.Schema().Columns();
     for (int i = 0; i < child_cols.size(); i++) {
       if (refs.contains({0, i})) {
-        col_ref_to_rewrite_idx[{0, i}] = current_offset++;
+        col_ref_to_rewrite_idx[{0, i}] = {0, current_offset++};
         continue;
       }
     }
@@ -528,7 +561,8 @@ void EarlyProjection(Operator& op) {
       GetReferencedChildren(x.get(), refs);
     }
 
-    absl::flat_hash_map<std::pair<int, int>, int> col_ref_to_rewrite_idx;
+    absl::flat_hash_map<std::pair<int, int>, std::pair<int, int>>
+        col_ref_to_rewrite_idx;
     int child_idx = 0;
     for (auto child : join->Children()) {
       int current_offset = 0;
@@ -536,7 +570,8 @@ void EarlyProjection(Operator& op) {
       auto& child_cols = child.get().Schema().Columns();
       for (int i = 0; i < child_cols.size(); i++) {
         if (refs.contains({child_idx, i})) {
-          col_ref_to_rewrite_idx[{child_idx, i}] = current_offset++;
+          col_ref_to_rewrite_idx[{child_idx, i}] = {child_idx,
+                                                    current_offset++};
           continue;
         }
       }
@@ -572,14 +607,15 @@ void EarlyProjection(Operator& op) {
     }
     GetReferencedChildren(select->Expr(), refs);
 
-    absl::flat_hash_map<std::pair<int, int>, int> col_ref_to_rewrite_idx;
+    absl::flat_hash_map<std::pair<int, int>, std::pair<int, int>>
+        col_ref_to_rewrite_idx;
     int current_offset = 0;
     auto& child = select->Child();
     auto& child_schema = child.MutableSchema();
     auto& child_cols = child.Schema().Columns();
     for (int i = 0; i < child_cols.size(); i++) {
       if (refs.contains({0, i})) {
-        col_ref_to_rewrite_idx[{0, i}] = current_offset++;
+        col_ref_to_rewrite_idx[{0, i}] = {0, current_offset++};
         continue;
       }
     }
@@ -597,6 +633,11 @@ void EarlyProjection(Operator& op) {
 
     // recurse to child
     EarlyProjection(child);
+    return;
+  }
+
+  if (auto output = dynamic_cast<OutputOperator*>(&op)) {
+    EarlyProjection(output->Child());
     return;
   }
 

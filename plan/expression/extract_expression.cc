@@ -33,6 +33,7 @@ ExtractValue ExtractExpression::ValueToExtract() const {
 
 nlohmann::json ExtractExpression::ToJson() const {
   nlohmann::json j;
+  j["type"] = magic_enum::enum_name(this->Type());
   j["extract"] = magic_enum::enum_name(value_to_extract_);
   j["child"] = Child().ToJson();
   return j;

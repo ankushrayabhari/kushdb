@@ -14,8 +14,6 @@ class ExtractExpression : public UnaryExpression {
  public:
   ExtractExpression(std::unique_ptr<Expression> child, ExtractValue value);
 
-  catalog::SqlType Type() const;
-
   void Accept(ExpressionVisitor& visitor) override;
   void Accept(ImmutableExpressionVisitor& visitor) const override;
 

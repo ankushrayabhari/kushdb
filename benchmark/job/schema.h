@@ -99,7 +99,7 @@ kush::catalog::Database Schema() {
     table.Insert("nr_order", SqlType::INT, "benchmark/job/data/ci_nr_order.kdb",
                  "benchmark/job/data/ci_nr_order_null.kdb",
                  "benchmark/job/data/ci_nr_order.kdbindex");
-    table.Insert("role_id", SqlType::TEXT, "benchmark/job/data/ci_role_id.kdb",
+    table.Insert("role_id", SqlType::INT, "benchmark/job/data/ci_role_id.kdb",
                  "", "benchmark/job/data/ci_role_id.kdbindex");
   }
 

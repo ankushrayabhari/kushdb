@@ -10,6 +10,8 @@
 #include "absl/time/civil_time.h"
 #include "absl/time/time.h"
 
+#include "magic_enum.hpp"
+
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 
@@ -119,37 +121,38 @@ void LiteralExpression::Visit(
 }
 
 nlohmann::json LiteralExpression::ToJson() const {
-  nlohmann::json res;
+  nlohmann::json j;
+  j["type"] = magic_enum::enum_name(this->Type());
   Visit(
       [&](int16_t v, bool null) {
-        res["value"] = v;
-        res["null"] = null;
+        j["value"] = v;
+        j["null"] = null;
       },
       [&](int32_t v, bool null) {
-        res["value"] = v;
-        res["null"] = null;
+        j["value"] = v;
+        j["null"] = null;
       },
       [&](int64_t v, bool null) {
-        res["value"] = v;
-        res["null"] = null;
+        j["value"] = v;
+        j["null"] = null;
       },
       [&](double v, bool null) {
-        res["value"] = v;
-        res["null"] = null;
+        j["value"] = v;
+        j["null"] = null;
       },
       [&](std::string v, bool null) {
-        res["value"] = v;
-        res["null"] = null;
+        j["value"] = v;
+        j["null"] = null;
       },
       [&](bool v, bool null) {
-        res["value"] = v;
-        res["null"] = null;
+        j["value"] = v;
+        j["null"] = null;
       },
       [&](absl::CivilDay v, bool null) {
-        res["value"] = absl::FormatCivilTime(v);
-        res["null"] = null;
+        j["value"] = absl::FormatCivilTime(v);
+        j["null"] = null;
       });
-  return res;
+  return j;
 }
 
 void LiteralExpression::Accept(ExpressionVisitor& visitor) {

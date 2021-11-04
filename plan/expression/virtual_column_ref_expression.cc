@@ -2,6 +2,8 @@
 
 #include <optional>
 
+#include "magic_enum.hpp"
+
 #include "catalog/sql_type.h"
 #include "nlohmann/json.hpp"
 #include "plan/expression/expression.h"
@@ -18,6 +20,7 @@ int VirtualColumnRefExpression::GetColumnIdx() const { return column_idx_; }
 
 nlohmann::json VirtualColumnRefExpression::ToJson() const {
   nlohmann::json j;
+  j["type"] = magic_enum::enum_name(this->Type());
   j["virt_column_idx"] = column_idx_;
   return j;
 }

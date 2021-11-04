@@ -57,7 +57,8 @@ AggregateExpression::AggregateExpression(AggregateType type,
 
 nlohmann::json AggregateExpression::ToJson() const {
   nlohmann::json j;
-  j["agg"] = magic_enum::enum_name(type_);
+  j["type"] = magic_enum::enum_name(this->Type());
+  j["agg_type"] = magic_enum::enum_name(type_);
   j["child"] = Child().ToJson();
   return j;
 }

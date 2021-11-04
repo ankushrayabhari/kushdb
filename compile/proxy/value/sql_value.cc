@@ -73,6 +73,8 @@ std::unique_ptr<IRValue> CopyIRValue(catalog::SqlType t, IRValue& v) {
     case catalog::SqlType::TEXT:
       return dynamic_cast<String&>(v).ToPointer();
   }
+
+  throw std::runtime_error("Unknown type");
 }
 
 SQLValue::SQLValue(const SQLValue& rhs)
