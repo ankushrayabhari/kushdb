@@ -128,7 +128,7 @@ std::unique_ptr<Operator> RegionNationCustomerOrdersLineitemSupplier() {
   auto lineitem = ScanLineitem();
   auto supplier = ScanSupplier();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+  std::vector<std::unique_ptr<Expression>> conditions;
   conditions.push_back(
       Eq(ColRef(region, "r_regionkey", 0), ColRef(nation, "n_regionkey", 1)));
   conditions.push_back(

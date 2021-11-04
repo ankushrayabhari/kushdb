@@ -57,7 +57,7 @@ TEST_P(SkinnerJoinTest, TextCol) {
       s2 = std::make_unique<ScanOperator>(std::move(schema), db["people"]);
     }
 
-    std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+    std::vector<std::unique_ptr<Expression>> conditions;
     conditions.push_back(Eq(ColRef(s1, "name", 0), ColRef(s2, "name", 1)));
 
     OperatorSchema schema;

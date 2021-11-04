@@ -79,7 +79,7 @@ std::unique_ptr<Operator> SubqueryNationSupplierPartsupp() {
   auto supplier = ScanSupplier();
   auto partsupp = SubqueryScanPartsupp();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+  std::vector<std::unique_ptr<Expression>> conditions;
   conditions.push_back(
       Eq(ColRef(nation, "n_nationkey", 0), ColRef(supplier, "s_nationkey", 1)));
   conditions.push_back(
@@ -127,7 +127,7 @@ std::unique_ptr<Operator> NationSupplierPartsupp() {
   auto supplier = ScanSupplier();
   auto partsupp = ScanPartsupp();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+  std::vector<std::unique_ptr<Expression>> conditions;
   conditions.push_back(
       Eq(ColRef(nation, "n_nationkey", 0), ColRef(supplier, "s_nationkey", 1)));
   conditions.push_back(

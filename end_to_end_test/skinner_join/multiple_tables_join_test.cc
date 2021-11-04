@@ -54,7 +54,7 @@ TEST_P(SkinnerJoinTest, MultipleTablesJoin) {
     std::unique_ptr<Operator> s3 = Scan(db);
     std::unique_ptr<Operator> s4 = Scan(db);
 
-    std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+    std::vector<std::unique_ptr<Expression>> conditions;
     conditions.push_back(Eq(ColRef(s1, "id", 0), ColRef(s2, "id", 1)));
     conditions.push_back(Eq(ColRef(s2, "num2", 1), ColRef(s3, "num2", 2)));
     conditions.push_back(Eq(ColRef(s2, "id", 1), ColRef(s4, "id", 3)));

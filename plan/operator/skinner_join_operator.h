@@ -12,12 +12,12 @@ namespace kush::plan {
 
 class SkinnerJoinOperator final : public Operator {
  public:
-  SkinnerJoinOperator(
-      OperatorSchema schema, std::vector<std::unique_ptr<Operator>> children,
-      std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions);
+  SkinnerJoinOperator(OperatorSchema schema,
+                      std::vector<std::unique_ptr<Operator>> children,
+                      std::vector<std::unique_ptr<Expression>> conditions);
 
-  std::vector<std::reference_wrapper<const plan::BinaryArithmeticExpression>>
-  Conditions() const;
+  std::vector<std::reference_wrapper<const plan::Expression>> Conditions()
+      const;
 
   void Accept(OperatorVisitor& visitor) override;
   void Accept(ImmutableOperatorVisitor& visitor) const override;
@@ -25,7 +25,7 @@ class SkinnerJoinOperator final : public Operator {
   nlohmann::json ToJson() const override;
 
  private:
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions_;
+  std::vector<std::unique_ptr<Expression>> conditions_;
 };
 
 }  // namespace kush::plan

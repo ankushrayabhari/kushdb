@@ -90,7 +90,7 @@ std::unique_ptr<Operator> LineitemOrders() {
   auto lineitem = SelectLineitem();
   auto orders = ScanOrders();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+  std::vector<std::unique_ptr<Expression>> conditions;
   conditions.push_back(
       Eq(ColRef(lineitem, "l_orderkey", 0), ColRef(orders, "o_orderkey", 1)));
 

@@ -106,7 +106,7 @@ std::unique_ptr<Operator> CustomerOrdersLineitem() {
   auto orders = SelectOrders();
   auto lineitem = SelectLineitem();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+  std::vector<std::unique_ptr<Expression>> conditions;
   conditions.push_back(
       Eq(ColRef(customer, "c_custkey", 0), ColRef(orders, "o_custkey", 1)));
   conditions.push_back(

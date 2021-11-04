@@ -185,7 +185,7 @@ std::unique_ptr<Operator> PartLineitem() {
   auto part = SelectPart();
   auto lineitem = SelectLineitem();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+  std::vector<std::unique_ptr<Expression>> conditions;
   conditions.push_back(
       Eq(ColRef(part, "p_partkey", 0), ColRef(lineitem, "l_partkey", 1)));
 

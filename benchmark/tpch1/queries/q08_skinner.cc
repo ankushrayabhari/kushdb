@@ -157,7 +157,7 @@ std::unique_ptr<Operator> Join() {
   auto n2 = ScanNationN2();
   auto region = SelectRegion();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+  std::vector<std::unique_ptr<Expression>> conditions;
   conditions.push_back(
       Eq(ColRef(part, "p_partkey", 0), ColRef(lineitem, "l_partkey", 2)));
   conditions.push_back(

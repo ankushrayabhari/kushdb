@@ -111,7 +111,7 @@ std::unique_ptr<Operator> NationOrdersCustomerLineitem() {
   auto nation = ScanNation();
   auto lineitem = SelectLineitem();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+  std::vector<std::unique_ptr<Expression>> conditions;
   conditions.push_back(
       Eq(ColRef(orders, "o_custkey", 0), ColRef(customer, "c_custkey", 1)));
   conditions.push_back(

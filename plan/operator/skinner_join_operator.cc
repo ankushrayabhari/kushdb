@@ -13,12 +13,11 @@ namespace kush::plan {
 
 SkinnerJoinOperator::SkinnerJoinOperator(
     OperatorSchema schema, std::vector<std::unique_ptr<Operator>> children,
-    std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions)
+    std::vector<std::unique_ptr<Expression>> conditions)
     : Operator(std::move(schema), std::move(children)),
       conditions_(std::move(conditions)) {}
 
-std::vector<
-    std::reference_wrapper<const kush::plan::BinaryArithmeticExpression>>
+std::vector<std::reference_wrapper<const kush::plan::Expression>>
 SkinnerJoinOperator::Conditions() const {
   return util::ImmutableReferenceVector(conditions_);
 }

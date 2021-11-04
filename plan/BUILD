@@ -23,9 +23,10 @@ cc_library(
         "//plan/expression:literal_expression",
         "//plan/expression:virtual_column_ref_expression",
         "//plan/operator",
-        "//plan/operator:cross_product_operator",
         "//plan/operator:group_by_aggregate_operator",
         "//plan/operator:scan_operator",
         "//plan/operator:select_operator",
+        "//plan/operator:skinner_join_operator",
+        "//util:vector_util",
     ],
 )

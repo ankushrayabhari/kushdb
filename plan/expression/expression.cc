@@ -18,6 +18,10 @@ std::vector<std::reference_wrapper<const Expression>> Expression::Children()
   return util::ImmutableReferenceVector(children_);
 }
 
+std::vector<std::unique_ptr<Expression>> Expression::DestroyAndGetChildren() {
+  return std::move(children_);
+}
+
 bool Expression::Nullable() const { return nullable_; }
 
 catalog::SqlType Expression::Type() const { return type_; }

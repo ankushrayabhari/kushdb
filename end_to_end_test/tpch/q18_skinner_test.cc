@@ -105,7 +105,7 @@ std::unique_ptr<Operator> SubqueryOrdersCustomerLineitem() {
   auto customer = ScanCustomer();
   auto lineitem = ScanLinetem();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+  std::vector<std::unique_ptr<Expression>> conditions;
   conditions.push_back(
       Eq(ColRef(subquery, "l_orderkey", 0), ColRef(orders, "o_orderkey", 1)));
   conditions.push_back(

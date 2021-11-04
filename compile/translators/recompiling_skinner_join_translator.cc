@@ -44,8 +44,7 @@ int IndexAvailableForTable(
     std::vector<absl::btree_set<int>>& predicates_per_table,
     absl::flat_hash_set<int>& available_tables,
     absl::flat_hash_set<int>& evaluated_predicates,
-    const std::vector<
-        std::reference_wrapper<const kush::plan::BinaryArithmeticExpression>>&
+    const std::vector<std::reference_wrapper<const kush::plan::Expression>>&
         conditions) {
   for (int predicate_idx : predicates_per_table[table_idx]) {
     if (evaluated_predicates.contains(predicate_idx)) {

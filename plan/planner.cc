@@ -14,22 +14,25 @@
 #include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
-#include "plan/operator/cross_product_operator.h"
 #include "plan/operator/group_by_aggregate_operator.h"
 #include "plan/operator/operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_join_operator.h"
+#include "util/vector_util.h"
 
 namespace kush::plan {
 
-std::unique_ptr<Operator> Planner::Plan(const parse::Table& table,
-                                        int child_idx) {
+std::vector<std::unique_ptr<Operator>> Planner::Plan(const parse::Table& table,
+                                                     int child_idx) {
   if (auto base_table = dynamic_cast<const parse::BaseTable*>(&table)) {
     auto table_name = base_table->Name();
     auto alias = base_table->Alias();
     const auto& db = catalog::CatalogManager::Get().Current();
     if (!db.Contains(table_name)) {
-      throw std::runtime_error("Unknown table");
+      std::string result = "Unknown table ";
+      result += table_name;
+      throw std::runtime_error(result);
     }
 
     const auto& table = db[table_name];
@@ -53,7 +56,9 @@ std::unique_ptr<Operator> Planner::Plan(const parse::Table& table,
 
     OperatorSchema schema;
     schema.AddGeneratedColumns(table);
-    return std::make_unique<plan::ScanOperator>(std::move(schema), table);
+    std::unique_ptr<Operator> op =
+        std::make_unique<plan::ScanOperator>(std::move(schema), table);
+    return util::MakeVector(std::move(op));
   }
 
   if (auto cross_product =
@@ -63,13 +68,14 @@ std::unique_ptr<Operator> Planner::Plan(const parse::Table& table,
 
     int child_idx = 0;
     for (auto table : cross_product->Children()) {
-      children.push_back(Plan(table.get(), child_idx));
+      for (auto& x : Plan(table.get(), child_idx)) {
+        children.push_back(std::move(x));
+      }
       schema.AddPassthroughColumns(*children.back(), child_idx);
       child_idx++;
     }
 
-    return std::make_unique<CrossProductOperator>(std::move(schema),
-                                                  std::move(children));
+    return children;
   }
 
   throw std::runtime_error("Unknown table type.");
@@ -333,16 +339,97 @@ std::unique_ptr<Expression> Planner::Plan(const parse::Expression& expr) {
   throw std::runtime_error("Unknown expression");
 }
 
+std::vector<std::unique_ptr<Expression>> Decompose(
+    std::unique_ptr<Expression> e) {
+  auto e_raw = e.get();
+  if (auto v = dynamic_cast<BinaryArithmeticExpression*>(e_raw)) {
+    if (v->OpType() == BinaryArithmeticExpressionType::AND) {
+      std::vector<std::unique_ptr<Expression>> results;
+      auto children = v->DestroyAndGetChildren();
+      results = Decompose(std::move(children[0]));
+      auto right = Decompose(std::move(children[1]));
+
+      for (auto& right_expr : right) {
+        results.push_back(std::move(right_expr));
+      }
+
+      return results;
+    }
+  }
+
+  std::vector<std::unique_ptr<Expression>> result;
+  result.push_back(std::move(e));
+  return result;
+}
+
+void GetReferencedChildren(const Expression& expr,
+                           std::unordered_set<int>& result) {
+  if (auto v = dynamic_cast<const plan::ColumnRefExpression*>(&expr)) {
+    result.insert(v->GetChildIdx());
+    return;
+  }
+
+  for (auto c : expr.Children()) {
+    GetReferencedChildren(c.get(), result);
+  }
+}
+
 std::unique_ptr<Operator> Planner::Plan(const parse::SelectStatement& stmt) {
-  auto result = Plan(stmt.From());
+  std::unique_ptr<Operator> result;
+  {
+    auto base_tables = Plan(stmt.From());
+    std::vector<std::vector<std::unique_ptr<Expression>>> unary_preds_per_table(
+        base_tables.size());
+    std::vector<std::unique_ptr<Expression>> join_preds;
 
-  if (auto where = stmt.Where()) {
-    auto expr = Plan(*where);
+    auto exprs = Decompose(Plan(*stmt.Where()));
+    for (auto& expr : exprs) {
+      std::unordered_set<int> referenced_children;
+      GetReferencedChildren(*expr, referenced_children);
+      if (referenced_children.size() == 1) {
+        // unary expression
+        unary_preds_per_table[*referenced_children.begin()].push_back(
+            std::move(expr));
+      } else {
+        join_preds.push_back(std::move(expr));
+      }
+    }
 
-    OperatorSchema schema;
-    schema.AddPassthroughColumns(*result);
-    result = std::make_unique<SelectOperator>(
-        std::move(schema), std::move(result), std::move(expr));
+    // for each unary predicate, generate a scan + filter
+    std::vector<std::unique_ptr<Operator>> input_tables;
+    for (int i = 0; i < base_tables.size(); i++) {
+      if (unary_preds_per_table[i].empty()) {
+        input_tables.push_back(std::move(base_tables[i]));
+        continue;
+      }
+
+      auto& preds = unary_preds_per_table[i];
+
+      std::unique_ptr<Expression> filter = std::move(preds.back());
+
+      for (int i = preds.size() - 2; i >= 0; i--) {
+        filter = std::make_unique<BinaryArithmeticExpression>(
+            BinaryArithmeticExpressionType::AND, std::move(preds[i]),
+            std::move(filter));
+      }
+
+      OperatorSchema schema;
+      schema.AddPassthroughColumns(*base_tables[i]);
+      input_tables.push_back(std::make_unique<SelectOperator>(
+          std::move(schema), std::move(base_tables[i]), std::move(filter)));
+    }
+
+    // generate a skinner join with all the join predicates
+    if (input_tables.size() == 1) {
+      result = std::move(input_tables[0]);
+    } else {
+      OperatorSchema schema;
+      for (auto& v : input_tables) {
+        schema.AddPassthroughColumns(*v);
+      }
+      result = std::make_unique<SkinnerJoinOperator>(
+          std::move(schema), std::move(input_tables), std::move(join_preds));
+    }
   }
 
   // for now just no group by handling, only aggregates

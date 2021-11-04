@@ -57,7 +57,7 @@ TEST_P(SkinnerJoinTest, SmallIntCol) {
       s2 = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
-    std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+    std::vector<std::unique_ptr<Expression>> conditions;
     conditions.push_back(Eq(ColRef(s1, "num1", 0), ColRef(s2, "num1", 1)));
 
     OperatorSchema schema;

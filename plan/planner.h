@@ -31,7 +31,7 @@ class Planner {
   absl::flat_hash_map<std::pair<std::string, std::string>, ColumnInfo>
       table_col_to_info_;
 
-  std::unique_ptr<Operator> Plan(const parse::Table& table, int child_idx = 0);
+  std::vector<std::unique_ptr<Operator>> Plan(const parse::Table& table, int child_idx = 0);
   std::unique_ptr<Expression> Plan(const parse::AggregateExpression& expr);
   std::unique_ptr<Expression> Plan(
       const parse::UnaryArithmeticExpression& expr);

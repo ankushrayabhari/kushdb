@@ -109,7 +109,7 @@ std::unique_ptr<Operator> Join() {
   auto orders = ScanOrders();
   auto nation = ScanNation();
 
-  std::vector<std::unique_ptr<BinaryArithmeticExpression>> conditions;
+  std::vector<std::unique_ptr<Expression>> conditions;
   conditions.push_back(
       Eq(ColRef(supplier, "s_suppkey", 0), ColRef(lineitem, "l_suppkey", 1)));
   conditions.push_back(
