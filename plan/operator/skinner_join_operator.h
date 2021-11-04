@@ -18,6 +18,7 @@ class SkinnerJoinOperator final : public Operator {
 
   std::vector<std::reference_wrapper<const plan::Expression>> Conditions()
       const;
+  std::vector<std::reference_wrapper<plan::Expression>> MutableConditions();
 
   void Accept(OperatorVisitor& visitor) override;
   void Accept(ImmutableOperatorVisitor& visitor) const override;

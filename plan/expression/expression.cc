@@ -18,6 +18,10 @@ std::vector<std::reference_wrapper<const Expression>> Expression::Children()
   return util::ImmutableReferenceVector(children_);
 }
 
+std::vector<std::reference_wrapper<Expression>> Expression::MutableChildren() {
+  return util::ReferenceVector(children_);
+}
+
 std::vector<std::unique_ptr<Expression>> Expression::DestroyAndGetChildren() {
   return std::move(children_);
 }

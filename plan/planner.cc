@@ -1,5 +1,7 @@
 #include "plan/planner.h"
 
+#include "absl/container/flat_hash_set.h"
+
 #include "catalog/catalog_manager.h"
 #include "parse/expression/aggregate_expression.h"
 #include "parse/expression/arithmetic_expression.h"
@@ -452,9 +454,164 @@ std::unique_ptr<Operator> Planner::Plan(const parse::SelectStatement& stmt) {
       std::vector<std::unique_ptr<Expression>>(), std::move(aggs));
 }
 
+void GetReferencedChildren(const Expression& expr,
+                           absl::flat_hash_set<std::pair<int, int>>& result) {
+  if (auto v = dynamic_cast<const plan::ColumnRefExpression*>(&expr)) {
+    result.emplace(v->GetChildIdx(), v->GetColumnIdx());
+    return;
+  }
+
+  for (auto c : expr.Children()) {
+    GetReferencedChildren(c.get(), result);
+  }
+}
+
+void RewriteColumnReferences(
+    Expression& expr, const absl::flat_hash_map<std::pair<int, int>, int>&
+                          col_ref_to_rewrite_idx) {
+  if (auto v = dynamic_cast<plan::ColumnRefExpression*>(&expr)) {
+    std::pair<int, int> key{v->GetChildIdx(), v->GetColumnIdx()};
+    if (col_ref_to_rewrite_idx.contains(key)) {
+      v->SetColumnIdx(col_ref_to_rewrite_idx.at(key));
+    }
+    return;
+  }
+
+  for (auto c : expr.MutableChildren()) {
+    RewriteColumnReferences(c.get(), col_ref_to_rewrite_idx);
+  }
+}
+
+void EarlyProjection(Operator& op) {
+  if (auto group_by = dynamic_cast<GroupByAggregateOperator*>(&op)) {
+    // see which columns the group by references. delete the ones that we don't
+    // and then rewrite.
+    absl::flat_hash_set<std::pair<int, int>> refs;
+    for (auto x : group_by->AggExprs()) {
+      GetReferencedChildren(x.get(), refs);
+    }
+
+    absl::flat_hash_map<std::pair<int, int>, int> col_ref_to_rewrite_idx;
+    int current_offset = 0;
+    auto& child = group_by->Child();
+    auto& child_schema = child.MutableSchema();
+    auto& child_cols = child.Schema().Columns();
+    for (int i = 0; i < child_cols.size(); i++) {
+      if (refs.contains({0, i})) {
+        col_ref_to_rewrite_idx[{0, i}] = current_offset++;
+        continue;
+      }
+    }
+
+    for (int i = child_cols.size() - 1; i >= 0; i--) {
+      if (!refs.contains({0, i})) {
+        child_schema.RemoveColumn(i);
+      }
+    }
+
+    for (auto x : group_by->MutableAggExprs()) {
+      RewriteColumnReferences(x.get(), col_ref_to_rewrite_idx);
+    }
+
+    // recurse to child
+    EarlyProjection(child);
+    return;
+  }
+
+  if (auto join = dynamic_cast<SkinnerJoinOperator*>(&op)) {
+    // collect the columns based on the output schema and join predicates
+    absl::flat_hash_set<std::pair<int, int>> refs;
+    for (auto& x : join->Schema().Columns()) {
+      GetReferencedChildren(x.Expr(), refs);
+    }
+    for (auto x : join->Conditions()) {
+      GetReferencedChildren(x.get(), refs);
+    }
+
+    absl::flat_hash_map<std::pair<int, int>, int> col_ref_to_rewrite_idx;
+    int child_idx = 0;
+    for (auto child : join->Children()) {
+      int current_offset = 0;
+      auto& child_schema = child.get().MutableSchema();
+      auto& child_cols = child.get().Schema().Columns();
+      for (int i = 0; i < child_cols.size(); i++) {
+        if (refs.contains({child_idx, i})) {
+          col_ref_to_rewrite_idx[{child_idx, i}] = current_offset++;
+          continue;
+        }
+      }
+
+      for (int i = child_cols.size() - 1; i >= 0; i--) {
+        if (!refs.contains({child_idx, i})) {
+          child_schema.RemoveColumn(i);
+        }
+      }
+
+      child_idx++;
+    }
+
+    for (auto& x : join->MutableSchema().MutableColumns()) {
+      RewriteColumnReferences(x.MutableExpr(), col_ref_to_rewrite_idx);
+    }
+    for (auto x : join->MutableConditions()) {
+      RewriteColumnReferences(x.get(), col_ref_to_rewrite_idx);
+    }
+
+    for (auto child : join->Children()) {
+      EarlyProjection(child.get());
+    }
+    return;
+  }
+
+  if (auto select = dynamic_cast<SelectOperator*>(&op)) {
+    // see which columns the group by references. delete the ones that we don't
+    // and then rewrite.
+    absl::flat_hash_set<std::pair<int, int>> refs;
+    for (auto& x : select->Schema().Columns()) {
+      GetReferencedChildren(x.Expr(), refs);
+    }
+    GetReferencedChildren(select->Expr(), refs);
+
+    absl::flat_hash_map<std::pair<int, int>, int> col_ref_to_rewrite_idx;
+    int current_offset = 0;
+    auto& child = select->Child();
+    auto& child_schema = child.MutableSchema();
+    auto& child_cols = child.Schema().Columns();
+    for (int i = 0; i < child_cols.size(); i++) {
+      if (refs.contains({0, i})) {
+        col_ref_to_rewrite_idx[{0, i}] = current_offset++;
+        continue;
+      }
+    }
+
+    for (int i = child_cols.size() - 1; i >= 0; i--) {
+      if (!refs.contains({0, i})) {
+        child_schema.RemoveColumn(i);
+      }
+    }
+
+    for (auto& x : select->MutableSchema().MutableColumns()) {
+      RewriteColumnReferences(x.MutableExpr(), col_ref_to_rewrite_idx);
+    }
+    RewriteColumnReferences(select->MutableExpr(), col_ref_to_rewrite_idx);
+
+    // recurse to child
+    EarlyProjection(child);
+    return;
+  }
+
+  if (auto scan = dynamic_cast<ScanOperator*>(&op)) {
+    return;
+  }
+
+  throw std::runtime_error("Not supported.");
+}
+
 std::unique_ptr<Operator> Planner::Plan(const parse::Statement& stmt) {
   if (auto v = dynamic_cast<const parse::SelectStatement*>(&stmt)) {
-    return Plan(*v);
+    auto result = Plan(*v);
+    EarlyProjection(*result);
+    return result;
   }
 
   throw std::runtime_error("Unknown statement");

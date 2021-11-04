@@ -34,4 +34,6 @@ void ColumnRefExpression::Accept(ImmutableExpressionVisitor& visitor) const {
   return visitor.Visit(*this);
 }
 
+void ColumnRefExpression::SetColumnIdx(int x) { column_idx_ = x; }
+
 }  // namespace kush::plan

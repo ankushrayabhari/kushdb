@@ -34,4 +34,6 @@ void SelectOperator::Accept(ImmutableOperatorVisitor& visitor) const {
 
 const Expression& SelectOperator::Expr() const { return *expression_; }
 
+Expression& SelectOperator::MutableExpr() { return *expression_; }
+
 }  // namespace kush::plan

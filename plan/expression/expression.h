@@ -17,6 +17,7 @@ class Expression {
   virtual ~Expression() = default;
 
   std::vector<std::reference_wrapper<const Expression>> Children() const;
+  std::vector<std::reference_wrapper<Expression>> MutableChildren();
   catalog::SqlType Type() const;
   bool Nullable() const;
 

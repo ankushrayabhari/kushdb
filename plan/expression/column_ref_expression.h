@@ -22,6 +22,8 @@ class ColumnRefExpression : public Expression {
 
   nlohmann::json ToJson() const override;
 
+  void SetColumnIdx(int x);
+
  private:
   int child_idx_;
   int column_idx_;

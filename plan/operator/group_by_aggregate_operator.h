@@ -22,6 +22,7 @@ class GroupByAggregateOperator final : public UnaryOperator {
   std::vector<std::reference_wrapper<const Expression>> GroupByExprs() const;
   std::vector<std::reference_wrapper<const AggregateExpression>> AggExprs()
       const;
+  std::vector<std::reference_wrapper<AggregateExpression>> MutableAggExprs();
 
   void Accept(OperatorVisitor& visitor) override;
   void Accept(ImmutableOperatorVisitor& visitor) const override;

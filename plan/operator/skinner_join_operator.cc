@@ -22,6 +22,11 @@ SkinnerJoinOperator::Conditions() const {
   return util::ImmutableReferenceVector(conditions_);
 }
 
+std::vector<std::reference_wrapper<kush::plan::Expression>>
+SkinnerJoinOperator::MutableConditions() {
+  return util::ReferenceVector(conditions_);
+}
+
 nlohmann::json SkinnerJoinOperator::ToJson() const {
   nlohmann::json j;
   j["op"] = "SKINNER_JOIN";

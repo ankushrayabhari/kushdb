@@ -22,12 +22,9 @@ OperatorSchema::Column::Column(std::string_view name,
 
 std::string_view OperatorSchema::Column::Name() const { return name_; }
 
-Expression& OperatorSchema::Column::Expr() const {
-  if (expr_ == nullptr) {
-    throw std::runtime_error("Generated column has no derived expression");
-  }
-  return *expr_;
-}
+const Expression& OperatorSchema::Column::Expr() const { return *expr_; }
+
+Expression& OperatorSchema::Column::MutableExpr() { return *expr_; }
 
 void OperatorSchema::AddDerivedColumn(std::string_view name,
                                       std::unique_ptr<Expression> expr) {
@@ -103,8 +100,17 @@ const std::vector<OperatorSchema::Column>& OperatorSchema::Columns() const {
   return columns_;
 }
 
+std::vector<OperatorSchema::Column>& OperatorSchema::MutableColumns() {
+  return columns_;
+}
+
 int OperatorSchema::GetColumnIndex(std::string_view name) const {
   return column_name_to_idx_.at(name);
+}
+
+void OperatorSchema::RemoveColumn(int idx) {
+  column_name_to_idx_.erase(columns_[idx].Name());
+  columns_.erase(columns_.begin() + idx);
 }
 
 nlohmann::json OperatorSchema::ToJson() const {

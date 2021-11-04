@@ -19,6 +19,7 @@ class Operator : public OperatorSchemaProvider {
   virtual ~Operator() = default;
 
   const OperatorSchema& Schema() const override;
+  OperatorSchema& MutableSchema() override;
 
   virtual void Accept(OperatorVisitor& visitor) = 0;
   virtual void Accept(ImmutableOperatorVisitor& visitor) const = 0;

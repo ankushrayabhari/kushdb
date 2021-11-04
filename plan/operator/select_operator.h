@@ -17,6 +17,7 @@ class SelectOperator final : public UnaryOperator {
                  std::unique_ptr<Expression> expression);
 
   const Expression& Expr() const;
+  Expression& MutableExpr();
 
   void Accept(OperatorVisitor& visitor) override;
   void Accept(ImmutableOperatorVisitor& visitor) const override;

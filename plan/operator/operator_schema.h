@@ -22,14 +22,19 @@ class OperatorSchema {
    public:
     Column(std::string_view name, std::unique_ptr<Expression> expr);
     std::string_view Name() const;
-    Expression& Expr() const;
+
+    Expression& MutableExpr();
+    const Expression& Expr() const;
 
    private:
     std::string name_;
     std::unique_ptr<Expression> expr_;
   };
 
+  std::vector<Column>& MutableColumns();
   const std::vector<Column>& Columns() const;
+  void RemoveColumn(int idx);
+
   int GetColumnIndex(std::string_view name) const;
   nlohmann::json ToJson() const;
   void AddDerivedColumn(std::string_view name,
@@ -55,6 +60,7 @@ class OperatorSchema {
 class OperatorSchemaProvider {
  public:
   virtual const OperatorSchema& Schema() const = 0;
+  virtual OperatorSchema& MutableSchema() = 0;
 };
 
 }  // namespace kush::plan

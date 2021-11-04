@@ -51,4 +51,9 @@ GroupByAggregateOperator::AggExprs() const {
   return util::ImmutableReferenceVector(aggregate_exprs_);
 }
 
+std::vector<std::reference_wrapper<AggregateExpression>>
+GroupByAggregateOperator::MutableAggExprs() {
+  return util::ReferenceVector(aggregate_exprs_);
+}
+
 }  // namespace kush::plan

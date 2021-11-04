@@ -34,6 +34,8 @@ std::vector<std::reference_wrapper<const Operator>> Operator::Children() const {
 
 const OperatorSchema& Operator::Schema() const { return schema_; }
 
+OperatorSchema& Operator::MutableSchema() { return schema_; }
+
 std::optional<std::reference_wrapper<Operator>> Operator::Parent() {
   if (parent_ == nullptr) {
     return std::nullopt;
