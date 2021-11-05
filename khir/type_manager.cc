@@ -269,10 +269,6 @@ int32_t TypeManager::GetTypeSize(Type t) const {
 
 std::pair<int32_t, Type> TypeManager::GetPointerOffset(
     Type t, absl::Span<const int32_t> idx) {
-  std::vector<llvm::Value*> values;
-  for (int32_t i : idx) {
-    values.push_back(builder_->getInt32(i));
-  }
   int32_t offset = idx[0] * GetTypeSize(t);
 
   TypeImpl* result_type = type_id_to_impl_[t.GetID()].get();

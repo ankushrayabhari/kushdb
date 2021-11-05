@@ -13,4 +13,6 @@ int32_t FastForwardBucket(ColumnIndexBucket* bucket, int32_t prev_tuple);
 
 int32_t GetBucketValue(ColumnIndexBucket* bucket, int32_t idx);
 
+ColumnIndexBucket* BucketListGet(ColumnIndexBucket* bucket, int32_t idx);
+
 }  // namespace kush::runtime

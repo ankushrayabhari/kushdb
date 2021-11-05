@@ -330,11 +330,12 @@ void ProgramBuilder::UpdatePhiMember(Value phi, Value phi_member) {
 }
 
 // Memory
-Value ProgramBuilder::Alloca(Type t) {
+Value ProgramBuilder::Alloca(Type t, int num_values) {
   auto type = type_manager_.PointerType(t);
   return GetCurrentFunction().Append(Type3InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::ALLOCA))
                                          .SetTypeID(type.GetID())
+                                         .SetArg(num_values)
                                          .Build());
 }
 

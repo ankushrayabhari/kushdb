@@ -21,9 +21,8 @@ constexpr std::string_view FastForwardBucketName(
 constexpr std::string_view ColumnIndexBucketGetName(
     "kush::runtime::ColumnIndexBucket::GetBucketValue");
 
-ColumnIndexBucket::ColumnIndexBucket(khir::ProgramBuilder& program)
-    : program_(program),
-      value_(program_.Alloca(program_.GetStructType(ColumnIndexBucketName))) {}
+constexpr std::string_view BucketListGetName(
+    "kush::runtime::ColumnIndexBucket::BucketListGet");
 
 ColumnIndexBucket::ColumnIndexBucket(khir::ProgramBuilder& program,
                                      khir::Value v)
@@ -76,9 +75,40 @@ void ColumnIndexBucket::ForwardDeclare(khir::ProgramBuilder& program) {
       ColumnIndexBucketGetName, program.I32Type(),
       {index_bucket_ptr_type, program.I32Type()},
       reinterpret_cast<void*>(&runtime::GetBucketValue));
+
+  program.DeclareExternalFunction(
+      BucketListGetName, index_bucket_ptr_type,
+      {index_bucket_ptr_type, program.I32Type()},
+      reinterpret_cast<void*>(&runtime::BucketListGet));
 }
 
 khir::Value ColumnIndexBucket::Get() const { return value_; }
+
+ColumnIndexBucketArray::ColumnIndexBucketArray(khir::ProgramBuilder& program,
+                                               int max_size)
+    : program_(program),
+      value_(program.Alloca(program.GetStructType(ColumnIndexBucketName),
+                            max_size)),
+      idx_value_(program_.Alloca(program_.I32Type())) {
+  program_.StoreI32(idx_value_, program_.ConstI32(0));
+}
+
+Int32 ColumnIndexBucketArray::Size() {
+  return Int32(program_, program_.LoadI32(idx_value_));
+}
+
+ColumnIndexBucket ColumnIndexBucketArray::Get(Int32 idx) {
+  return ColumnIndexBucket(
+      program_, program_.Call(program_.GetFunction(BucketListGetName),
+                              {value_, idx.Get()}));
+}
+
+void ColumnIndexBucketArray::PushBack(const ColumnIndexBucket& bucket) {
+  auto idx = Size();
+  auto dest = Get(idx);
+  dest.Copy(bucket);
+  program_.StoreI32(idx_value_, (idx + 1).Get());
+}
 
 template <catalog::SqlType S>
 std::string_view TypeName() {

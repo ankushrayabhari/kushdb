@@ -33,4 +33,8 @@ int32_t GetBucketValue(ColumnIndexBucket* bucket, int32_t idx) {
   return bucket->data[idx];
 }
 
+ColumnIndexBucket* BucketListGet(ColumnIndexBucket* bucket, int32_t idx) {
+  return &bucket[idx];
+}
+
 }  // namespace kush::runtime

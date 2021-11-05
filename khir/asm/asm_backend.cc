@@ -2769,7 +2769,8 @@ void ASMBackend::TranslateInstr(
 
       auto ptr_type = static_cast<khir::Type>(reader.TypeID());
       auto type = type_manager.GetPointerElementType(ptr_type);
-      auto size = type_manager.GetTypeSize(type);
+      int num_values = reader.Arg();
+      auto size = type_manager.GetTypeSize(type) * num_values;
       size += (16 - (size % 16)) % 16;
       assert(size % 16 == 0);
 

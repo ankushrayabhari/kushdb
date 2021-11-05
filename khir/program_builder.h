@@ -224,7 +224,7 @@ class ProgramBuilder {
   Value ConstPtr(void* t);
   Value NullPtr(Type t);
   Value PointerCast(Value v, Type t);
-  Value Alloca(Type size);
+  Value Alloca(Type t, int num_values = 1);
   Value GetElementPtr(Type t, Value ptr, absl::Span<const int32_t> idx);
   Value LoadPtr(Value ptr);
   void StorePtr(Value ptr, Value v);

@@ -10,7 +10,6 @@ namespace kush::compile::proxy {
 
 class ColumnIndexBucket {
  public:
-  ColumnIndexBucket(khir::ProgramBuilder& program);
   ColumnIndexBucket(khir::ProgramBuilder& program, khir::Value v);
 
   Int32 Size();
@@ -25,6 +24,20 @@ class ColumnIndexBucket {
  private:
   khir::ProgramBuilder& program_;
   khir::Value value_;
+};
+
+class ColumnIndexBucketArray {
+ public:
+  ColumnIndexBucketArray(khir::ProgramBuilder& program, int max_size);
+
+  Int32 Size();
+  void PushBack(const ColumnIndexBucket& bucket);
+  ColumnIndexBucket Get(Int32 idx);
+
+ private:
+  khir::ProgramBuilder& program_;
+  khir::Value value_;
+  khir::Value idx_value_;
 };
 
 class ColumnIndex {

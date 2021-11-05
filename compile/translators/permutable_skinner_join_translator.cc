@@ -51,6 +51,32 @@ bool IsEqualityPredicate(const kush::plan::Expression& predicate) {
   return false;
 }
 
+std::vector<int> IndexesAvailableForTable(
+    int table_idx, std::vector<absl::btree_set<int>>& predicates_per_table,
+    const std::vector<std::reference_wrapper<const kush::plan::Expression>>&
+        conditions) {
+  std::vector<int> result;
+  for (int predicate_idx : predicates_per_table[table_idx]) {
+    const auto& predicate = conditions[predicate_idx].get();
+
+    if (auto eq = dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(
+            &predicate)) {
+      if (auto left_column =
+              dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                  &eq->LeftChild())) {
+        if (auto right_column =
+                dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                    &eq->RightChild())) {
+          // possible to evaluate this via index
+          result.push_back(predicate_idx);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 void PermutableSkinnerJoinTranslator::Produce() {
   auto output_pipeline_func = program_.CurrentBlock();
 
@@ -421,15 +447,15 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
           // for each indexed predicate, if the buffer DNE, then return since
           // no result tuples with current column values.
-          proxy::ColumnIndexBucket bucket(program_);
-          auto bucket_initialized = program_.Alloca(program_.I8Type());
-          program_.StoreI8(bucket_initialized, program_.ConstI8(0));
+          auto index_evaluted_predicates = IndexesAvailableForTable(
+              table_idx, predicates_per_table, conditions);
+          proxy::ColumnIndexBucketArray bucket_list(
+              program_, index_evaluted_predicates.empty()
+                            ? 1
+                            : index_evaluted_predicates.size());
 
-          for (int predicate_idx : predicates_per_table[table_idx]) {
+          for (int predicate_idx : index_evaluted_predicates) {
             const auto& predicate = conditions[predicate_idx].get();
-            if (!IsEqualityPredicate(predicate)) {
-              continue;
-            }
 
             auto flag_ptr = program_.GetElementPtr(
                 flag_array_type, flag_array,
@@ -478,10 +504,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
                         [&]() { program_.Return(budget.Get()); });
                   },
                   [&]() {
-                    auto bucket_from_index = indexes_[index_idx]->GetBucket(
-                        other_side_value.Get() /*other_side_value*/);
-                    bucket.Copy(bucket_from_index);
-                    program_.StoreI8(bucket_initialized, program_.ConstI8(1));
+                    auto bucket_from_index =
+                        indexes_[index_idx]->GetBucket(other_side_value.Get());
+                    bucket_list.PushBack(bucket_from_index);
 
                     proxy::If(
                         program_, bucket_from_index.DoesNotExist(), [&]() {
@@ -506,10 +531,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
           }
 
           auto use_index = proxy::Ternary(
-              program_,
-              proxy::Int8(program_, program_.LoadI8(bucket_initialized)) != 0,
+              program_, bucket_list.Size() > 0,
               [&]() {
-                // TODO: check all buckets
+                auto bucket = bucket_list.Get(proxy::Int32(program_, 0));
                 auto bucket_size = bucket.Size();
 
                 proxy::Loop loop(

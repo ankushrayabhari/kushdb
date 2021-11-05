@@ -646,7 +646,9 @@ void LLVMBackend::TranslateInstr(
       auto ptr_type = static_cast<Type>(reader.TypeID());
       auto elem_type = manager.GetPointerElementType(ptr_type);
       auto t = types_[elem_type.GetID()];
-      values[instr_idx] = builder_->CreateAlloca(t);
+      int num_values = reader.Arg();
+      values[instr_idx] =
+          builder_->CreateAlloca(t, builder_->getInt32(num_values));
       return;
     }
 
