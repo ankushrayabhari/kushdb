@@ -80,7 +80,7 @@ absl::Span<const khir::Value> StructBuilder::DefaultValues() const {
   return values_;
 }
 
-Struct::Struct(khir::ProgramBuilder& program, StructBuilder& fields,
+Struct::Struct(khir::ProgramBuilder& program, const StructBuilder& fields,
                const khir::Value& value)
     : program_(program), fields_(fields), value_(value) {}
 

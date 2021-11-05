@@ -37,7 +37,7 @@ class StructBuilder {
 
 class Struct {
  public:
-  Struct(khir::ProgramBuilder& program, StructBuilder& fields,
+  Struct(khir::ProgramBuilder& program, const StructBuilder& fields,
          const khir::Value& value);
 
   void Pack(const std::vector<SQLValue>& value);
@@ -47,7 +47,7 @@ class Struct {
  private:
   void Store(catalog::SqlType t, khir::Value ptr, const IRValue& v);
   khir::ProgramBuilder& program_;
-  StructBuilder& fields_;
+  const StructBuilder& fields_;
   khir::Value value_;
 };
 
