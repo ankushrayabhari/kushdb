@@ -1426,8 +1426,7 @@ Value ProgramBuilder::SizeOf(Type type) {
   return ConstI64(offset);
 }
 
-Value ProgramBuilder::GetElementPtr(Type t, Value v,
-                                    absl::Span<const int32_t> idx) {
+Value ProgramBuilder::ConstGEP(Type t, Value v, absl::Span<const int32_t> idx) {
   if (!v.IsConstantGlobal()) {
     auto v_instr = GetCurrentFunction().GetInstruction(v);
     auto v_opcode = OpcodeFrom(GenericInstructionReader(v_instr).Opcode());

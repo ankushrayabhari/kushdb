@@ -250,6 +250,16 @@ Type TypeManager::GetPointerElementType(Type ptr_type) const {
       .ElementType();
 }
 
+Type TypeManager::GetArrayElementType(Type ptr_type) const {
+  return dynamic_cast<ArrayTypeImpl&>(*type_id_to_impl_[ptr_type.GetID()])
+      .ElementType();
+}
+
+absl::Span<const Type> TypeManager::GetStructElementTypes(Type ptr_type) const {
+  return dynamic_cast<StructTypeImpl&>(*type_id_to_impl_[ptr_type.GetID()])
+      .ElementTypes();
+}
+
 std::vector<int32_t> TypeManager::GetStructFieldOffsets(Type t) const {
   auto st =
       llvm::dyn_cast<llvm::StructType>(type_id_to_impl_[t.GetID()]->GetLLVM());
@@ -355,6 +365,16 @@ bool TypeManager::IsI64Type(Type t) const { return t.GetID() == 5; }
 
 bool TypeManager::IsPtrType(Type t) const {
   return dynamic_cast<PointerTypeImpl*>(type_id_to_impl_[t.GetID()].get()) !=
+         nullptr;
+}
+
+bool TypeManager::IsArrayType(Type t) const {
+  return dynamic_cast<ArrayTypeImpl*>(type_id_to_impl_[t.GetID()].get()) !=
+         nullptr;
+}
+
+bool TypeManager::IsStructType(Type t) const {
+  return dynamic_cast<StructTypeImpl*>(type_id_to_impl_[t.GetID()].get()) !=
          nullptr;
 }
 

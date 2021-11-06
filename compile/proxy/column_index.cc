@@ -31,11 +31,11 @@ ColumnIndexBucket::ColumnIndexBucket(khir::ProgramBuilder& program,
 void ColumnIndexBucket::Copy(const ColumnIndexBucket& rhs) {
   auto st = program_.GetStructType(ColumnIndexBucketName);
   program_.StorePtr(
-      program_.GetElementPtr(st, value_, {0, 0}),
-      program_.LoadPtr(program_.GetElementPtr(st, rhs.value_, {0, 0})));
+      program_.ConstGEP(st, value_, {0, 0}),
+      program_.LoadPtr(program_.ConstGEP(st, rhs.value_, {0, 0})));
   program_.StoreI32(
-      program_.GetElementPtr(st, value_, {0, 1}),
-      program_.LoadI32(program_.GetElementPtr(st, rhs.value_, {0, 1})));
+      program_.ConstGEP(st, value_, {0, 1}),
+      program_.LoadI32(program_.ConstGEP(st, rhs.value_, {0, 1})));
 }
 
 Int32 ColumnIndexBucket::FastForwardToStart(const Int32& last_tuple) {
@@ -45,7 +45,7 @@ Int32 ColumnIndexBucket::FastForwardToStart(const Int32& last_tuple) {
 }
 
 Int32 ColumnIndexBucket::Size() {
-  auto size_ptr = program_.GetElementPtr(
+  auto size_ptr = program_.ConstGEP(
       program_.GetStructType(ColumnIndexBucketName), value_, {0, 1});
   return Int32(program_, program_.LoadI32(size_ptr));
 }

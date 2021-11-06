@@ -101,13 +101,12 @@ khir::Value DiskMaterializedBuffer::Serialize() {
   auto value = program_.Alloca(serialization_type);
 
   for (int i = 0; i < column_data_.size(); i++) {
-    program_.StorePtr(
-        program_.GetElementPtr(serialization_type, value, {0, 2 * i}),
-        program_.PointerCast(column_data_[i]->Get(), i8_ptr_ty));
+    program_.StorePtr(program_.ConstGEP(serialization_type, value, {0, 2 * i}),
+                      program_.PointerCast(column_data_[i]->Get(), i8_ptr_ty));
 
     if (null_data_[i] != nullptr) {
       program_.StorePtr(
-          program_.GetElementPtr(serialization_type, value, {0, 2 * i + 1}),
+          program_.ConstGEP(serialization_type, value, {0, 2 * i + 1}),
           program_.PointerCast(null_data_[i]->Get(), i8_ptr_ty));
     }
   }

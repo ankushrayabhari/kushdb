@@ -65,9 +65,12 @@ class TypeManager {
   Type GetNamedStructType(std::string_view name);
   Type GetFunctionReturnType(Type func_type) const;
   Type GetPointerElementType(Type ptr_type) const;
+  Type GetArrayElementType(Type ptr_type) const;
   std::pair<int32_t, Type> GetPointerOffset(Type t,
                                             absl::Span<const int32_t> idx);
+  std::pair<std::vector<int>, Type> GEPOffsetsAndResultType();
   std::vector<int32_t> GetStructFieldOffsets(Type t) const;
+  absl::Span<const Type> GetStructElementTypes(Type ptr_type) const;
   int32_t GetTypeSize(Type t) const;
 
   void Translate(TypeTranslator& translator) const;
@@ -80,6 +83,8 @@ class TypeManager {
   bool IsI32Type(Type t) const;
   bool IsI64Type(Type t) const;
   bool IsPtrType(Type t) const;
+  bool IsArrayType(Type t) const;
+  bool IsStructType(Type t) const;
   bool IsFuncType(Type t) const;
 
  private:

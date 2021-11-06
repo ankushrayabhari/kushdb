@@ -16,8 +16,8 @@ TEST(LiveIntervalsTest, SingleBasicBlock) {
 
   auto func = program.CreatePublicFunction(type, {}, "compute");
   auto x_arr = program.Call(ex);
-  auto x1 = program.LoadI32(program.GetElementPtr(type, x_arr, {0}));
-  auto x2 = program.LoadI32(program.GetElementPtr(type, x_arr, {1}));
+  auto x1 = program.LoadI32(program.ConstGEP(type, x_arr, {0}));
+  auto x2 = program.LoadI32(program.ConstGEP(type, x_arr, {1}));
   program.Return(program.AddI32(x1, x2));
 
   auto res =

@@ -420,8 +420,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
     table_functions.push_back(proxy::TableFunction(
         program_, [&](auto& initial_budget, auto& resume_progress) {
           auto handler_ptr =
-              program_.GetElementPtr(handler_pointer_array_type,
-                                     handler_pointer_array, {0, table_idx});
+              program_.ConstGEP(handler_pointer_array_type,
+                                handler_pointer_array, {0, table_idx});
           auto handler = program_.LoadPtr(handler_ptr);
 
           {
@@ -457,7 +457,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
           for (int predicate_idx : index_evaluted_predicates) {
             const auto& predicate = conditions[predicate_idx].get();
 
-            auto flag_ptr = program_.GetElementPtr(
+            auto flag_ptr = program_.ConstGEP(
                 flag_array_type, flag_array,
                 {0,
                  table_predicate_to_flag_idx.at({table_idx, predicate_idx})});
@@ -492,12 +492,12 @@ void PermutableSkinnerJoinTranslator::Produce() {
                     proxy::If(
                         program_, budget == 0,
                         [&]() {
-                          auto idx_ptr = program_.GetElementPtr(
+                          auto idx_ptr = program_.ConstGEP(
                               idx_array_type, idx_array, {0, table_idx});
                           program_.StoreI32(idx_ptr, (cardinality - 1).Get());
                           program_.StoreI32(
-                              program_.GetElementPtr(table_ctr_type,
-                                                     table_ctr_ptr, {0, 0}),
+                              program_.ConstGEP(table_ctr_type, table_ctr_ptr,
+                                                {0, 0}),
                               program_.ConstI32(table_idx));
                           program_.Return(program_.ConstI32(-1));
                         },
@@ -514,13 +514,13 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           proxy::If(
                               program_, budget == 0,
                               [&]() {
-                                auto idx_ptr = program_.GetElementPtr(
+                                auto idx_ptr = program_.ConstGEP(
                                     idx_array_type, idx_array, {0, table_idx});
                                 program_.StoreI32(idx_ptr,
                                                   (cardinality - 1).Get());
                                 program_.StoreI32(
-                                    program_.GetElementPtr(
-                                        table_ctr_type, table_ctr_ptr, {0, 0}),
+                                    program_.ConstGEP(table_ctr_type,
+                                                      table_ctr_ptr, {0, 0}),
                                     program_.ConstI32(table_idx));
                                 program_.Return(program_.ConstI32(-1));
                               },
@@ -542,16 +542,16 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       auto progress_next_tuple = proxy::Ternary(
                           program_, resume_progress,
                           [&]() {
-                            auto progress_ptr = program_.GetElementPtr(
-                                progress_array_type, progress_arr,
-                                {0, table_idx});
+                            auto progress_ptr =
+                                program_.ConstGEP(progress_array_type,
+                                                  progress_arr, {0, table_idx});
                             return proxy::Int32(program_,
                                                 program_.LoadI32(progress_ptr));
                           },
                           [&]() { return proxy::Int32(program_, 0); });
                       auto offset_next_tuple =
                           proxy::Int32(program_,
-                                       program_.LoadI32(program_.GetElementPtr(
+                                       program_.LoadI32(program_.ConstGEP(
                                            offset_array_type, offset_array,
                                            {0, table_idx}))) +
                           1;
@@ -570,7 +570,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                             return proxy::Ternary(
                                 program_, bucket_idx < bucket_size,
                                 [&]() {
-                                  auto progress_ptr = program_.GetElementPtr(
+                                  auto progress_ptr = program_.ConstGEP(
                                       progress_array_type, progress_arr,
                                       {0, table_idx});
                                   auto progress_next_tuple = proxy::Int32(
@@ -600,7 +600,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
                       auto next_tuple = bucket[bucket_idx];
 
-                      auto idx_ptr = program_.GetElementPtr(
+                      auto idx_ptr = program_.ConstGEP(
                           idx_array_type, idx_array, {0, table_idx});
                       program_.StoreI32(idx_ptr, next_tuple.Get());
 
@@ -641,7 +641,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
                       for (int predicate_idx :
                            predicates_per_table[table_idx]) {
-                        auto flag_ptr = program_.GetElementPtr(
+                        auto flag_ptr = program_.ConstGEP(
                             flag_array_type, flag_array,
                             {0, table_predicate_to_flag_idx.at(
                                     {table_idx, predicate_idx})});
@@ -660,9 +660,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                     program_, budget == 0,
                                     [&]() {
                                       program_.StoreI32(
-                                          program_.GetElementPtr(table_ctr_type,
-                                                                 table_ctr_ptr,
-                                                                 {0, 0}),
+                                          program_.ConstGEP(table_ctr_type,
+                                                            table_ctr_ptr,
+                                                            {0, 0}),
                                           program_.ConstI32(table_idx));
                                       program_.Return(program_.ConstI32(-1));
                                     },
@@ -683,7 +683,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                           program_, budget == 0,
                                           [&]() {
                                             program_.StoreI32(
-                                                program_.GetElementPtr(
+                                                program_.ConstGEP(
                                                     table_ctr_type,
                                                     table_ctr_ptr, {0, 0}),
                                                 program_.ConstI32(table_idx));
@@ -702,8 +702,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
                       proxy::If(program_, budget == 0, [&]() {
                         program_.StoreI32(
-                            program_.GetElementPtr(table_ctr_type,
-                                                   table_ctr_ptr, {0, 0}),
+                            program_.ConstGEP(table_ctr_type, table_ctr_ptr,
+                                              {0, 0}),
                             program_.ConstI32(table_idx));
                         program_.Return(program_.ConstI32(-2));
                       });
@@ -730,16 +730,16 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       auto progress_next_tuple = proxy::Ternary(
                           program_, resume_progress,
                           [&]() {
-                            auto progress_ptr = program_.GetElementPtr(
-                                progress_array_type, progress_arr,
-                                {0, table_idx});
+                            auto progress_ptr =
+                                program_.ConstGEP(progress_array_type,
+                                                  progress_arr, {0, table_idx});
                             return proxy::Int32(program_,
                                                 program_.LoadI32(progress_ptr));
                           },
                           [&]() { return proxy::Int32(program_, 0); });
                       auto offset_next_tuple =
                           proxy::Int32(program_,
-                                       program_.LoadI32(program_.GetElementPtr(
+                                       program_.LoadI32(program_.ConstGEP(
                                            offset_array_type, offset_array,
                                            {0, table_idx}))) +
                           1;
@@ -754,9 +754,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       auto continue_resume_progress = proxy::Ternary(
                           program_, resume_progress,
                           [&]() {
-                            auto progress_ptr = program_.GetElementPtr(
-                                progress_array_type, progress_arr,
-                                {0, table_idx});
+                            auto progress_ptr =
+                                program_.ConstGEP(progress_array_type,
+                                                  progress_arr, {0, table_idx});
                             auto progress_next_tuple = proxy::Int32(
                                 program_, program_.LoadI32(progress_ptr));
                             return initial_next_tuple == progress_next_tuple;
@@ -777,7 +777,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       auto resume_progress =
                           loop.template GetLoopVariable<proxy::Bool>(2);
 
-                      auto idx_ptr = program_.GetElementPtr(
+                      auto idx_ptr = program_.ConstGEP(
                           idx_array_type, idx_array, {0, table_idx});
                       program_.StoreI32(idx_ptr, next_tuple.Get());
 
@@ -817,7 +817,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
                       for (int predicate_idx :
                            predicates_per_table[table_idx]) {
-                        auto flag_ptr = program_.GetElementPtr(
+                        auto flag_ptr = program_.ConstGEP(
                             flag_array_type, flag_array,
                             {0, table_predicate_to_flag_idx.at(
                                     {table_idx, predicate_idx})});
@@ -836,9 +836,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                     program_, budget == 0,
                                     [&]() {
                                       program_.StoreI32(
-                                          program_.GetElementPtr(table_ctr_type,
-                                                                 table_ctr_ptr,
-                                                                 {0, 0}),
+                                          program_.ConstGEP(table_ctr_type,
+                                                            table_ctr_ptr,
+                                                            {0, 0}),
                                           program_.ConstI32(table_idx));
                                       program_.Return(program_.ConstI32(-1));
                                     },
@@ -860,7 +860,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                           program_, budget == 0,
                                           [&]() {
                                             program_.StoreI32(
-                                                program_.GetElementPtr(
+                                                program_.ConstGEP(
                                                     table_ctr_type,
                                                     table_ctr_ptr, {0, 0}),
                                                 program_.ConstI32(table_idx));
@@ -879,8 +879,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
                       proxy::If(program_, budget == 0, [&]() {
                         program_.StoreI32(
-                            program_.GetElementPtr(table_ctr_type,
-                                                   table_ctr_ptr, {0, 0}),
+                            program_.ConstGEP(table_ctr_type, table_ctr_ptr,
+                                              {0, 0}),
                             program_.ConstI32(table_idx));
                         program_.Return(program_.ConstI32(-2));
                       });
@@ -908,28 +908,28 @@ void PermutableSkinnerJoinTranslator::Produce() {
   proxy::TupleIdxTable tuple_idx_table(program_, true);
 
   // Setup function for each valid tuple
-  proxy::TableFunction valid_tuple_handler(
-      program_, [&](const auto& budget, const auto& resume_progress) {
-        // Insert tuple idx into hash table
-        auto tuple_idx_arr =
-            program_.GetElementPtr(idx_array_type, idx_array, {0, 0});
+  proxy::TableFunction valid_tuple_handler(program_, [&](const auto& budget,
+                                                         const auto&
+                                                             resume_progress) {
+    // Insert tuple idx into hash table
+    auto tuple_idx_arr = program_.ConstGEP(idx_array_type, idx_array, {0, 0});
 
-        proxy::Int32 num_tables(program_, child_translators.size());
-        tuple_idx_table.Insert(tuple_idx_arr, num_tables);
+    proxy::Int32 num_tables(program_, child_translators.size());
+    tuple_idx_table.Insert(tuple_idx_arr, num_tables);
 
-        auto result_ptr = program_.GetElementPtr(num_result_tuples_type,
-                                                 num_result_tuples_ptr, {0, 0});
-        proxy::Int32 num_result_tuples(program_, program_.LoadI32(result_ptr));
-        program_.StoreI32(result_ptr, (num_result_tuples + 1).Get());
+    auto result_ptr = program_.ConstGEP(num_result_tuples_type,
+                                        num_result_tuples_ptr, {0, 0});
+    proxy::Int32 num_result_tuples(program_, program_.LoadI32(result_ptr));
+    program_.StoreI32(result_ptr, (num_result_tuples + 1).Get());
 
-        return budget;
-      });
+    return budget;
+  });
 
   // 3. Execute join
   // Initialize handler array with the corresponding functions for each table
   for (int i = 0; i < child_operators.size(); i++) {
-    auto handler_ptr = program_.GetElementPtr(handler_pointer_array_type,
-                                              handler_pointer_array, {0, i});
+    auto handler_ptr = program_.ConstGEP(handler_pointer_array_type,
+                                         handler_pointer_array, {0, i});
     program_.StorePtr(handler_ptr,
                       {program_.GetFunctionPointer(table_functions[i].Get())});
   }
@@ -971,7 +971,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
   // Write out cardinalities to idx_array
   for (int i = 0; i < child_operators.size(); i++) {
-    program_.StoreI32(program_.GetElementPtr(idx_array_type, idx_array, {0, i}),
+    program_.StoreI32(program_.ConstGEP(idx_array_type, idx_array, {0, i}),
                       materialized_buffers_[i]->Size().Get());
   }
 
@@ -981,22 +981,21 @@ void PermutableSkinnerJoinTranslator::Produce() {
   executor.ExecutePermutableJoin({
       program_.ConstI32(child_operators.size()),
       program_.ConstI32(conditions.size()),
-      program_.GetElementPtr(handler_pointer_array_type, handler_pointer_array,
-                             {0, 0}),
+      program_.ConstGEP(handler_pointer_array_type, handler_pointer_array,
+                        {0, 0}),
       program_.GetFunctionPointer(valid_tuple_handler.Get()),
       program_.ConstI32(table_predicate_to_flag_idx_values.size()),
-      program_.GetElementPtr(table_predicate_to_flag_idx_arr_type,
-                             table_predicate_to_flag_idx_arr, {0, 0}),
-      program_.GetElementPtr(tables_per_predicate_arr_type,
-                             tables_per_predicate_arr, {0, 0}),
-      program_.GetElementPtr(flag_array_type, flag_array, {0, 0}),
-      program_.GetElementPtr(progress_array_type, progress_arr, {0, 0}),
-      program_.GetElementPtr(table_ctr_type, table_ctr_ptr, {0, 0}),
-      program_.GetElementPtr(idx_array_type, idx_array, {0, 0}),
-      program_.GetElementPtr(last_table_type, last_table_ptr, {0, 0}),
-      program_.GetElementPtr(num_result_tuples_type, num_result_tuples_ptr,
-                             {0, 0}),
-      program_.GetElementPtr(offset_array_type, offset_array, {0, 0}),
+      program_.ConstGEP(table_predicate_to_flag_idx_arr_type,
+                        table_predicate_to_flag_idx_arr, {0, 0}),
+      program_.ConstGEP(tables_per_predicate_arr_type, tables_per_predicate_arr,
+                        {0, 0}),
+      program_.ConstGEP(flag_array_type, flag_array, {0, 0}),
+      program_.ConstGEP(progress_array_type, progress_arr, {0, 0}),
+      program_.ConstGEP(table_ctr_type, table_ctr_ptr, {0, 0}),
+      program_.ConstGEP(idx_array_type, idx_array, {0, 0}),
+      program_.ConstGEP(last_table_type, last_table_ptr, {0, 0}),
+      program_.ConstGEP(num_result_tuples_type, num_result_tuples_ptr, {0, 0}),
+      program_.ConstGEP(offset_array_type, offset_array, {0, 0}),
   });
   program_.Return();
   auto join_pipeline_obj = pipeline_builder_.FinishPipeline();
@@ -1012,7 +1011,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
       auto& child_translator = child_translators[i].get();
 
       auto tuple_idx_ptr =
-          program_.GetElementPtr(program_.I32Type(), tuple_idx_arr, {i});
+          program_.ConstGEP(program_.I32Type(), tuple_idx_arr, {i});
       auto tuple_idx = proxy::Int32(program_, program_.LoadI32(tuple_idx_ptr));
 
       auto& buffer = *materialized_buffers_[current_buffer++];
