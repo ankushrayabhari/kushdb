@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <iostream>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -41,36 +42,78 @@ ColumnIndexBucket* BucketListGet(ColumnIndexBucket* bucket, int32_t idx) {
   return &bucket[idx];
 }
 
-int32_t BucketListSortedIntersection(ColumnIndexBucket* bucket_list,
-                                     int32_t bucket_list_size,
-                                     int32_t* bucket_list_idx, int32_t* result,
-                                     int32_t result_max_size) {
-  using val_listidx_t = std::pair<int, int>;
-  auto comp = [](const val_listidx_t& a, const val_listidx_t& b) {
-    return a.first > b.first;
-  };
-  std::priority_queue<val_listidx_t, std::vector<val_listidx_t>, decltype(comp)>
-      heap(comp);
+void BucketListSortedIntersectionInit(ColumnIndexBucket* bucket_list,
+                                      int32_t size, int32_t* intersection_state,
+                                      int32_t next_tuple) {
+  for (int i = 0; i < size; i++) {
+    intersection_state[i] = FastForwardBucket(&bucket_list[i], next_tuple);
+  }
+}
 
-  for (int i = 0; i < bucket_list_size; i++) {
-    auto next_idx = bucket_list_idx[i];
-    if (next_idx < bucket_list[i].size) {
-      heap.emplace(bucket_list[i].data[next_idx], i);
+int32_t BucketListSortedIntersectionPopulateResult(
+    ColumnIndexBucket* bucket_list, int32_t bucket_list_size,
+    int32_t* intersection_state, int32_t* result, int32_t result_max_size) {
+  if (bucket_list_size == 0) {
+    return 0;
+  }
+
+  if (bucket_list_size == 1) {
+    int32_t result_size = 0;
+    while (intersection_state[0] < bucket_list[0].size &&
+           result_size < result_max_size) {
+      result[result_size++] = bucket_list[0].data[intersection_state[0]++];
     }
+    return result_size;
   }
 
   int32_t result_size = 0;
-  while (!heap.empty() && result_size < result_max_size) {
-    auto [min_val, min_list_idx] = heap.top();
-    heap.pop();
+  while (result_size < result_max_size) {
+    if (intersection_state[0] >= bucket_list[0].size) {
+      return result_size;
+    }
 
-    result[result_size++] = min_val;
-    auto next_idx = ++bucket_list_idx[min_list_idx];
-    if (next_idx < bucket_list[min_list_idx].size) {
-      heap.emplace(bucket_list[min_list_idx].data[next_idx], min_list_idx);
+    bool all_equal = true;
+
+    int32_t candidate = bucket_list[0].data[intersection_state[0]];
+    for (int i = 1; i < bucket_list_size; i++) {
+      while (true) {
+        if (intersection_state[i] >= bucket_list[i].size) {
+          return result_size;
+        }
+
+        if (bucket_list[i].data[intersection_state[i]] < candidate) {
+          intersection_state[i]++;
+        }
+
+        break;
+      }
+
+      if (bucket_list[i].data[intersection_state[i]] > candidate) {
+        all_equal = false;
+        break;
+      }
+    }
+
+    if (!all_equal) {
+      intersection_state[0]++;
+      continue;
+    }
+
+    result[result_size++] = candidate;
+
+    for (int i = 0; i < bucket_list_size; i++) {
+      intersection_state[i]++;
+      if (intersection_state[i] >= bucket_list[i].size) {
+        return result_size;
+      }
     }
   }
+
   return result_size;
+}
+
+int32_t BucketListSortedIntersectionResultGet(int32_t* result, int32_t idx) {
+  return result[idx];
 }
 
 }  // namespace kush::runtime

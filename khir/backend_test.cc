@@ -440,6 +440,28 @@ TEST_P(BackendTest, PTR_STOREGep) {
   EXPECT_EQ(&x.b, loc);
 }
 
+TEST_P(BackendTest, PTR_CMP_NULLPTR_Gep) {
+  struct Test {
+    int64_t* a;
+  };
+
+  ProgramBuilder program;
+  auto st = program.StructType({program.PointerType(program.I64Type())});
+  auto func = program.CreatePublicFunction(
+      program.I1Type(), {program.PointerType(st)}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto v = program.LoadPtr(program.ConstGEP(st, args[0], {0, 0}));
+  program.Return(program.IsNullPtr(v));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<bool(Test*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  Test x{.a = nullptr};
+  EXPECT_TRUE(compute(&x));
+}
+
 TEST_P(BackendTest, PTR_STOREGlobalDest) {
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(

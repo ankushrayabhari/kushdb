@@ -175,7 +175,7 @@ std::unique_ptr<Operator> OrderBy() {
   return std::make_unique<OrderByOperator>(
       std::move(schema), std::move(agg),
       util::MakeVector(std::move(nation), std::move(o_year)),
-      std::vector<bool>{false, true});
+      std::vector<bool>{true, false});
 }
 
 int main(int argc, char** argv) {

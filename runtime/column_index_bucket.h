@@ -15,8 +15,14 @@ int32_t GetBucketValue(ColumnIndexBucket* bucket, int32_t idx);
 
 ColumnIndexBucket* BucketListGet(ColumnIndexBucket* bucket_list, int32_t idx);
 
-int32_t BucketListSortedIntersection(ColumnIndexBucket* bucket_list,
-                                     int32_t size, int32_t* intersection_state,
-                                     int32_t* result, int32_t result_max_size);
+void BucketListSortedIntersectionInit(ColumnIndexBucket* bucket_list,
+                                      int32_t size, int32_t* intersection_state,
+                                      int32_t next_tuple);
+
+int32_t BucketListSortedIntersectionPopulateResult(
+    ColumnIndexBucket* bucket_list, int32_t size, int32_t* intersection_state,
+    int32_t* result, int32_t result_max_size);
+
+int32_t BucketListSortedIntersectionResultGet(int32_t* result, int32_t idx);
 
 }  // namespace kush::runtime

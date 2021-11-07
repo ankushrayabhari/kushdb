@@ -34,11 +34,19 @@ class ColumnIndexBucketArray {
   void PushBack(const ColumnIndexBucket& bucket);
   ColumnIndexBucket Get(Int32 idx);
 
+  void InitSortedIntersection(const Int32& next_tuple);
+  Int32 PopulateSortedIntersectionResult(khir::Value result,
+                                         int32_t result_max_size);
+
  private:
   khir::ProgramBuilder& program_;
   khir::Value value_;
+  khir::Value sorted_intersection_idx_value_;
   khir::Value idx_value_;
 };
+
+Int32 SortedIntersectionResultGet(khir::ProgramBuilder& program,
+                                  khir::Value result, const Int32& idx);
 
 class ColumnIndex {
  public:

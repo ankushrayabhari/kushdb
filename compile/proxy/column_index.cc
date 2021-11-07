@@ -24,6 +24,16 @@ constexpr std::string_view ColumnIndexBucketGetName(
 constexpr std::string_view BucketListGetName(
     "kush::runtime::ColumnIndexBucket::BucketListGet");
 
+constexpr std::string_view BucketListSortedIntersectionInitName(
+    "kush::runtime::ColumnIndexBucket::BucketListSortedIntersectionInit");
+
+constexpr std::string_view BucketListSortedIntersectionPopulateResultName(
+    "kush::runtime::ColumnIndexBucket::"
+    "BucketListSortedIntersectionPopulateResult");
+
+constexpr std::string_view BucketListSortedIntersectionResultGetName(
+    "kush::runtime::ColumnIndexBucket::BucketListSortedIntersectionResultGet");
+
 ColumnIndexBucket::ColumnIndexBucket(khir::ProgramBuilder& program,
                                      khir::Value v)
     : program_(program), value_(v) {}
@@ -57,7 +67,9 @@ Int32 ColumnIndexBucket::operator[](const Int32& v) {
 }
 
 Bool ColumnIndexBucket::DoesNotExist() {
-  return Bool(program_, program_.IsNullPtr(value_));
+  auto st = program_.GetStructType(ColumnIndexBucketName);
+  return Bool(program_, program_.IsNullPtr(program_.LoadPtr(
+                            program_.ConstGEP(st, value_, {0, 0}))));
 }
 
 void ColumnIndexBucket::ForwardDeclare(khir::ProgramBuilder& program) {
@@ -80,6 +92,25 @@ void ColumnIndexBucket::ForwardDeclare(khir::ProgramBuilder& program) {
       BucketListGetName, index_bucket_ptr_type,
       {index_bucket_ptr_type, program.I32Type()},
       reinterpret_cast<void*>(&runtime::BucketListGet));
+
+  program.DeclareExternalFunction(
+      BucketListSortedIntersectionInitName, program.VoidType(),
+      {index_bucket_ptr_type, program.I32Type(),
+       program.PointerType(program.I32Type()), program.I32Type()},
+      reinterpret_cast<void*>(&runtime::BucketListSortedIntersectionInit));
+
+  program.DeclareExternalFunction(
+      BucketListSortedIntersectionPopulateResultName, program.I32Type(),
+      {index_bucket_ptr_type, program.I32Type(),
+       program.PointerType(program.I32Type()),
+       program.PointerType(program.I32Type()), program.I32Type()},
+      reinterpret_cast<void*>(
+          &runtime::BucketListSortedIntersectionPopulateResult));
+
+  program.DeclareExternalFunction(
+      BucketListSortedIntersectionResultGetName, program.I32Type(),
+      {program.PointerType(program.I32Type()), program.I32Type()},
+      reinterpret_cast<void*>(&runtime::BucketListSortedIntersectionResultGet));
 }
 
 khir::Value ColumnIndexBucket::Get() const { return value_; }
@@ -89,6 +120,8 @@ ColumnIndexBucketArray::ColumnIndexBucketArray(khir::ProgramBuilder& program,
     : program_(program),
       value_(program.Alloca(program.GetStructType(ColumnIndexBucketName),
                             max_size)),
+      sorted_intersection_idx_value_(
+          program.Alloca(program_.I32Type(), max_size)),
       idx_value_(program_.Alloca(program_.I32Type())) {
   program_.StoreI32(idx_value_, program_.ConstI32(0));
 }
@@ -108,6 +141,32 @@ void ColumnIndexBucketArray::PushBack(const ColumnIndexBucket& bucket) {
   auto dest = Get(idx);
   dest.Copy(bucket);
   program_.StoreI32(idx_value_, (idx + 1).Get());
+}
+
+void ColumnIndexBucketArray::InitSortedIntersection(
+    const proxy::Int32& next_tuple) {
+  program_.Call(program_.GetFunction(BucketListSortedIntersectionInitName),
+                {value_, program_.LoadI32(idx_value_),
+                 sorted_intersection_idx_value_, next_tuple.Get()});
+}
+
+proxy::Int32 ColumnIndexBucketArray::PopulateSortedIntersectionResult(
+    khir::Value result, int32_t result_max_size) {
+  return proxy::Int32(
+      program_,
+      program_.Call(
+          program_.GetFunction(BucketListSortedIntersectionPopulateResultName),
+          {value_, program_.LoadI32(idx_value_), sorted_intersection_idx_value_,
+           result, program_.ConstI32(result_max_size)}));
+}
+
+proxy::Int32 SortedIntersectionResultGet(khir::ProgramBuilder& program,
+                                         khir::Value result,
+                                         const proxy::Int32& idx) {
+  return proxy::Int32(
+      program, program.Call(program.GetFunction(
+                                BucketListSortedIntersectionResultGetName),
+                            {result, idx.Get()}));
 }
 
 template <catalog::SqlType S>
