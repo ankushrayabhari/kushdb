@@ -301,6 +301,10 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                           .SetValues(buffer[next_tuple]);
                       available_tables.insert(table_idx);
 
+                      for (auto pred : indexed_predicates) {
+                        // we checked it via index so we're good
+                        evaluated_predicates.insert(pred);
+                      }
                       for (int predicate_idx :
                            predicates_per_table[table_idx]) {
                         if (evaluated_predicates.contains(predicate_idx)) {

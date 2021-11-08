@@ -66,46 +66,55 @@ int32_t BucketListSortedIntersectionPopulateResult(
     return result_size;
   }
 
+  for (int i = 0; i < bucket_list_size; i++) {
+    if (intersection_state[i] >= bucket_list[i].size) {
+      return 0;
+    }
+  }
+
+  // find the minimum list
+  int min_list = 0;
+  for (int i = 1; i < bucket_list_size; i++) {
+    auto size = bucket_list[i].size - intersection_state[i];
+    auto min_list_size =
+        bucket_list[min_list].size - intersection_state[min_list];
+
+    if (size < min_list_size) {
+      min_list = i;
+    }
+  }
+
+  // scan over min list
   int32_t result_size = 0;
-  while (result_size < result_max_size) {
-    if (intersection_state[0] >= bucket_list[0].size) {
-      return result_size;
+  for (; intersection_state[min_list] < bucket_list[min_list].size;
+       intersection_state[min_list]++) {
+    auto idx = intersection_state[min_list];
+    if (result_size == result_max_size) {
+      break;
     }
 
+    int32_t candidate = bucket_list[min_list].data[idx];
+
+    // see if this is contained in side each bucket list
     bool all_equal = true;
-
-    int32_t candidate = bucket_list[0].data[intersection_state[0]];
-    for (int i = 1; i < bucket_list_size; i++) {
-      while (true) {
-        if (intersection_state[i] >= bucket_list[i].size) {
-          return result_size;
-        }
-
-        if (bucket_list[i].data[intersection_state[i]] < candidate) {
-          intersection_state[i]++;
-        }
-
-        break;
+    for (int i = 0; i < bucket_list_size; i++) {
+      if (i == min_list) {
+        continue;
       }
 
-      if (bucket_list[i].data[intersection_state[i]] > candidate) {
+      intersection_state[i] = FastForwardBucket(&bucket_list[i], candidate);
+      if (intersection_state[i] >= bucket_list[i].size) {
+        return result_size;
+      }
+
+      if (bucket_list[i].data[intersection_state[i]] != candidate) {
         all_equal = false;
         break;
       }
     }
 
-    if (!all_equal) {
-      intersection_state[0]++;
-      continue;
-    }
-
-    result[result_size++] = candidate;
-
-    for (int i = 0; i < bucket_list_size; i++) {
-      intersection_state[i]++;
-      if (intersection_state[i] >= bucket_list[i].size) {
-        return result_size;
-      }
+    if (all_equal) {
+      result[result_size++] = candidate;
     }
   }
 
