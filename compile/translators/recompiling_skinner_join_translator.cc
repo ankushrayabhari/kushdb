@@ -24,6 +24,7 @@
 #include "compile/translators/recompiling_join_translator.h"
 #include "compile/translators/scan_translator.h"
 #include "khir/program_builder.h"
+#include "khir/program_printer.h"
 #include "util/vector_util.h"
 
 namespace kush::compile {
@@ -67,14 +68,16 @@ std::vector<int> IndexAvailableForTable(
 
     if (auto eq = dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(
             &predicate)) {
-      if (auto left_column =
-              dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                  &eq->LeftChild())) {
-        if (auto right_column =
+      if (eq->OpType() == kush::plan::BinaryArithmeticExpressionType::EQ) {
+        if (auto left_column =
                 dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                    &eq->RightChild())) {
-          // possible to evaluate this via index
-          result.push_back(predicate_idx);
+                    &eq->LeftChild())) {
+          if (auto right_column =
+                  dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                      &eq->RightChild())) {
+            // possible to evaluate this via index
+            result.push_back(predicate_idx);
+          }
         }
       }
     }
@@ -92,16 +95,10 @@ proxy::Int32 CheckAllIndexes(
     std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
     khir::Value idx_array, proxy::Int32 cardinality,
     proxy::Int32 initial_budget, khir::Value table_ctr_ptr, int curr_index,
-    std::vector<std::reference_wrapper<proxy::ColumnIndexBucket>>&
-        index_buckets,
     std::vector<proxy::ColumnIndexBucketArray>& bucket_lists,
     const std::vector<khir::Value>& results, const int result_max_size,
     std::function<proxy::Int32(proxy::ColumnIndexBucketArray&)> handler) {
   if (curr_index == indexed_predicates.size()) {
-    bucket_lists[table_idx].Clear();
-    for (auto x : index_buckets) {
-      bucket_lists[table_idx].PushBack(x.get());
-    }
     return handler(bucket_lists[table_idx]);
   }
 
@@ -142,6 +139,8 @@ proxy::Int32 CheckAllIndexes(
       },
       [&]() {
         auto bucket = indexes[index_idx]->GetBucket(other_side_value.Get());
+        bucket_lists[table_idx].PushBack(bucket);
+
         return proxy::Ternary(
             program, bucket.DoesNotExist(),
             [&]() {
@@ -156,13 +155,11 @@ proxy::Int32 CheckAllIndexes(
               return budget;
             },
             [&]() {
-              index_buckets.emplace_back(bucket);
               return CheckAllIndexes(
                   table_idx, indexed_predicates, program, expr_translator,
                   conditions, predicate_to_index_idx, indexes, idx_array,
                   cardinality, initial_budget, table_ctr_ptr, curr_index + 1,
-                  index_buckets, bucket_lists, results, result_max_size,
-                  handler);
+                  bucket_lists, results, result_max_size, handler);
             });
       });
 }
@@ -195,11 +192,11 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
       table_idx, tables_per_predicate, predicates_per_table, available_tables,
       evaluated_predicates, conditions);
   if (!indexed_predicates.empty()) {
-    std::vector<std::reference_wrapper<proxy::ColumnIndexBucket>> index_buckets;
+    bucket_lists[table_idx].Clear();
     return CheckAllIndexes(
         table_idx, indexed_predicates, program, expr_translator, conditions,
         predicate_to_index_idx_, indexes, idx_array, cardinality,
-        initial_budget, table_ctr_ptr, 0, index_buckets, bucket_lists, results,
+        initial_budget, table_ctr_ptr, 0, bucket_lists, results,
         result_max_size, [&](auto& bucket_list) {
           auto progress_next_tuple = proxy::Ternary(
               program, resume_progress,

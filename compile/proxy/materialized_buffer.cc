@@ -92,22 +92,15 @@ void DiskMaterializedBuffer::Scan(
 khir::Value DiskMaterializedBuffer::Serialize() {
   auto i8_ptr_ty = program_.PointerType(program_.I8Type());
 
-  std::vector<khir::Type> serialization_fields_;
-  for (int i = 0; i < column_data_.size(); i++) {
-    serialization_fields_.push_back(i8_ptr_ty);
-    serialization_fields_.push_back(i8_ptr_ty);
-  }
-  auto serialization_type = program_.StructType(serialization_fields_);
-  auto value = program_.Alloca(serialization_type);
+  auto value = program_.Alloca(i8_ptr_ty, 2 * column_data_.size());
 
   for (int i = 0; i < column_data_.size(); i++) {
-    program_.StorePtr(program_.ConstGEP(serialization_type, value, {0, 2 * i}),
+    program_.StorePtr(program_.ConstGEP(i8_ptr_ty, value, {2 * i}),
                       program_.PointerCast(column_data_[i]->Get(), i8_ptr_ty));
 
     if (null_data_[i] != nullptr) {
-      program_.StorePtr(
-          program_.ConstGEP(serialization_type, value, {0, 2 * i + 1}),
-          program_.PointerCast(null_data_[i]->Get(), i8_ptr_ty));
+      program_.StorePtr(program_.ConstGEP(i8_ptr_ty, value, {2 * i + 1}),
+                        program_.PointerCast(null_data_[i]->Get(), i8_ptr_ty));
     }
   }
 

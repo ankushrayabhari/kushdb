@@ -35,22 +35,6 @@ PermutableSkinnerJoinTranslator::PermutableSkinnerJoinTranslator(
       pipeline_builder_(pipeline_builder),
       expr_translator_(program_, *this) {}
 
-bool IsEqualityPredicate(const kush::plan::Expression& predicate) {
-  if (auto eq = dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(
-          &predicate)) {
-    if (auto left_column = dynamic_cast<const kush::plan::ColumnRefExpression*>(
-            &eq->LeftChild())) {
-      if (auto right_column =
-              dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                  &eq->RightChild())) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
 std::vector<int> IndexesAvailableForTable(
     int table_idx, std::vector<absl::btree_set<int>>& predicates_per_table,
     const std::vector<std::reference_wrapper<const kush::plan::Expression>>&
@@ -61,14 +45,16 @@ std::vector<int> IndexesAvailableForTable(
 
     if (auto eq = dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(
             &predicate)) {
-      if (auto left_column =
-              dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                  &eq->LeftChild())) {
-        if (auto right_column =
+      if (eq->OpType() == kush::plan::BinaryArithmeticExpressionType::EQ) {
+        if (auto left_column =
                 dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                    &eq->RightChild())) {
-          // possible to evaluate this via index
-          result.push_back(predicate_idx);
+                    &eq->LeftChild())) {
+          if (auto right_column =
+                  dynamic_cast<const kush::plan::ColumnRefExpression*>(
+                      &eq->RightChild())) {
+            // possible to evaluate this via index
+            result.push_back(predicate_idx);
+          }
         }
       }
     }
