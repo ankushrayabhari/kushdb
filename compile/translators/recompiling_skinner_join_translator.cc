@@ -39,13 +39,14 @@ RecompilingSkinnerJoinTranslator::RecompilingSkinnerJoinTranslator(
       expr_translator_(program_, *this),
       cache_(join_.Children().size()) {}
 
-int IndexAvailableForTable(
+std::vector<int> IndexAvailableForTable(
     int table_idx, std::vector<absl::flat_hash_set<int>>& tables_per_predicate,
     std::vector<absl::btree_set<int>>& predicates_per_table,
     absl::flat_hash_set<int>& available_tables,
     absl::flat_hash_set<int>& evaluated_predicates,
     const std::vector<std::reference_wrapper<const kush::plan::Expression>>&
         conditions) {
+  std::vector<int> result;
   for (int predicate_idx : predicates_per_table[table_idx]) {
     if (evaluated_predicates.contains(predicate_idx)) {
       continue;
@@ -73,13 +74,97 @@ int IndexAvailableForTable(
                 dynamic_cast<const kush::plan::ColumnRefExpression*>(
                     &eq->RightChild())) {
           // possible to evaluate this via index
-          return predicate_idx;
+          result.push_back(predicate_idx);
         }
       }
     }
   }
 
-  return -1;
+  return result;
+}
+
+proxy::Int32 CheckAllIndexes(
+    int table_idx, const std::vector<int>& indexed_predicates,
+    khir::ProgramBuilder& program, ExpressionTranslator& expr_translator,
+    const std::vector<std::reference_wrapper<const kush::plan::Expression>>&
+        conditions,
+    const absl::flat_hash_map<std::pair<int, int>, int>& predicate_to_index_idx,
+    std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
+    khir::Value idx_array, proxy::Int32 cardinality,
+    proxy::Int32 initial_budget, khir::Value table_ctr_ptr, int curr_index,
+    std::vector<std::reference_wrapper<proxy::ColumnIndexBucket>>&
+        index_buckets,
+    std::vector<proxy::ColumnIndexBucketArray>& bucket_lists,
+    const std::vector<khir::Value>& results, const int result_max_size,
+    std::function<proxy::Int32(proxy::ColumnIndexBucketArray&)> handler) {
+  if (curr_index == indexed_predicates.size()) {
+    bucket_lists[table_idx].Clear();
+    for (auto x : index_buckets) {
+      bucket_lists[table_idx].PushBack(x.get());
+    }
+    return handler(bucket_lists[table_idx]);
+  }
+
+  auto indexed_predicate = indexed_predicates[curr_index];
+  const auto& predicate = conditions[indexed_predicate].get();
+
+  auto eq =
+      dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(&predicate);
+  auto left_column =
+      dynamic_cast<const kush::plan::ColumnRefExpression*>(&eq->LeftChild());
+  auto right_column =
+      dynamic_cast<const kush::plan::ColumnRefExpression*>(&eq->RightChild());
+
+  // Get index from table value to tuple idx
+  auto table_column = table_idx == left_column->GetChildIdx()
+                          ? left_column->GetColumnIdx()
+                          : right_column->GetColumnIdx();
+
+  auto it = predicate_to_index_idx.find({table_idx, table_column});
+  assert(it != predicate_to_index_idx.end());
+  auto index_idx = it->second;
+
+  auto other_side_value = expr_translator.Compute(
+      table_idx == left_column->GetChildIdx() ? *right_column : *left_column);
+
+  return proxy::Ternary(
+      program, other_side_value.IsNull(),
+      [&]() {
+        auto budget = initial_budget - 1;
+        proxy::If(program, budget == 0, [&]() {
+          auto idx_ptr =
+              program.ConstGEP(program.I32Type(), idx_array, {table_idx});
+          program.StoreI32(idx_ptr, (cardinality - 1).Get());
+          program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
+          program.Return(program.ConstI32(-1));
+        });
+        return budget;
+      },
+      [&]() {
+        auto bucket = indexes[index_idx]->GetBucket(other_side_value.Get());
+        return proxy::Ternary(
+            program, bucket.DoesNotExist(),
+            [&]() {
+              auto budget = initial_budget - 1;
+              proxy::If(program, budget == 0, [&]() {
+                auto idx_ptr =
+                    program.ConstGEP(program.I32Type(), idx_array, {table_idx});
+                program.StoreI32(idx_ptr, (cardinality - 1).Get());
+                program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
+                program.Return(program.ConstI32(-1));
+              });
+              return budget;
+            },
+            [&]() {
+              index_buckets.emplace_back(bucket);
+              return CheckAllIndexes(
+                  table_idx, indexed_predicates, program, expr_translator,
+                  conditions, predicate_to_index_idx, indexes, idx_array,
+                  cardinality, initial_budget, table_ctr_ptr, curr_index + 1,
+                  index_buckets, bucket_lists, results, result_max_size,
+                  handler);
+            });
+      });
 }
 
 proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
@@ -96,7 +181,9 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
     absl::flat_hash_set<int>& available_tables, khir::Value idx_array,
     khir::Value offset_array, khir::Value progress_arr,
     khir::Value table_ctr_ptr, khir::Value num_result_tuples_ptr,
-    proxy::Int32 initial_budget, proxy::Bool resume_progress) {
+    proxy::Int32 initial_budget, proxy::Bool resume_progress,
+    std::vector<proxy::ColumnIndexBucketArray>& bucket_lists,
+    const std::vector<khir::Value>& results, const int result_max_size) {
   auto child_translators = this->Children();
   auto conditions = join_.Conditions();
 
@@ -104,110 +191,73 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
   auto& buffer = *materialized_buffers[table_idx];
   auto cardinality = cardinalities[table_idx];
 
-  // TODO: change to look at multiple potential index predicates rather than
-  // first
-  auto indexed_predicate = IndexAvailableForTable(
+  auto indexed_predicates = IndexAvailableForTable(
       table_idx, tables_per_predicate, predicates_per_table, available_tables,
       evaluated_predicates, conditions);
-  if (indexed_predicate >= 0) {
-    // Generate a loop over the index rather than the full table
-    const auto& predicate = conditions[indexed_predicate].get();
-
-    auto eq =
-        dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(&predicate);
-    auto left_column =
-        dynamic_cast<const kush::plan::ColumnRefExpression*>(&eq->LeftChild());
-    auto right_column =
-        dynamic_cast<const kush::plan::ColumnRefExpression*>(&eq->RightChild());
-
-    // Get index from table value to tuple idx
-    auto table_column = table_idx == left_column->GetChildIdx()
-                            ? left_column->GetColumnIdx()
-                            : right_column->GetColumnIdx();
-
-    auto it = predicate_to_index_idx_.find({table_idx, table_column});
-    assert(it != predicate_to_index_idx_.end());
-    auto index_idx = it->second;
-
-    auto other_side_value = expr_translator.Compute(
-        table_idx == left_column->GetChildIdx() ? *right_column : *left_column);
-
-    return proxy::Ternary(
-        program, other_side_value.IsNull(),
-        [&]() {
-          auto budget = initial_budget - 1;
-          proxy::If(program, budget == 0, [&]() {
-            auto idx_ptr =
-                program.ConstGEP(program.I32Type(), idx_array, {table_idx});
-            program.StoreI32(idx_ptr, (cardinality - 1).Get());
-            program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
-            program.Return(program.ConstI32(-1));
-          });
-          return budget;
-        },
-        [&]() {
-          auto bucket = indexes[index_idx]->GetBucket(other_side_value.Get());
-          return proxy::Ternary(
-              program, bucket.DoesNotExist(),
+  if (!indexed_predicates.empty()) {
+    std::vector<std::reference_wrapper<proxy::ColumnIndexBucket>> index_buckets;
+    return CheckAllIndexes(
+        table_idx, indexed_predicates, program, expr_translator, conditions,
+        predicate_to_index_idx_, indexes, idx_array, cardinality,
+        initial_budget, table_ctr_ptr, 0, index_buckets, bucket_lists, results,
+        result_max_size, [&](auto& bucket_list) {
+          auto progress_next_tuple = proxy::Ternary(
+              program, resume_progress,
               [&]() {
-                auto budget = initial_budget - 1;
-                proxy::If(program, budget == 0, [&]() {
-                  auto idx_ptr = program.ConstGEP(program.I32Type(), idx_array,
-                                                  {table_idx});
-                  program.StoreI32(idx_ptr, (cardinality - 1).Get());
-                  program.StoreI32(table_ctr_ptr, program.ConstI32(table_idx));
-                  program.Return(program.ConstI32(-1));
-                });
-                return budget;
+                auto progress_ptr = program.ConstGEP(program.I32Type(),
+                                                     progress_arr, {table_idx});
+                auto next_tuple =
+                    proxy::Int32(program, program.LoadI32(progress_ptr));
+                return next_tuple;
               },
-              [&]() {
-                // Loop over bucket
-                auto bucket_size = bucket.Size();
-                proxy::Loop loop(
+              [&]() { return proxy::Int32(program, 0); });
+          auto offset_next_tuple =
+              proxy::Int32(program,
+                           program.LoadI32(program.ConstGEP(
+                               program.I32Type(), offset_array, {table_idx}))) +
+              1;
+          auto initial_next_tuple = proxy::Ternary(
+              program, offset_next_tuple > progress_next_tuple,
+              [&]() { return offset_next_tuple; },
+              [&]() { return progress_next_tuple; });
+          bucket_list.InitSortedIntersection(initial_next_tuple);
+
+          auto result = program.LoadPtr(results[table_idx]);
+          auto result_initial_size =
+              bucket_list.PopulateSortedIntersectionResult(result,
+                                                           result_max_size);
+
+          proxy::Loop loop(
+              program,
+              [&](auto& loop) {
+                loop.AddLoopVariable(initial_budget);
+                loop.AddLoopVariable(result_initial_size);
+              },
+              [&](auto& loop) {
+                auto result_size =
+                    loop.template GetLoopVariable<proxy::Int32>(1);
+                return result_size > 0;
+              },
+              [&](auto& loop) {
+                auto budget = loop.template GetLoopVariable<proxy::Int32>(0);
+                auto result_size =
+                    loop.template GetLoopVariable<proxy::Int32>(1);
+
+                proxy::Loop result_loop(
                     program,
                     [&](auto& loop) {
-                      auto progress_next_tuple = proxy::Ternary(
-                          program, resume_progress,
-                          [&]() {
-                            auto progress_ptr = program.ConstGEP(
-                                program.I32Type(), progress_arr, {table_idx});
-                            auto next_tuple = proxy::Int32(
-                                program, program.LoadI32(progress_ptr));
-                            return next_tuple;
-                          },
-                          [&]() { return proxy::Int32(program, 0); });
-                      auto offset_next_tuple =
-                          proxy::Int32(program,
-                                       program.LoadI32(program.ConstGEP(
-                                           program.I32Type(), offset_array,
-                                           {table_idx}))) +
-                          1;
-                      auto initial_next_tuple = proxy::Ternary(
-                          program, offset_next_tuple > progress_next_tuple,
-                          [&]() { return offset_next_tuple; },
-                          [&]() { return progress_next_tuple; });
-                      auto bucket_idx =
-                          bucket.FastForwardToStart(initial_next_tuple);
-                      loop.AddLoopVariable(bucket_idx);
+                      loop.AddLoopVariable(proxy::Int32(program, 0));
                       loop.AddLoopVariable(initial_budget);
 
                       auto continue_resume_progress = proxy::Ternary(
                           program, resume_progress,
                           [&]() {
-                            return proxy::Ternary(
-                                program, bucket_idx < bucket_size,
-                                [&]() {
-                                  auto progress_ptr = program.ConstGEP(
-                                      program.I32Type(), progress_arr,
-                                      {table_idx});
-                                  auto progress_next_tuple = proxy::Int32(
-                                      program, program.LoadI32(progress_ptr));
-
-                                  auto bucket_next_tuple = bucket[bucket_idx];
-                                  return bucket_next_tuple ==
-                                         progress_next_tuple;
-                                },
-                                [&]() { return proxy::Bool(program, false); });
+                            auto bucket_next_tuple_ptr = program.ConstGEP(
+                                program.I32Type(), result, {0});
+                            auto initial_next_tuple = proxy::Int32(
+                                program,
+                                program.LoadI32(bucket_next_tuple_ptr));
+                            return initial_next_tuple == progress_next_tuple;
                           },
                           [&]() { return proxy::Bool(program, false); });
                       loop.AddLoopVariable(continue_resume_progress);
@@ -215,7 +265,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                     [&](auto& loop) {
                       auto bucket_idx =
                           loop.template GetLoopVariable<proxy::Int32>(0);
-                      return bucket_idx < bucket_size;
+                      return bucket_idx < result_size;
                     },
                     [&](auto& loop) {
                       auto bucket_idx =
@@ -225,20 +275,20 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                       auto resume_progress =
                           loop.template GetLoopVariable<proxy::Bool>(2);
 
-                      auto next_tuple = bucket[bucket_idx];
-                      // guaranteed that the index condition holds
-                      evaluated_predicates.insert(indexed_predicate);
+                      auto next_tuple = SortedIntersectionResultGet(
+                          program, result, bucket_idx);
 
                       auto idx_ptr = program.ConstGEP(program.I32Type(),
                                                       idx_array, {table_idx});
                       program.StoreI32(idx_ptr, next_tuple.Get());
 
                       /*
-                      proxy::Printer printer(program);
+                      proxy::Printer printer(program, true);
                       std::string x;
                       for (int i = 0; i < curr; i++) {
                         x += " ";
                       }
+                      x += "i";
                       auto str = proxy::String::Global(program, x);
                       printer.Print(str);
                       printer.Print(next_tuple);
@@ -268,7 +318,6 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                           continue;
                         }
 
-                        evaluated_predicates.insert(predicate_idx);
                         auto cond =
                             expr_translator.Compute(conditions[predicate_idx]);
                         proxy::If(
@@ -351,7 +400,8 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                                 tables_per_predicate, predicates_per_table,
                                 available_tables, idx_array, offset_array,
                                 progress_arr, table_ctr_ptr,
-                                num_result_tuples_ptr, budget, resume_progress)
+                                num_result_tuples_ptr, budget, resume_progress,
+                                bucket_lists, results, result_max_size)
                                 .ToPointer();
                       }
 
@@ -359,8 +409,15 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                                            proxy::Bool(program, false));
                     });
 
-                return loop.template GetLoopVariable<proxy::Int32>(1);
+                auto next_budget =
+                    result_loop.template GetLoopVariable<proxy::Int32>(1);
+                auto next_result_size =
+                    bucket_list.PopulateSortedIntersectionResult(
+                        result, result_max_size);
+                return loop.Continue(next_budget, next_result_size);
               });
+
+          return loop.template GetLoopVariable<proxy::Int32>(0);
         });
   }
 
@@ -414,11 +471,12 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
         program.StoreI32(idx_ptr, next_tuple.Get());
 
         /*
-        proxy::Printer printer(program);
+        proxy::Printer printer(program, true);
         std::string x;
         for (int i = 0; i < curr; i++) {
           x += " ";
         }
+        x += "l";
         auto str = proxy::String::Global(program, x);
         printer.Print(str);
         printer.Print(next_tuple);
@@ -517,7 +575,8 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                                  tables_per_predicate, predicates_per_table,
                                  available_tables, idx_array, offset_array,
                                  progress_arr, table_ctr_ptr,
-                                 num_result_tuples_ptr, budget, resume_progress)
+                                 num_result_tuples_ptr, budget, resume_progress,
+                                 bucket_lists, results, result_max_size)
                   .ToPointer();
         }
 
@@ -626,6 +685,22 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
     }
   }
 
+  std::vector<proxy::ColumnIndexBucketArray> bucket_lists;
+  std::vector<khir::Value> results;
+  int result_max_size = 64;
+  for (int i = 0; i < order.size(); i++) {
+    bucket_lists.emplace_back(program, predicates_per_table[i].size());
+    results.push_back(program.Alloca(program.PointerType(program.I32Type())));
+    program.StorePtr(results.back(),
+                     program.Alloca(program.I32Type(), result_max_size));
+  }
+
+  /*
+  proxy::Printer printer(program, true);
+  printer.Print(proxy::String::Global(program, func_name));
+  printer.PrintNewline();
+  */
+
   proxy::Loop loop(
       program,
       [&](auto& loop) {
@@ -678,7 +753,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         program.StoreI32(idx_ptr, next_tuple.Get());
 
         /*
-        proxy::Printer printer(program);
+        proxy::Printer printer(program, true);
         printer.Print(next_tuple);
         printer.PrintNewline();
         */
@@ -697,7 +772,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
             cardinalities, tuple_idx_table, evaluated_predicates,
             tables_per_predicate, predicates_per_table, available_tables,
             idx_array, offset_array, progress_arr, table_ctr_ptr,
-            num_result_tuples_ptr, budget, resume_progress);
+            num_result_tuples_ptr, budget, resume_progress, bucket_lists,
+            results, result_max_size);
 
         return loop.Continue(next_tuple + 1, next_budget,
                              proxy::Bool(program, false));

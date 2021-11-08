@@ -118,11 +118,27 @@ khir::Value ColumnIndexBucket::Get() const { return value_; }
 ColumnIndexBucketArray::ColumnIndexBucketArray(khir::ProgramBuilder& program,
                                                int max_size)
     : program_(program),
-      value_(program.Alloca(program.GetStructType(ColumnIndexBucketName),
-                            max_size)),
-      sorted_intersection_idx_value_(
-          program.Alloca(program_.I32Type(), max_size)),
-      idx_value_(program_.Alloca(program_.I32Type())) {
+      value_(program.Global(
+          false, false,
+          program.ArrayType(program.GetStructType(ColumnIndexBucketName),
+                            max_size),
+          program.ConstantArray(
+              program.ArrayType(program.GetStructType(ColumnIndexBucketName),
+                                max_size),
+              std::vector<khir::Value>(
+                  max_size,
+                  program.ConstantStruct(
+                      program.GetStructType(ColumnIndexBucketName),
+                      {program.NullPtr(program.PointerType(program.I32Type())),
+                       program.ConstI32(0)}))))),
+      sorted_intersection_idx_value_(program.Global(
+          false, false, program.ArrayType(program.I32Type(), max_size),
+          program.ConstantArray(
+              program.ArrayType(program.I32Type(), max_size),
+              std::vector<khir::Value>(max_size, program.ConstI32(0))))),
+      idx_value_(program_.Global(false, false, program_.I32Type(),
+                                 program.ConstI32(0))),
+      max_size_(max_size) {
   program_.StoreI32(idx_value_, program_.ConstI32(0));
 }
 
@@ -132,8 +148,18 @@ Int32 ColumnIndexBucketArray::Size() {
 
 ColumnIndexBucket ColumnIndexBucketArray::Get(Int32 idx) {
   return ColumnIndexBucket(
-      program_, program_.Call(program_.GetFunction(BucketListGetName),
-                              {value_, idx.Get()}));
+      program_,
+      program_.Call(
+          program_.GetFunction(BucketListGetName),
+          {program_.ConstGEP(
+               program_.ArrayType(program_.GetStructType(ColumnIndexBucketName),
+                                  max_size_),
+               value_, {0, 0}),
+           idx.Get()}));
+}
+
+void ColumnIndexBucketArray::Clear() {
+  program_.StoreI32(idx_value_, program_.ConstI32(0));
 }
 
 void ColumnIndexBucketArray::PushBack(const ColumnIndexBucket& bucket) {
@@ -145,9 +171,16 @@ void ColumnIndexBucketArray::PushBack(const ColumnIndexBucket& bucket) {
 
 void ColumnIndexBucketArray::InitSortedIntersection(
     const proxy::Int32& next_tuple) {
-  program_.Call(program_.GetFunction(BucketListSortedIntersectionInitName),
-                {value_, program_.LoadI32(idx_value_),
-                 sorted_intersection_idx_value_, next_tuple.Get()});
+  program_.Call(
+      program_.GetFunction(BucketListSortedIntersectionInitName),
+      {program_.ConstGEP(
+           program_.ArrayType(program_.GetStructType(ColumnIndexBucketName),
+                              max_size_),
+           value_, {0, 0}),
+       program_.LoadI32(idx_value_),
+       program_.ConstGEP(program_.ArrayType(program_.I32Type(), max_size_),
+                         sorted_intersection_idx_value_, {0, 0}),
+       next_tuple.Get()});
 }
 
 proxy::Int32 ColumnIndexBucketArray::PopulateSortedIntersectionResult(
@@ -156,7 +189,13 @@ proxy::Int32 ColumnIndexBucketArray::PopulateSortedIntersectionResult(
       program_,
       program_.Call(
           program_.GetFunction(BucketListSortedIntersectionPopulateResultName),
-          {value_, program_.LoadI32(idx_value_), sorted_intersection_idx_value_,
+          {program_.ConstGEP(
+               program_.ArrayType(program_.GetStructType(ColumnIndexBucketName),
+                                  max_size_),
+               value_, {0, 0}),
+           program_.LoadI32(idx_value_),
+           program_.ConstGEP(program_.ArrayType(program_.I32Type(), max_size_),
+                             sorted_intersection_idx_value_, {0, 0}),
            result, program_.ConstI32(result_max_size)}));
 }
 

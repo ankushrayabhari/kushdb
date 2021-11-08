@@ -38,11 +38,14 @@ class ColumnIndexBucketArray {
   Int32 PopulateSortedIntersectionResult(khir::Value result,
                                          int32_t result_max_size);
 
+  void Clear();
+
  private:
   khir::ProgramBuilder& program_;
   khir::Value value_;
   khir::Value sorted_intersection_idx_value_;
   khir::Value idx_value_;
+  int max_size_;
 };
 
 Int32 SortedIntersectionResultGet(khir::ProgramBuilder& program,

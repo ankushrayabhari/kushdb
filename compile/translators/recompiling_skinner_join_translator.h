@@ -51,7 +51,9 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
       absl::flat_hash_set<int>& available_tables, khir::Value idx_array,
       khir::Value offset_array, khir::Value progress_arr,
       khir::Value table_ctr_ptr, khir::Value num_result_tuples_ptr,
-      proxy::Int32 initial_budget, proxy::Bool resume_progress);
+      proxy::Int32 initial_budget, proxy::Bool resume_progress,
+      std::vector<proxy::ColumnIndexBucketArray>& bucket_lists,
+      const std::vector<khir::Value>& results, const int result_max_size);
 
  private:
   const plan::SkinnerJoinOperator& join_;
