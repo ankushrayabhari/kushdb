@@ -9,6 +9,8 @@ cc_binary(
         "//parse:parser",
         "//plan:planner",
         "//util:time_execute",
+        "@absl//absl/flags:parse",
+        "@absl//absl/flags:usage",
     ],
 )
 
