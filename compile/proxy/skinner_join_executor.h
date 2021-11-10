@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
@@ -28,13 +29,11 @@ class SkinnerJoinExecutor {
   SkinnerJoinExecutor(khir::ProgramBuilder& program);
 
   void ExecutePermutableJoin(absl::Span<const khir::Value> args);
-  void ExecuteRecompilingJoin(int32_t num_tables, int32_t num_predicates,
-                              khir::Value cardinality_arr,
-                              khir::Value tables_per_predicate,
-                              RecompilingJoinTranslator* obj,
-                              khir::Value materialized_buffers,
-                              khir::Value materialized_indexes,
-                              khir::Value tuple_idx_table);
+  void ExecuteRecompilingJoin(
+      int32_t num_tables, khir::Value cardinality_arr,
+      absl::flat_hash_set<std::pair<int, int>>* table_connections,
+      RecompilingJoinTranslator* obj, khir::Value materialized_buffers,
+      khir::Value materialized_indexes, khir::Value tuple_idx_table);
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 

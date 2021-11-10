@@ -24,6 +24,7 @@ class PredicateColumnCollector : public plan::ImmutableExpressionVisitor {
   void Visit(const plan::LiteralExpression& literal) override;
   void Visit(const plan::AggregateExpression& agg) override;
   void Visit(const plan::VirtualColumnRefExpression& virtual_col_ref) override;
+  void Visit(const plan::RegexpMatchingExpression& match) override;
 
  private:
   void VisitChildren(const plan::Expression& expr);

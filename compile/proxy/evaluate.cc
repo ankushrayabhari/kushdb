@@ -200,9 +200,6 @@ SQLValue EvaluateBinaryString(plan::BinaryArithmeticExpressionType op_type,
           case plan::BinaryArithmeticExpressionType::CONTAINS:
             return SQLValue(lhs_v.Contains(rhs_v), null);
 
-          case plan::BinaryArithmeticExpressionType::LIKE:
-            return SQLValue(lhs_v.Like(rhs_v), null);
-
           case plan::BinaryArithmeticExpressionType::EQ:
             return SQLValue(lhs_v == rhs_v, null);
 

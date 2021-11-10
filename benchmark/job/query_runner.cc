@@ -35,12 +35,7 @@ int main(int argc, char** argv) {
   for (const auto& stmt : parsed) {
     plan::Planner planner;
     auto query = planner.Plan(*stmt);
-    {
-      kush::compile::QueryTranslator translator(*query);
-      auto executable_query = translator.Translate();
-      executable_query.Compile();
-      executable_query.Execute();
-    }
+    util::TimeExecute(*query);
   }
 
   return 0;

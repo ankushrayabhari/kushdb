@@ -5,6 +5,8 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 
+#include "re2/re2.h"
+
 #include "catalog/catalog_manager.h"
 #include "parse/expression/aggregate_expression.h"
 #include "parse/expression/arithmetic_expression.h"
@@ -282,9 +284,8 @@ std::unique_ptr<Expression> Planner::Plan(
           }
         }
 
-        return std::make_unique<BinaryArithmeticExpression>(
-            BinaryArithmeticExpressionType::LIKE, Plan(expr.LeftChild()),
-            std::make_unique<LiteralExpression>(regex));
+        return std::make_unique<RegexpMatchingExpression>(
+            Plan(expr.LeftChild()), std::make_unique<re2::RE2>(regex));
 
       } else {
         throw std::runtime_error("Non const argument to like");
@@ -557,8 +558,14 @@ void EarlyProjection(Operator& op) {
     for (auto& x : join->Schema().Columns()) {
       GetReferencedChildren(x.Expr(), refs);
     }
-    for (auto x : join->Conditions()) {
+    for (auto x : join->GeneralConditions()) {
       GetReferencedChildren(x.get(), refs);
+    }
+    auto eqgroups = join->EqualityConditions();
+    for (auto& group : eqgroups) {
+      for (auto x : group) {
+        GetReferencedChildren(x.get(), refs);
+      }
     }
 
     absl::flat_hash_map<std::pair<int, int>, std::pair<int, int>>
@@ -588,8 +595,14 @@ void EarlyProjection(Operator& op) {
     for (auto& x : join->MutableSchema().MutableColumns()) {
       RewriteColumnReferences(x.MutableExpr(), col_ref_to_rewrite_idx);
     }
-    for (auto x : join->MutableConditions()) {
+    for (auto x : join->MutableGeneralConditions()) {
       RewriteColumnReferences(x.get(), col_ref_to_rewrite_idx);
+    }
+    auto mutable_eqgroups = join->MutableEqualityConditions();
+    for (auto& group : mutable_eqgroups) {
+      for (auto x : group) {
+        RewriteColumnReferences(x.get(), col_ref_to_rewrite_idx);
+      }
     }
 
     for (auto child : join->Children()) {

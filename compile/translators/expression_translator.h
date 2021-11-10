@@ -30,6 +30,7 @@ class ExpressionTranslator
   void Visit(const plan::CaseExpression& case_expr) override;
   void Visit(const plan::IntToFloatConversionExpression& conv_expr) override;
   void Visit(const plan::ExtractExpression& extract_expr) override;
+  void Visit(const plan::RegexpMatchingExpression& match_expr) override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 

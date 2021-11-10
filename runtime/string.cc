@@ -81,10 +81,9 @@ int64_t Hash(String* s1) {
   return std::hash<std::string_view>{}(sv1);
 }
 
-bool Like(String* s1, String* s2) {
+bool Like(String* s1, re2::RE2* matcher) {
   re2::StringPiece sp1(s1->data, s1->length);
-  re2::StringPiece sp2(s2->data, s2->length);
-  return RE2::FullMatch(sp1, sp2);
+  return RE2::FullMatch(sp1, *matcher);
 }
 
 }  // namespace kush::runtime::String

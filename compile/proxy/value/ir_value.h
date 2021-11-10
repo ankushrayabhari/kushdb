@@ -4,6 +4,8 @@
 
 #include "absl/time/civil_time.h"
 
+#include "re2/re2.h"
+
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
@@ -268,7 +270,7 @@ class String : public IRValue {
   Bool Contains(const String& rhs) const;
   Bool StartsWith(const String& rhs) const;
   Bool EndsWith(const String& rhs) const;
-  Bool Like(const String& rhs) const;
+  Bool Like(re2::RE2* rhs) const;
   Bool operator==(const String& rhs) const;
   Bool operator!=(const String& rhs) const;
   Bool operator<(const String& rhs) const;

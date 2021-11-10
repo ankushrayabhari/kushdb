@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "absl/container/btree_set.h"
@@ -22,12 +23,10 @@ void ExecutePermutableSkinnerJoin(
     int32_t* idx_arr, int32_t* last_table, int32_t* num_result_tuples,
     int32_t* offset_arr);
 
-void ExecuteRecompilingSkinnerJoin(int32_t num_tables, int32_t num_predicates,
-                                   int32_t* cardinality_arr,
-                                   int32_t* tables_per_predicate_arr,
-                                   compile::RecompilingJoinTranslator* codegen,
-                                   void** materialized_buffers,
-                                   void** materialized_indexes,
-                                   void* tuple_idx_table);
+void ExecuteRecompilingSkinnerJoin(
+    int32_t num_tables, int32_t* cardinality_arr,
+    absl::flat_hash_set<std::pair<int, int>>* table_connections,
+    compile::RecompilingJoinTranslator* codegen, void** materialized_buffers,
+    void** materialized_indexes, void* tuple_idx_table);
 
 }  // namespace kush::runtime

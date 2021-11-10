@@ -263,4 +263,21 @@ void ExpressionTranslator::Visit(const plan::ExtractExpression& extract_expr) {
   }
 }
 
+void ExpressionTranslator::Visit(
+    const plan::RegexpMatchingExpression& match_expr) {
+  auto lhs = Compute(match_expr.Child());
+  Return(proxy::NullableTernary<proxy::Bool>(
+      program_, lhs.IsNull(),
+      [&]() {
+        return proxy::SQLValue(proxy::Bool(program_, false),
+                               proxy::Bool(program_, false));
+      },
+      [&]() {
+        const proxy::String& lhs_v =
+            dynamic_cast<const proxy::String&>(lhs.Get());
+        return proxy::SQLValue(lhs_v.Like(match_expr.Regex()),
+                               proxy::Bool(program_, false));
+      }));
+}
+
 }  // namespace kush::compile

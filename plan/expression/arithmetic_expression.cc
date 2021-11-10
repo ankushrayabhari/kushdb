@@ -31,7 +31,6 @@ catalog::SqlType CalculateBinaryType(BinaryArithmeticExpressionType type,
     case BinaryArithmeticExpressionType::STARTS_WITH:
     case BinaryArithmeticExpressionType::ENDS_WITH:
     case BinaryArithmeticExpressionType::CONTAINS:
-    case BinaryArithmeticExpressionType::LIKE:
       return catalog::SqlType::BOOLEAN;
 
     default:
@@ -121,5 +120,36 @@ nlohmann::json UnaryArithmeticExpression::ToJson() const {
   j["child"] = Child().ToJson();
   return j;
 }
+
+catalog::SqlType CalculateRegexpType(catalog::SqlType child_type) {
+  if (child_type != catalog::SqlType::TEXT) {
+    throw std::runtime_error("Invalid child type for LIKE. Expected text.");
+  }
+  return catalog::SqlType::BOOLEAN;
+}
+
+RegexpMatchingExpression::RegexpMatchingExpression(
+    std::unique_ptr<Expression> child, std::unique_ptr<re2::RE2> regexp)
+    : UnaryExpression(CalculateRegexpType(child->Type()), false,
+                      std::move(child)),
+      regexp_(std::move(regexp)) {}
+
+void RegexpMatchingExpression::Accept(ExpressionVisitor& visitor) {
+  return visitor.Visit(*this);
+}
+
+void RegexpMatchingExpression::Accept(
+    ImmutableExpressionVisitor& visitor) const {
+  return visitor.Visit(*this);
+}
+
+nlohmann::json RegexpMatchingExpression::ToJson() const {
+  nlohmann::json j;
+  j["child"] = Child().ToJson();
+  j["regex"] = regexp_->pattern();
+  return j;
+}
+
+re2::RE2* RegexpMatchingExpression::Regex() const { return regexp_.get(); }
 
 }  // namespace kush::plan

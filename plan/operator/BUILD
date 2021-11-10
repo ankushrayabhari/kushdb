@@ -107,6 +107,9 @@ cc_library(
         ":operator_schema",
         ":operator_visitor",
         "//plan/expression:arithmetic_expression",
+        "//util:union_find",
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/container:flat_hash_set",
         "@json",
     ],
 )

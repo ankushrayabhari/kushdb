@@ -70,6 +70,11 @@ void PredicateColumnCollector::Visit(
   VisitChildren(conv);
 }
 
+void PredicateColumnCollector::Visit(
+    const plan::RegexpMatchingExpression& match) {
+  VisitChildren(match);
+}
+
 void PredicateColumnCollector::Visit(const plan::LiteralExpression& literal) {}
 
 void PredicateColumnCollector::Visit(const plan::AggregateExpression& agg) {

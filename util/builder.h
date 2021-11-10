@@ -7,6 +7,8 @@
 
 #include "absl/time/civil_time.h"
 
+#include "re2/re2.h"
+
 #include "catalog/catalog.h"
 #include "catalog/sql_type.h"
 #include "plan/expression/aggregate_expression.h"
@@ -129,12 +131,10 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Contains(
       std::move(e2));
 }
 
-std::unique_ptr<kush::plan::BinaryArithmeticExpression> Like(
-    std::unique_ptr<kush::plan::Expression> e1,
-    std::unique_ptr<kush::plan::Expression> e2) {
-  return std::make_unique<kush::plan::BinaryArithmeticExpression>(
-      kush::plan::BinaryArithmeticExpressionType::LIKE, std::move(e1),
-      std::move(e2));
+std::unique_ptr<kush::plan::RegexpMatchingExpression> Like(
+    std::unique_ptr<kush::plan::Expression> e1, std::string_view regexp) {
+  return std::make_unique<kush::plan::RegexpMatchingExpression>(
+      std::move(e1), std::make_unique<re2::RE2>(regexp));
 }
 
 std::unique_ptr<kush::plan::BinaryArithmeticExpression> And(

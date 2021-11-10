@@ -437,34 +437,25 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
  public:
   RecompilationJoinEnvironment(
       compile::RecompilingJoinTranslator* codegen, void** materialized_buffers,
-      void** materialized_indexes, void* tuple_idx_table, int num_predicates,
-      const std::vector<absl::flat_hash_set<int>>& tables_per_predicate,
+      void** materialized_indexes, void* tuple_idx_table,
+      const absl::flat_hash_set<std::pair<int, int>>* table_connections,
       const std::vector<int32_t>& cardinalities,
       RecompilationExecutionEngineFlags execution_engine)
       : codegen_(codegen),
         materialized_buffers_(materialized_buffers),
         materialized_indexes_(materialized_indexes),
         tuple_idx_table_(tuple_idx_table),
-        num_predicates_(num_predicates),
         budget_per_episode_(FLAGS_budget_per_episode.Get()),
-        tables_per_predicate_(tables_per_predicate),
+        table_connections_(table_connections),
         cardinalities_(cardinalities),
         state_(cardinalities_),
         execution_engine_(execution_engine) {}
 
   bool IsConnected(const absl::btree_set<int>& joined_tables,
                    int table) override {
-    for (int i = 0; i < num_predicates_; i++) {
-      const auto& tables = tables_per_predicate_[i];
-
-      if (tables.find(table) == tables.end()) {
-        continue;
-      }
-
-      for (int x : tables) {
-        if (joined_tables.find(x) != joined_tables.end()) {
-          return true;
-        }
+    for (int table1 : joined_tables) {
+      if (table_connections_->contains({table1, table})) {
+        return true;
       }
     }
 
@@ -553,9 +544,8 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
   void** materialized_buffers_;
   void** materialized_indexes_;
   void* tuple_idx_table_;
-  const int num_predicates_;
   const int32_t budget_per_episode_;
-  const std::vector<absl::flat_hash_set<int>> tables_per_predicate_;
+  const absl::flat_hash_set<std::pair<int, int>>* table_connections_;
   const std::vector<int32_t> cardinalities_;
   JoinState state_;
   RecompilationExecutionEngineFlags execution_engine_;
@@ -887,13 +877,11 @@ void ExecutePermutableSkinnerJoin(
   }
 }
 
-void ExecuteRecompilingSkinnerJoin(int32_t num_tables, int32_t num_predicates,
-                                   int32_t* cardinality_arr,
-                                   int32_t* tables_per_predicate_arr,
-                                   compile::RecompilingJoinTranslator* codegen,
-                                   void** materialized_buffers,
-                                   void** materialized_indexes,
-                                   void* tuple_idx_table) {
+void ExecuteRecompilingSkinnerJoin(
+    int32_t num_tables, int32_t* cardinality_arr,
+    absl::flat_hash_set<std::pair<int, int>>* table_connections,
+    compile::RecompilingJoinTranslator* codegen, void** materialized_buffers,
+    void** materialized_indexes, void* tuple_idx_table) {
   auto cardinalities = ReconstructCardinalities(num_tables, cardinality_arr);
   for (int x : cardinalities) {
     // one of the inputs is empty
@@ -901,9 +889,6 @@ void ExecuteRecompilingSkinnerJoin(int32_t num_tables, int32_t num_predicates,
       return;
     }
   }
-
-  auto tables_per_predicate =
-      ReconstructTablesPerPredicate(num_predicates, tables_per_predicate_arr);
 
   auto progress_arr = new int32_t[num_tables];
   int32_t table_ctr = 0;
@@ -931,7 +916,7 @@ void ExecuteRecompilingSkinnerJoin(int32_t num_tables, int32_t num_predicates,
 
   RecompilationJoinEnvironment environment(
       codegen, materialized_buffers, materialized_indexes, tuple_idx_table,
-      num_predicates, tables_per_predicate, cardinalities, execution_engine);
+      table_connections, cardinalities, execution_engine);
 
   UctJoinAgent agent(num_tables, environment);
 

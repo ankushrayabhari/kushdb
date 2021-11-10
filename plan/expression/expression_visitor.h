@@ -13,6 +13,7 @@ class BinaryArithmeticExpression;
 class CaseExpression;
 class IntToFloatConversionExpression;
 class ExtractExpression;
+class RegexpMatchingExpression;
 
 class ExpressionVisitor {
  public:
@@ -26,6 +27,7 @@ class ExpressionVisitor {
   virtual void Visit(CaseExpression& case_expr) = 0;
   virtual void Visit(IntToFloatConversionExpression& conv) = 0;
   virtual void Visit(ExtractExpression& extract) = 0;
+  virtual void Visit(RegexpMatchingExpression& match) = 0;
 };
 
 class ImmutableExpressionVisitor {
@@ -40,6 +42,7 @@ class ImmutableExpressionVisitor {
   virtual void Visit(const CaseExpression& case_expr) = 0;
   virtual void Visit(const IntToFloatConversionExpression& conv) = 0;
   virtual void Visit(const ExtractExpression& extract) = 0;
+  virtual void Visit(const RegexpMatchingExpression& match) = 0;
 };
 
 }  // namespace kush::plan

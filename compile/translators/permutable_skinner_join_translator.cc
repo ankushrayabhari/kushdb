@@ -68,7 +68,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
-  auto conditions = join_.Conditions();
+  auto conditions = join_.GeneralConditions();
 
   std::vector<absl::btree_set<int>> predicates_per_table(
       child_operators.size());

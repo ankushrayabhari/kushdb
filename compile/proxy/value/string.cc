@@ -51,9 +51,9 @@ Bool String::EndsWith(const String& rhs) const {
                                       {value_, rhs.Get()}));
 }
 
-Bool String::Like(const String& rhs) const {
+Bool String::Like(re2::RE2* rhs) const {
   return Bool(program_, program_.Call(program_.GetFunction(LikeFnName),
-                                      {value_, rhs.Get()}));
+                                      {value_, program_.ConstPtr(rhs)}));
 }
 
 Bool String::operator==(const String& rhs) const {
@@ -140,7 +140,8 @@ void String::ForwardDeclare(khir::ProgramBuilder& program) {
       ContainsFnName, program.I1Type(), {struct_ptr, struct_ptr},
       reinterpret_cast<void*>(runtime::String::Contains));
   program.DeclareExternalFunction(
-      LikeFnName, program.I1Type(), {struct_ptr, struct_ptr},
+      LikeFnName, program.I1Type(),
+      {struct_ptr, program.PointerType(program.I8Type())},
       reinterpret_cast<void*>(runtime::String::Like));
   program.DeclareExternalFunction(
       EndsWithFnName, program.I1Type(), {struct_ptr, struct_ptr},

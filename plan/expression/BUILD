@@ -79,6 +79,7 @@ cc_library(
         ":expression_visitor",
         "@json",
         "@magic_enum",
+        "@re2",
     ],
 )
 
