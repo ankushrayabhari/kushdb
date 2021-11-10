@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 
@@ -13,22 +14,19 @@
 
 namespace kush::compile::proxy {
 
-class TableFunction {
- public:
-  TableFunction(khir::ProgramBuilder& program,
-                std::function<Int32(Int32&, Bool&)> body);
-
-  khir::FunctionRef Get();
-
- private:
-  std::optional<khir::FunctionRef> func_;
-};
-
 class SkinnerJoinExecutor {
  public:
   SkinnerJoinExecutor(khir::ProgramBuilder& program);
 
-  void ExecutePermutableJoin(absl::Span<const khir::Value> args);
+  void ExecutePermutableJoin(
+      int32_t num_tables, int32_t num_general_preds, int32_t num_eq_preds,
+      absl::flat_hash_map<std::pair<int, int>, int>* eq_pred_table_to_flag,
+      absl::flat_hash_map<std::pair<int, int>, int>* general_pred_table_to_flag,
+      absl::flat_hash_set<std::pair<int, int>>* table_connections,
+      khir::Value join_handler_fn_arr, khir::Value valid_tuple_handler,
+      int32_t num_flags, khir::Value flag_arr, khir::Value progress_arr,
+      khir::Value table_ctr, khir::Value idx_arr, khir::Value last_table,
+      khir::Value num_result_tuples, khir::Value offset_arr);
   void ExecuteRecompilingJoin(
       int32_t num_tables, khir::Value cardinality_arr,
       absl::flat_hash_set<std::pair<int, int>>* table_connections,

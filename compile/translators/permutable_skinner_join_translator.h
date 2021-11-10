@@ -4,6 +4,9 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/materialized_buffer.h"
 #include "compile/proxy/struct.h"
@@ -33,9 +36,10 @@ class PermutableSkinnerJoinTranslator : public OperatorTranslator {
   proxy::Vector* buffer_;
   std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers_;
   std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes_;
-  std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
-      predicate_columns_;
-  absl::flat_hash_map<std::pair<int, int>, int> predicate_to_index_idx_;
+  absl::flat_hash_map<std::pair<int, int>, int> column_to_index_idx_;
+  absl::flat_hash_map<std::pair<int, int>, int> eq_pred_table_to_flag_;
+  absl::flat_hash_map<std::pair<int, int>, int> general_pred_table_to_flag_;
+  absl::flat_hash_set<std::pair<int, int>> table_connections_;
   int child_idx_ = -1;
 };
 

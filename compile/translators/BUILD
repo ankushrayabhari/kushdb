@@ -200,7 +200,7 @@ cc_library(
         "//khir:program_builder",
         "//plan/operator:skinner_join_operator",
         "//util:vector_util",
-        "@absl//absl/container:btree",
+        "@absl//absl/container:flat_hash_map",
         "@absl//absl/container:flat_hash_set",
     ],
 )

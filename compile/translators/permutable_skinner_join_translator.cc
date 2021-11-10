@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 
 #include "compile/proxy/control_flow/if.h"
@@ -25,6 +25,58 @@
 
 namespace kush::compile {
 
+class TableFunction {
+ public:
+  TableFunction(khir::ProgramBuilder& program,
+                std::function<proxy::Int32(proxy::Int32&, proxy::Bool&)> body) {
+    auto current_block = program.CurrentBlock();
+
+    func_ = program.CreateFunction(program.I32Type(),
+                                   {program.I32Type(), program.I1Type()});
+
+    auto args = program.GetFunctionArguments(func_.value());
+    proxy::Int32 budget(program, args[0]);
+    proxy::Bool resume_progress(program, args[1]);
+
+    auto x = body(budget, resume_progress);
+    program.Return(x.Get());
+
+    program.SetCurrentBlock(current_block);
+  }
+
+  khir::FunctionRef Get() { return func_.value(); }
+
+ private:
+  std::optional<khir::FunctionRef> func_;
+};
+
+std::unique_ptr<proxy::ColumnIndex> GenerateInMemoryIndex(
+    khir::ProgramBuilder& program, catalog::SqlType type) {
+  switch (type) {
+    case catalog::SqlType::SMALLINT:
+      return std::make_unique<
+          proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>>(program, true);
+    case catalog::SqlType::INT:
+      return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::INT>>(
+          program, true);
+    case catalog::SqlType::BIGINT:
+      return std::make_unique<
+          proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>>(program, true);
+    case catalog::SqlType::REAL:
+      return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::REAL>>(
+          program, true);
+    case catalog::SqlType::DATE:
+      return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::DATE>>(
+          program, true);
+    case catalog::SqlType::TEXT:
+      return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::TEXT>>(
+          program, true);
+    case catalog::SqlType::BOOLEAN:
+      return std::make_unique<
+          proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>>(program, true);
+  }
+}
+
 PermutableSkinnerJoinTranslator::PermutableSkinnerJoinTranslator(
     const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
     execution::PipelineBuilder& pipeline_builder,
@@ -35,59 +87,28 @@ PermutableSkinnerJoinTranslator::PermutableSkinnerJoinTranslator(
       pipeline_builder_(pipeline_builder),
       expr_translator_(program_, *this) {}
 
-std::vector<int> IndexesAvailableForTable(
-    int table_idx, std::vector<absl::btree_set<int>>& predicates_per_table,
-    const std::vector<std::reference_wrapper<const kush::plan::Expression>>&
-        conditions) {
-  std::vector<int> result;
-  for (int predicate_idx : predicates_per_table[table_idx]) {
-    const auto& predicate = conditions[predicate_idx].get();
-
-    if (auto eq = dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(
-            &predicate)) {
-      if (eq->OpType() == kush::plan::BinaryArithmeticExpressionType::EQ) {
-        if (auto left_column =
-                dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                    &eq->LeftChild())) {
-          if (auto right_column =
-                  dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                      &eq->RightChild())) {
-            // possible to evaluate this via index
-            result.push_back(predicate_idx);
-          }
-        }
-      }
-    }
-  }
-
-  return result;
-}
-
 void PermutableSkinnerJoinTranslator::Produce() {
   auto output_pipeline_func = program_.CurrentBlock();
 
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
-  auto conditions = join_.GeneralConditions();
+  auto equality_conditions = join_.EqualityConditions();
+  auto general_conditions = join_.GeneralConditions();
 
-  std::vector<absl::btree_set<int>> predicates_per_table(
-      child_operators.size());
-  std::vector<absl::flat_hash_set<int>> tables_per_predicate(conditions.size());
-  PredicateColumnCollector total_collector;
-  for (int i = 0; i < conditions.size(); i++) {
-    auto& condition = conditions[i];
+  int index_idx = 0;
+  for (int i = 0; i < equality_conditions.size(); i++) {
+    auto& condition = equality_conditions[i];
 
-    condition.get().Accept(total_collector);
+    for (const auto& col_ref : condition) {
+      std::pair<int, int> key = {col_ref.get().GetChildIdx(),
+                                 col_ref.get().GetColumnIdx()};
 
-    PredicateColumnCollector collector;
-    condition.get().Accept(collector);
-    auto predicate_columns = collector.PredicateColumns();
-    for (const auto& col_ref : predicate_columns) {
-      predicates_per_table[col_ref.get().GetChildIdx()].insert(i);
-      tables_per_predicate[i].insert(col_ref.get().GetChildIdx());
+      if (!column_to_index_idx_.contains(key)) {
+        column_to_index_idx_[key] = index_idx++;
+      }
     }
   }
-  predicate_columns_ = total_collector.PredicateColumns();
+  indexes_ = std::vector<std::unique_ptr<proxy::ColumnIndex>>(index_idx);
 
   std::vector<std::unique_ptr<execution::Pipeline>> child_pipelines;
 
@@ -103,63 +124,20 @@ void PermutableSkinnerJoinTranslator::Produce() {
       disk_materialized_buffer->Init();
 
       // for each indexed column on this table, scan and append to index
-      for (auto& predicate_column : predicate_columns_) {
-        if (i != predicate_column.get().GetChildIdx()) {
+      for (const auto& [key, value] : column_to_index_idx_) {
+        auto [child_idx, col_idx] = key;
+        auto index_idx = value;
+        if (i != child_idx) {
           continue;
         }
 
-        auto col_idx = predicate_column.get().GetColumnIdx();
-        auto index_idx = indexes_.size();
-        predicate_to_index_idx_[{i, col_idx}] = index_idx;
         if (scan->HasIndex(col_idx)) {
-          indexes_.push_back(scan->GenerateIndex(col_idx));
-          indexes_.back()->Init();
+          indexes_[index_idx] = scan->GenerateIndex(col_idx);
+          indexes_[index_idx]->Init();
         } else {
-          switch (predicate_column.get().Type()) {
-            case catalog::SqlType::SMALLINT:
-              indexes_.push_back(
-                  std::make_unique<
-                      proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>>(
-                      program_, true));
-              break;
-            case catalog::SqlType::INT:
-              indexes_.push_back(
-                  std::make_unique<
-                      proxy::MemoryColumnIndex<catalog::SqlType::INT>>(program_,
-                                                                       true));
-              break;
-            case catalog::SqlType::BIGINT:
-              indexes_.push_back(
-                  std::make_unique<
-                      proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>>(
-                      program_, true));
-              break;
-            case catalog::SqlType::REAL:
-              indexes_.push_back(
-                  std::make_unique<
-                      proxy::MemoryColumnIndex<catalog::SqlType::REAL>>(
-                      program_, true));
-              break;
-            case catalog::SqlType::DATE:
-              indexes_.push_back(
-                  std::make_unique<
-                      proxy::MemoryColumnIndex<catalog::SqlType::DATE>>(
-                      program_, true));
-              break;
-            case catalog::SqlType::TEXT:
-              indexes_.push_back(
-                  std::make_unique<
-                      proxy::MemoryColumnIndex<catalog::SqlType::TEXT>>(
-                      program_, true));
-              break;
-            case catalog::SqlType::BOOLEAN:
-              indexes_.push_back(
-                  std::make_unique<
-                      proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>>(
-                      program_, true));
-              break;
-          }
-          indexes_.back()->Init();
+          auto type = child_operator.Schema().Columns()[col_idx].Expr().Type();
+          indexes_[index_idx] = GenerateInMemoryIndex(program_, type);
+          indexes_[index_idx]->Init();
           disk_materialized_buffer->Scan(
               col_idx, [&](auto tuple_idx, auto value) {
                 // only index not null values
@@ -175,58 +153,16 @@ void PermutableSkinnerJoinTranslator::Produce() {
       materialized_buffers_.push_back(std::move(disk_materialized_buffer));
     } else {
       // For each predicate column on this table, declare a memory index.
-      for (auto& predicate_column : predicate_columns_) {
-        if (i != predicate_column.get().GetChildIdx()) {
+      for (const auto& [key, value] : column_to_index_idx_) {
+        auto [child_idx, col_idx] = key;
+        auto index_idx = value;
+        if (i != child_idx) {
           continue;
         }
 
-        predicate_to_index_idx_[{predicate_column.get().GetChildIdx(),
-                                 predicate_column.get().GetColumnIdx()}] =
-            indexes_.size();
-
-        switch (predicate_column.get().Type()) {
-          case catalog::SqlType::SMALLINT:
-            indexes_.push_back(
-                std::make_unique<
-                    proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>>(
-                    program_, true));
-            break;
-          case catalog::SqlType::INT:
-            indexes_.push_back(std::make_unique<
-                               proxy::MemoryColumnIndex<catalog::SqlType::INT>>(
-                program_, true));
-            break;
-          case catalog::SqlType::BIGINT:
-            indexes_.push_back(
-                std::make_unique<
-                    proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>>(
-                    program_, true));
-            break;
-          case catalog::SqlType::REAL:
-            indexes_.push_back(
-                std::make_unique<
-                    proxy::MemoryColumnIndex<catalog::SqlType::REAL>>(program_,
-                                                                      true));
-            break;
-          case catalog::SqlType::DATE:
-            indexes_.push_back(
-                std::make_unique<
-                    proxy::MemoryColumnIndex<catalog::SqlType::DATE>>(program_,
-                                                                      true));
-            break;
-          case catalog::SqlType::TEXT:
-            indexes_.push_back(
-                std::make_unique<
-                    proxy::MemoryColumnIndex<catalog::SqlType::TEXT>>(program_,
-                                                                      true));
-            break;
-          case catalog::SqlType::BOOLEAN:
-            indexes_.push_back(
-                std::make_unique<
-                    proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>>(
-                    program_, true));
-            break;
-        }
+        auto type = child_operator.Schema().Columns()[col_idx].Expr().Type();
+        indexes_[index_idx] = GenerateInMemoryIndex(program_, type);
+        indexes_[index_idx]->Init();
       }
 
       // Create struct for materialization
@@ -262,12 +198,51 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
   // 2. Setup join evaluation
   // Setup struct of predicate columns
+  // - 1 for the equality columns
+  // - add remaining for each general column
   auto predicate_struct = std::make_unique<proxy::StructBuilder>(program_);
-  for (auto& predicate_column : predicate_columns_) {
-    const auto& child = child_operators[predicate_column.get().GetChildIdx()];
-    const auto& col =
-        child.get().Schema().Columns()[predicate_column.get().GetColumnIdx()];
-    predicate_struct->Add(col.Expr().Type(), col.Expr().Nullable());
+  absl::flat_hash_map<std::pair<int, int>, int>
+      colref_to_predicate_struct_field_;
+  absl::flat_hash_map<int, int> eq_pred_to_predicate_struct_field_;
+  int pred_struct_size = 0;
+  for (int i = 0; i < equality_conditions.size(); i++) {
+    const auto& cond = equality_conditions[i];
+    auto child_idx = cond[0].get().GetChildIdx();
+    auto column_idx = cond[0].get().GetColumnIdx();
+    const auto& column_schema =
+        child_operators[child_idx].get().Schema().Columns()[column_idx];
+
+    predicate_struct->Add(column_schema.Expr().Type(),
+                          column_schema.Expr().Nullable());
+
+    auto field = pred_struct_size++;
+    for (auto c : cond) {
+      colref_to_predicate_struct_field_[{c.get().GetChildIdx(),
+                                         c.get().GetColumnIdx()}] = field;
+    }
+
+    eq_pred_to_predicate_struct_field_[i] = field;
+  }
+  for (auto& general_pred : general_conditions) {
+    PredicateColumnCollector collector;
+    general_pred.get().Accept(collector);
+    auto cond = collector.PredicateColumns();
+
+    for (auto& c : cond) {
+      auto child_idx = c.get().GetChildIdx();
+      auto column_idx = c.get().GetColumnIdx();
+      std::pair<int, int> key = {child_idx, column_idx};
+
+      if (!colref_to_predicate_struct_field_.contains(key)) {
+        colref_to_predicate_struct_field_[key] = pred_struct_size++;
+
+        const auto& column_schema =
+            child_operators[child_idx].get().Schema().Columns()[column_idx];
+
+        predicate_struct->Add(column_schema.Expr().Type(),
+                              column_schema.Expr().Nullable());
+      }
+    }
   }
   predicate_struct->Build();
 
@@ -324,13 +299,35 @@ void PermutableSkinnerJoinTranslator::Produce() {
       program_.ConstantArray(num_result_tuples_type, {program_.ConstI32(0)}));
 
   // Setup flag array for each table.
+  // allocate a flag for each:
+  // table in an eq predicate
+  // table in a general predicate
   int total_flags = 0;
-  absl::flat_hash_map<std::pair<int, int>, int> table_predicate_to_flag_idx;
-  int flag_idx = 0;
-  for (int i = 0; i < predicates_per_table.size(); i++) {
-    total_flags += predicates_per_table[i].size();
-    for (int predicate_idx : predicates_per_table[i]) {
-      table_predicate_to_flag_idx[{i, predicate_idx}] = flag_idx++;
+
+  for (int eq_pred = 0; eq_pred < equality_conditions.size(); eq_pred++) {
+    const auto& cond = equality_conditions[eq_pred];
+    absl::flat_hash_set<int> tables;
+    for (const auto& col_ref : cond) {
+      tables.insert(col_ref.get().GetChildIdx());
+    }
+
+    for (auto t : tables) {
+      eq_pred_table_to_flag_[{eq_pred, t}] = total_flags++;
+    }
+  }
+
+  for (int gen_pred = 0; gen_pred < general_conditions.size(); gen_pred++) {
+    PredicateColumnCollector collector;
+    general_conditions[gen_pred].get().Accept(collector);
+    auto cond = collector.PredicateColumns();
+
+    absl::flat_hash_set<int> tables;
+    for (const auto& col_ref : cond) {
+      tables.insert(col_ref.get().GetChildIdx());
+    }
+
+    for (auto t : tables) {
+      general_pred_table_to_flag_[{gen_pred, t}] = total_flags++;
     }
   }
 
@@ -355,7 +352,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
   auto handler_pointer_array = program_.Global(
       false, true, handler_pointer_array_type, handler_pointer_init);
 
-  std::vector<proxy::TableFunction> table_functions;
+  std::vector<TableFunction> table_functions;
   // initially fill the child_translators schema values with garbage
   // this will get overwritten when we actually load tuples/update predicate
   // struct
@@ -402,79 +399,109 @@ void PermutableSkinnerJoinTranslator::Produce() {
     }
   }
 
+  int bucket_list_max_size = INT32_MIN;
   for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
-    table_functions.push_back(proxy::TableFunction(
-        program_, [&](auto& initial_budget, auto& resume_progress) {
-          auto handler_ptr =
-              program_.ConstGEP(handler_pointer_array_type,
-                                handler_pointer_array, {0, table_idx});
-          auto handler = program_.LoadPtr(handler_ptr);
+    int bucket_list_size = 0;
+    for (const auto& cond : equality_conditions) {
+      for (const auto& c : cond) {
+        if (c.get().GetChildIdx() == table_idx) {
+          bucket_list_size++;
+        }
+      }
+    }
 
-          {
-            // Unpack the predicate struct.
-            auto column_values = global_predicate_struct.Unpack();
+    bucket_list_max_size = std::max(bucket_list_size, bucket_list_max_size);
+  }
 
-            // Set the schema value for each predicate column to be the ones
-            // from the predicate struct.
-            for (int i = 0; i < column_values.size(); i++) {
-              auto& column_ref = predicate_columns_[i].get();
+  for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
+    table_functions.push_back(TableFunction(program_, [&](auto& initial_budget,
+                                                          auto&
+                                                              resume_progress) {
+      auto handler_ptr = program_.ConstGEP(
+          handler_pointer_array_type, handler_pointer_array, {0, table_idx});
+      auto handler = program_.LoadPtr(handler_ptr);
 
-              // Set the ColumnIdx value of the ChildIdx operator to be the
-              // unpacked value.
-              auto& child_translator =
-                  child_translators[column_ref.GetChildIdx()].get();
-              child_translator.SchemaValues().SetValue(
-                  column_ref.GetColumnIdx(), std::move(column_values[i]));
+      absl::flat_hash_map<int, proxy::SQLValue> eq_pred_values(
+          equality_conditions.size());
+      {
+        // Unpack the predicate struct.
+        auto column_values = global_predicate_struct.Unpack();
+
+        for (const auto& [colref, field] : colref_to_predicate_struct_field_) {
+          auto [child_idx, col_idx] = colref;
+
+          // Set the ColumnIdx value of the ChildIdx operator to be the
+          // unpacked value.
+          auto& child_translator = child_translators[child_idx].get();
+          child_translator.SchemaValues().SetValue(col_idx,
+                                                   column_values[field]);
+        }
+
+        for (const auto& [eq_pred, field] :
+             eq_pred_to_predicate_struct_field_) {
+          eq_pred_values.emplace(eq_pred, column_values[field]);
+        }
+      }
+
+      auto& buffer = *materialized_buffers_[table_idx];
+      auto cardinality = buffer.Size();
+
+      // for each equality predicate, if the buffer DNE, then return since
+      // no result tuples with current column values.
+      proxy::ColumnIndexBucketArray bucket_list(program_, bucket_list_max_size);
+
+      for (auto [eq_pred_table, flag] : eq_pred_table_to_flag_) {
+        auto eq_pred = eq_pred_table.first;
+        auto table = eq_pred_table.second;
+        if (table != table_idx) {
+          continue;
+        }
+
+        const auto& cond = equality_conditions[eq_pred];
+
+        auto flag_ptr =
+            program_.ConstGEP(flag_array_type, flag_array, {0, flag});
+        proxy::Int8 flag_value(program_, program_.LoadI8(flag_ptr));
+
+        proxy::If(program_, flag_value != 0, [&]() {
+          auto other_side_value = eq_pred_values.at(eq_pred);
+
+          for (auto colref : cond) {
+            if (colref.get().GetChildIdx() != table_idx) {
+              continue;
             }
-          }
+            auto table_column = colref.get().GetColumnIdx();
 
-          auto& buffer = *materialized_buffers_[table_idx];
-          auto cardinality = buffer.Size();
+            proxy::If(
+                program_, other_side_value.IsNull(),
+                [&]() {
+                  auto budget = initial_budget - 1;
+                  proxy::If(
+                      program_, budget == 0,
+                      [&]() {
+                        auto idx_ptr = program_.ConstGEP(
+                            idx_array_type, idx_array, {0, table_idx});
+                        program_.StoreI32(idx_ptr, (cardinality - 1).Get());
+                        program_.StoreI32(
+                            program_.ConstGEP(table_ctr_type, table_ctr_ptr,
+                                              {0, 0}),
+                            program_.ConstI32(table_idx));
+                        program_.Return(program_.ConstI32(-1));
+                      },
+                      [&]() { program_.Return(budget.Get()); });
+                },
+                [&]() {
+                  auto it =
+                      column_to_index_idx_.find({table_idx, table_column});
+                  if (it == column_to_index_idx_.end()) {
+                    throw std::runtime_error("Expected index.");
+                  }
+                  auto index_idx = it->second;
 
-          // for each indexed predicate, if the buffer DNE, then return since
-          // no result tuples with current column values.
-          auto index_evaluted_predicates = IndexesAvailableForTable(
-              table_idx, predicates_per_table, conditions);
-          int bucket_list_max_size = index_evaluted_predicates.empty()
-                                         ? 1
-                                         : index_evaluted_predicates.size();
-          proxy::ColumnIndexBucketArray bucket_list(program_,
-                                                    bucket_list_max_size);
-
-          for (int predicate_idx : index_evaluted_predicates) {
-            const auto& predicate = conditions[predicate_idx].get();
-
-            auto flag_ptr = program_.ConstGEP(
-                flag_array_type, flag_array,
-                {0,
-                 table_predicate_to_flag_idx.at({table_idx, predicate_idx})});
-            proxy::Int8 flag_value(program_, program_.LoadI8(flag_ptr));
-            proxy::If(program_, flag_value != 0, [&]() {
-              auto eq =
-                  dynamic_cast<const kush::plan::BinaryArithmeticExpression*>(
-                      &predicate);
-              auto left_column =
-                  dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                      &eq->LeftChild());
-              auto right_column =
-                  dynamic_cast<const kush::plan::ColumnRefExpression*>(
-                      &eq->RightChild());
-
-              auto table_column = table_idx == left_column->GetChildIdx()
-                                      ? left_column->GetColumnIdx()
-                                      : right_column->GetColumnIdx();
-
-              auto it = predicate_to_index_idx_.find({table_idx, table_column});
-              assert(it != predicate_to_index_idx_.end());
-              auto index_idx = it->second;
-
-              auto other_side_value = expr_translator_.Compute(
-                  table_idx == left_column->GetChildIdx() ? *right_column
-                                                          : *left_column);
-
-              proxy::If(
-                  program_, other_side_value.IsNull(),
-                  [&]() {
+                  auto bucket_from_index =
+                      indexes_[index_idx]->GetBucket(other_side_value.Get());
+                  bucket_list.PushBack(bucket_from_index);
+                  proxy::If(program_, bucket_from_index.DoesNotExist(), [&]() {
                     auto budget = initial_budget - 1;
                     proxy::If(
                         program_, budget == 0,
@@ -489,443 +516,404 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           program_.Return(program_.ConstI32(-1));
                         },
                         [&]() { program_.Return(budget.Get()); });
-                  },
-                  [&]() {
-                    auto bucket_from_index =
-                        indexes_[index_idx]->GetBucket(other_side_value.Get());
-                    bucket_list.PushBack(bucket_from_index);
-
-                    proxy::If(
-                        program_, bucket_from_index.DoesNotExist(), [&]() {
-                          auto budget = initial_budget - 1;
-                          proxy::If(
-                              program_, budget == 0,
-                              [&]() {
-                                auto idx_ptr = program_.ConstGEP(
-                                    idx_array_type, idx_array, {0, table_idx});
-                                program_.StoreI32(idx_ptr,
-                                                  (cardinality - 1).Get());
-                                program_.StoreI32(
-                                    program_.ConstGEP(table_ctr_type,
-                                                      table_ctr_ptr, {0, 0}),
-                                    program_.ConstI32(table_idx));
-                                program_.Return(program_.ConstI32(-1));
-                              },
-                              [&]() { program_.Return(budget.Get()); });
-                        });
                   });
-            });
+                });
           }
+        });
+      }
 
-          auto use_index = proxy::Ternary(
-              program_, bucket_list.Size() > 0,
-              [&]() {
-                auto progress_next_tuple = proxy::Ternary(
-                    program_, resume_progress,
-                    [&]() {
-                      auto progress_ptr = program_.ConstGEP(
-                          progress_array_type, progress_arr, {0, table_idx});
-                      return proxy::Int32(program_,
-                                          program_.LoadI32(progress_ptr));
-                    },
-                    [&]() { return proxy::Int32(program_, 0); });
-                auto offset_next_tuple =
-                    proxy::Int32(program_, program_.LoadI32(program_.ConstGEP(
-                                               offset_array_type, offset_array,
-                                               {0, table_idx}))) +
-                    1;
-                auto initial_next_tuple = proxy::Ternary(
-                    program_, offset_next_tuple > progress_next_tuple,
-                    [&]() { return offset_next_tuple; },
-                    [&]() { return progress_next_tuple; });
-
-                bucket_list.InitSortedIntersection(initial_next_tuple);
-
-                int result_max_size = 64;
-                auto result =
-                    program_.Alloca(program_.I32Type(), result_max_size);
-                auto result_initial_size =
-                    bucket_list.PopulateSortedIntersectionResult(
-                        result, result_max_size);
-
-                proxy::Loop loop(
-                    program_,
-                    [&](auto& loop) {
-                      loop.AddLoopVariable(initial_budget);
-                      loop.AddLoopVariable(result_initial_size);
-                    },
-                    [&](auto& loop) {
-                      auto result_size =
-                          loop.template GetLoopVariable<proxy::Int32>(1);
-                      return result_size > 0;
-                    },
-                    [&](auto& loop) {
-                      auto budget =
-                          loop.template GetLoopVariable<proxy::Int32>(0);
-                      auto result_size =
-                          loop.template GetLoopVariable<proxy::Int32>(1);
-
-                      // loop over all elements in result
-                      proxy::Loop result_loop(
-                          program_,
-                          [&](auto& loop) {
-                            loop.AddLoopVariable(proxy::Int32(program_, 0));
-                            loop.AddLoopVariable(budget);
-
-                            auto continue_resume_progress = proxy::Ternary(
-                                program_, resume_progress,
-                                [&]() {
-                                  auto bucket_next_tuple_ptr =
-                                      program_.ConstGEP(program_.I32Type(),
-                                                        result, {0});
-                                  auto initial_next_tuple = proxy::Int32(
-                                      program_,
-                                      program_.LoadI32(bucket_next_tuple_ptr));
-                                  return initial_next_tuple ==
-                                         progress_next_tuple;
-                                },
-                                [&]() { return proxy::Bool(program_, false); });
-                            loop.AddLoopVariable(continue_resume_progress);
-                          },
-                          [&](auto& loop) {
-                            auto bucket_idx =
-                                loop.template GetLoopVariable<proxy::Int32>(0);
-                            return bucket_idx < result_size;
-                          },
-                          [&](auto& loop) {
-                            auto bucket_idx =
-                                loop.template GetLoopVariable<proxy::Int32>(0);
-                            auto budget =
-                                loop.template GetLoopVariable<proxy::Int32>(1) -
-                                1;
-                            auto resume_progress =
-                                loop.template GetLoopVariable<proxy::Bool>(2);
-
-                            auto next_tuple = SortedIntersectionResultGet(
-                                program_, result, bucket_idx);
-
-                            auto idx_ptr = program_.ConstGEP(
-                                idx_array_type, idx_array, {0, table_idx});
-                            program_.StoreI32(idx_ptr, next_tuple.Get());
-
-                            /*
-                            proxy::Printer printer(program_, true);
-                            printer.Print(proxy::Int32(program_, table_idx));
-                            printer.Print(next_tuple);
-                            printer.PrintNewline();
-                            */
-
-                            auto current_table_values = buffer[next_tuple];
-
-                            // Store each of this table's predicate column
-                            // values into the global_predicate_struct
-                            for (int k = 0; k < predicate_columns_.size();
-                                 k++) {
-                              auto& col_ref = predicate_columns_[k].get();
-                              if (col_ref.GetChildIdx() == table_idx) {
-                                global_predicate_struct.Update(
-                                    k,
-                                    current_table_values[col_ref
-                                                             .GetColumnIdx()]);
-
-                                // Additionally, update this table's values to
-                                // read from the unpacked tuple instead of the
-                                // old loaded value from
-                                // global_predicate_struct.
-                                child_translators[table_idx]
-                                    .get()
-                                    .SchemaValues()
-                                    .SetValue(
-                                        col_ref.GetColumnIdx(),
-                                        std::move(
-                                            current_table_values
-                                                [col_ref.GetColumnIdx()]));
-                              }
-                            }
-
-                            for (int predicate_idx :
-                                 predicates_per_table[table_idx]) {
-                              auto flag_ptr = program_.ConstGEP(
-                                  flag_array_type, flag_array,
-                                  {0, table_predicate_to_flag_idx.at(
-                                          {table_idx, predicate_idx})});
-                              proxy::Int8 flag_value(program_,
-                                                     program_.LoadI8(flag_ptr));
-                              proxy::If(program_, flag_value != 0, [&]() {
-                                auto cond = expr_translator_.Compute(
-                                    conditions[predicate_idx]);
-
-                                proxy::If(
-                                    program_, cond.IsNull(),
-                                    [&]() {
-                                      // If budget, depleted return -1 and set
-                                      // table ctr
-                                      proxy::If(
-                                          program_, budget == 0,
-                                          [&]() {
-                                            program_.StoreI32(
-                                                program_.ConstGEP(
-                                                    table_ctr_type,
-                                                    table_ctr_ptr, {0, 0}),
-                                                program_.ConstI32(table_idx));
-                                            program_.Return(
-                                                program_.ConstI32(-1));
-                                          },
-                                          [&]() {
-                                            loop.Continue(
-                                                bucket_idx + 1, budget,
-                                                proxy::Bool(program_, false));
-                                          });
-                                    },
-                                    [&]() {
-                                      proxy::If(
-                                          program_,
-                                          !static_cast<proxy::Bool&>(
-                                              cond.Get()),
-                                          [&]() {
-                                            // If budget, depleted return -1 and
-                                            // set table ctr
-                                            proxy::If(
-                                                program_, budget == 0,
-                                                [&]() {
-                                                  program_.StoreI32(
-                                                      program_.ConstGEP(
-                                                          table_ctr_type,
-                                                          table_ctr_ptr,
-                                                          {0, 0}),
-                                                      program_.ConstI32(
-                                                          table_idx));
-                                                  program_.Return(
-                                                      program_.ConstI32(-1));
-                                                },
-                                                [&]() {
-                                                  loop.Continue(
-                                                      bucket_idx + 1, budget,
-                                                      proxy::Bool(program_,
-                                                                  false));
-                                                });
-                                          });
-                                    });
-                              });
-                            }
-
-                            proxy::If(program_, budget == 0, [&]() {
-                              program_.StoreI32(
-                                  program_.ConstGEP(table_ctr_type,
-                                                    table_ctr_ptr, {0, 0}),
-                                  program_.ConstI32(table_idx));
-                              program_.Return(program_.ConstI32(-2));
-                            });
-
-                            // Valid tuple
-                            auto next_budget = proxy::Int32(
-                                program_,
-                                program_.Call(
-                                    handler,
-                                    {budget.Get(), resume_progress.Get()}));
-                            proxy::If(program_, next_budget < 0, [&]() {
-                              program_.Return(next_budget.Get());
-                            });
-
-                            return loop.Continue(bucket_idx + 1, next_budget,
-                                                 proxy::Bool(program_, false));
-                          });
-
-                      auto next_budget =
-                          result_loop.template GetLoopVariable<proxy::Int32>(1);
-                      auto next_result_size =
-                          bucket_list.PopulateSortedIntersectionResult(
-                              result, result_max_size);
-                      return loop.Continue(next_budget, next_result_size);
-                    });
-
-                return loop.template GetLoopVariable<proxy::Int32>(0);
-              },
-              [&]() {
-                // Loop over tuples in buffer
-                proxy::Loop loop(
-                    program_,
-                    [&](auto& loop) {
-                      auto progress_next_tuple = proxy::Ternary(
-                          program_, resume_progress,
-                          [&]() {
-                            auto progress_ptr =
-                                program_.ConstGEP(progress_array_type,
-                                                  progress_arr, {0, table_idx});
-                            return proxy::Int32(program_,
-                                                program_.LoadI32(progress_ptr));
-                          },
-                          [&]() { return proxy::Int32(program_, 0); });
-                      auto offset_next_tuple =
-                          proxy::Int32(program_,
-                                       program_.LoadI32(program_.ConstGEP(
+      auto use_index = proxy::Ternary(
+          program_, bucket_list.Size() > 0,
+          [&]() {
+            auto progress_next_tuple = proxy::Ternary(
+                program_, resume_progress,
+                [&]() {
+                  auto progress_ptr = program_.ConstGEP(
+                      progress_array_type, progress_arr, {0, table_idx});
+                  return proxy::Int32(program_, program_.LoadI32(progress_ptr));
+                },
+                [&]() { return proxy::Int32(program_, 0); });
+            auto offset_next_tuple =
+                proxy::Int32(program_, program_.LoadI32(program_.ConstGEP(
                                            offset_array_type, offset_array,
                                            {0, table_idx}))) +
-                          1;
-                      auto initial_next_tuple = proxy::Ternary(
-                          program_, offset_next_tuple > progress_next_tuple,
-                          [&]() { return offset_next_tuple; },
-                          [&]() { return progress_next_tuple; });
+                1;
+            auto initial_next_tuple = proxy::Ternary(
+                program_, offset_next_tuple > progress_next_tuple,
+                [&]() { return offset_next_tuple; },
+                [&]() { return progress_next_tuple; });
 
-                      loop.AddLoopVariable(initial_next_tuple);
-                      loop.AddLoopVariable(initial_budget);
+            bucket_list.InitSortedIntersection(initial_next_tuple);
 
-                      auto continue_resume_progress = proxy::Ternary(
-                          program_, resume_progress,
-                          [&]() {
-                            auto progress_ptr =
-                                program_.ConstGEP(progress_array_type,
-                                                  progress_arr, {0, table_idx});
-                            auto progress_next_tuple = proxy::Int32(
-                                program_, program_.LoadI32(progress_ptr));
-                            return initial_next_tuple == progress_next_tuple;
-                          },
-                          [&]() { return proxy::Bool(program_, false); });
-                      loop.AddLoopVariable(continue_resume_progress);
-                    },
-                    [&](auto& loop) {
-                      auto next_tuple =
-                          loop.template GetLoopVariable<proxy::Int32>(0);
-                      return next_tuple < cardinality;
-                    },
-                    [&](auto& loop) {
-                      auto next_tuple =
-                          loop.template GetLoopVariable<proxy::Int32>(0);
-                      auto budget =
-                          loop.template GetLoopVariable<proxy::Int32>(1) - 1;
-                      auto resume_progress =
-                          loop.template GetLoopVariable<proxy::Bool>(2);
+            int result_max_size = 64;
+            auto result = program_.Alloca(program_.I32Type(), result_max_size);
+            auto result_initial_size =
+                bucket_list.PopulateSortedIntersectionResult(result,
+                                                             result_max_size);
 
-                      auto idx_ptr = program_.ConstGEP(
-                          idx_array_type, idx_array, {0, table_idx});
-                      program_.StoreI32(idx_ptr, next_tuple.Get());
+            proxy::Loop loop(
+                program_,
+                [&](auto& loop) {
+                  loop.AddLoopVariable(initial_budget);
+                  loop.AddLoopVariable(result_initial_size);
+                },
+                [&](auto& loop) {
+                  auto result_size =
+                      loop.template GetLoopVariable<proxy::Int32>(1);
+                  return result_size > 0;
+                },
+                [&](auto& loop) {
+                  auto budget = loop.template GetLoopVariable<proxy::Int32>(0);
+                  auto result_size =
+                      loop.template GetLoopVariable<proxy::Int32>(1);
 
-                      /*
-                      proxy::Printer printer(program_, true);
-                      printer.Print(proxy::Int32(program_, table_idx));
-                      printer.Print(next_tuple);
-                      printer.PrintNewline();
-                      */
+                  // loop over all elements in result
+                  proxy::Loop result_loop(
+                      program_,
+                      [&](auto& loop) {
+                        loop.AddLoopVariable(proxy::Int32(program_, 0));
+                        loop.AddLoopVariable(budget);
 
-                      auto current_table_values = buffer[next_tuple];
+                        auto continue_resume_progress = proxy::Ternary(
+                            program_, resume_progress,
+                            [&]() {
+                              auto bucket_next_tuple_ptr = program_.ConstGEP(
+                                  program_.I32Type(), result, {0});
+                              auto initial_next_tuple = proxy::Int32(
+                                  program_,
+                                  program_.LoadI32(bucket_next_tuple_ptr));
+                              return initial_next_tuple == progress_next_tuple;
+                            },
+                            [&]() { return proxy::Bool(program_, false); });
+                        loop.AddLoopVariable(continue_resume_progress);
+                      },
+                      [&](auto& loop) {
+                        auto bucket_idx =
+                            loop.template GetLoopVariable<proxy::Int32>(0);
+                        return bucket_idx < result_size;
+                      },
+                      [&](auto& loop) {
+                        auto bucket_idx =
+                            loop.template GetLoopVariable<proxy::Int32>(0);
+                        auto budget =
+                            loop.template GetLoopVariable<proxy::Int32>(1) - 1;
+                        auto resume_progress =
+                            loop.template GetLoopVariable<proxy::Bool>(2);
 
-                      // Store each of this table's predicate column values
-                      // into the global_predicate_struct
-                      for (int k = 0; k < predicate_columns_.size(); k++) {
-                        auto& col_ref = predicate_columns_[k].get();
-                        if (col_ref.GetChildIdx() == table_idx) {
-                          global_predicate_struct.Update(
-                              k, current_table_values[col_ref.GetColumnIdx()]);
+                        auto next_tuple = SortedIntersectionResultGet(
+                            program_, result, bucket_idx);
 
-                          // Additionally, update this table's values to read
-                          // from the unpacked tuple instead of the old loaded
-                          // value from global_predicate_struct.
-                          child_translators[table_idx]
-                              .get()
-                              .SchemaValues()
-                              .SetValue(
-                                  col_ref.GetColumnIdx(),
-                                  std::move(current_table_values
-                                                [col_ref.GetColumnIdx()]));
+                        auto idx_ptr = program_.ConstGEP(
+                            idx_array_type, idx_array, {0, table_idx});
+                        program_.StoreI32(idx_ptr, next_tuple.Get());
+
+                        /*
+                        proxy::Printer printer(program_, true);
+                        printer.Print(proxy::Int32(program_, table_idx));
+                        printer.Print(next_tuple);
+                        printer.PrintNewline();
+                        */
+
+                        auto current_table_values = buffer[next_tuple];
+
+                        // Store each of this table's predicate column
+                        // values into the global_predicate_struct.
+                        for (auto [col_ref, field] :
+                             colref_to_predicate_struct_field_) {
+                          auto [child_idx, col_idx] = col_ref;
+                          if (child_idx == table_idx) {
+                            global_predicate_struct.Update(
+                                field, current_table_values[col_idx]);
+
+                            // Additionally, update this table's values to
+                            // read from the unpacked tuple instead of the
+                            // old loaded value from
+                            // global_predicate_struct.
+                            child_translators[table_idx]
+                                .get()
+                                .SchemaValues()
+                                .SetValue(
+                                    col_idx,
+                                    std::move(current_table_values[col_idx]));
+                          }
                         }
-                      }
 
-                      for (int predicate_idx :
-                           predicates_per_table[table_idx]) {
-                        auto flag_ptr = program_.ConstGEP(
-                            flag_array_type, flag_array,
-                            {0, table_predicate_to_flag_idx.at(
-                                    {table_idx, predicate_idx})});
-                        proxy::Int8 flag_value(program_,
-                                               program_.LoadI8(flag_ptr));
-                        proxy::If(program_, flag_value != 0, [&]() {
-                          auto cond = expr_translator_.Compute(
-                              conditions[predicate_idx]);
+                        for (auto [general_pred_table, flag] :
+                             general_pred_table_to_flag_) {
+                          auto pred = general_pred_table.first;
+                          auto table = general_pred_table.second;
+                          if (table != table_idx) {
+                            continue;
+                          }
 
-                          proxy::If(
-                              program_, cond.IsNull(),
-                              [&]() {
-                                // If budget, depleted return -1 and set
-                                // table ctr
-                                proxy::If(
-                                    program_, budget == 0,
-                                    [&]() {
-                                      program_.StoreI32(
-                                          program_.ConstGEP(table_ctr_type,
-                                                            table_ctr_ptr,
-                                                            {0, 0}),
-                                          program_.ConstI32(table_idx));
-                                      program_.Return(program_.ConstI32(-1));
-                                    },
-                                    [&]() {
-                                      loop.Continue(
-                                          next_tuple + 1, budget,
-                                          proxy::Bool(program_, false));
-                                    });
-                              },
-                              [&]() {
-                                proxy::If(
-                                    program_,
-                                    !static_cast<proxy::Bool&>(
-                                        cond.Get() /*cond*/),
-                                    [&]() {
-                                      // If budget, depleted return -1 and set
-                                      // table ctr
-                                      proxy::If(
-                                          program_, budget == 0,
-                                          [&]() {
-                                            program_.StoreI32(
-                                                program_.ConstGEP(
-                                                    table_ctr_type,
-                                                    table_ctr_ptr, {0, 0}),
-                                                program_.ConstI32(table_idx));
-                                            program_.Return(
-                                                program_.ConstI32(-1));
-                                          },
-                                          [&]() {
-                                            loop.Continue(
-                                                next_tuple + 1, budget,
-                                                proxy::Bool(program_, false));
-                                          });
-                                    });
-                              });
+                          auto flag_ptr = program_.ConstGEP(
+                              flag_array_type, flag_array, {0, flag});
+                          proxy::Int8 flag_value(program_,
+                                                 program_.LoadI8(flag_ptr));
+                          proxy::If(program_, flag_value != 0, [&]() {
+                            auto cond = expr_translator_.Compute(
+                                general_conditions[pred].get());
+
+                            proxy::If(
+                                program_, cond.IsNull(),
+                                [&]() {
+                                  // If budget, depleted return -1 and set
+                                  // table ctr
+                                  proxy::If(
+                                      program_, budget == 0,
+                                      [&]() {
+                                        program_.StoreI32(
+                                            program_.ConstGEP(table_ctr_type,
+                                                              table_ctr_ptr,
+                                                              {0, 0}),
+                                            program_.ConstI32(table_idx));
+                                        program_.Return(program_.ConstI32(-1));
+                                      },
+                                      [&]() {
+                                        loop.Continue(
+                                            bucket_idx + 1, budget,
+                                            proxy::Bool(program_, false));
+                                      });
+                                },
+                                [&]() {
+                                  proxy::If(
+                                      program_,
+                                      !static_cast<proxy::Bool&>(cond.Get()),
+                                      [&]() {
+                                        // If budget, depleted return -1 and
+                                        // set table ctr
+                                        proxy::If(
+                                            program_, budget == 0,
+                                            [&]() {
+                                              program_.StoreI32(
+                                                  program_.ConstGEP(
+                                                      table_ctr_type,
+                                                      table_ctr_ptr, {0, 0}),
+                                                  program_.ConstI32(table_idx));
+                                              program_.Return(
+                                                  program_.ConstI32(-1));
+                                            },
+                                            [&]() {
+                                              loop.Continue(
+                                                  bucket_idx + 1, budget,
+                                                  proxy::Bool(program_, false));
+                                            });
+                                      });
+                                });
+                          });
+                        }
+
+                        proxy::If(program_, budget == 0, [&]() {
+                          program_.StoreI32(
+                              program_.ConstGEP(table_ctr_type, table_ctr_ptr,
+                                                {0, 0}),
+                              program_.ConstI32(table_idx));
+                          program_.Return(program_.ConstI32(-2));
                         });
-                      }
 
-                      proxy::If(program_, budget == 0, [&]() {
-                        program_.StoreI32(
-                            program_.ConstGEP(table_ctr_type, table_ctr_ptr,
-                                              {0, 0}),
-                            program_.ConstI32(table_idx));
-                        program_.Return(program_.ConstI32(-2));
+                        // Valid tuple
+                        auto next_budget = proxy::Int32(
+                            program_,
+                            program_.Call(handler, {budget.Get(),
+                                                    resume_progress.Get()}));
+                        proxy::If(program_, next_budget < 0, [&]() {
+                          program_.Return(next_budget.Get());
+                        });
+
+                        return loop.Continue(bucket_idx + 1, next_budget,
+                                             proxy::Bool(program_, false));
                       });
 
-                      // Valid tuple
-                      auto next_budget = proxy::Int32(
-                          program_,
-                          program_.Call(handler,
-                                        {budget.Get(), resume_progress.Get()}));
-                      proxy::If(program_, next_budget < 0,
-                                [&]() { program_.Return(next_budget.Get()); });
+                  auto next_budget =
+                      result_loop.template GetLoopVariable<proxy::Int32>(1);
+                  auto next_result_size =
+                      bucket_list.PopulateSortedIntersectionResult(
+                          result, result_max_size);
+                  return loop.Continue(next_budget, next_result_size);
+                });
 
-                      return loop.Continue(next_tuple + 1, next_budget,
-                                           proxy::Bool(program_, false));
+            return loop.template GetLoopVariable<proxy::Int32>(0);
+          },
+          [&]() {
+            // Loop over tuples in buffer
+            proxy::Loop loop(
+                program_,
+                [&](auto& loop) {
+                  auto progress_next_tuple = proxy::Ternary(
+                      program_, resume_progress,
+                      [&]() {
+                        auto progress_ptr = program_.ConstGEP(
+                            progress_array_type, progress_arr, {0, table_idx});
+                        return proxy::Int32(program_,
+                                            program_.LoadI32(progress_ptr));
+                      },
+                      [&]() { return proxy::Int32(program_, 0); });
+                  auto offset_next_tuple =
+                      proxy::Int32(program_,
+                                   program_.LoadI32(program_.ConstGEP(
+                                       offset_array_type, offset_array,
+                                       {0, table_idx}))) +
+                      1;
+                  auto initial_next_tuple = proxy::Ternary(
+                      program_, offset_next_tuple > progress_next_tuple,
+                      [&]() { return offset_next_tuple; },
+                      [&]() { return progress_next_tuple; });
+
+                  loop.AddLoopVariable(initial_next_tuple);
+                  loop.AddLoopVariable(initial_budget);
+
+                  auto continue_resume_progress = proxy::Ternary(
+                      program_, resume_progress,
+                      [&]() {
+                        auto progress_ptr = program_.ConstGEP(
+                            progress_array_type, progress_arr, {0, table_idx});
+                        auto progress_next_tuple = proxy::Int32(
+                            program_, program_.LoadI32(progress_ptr));
+                        return initial_next_tuple == progress_next_tuple;
+                      },
+                      [&]() { return proxy::Bool(program_, false); });
+                  loop.AddLoopVariable(continue_resume_progress);
+                },
+                [&](auto& loop) {
+                  auto next_tuple =
+                      loop.template GetLoopVariable<proxy::Int32>(0);
+                  return next_tuple < cardinality;
+                },
+                [&](auto& loop) {
+                  auto next_tuple =
+                      loop.template GetLoopVariable<proxy::Int32>(0);
+                  auto budget =
+                      loop.template GetLoopVariable<proxy::Int32>(1) - 1;
+                  auto resume_progress =
+                      loop.template GetLoopVariable<proxy::Bool>(2);
+
+                  auto idx_ptr = program_.ConstGEP(idx_array_type, idx_array,
+                                                   {0, table_idx});
+                  program_.StoreI32(idx_ptr, next_tuple.Get());
+
+                  /*
+                  proxy::Printer printer(program_, true);
+                  printer.Print(proxy::Int32(program_, table_idx));
+                  printer.Print(next_tuple);
+                  printer.PrintNewline();
+                  */
+
+                  auto current_table_values = buffer[next_tuple];
+
+                  // Store each of this table's predicate column
+                  // values into the global_predicate_struct.
+                  for (auto [col_ref, field] :
+                       colref_to_predicate_struct_field_) {
+                    auto [child_idx, col_idx] = col_ref;
+                    if (child_idx == table_idx) {
+                      global_predicate_struct.Update(
+                          field, current_table_values[col_idx]);
+
+                      // Additionally, update this table's values to
+                      // read from the unpacked tuple instead of the
+                      // old loaded value from
+                      // global_predicate_struct.
+                      child_translators[table_idx]
+                          .get()
+                          .SchemaValues()
+                          .SetValue(col_idx,
+                                    std::move(current_table_values[col_idx]));
+                    }
+                  }
+
+                  for (auto [general_pred_table, flag] :
+                       general_pred_table_to_flag_) {
+                    auto pred = general_pred_table.first;
+                    auto table = general_pred_table.second;
+                    if (table != table_idx) {
+                      continue;
+                    }
+
+                    auto flag_ptr = program_.ConstGEP(flag_array_type,
+                                                      flag_array, {0, flag});
+                    proxy::Int8 flag_value(program_, program_.LoadI8(flag_ptr));
+                    proxy::If(program_, flag_value != 0, [&]() {
+                      auto cond = expr_translator_.Compute(
+                          general_conditions[pred].get());
+
+                      proxy::If(
+                          program_, cond.IsNull(),
+                          [&]() {
+                            // If budget, depleted return -1 and set
+                            // table ctr
+                            proxy::If(
+                                program_, budget == 0,
+                                [&]() {
+                                  program_.StoreI32(
+                                      program_.ConstGEP(table_ctr_type,
+                                                        table_ctr_ptr, {0, 0}),
+                                      program_.ConstI32(table_idx));
+                                  program_.Return(program_.ConstI32(-1));
+                                },
+                                [&]() {
+                                  loop.Continue(next_tuple + 1, budget,
+                                                proxy::Bool(program_, false));
+                                });
+                          },
+                          [&]() {
+                            proxy::If(
+                                program_,
+                                !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
+                                [&]() {
+                                  // If budget, depleted return -1 and set
+                                  // table ctr
+                                  proxy::If(
+                                      program_, budget == 0,
+                                      [&]() {
+                                        program_.StoreI32(
+                                            program_.ConstGEP(table_ctr_type,
+                                                              table_ctr_ptr,
+                                                              {0, 0}),
+                                            program_.ConstI32(table_idx));
+                                        program_.Return(program_.ConstI32(-1));
+                                      },
+                                      [&]() {
+                                        loop.Continue(
+                                            next_tuple + 1, budget,
+                                            proxy::Bool(program_, false));
+                                      });
+                                });
+                          });
                     });
+                  }
 
-                return loop.template GetLoopVariable<proxy::Int32>(1);
-              });
+                  proxy::If(program_, budget == 0, [&]() {
+                    program_.StoreI32(program_.ConstGEP(table_ctr_type,
+                                                        table_ctr_ptr, {0, 0}),
+                                      program_.ConstI32(table_idx));
+                    program_.Return(program_.ConstI32(-2));
+                  });
 
-          return use_index;
-        }));
+                  // Valid tuple
+                  auto next_budget = proxy::Int32(
+                      program_,
+                      program_.Call(handler,
+                                    {budget.Get(), resume_progress.Get()}));
+                  proxy::If(program_, next_budget < 0,
+                            [&]() { program_.Return(next_budget.Get()); });
+
+                  return loop.Continue(next_tuple + 1, next_budget,
+                                       proxy::Bool(program_, false));
+                });
+
+            return loop.template GetLoopVariable<proxy::Int32>(1);
+          });
+
+      return use_index;
+    }));
   }
 
   // Setup global hash table that contains tuple idx
   proxy::TupleIdxTable tuple_idx_table(program_, true);
 
   // Setup function for each valid tuple
-  proxy::TableFunction valid_tuple_handler(program_, [&](const auto& budget,
-                                                         const auto&
-                                                             resume_progress) {
+  TableFunction valid_tuple_handler(program_, [&](const auto& budget,
+                                                  const auto& resume_progress) {
     // Insert tuple idx into hash table
     auto tuple_idx_arr = program_.ConstGEP(idx_array_type, idx_array, {0, 0});
 
@@ -949,69 +937,60 @@ void PermutableSkinnerJoinTranslator::Produce() {
                       {program_.GetFunctionPointer(table_functions[i].Get())});
   }
 
-  // Serialize the table_predicate_to_flag_idx map.
-  std::vector<khir::Value> table_predicate_to_flag_idx_values;
-  for (const auto& [table_predicate, flag_idx] : table_predicate_to_flag_idx) {
-    table_predicate_to_flag_idx_values.push_back(
-        program_.ConstI32(table_predicate.first));
-    table_predicate_to_flag_idx_values.push_back(
-        program_.ConstI32(table_predicate.second));
-    table_predicate_to_flag_idx_values.push_back(program_.ConstI32(flag_idx));
-  }
-  auto table_predicate_to_flag_idx_arr_type = program_.ArrayType(
-      program_.I32Type(), table_predicate_to_flag_idx_values.size());
-  auto table_predicate_to_flag_idx_arr_init = program_.ConstantArray(
-      table_predicate_to_flag_idx_arr_type, table_predicate_to_flag_idx_values);
-  auto table_predicate_to_flag_idx_arr =
-      program_.Global(true, true, table_predicate_to_flag_idx_arr_type,
-                      table_predicate_to_flag_idx_arr_init);
-
-  // Serialize the tables_per_predicate map.
-  std::vector<khir::Value> tables_per_predicate_arr_values;
-  for (int i = 0; i < conditions.size(); i++) {
-    tables_per_predicate_arr_values.push_back(
-        program_.ConstI32(tables_per_predicate[i].size()));
-  }
-  for (int i = 0; i < conditions.size(); i++) {
-    for (int x : tables_per_predicate[i]) {
-      tables_per_predicate_arr_values.push_back(program_.ConstI32(x));
-    }
-  }
-  auto tables_per_predicate_arr_type = program_.ArrayType(
-      program_.I32Type(), tables_per_predicate_arr_values.size());
-  auto tables_per_predicate_arr_init = program_.ConstantArray(
-      tables_per_predicate_arr_type, tables_per_predicate_arr_values);
-  auto tables_per_predicate_arr = program_.Global(
-      true, true, tables_per_predicate_arr_type, tables_per_predicate_arr_init);
-
   // Write out cardinalities to idx_array
   for (int i = 0; i < child_operators.size(); i++) {
     program_.StoreI32(program_.ConstGEP(idx_array_type, idx_array, {0, i}),
                       materialized_buffers_[i]->Size().Get());
   }
 
+  // Generate the table connections.
+  for (const auto& cond : equality_conditions) {
+    for (int i = 0; i < cond.size(); i++) {
+      for (int j = i + 1; j < cond.size(); j++) {
+        auto left_table = cond[i].get().GetChildIdx();
+        auto right_table = cond[j].get().GetChildIdx();
+
+        if (left_table != right_table) {
+          table_connections_.insert({left_table, right_table});
+          table_connections_.insert({right_table, left_table});
+        }
+      }
+    }
+  }
+  for (int pred_idx = 0; pred_idx < general_conditions.size(); pred_idx++) {
+    PredicateColumnCollector collector;
+    general_conditions[pred_idx].get().Accept(collector);
+    auto cond = collector.PredicateColumns();
+
+    for (int i = 0; i < cond.size(); i++) {
+      for (int j = i + 1; j < cond.size(); j++) {
+        auto left_table = cond[i].get().GetChildIdx();
+        auto right_table = cond[j].get().GetChildIdx();
+
+        if (left_table != right_table) {
+          table_connections_.insert({left_table, right_table});
+          table_connections_.insert({right_table, left_table});
+        }
+      }
+    }
+  }
+
   // Execute build side of skinner join
   proxy::SkinnerJoinExecutor executor(program_);
-
-  executor.ExecutePermutableJoin({
-      program_.ConstI32(child_operators.size()),
-      program_.ConstI32(conditions.size()),
+  executor.ExecutePermutableJoin(
+      child_operators.size(), general_conditions.size(),
+      equality_conditions.size(), &eq_pred_table_to_flag_,
+      &general_pred_table_to_flag_, &table_connections_,
       program_.ConstGEP(handler_pointer_array_type, handler_pointer_array,
                         {0, 0}),
-      program_.GetFunctionPointer(valid_tuple_handler.Get()),
-      program_.ConstI32(table_predicate_to_flag_idx_values.size()),
-      program_.ConstGEP(table_predicate_to_flag_idx_arr_type,
-                        table_predicate_to_flag_idx_arr, {0, 0}),
-      program_.ConstGEP(tables_per_predicate_arr_type, tables_per_predicate_arr,
-                        {0, 0}),
+      program_.GetFunctionPointer(valid_tuple_handler.Get()), total_flags,
       program_.ConstGEP(flag_array_type, flag_array, {0, 0}),
       program_.ConstGEP(progress_array_type, progress_arr, {0, 0}),
       program_.ConstGEP(table_ctr_type, table_ctr_ptr, {0, 0}),
       program_.ConstGEP(idx_array_type, idx_array, {0, 0}),
       program_.ConstGEP(last_table_type, last_table_ptr, {0, 0}),
       program_.ConstGEP(num_result_tuples_type, num_result_tuples_ptr, {0, 0}),
-      program_.ConstGEP(offset_array_type, offset_array, {0, 0}),
-  });
+      program_.ConstGEP(offset_array_type, offset_array, {0, 0}));
   program_.Return();
   auto join_pipeline_obj = pipeline_builder_.FinishPipeline();
 
@@ -1063,20 +1042,15 @@ void PermutableSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
 
   // for each predicate column on this table, insert tuple idx into
   // corresponding HT
-  for (auto& predicate_column : predicate_columns_) {
-    if (child_idx_ != predicate_column.get().GetChildIdx()) {
-      continue;
-    }
-
-    auto it = predicate_to_index_idx_.find(
-        {child_idx_, predicate_column.get().GetColumnIdx()});
-    if (it != predicate_to_index_idx_.end()) {
-      auto idx = it->second;
-      const auto& value = values[predicate_column.get().GetColumnIdx()];
+  for (int col_idx = 0; col_idx < values.size(); col_idx++) {
+    auto it = column_to_index_idx_.find({child_idx_, col_idx});
+    if (it != column_to_index_idx_.end()) {
+      auto index_idx = it->second;
+      const auto& value = values[col_idx];
 
       // only index not null values
       proxy::If(program_, !value.IsNull(), [&]() {
-        dynamic_cast<proxy::ColumnIndexBuilder*>(indexes_[idx].get())
+        dynamic_cast<proxy::ColumnIndexBuilder*>(indexes_[index_idx].get())
             ->Insert(value.Get(), tuple_idx);
       });
     }
