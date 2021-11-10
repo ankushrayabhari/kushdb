@@ -34,6 +34,7 @@ int SpillMinCost(ActiveSet& active, std::unordered_set<int>& free,
     throw std::runtime_error("Nothing to spill.");
   }
 
+  bool undef = true;
   auto min_spill_cost = INT32_MAX;
   auto min_spill_it = active.end();
   for (auto it = active.begin(); it != active.end(); it++) {
@@ -42,7 +43,11 @@ int SpillMinCost(ActiveSet& active, std::unordered_set<int>& free,
     }
 
     auto spill_cost = it->SpillCost();
-    if (spill_cost < min_spill_cost) {
+    if (undef) {
+      undef = false;
+      min_spill_cost = spill_cost;
+      min_spill_it = it;
+    } else if (spill_cost < min_spill_cost) {
       min_spill_cost = spill_cost;
       min_spill_it = it;
     }
