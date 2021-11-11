@@ -14,7 +14,7 @@ def bench(database, flags):
     redirect = ' > /dev/null 2> /tmp/bench_time.txt'
 
     queries = glob.glob('benchmark/job/queries/*.sql')
-    for query in ['benchmark/job/queries/01a.sql']:
+    for query in queries:
         execute(binary + args + ' --query=' + query + ' ' + redirect)
         
         parts = query.split('/')
