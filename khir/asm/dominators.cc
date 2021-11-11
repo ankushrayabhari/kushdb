@@ -1,5 +1,6 @@
 #include "khir/asm/dominators.h"
 
+#include <algorithm>
 #include <iostream>
 #include <queue>
 #include <vector>
@@ -8,82 +9,95 @@
 
 namespace kush::khir {
 
-std::vector<std::vector<int>> ComputeDominators(
-    const std::vector<std::vector<int>>& bb_pred) {
-  // x in dom_parent[y] iff x strictly dominates y
-  std::vector<absl::btree_set<int>> dom_parent(bb_pred.size());
-  for (int i = 0; i < bb_pred.size(); i++) {
-    for (int j = 0; j < bb_pred.size(); j++) {
-      dom_parent[i].insert(j);
-    }
+void POHelper(int curr, const std::vector<std::vector<int>>& bb_succ,
+              std::vector<bool>& visited, std::vector<int>& result) {
+  if (visited[curr]) {
+    return;
   }
 
-  bool changes = true;
-  while (changes) {
-    changes = false;
+  visited[curr] = true;
 
-    for (int i = 0; i < bb_pred.size(); i++) {
-      auto copy = dom_parent[i];
+  for (auto s : bb_succ[curr]) {
+    POHelper(s, bb_succ, visited, result);
+  }
 
-      dom_parent[i].clear();
-      const auto& pred = bb_pred[i];
-      if (pred.size() > 0) {
-        dom_parent[i] = absl::btree_set<int>(dom_parent[pred[0]].begin(),
-                                             dom_parent[pred[0]].end());
-        for (auto it = dom_parent[i].begin(); it != dom_parent[i].end();) {
-          bool found = true;
-          for (int k = 1; k < pred.size(); k++) {
-            if (!dom_parent[pred[k]].contains((*it))) {
-              found = false;
-              break;
+  result.push_back(curr);
+}
+
+std::vector<int> GeneratePO(const std::vector<std::vector<int>>& bb_succ) {
+  std::vector<bool> visited(bb_succ.size(), false);
+  std::vector<int> result;
+  POHelper(0, bb_succ, visited, result);
+  return result;
+}
+
+std::vector<std::vector<int>> ComputeDominatorTree(
+    const std::vector<std::vector<int>>& bb_succ,
+    const std::vector<std::vector<int>>& bb_pred) {
+  int num_blocks = bb_succ.size();
+  auto po = GeneratePO(bb_succ);
+  std::vector<int> label(num_blocks, -1);
+  for (int i = 0; i < po.size(); i++) {
+    label[po[i]] = i;
+  }
+  auto rpo = po;
+  std::reverse(rpo.begin(), rpo.end());
+
+  std::vector<int> idom(num_blocks, -1);
+  idom[0] = 0;
+  bool changed = true;
+
+  while (changed) {
+    changed = false;
+
+    for (int b : rpo) {
+      if (b == 0) {
+        continue;
+      }
+
+      int new_idom = -1;
+      for (auto p : bb_pred[b]) {
+        if (idom[p] < 0) {
+          continue;
+        }
+
+        if (new_idom < 0) {
+          new_idom = p;
+        } else {
+          // intersect p with new_idom
+
+          int finger1 = p;
+          int finger2 = new_idom;
+          while (finger1 != finger2) {
+            while (label[finger1] < label[finger2]) {
+              finger1 = idom[finger1];
+            }
+
+            while (label[finger2] < label[finger1]) {
+              finger2 = idom[finger2];
             }
           }
-          if (found) {
-            it++;
-          } else {
-            it = dom_parent[i].erase(it);
-          }
+
+          new_idom = finger1;
         }
       }
-      dom_parent[i].insert(i);
 
-      changes = changes || copy != dom_parent[i];
-    }
-  }
+      if (new_idom < 0) {
+        throw std::runtime_error("New idom not found.");
+      }
 
-  for (int i = 0; i < dom_parent.size(); i++) {
-    dom_parent[i].erase(i);
-  }
-
-  // y in dom_children[x] iff x strictly dominates y
-  std::vector<absl::btree_set<int>> dom_children(bb_pred.size());
-  for (int node = 0; node < dom_parent.size(); node++) {
-    for (int dom : dom_parent[node]) {
-      dom_children[dom].insert(node);
-    }
-  }
-
-  std::vector<std::vector<int>> dom_tree(bb_pred.size());
-  std::queue<int> worklist;
-  for (int i = 0; i < dom_parent.size(); i++) {
-    if (dom_parent[i].empty()) {
-      worklist.push(i);
-    }
-  }
-
-  while (!worklist.empty()) {
-    int curr = worklist.front();
-    worklist.pop();
-
-    for (int succ : dom_children[curr]) {
-      dom_parent[succ].erase(curr);
-      // erase edge between curr -> succ
-      if (dom_parent[succ].empty()) {
-        dom_tree[curr].push_back(succ);
-        worklist.push(succ);
+      if (idom[b] != new_idom) {
+        idom[b] = new_idom;
+        changed = true;
       }
     }
-    dom_children[curr].clear();
+  }
+
+  std::vector<std::vector<int>> dom_tree(num_blocks);
+  for (int i = 1; i < num_blocks; i++) {
+    if (idom[i] >= 0) {
+      dom_tree[idom[i]].push_back(i);
+    }
   }
 
   return dom_tree;

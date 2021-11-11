@@ -5,16 +5,29 @@
 using namespace kush;
 using namespace kush::khir;
 
+std::vector<std::vector<int>> PredFromSucc(
+    const std::vector<std::vector<int>>& bb_succ) {
+  std::vector<std::vector<int>> bb_pred(bb_succ.size());
+  for (int from = 0; from < bb_pred.size(); from++) {
+    for (int to : bb_succ[from]) {
+      bb_pred[to].push_back(from);
+    }
+  }
+  return bb_pred;
+}
+
 TEST(DominatorsTest, SplitGraph) {
-  std::vector<std::vector<int>> bb_pred{{}, {0}, {1}, {1}, {2, 3}};
+  std::vector<std::vector<int>> bb_succ{{1}, {2, 3}, {4}, {4}, {}};
+  auto bb_pred = PredFromSucc(bb_succ);
 
   std::vector<std::vector<int>> dom_tree{{1}, {2, 3, 4}, {}, {}, {}};
-  EXPECT_EQ(ComputeDominators(bb_pred), dom_tree);
+  EXPECT_EQ(ComputeDominatorTree(bb_succ, bb_pred), dom_tree);
 }
 
 TEST(DominatorsTest, LoopWithMultipleExit) {
-  std::vector<std::vector<int>> bb_pred{{}, {0, 3}, {1}, {2}, {1}, {2}};
+  std::vector<std::vector<int>> bb_succ{{1}, {2, 4}, {3, 5}, {1}, {}, {}, {}};
+  auto bb_pred = PredFromSucc(bb_succ);
 
-  std::vector<std::vector<int>> dom_tree{{1}, {2, 4}, {3, 5}, {}, {}, {}};
-  EXPECT_EQ(ComputeDominators(bb_pred), dom_tree);
+  std::vector<std::vector<int>> dom_tree{{1}, {2, 4}, {3, 5}, {}, {}, {}, {}};
+  EXPECT_EQ(ComputeDominatorTree(bb_succ, bb_pred), dom_tree);
 }

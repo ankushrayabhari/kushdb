@@ -51,7 +51,7 @@ void ConstructLoopTreeHelper(int header,
 std::vector<std::vector<int>> FindLoops(
     const std::vector<std::vector<int>>& bb_succ,
     const std::vector<std::vector<int>>& bb_pred) {
-  auto dom_tree = ComputeDominators(bb_pred);
+  auto dom_tree = ComputeDominatorTree(bb_succ, bb_pred);
 
   std::vector<std::vector<int>> backedges(bb_succ.size());
   for (int i = 0; i < bb_succ.size(); i++) {
