@@ -3,6 +3,10 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 cc_binary(
     name = "query_runner",
     srcs = ["query_runner.cc"],
+    data = [
+        ":data",
+        ":queries",
+    ],
     deps = [
         ":schema",
         "//catalog:catalog_manager",
@@ -12,6 +16,16 @@ cc_binary(
         "@absl//absl/flags:parse",
         "@absl//absl/flags:usage",
     ],
+)
+
+filegroup(
+    name = "queries",
+    srcs = glob(
+        [
+            "queries/*.sql",
+        ],
+        allow_empty = True,
+    ),
 )
 
 filegroup(
