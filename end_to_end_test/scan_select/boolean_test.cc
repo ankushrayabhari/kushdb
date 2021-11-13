@@ -36,7 +36,7 @@ using namespace std::literals;
 
 class SelectTest : public testing::TestWithParam<ParameterValues> {};
 
-TEST_P(SelectTest, RealCol) {
+TEST_P(SelectTest, BooleanCol) {
   SetFlags(GetParam());
 
   auto db = Schema();
@@ -46,11 +46,11 @@ TEST_P(SelectTest, RealCol) {
     std::unique_ptr<Operator> base;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"zscore"});
+      schema.AddGeneratedColumns(db["info"], {"cheated"});
       base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
-    auto filter = Gt(ColRef(base, "zscore"), Literal(-0.5));
+    auto filter = ColRef(base, "cheated");
 
     // output
     OperatorSchema schema;
@@ -59,7 +59,7 @@ TEST_P(SelectTest, RealCol) {
         std::move(schema), std::move(base), std::move(filter)));
   }
 
-  auto expected_file = "end_to_end_test/select/real_expected.tbl";
+  auto expected_file = "end_to_end_test/scan_select/boolean_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

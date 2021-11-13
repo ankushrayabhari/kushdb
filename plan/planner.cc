@@ -33,7 +33,7 @@ namespace kush::plan {
 
 void GetReferencedChildren(const Expression& expr,
                            absl::flat_hash_set<std::pair<int, int>>& result) {
-  if (auto v = dynamic_cast<const plan::ColumnRefExpression*>(&expr)) {
+  if (auto v = dynamic_cast<const ColumnRefExpression*>(&expr)) {
     result.emplace(v->GetChildIdx(), v->GetColumnIdx());
     return;
   }
@@ -47,7 +47,7 @@ void RewriteColumnReferences(
     Expression& expr,
     const absl::flat_hash_map<std::pair<int, int>, std::pair<int, int>>&
         col_ref_to_rewrite_idx) {
-  if (auto v = dynamic_cast<plan::ColumnRefExpression*>(&expr)) {
+  if (auto v = dynamic_cast<ColumnRefExpression*>(&expr)) {
     std::pair<int, int> key{v->GetChildIdx(), v->GetColumnIdx()};
     if (col_ref_to_rewrite_idx.contains(key)) {
       const auto& value = col_ref_to_rewrite_idx.at(key);
@@ -96,7 +96,7 @@ std::vector<std::unique_ptr<Operator>> Planner::Plan(const parse::Table& table,
     OperatorSchema schema;
     schema.AddGeneratedColumns(table);
     std::unique_ptr<Operator> op =
-        std::make_unique<plan::ScanOperator>(std::move(schema), table);
+        std::make_unique<ScanOperator>(std::move(schema), table);
     return util::MakeVector(std::move(op));
   }
 
@@ -400,7 +400,7 @@ std::vector<std::unique_ptr<Expression>> Decompose(
 
 void GetReferencedChildren(const Expression& expr,
                            std::unordered_set<int>& result) {
-  if (auto v = dynamic_cast<const plan::ColumnRefExpression*>(&expr)) {
+  if (auto v = dynamic_cast<const ColumnRefExpression*>(&expr)) {
     result.insert(v->GetChildIdx());
     return;
   }
@@ -655,6 +655,7 @@ void EarlyProjection(Operator& op) {
   }
 
   if (auto scan = dynamic_cast<ScanOperator*>(&op)) {
+    // get the referenced
     return;
   }
 

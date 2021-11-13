@@ -62,6 +62,18 @@ cc_library(
 )
 
 cc_library(
+    name = "skinner_scan_select_operator",
+    srcs = ["skinner_scan_select_operator.cc"],
+    hdrs = ["skinner_scan_select_operator.h"],
+    deps = [
+        ":operator",
+        ":operator_schema",
+        ":operator_visitor",
+        "@json",
+    ],
+)
+
+cc_library(
     name = "output_operator",
     srcs = ["output_operator.cc"],
     hdrs = ["output_operator.h"],

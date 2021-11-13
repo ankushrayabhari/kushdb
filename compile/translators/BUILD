@@ -79,6 +79,24 @@ cc_library(
 )
 
 cc_library(
+    name = "skinner_scan_select_translator",
+    srcs = ["skinner_scan_select_translator.cc"],
+    hdrs = ["skinner_scan_select_translator.h"],
+    deps = [
+        ":expression_translator",
+        ":operator_translator",
+        "//catalog:sql_type",
+        "//compile/proxy:column_data",
+        "//compile/proxy:column_index",
+        "//compile/proxy:materialized_buffer",
+        "//compile/proxy/control_flow:if",
+        "//compile/proxy/control_flow:loop",
+        "//khir:program_builder",
+        "//plan/operator:skinner_scan_select_operator",
+    ],
+)
+
+cc_library(
     name = "select_translator",
     srcs = ["select_translator.cc"],
     hdrs = ["select_translator.h"],
@@ -260,6 +278,7 @@ cc_library(
         ":recompiling_skinner_join_translator",
         ":scan_translator",
         ":select_translator",
+        ":skinner_scan_select_translator",
         "//compile/proxy:hash_table",
         "//compile/proxy:vector",
         "//execution:pipeline",
@@ -270,6 +289,7 @@ cc_library(
         "//plan/operator:scan_operator",
         "//plan/operator:select_operator",
         "//plan/operator:skinner_join_operator",
+        "//plan/operator:skinner_scan_select_operator",
         "@absl//absl/flags:flag",
     ],
 )

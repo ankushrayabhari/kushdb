@@ -59,7 +59,7 @@ TEST_P(SelectTest, IntCol) {
         std::move(schema), std::move(base), std::move(filter)));
   }
 
-  auto expected_file = "end_to_end_test/select/int_expected.tbl";
+  auto expected_file = "end_to_end_test/scan_select/int_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

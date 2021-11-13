@@ -1,31 +1,27 @@
-#include "compile/translators/scan_translator.h"
+#include "compile/translators/skinner_scan_select_translator.h"
 
-#include <exception>
-#include <string>
-#include <vector>
-
-#include "absl/container/flat_hash_map.h"
-
-#include "catalog/sql_type.h"
 #include "compile/proxy/column_data.h"
+#include "compile/proxy/control_flow/if.h"
 #include "compile/proxy/control_flow/loop.h"
-#include "compile/proxy/value/ir_value.h"
-#include "compile/proxy/value/sql_value.h"
+#include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
-#include "plan/operator/scan_operator.h"
-#include "util/vector_util.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 
 namespace kush::compile {
 
-ScanTranslator::ScanTranslator(const plan::ScanOperator& scan,
-                               khir::ProgramBuilder& program)
-    : OperatorTranslator(scan, {}), scan_(scan), program_(program) {}
+SkinnerScanSelectTranslator::SkinnerScanSelectTranslator(
+    const plan::SkinnerScanSelectOperator& scan_select,
+    khir::ProgramBuilder& program)
+    : OperatorTranslator(scan_select, {}),
+      scan_select_(scan_select),
+      program_(program),
+      expr_translator_(program, *this) {}
 
 std::unique_ptr<proxy::DiskMaterializedBuffer>
-ScanTranslator::GenerateBuffer() {
-  const auto& table = scan_.Relation();
-  const auto& cols = scan_.Schema().Columns();
+SkinnerScanSelectTranslator::GenerateBuffer() {
+  const auto& table = scan_select_.Relation();
+  const auto& cols = scan_select_.ScanSchema().Columns();
   auto num_cols = cols.size();
 
   std::vector<std::unique_ptr<proxy::Iterable>> column_data;
@@ -82,50 +78,12 @@ ScanTranslator::GenerateBuffer() {
       program_, std::move(column_data), std::move(null_data));
 }
 
-bool ScanTranslator::HasIndex(int col_idx) {
-  const auto& table = scan_.Relation();
-  const auto& cols = scan_.Schema().Columns();
-  auto col_name = cols[col_idx].Name();
-  return table[col_name].HasIndex();
-}
-
-std::unique_ptr<proxy::ColumnIndex> ScanTranslator::GenerateIndex(int col_idx) {
-  const auto& table = scan_.Relation();
-  const auto& cols = scan_.Schema().Columns();
-  const auto& column = cols[col_idx];
-  auto type = column.Expr().Type();
-  auto path = table[column.Name()].IndexPath();
-  using catalog::SqlType;
-  switch (type) {
-    case SqlType::SMALLINT:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::SMALLINT>>(
-          program_, path);
-    case SqlType::INT:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::INT>>(program_,
-                                                                    path);
-    case SqlType::BIGINT:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::BIGINT>>(program_,
-                                                                       path);
-    case SqlType::REAL:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::REAL>>(program_,
-                                                                     path);
-    case SqlType::DATE:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::DATE>>(program_,
-                                                                     path);
-    case SqlType::TEXT:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::TEXT>>(program_,
-                                                                     path);
-    case SqlType::BOOLEAN:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::BOOLEAN>>(
-          program_, path);
-  }
-}
-
-void ScanTranslator::Produce() {
+void SkinnerScanSelectTranslator::Produce() {
   auto materialized_buffer = GenerateBuffer();
   materialized_buffer->Init();
 
   auto cardinality = materialized_buffer->Size();
+  auto filters = scan_select_.Filters();
   proxy::Loop loop(
       program_,
       [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
@@ -136,7 +94,20 @@ void ScanTranslator::Produce() {
       [&](auto& loop) {
         auto i = loop.template GetLoopVariable<proxy::Int32>(0);
 
-        this->values_.SetValues((*materialized_buffer)[i]);
+        this->virtual_values_.SetValues((*materialized_buffer)[i]);
+
+        for (auto filter : filters) {
+          auto value = expr_translator_.Compute(filter.get());
+
+          proxy::If(program_, value.IsNull(), [&]() { loop.Continue(i + 1); });
+
+          proxy::If(program_, !static_cast<proxy::Bool&>(value.Get()),
+                    [&]() { loop.Continue(i + 1); });
+        }
+
+        for (const auto& column : scan_select_.Schema().Columns()) {
+          this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+        }
 
         if (auto parent = this->Parent()) {
           parent->get().Consume(*this);
@@ -148,7 +119,7 @@ void ScanTranslator::Produce() {
   materialized_buffer->Reset();
 }
 
-void ScanTranslator::Consume(OperatorTranslator& src) {
+void SkinnerScanSelectTranslator::Consume(OperatorTranslator& src) {
   throw std::runtime_error("Scan cannot consume tuples - leaf operator");
 }
 

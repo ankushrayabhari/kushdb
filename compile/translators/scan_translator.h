@@ -13,8 +13,7 @@ namespace kush::compile {
 
 class ScanTranslator : public OperatorTranslator {
  public:
-  ScanTranslator(const plan::ScanOperator& scan, khir::ProgramBuilder& program,
-                 std::vector<std::unique_ptr<OperatorTranslator>> children);
+  ScanTranslator(const plan::ScanOperator& scan, khir::ProgramBuilder& program);
   virtual ~ScanTranslator() = default;
 
   void Produce() override;

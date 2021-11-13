@@ -36,7 +36,7 @@ using namespace std::literals;
 
 class SelectTest : public testing::TestWithParam<ParameterValues> {};
 
-TEST_P(SelectTest, DateCol) {
+TEST_P(SelectTest, BigIntCol) {
   SetFlags(GetParam());
 
   auto db = Schema();
@@ -46,12 +46,11 @@ TEST_P(SelectTest, DateCol) {
     std::unique_ptr<Operator> base;
     {
       OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"date"});
+      schema.AddGeneratedColumns(db["info"], {"num2"});
       base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
-    auto filter =
-        Geq(ColRef(base, "date"), Literal(absl::CivilDay(2021, 1, 1)));
+    auto filter = Gt(ColRef(base, "num2"), Literal(INT64_C(0)));
 
     // output
     OperatorSchema schema;
@@ -60,7 +59,7 @@ TEST_P(SelectTest, DateCol) {
         std::move(schema), std::move(base), std::move(filter)));
   }
 
-  auto expected_file = "end_to_end_test/select/date_expected.tbl";
+  auto expected_file = "end_to_end_test/scan_select/bigint_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

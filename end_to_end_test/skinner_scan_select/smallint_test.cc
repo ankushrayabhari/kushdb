@@ -24,6 +24,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/test_util.h"
 
@@ -36,30 +37,38 @@ using namespace std::literals;
 
 class SelectTest : public testing::TestWithParam<ParameterValues> {};
 
-TEST_P(SelectTest, BooleanCol) {
+TEST_P(SelectTest, SmallIntCol) {
   SetFlags(GetParam());
 
   auto db = Schema();
 
   std::unique_ptr<Operator> query;
   {
-    std::unique_ptr<Operator> base;
-    {
-      OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"cheated"});
-      base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
-    }
+    OperatorSchema scan_schema;
+    scan_schema.AddGeneratedColumns(db["info"], {"num1"});
 
-    auto filter = ColRef(base, "cheated");
+    std::unique_ptr<Expression> filter =
+        Lt(VirtColRef(
+               scan_schema.Columns()[scan_schema.GetColumnIndex("num1")].Expr(),
+               0),
+           Literal(int16_t(0)));
 
     // output
     OperatorSchema schema;
-    schema.AddPassthroughColumns(*base);
-    query = std::make_unique<OutputOperator>(std::make_unique<SelectOperator>(
-        std::move(schema), std::move(base), std::move(filter)));
+    schema.AddDerivedColumn(
+        "num1",
+        VirtColRef(
+            scan_schema.Columns()[scan_schema.GetColumnIndex("num1")].Expr(),
+            0));
+
+    query = std::make_unique<OutputOperator>(
+        std::make_unique<SkinnerScanSelectOperator>(
+            std::move(schema), std::move(scan_schema), db["info"],
+            util::MakeVector(std::move(filter))));
   }
 
-  auto expected_file = "end_to_end_test/select/boolean_expected.tbl";
+  auto expected_file =
+      "end_to_end_test/skinner_scan_select/smallint_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);

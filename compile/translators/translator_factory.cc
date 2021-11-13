@@ -14,6 +14,7 @@
 #include "compile/translators/recompiling_skinner_join_translator.h"
 #include "compile/translators/scan_translator.h"
 #include "compile/translators/select_translator.h"
+#include "compile/translators/skinner_scan_select_translator.h"
 #include "khir/program_builder.h"
 #include "plan/operator/hash_join_operator.h"
 #include "plan/operator/operator.h"
@@ -22,6 +23,7 @@
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
 #include "plan/operator/skinner_join_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 
 ABSL_FLAG(std::string, skinner, "permute",
           "Skinner Join Implementation: permute or recompile");
@@ -42,13 +44,18 @@ TranslatorFactory::GetChildTranslators(const plan::Operator& current) {
 }
 
 void TranslatorFactory::Visit(const plan::ScanOperator& scan) {
-  this->Return(std::make_unique<ScanTranslator>(scan, program_,
-                                                GetChildTranslators(scan)));
+  this->Return(std::make_unique<ScanTranslator>(scan, program_));
 }
 
 void TranslatorFactory::Visit(const plan::SelectOperator& select) {
   this->Return(std::make_unique<SelectTranslator>(select, program_,
                                                   GetChildTranslators(select)));
+}
+
+void TranslatorFactory::Visit(
+    const plan::SkinnerScanSelectOperator& scan_select) {
+  this->Return(
+      std::make_unique<SkinnerScanSelectTranslator>(scan_select, program_));
 }
 
 void TranslatorFactory::Visit(const plan::OutputOperator& output) {

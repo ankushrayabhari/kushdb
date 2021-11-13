@@ -54,6 +54,12 @@ std::unique_ptr<kush::plan::VirtualColumnRefExpression> VirtColRef(
       expr->Type(), expr->Nullable(), idx);
 }
 
+std::unique_ptr<kush::plan::VirtualColumnRefExpression> VirtColRef(
+    const plan::Expression& expr, int idx) {
+  return std::make_unique<kush::plan::VirtualColumnRefExpression>(
+      expr.Type(), expr.Nullable(), idx);
+}
+
 template <typename T>
 std::unique_ptr<kush::plan::LiteralExpression> Literal(T t) {
   return std::make_unique<kush::plan::LiteralExpression>(t);
