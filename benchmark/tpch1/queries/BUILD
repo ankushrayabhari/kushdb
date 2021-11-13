@@ -29,34 +29,6 @@ cc_binary(
 )
 
 cc_binary(
-    name = "q02",
-    srcs = ["q02.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
     name = "q02_skinner",
     srcs = ["q02_skinner.cc"],
     deps = [
@@ -85,64 +57,8 @@ cc_binary(
 )
 
 cc_binary(
-    name = "q03",
-    srcs = ["q03.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
     name = "q03_skinner",
     srcs = ["q03_skinner.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
-    name = "q05",
-    srcs = ["q05.cc"],
     deps = [
         "//benchmark/tpch1:schema",
         "//catalog",
@@ -225,64 +141,8 @@ cc_binary(
 )
 
 cc_binary(
-    name = "q07",
-    srcs = ["q07.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
     name = "q07_skinner",
     srcs = ["q07_skinner.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
-    name = "q08",
-    srcs = ["q08.cc"],
     deps = [
         "//benchmark/tpch1:schema",
         "//catalog",
@@ -337,64 +197,8 @@ cc_binary(
 )
 
 cc_binary(
-    name = "q09",
-    srcs = ["q09.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
     name = "q09_skinner",
     srcs = ["q09_skinner.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
-    name = "q10",
-    srcs = ["q10.cc"],
     deps = [
         "//benchmark/tpch1:schema",
         "//catalog",
@@ -449,34 +253,6 @@ cc_binary(
 )
 
 cc_binary(
-    name = "q11",
-    srcs = ["q11.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
     name = "q11_skinner",
     srcs = ["q11_skinner.cc"],
     deps = [
@@ -505,64 +281,8 @@ cc_binary(
 )
 
 cc_binary(
-    name = "q12",
-    srcs = ["q12.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
     name = "q12_skinner",
     srcs = ["q12_skinner.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
-    name = "q14",
-    srcs = ["q14.cc"],
     deps = [
         "//benchmark/tpch1:schema",
         "//catalog",
@@ -619,62 +339,6 @@ cc_binary(
 cc_binary(
     name = "q18_skinner",
     srcs = ["q18_skinner.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
-    name = "q18",
-    srcs = ["q18.cc"],
-    deps = [
-        "//benchmark/tpch1:schema",
-        "//catalog",
-        "//compile:query_translator",
-        "//plan/expression",
-        "//plan/expression:arithmetic_expression",
-        "//plan/expression:column_ref_expression",
-        "//plan/expression:literal_expression",
-        "//plan/expression:virtual_column_ref_expression",
-        "//plan/operator",
-        "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
-        "//plan/operator:order_by_operator",
-        "//plan/operator:output_operator",
-        "//plan/operator:scan_operator",
-        "//plan/operator:select_operator",
-        "//plan/operator:skinner_join_operator",
-        "//util:builder",
-        "//util:time_execute",
-        "//util:vector_util",
-        "@absl//absl/flags:parse",
-        "@absl//absl/flags:usage",
-    ],
-)
-
-cc_binary(
-    name = "q19",
-    srcs = ["q19.cc"],
     deps = [
         "//benchmark/tpch1:schema",
         "//catalog",
