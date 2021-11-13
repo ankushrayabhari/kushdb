@@ -5,13 +5,11 @@ def execute(cmd):
     print(cmd, file=sys.stderr)
     os.system(cmd)
 
-def bench(database, use_skinner, flags):
-    queries = ['q02', 'q03', 'q05', 'q07', 'q08', 'q09', 'q10', 'q11',
-               'q12', 'q14', 'q18', 'q19']
+def bench(database, flags):
+    queries = ['q01', 'q02', 'q03', 'q05', 'q06', 'q07', 'q08', 'q09', 'q10',
+               'q11', 'q12', 'q14', 'q18', 'q19']
     for query in queries:
         binary = 'bazel run -c opt --ui_event_filters=-info,-stdout,-stderr --noshow_progress //benchmark/jcch10/queries:' + query
-        if use_skinner:
-            binary += '_skinner'
 
         binary += ' -- '
         for f in flags:
@@ -35,7 +33,7 @@ def bench(database, use_skinner, flags):
                 print(database, 'JCC-H SF10', query_num, t, sep=',')
 
 if __name__ == "__main__":
-    bench('kushdb ASM (Skinner Join Permutable)', True, ['--backend=asm', '--skinner=permute'])
-    bench('kushdb ASM (Skinner Join Recompiling)', True, ['--backend=asm', '--skinner=recompile'])
-    bench('kushdb LLVM (Skinner Join Permutable)', True, ['--backend=llvm', '--skinner=permute'])
-    bench('kushdb LLVM (Skinner Join Recompiling)', True, ['--backend=llvm', '--skinner=recompile'])
+    bench('kushdb ASM (Skinner Join Permutable)', ['--backend=asm', '--skinner=permute'])
+    bench('kushdb ASM (Skinner Join Recompiling)', ['--backend=asm', '--skinner=recompile'])
+    bench('kushdb LLVM (Skinner Join Permutable)', ['--backend=llvm', '--skinner=permute'])
+    bench('kushdb LLVM (Skinner Join Recompiling)', ['--backend=llvm', '--skinner=recompile'])
