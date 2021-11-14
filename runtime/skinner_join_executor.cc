@@ -17,7 +17,8 @@
 
 #include "compile/translators/recompiling_join_translator.h"
 
-ABSL_DECLARE_FLAG(int32_t, budget_per_episode);
+ABSL_FLAG(int32_t, budget_per_episode, 10000, "Budget per episode");
+ABSL_FLAG(bool, forget, false, "Forget learned info periodically.");
 
 namespace kush::runtime {
 
@@ -584,7 +585,7 @@ class UctNode {
         num_tries_per_action_(num_actions_, 0),
         acc_reward_per_action_(num_actions_, 0),
         table_per_action_(num_actions_),
-        rng_(104) {
+        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
     for (int i = 0; i < num_actions_; i++) {
       priority_actions_.push_back(i);
       recommended_actions_.insert(i);
@@ -609,7 +610,7 @@ class UctNode {
         joined_tables_(parent.joined_tables_),
         unjoined_tables_(parent.unjoined_tables_),
         table_per_action_(num_actions_),
-        rng_(104) {
+        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
     joined_tables_.insert(joined_table);
 
     auto it = std::find(unjoined_tables_.begin(), unjoined_tables_.end(),
@@ -786,20 +787,32 @@ class UctNode {
 class UctJoinAgent {
  public:
   UctJoinAgent(int num_tables, JoinEnvironment& environment)
-      : round_ctr_(0),
+      : environment_(environment),
+        round_ctr_(0),
         num_tables_(num_tables),
-        root_(round_ctr_, num_tables, environment) {}
+        should_forget_(FLAGS_forget.Get()),
+        next_forget_(10),
+        root_(std::make_unique<UctNode>(round_ctr_, num_tables, environment)) {}
 
   void Act() {
     round_ctr_++;
     std::vector<int> order(num_tables_);
-    root_.Sample(round_ctr_, order);
+    root_->Sample(round_ctr_, order);
+
+    // Consider memory loss
+    if (should_forget_ && round_ctr_ == next_forget_) {
+      root_ = std::make_unique<UctNode>(round_ctr_, num_tables_, environment_);
+      next_forget_ *= 10;
+    }
   }
 
  private:
+  JoinEnvironment& environment_;
   int round_ctr_;
   int num_tables_;
-  UctNode root_;
+  bool should_forget_;
+  int64_t next_forget_;
+  std::unique_ptr<UctNode> root_;
 };
 
 std::vector<std::add_pointer<int(int, int8_t)>::type> ReconstructTableFunctions(

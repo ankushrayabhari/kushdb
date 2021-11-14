@@ -36,9 +36,6 @@
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
 
-// Put this here so that any time we link the shared library, this is available.
-ABSL_FLAG(int32_t, budget_per_episode, 10000, "Budget per episode");
-
 namespace kush::khir {
 
 LLVMBackend::LLVMBackend()

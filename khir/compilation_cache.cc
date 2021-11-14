@@ -28,7 +28,7 @@ void CacheEntry::Compile() {
   switch (GetBackendType()) {
     case BackendType::ASM: {
       auto backend =
-          std::make_unique<khir::ASMBackend>(khir::GetRegAllocImpl());
+          std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::STACK_SPILL);
       program_builder_.Translate(*backend);
       compiled_program_ = std::move(backend);
       break;

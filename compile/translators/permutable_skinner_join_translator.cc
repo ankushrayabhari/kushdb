@@ -31,8 +31,9 @@ class TableFunction {
                 std::function<proxy::Int32(proxy::Int32&, proxy::Bool&)> body) {
     auto current_block = program.CurrentBlock();
 
-    func_ = program.CreateFunction(program.I32Type(),
-                                   {program.I32Type(), program.I1Type()});
+    func_ = program.CreatePublicFunction(
+        program.I32Type(), {program.I32Type(), program.I1Type()},
+        "permute_table_" + std::to_string(table_++));
 
     auto args = program.GetFunctionArguments(func_.value());
     proxy::Int32 budget(program, args[0]);
@@ -48,7 +49,10 @@ class TableFunction {
 
  private:
   std::optional<khir::FunctionRef> func_;
+  static int table_;
 };
+
+int TableFunction::table_ = 0;
 
 std::unique_ptr<proxy::ColumnIndex> GenerateInMemoryIndex(
     khir::ProgramBuilder& program, catalog::SqlType type) {
