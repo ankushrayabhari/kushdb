@@ -19,9 +19,8 @@ class SkinnerJoinExecutor {
   SkinnerJoinExecutor(khir::ProgramBuilder& program);
 
   void ExecutePermutableJoin(
-      int32_t num_tables, int32_t num_general_preds, int32_t num_eq_preds,
-      absl::flat_hash_map<std::pair<int, int>, int>* eq_pred_table_to_flag,
-      absl::flat_hash_map<std::pair<int, int>, int>* general_pred_table_to_flag,
+      int32_t num_tables, int32_t num_preds,
+      absl::flat_hash_map<std::pair<int, int>, int>* pred_table_to_flag,
       absl::flat_hash_set<std::pair<int, int>>* table_connections,
       khir::Value join_handler_fn_arr, khir::Value valid_tuple_handler,
       int32_t num_flags, khir::Value flag_arr, khir::Value progress_arr,

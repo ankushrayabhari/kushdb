@@ -279,11 +279,8 @@ struct PermutableExecutionEngineFlags {
 class PermutableJoinEnvironment : public JoinEnvironment {
  public:
   PermutableJoinEnvironment(
-      int32_t num_general_predicates, int32_t num_eq_preds, int32_t num_flags,
-      const absl::flat_hash_map<std::pair<int, int>, int>*
-          eq_pred_table_to_flag,
-      const absl::flat_hash_map<std::pair<int, int>, int>*
-          general_pred_table_to_flag,
+      int32_t num_preds, int32_t num_flags,
+      const absl::flat_hash_map<std::pair<int, int>, int>* pred_table_to_flag,
       const absl::flat_hash_set<std::pair<int, int>>* table_connections,
       const std::vector<int32_t>& cardinalities,
       const std::vector<std::add_pointer<int(int, int8_t)>::type>&
@@ -291,12 +288,10 @@ class PermutableJoinEnvironment : public JoinEnvironment {
       const std::add_pointer<int32_t(int32_t, int8_t)>::type
           valid_tuple_handler,
       PermutableExecutionEngineFlags execution_engine)
-      : num_general_preds_(num_general_predicates),
-        num_eq_preds_(num_eq_preds),
+      : num_preds_(num_preds),
         num_flags_(num_flags),
         budget_per_episode_(FLAGS_budget_per_episode.Get()),
-        eq_pred_table_to_flag_(eq_pred_table_to_flag),
-        general_pred_table_to_flag_(general_pred_table_to_flag),
+        pred_table_to_flag_(pred_table_to_flag),
         table_connections_(table_connections),
         cardinalities_(cardinalities),
         table_functions_(table_functions),
@@ -382,39 +377,21 @@ class PermutableJoinEnvironment : public JoinEnvironment {
 
     // Set all predicate flags
     absl::flat_hash_set<int> available_tables;
-    absl::flat_hash_set<int> executed_general_pred;
+    absl::flat_hash_set<int> executed_preds;
     for (int order_idx = 0; order_idx < order.size(); order_idx++) {
       auto table = order[order_idx];
       available_tables.insert(table);
 
-      // activate any equality predicate flag for a table after the current in
-      // order and that shared a predicate
-      for (int i = 0; i < num_eq_preds_; i++) {
-        // see if current table is contained in it
-        if (!eq_pred_table_to_flag_->contains({i, table})) {
-          continue;
-        }
-
-        // since it is, activate any flag for this predicate after this
-        for (int j = order_idx + 1; j < order.size(); j++) {
-          auto after = order[j];
-          if (eq_pred_table_to_flag_->contains({i, after})) {
-            execution_engine_.flag_arr[eq_pred_table_to_flag_->at({i, after})] =
-                1;
-          }
-        }
-      }
-
       // all tables in available_tables have been joined
       // execute any non-executed general predicate
-      for (int pred = 0; pred < num_general_preds_; pred++) {
-        if (executed_general_pred.contains(pred)) {
+      for (int pred = 0; pred < num_preds_; pred++) {
+        if (executed_preds.contains(pred)) {
           continue;
         }
 
         bool all_tables_available = true;
         for (int t = 0; t < order.size(); t++) {
-          if (general_pred_table_to_flag_->contains({pred, t})) {
+          if (pred_table_to_flag_->contains({pred, t})) {
             all_tables_available =
                 all_tables_available && available_tables.contains(t);
           }
@@ -422,21 +399,18 @@ class PermutableJoinEnvironment : public JoinEnvironment {
         if (!all_tables_available) {
           continue;
         }
-        executed_general_pred.insert(pred);
+        executed_preds.insert(pred);
 
-        auto flag = general_pred_table_to_flag_->at({pred, table});
+        auto flag = pred_table_to_flag_->at({pred, table});
         execution_engine_.flag_arr[flag] = 1;
       }
     }
   }
 
-  const int num_general_preds_;
-  const int num_eq_preds_;
+  const int num_preds_;
   const int num_flags_;
   const int32_t budget_per_episode_;
-  const absl::flat_hash_map<std::pair<int, int>, int>* eq_pred_table_to_flag_;
-  const absl::flat_hash_map<std::pair<int, int>, int>*
-      general_pred_table_to_flag_;
+  const absl::flat_hash_map<std::pair<int, int>, int>* pred_table_to_flag_;
 
   const absl::flat_hash_set<std::pair<int, int>>* table_connections_;
   const std::vector<int32_t> cardinalities_;
@@ -835,10 +809,8 @@ std::vector<int32_t> ReconstructCardinalities(int32_t num_tables,
 }
 
 void ExecutePermutableSkinnerJoin(
-    int32_t num_tables, int32_t num_general_predicates, int32_t num_eq_preds,
-    const absl::flat_hash_map<std::pair<int, int>, int>* eq_pred_table_to_flag,
-    const absl::flat_hash_map<std::pair<int, int>, int>*
-        general_pred_table_to_flag,
+    int32_t num_tables, int32_t num_preds,
+    const absl::flat_hash_map<std::pair<int, int>, int>* pred_table_to_flag,
     const absl::flat_hash_set<std::pair<int, int>>* table_connections,
     std::add_pointer<int32_t(int32_t, int8_t)>::type* join_handler_fn_arr,
     std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler,
@@ -867,9 +839,8 @@ void ExecutePermutableSkinnerJoin(
   };
 
   PermutableJoinEnvironment environment(
-      num_general_predicates, num_eq_preds, num_flags, eq_pred_table_to_flag,
-      general_pred_table_to_flag, table_connections, cardinalities,
-      table_functions, valid_tuple_handler, execution_engine);
+      num_preds, num_flags, pred_table_to_flag, table_connections,
+      cardinalities, table_functions, valid_tuple_handler, execution_engine);
 
   UctJoinAgent agent(num_tables, environment);
 

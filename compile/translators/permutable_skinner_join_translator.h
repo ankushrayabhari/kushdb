@@ -37,8 +37,9 @@ class PermutableSkinnerJoinTranslator : public OperatorTranslator {
   std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers_;
   std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes_;
   absl::flat_hash_map<std::pair<int, int>, int> column_to_index_idx_;
-  absl::flat_hash_map<std::pair<int, int>, int> eq_pred_table_to_flag_;
-  absl::flat_hash_map<std::pair<int, int>, int> general_pred_table_to_flag_;
+  absl::flat_hash_map<std::pair<int, int>, int> pred_table_to_flag_;
+  std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
+      predicate_columns_;
   absl::flat_hash_set<std::pair<int, int>> table_connections_;
   int child_idx_ = -1;
 };

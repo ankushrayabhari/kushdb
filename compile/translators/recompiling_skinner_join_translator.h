@@ -45,9 +45,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
       std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
       const std::vector<proxy::Int32>& cardinalities,
       proxy::TupleIdxTable& tuple_idx_table,
-      absl::flat_hash_set<int>& evaluated_general_conditions,
-      const std::vector<absl::flat_hash_set<int>>& tables_per_general_condition,
-      const std::vector<absl::btree_set<int>>& general_conditions_per_table,
+      absl::flat_hash_set<int>& evaluated_conditions,
       absl::flat_hash_set<int>& available_tables, khir::Value idx_array,
       khir::Value offset_array, khir::Value progress_arr,
       khir::Value table_ctr_ptr, khir::Value num_result_tuples_ptr,
@@ -64,8 +62,8 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers_;
   std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes_;
   absl::flat_hash_map<std::pair<int, int>, int> column_to_index_idx_;
-  std::vector<absl::flat_hash_set<int>> tables_per_general_condition_;
-  std::vector<absl::btree_set<int>> general_conditions_per_table_;
+  std::vector<absl::flat_hash_set<int>> tables_per_condition_;
+  std::vector<absl::btree_set<int>> conditions_per_table_;
   absl::flat_hash_set<std::pair<int, int>> table_connections_;
   int child_idx_ = -1;
   khir::CompilationCache cache_;

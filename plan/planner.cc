@@ -558,14 +558,8 @@ void EarlyProjection(Operator& op) {
     for (auto& x : join->Schema().Columns()) {
       GetReferencedChildren(x.Expr(), refs);
     }
-    for (auto x : join->GeneralConditions()) {
+    for (auto x : join->Conditions()) {
       GetReferencedChildren(x.get(), refs);
-    }
-    auto eqgroups = join->EqualityConditions();
-    for (auto& group : eqgroups) {
-      for (auto x : group) {
-        GetReferencedChildren(x.get(), refs);
-      }
     }
 
     absl::flat_hash_map<std::pair<int, int>, std::pair<int, int>>
@@ -595,14 +589,8 @@ void EarlyProjection(Operator& op) {
     for (auto& x : join->MutableSchema().MutableColumns()) {
       RewriteColumnReferences(x.MutableExpr(), col_ref_to_rewrite_idx);
     }
-    for (auto x : join->MutableGeneralConditions()) {
+    for (auto x : join->MutableConditions()) {
       RewriteColumnReferences(x.get(), col_ref_to_rewrite_idx);
-    }
-    auto mutable_eqgroups = join->MutableEqualityConditions();
-    for (auto& group : mutable_eqgroups) {
-      for (auto x : group) {
-        RewriteColumnReferences(x.get(), col_ref_to_rewrite_idx);
-      }
     }
 
     for (auto child : join->Children()) {

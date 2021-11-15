@@ -81,6 +81,22 @@ std::unique_ptr<proxy::ColumnIndex> GenerateInMemoryIndex(
   }
 }
 
+bool IsEqualityPredicate(std::reference_wrapper<const plan::Expression> expr) {
+  if (auto eq =
+          dynamic_cast<const plan::BinaryArithmeticExpression*>(&expr.get())) {
+    if (eq->OpType() == plan::BinaryArithmeticExpressionType::EQ) {
+      if (auto l = dynamic_cast<const plan::ColumnRefExpression*>(
+              &eq->LeftChild())) {
+        if (auto r = dynamic_cast<const plan::ColumnRefExpression*>(
+                &eq->RightChild())) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 PermutableSkinnerJoinTranslator::PermutableSkinnerJoinTranslator(
     const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
     execution::PipelineBuilder& pipeline_builder,
@@ -96,19 +112,23 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
-  auto equality_conditions = join_.EqualityConditions();
-  auto general_conditions = join_.GeneralConditions();
+  auto conditions = join_.Conditions();
 
   int index_idx = 0;
-  for (int i = 0; i < equality_conditions.size(); i++) {
-    auto& condition = equality_conditions[i];
+  for (int i = 0; i < conditions.size(); i++) {
+    const auto& condition = conditions[i].get();
 
-    for (const auto& col_ref : condition) {
+    PredicateColumnCollector collector;
+    condition.Accept(collector);
+    auto cond = collector.PredicateColumns();
+
+    for (const auto& col_ref : cond) {
       std::pair<int, int> key = {col_ref.get().GetChildIdx(),
                                  col_ref.get().GetColumnIdx()};
 
       if (!column_to_index_idx_.contains(key)) {
         column_to_index_idx_[key] = index_idx++;
+        predicate_columns_.push_back(col_ref);
       }
     }
   }
@@ -207,46 +227,16 @@ void PermutableSkinnerJoinTranslator::Produce() {
   auto predicate_struct = std::make_unique<proxy::StructBuilder>(program_);
   absl::flat_hash_map<std::pair<int, int>, int>
       colref_to_predicate_struct_field_;
-  absl::flat_hash_map<int, int> eq_pred_to_predicate_struct_field_;
   int pred_struct_size = 0;
-  for (int i = 0; i < equality_conditions.size(); i++) {
-    const auto& cond = equality_conditions[i];
-    auto child_idx = cond[0].get().GetChildIdx();
-    auto column_idx = cond[0].get().GetColumnIdx();
+  for (auto& c : predicate_columns_) {
+    auto child_idx = c.get().GetChildIdx();
+    auto column_idx = c.get().GetColumnIdx();
+    colref_to_predicate_struct_field_[{child_idx, column_idx}] =
+        pred_struct_size++;
     const auto& column_schema =
         child_operators[child_idx].get().Schema().Columns()[column_idx];
-
     predicate_struct->Add(column_schema.Expr().Type(),
                           column_schema.Expr().Nullable());
-
-    auto field = pred_struct_size++;
-    for (auto c : cond) {
-      colref_to_predicate_struct_field_[{c.get().GetChildIdx(),
-                                         c.get().GetColumnIdx()}] = field;
-    }
-
-    eq_pred_to_predicate_struct_field_[i] = field;
-  }
-  for (auto& general_pred : general_conditions) {
-    PredicateColumnCollector collector;
-    general_pred.get().Accept(collector);
-    auto cond = collector.PredicateColumns();
-
-    for (auto& c : cond) {
-      auto child_idx = c.get().GetChildIdx();
-      auto column_idx = c.get().GetColumnIdx();
-      std::pair<int, int> key = {child_idx, column_idx};
-
-      if (!colref_to_predicate_struct_field_.contains(key)) {
-        colref_to_predicate_struct_field_[key] = pred_struct_size++;
-
-        const auto& column_schema =
-            child_operators[child_idx].get().Schema().Columns()[column_idx];
-
-        predicate_struct->Add(column_schema.Expr().Type(),
-                              column_schema.Expr().Nullable());
-      }
-    }
   }
   predicate_struct->Build();
 
@@ -304,25 +294,11 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
   // Setup flag array for each table.
   // allocate a flag for each:
-  // table in an eq predicate
-  // table in a general predicate
+  // table in a predicate
   int total_flags = 0;
-
-  for (int eq_pred = 0; eq_pred < equality_conditions.size(); eq_pred++) {
-    const auto& cond = equality_conditions[eq_pred];
-    absl::flat_hash_set<int> tables;
-    for (const auto& col_ref : cond) {
-      tables.insert(col_ref.get().GetChildIdx());
-    }
-
-    for (auto t : tables) {
-      eq_pred_table_to_flag_[{eq_pred, t}] = total_flags++;
-    }
-  }
-
-  for (int gen_pred = 0; gen_pred < general_conditions.size(); gen_pred++) {
+  for (int pred = 0; pred < conditions.size(); pred++) {
     PredicateColumnCollector collector;
-    general_conditions[gen_pred].get().Accept(collector);
+    conditions[pred].get().Accept(collector);
     auto cond = collector.PredicateColumns();
 
     absl::flat_hash_set<int> tables;
@@ -331,7 +307,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
     }
 
     for (auto t : tables) {
-      general_pred_table_to_flag_[{gen_pred, t}] = total_flags++;
+      pred_table_to_flag_[{pred, t}] = total_flags++;
     }
   }
 
@@ -403,20 +379,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
     }
   }
 
-  int bucket_list_max_size = INT32_MIN;
-  for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
-    int bucket_list_size = 0;
-    for (const auto& cond : equality_conditions) {
-      for (const auto& c : cond) {
-        if (c.get().GetChildIdx() == table_idx) {
-          bucket_list_size++;
-        }
-      }
-    }
-
-    bucket_list_max_size = std::max(bucket_list_size, bucket_list_max_size);
-  }
-
+  int bucket_list_max_size = predicate_columns_.size();
   for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
     table_functions.push_back(TableFunction(program_, [&](auto& initial_budget,
                                                           auto&
@@ -425,8 +388,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
           handler_pointer_array_type, handler_pointer_array, {0, table_idx});
       auto handler = program_.LoadPtr(handler_ptr);
 
-      absl::flat_hash_map<int, proxy::SQLValue> eq_pred_values(
-          equality_conditions.size());
       {
         // Unpack the predicate struct.
         auto column_values = global_predicate_struct.Unpack();
@@ -440,11 +401,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
           child_translator.SchemaValues().SetValue(col_idx,
                                                    column_values[field]);
         }
-
-        for (const auto& [eq_pred, field] :
-             eq_pred_to_predicate_struct_field_) {
-          eq_pred_values.emplace(eq_pred, column_values[field]);
-        }
       }
 
       auto& buffer = *materialized_buffers_[table_idx];
@@ -454,31 +410,63 @@ void PermutableSkinnerJoinTranslator::Produce() {
       // no result tuples with current column values.
       proxy::ColumnIndexBucketArray bucket_list(program_, bucket_list_max_size);
 
-      for (auto [eq_pred_table, flag] : eq_pred_table_to_flag_) {
-        auto eq_pred = eq_pred_table.first;
-        auto table = eq_pred_table.second;
-        if (table != table_idx) {
+      for (auto [pred_table, flag] : pred_table_to_flag_) {
+        if (pred_table.second != table_idx) {
           continue;
         }
 
-        const auto& cond = equality_conditions[eq_pred];
+        auto cond = conditions[pred_table.first];
+        if (!IsEqualityPredicate(cond)) {
+          continue;
+        }
+        const auto& eq =
+            dynamic_cast<const plan::BinaryArithmeticExpression&>(cond.get());
+        const auto& left =
+            dynamic_cast<const plan::ColumnRefExpression&>(eq.LeftChild());
+        const auto& right =
+            dynamic_cast<const plan::ColumnRefExpression&>(eq.RightChild());
 
         auto flag_ptr =
             program_.ConstGEP(flag_array_type, flag_array, {0, flag});
         proxy::Int8 flag_value(program_, program_.LoadI8(flag_ptr));
 
         proxy::If(program_, flag_value != 0, [&]() {
-          auto other_side_value = eq_pred_values.at(eq_pred);
+          auto other_side_value = left.GetChildIdx() == table_idx
+                                      ? expr_translator_.Compute(right)
+                                      : expr_translator_.Compute(left);
+          auto table_column = left.GetChildIdx() == table_idx
+                                  ? left.GetColumnIdx()
+                                  : right.GetColumnIdx();
 
-          for (auto colref : cond) {
-            if (colref.get().GetChildIdx() != table_idx) {
-              continue;
-            }
-            auto table_column = colref.get().GetColumnIdx();
+          proxy::If(
+              program_, other_side_value.IsNull(),
+              [&]() {
+                auto budget = initial_budget - 1;
+                proxy::If(
+                    program_, budget == 0,
+                    [&]() {
+                      auto idx_ptr = program_.ConstGEP(
+                          idx_array_type, idx_array, {0, table_idx});
+                      program_.StoreI32(idx_ptr, (cardinality - 1).Get());
+                      program_.StoreI32(
+                          program_.ConstGEP(table_ctr_type, table_ctr_ptr,
+                                            {0, 0}),
+                          program_.ConstI32(table_idx));
+                      program_.Return(program_.ConstI32(-1));
+                    },
+                    [&]() { program_.Return(budget.Get()); });
+              },
+              [&]() {
+                auto it = column_to_index_idx_.find({table_idx, table_column});
+                if (it == column_to_index_idx_.end()) {
+                  throw std::runtime_error("Expected index.");
+                }
+                auto index_idx = it->second;
 
-            proxy::If(
-                program_, other_side_value.IsNull(),
-                [&]() {
+                auto bucket_from_index =
+                    indexes_[index_idx]->GetBucket(other_side_value.Get());
+                bucket_list.PushBack(bucket_from_index);
+                proxy::If(program_, bucket_from_index.DoesNotExist(), [&]() {
                   auto budget = initial_budget - 1;
                   proxy::If(
                       program_, budget == 0,
@@ -493,36 +481,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
                         program_.Return(program_.ConstI32(-1));
                       },
                       [&]() { program_.Return(budget.Get()); });
-                },
-                [&]() {
-                  auto it =
-                      column_to_index_idx_.find({table_idx, table_column});
-                  if (it == column_to_index_idx_.end()) {
-                    throw std::runtime_error("Expected index.");
-                  }
-                  auto index_idx = it->second;
-
-                  auto bucket_from_index =
-                      indexes_[index_idx]->GetBucket(other_side_value.Get());
-                  bucket_list.PushBack(bucket_from_index);
-                  proxy::If(program_, bucket_from_index.DoesNotExist(), [&]() {
-                    auto budget = initial_budget - 1;
-                    proxy::If(
-                        program_, budget == 0,
-                        [&]() {
-                          auto idx_ptr = program_.ConstGEP(
-                              idx_array_type, idx_array, {0, table_idx});
-                          program_.StoreI32(idx_ptr, (cardinality - 1).Get());
-                          program_.StoreI32(
-                              program_.ConstGEP(table_ctr_type, table_ctr_ptr,
-                                                {0, 0}),
-                              program_.ConstI32(table_idx));
-                          program_.Return(program_.ConstI32(-1));
-                        },
-                        [&]() { program_.Return(budget.Get()); });
-                  });
                 });
-          }
+              });
         });
       }
 
@@ -642,10 +602,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           }
                         }
 
-                        for (auto [general_pred_table, flag] :
-                             general_pred_table_to_flag_) {
-                          auto pred = general_pred_table.first;
-                          auto table = general_pred_table.second;
+                        for (auto [pred_table, flag] : pred_table_to_flag_) {
+                          auto pred = pred_table.first;
+                          auto table = pred_table.second;
                           if (table != table_idx) {
                             continue;
                           }
@@ -656,7 +615,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                                  program_.LoadI8(flag_ptr));
                           proxy::If(program_, flag_value != 0, [&]() {
                             auto cond = expr_translator_.Compute(
-                                general_conditions[pred].get());
+                                conditions[pred].get());
 
                             proxy::If(
                                 program_, cond.IsNull(),
@@ -825,10 +784,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
                     }
                   }
 
-                  for (auto [general_pred_table, flag] :
-                       general_pred_table_to_flag_) {
-                    auto pred = general_pred_table.first;
-                    auto table = general_pred_table.second;
+                  for (auto [pred_table, flag] : pred_table_to_flag_) {
+                    auto pred = pred_table.first;
+                    auto table = pred_table.second;
                     if (table != table_idx) {
                       continue;
                     }
@@ -837,8 +795,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                                       flag_array, {0, flag});
                     proxy::Int8 flag_value(program_, program_.LoadI8(flag_ptr));
                     proxy::If(program_, flag_value != 0, [&]() {
-                      auto cond = expr_translator_.Compute(
-                          general_conditions[pred].get());
+                      auto cond =
+                          expr_translator_.Compute(conditions[pred].get());
 
                       proxy::If(
                           program_, cond.IsNull(),
@@ -948,22 +906,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
   }
 
   // Generate the table connections.
-  for (const auto& cond : equality_conditions) {
-    for (int i = 0; i < cond.size(); i++) {
-      for (int j = i + 1; j < cond.size(); j++) {
-        auto left_table = cond[i].get().GetChildIdx();
-        auto right_table = cond[j].get().GetChildIdx();
-
-        if (left_table != right_table) {
-          table_connections_.insert({left_table, right_table});
-          table_connections_.insert({right_table, left_table});
-        }
-      }
-    }
-  }
-  for (int pred_idx = 0; pred_idx < general_conditions.size(); pred_idx++) {
+  for (int pred_idx = 0; pred_idx < conditions.size(); pred_idx++) {
     PredicateColumnCollector collector;
-    general_conditions[pred_idx].get().Accept(collector);
+    conditions[pred_idx].get().Accept(collector);
     auto cond = collector.PredicateColumns();
 
     for (int i = 0; i < cond.size(); i++) {
@@ -982,9 +927,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
   // Execute build side of skinner join
   proxy::SkinnerJoinExecutor executor(program_);
   executor.ExecutePermutableJoin(
-      child_operators.size(), general_conditions.size(),
-      equality_conditions.size(), &eq_pred_table_to_flag_,
-      &general_pred_table_to_flag_, &table_connections_,
+      child_operators.size(), conditions.size(), &pred_table_to_flag_,
+      &table_connections_,
       program_.ConstGEP(handler_pointer_array_type, handler_pointer_array,
                         {0, 0}),
       program_.GetFunctionPointer(valid_tuple_handler.Get()), total_flags,

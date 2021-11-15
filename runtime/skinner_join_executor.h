@@ -14,10 +14,8 @@
 namespace kush::runtime {
 
 void ExecutePermutableSkinnerJoin(
-    int32_t num_tables, int32_t num_general_predicates, int32_t num_eq_preds,
-    const absl::flat_hash_map<std::pair<int, int>, int>* eq_pred_table_to_flag,
-    const absl::flat_hash_map<std::pair<int, int>, int>*
-        general_pred_table_to_flag,
+    int32_t num_tables, int32_t num_preds,
+    const absl::flat_hash_map<std::pair<int, int>, int>* pred_table_to_flag,
     const absl::flat_hash_set<std::pair<int, int>>* table_connections,
     std::add_pointer<int32_t(int32_t, int8_t)>::type* join_handler_fn_arr,
     std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler,

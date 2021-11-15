@@ -43,35 +43,44 @@ RecompilingSkinnerJoinTranslator::RecompilingSkinnerJoinTranslator(
 std::vector<std::pair<const plan::ColumnRefExpression*,
                       const plan::ColumnRefExpression*>>
 IndexAvailableForTable(
-    int table_idx, absl::flat_hash_set<int>& available_tables,
-    const std::vector<std::vector<
-        std::reference_wrapper<const kush::plan::ColumnRefExpression>>>&
-        equality_conditions) {
+    int table_idx, const absl::flat_hash_set<int>& available_tables,
+    const std::vector<std::reference_wrapper<const plan::Expression>>&
+        conditions,
+    absl::flat_hash_set<int>& evaluated_conditions) {
   std::vector<std::pair<const plan::ColumnRefExpression*,
                         const plan::ColumnRefExpression*>>
       result;
-  for (const auto& pred : equality_conditions) {
-    // can evalute it if any columns has a value set
-    // already and if it contains the current table
-    const plan::ColumnRefExpression* other_side_value = nullptr;
-    std::vector<const plan::ColumnRefExpression*> current_table_values;
-    for (auto col_ref : pred) {
-      auto table = col_ref.get().GetChildIdx();
-      if (other_side_value == nullptr && available_tables.contains(table)) {
-        other_side_value = &col_ref.get();
-      }
-
-      if (table == table_idx) {
-        current_table_values.push_back(&col_ref.get());
-      }
-    }
-
-    if (other_side_value == nullptr || current_table_values.empty()) {
+  for (int i = 0; i < conditions.size(); i++) {
+    if (evaluated_conditions.contains(i)) {
       continue;
     }
 
-    for (auto x : current_table_values) {
-      result.emplace_back(other_side_value, x);
+    if (auto eq = dynamic_cast<const plan::BinaryArithmeticExpression*>(
+            &conditions[i].get())) {
+      if (eq->OpType() == plan::BinaryArithmeticExpressionType::EQ) {
+        if (auto left = dynamic_cast<const plan::ColumnRefExpression*>(
+                &eq->LeftChild())) {
+          if (auto right = dynamic_cast<const plan::ColumnRefExpression*>(
+                  &eq->RightChild())) {
+            if (left->GetChildIdx() != table_idx &&
+                right->GetChildIdx() != table_idx) {
+              continue;
+            }
+
+            auto other_side_value =
+                left->GetChildIdx() == table_idx ? right : left;
+
+            if (!available_tables.contains(other_side_value->GetChildIdx())) {
+              continue;
+            }
+
+            auto table_value = left->GetChildIdx() == table_idx ? left : right;
+
+            result.emplace_back(other_side_value, table_value);
+            evaluated_conditions.insert(i);
+          }
+        }
+      }
     }
   }
 
@@ -169,9 +178,7 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
     std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
     const std::vector<proxy::Int32>& cardinalities,
     proxy::TupleIdxTable& tuple_idx_table,
-    absl::flat_hash_set<int>& evaluated_general_conditions,
-    const std::vector<absl::flat_hash_set<int>>& tables_per_general_condition,
-    const std::vector<absl::btree_set<int>>& general_conditions_per_table,
+    absl::flat_hash_set<int>& evaluated_conditions,
     absl::flat_hash_set<int>& available_tables, khir::Value idx_array,
     khir::Value offset_array, khir::Value progress_arr,
     khir::Value table_ctr_ptr, khir::Value num_result_tuples_ptr,
@@ -179,15 +186,14 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
     std::vector<proxy::ColumnIndexBucketArray>& bucket_lists,
     const std::vector<khir::Value>& results, const int result_max_size) {
   auto child_translators = this->Children();
-  auto equality_conditions = join_.EqualityConditions();
-  auto general_conditions = join_.GeneralConditions();
+  auto conditions = join_.Conditions();
 
   int table_idx = order[curr];
   auto& buffer = *materialized_buffers[table_idx];
   auto cardinality = cardinalities[table_idx];
 
-  auto indexed_predicates =
-      IndexAvailableForTable(table_idx, available_tables, equality_conditions);
+  auto indexed_predicates = IndexAvailableForTable(
+      table_idx, available_tables, conditions, evaluated_conditions);
   if (!indexed_predicates.empty()) {
     bucket_lists[table_idx].Clear();
     return CheckAllIndexes(
@@ -296,20 +302,19 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                       available_tables.insert(table_idx);
 
                       for (int predicate_idx :
-                           general_conditions_per_table[table_idx]) {
-                        if (evaluated_general_conditions.contains(
-                                predicate_idx)) {
+                           conditions_per_table_[table_idx]) {
+                        if (evaluated_conditions.contains(predicate_idx)) {
                           continue;
                         }
 
-                        if (!CanExecute(predicate_idx,
-                                        tables_per_general_condition,
+                        if (!CanExecute(predicate_idx, tables_per_condition_,
                                         available_tables)) {
                           continue;
                         }
 
-                        auto cond = expr_translator.Compute(
-                            general_conditions[predicate_idx]);
+                        evaluated_conditions.insert(predicate_idx);
+                        auto cond =
+                            expr_translator.Compute(conditions[predicate_idx]);
                         proxy::If(
                             program, cond.IsNull(),
                             [&]() {
@@ -386,13 +391,11 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
                             GenerateChildLoops(
                                 curr + 1, order, program, expr_translator,
                                 materialized_buffers, indexes, cardinalities,
-                                tuple_idx_table, evaluated_general_conditions,
-                                tables_per_general_condition,
-                                general_conditions_per_table, available_tables,
-                                idx_array, offset_array, progress_arr,
-                                table_ctr_ptr, num_result_tuples_ptr, budget,
-                                resume_progress, bucket_lists, results,
-                                result_max_size)
+                                tuple_idx_table, evaluated_conditions,
+                                available_tables, idx_array, offset_array,
+                                progress_arr, table_ctr_ptr,
+                                num_result_tuples_ptr, budget, resume_progress,
+                                bucket_lists, results, result_max_size)
                                 .ToPointer();
                       }
 
@@ -478,19 +481,18 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
             buffer[next_tuple]);
         available_tables.insert(table_idx);
 
-        for (int predicate_idx : general_conditions_per_table[table_idx]) {
-          if (evaluated_general_conditions.contains(predicate_idx)) {
+        for (int predicate_idx : conditions_per_table_[table_idx]) {
+          if (evaluated_conditions.contains(predicate_idx)) {
             continue;
           }
 
-          if (!CanExecute(predicate_idx, tables_per_general_condition,
+          if (!CanExecute(predicate_idx, tables_per_condition_,
                           available_tables)) {
             continue;
           }
 
-          evaluated_general_conditions.insert(predicate_idx);
-          auto cond =
-              expr_translator.Compute(general_conditions[predicate_idx]);
+          evaluated_conditions.insert(predicate_idx);
+          auto cond = expr_translator.Compute(conditions[predicate_idx]);
           proxy::If(
               program, cond.IsNull(),
               [&]() {
@@ -555,14 +557,13 @@ proxy::Int32 RecompilingSkinnerJoinTranslator::GenerateChildLoops(
 
           // Partial tuple - loop over other tables to complete it
           next_budget =
-              GenerateChildLoops(
-                  curr + 1, order, program, expr_translator,
-                  materialized_buffers, indexes, cardinalities, tuple_idx_table,
-                  evaluated_general_conditions, tables_per_general_condition,
-                  general_conditions_per_table, available_tables, idx_array,
-                  offset_array, progress_arr, table_ctr_ptr,
-                  num_result_tuples_ptr, budget, resume_progress, bucket_lists,
-                  results, result_max_size)
+              GenerateChildLoops(curr + 1, order, program, expr_translator,
+                                 materialized_buffers, indexes, cardinalities,
+                                 tuple_idx_table, evaluated_conditions,
+                                 available_tables, idx_array, offset_array,
+                                 progress_arr, table_ctr_ptr,
+                                 num_result_tuples_ptr, budget, resume_progress,
+                                 bucket_lists, results, result_max_size)
                   .ToPointer();
         }
 
@@ -681,22 +682,13 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   const auto& cardinality = cardinalities[table_idx];
 
   absl::flat_hash_set<int> available_tables;
-  absl::flat_hash_set<int> evaluated_general_conditions;
+  absl::flat_hash_set<int> evaluated_conditions;
 
   std::vector<proxy::ColumnIndexBucketArray> bucket_lists;
   std::vector<khir::Value> results;
   int result_max_size = 64;
   for (int i = 0; i < order.size(); i++) {
-    // generate a bucket list of max size # of indexed columns
-    int indexed_columns = 0;
-    for (const auto& [key, _] : column_to_index_idx_) {
-      auto [child_idx, column_idx] = key;
-      if (child_idx == i) {
-        indexed_columns++;
-      }
-    }
-
-    bucket_lists.emplace_back(program, indexed_columns);
+    bucket_lists.emplace_back(program, column_to_index_idx_.size());
     results.push_back(program.Alloca(program.PointerType(program.I32Type())));
     program.StorePtr(results.back(),
                      program.Alloca(program.I32Type(), result_max_size));
@@ -776,8 +768,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
 
         auto next_budget = GenerateChildLoops(
             1, order, program, expr_translator, materialized_buffers, indexes,
-            cardinalities, tuple_idx_table, evaluated_general_conditions,
-            tables_per_general_condition_, general_conditions_per_table_,
+            cardinalities, tuple_idx_table, evaluated_conditions,
             available_tables, idx_array, offset_array, progress_arr,
             table_ctr_ptr, num_result_tuples_ptr, budget, resume_progress,
             bucket_lists, results, result_max_size);
@@ -798,14 +789,15 @@ void RecompilingSkinnerJoinTranslator::Produce() {
 
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
-  auto equality_conditions = join_.EqualityConditions();
-  auto general_conditions = join_.GeneralConditions();
+  auto conditions = join_.Conditions();
 
   int index_idx = 0;
-  for (int i = 0; i < equality_conditions.size(); i++) {
-    auto& condition = equality_conditions[i];
+  for (int i = 0; i < conditions.size(); i++) {
+    PredicateColumnCollector collector;
+    conditions[i].get().Accept(collector);
+    auto cond = collector.PredicateColumns();
 
-    for (const auto& col_ref : condition) {
+    for (const auto& col_ref : cond) {
       std::pair<int, int> key = {col_ref.get().GetChildIdx(),
                                  col_ref.get().GetColumnIdx()};
 
@@ -954,31 +946,18 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   }
 
   // Generate the table connections.
-  for (const auto& cond : equality_conditions) {
-    for (int i = 0; i < cond.size(); i++) {
-      for (int j = i + 1; j < cond.size(); j++) {
-        auto left_table = cond[i].get().GetChildIdx();
-        auto right_table = cond[j].get().GetChildIdx();
-
-        if (left_table != right_table) {
-          table_connections_.insert({left_table, right_table});
-          table_connections_.insert({right_table, left_table});
-        }
-      }
-    }
-  }
-  general_conditions_per_table_ =
+  conditions_per_table_ =
       std::vector<absl::btree_set<int>>(child_operators.size());
-  tables_per_general_condition_ =
-      std::vector<absl::flat_hash_set<int>>(general_conditions.size());
-  for (int pred_idx = 0; pred_idx < general_conditions.size(); pred_idx++) {
+  tables_per_condition_ =
+      std::vector<absl::flat_hash_set<int>>(conditions.size());
+  for (int pred_idx = 0; pred_idx < conditions.size(); pred_idx++) {
     PredicateColumnCollector collector;
-    general_conditions[pred_idx].get().Accept(collector);
+    conditions[pred_idx].get().Accept(collector);
     auto cond = collector.PredicateColumns();
 
     for (auto& c : cond) {
-      general_conditions_per_table_[c.get().GetChildIdx()].insert(pred_idx);
-      tables_per_general_condition_[pred_idx].insert(c.get().GetChildIdx());
+      conditions_per_table_[c.get().GetChildIdx()].insert(pred_idx);
+      tables_per_condition_[pred_idx].insert(c.get().GetChildIdx());
     }
 
     for (int i = 0; i < cond.size(); i++) {
