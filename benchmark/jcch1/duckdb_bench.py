@@ -12,11 +12,13 @@ def execute_duckdb(cmds):
             print(cmd, file=f)
     execute('duckdb < /tmp/duckdb.txt > /tmp/bench_time.txt')
 
-queries = ['q02', 'q03', 'q05', 'q07', 'q08', 'q10', 'q11', 'q12', 'q14', 'q18', 'q19']
+queries = ['q01', 'q02', 'q03', 'q05', 'q06', 'q07', 'q08', 'q09', 'q10', 'q11', 'q12', 'q14', 'q18', 'q19']
 
-def bench():
-    cmd_base = ['.open benchmark/jcch1/duckdb/jcch.ddb',
-                '.output /dev/null', 'PRAGMA threads=1;',
+def bench(db, use_indexes):
+    cmd_base = ['.open benchmark/jcch1/duckdb/jcch.ddb']
+    if use_indexes:
+        cmd_base.append('.read benchmark/jcch1/indexes.sql')
+    cmd_base += ['.output /dev/null', 'PRAGMA threads=1;',
                 'PRAGMA memory_limit=\'60GB\';', '.timer on']
     for query in queries:
         query_num = int(query[1:])
@@ -33,7 +35,8 @@ def bench():
                 except ValueError as e:
                     continue
             for t in times[3::3]:
-                print('DuckDB', 'JCC-H SF1', query_num, t * 1000, sep=',')
+                print(db, 'JCC-H SF1', query_num, t * 1000, sep=',')
 
 if __name__ == "__main__":
-    bench()
+    bench('DuckDB', False)
+    bench('DuckDB (Indexes)', True)

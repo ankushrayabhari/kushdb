@@ -5,7 +5,7 @@ def execute(cmd):
     print(cmd, file=sys.stderr)
     os.system(cmd)
 
-queries = ['q02', 'q03', 'q05', 'q07', 'q08', 'q10', 'q11', 'q12', 'q14', 'q18', 'q19']
+queries = ['q01', 'q02', 'q03', 'q05', 'q06', 'q07', 'q08', 'q09', 'q10', 'q11', 'q12', 'q14', 'q18', 'q19']
 
 def bench():
     execute('monetdb set nthreads=1 jcch')

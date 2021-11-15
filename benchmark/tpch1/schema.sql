@@ -91,6 +91,7 @@ CREATE TABLE lineitem (
     PRIMARY KEY (l_orderkey, l_linenumber)
 );
 
+ALTER TABLE nation ADD CONSTRAINT nation_fk  FOREIGN KEY (n_regionkey) REFERENCES region(r_regionkey);
 ALTER TABLE supplier ADD CONSTRAINT supplier_fk  FOREIGN KEY (s_nationkey) REFERENCES nation(n_nationkey);
 ALTER TABLE customer ADD CONSTRAINT customer_fk  FOREIGN KEY (c_nationkey) REFERENCES nation(n_nationkey);
 ALTER TABLE partsupp ADD CONSTRAINT partsupp_fk1 FOREIGN KEY (ps_suppkey) REFERENCES supplier(s_suppkey);
