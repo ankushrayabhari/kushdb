@@ -66,6 +66,27 @@ int32_t BucketListSortedIntersectionPopulateResult(
     return result_size;
   }
 
+  if (bucket_list_size == 2) {
+    int32_t result_size = 0;
+    while (intersection_state[0] < bucket_list[0].size &&
+           intersection_state[1] < bucket_list[1].size &&
+           result_size < result_max_size) {
+      auto left = bucket_list[0].data[intersection_state[0]];
+      auto right = bucket_list[1].data[intersection_state[1]];
+
+      if (left < right) {
+        intersection_state[0] = FastForwardBucket(&bucket_list[0], right);
+      } else if (right < left) {
+        intersection_state[1] = FastForwardBucket(&bucket_list[1], left);
+      } else {
+        result[result_size++] = left;
+        intersection_state[0]++;
+        intersection_state[1]++;
+      }
+    }
+    return result_size;
+  }
+
   for (int i = 0; i < bucket_list_size; i++) {
     if (intersection_state[i] >= bucket_list[i].size) {
       return 0;
@@ -86,8 +107,7 @@ int32_t BucketListSortedIntersectionPopulateResult(
 
   // scan over min list
   int32_t result_size = 0;
-  for (; intersection_state[min_list] < bucket_list[min_list].size;
-       intersection_state[min_list]++) {
+  while (intersection_state[min_list] < bucket_list[min_list].size) {
     auto idx = intersection_state[min_list];
     if (result_size == result_max_size) {
       break;
@@ -106,15 +126,19 @@ int32_t BucketListSortedIntersectionPopulateResult(
       if (intersection_state[i] >= bucket_list[i].size) {
         return result_size;
       }
+      auto current = bucket_list[i].data[intersection_state[i]];
 
-      if (bucket_list[i].data[intersection_state[i]] != candidate) {
+      if (current > candidate) {
         all_equal = false;
+        intersection_state[min_list] = FastForwardBucket(
+            &bucket_list[min_list], bucket_list[i].data[intersection_state[i]]);
         break;
       }
     }
 
     if (all_equal) {
       result[result_size++] = candidate;
+      intersection_state[min_list]++;
     }
   }
 
