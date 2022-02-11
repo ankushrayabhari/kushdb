@@ -9,7 +9,7 @@ namespace kush::compile::proxy {
 
 class TupleIdxTable {
  public:
-  TupleIdxTable(khir::ProgramBuilder& program, bool global);
+  TupleIdxTable(khir::ProgramBuilder& program);
   TupleIdxTable(khir::ProgramBuilder& program, khir::Value value);
 
   void Reset();

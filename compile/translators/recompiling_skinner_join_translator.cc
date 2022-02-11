@@ -894,7 +894,7 @@ void RecompilingSkinnerJoinTranslator::Produce() {
 
   // 2. Setup join evaluation
   // Setup global hash table that contains tuple idx
-  proxy::TupleIdxTable tuple_idx_table(program_, true);
+  proxy::TupleIdxTable tuple_idx_table(program_);
 
   // pass all materialized buffers to the executor
   auto materialized_buffer_array_type = program_.ArrayType(

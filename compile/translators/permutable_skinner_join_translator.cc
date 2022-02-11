@@ -871,7 +871,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
   }
 
   // Setup global hash table that contains tuple idx
-  proxy::TupleIdxTable tuple_idx_table(program_, true);
+  proxy::TupleIdxTable tuple_idx_table(program_);
 
   // Setup function for each valid tuple
   TableFunction valid_tuple_handler(program_, [&](const auto& budget,

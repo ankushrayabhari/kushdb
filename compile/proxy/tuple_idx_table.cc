@@ -25,25 +25,21 @@ constexpr std::string_view get_fn_name("kush::runtime::TupleIdxTable::Get");
 constexpr std::string_view free_it_fn_name(
     "kush::runtime::TupleIdxTable::FreeIt");
 
-TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program, bool global)
+TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program)
     : program_(program),
-      value_(global ? program.Global(
-                          false, true,
-                          program.PointerType(program.GetOpaqueType(TypeName)),
-                          program.NullPtr(program.PointerType(
-                              program.GetOpaqueType(TypeName))))
-                    : program.Alloca(program.PointerType(
-                          program.GetOpaqueType(TypeName)))) {
+      value_(program.Global(
+          false, true, program.PointerType(program.GetOpaqueType(TypeName)),
+          program.NullPtr(
+              program.PointerType(program.GetOpaqueType(TypeName))))) {
   auto tuple_idx_table = program_.Call(program_.GetFunction(create_fn_name));
   program_.StorePtr(value_, tuple_idx_table);
 }
 
 TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program, khir::Value value)
     : program_(program),
-      value_(program.Alloca(
-          program.PointerType(program.GetOpaqueType(TypeName)))) {
-  program_.StorePtr(value_, value);
-}
+      value_(program.Global(
+          false, true, program.PointerType(program.GetOpaqueType(TypeName)),
+          value)) {}
 
 void TupleIdxTable::Reset() {
   auto tuple_idx_table = program_.LoadPtr(value_);
