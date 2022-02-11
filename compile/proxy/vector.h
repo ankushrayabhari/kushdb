@@ -8,7 +8,7 @@ namespace kush::compile::proxy {
 
 class Vector {
  public:
-  Vector(khir::ProgramBuilder& program, StructBuilder& content, bool global);
+  Vector(khir::ProgramBuilder& program, StructBuilder& content);
   Vector(khir::ProgramBuilder& program, StructBuilder& content, khir::Value v);
 
   Struct operator[](const Int32& idx);

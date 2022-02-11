@@ -44,7 +44,7 @@ void OrderByTranslator::Produce() {
   packed.Build();
 
   // init vector
-  buffer_ = std::make_unique<proxy::Vector>(program_, packed, true);
+  buffer_ = std::make_unique<proxy::Vector>(program_, packed);
 
   // populate vector
   this->Child().Produce();

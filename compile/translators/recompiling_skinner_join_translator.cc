@@ -869,7 +869,7 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       }
       struct_builder->Build();
 
-      proxy::Vector buffer(program_, *struct_builder, true);
+      proxy::Vector buffer(program_, *struct_builder);
 
       // Fill buffer/indexes
       child_idx_ = i;

@@ -19,24 +19,20 @@ constexpr std::string_view FreeFnName("kush::runtime::Vector::Free");
 
 constexpr std::string_view SortFnName("kush::runtime::Vector::Sort");
 
-Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content,
-               bool global)
+Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content)
     : program_(program),
       content_(content),
       content_type_(content_.Type()),
-      value_(global ? program_.Global(
-                          false, true,
-                          program_.GetStructType(Vector::VectorStructName),
-                          program_.ConstantStruct(
-                              program_.GetStructType(Vector::VectorStructName),
-                              {
-                                  program.ConstI64(0),
-                                  program.ConstI32(0),
-                                  program.ConstI32(0),
-                                  program.NullPtr(
-                                      program.PointerType(program.I8Type())),
-                              }))
-                    : program.Alloca(program.GetStructType(VectorStructName))) {
+      value_(program_.Global(
+          false, true, program_.GetStructType(Vector::VectorStructName),
+          program_.ConstantStruct(
+              program_.GetStructType(Vector::VectorStructName),
+              {
+                  program.ConstI64(0),
+                  program.ConstI32(0),
+                  program.ConstI32(0),
+                  program.NullPtr(program.PointerType(program.I8Type())),
+              }))) {
   auto element_size = program_.SizeOf(content_type_);
   auto initial_capacity = program_.ConstI32(2);
   program_.Call(program_.GetFunction(CreateFnName),
