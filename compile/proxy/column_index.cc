@@ -399,16 +399,13 @@ void MemoryColumnIndex<S>::Reset() {
 }
 
 template <catalog::SqlType S>
-MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program,
-                                        bool global)
+MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program)
     : program_(program),
-      value_(global ? program.Global(false, false,
-                                     program.PointerType(
-                                         program.GetOpaqueType(TypeName<S>())),
-                                     program.NullPtr(program.PointerType(
-                                         program.GetOpaqueType(TypeName<S>()))))
-                    : program_.Alloca(program.PointerType(
-                          program.GetOpaqueType(TypeName<S>())))),
+      value_(program.Global(
+          false, false,
+          program.PointerType(program.GetOpaqueType(TypeName<S>())),
+          program.NullPtr(
+              program.PointerType(program.GetOpaqueType(TypeName<S>()))))),
       get_value_(program.Global(
           false, true, program.GetStructType(ColumnIndexBucketName),
           program.ConstantStruct(
@@ -423,16 +420,15 @@ template <catalog::SqlType S>
 MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program,
                                         khir::Value v)
     : program_(program),
-      value_(program_.Alloca(
-          program.PointerType(program.GetOpaqueType(TypeName<S>())))),
+      value_(program.Global(
+          false, false,
+          program.PointerType(program.GetOpaqueType(TypeName<S>())), v)),
       get_value_(program.Global(
           false, true, program.GetStructType(ColumnIndexBucketName),
           program.ConstantStruct(
               program.GetStructType(ColumnIndexBucketName),
               {program.NullPtr(program.PointerType(program.I32Type())),
-               program.ConstI32(0)}))) {
-  program_.StorePtr(value_, v);
-}
+               program.ConstI32(0)}))) {}
 
 template <catalog::SqlType S>
 void MemoryColumnIndex<S>::Insert(const IRValue& v, const Int32& tuple_idx) {

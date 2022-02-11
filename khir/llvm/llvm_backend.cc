@@ -146,6 +146,13 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
       return llvm::ConstantExpr::getIntToPtr(i64_v, builder_->getInt8PtrTy());
     }
 
+    case ConstantOpcode::PTR_CAST: {
+      Type3InstructionReader reader(instr);
+      auto t = types_[reader.TypeID()];
+      auto v = constant_values[Value(reader.Arg()).GetIdx()];
+      return llvm::ConstantExpr::getBitCast(v, t);
+    }
+
     case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST: {
       return builder_->CreateGlobalStringPtr(
           char_array_constants[Type1InstructionReader(instr).Constant()], "", 0,

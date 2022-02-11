@@ -63,6 +63,8 @@ class ASMBackend : public Backend, public Program {
   bool IsNullPtr(khir::Value v, const std::vector<uint64_t>& constant_instrs);
   bool IsConstantPtr(khir::Value v,
                      const std::vector<uint64_t>& constant_instrs);
+  bool IsConstantCastedPtr(khir::Value v,
+                           const std::vector<uint64_t>& constant_instrs);
   bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions);
   std::pair<khir::Value, int32_t> Gep(
       khir::Value v, const std::vector<uint64_t>& instructions,

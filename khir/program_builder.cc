@@ -348,20 +348,27 @@ Value ProgramBuilder::NullPtr(Type t) {
 }
 
 Value ProgramBuilder::PointerCast(Value v, Type t) {
-  if (!v.IsConstantGlobal()) {
-    auto v_instr = GetCurrentFunction().GetInstruction(v);
-    auto v_opcode = OpcodeFrom(GenericInstructionReader(v_instr).Opcode());
+  if (v.IsConstantGlobal()) {
+    return AppendConstantGlobal(
+        Type3InstructionBuilder()
+            .SetOpcode(ConstantOpcodeTo(ConstantOpcode::PTR_CAST))
+            .SetArg(v.Serialize())
+            .SetTypeID(t.GetID())
+            .Build());
+  }
 
-    if (v_opcode == Opcode::GEP) {
-      // GEPs are potentially lazily computed so add in a materialize here for
-      // the backend so each instruction has at most one lazy operand
-      v = GetCurrentFunction().Append(
-          Type3InstructionBuilder()
-              .SetOpcode(OpcodeTo(Opcode::PTR_MATERIALIZE))
-              .SetArg(v.Serialize())
-              .SetTypeID(TypeOf(v).GetID())
-              .Build());
-    }
+  auto v_instr = GetCurrentFunction().GetInstruction(v);
+  auto v_opcode = OpcodeFrom(GenericInstructionReader(v_instr).Opcode());
+
+  if (v_opcode == Opcode::GEP) {
+    // GEPs are potentially lazily computed so add in a materialize here for
+    // the backend so each instruction has at most one lazy operand
+    v = GetCurrentFunction().Append(
+        Type3InstructionBuilder()
+            .SetOpcode(OpcodeTo(Opcode::PTR_MATERIALIZE))
+            .SetArg(v.Serialize())
+            .SetTypeID(TypeOf(v).GetID())
+            .Build());
   }
 
   return GetCurrentFunction().Append(Type3InstructionBuilder()
@@ -555,6 +562,7 @@ Type ProgramBuilder::TypeOf(Value value) {
       case ConstantOpcode::PTR_CONST:
         return type_manager_.PointerType(type_manager_.I8Type());
 
+      case ConstantOpcode::PTR_CAST:
       case ConstantOpcode::NULLPTR:
       case ConstantOpcode::FUNC_PTR:
         return static_cast<Type>(Type3InstructionReader(instr).TypeID());

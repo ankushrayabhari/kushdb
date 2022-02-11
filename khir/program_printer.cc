@@ -93,6 +93,15 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
         std::cerr << "ptr:" << ptr_constants[v];
         return;
       }
+
+      case ConstantOpcode::PTR_CAST: {
+        auto reader = Type3InstructionReader(instr);
+        Value v(reader.Arg());
+        OutputValue(v, instrs, constant_instrs, ptr_constants, i64_constants,
+                    f64_constants, char_array_constants, struct_constants,
+                    array_constants, globals, functions);
+        return;
+      }
     }
   }
 

@@ -579,25 +579,25 @@ std::unique_ptr<proxy::ColumnIndex> GenerateMemoryIndex(
   switch (type) {
     case catalog::SqlType::SMALLINT:
       return std::make_unique<
-          proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>>(program, true);
+          proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>>(program);
     case catalog::SqlType::INT:
       return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::INT>>(
-          program, true);
+          program);
     case catalog::SqlType::BIGINT:
       return std::make_unique<
-          proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>>(program, true);
+          proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>>(program);
     case catalog::SqlType::REAL:
       return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::REAL>>(
-          program, true);
+          program);
     case catalog::SqlType::DATE:
       return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::DATE>>(
-          program, true);
+          program);
     case catalog::SqlType::TEXT:
       return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::TEXT>>(
-          program, true);
+          program);
     case catalog::SqlType::BOOLEAN:
       return std::make_unique<
-          proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>>(program, true);
+          proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>>(program);
   }
 }
 

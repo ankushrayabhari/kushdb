@@ -18,6 +18,7 @@ enum class ConstantOpcode : uint8_t {
   GLOBAL_REF,
   FUNC_PTR,
   PTR_CONST,
+  PTR_CAST,
 };
 
 ConstantOpcode ConstantOpcodeFrom(uint8_t t);

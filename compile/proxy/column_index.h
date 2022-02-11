@@ -79,7 +79,7 @@ class ColumnIndexBuilder {
 template <catalog::SqlType S>
 class MemoryColumnIndex : public ColumnIndex, public ColumnIndexBuilder {
  public:
-  MemoryColumnIndex(khir::ProgramBuilder& program, bool global);
+  MemoryColumnIndex(khir::ProgramBuilder& program);
   MemoryColumnIndex(khir::ProgramBuilder& program, khir::Value v);
   virtual ~MemoryColumnIndex() = default;
 
