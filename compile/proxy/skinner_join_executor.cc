@@ -26,15 +26,15 @@ void SkinnerJoinExecutor::ExecutePermutableJoin(
     absl::flat_hash_set<std::pair<int, int>>* table_connections,
     khir::Value join_handler_fn_arr, khir::Value valid_tuple_handler,
     int32_t num_flags, khir::Value flag_arr, khir::Value progress_arr,
-    khir::Value table_ctr, khir::Value idx_arr, khir::Value last_table,
-    khir::Value num_result_tuples, khir::Value offset_arr) {
-  program_.Call(program_.GetFunction(permutable_fn),
-                {program_.ConstI32(num_tables), program_.ConstI32(num_preds),
-                 program_.ConstPtr(pred_table_to_flag),
-                 program_.ConstPtr(table_connections), join_handler_fn_arr,
-                 valid_tuple_handler, program_.ConstI32(num_flags), flag_arr,
-                 progress_arr, table_ctr, idx_arr, last_table,
-                 num_result_tuples, offset_arr});
+    khir::Value table_ctr, khir::Value idx_arr, khir::Value num_result_tuples,
+    khir::Value offset_arr) {
+  program_.Call(
+      program_.GetFunction(permutable_fn),
+      {program_.ConstI32(num_tables), program_.ConstI32(num_preds),
+       program_.ConstPtr(pred_table_to_flag),
+       program_.ConstPtr(table_connections), join_handler_fn_arr,
+       valid_tuple_handler, program_.ConstI32(num_flags), flag_arr,
+       progress_arr, table_ctr, idx_arr, num_result_tuples, offset_arr});
 }
 
 void SkinnerJoinExecutor::ExecuteRecompilingJoin(
@@ -64,7 +64,6 @@ void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
           handler_pointer_type,
           program.I32Type(),
           program.PointerType(program.I8Type()),
-          program.PointerType(program.I32Type()),
           program.PointerType(program.I32Type()),
           program.PointerType(program.I32Type()),
           program.PointerType(program.I32Type()),

@@ -271,7 +271,6 @@ struct PermutableExecutionEngineFlags {
   int32_t* progress_arr;
   int32_t* table_ctr;
   int32_t* idx_arr;
-  int32_t* last_table;
   int32_t* num_result_tuples;
   int32_t* offset_arr;
 };
@@ -341,8 +340,6 @@ class PermutableJoinEnvironment : public JoinEnvironment {
 
  private:
   void SetJoinOrder(const std::vector<int>& order) {
-    *execution_engine_.last_table = order.back();
-
     for (int i = 0; i < order.size() - 1; i++) {
       // set the ith handler to i+1 function
       int current_table = order[i];
@@ -815,8 +812,8 @@ void ExecutePermutableSkinnerJoin(
     std::add_pointer<int32_t(int32_t, int8_t)>::type* join_handler_fn_arr,
     std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler,
     int32_t num_flags, int8_t* flag_arr, int32_t* progress_arr,
-    int32_t* table_ctr, int32_t* idx_arr, int32_t* last_table,
-    int32_t* num_result_tuples, int32_t* offset_arr) {
+    int32_t* table_ctr, int32_t* idx_arr, int32_t* num_result_tuples,
+    int32_t* offset_arr) {
   auto table_functions =
       ReconstructTableFunctions(num_tables, join_handler_fn_arr);
   auto cardinalities = ReconstructCardinalities(num_tables, idx_arr);
@@ -833,7 +830,6 @@ void ExecutePermutableSkinnerJoin(
       .progress_arr = progress_arr,
       .table_ctr = table_ctr,
       .idx_arr = idx_arr,
-      .last_table = last_table,
       .num_result_tuples = num_result_tuples,
       .offset_arr = offset_arr,
   };

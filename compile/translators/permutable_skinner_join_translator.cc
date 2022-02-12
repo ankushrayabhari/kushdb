@@ -280,12 +280,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
       false, true, table_ctr_type,
       program_.ConstantArray(table_ctr_type, {program_.ConstI32(0)}));
 
-  // Setup last_table
-  auto last_table_type = program_.ArrayType(program_.I32Type(), 1);
-  auto last_table_ptr = program_.Global(
-      false, true, last_table_type,
-      program_.ConstantArray(last_table_type, {program_.ConstI32(0)}));
-
   // Setup # of result_tuples
   auto num_result_tuples_type = program_.ArrayType(program_.I32Type(), 1);
   auto num_result_tuples_ptr = program_.Global(
@@ -936,7 +930,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
       program_.ConstGEP(progress_array_type, progress_arr, {0, 0}),
       program_.ConstGEP(table_ctr_type, table_ctr_ptr, {0, 0}),
       program_.ConstGEP(idx_array_type, idx_array, {0, 0}),
-      program_.ConstGEP(last_table_type, last_table_ptr, {0, 0}),
       program_.ConstGEP(num_result_tuples_type, num_result_tuples_ptr, {0, 0}),
       program_.ConstGEP(offset_array_type, offset_array, {0, 0}));
   program_.Return();

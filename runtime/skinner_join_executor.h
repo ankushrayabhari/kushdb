@@ -20,8 +20,8 @@ void ExecutePermutableSkinnerJoin(
     std::add_pointer<int32_t(int32_t, int8_t)>::type* join_handler_fn_arr,
     std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler,
     int32_t num_flags, int8_t* flag_arr, int32_t* progress_arr,
-    int32_t* table_ctr, int32_t* idx_arr, int32_t* last_table,
-    int32_t* num_result_tuples, int32_t* offset_arr);
+    int32_t* table_ctr, int32_t* idx_arr, int32_t* num_result_tuples,
+    int32_t* offset_arr);
 
 void ExecuteRecompilingSkinnerJoin(
     int32_t num_tables, int32_t* cardinality_arr,
