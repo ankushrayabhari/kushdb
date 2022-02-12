@@ -36,7 +36,10 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   ExecuteJoinFn CompileJoinOrder(const std::vector<int>& order,
                                  void** materialized_buffers,
                                  void** materialized_indexes,
-                                 void* tuple_idx_table) override;
+                                 void* tuple_idx_table, int32_t* progress_arr,
+                                 int32_t* table_ctr, int32_t* idx_arr,
+                                 int32_t* offset_arr,
+                                 int32_t* num_result_tuples) override;
   proxy::Int32 GenerateChildLoops(
       int curr, const std::vector<int>& order, khir::ProgramBuilder& program,
       ExpressionTranslator& expr_translator,
@@ -54,6 +57,9 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
       const std::vector<khir::Value>& results, const int result_max_size);
 
  private:
+  bool ShouldExecute(int pred, int table_idx,
+                     const absl::flat_hash_set<int>& available_tables);
+
   const plan::SkinnerJoinOperator& join_;
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
@@ -62,6 +68,8 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers_;
   std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes_;
   absl::flat_hash_map<std::pair<int, int>, int> column_to_index_idx_;
+  std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
+      predicate_columns_;
   std::vector<absl::flat_hash_set<int>> tables_per_condition_;
   std::vector<absl::btree_set<int>> conditions_per_table_;
   absl::flat_hash_set<std::pair<int, int>> table_connections_;

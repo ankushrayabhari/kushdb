@@ -1498,9 +1498,9 @@ void ASMBackend::MaterializeGep(
     if (IsNullPtr(ptr, constant_instrs)) {
       asm_->mov(dest, offset);
       return;
-    } else if (IsConstantPtr(v, constant_instrs)) {
+    } else if (IsConstantPtr(ptr, constant_instrs)) {
       uint64_t c64 = reinterpret_cast<uint64_t>(
-          ptr_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
+          ptr_constants[Type1InstructionReader(constant_instrs[ptr.GetIdx()])
                             .Constant()]);
       asm_->mov(Register::RAX.GetQ(), c64);
       asm_->mov(dest, Register::RAX.GetQ());
@@ -1540,9 +1540,9 @@ void ASMBackend::MaterializeGep(
     if (IsNullPtr(ptr, constant_instrs)) {
       asm_->mov(dest, offset);
       return;
-    } else if (IsConstantPtr(v, constant_instrs)) {
+    } else if (IsConstantPtr(ptr, constant_instrs)) {
       uint64_t c64 = reinterpret_cast<uint64_t>(
-          ptr_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
+          ptr_constants[Type1InstructionReader(constant_instrs[ptr.GetIdx()])
                             .Constant()]);
       asm_->mov(Register::RAX.GetQ(), c64);
       asm_->lea(dest, x86::ptr(Register::RAX.GetQ(), offset));

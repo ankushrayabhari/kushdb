@@ -482,12 +482,13 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
         std::cerr << std::endl;
     */
     auto execute_fn = codegen_->CompileJoinOrder(
-        order, materialized_buffers_, materialized_indexes_, tuple_idx_table_);
-
-    auto status = execute_fn(
-        budget_per_episode_, initial_last_completed_tuple.has_value(),
+        order, materialized_buffers_, materialized_indexes_, tuple_idx_table_,
         execution_engine_.progress_arr, execution_engine_.table_ctr,
-        execution_engine_.num_result_tuples, execution_engine_.idx_arr);
+        execution_engine_.idx_arr, execution_engine_.offset_arr,
+        execution_engine_.num_result_tuples);
+
+    auto status = execute_fn(budget_per_episode_,
+                             initial_last_completed_tuple.has_value());
     /*
         std::cerr << "Status: " << status << std::endl;
         std::cerr << "Table CTR: " << *execution_engine_.table_ctr << std::endl;
