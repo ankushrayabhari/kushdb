@@ -63,6 +63,18 @@ std::vector<SQLValue> DiskMaterializedBuffer::operator[](Int32 i) {
   return output;
 }
 
+SQLValue DiskMaterializedBuffer::Get(Int32 i, int col_idx) {
+  auto& column = column_data_[col_idx];
+  auto& null_column = null_data_[col_idx];
+
+  Bool null_value(program_, false);
+  if (null_column != nullptr) {
+    null_value = static_cast<Bool&>(*(*null_column)[i]);
+  }
+
+  return SQLValue((*column)[i], column->Type(), null_value);
+}
+
 void DiskMaterializedBuffer::Scan(
     int col_idx, std::function<void(Int32, SQLValue)> handler) {
   auto cardinality = Size();
@@ -148,6 +160,10 @@ Int32 MemoryMaterializedBuffer::Size() { return vector_.Size(); }
 
 std::vector<SQLValue> MemoryMaterializedBuffer::operator[](Int32 i) {
   return vector_[i].Unpack();
+}
+
+SQLValue MemoryMaterializedBuffer::Get(Int32 i, int col) {
+  return vector_[i].Unpack()[col];
 }
 
 khir::Value MemoryMaterializedBuffer::Serialize() {

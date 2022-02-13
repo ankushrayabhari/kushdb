@@ -992,6 +992,58 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   output_pipeline.AddPredecessor(std::move(join_pipeline_obj));
   program_.SetCurrentBlock(output_pipeline_func);
 
+  std::vector<absl::flat_hash_set<int>> output_columns(
+      child_translators.size());
+  for (const auto& column : join_.Schema().Columns()) {
+    PredicateColumnCollector collector;
+    column.Expr().Accept(collector);
+    for (auto col : collector.PredicateColumns()) {
+      auto child_idx = col.get().GetChildIdx();
+      auto col_idx = col.get().GetColumnIdx();
+      output_columns[child_idx].insert(col_idx);
+    }
+  }
+
+  for (int i = 0; i < child_translators.size(); i++) {
+    auto& child_translator = child_translators[i].get();
+    const auto& schema = child_operators[i].get().Schema().Columns();
+    child_translator.SchemaValues().ResetValues();
+    for (int i = 0; i < schema.size(); i++) {
+      switch (schema[i].Expr().Type()) {
+        case catalog::SqlType::SMALLINT:
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Int16(program_, 0), proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::INT:
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Int32(program_, 0), proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::DATE:
+          child_translator.SchemaValues().AddVariable(
+              proxy::SQLValue(proxy::Date(program_, absl::CivilDay(2000, 1, 1)),
+                              proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::BIGINT:
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Int64(program_, 0), proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::BOOLEAN:
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Bool(program_, false), proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::REAL:
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Float64(program_, 0), proxy::Bool(program_, false)));
+          break;
+        case catalog::SqlType::TEXT:
+          child_translator.SchemaValues().AddVariable(
+              proxy::SQLValue(proxy::String::Global(program_, ""),
+                              proxy::Bool(program_, false)));
+          break;
+      }
+    }
+  }
+
   // 4. Output Tuples.
   // Loop over tuple idx table and then output tuples from each table.
   tuple_idx_table.ForEach([&](const auto& tuple_idx_arr) {
@@ -1004,9 +1056,19 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       auto tuple_idx = proxy::Int32(program_, program_.LoadI32(tuple_idx_ptr));
 
       auto& buffer = *materialized_buffers_[current_buffer++];
+
+      if (output_columns[i].empty()) continue;
+
       // set the schema values of child to be the tuple_idx'th tuple of
       // current table.
-      child_translator.SchemaValues().SetValues(buffer[tuple_idx]);
+      if (auto buf = dynamic_cast<proxy::MemoryMaterializedBuffer*>(&buffer)) {
+        child_translator.SchemaValues().SetValues(buffer[tuple_idx]);
+      } else {
+        for (int col : output_columns[i]) {
+          child_translator.SchemaValues().SetValue(col,
+                                                   buffer.Get(tuple_idx, col));
+        }
+      }
     }
 
     // Compute the output schema

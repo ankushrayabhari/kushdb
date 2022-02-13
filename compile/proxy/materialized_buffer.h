@@ -28,6 +28,7 @@ class MaterializedBuffer {
   virtual void Reset() = 0;
   virtual Int32 Size() = 0;
   virtual std::vector<SQLValue> operator[](Int32 i) = 0;
+  virtual SQLValue Get(Int32 i, int col) = 0;
 
   // Serializes the data needed to regenerate a reference to this buffer in a
   // different program builder.
@@ -51,6 +52,7 @@ class DiskMaterializedBuffer : public MaterializedBuffer {
   void Reset() override;
   Int32 Size() override;
   std::vector<SQLValue> operator[](Int32 i) override;
+  SQLValue Get(Int32 i, int col) override;
   khir::Value Serialize() override;
   std::unique_ptr<MaterializedBuffer> Regenerate(khir::ProgramBuilder& program,
                                                  void* value) override;
@@ -73,6 +75,7 @@ class MemoryMaterializedBuffer : public MaterializedBuffer {
   void Reset() override;
   Int32 Size() override;
   std::vector<SQLValue> operator[](Int32 i) override;
+  SQLValue Get(Int32 i, int col) override;
   khir::Value Serialize() override;
   std::unique_ptr<MaterializedBuffer> Regenerate(khir::ProgramBuilder& program,
                                                  void* value) override;
