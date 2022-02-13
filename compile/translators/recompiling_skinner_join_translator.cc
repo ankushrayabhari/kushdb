@@ -427,7 +427,16 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
             bucket_list.InitSortedIntersection(initial_next_tuple);
 
             int result_max_size = 64;
-            auto result = program.Alloca(program.I32Type(), result_max_size);
+            auto result_array_type =
+                program.ArrayType(program.I32Type(), result_max_size);
+            std::vector<khir::Value> initial_result_values(result_max_size,
+                                                           program.ConstI32(0));
+            auto result_array =
+                program.Global(false, true, result_array_type,
+                               program.ConstantArray(result_array_type,
+                                                     initial_result_values));
+            auto result =
+                program.ConstGEP(result_array_type, result_array, {0, 0});
             auto result_initial_size =
                 bucket_list.PopulateSortedIntersectionResult(result,
                                                              result_max_size);
