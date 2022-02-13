@@ -329,6 +329,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
           proxy::ColumnIndexBucketArray bucket_list(program,
                                                     bucket_list_max_size);
 
+          absl::flat_hash_set<int> executed;
           for (auto pred : conditions_per_table_[table_idx]) {
             if (!ShouldExecute(pred, table_idx, available_tables)) {
               continue;
@@ -338,6 +339,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
             if (!EqualityPredicate(cond)) {
               continue;
             }
+
+            executed.insert(pred);
 
             const auto& eq =
                 dynamic_cast<const plan::BinaryArithmeticExpression&>(
@@ -402,386 +405,367 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                 });
           }
 
-          auto use_index = proxy::Ternary(
-              program, bucket_list.Size() > 0,
-              [&]() {
-                auto progress_next_tuple = proxy::Ternary(
-                    program, resume_progress,
-                    [&]() {
-                      auto progress_ptr = program.ConstGEP(
-                          progress_array_type, progress_arr, {0, table_idx});
-                      return proxy::Int32(program,
-                                          program.LoadI32(progress_ptr));
-                    },
-                    [&]() { return proxy::Int32(program, 0); });
-                auto offset_next_tuple =
-                    proxy::Int32(program, program.LoadI32(program.ConstGEP(
-                                              offset_array_type, offset_array,
-                                              {0, table_idx}))) +
-                    1;
-                auto initial_next_tuple = proxy::Ternary(
-                    program, offset_next_tuple > progress_next_tuple,
-                    [&]() { return offset_next_tuple; },
-                    [&]() { return progress_next_tuple; });
+          if (!executed.empty()) {
+            auto progress_next_tuple = proxy::Ternary(
+                program, resume_progress,
+                [&]() {
+                  auto progress_ptr = program.ConstGEP(
+                      progress_array_type, progress_arr, {0, table_idx});
+                  return proxy::Int32(program, program.LoadI32(progress_ptr));
+                },
+                [&]() { return proxy::Int32(program, 0); });
+            auto offset_next_tuple =
+                proxy::Int32(program, program.LoadI32(program.ConstGEP(
+                                          offset_array_type, offset_array,
+                                          {0, table_idx}))) +
+                1;
+            auto initial_next_tuple = proxy::Ternary(
+                program, offset_next_tuple > progress_next_tuple,
+                [&]() { return offset_next_tuple; },
+                [&]() { return progress_next_tuple; });
 
-                bucket_list.InitSortedIntersection(initial_next_tuple);
+            bucket_list.InitSortedIntersection(initial_next_tuple);
 
-                int result_max_size = 64;
-                auto result =
-                    program.Alloca(program.I32Type(), result_max_size);
-                auto result_initial_size =
-                    bucket_list.PopulateSortedIntersectionResult(
-                        result, result_max_size);
+            int result_max_size = 64;
+            auto result = program.Alloca(program.I32Type(), result_max_size);
+            auto result_initial_size =
+                bucket_list.PopulateSortedIntersectionResult(result,
+                                                             result_max_size);
+            proxy::Loop loop(
+                program,
+                [&](auto& loop) {
+                  loop.AddLoopVariable(initial_budget);
+                  loop.AddLoopVariable(result_initial_size);
+                },
+                [&](auto& loop) {
+                  auto result_size =
+                      loop.template GetLoopVariable<proxy::Int32>(1);
+                  return result_size > 0;
+                },
+                [&](auto& loop) {
+                  auto budget = loop.template GetLoopVariable<proxy::Int32>(0);
+                  auto result_size =
+                      loop.template GetLoopVariable<proxy::Int32>(1);
 
-                proxy::Loop loop(
-                    program,
-                    [&](auto& loop) {
-                      loop.AddLoopVariable(initial_budget);
-                      loop.AddLoopVariable(result_initial_size);
-                    },
-                    [&](auto& loop) {
-                      auto result_size =
-                          loop.template GetLoopVariable<proxy::Int32>(1);
-                      return result_size > 0;
-                    },
-                    [&](auto& loop) {
-                      auto budget =
-                          loop.template GetLoopVariable<proxy::Int32>(0);
-                      auto result_size =
-                          loop.template GetLoopVariable<proxy::Int32>(1);
+                  // loop over all elements in result
+                  proxy::Loop result_loop(
+                      program,
+                      [&](auto& loop) {
+                        loop.AddLoopVariable(proxy::Int32(program, 0));
+                        loop.AddLoopVariable(budget);
 
-                      // loop over all elements in result
-                      proxy::Loop result_loop(
-                          program,
-                          [&](auto& loop) {
-                            loop.AddLoopVariable(proxy::Int32(program, 0));
-                            loop.AddLoopVariable(budget);
-
-                            auto continue_resume_progress = proxy::Ternary(
-                                program, resume_progress,
-                                [&]() {
-                                  auto bucket_next_tuple_ptr = program.ConstGEP(
-                                      program.I32Type(), result, {0});
-                                  auto initial_next_tuple = proxy::Int32(
-                                      program,
-                                      program.LoadI32(bucket_next_tuple_ptr));
-                                  return initial_next_tuple ==
-                                         progress_next_tuple;
-                                },
-                                [&]() { return proxy::Bool(program, false); });
-                            loop.AddLoopVariable(continue_resume_progress);
-                          },
-                          [&](auto& loop) {
-                            auto bucket_idx =
-                                loop.template GetLoopVariable<proxy::Int32>(0);
-                            return bucket_idx < result_size;
-                          },
-                          [&](auto& loop) {
-                            auto bucket_idx =
-                                loop.template GetLoopVariable<proxy::Int32>(0);
-                            auto budget =
-                                loop.template GetLoopVariable<proxy::Int32>(1) -
-                                1;
-                            auto resume_progress =
-                                loop.template GetLoopVariable<proxy::Bool>(2);
-
-                            auto next_tuple = SortedIntersectionResultGet(
-                                program, result, bucket_idx);
-
-                            auto idx_ptr = program.ConstGEP(
-                                idx_array_type, idx_array, {0, table_idx});
-                            program.StoreI32(idx_ptr, next_tuple.Get());
-
-                            /*
-                            proxy::Printer printer(program, true);
-                            printer.Print(proxy::Int32(program, table_idx));
-                            printer.Print(next_tuple);
-                            printer.PrintNewline();
-                            */
-
-                            auto current_table_values = buffer[next_tuple];
-
-                            // Store each of this table's predicate column
-                            // values into the global_predicate_struct.
-                            for (auto [col_ref, field] :
-                                 colref_to_predicate_struct_field_) {
-                              auto [child_idx, col_idx] = col_ref;
-                              if (child_idx == table_idx) {
-                                global_predicate_struct.Update(
-                                    field, current_table_values[col_idx]);
-
-                                // Additionally, update this table's values to
-                                // read from the unpacked tuple instead of the
-                                // old loaded value from
-                                // global_predicate_struct.
-                                child_translators[table_idx]
-                                    .get()
-                                    .SchemaValues()
-                                    .SetValue(
-                                        col_idx,
-                                        std::move(
-                                            current_table_values[col_idx]));
-                              }
-                            }
-
-                            for (auto pred : conditions_per_table_[table_idx]) {
-                              if (!ShouldExecute(pred, table_idx,
-                                                 available_tables)) {
-                                continue;
-                              }
-
-                              auto cond = expr_translator.Compute(
-                                  conditions[pred].get());
-
-                              proxy::If(
-                                  program, cond.IsNull(),
-                                  [&]() {
-                                    // If budget, depleted return -1 and set
-                                    // table ctr
-                                    proxy::If(
-                                        program, budget == 0,
-                                        [&]() {
-                                          program.StoreI32(
-                                              program.ConstGEP(table_ctr_type,
-                                                               table_ctr_ptr,
-                                                               {0, 0}),
-                                              program.ConstI32(table_idx));
-                                          program.Return(program.ConstI32(-1));
-                                        },
-                                        [&]() {
-                                          loop.Continue(
-                                              bucket_idx + 1, budget,
-                                              proxy::Bool(program, false));
-                                        });
-                                  },
-                                  [&]() {
-                                    proxy::If(
-                                        program,
-                                        !static_cast<proxy::Bool&>(cond.Get()),
-                                        [&]() {
-                                          // If budget, depleted return -1 and
-                                          // set table ctr
-                                          proxy::If(
-                                              program, budget == 0,
-                                              [&]() {
-                                                program.StoreI32(
-                                                    program.ConstGEP(
-                                                        table_ctr_type,
-                                                        table_ctr_ptr, {0, 0}),
-                                                    program.ConstI32(
-                                                        table_idx));
-                                                program.Return(
-                                                    program.ConstI32(-1));
-                                              },
-                                              [&]() {
-                                                loop.Continue(
-                                                    bucket_idx + 1, budget,
-                                                    proxy::Bool(program,
-                                                                false));
-                                              });
-                                        });
-                                  });
-                            }
-
-                            proxy::If(program, budget == 0, [&]() {
-                              program.StoreI32(
-                                  program.ConstGEP(table_ctr_type,
-                                                   table_ctr_ptr, {0, 0}),
-                                  program.ConstI32(table_idx));
-                              program.Return(program.ConstI32(-2));
-                            });
-
-                            // Valid tuple
-                            auto next_budget = proxy::Int32(
-                                program,
-                                program.Call(handler, {budget.Get(),
-                                                       resume_progress.Get()}));
-                            proxy::If(program, next_budget < 0, [&]() {
-                              program.Return(next_budget.Get());
-                            });
-
-                            return loop.Continue(bucket_idx + 1, next_budget,
-                                                 proxy::Bool(program, false));
-                          });
-
-                      auto next_budget =
-                          result_loop.template GetLoopVariable<proxy::Int32>(1);
-                      auto next_result_size =
-                          bucket_list.PopulateSortedIntersectionResult(
-                              result, result_max_size);
-                      return loop.Continue(next_budget, next_result_size);
-                    });
-
-                return loop.template GetLoopVariable<proxy::Int32>(0);
-              },
-              [&]() {
-                // Loop over tuples in buffer
-                proxy::Loop loop(
-                    program,
-                    [&](auto& loop) {
-                      auto progress_next_tuple = proxy::Ternary(
-                          program, resume_progress,
-                          [&]() {
-                            auto progress_ptr =
-                                program.ConstGEP(progress_array_type,
-                                                 progress_arr, {0, table_idx});
-                            return proxy::Int32(program,
-                                                program.LoadI32(progress_ptr));
-                          },
-                          [&]() { return proxy::Int32(program, 0); });
-                      auto offset_next_tuple =
-                          proxy::Int32(program,
-                                       program.LoadI32(program.ConstGEP(
-                                           offset_array_type, offset_array,
-                                           {0, table_idx}))) +
-                          1;
-                      auto initial_next_tuple = proxy::Ternary(
-                          program, offset_next_tuple > progress_next_tuple,
-                          [&]() { return offset_next_tuple; },
-                          [&]() { return progress_next_tuple; });
-
-                      loop.AddLoopVariable(initial_next_tuple);
-                      loop.AddLoopVariable(initial_budget);
-
-                      auto continue_resume_progress = proxy::Ternary(
-                          program, resume_progress,
-                          [&]() {
-                            auto progress_ptr =
-                                program.ConstGEP(progress_array_type,
-                                                 progress_arr, {0, table_idx});
-                            auto progress_next_tuple = proxy::Int32(
-                                program, program.LoadI32(progress_ptr));
-                            return initial_next_tuple == progress_next_tuple;
-                          },
-                          [&]() { return proxy::Bool(program, false); });
-                      loop.AddLoopVariable(continue_resume_progress);
-                    },
-                    [&](auto& loop) {
-                      auto next_tuple =
-                          loop.template GetLoopVariable<proxy::Int32>(0);
-                      return next_tuple < cardinality;
-                    },
-                    [&](auto& loop) {
-                      auto next_tuple =
-                          loop.template GetLoopVariable<proxy::Int32>(0);
-                      auto budget =
-                          loop.template GetLoopVariable<proxy::Int32>(1) - 1;
-                      auto resume_progress =
-                          loop.template GetLoopVariable<proxy::Bool>(2);
-
-                      auto idx_ptr = program.ConstGEP(idx_array_type, idx_array,
-                                                      {0, table_idx});
-                      program.StoreI32(idx_ptr, next_tuple.Get());
-
-                      /*
-                      proxy::Printer printer(program, true);
-                      printer.Print(proxy::Int32(program, table_idx));
-                      printer.Print(next_tuple);
-                      printer.PrintNewline();
-                      */
-
-                      auto current_table_values = buffer[next_tuple];
-
-                      // Store each of this table's predicate column
-                      // values into the global_predicate_struct.
-                      for (auto [col_ref, field] :
-                           colref_to_predicate_struct_field_) {
-                        auto [child_idx, col_idx] = col_ref;
-                        if (child_idx == table_idx) {
-                          global_predicate_struct.Update(
-                              field, current_table_values[col_idx]);
-
-                          // Additionally, update this table's values to
-                          // read from the unpacked tuple instead of the
-                          // old loaded value from
-                          // global_predicate_struct.
-                          child_translators[table_idx]
-                              .get()
-                              .SchemaValues()
-                              .SetValue(
-                                  col_idx,
-                                  std::move(current_table_values[col_idx]));
-                        }
-                      }
-
-                      for (auto pred : conditions_per_table_[table_idx]) {
-                        if (!ShouldExecute(pred, table_idx, available_tables)) {
-                          continue;
-                        }
-
-                        auto cond =
-                            expr_translator.Compute(conditions[pred].get());
-
-                        proxy::If(
-                            program, cond.IsNull(),
+                        auto continue_resume_progress = proxy::Ternary(
+                            program, resume_progress,
                             [&]() {
-                              // If budget, depleted return -1 and set
-                              // table ctr
-                              proxy::If(
-                                  program, budget == 0,
-                                  [&]() {
-                                    program.StoreI32(
-                                        program.ConstGEP(table_ctr_type,
-                                                         table_ctr_ptr, {0, 0}),
-                                        program.ConstI32(table_idx));
-                                    program.Return(program.ConstI32(-1));
-                                  },
-                                  [&]() {
-                                    loop.Continue(next_tuple + 1, budget,
-                                                  proxy::Bool(program, false));
-                                  });
-                            },
-                            [&]() {
-                              proxy::If(
+                              auto bucket_next_tuple_ptr = program.ConstGEP(
+                                  program.I32Type(), result, {0});
+                              auto initial_next_tuple = proxy::Int32(
                                   program,
-                                  !static_cast<proxy::Bool&>(
-                                      cond.Get() /*cond*/),
-                                  [&]() {
-                                    // If budget, depleted return -1 and set
-                                    // table ctr
-                                    proxy::If(
-                                        program, budget == 0,
-                                        [&]() {
-                                          program.StoreI32(
-                                              program.ConstGEP(table_ctr_type,
-                                                               table_ctr_ptr,
-                                                               {0, 0}),
-                                              program.ConstI32(table_idx));
-                                          program.Return(program.ConstI32(-1));
-                                        },
-                                        [&]() {
-                                          loop.Continue(
-                                              next_tuple + 1, budget,
-                                              proxy::Bool(program, false));
-                                        });
-                                  });
-                            });
-                      }
+                                  program.LoadI32(bucket_next_tuple_ptr));
+                              return initial_next_tuple == progress_next_tuple;
+                            },
+                            [&]() { return proxy::Bool(program, false); });
+                        loop.AddLoopVariable(continue_resume_progress);
+                      },
+                      [&](auto& loop) {
+                        auto bucket_idx =
+                            loop.template GetLoopVariable<proxy::Int32>(0);
+                        return bucket_idx < result_size;
+                      },
+                      [&](auto& loop) {
+                        auto bucket_idx =
+                            loop.template GetLoopVariable<proxy::Int32>(0);
+                        auto budget =
+                            loop.template GetLoopVariable<proxy::Int32>(1) - 1;
+                        auto resume_progress =
+                            loop.template GetLoopVariable<proxy::Bool>(2);
 
-                      proxy::If(program, budget == 0, [&]() {
-                        program.StoreI32(
-                            program.ConstGEP(table_ctr_type, table_ctr_ptr,
-                                             {0, 0}),
-                            program.ConstI32(table_idx));
-                        program.Return(program.ConstI32(-2));
+                        auto next_tuple = SortedIntersectionResultGet(
+                            program, result, bucket_idx);
+
+                        auto idx_ptr = program.ConstGEP(
+                            idx_array_type, idx_array, {0, table_idx});
+                        program.StoreI32(idx_ptr, next_tuple.Get());
+
+                        /*
+                        proxy::Printer printer(program, true);
+                        printer.Print(proxy::Int32(program, table_idx));
+                        printer.Print(next_tuple);
+                        printer.PrintNewline();
+                        */
+
+                        auto current_table_values = buffer[next_tuple];
+
+                        // Store each of this table's predicate column
+                        // values into the global_predicate_struct.
+                        for (auto [col_ref, field] :
+                             colref_to_predicate_struct_field_) {
+                          auto [child_idx, col_idx] = col_ref;
+                          if (child_idx == table_idx) {
+                            global_predicate_struct.Update(
+                                field, current_table_values[col_idx]);
+
+                            // Additionally, update this table's values to
+                            // read from the unpacked tuple instead of the
+                            // old loaded value from
+                            // global_predicate_struct.
+                            child_translators[table_idx]
+                                .get()
+                                .SchemaValues()
+                                .SetValue(
+                                    col_idx,
+                                    std::move(current_table_values[col_idx]));
+                          }
+                        }
+
+                        for (auto pred : conditions_per_table_[table_idx]) {
+                          if (!ShouldExecute(pred, table_idx,
+                                             available_tables)) {
+                            continue;
+                          }
+
+                          if (executed.contains(pred)) {
+                            continue;
+                          }
+
+                          auto cond =
+                              expr_translator.Compute(conditions[pred].get());
+
+                          proxy::If(
+                              program, cond.IsNull(),
+                              [&]() {
+                                // If budget, depleted return -1 and set
+                                // table ctr
+                                proxy::If(
+                                    program, budget == 0,
+                                    [&]() {
+                                      program.StoreI32(
+                                          program.ConstGEP(table_ctr_type,
+                                                           table_ctr_ptr,
+                                                           {0, 0}),
+                                          program.ConstI32(table_idx));
+                                      program.Return(program.ConstI32(-1));
+                                    },
+                                    [&]() {
+                                      loop.Continue(
+                                          bucket_idx + 1, budget,
+                                          proxy::Bool(program, false));
+                                    });
+                              },
+                              [&]() {
+                                proxy::If(
+                                    program,
+                                    !static_cast<proxy::Bool&>(cond.Get()),
+                                    [&]() {
+                                      // If budget, depleted return -1 and
+                                      // set table ctr
+                                      proxy::If(
+                                          program, budget == 0,
+                                          [&]() {
+                                            program.StoreI32(
+                                                program.ConstGEP(table_ctr_type,
+                                                                 table_ctr_ptr,
+                                                                 {0, 0}),
+                                                program.ConstI32(table_idx));
+                                            program.Return(
+                                                program.ConstI32(-1));
+                                          },
+                                          [&]() {
+                                            loop.Continue(
+                                                bucket_idx + 1, budget,
+                                                proxy::Bool(program, false));
+                                          });
+                                    });
+                              });
+                        }
+
+                        proxy::If(program, budget == 0, [&]() {
+                          program.StoreI32(
+                              program.ConstGEP(table_ctr_type, table_ctr_ptr,
+                                               {0, 0}),
+                              program.ConstI32(table_idx));
+                          program.Return(program.ConstI32(-2));
+                        });
+
+                        // Valid tuple
+                        auto next_budget = proxy::Int32(
+                            program,
+                            program.Call(handler, {budget.Get(),
+                                                   resume_progress.Get()}));
+                        proxy::If(program, next_budget < 0,
+                                  [&]() { program.Return(next_budget.Get()); });
+
+                        return loop.Continue(bucket_idx + 1, next_budget,
+                                             proxy::Bool(program, false));
                       });
 
-                      // Valid tuple
-                      auto next_budget = proxy::Int32(
-                          program,
-                          program.Call(handler,
-                                       {budget.Get(), resume_progress.Get()}));
-                      proxy::If(program, next_budget < 0,
-                                [&]() { program.Return(next_budget.Get()); });
+                  auto next_budget =
+                      result_loop.template GetLoopVariable<proxy::Int32>(1);
+                  auto next_result_size =
+                      bucket_list.PopulateSortedIntersectionResult(
+                          result, result_max_size);
+                  return loop.Continue(next_budget, next_result_size);
+                });
 
-                      return loop.Continue(next_tuple + 1, next_budget,
-                                           proxy::Bool(program, false));
-                    });
+            return loop.template GetLoopVariable<proxy::Int32>(0);
+          } else {
+            // Loop over tuples in buffer
+            proxy::Loop loop(
+                program,
+                [&](auto& loop) {
+                  auto progress_next_tuple = proxy::Ternary(
+                      program, resume_progress,
+                      [&]() {
+                        auto progress_ptr = program.ConstGEP(
+                            progress_array_type, progress_arr, {0, table_idx});
+                        return proxy::Int32(program,
+                                            program.LoadI32(progress_ptr));
+                      },
+                      [&]() { return proxy::Int32(program, 0); });
+                  auto offset_next_tuple =
+                      proxy::Int32(program, program.LoadI32(program.ConstGEP(
+                                                offset_array_type, offset_array,
+                                                {0, table_idx}))) +
+                      1;
+                  auto initial_next_tuple = proxy::Ternary(
+                      program, offset_next_tuple > progress_next_tuple,
+                      [&]() { return offset_next_tuple; },
+                      [&]() { return progress_next_tuple; });
 
-                return loop.template GetLoopVariable<proxy::Int32>(1);
-              });
+                  loop.AddLoopVariable(initial_next_tuple);
+                  loop.AddLoopVariable(initial_budget);
 
-          return use_index;
+                  auto continue_resume_progress = proxy::Ternary(
+                      program, resume_progress,
+                      [&]() {
+                        auto progress_ptr = program.ConstGEP(
+                            progress_array_type, progress_arr, {0, table_idx});
+                        auto progress_next_tuple = proxy::Int32(
+                            program, program.LoadI32(progress_ptr));
+                        return initial_next_tuple == progress_next_tuple;
+                      },
+                      [&]() { return proxy::Bool(program, false); });
+                  loop.AddLoopVariable(continue_resume_progress);
+                },
+                [&](auto& loop) {
+                  auto next_tuple =
+                      loop.template GetLoopVariable<proxy::Int32>(0);
+                  return next_tuple < cardinality;
+                },
+                [&](auto& loop) {
+                  auto next_tuple =
+                      loop.template GetLoopVariable<proxy::Int32>(0);
+                  auto budget =
+                      loop.template GetLoopVariable<proxy::Int32>(1) - 1;
+                  auto resume_progress =
+                      loop.template GetLoopVariable<proxy::Bool>(2);
+
+                  auto idx_ptr = program.ConstGEP(idx_array_type, idx_array,
+                                                  {0, table_idx});
+                  program.StoreI32(idx_ptr, next_tuple.Get());
+
+                  /*
+                  proxy::Printer printer(program, true);
+                  printer.Print(proxy::Int32(program, table_idx));
+                  printer.Print(next_tuple);
+                  printer.PrintNewline();
+                  */
+
+                  auto current_table_values = buffer[next_tuple];
+
+                  // Store each of this table's predicate column
+                  // values into the global_predicate_struct.
+                  for (auto [col_ref, field] :
+                       colref_to_predicate_struct_field_) {
+                    auto [child_idx, col_idx] = col_ref;
+                    if (child_idx == table_idx) {
+                      global_predicate_struct.Update(
+                          field, current_table_values[col_idx]);
+
+                      // Additionally, update this table's values to
+                      // read from the unpacked tuple instead of the
+                      // old loaded value from
+                      // global_predicate_struct.
+                      child_translators[table_idx]
+                          .get()
+                          .SchemaValues()
+                          .SetValue(col_idx,
+                                    std::move(current_table_values[col_idx]));
+                    }
+                  }
+
+                  for (auto pred : conditions_per_table_[table_idx]) {
+                    if (!ShouldExecute(pred, table_idx, available_tables)) {
+                      continue;
+                    }
+
+                    auto cond = expr_translator.Compute(conditions[pred].get());
+
+                    proxy::If(
+                        program, cond.IsNull(),
+                        [&]() {
+                          // If budget, depleted return -1 and set
+                          // table ctr
+                          proxy::If(
+                              program, budget == 0,
+                              [&]() {
+                                program.StoreI32(
+                                    program.ConstGEP(table_ctr_type,
+                                                     table_ctr_ptr, {0, 0}),
+                                    program.ConstI32(table_idx));
+                                program.Return(program.ConstI32(-1));
+                              },
+                              [&]() {
+                                loop.Continue(next_tuple + 1, budget,
+                                              proxy::Bool(program, false));
+                              });
+                        },
+                        [&]() {
+                          proxy::If(
+                              program,
+                              !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
+                              [&]() {
+                                // If budget, depleted return -1 and set
+                                // table ctr
+                                proxy::If(
+                                    program, budget == 0,
+                                    [&]() {
+                                      program.StoreI32(
+                                          program.ConstGEP(table_ctr_type,
+                                                           table_ctr_ptr,
+                                                           {0, 0}),
+                                          program.ConstI32(table_idx));
+                                      program.Return(program.ConstI32(-1));
+                                    },
+                                    [&]() {
+                                      loop.Continue(
+                                          next_tuple + 1, budget,
+                                          proxy::Bool(program, false));
+                                    });
+                              });
+                        });
+                  }
+
+                  proxy::If(program, budget == 0, [&]() {
+                    program.StoreI32(
+                        program.ConstGEP(table_ctr_type, table_ctr_ptr, {0, 0}),
+                        program.ConstI32(table_idx));
+                    program.Return(program.ConstI32(-2));
+                  });
+
+                  // Valid tuple
+                  auto next_budget = proxy::Int32(
+                      program, program.Call(handler, {budget.Get(),
+                                                      resume_progress.Get()}));
+                  proxy::If(program, next_budget < 0,
+                            [&]() { program.Return(next_budget.Get()); });
+
+                  return loop.Continue(next_tuple + 1, next_budget,
+                                       proxy::Bool(program, false));
+                });
+
+            return loop.template GetLoopVariable<proxy::Int32>(1);
+          }
         });
   }
 
