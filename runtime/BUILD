@@ -115,6 +115,18 @@ cc_library(
 )
 
 cc_library(
+    name = "skinner_scan_select_executor",
+    srcs = ["skinner_scan_select_executor.cc"],
+    hdrs = ["skinner_scan_select_executor.h"],
+    deps = [
+        "@absl//absl/container:btree",
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/container:flat_hash_set",
+        "@absl//absl/flags:flag",
+    ],
+)
+
+cc_library(
     name = "printer",
     srcs = ["printer.cc"],
     hdrs = ["printer.h"],
