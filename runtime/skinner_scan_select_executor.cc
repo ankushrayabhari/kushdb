@@ -294,7 +294,7 @@ class ScanSelectState {
 struct PermutableScanSelectExecutionEngineFlags {
   int32_t* idx;
   int32_t* num_handlers;
-  std::add_pointer<int32_t()>::type* handlers;
+  std::add_pointer<int8_t()>::type* handlers;
 };
 
 class PermutableScanSelectEnvironment : public ScanSelectEnvironment {
@@ -303,7 +303,7 @@ class PermutableScanSelectEnvironment : public ScanSelectEnvironment {
       int32_t cardinality,
       const std::add_pointer<int32_t(int32_t, int8_t)>::type index_scan_fn,
       const std::add_pointer<int32_t(int32_t, int8_t)>::type scan_fn,
-      const std::vector<std::add_pointer<int32_t()>::type> predicate_fn,
+      const std::vector<std::add_pointer<int8_t()>::type> predicate_fn,
       PermutableScanSelectExecutionEngineFlags execution_engine)
       : cardinality_(cardinality),
         budget_per_episode_(FLAGS_scan_select_budget_per_episode.Get()),
@@ -349,7 +349,7 @@ class PermutableScanSelectEnvironment : public ScanSelectEnvironment {
   int32_t budget_per_episode_;
   const std::add_pointer<int32_t(int32_t, int8_t)>::type index_scan_fn_;
   const std::add_pointer<int32_t(int32_t, int8_t)>::type scan_fn_;
-  const std::vector<std::add_pointer<int32_t()>::type> predicate_fn_;
+  const std::vector<std::add_pointer<int8_t()>::type> predicate_fn_;
   ScanSelectState state_;
   PermutableScanSelectExecutionEngineFlags execution_engine_;
 };
@@ -378,19 +378,18 @@ function()
 
 function():
     evaluate predicate
-    handler()
 */
 
 void ExecutePermutableSkinnerScanSelect(
     int num_predicates, const std::vector<int32_t>* indexed_predicates,
     std::add_pointer<int32_t(int32_t, int8_t)>::type index_scan_fn,
     std::add_pointer<int32_t(int32_t, int8_t)>::type scan_fn,
-    int32_t* num_handlers, std::add_pointer<int32_t()>::type* handlers,
+    int32_t* num_handlers, std::add_pointer<int8_t()>::type* handlers,
     int32_t* idx) {
   int32_t cardinality = *idx;
   PermutableScanSelectExecutionEngineFlags execution_engine{
       .idx = idx, .num_handlers = num_handlers, .handlers = handlers};
-  std::vector<std::add_pointer<int32_t()>::type> predicate_fn;
+  std::vector<std::add_pointer<int8_t()>::type> predicate_fn;
   for (int i = 0; i < num_predicates; i++) {
     predicate_fn.push_back(handlers[i]);
   }
