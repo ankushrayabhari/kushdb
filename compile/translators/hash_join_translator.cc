@@ -43,7 +43,7 @@ void HashJoinTranslator::Produce() {
   packed.Build();
 
   buffer_ = std::make_unique<proxy::HashTable>(program_, packed);
-  all_not_null_ptr_ = program_.Alloca(program_.I8Type());
+  all_not_null_ptr_ = program_.Global(false, false, program_.I8Type(), program_.ConstI8(0));
 
   this->LeftChild().Produce();
 

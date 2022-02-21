@@ -74,7 +74,8 @@ void GroupByAggregateTranslator::Produce() {
   buffer_ = std::make_unique<proxy::HashTable>(program_, packed);
 
   // Declare the found variable
-  found_ = program_.Alloca(program_.I8Type());
+  found_ =
+      program_.Global(false, false, program_.I8Type(), program_.ConstI8(0));
 
   // Populate hash table
   this->Child().Produce();

@@ -504,7 +504,17 @@ void PermutableSkinnerJoinTranslator::Produce() {
             bucket_list.InitSortedIntersection(initial_next_tuple);
 
             int result_max_size = 64;
-            auto result = program_.Alloca(program_.I32Type(), result_max_size);
+            auto result_array_type =
+                program_.ArrayType(program_.I32Type(), result_max_size);
+            std::vector<khir::Value> initial_result_values(
+                result_max_size, program_.ConstI32(0));
+            auto result_array =
+                program_.Global(false, true, result_array_type,
+                                program_.ConstantArray(result_array_type,
+                                                       initial_result_values));
+            auto result =
+                program_.ConstGEP(result_array_type, result_array, {0, 0});
+
             auto result_initial_size =
                 bucket_list.PopulateSortedIntersectionResult(result,
                                                              result_max_size);
