@@ -87,4 +87,79 @@ void PredicateColumnCollector::Visit(
       "Virtual column references cannot appear in join predicates.");
 }
 
+std::vector<std::reference_wrapper<const plan::VirtualColumnRefExpression>>
+ScanSelectPredicateColumnCollector::PredicateColumns() {
+  // dedupe, should actually be doing this via hashing
+  absl::flat_hash_set<int> exists;
+
+  std::vector<std::reference_wrapper<const plan::VirtualColumnRefExpression>>
+      output;
+  for (auto& col_ref : predicate_columns_) {
+    auto key = col_ref.get().GetColumnIdx();
+    if (exists.contains(key)) {
+      continue;
+    }
+
+    output.push_back(col_ref);
+    exists.insert(key);
+  }
+  return output;
+}
+
+void ScanSelectPredicateColumnCollector::VisitChildren(
+    const plan::Expression& expr) {
+  for (auto& child : expr.Children()) {
+    child.get().Accept(*this);
+  }
+}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::ColumnRefExpression& col_ref) {
+  throw std::runtime_error(
+      "Column references cannot appear in scan/select predicates.");
+}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::BinaryArithmeticExpression& arith) {
+  VisitChildren(arith);
+}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::CaseExpression& case_expr) {
+  VisitChildren(case_expr);
+}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::IntToFloatConversionExpression& conv) {
+  VisitChildren(conv);
+}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::ExtractExpression& conv) {
+  VisitChildren(conv);
+}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::UnaryArithmeticExpression& conv) {
+  VisitChildren(conv);
+}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::RegexpMatchingExpression& match) {
+  VisitChildren(match);
+}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::LiteralExpression& literal) {}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::AggregateExpression& agg) {
+  throw std::runtime_error("Aggregates cannot appear in join predicates.");
+}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::VirtualColumnRefExpression& virtual_col_ref) {
+  predicate_columns_.push_back(virtual_col_ref);
+}
+
 }  // namespace kush::compile

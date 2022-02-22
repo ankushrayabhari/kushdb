@@ -85,14 +85,18 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
+        ":predicate_column_collector",
         "//catalog:sql_type",
         "//compile/proxy:column_data",
         "//compile/proxy:column_index",
         "//compile/proxy:materialized_buffer",
+        "//compile/proxy:skinner_scan_select_executor",
         "//compile/proxy/control_flow:if",
         "//compile/proxy/control_flow:loop",
         "//khir:program_builder",
         "//plan/operator:skinner_scan_select_operator",
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/container:flat_hash_set",
     ],
 )
 
