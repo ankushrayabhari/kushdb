@@ -37,6 +37,10 @@ class ColumnIndexBucketArray {
   void InitSortedIntersection(const Int32& next_tuple);
   Int32 PopulateSortedIntersectionResult(khir::Value result,
                                          int32_t result_max_size);
+  proxy::Int32 PopulateSortedIntersectionResult(khir::Value result,
+                                                int32_t result_max_size,
+                                                khir::Value filters,
+                                                proxy::Int32 filters_size);
 
   void Clear();
 

@@ -12,10 +12,12 @@
 namespace kush::runtime {
 
 void ExecutePermutableSkinnerScanSelect(
-    int num_predicates, const std::vector<int32_t>* indexed_predicates,
-    std::add_pointer<int32_t(int32_t, int8_t)>::type index_scan_fn,
-    std::add_pointer<int32_t(int32_t, int8_t)>::type scan_fn,
-    int32_t* num_handlers, std::add_pointer<int8_t()>::type* handlers,
-    int32_t* idx);
+    absl::flat_hash_set<int>* index_executable_predicates,
+    std::add_pointer<int32_t(int32_t, int32_t)>::type main_fn,
+    int32_t* index_array, int32_t* index_array_size, int32_t num_predicates,
+    int32_t* progress_idx);
+
+std::add_pointer<bool()>::type GetPredicateFn(
+    std::add_pointer<bool()>::type** preds, int idx);
 
 }  // namespace kush::runtime

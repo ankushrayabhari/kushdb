@@ -16,10 +16,14 @@ namespace kush::compile::proxy {
 class SkinnerScanSelectExecutor {
  public:
   static void ExecutePermutableScanSelect(
-      khir::ProgramBuilder& program, int num_predicates,
-      std::vector<int32_t>* indexed_predicates, khir::Value index_scan_fn,
-      khir::Value scan_fn, khir::Value num_handlers, khir::Value handlers,
-      khir::Value idx);
+      khir::ProgramBuilder& program,
+      absl::flat_hash_set<int>& index_executable_predicates,
+      khir::Value main_func, khir::Value index_array,
+      khir::Value index_array_size, khir::Value predicate_array,
+      int num_predicates, khir::Value progress_idx);
+
+  static khir::Value GetFn(khir::ProgramBuilder& program, khir::Value f_arr,
+                           proxy::Int32 i);
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 };

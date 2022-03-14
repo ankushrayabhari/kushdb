@@ -42,14 +42,19 @@ int PredicateFunction::predicate_ = 0;
 
 class BaseFunction {
  public:
-  BaseFunction(khir::ProgramBuilder& program, std::function<void()> body)
+  BaseFunction(khir::ProgramBuilder& program,
+               std::function<void(proxy::Int32, proxy::Int32)> body)
       : program_(program) {
     auto current_block = program_.CurrentBlock();
-    func_ = program_.CreatePublicFunction(program_.VoidType(), {},
-                                          "base_" + std::to_string(funcid_++));
+    func_ = program_.CreatePublicFunction(
+        program_.I32Type(), {program_.I32Type(), program_.I32Type()},
+        "base_" + std::to_string(funcid_++));
 
-    body();
-    program_.Return();
+    auto args = program_.GetFunctionArguments(func_.value());
+    proxy::Int32 budget(program_, args[0]);
+    proxy::Int32 next_tuple(program_, args[1]);
+
+    body(budget, next_tuple);
     program_.SetCurrentBlock(current_block);
   }
 
@@ -128,6 +133,46 @@ SkinnerScanSelectTranslator::GenerateBuffer() {
 
   return std::make_unique<proxy::DiskMaterializedBuffer>(
       program_, std::move(column_data), std::move(null_data));
+}
+
+bool SkinnerScanSelectTranslator::HasIndex(int col_idx) const {
+  const auto& table = scan_select_.Relation();
+  const auto& cols = scan_select_.ScanSchema().Columns();
+  auto col_name = cols[col_idx].Name();
+  return table[col_name].HasIndex();
+}
+
+std::unique_ptr<proxy::ColumnIndex> SkinnerScanSelectTranslator::GenerateIndex(
+    khir::ProgramBuilder& program, int col_idx) {
+  const auto& table = scan_select_.Relation();
+  const auto& cols = scan_select_.ScanSchema().Columns();
+  const auto& column = cols[col_idx];
+  auto type = column.Expr().Type();
+  auto path = table[column.Name()].IndexPath();
+  using catalog::SqlType;
+  switch (type) {
+    case SqlType::SMALLINT:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::SMALLINT>>(
+          program, path);
+    case SqlType::INT:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::INT>>(program,
+                                                                    path);
+    case SqlType::BIGINT:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::BIGINT>>(program,
+                                                                       path);
+    case SqlType::REAL:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::REAL>>(program,
+                                                                     path);
+    case SqlType::DATE:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::DATE>>(program,
+                                                                     path);
+    case SqlType::TEXT:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::TEXT>>(program,
+                                                                     path);
+    case SqlType::BOOLEAN:
+      return std::make_unique<proxy::DiskColumnIndex<SqlType::BOOLEAN>>(program,
+                                                                        path);
+  }
 }
 
 void SkinnerScanSelectTranslator::Produce() {
@@ -231,47 +276,326 @@ void SkinnerScanSelectTranslator::Produce() {
     });
   }
 
-  // Generate main function that will loop over index buckets
-  // Loop over all indexed predicates
-  BaseFunction main_func(program_, [&]() {
+  // Find index evaluatable predicates
+  // In this case, equality predicates with a columnref and literal.
+  absl::flat_hash_set<int> index_evaluatable_predicates;
+  absl::flat_hash_map<int, std::unique_ptr<proxy::ColumnIndex>>
+      index_predicate_to_column_index;
+  absl::flat_hash_map<int, const plan::LiteralExpression*>
+      index_predicate_to_literal_values;
+  for (int i = 0; i < conditions.size(); i++) {
+    if (auto eq = dynamic_cast<const plan::BinaryArithmeticExpression*>(
+            &conditions[i].get())) {
+      if (eq->OpType() == plan::BinaryArithmeticExpressionType::EQ) {
+        auto left = &eq->LeftChild();
+        auto right = &eq->RightChild();
+
+        if (auto r = dynamic_cast<const plan::ColumnRefExpression*>(right)) {
+          if (auto l = dynamic_cast<const plan::LiteralExpression*>(left)) {
+            std::swap(left, right);
+          }
+        }
+
+        if (auto l = dynamic_cast<const plan::ColumnRefExpression*>(left)) {
+          if (auto r = dynamic_cast<const plan::LiteralExpression*>(right)) {
+            if (HasIndex(l->GetColumnIdx())) {
+              index_evaluatable_predicates.insert(i);
+              index_predicate_to_column_index[i] =
+                  GenerateIndex(program_, l->GetColumnIdx());
+              index_predicate_to_column_index[i]->Init();
+              index_predicate_to_literal_values[i] = r;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Setup full list of index buckets
+  proxy::ColumnIndexBucketArray index_bucket_array(
+      program_, index_evaluatable_predicates.size());
+  for (int i : index_evaluatable_predicates) {
+    auto literal =
+        expr_translator_.Compute(*index_predicate_to_literal_values[i]);
+    auto bucket = index_predicate_to_column_index[i]->GetBucket(literal.Get());
+    index_bucket_array.PushBack(bucket);
+  }
+
+  // Setup valid index list.
+  std::vector<khir::Value> initial_index_values(
+      index_evaluatable_predicates.size(), program_.ConstI32(0));
+  auto index_array_type = program_.ArrayType(
+      program_.I32Type(), index_evaluatable_predicates.size());
+  auto index_array = program_.Global(
+      false, true, index_array_type,
+      program_.ConstantArray(index_array_type, initial_index_values));
+
+  // Setup idx array.
+  auto index_array_size =
+      program_.Global(false, true, program_.I32Type(), program_.ConstI32(0));
+
+  // Setup function pointer array.
+  std::vector<khir::Value> initial_predicate_array;
+  for (auto& f : predicate_fns) {
+    initial_predicate_array.push_back(program_.GetFunctionPointer(f.Get()));
+  }
+  auto predicate_array_type = program_.ArrayType(
+      program_.PointerType(program_.FunctionType(program_.I1Type(), {})),
+      conditions.size());
+  auto predicate_array = program_.Global(
+      false, true, index_array_type,
+      program_.ConstantArray(index_array_type, initial_predicate_array));
+
+  // Setup idx array.
+  auto progress_idx =
+      program_.Global(false, true, program_.I32Type(), program_.ConstI32(0));
+
+  // Main function
+  BaseFunction main_func(program_, [&](proxy::Int32 initial_budget,
+                                       proxy::Int32 next_tuple) {
     auto cardinality = materialized_buffer->Size();
-    proxy::Loop loop(
-        program_,
-        [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
-        [&](auto& loop) {
-          auto i = loop.template GetLoopVariable<proxy::Int32>(0);
-          return i < cardinality;
+    proxy::Int32 current_index_size(program_,
+                                    program_.LoadI32(index_array_size));
+    proxy::If(
+        program_, current_index_size > 0,
+        [&]() {
+          index_bucket_array.InitSortedIntersection(next_tuple);
+
+          int result_max_size = 64;
+          auto result_array_type =
+              program_.ArrayType(program_.I32Type(), result_max_size);
+          std::vector<khir::Value> initial_result_values(result_max_size,
+                                                         program_.ConstI32(0));
+          auto result_array = program_.Global(
+              false, true, result_array_type,
+              program_.ConstantArray(result_array_type, initial_result_values));
+          auto result =
+              program_.ConstGEP(result_array_type, result_array, {0, 0});
+
+          auto result_initial_size =
+              index_bucket_array.PopulateSortedIntersectionResult(
+                  result, result_max_size, index_array, current_index_size);
+
+          proxy::Loop loop(
+              program_,
+              [&](auto& loop) {
+                loop.AddLoopVariable(initial_budget);
+                loop.AddLoopVariable(result_initial_size);
+              },
+              [&](auto& loop) {
+                auto result_size =
+                    loop.template GetLoopVariable<proxy::Int32>(1);
+                return result_size > 0;
+              },
+              [&](auto& loop) {
+                auto budget = loop.template GetLoopVariable<proxy::Int32>(0);
+                auto result_size =
+                    loop.template GetLoopVariable<proxy::Int32>(1);
+
+                // loop over all elements in result
+                proxy::Loop result_loop(
+                    program_,
+                    [&](auto& result_loop) {
+                      result_loop.AddLoopVariable(proxy::Int32(program_, 0));
+                      result_loop.AddLoopVariable(budget);
+                    },
+                    [&](auto& result_loop) {
+                      auto bucket_idx =
+                          result_loop.template GetLoopVariable<proxy::Int32>(0);
+                      return bucket_idx < result_size;
+                    },
+                    [&](auto& result_loop) {
+                      auto bucket_idx =
+                          result_loop.template GetLoopVariable<proxy::Int32>(0);
+                      auto budget =
+                          result_loop.template GetLoopVariable<proxy::Int32>(
+                              1) -
+                          1;
+                      auto next_tuple = SortedIntersectionResultGet(
+                          program_, result, bucket_idx);
+
+                      proxy::If(program_, budget == 0, [&]() {
+                        program_.StoreI32(progress_idx, next_tuple.Get());
+                        program_.Return(program_.ConstI32(-2));
+                      });
+
+                      // Get next tuple
+                      auto values = (*materialized_buffer)[next_tuple];
+
+                      // Store each of this table's predicate column
+                      // values into the global_predicate_struct.
+                      for (auto [col_idx, field] :
+                           col_to_predicate_struct_field) {
+                        global_predicate_struct.Update(field, values[col_idx]);
+                      }
+
+                      // Check all predicates
+                      auto num_predicates =
+                          proxy::Int32(program_, predicate_fns.size()) -
+                          current_index_size;
+                      proxy::Loop inner_loop(
+                          program_,
+                          [&](auto& inner_loop) {
+                            inner_loop.AddLoopVariable(
+                                proxy::Int32(program_, 0));
+                            inner_loop.AddLoopVariable(budget);
+                          },
+                          [&](auto& inner_loop) {
+                            auto i =
+                                inner_loop
+                                    .template GetLoopVariable<proxy::Int32>(0);
+                            return i < num_predicates;
+                          },
+                          [&](auto& inner_loop) {
+                            auto i =
+                                inner_loop
+                                    .template GetLoopVariable<proxy::Int32>(0);
+                            auto budget =
+                                inner_loop
+                                    .template GetLoopVariable<proxy::Int32>(1) -
+                                1;
+
+                            proxy::If(program_, budget == 0, [&]() {
+                              program_.StoreI32(progress_idx, next_tuple.Get());
+                              program_.Return(program_.ConstI32(-2));
+                            });
+
+                            auto predicate =
+                                proxy::SkinnerScanSelectExecutor::GetFn(
+                                    program_, predicate_array, i);
+
+                            proxy::Bool value(program_,
+                                              program_.Call(predicate, {}));
+                            proxy::If(program_, !value, [&]() {
+                              result_loop.Continue(next_tuple + 1, budget);
+                            });
+
+                            return inner_loop.Continue(i + 1, budget);
+                          });
+
+                      this->virtual_values_.SetValues(values);
+                      for (const auto& column :
+                           scan_select_.Schema().Columns()) {
+                        this->values_.AddVariable(
+                            expr_translator_.Compute(column.Expr()));
+                      }
+
+                      if (auto parent = this->Parent()) {
+                        parent->get().Consume(*this);
+                      }
+
+                      auto final_budget =
+                          inner_loop.template GetLoopVariable<proxy::Int32>(1);
+                      return result_loop.Continue(bucket_idx + 1, final_budget);
+                    });
+
+                auto next_budget =
+                    result_loop.template GetLoopVariable<proxy::Int32>(1);
+                auto next_result_size =
+                    index_bucket_array.PopulateSortedIntersectionResult(
+                        result, result_max_size, index_array,
+                        current_index_size);
+                return loop.Continue(next_budget, next_result_size);
+              });
+
+          auto final_budget = loop.template GetLoopVariable<proxy::Int32>(0);
+          program_.StoreI32(progress_idx, cardinality.Get());
+          program_.Return(final_budget.Get());
         },
-        [&](auto& loop) {
-          auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+        [&]() {
+          auto cardinality = materialized_buffer->Size();
+          proxy::Loop loop(
+              program_,
+              [&](auto& loop) {
+                loop.AddLoopVariable(next_tuple);
+                loop.AddLoopVariable(initial_budget);
+              },
+              [&](auto& loop) {
+                auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+                return i < cardinality;
+              },
+              [&](auto& loop) {
+                auto next_tuple =
+                    loop.template GetLoopVariable<proxy::Int32>(0);
+                auto budget = loop.template GetLoopVariable<proxy::Int32>(1);
 
-          // Get ith value
-          auto values = (*materialized_buffer)[i];
+                // Get ith value
+                auto values = (*materialized_buffer)[next_tuple];
 
-          // Store each of this table's predicate column
-          // values into the global_predicate_struct.
-          for (auto [col_idx, field] : col_to_predicate_struct_field) {
-            global_predicate_struct.Update(field, values[col_idx]);
-          }
+                // Store each of this table's predicate column
+                // values into the global_predicate_struct.
+                for (auto [col_idx, field] : col_to_predicate_struct_field) {
+                  global_predicate_struct.Update(field, values[col_idx]);
+                }
 
-          // Check all predicates
-          for (auto& predicate : predicate_fns) {
-            proxy::Bool value(program_, program_.Call(predicate.Get(), {}));
-            proxy::If(program_, !value, [&]() { loop.Continue(i + 1); });
-          }
+                // Check all predicates
+                proxy::Loop inner_loop(
+                    program_,
+                    [&](auto& inner_loop) {
+                      inner_loop.AddLoopVariable(proxy::Int32(program_, 0));
+                      inner_loop.AddLoopVariable(budget);
+                    },
+                    [&](auto& inner_loop) {
+                      auto i =
+                          inner_loop.template GetLoopVariable<proxy::Int32>(0);
+                      return i < predicate_fns.size();
+                    },
+                    [&](auto& inner_loop) {
+                      auto i =
+                          inner_loop.template GetLoopVariable<proxy::Int32>(0);
+                      auto budget =
+                          inner_loop.template GetLoopVariable<proxy::Int32>(1) -
+                          1;
 
-          this->virtual_values_.SetValues(values);
-          for (const auto& column : scan_select_.Schema().Columns()) {
-            this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
-          }
+                      proxy::If(program_, budget == 0, [&]() {
+                        program_.StoreI32(progress_idx, next_tuple.Get());
+                        program_.Return(program_.ConstI32(-2));
+                      });
 
-          if (auto parent = this->Parent()) {
-            parent->get().Consume(*this);
-          }
+                      auto predicate = proxy::SkinnerScanSelectExecutor::GetFn(
+                          program_, predicate_array, i);
 
-          return loop.Continue(i + 1);
+                      proxy::Bool value(program_, program_.Call(predicate, {}));
+                      proxy::If(program_, !value, [&]() {
+                        loop.Continue(next_tuple + 1, budget);
+                      });
+
+                      return inner_loop.Continue(i + 1, budget);
+                    });
+
+                this->virtual_values_.SetValues(values);
+                for (const auto& column : scan_select_.Schema().Columns()) {
+                  this->values_.AddVariable(
+                      expr_translator_.Compute(column.Expr()));
+                }
+
+                if (auto parent = this->Parent()) {
+                  parent->get().Consume(*this);
+                }
+
+                return loop.Continue(next_tuple + 1, budget);
+              });
+
+          auto final_budget = loop.template GetLoopVariable<proxy::Int32>(1);
+          program_.StoreI32(progress_idx, cardinality.Get());
+          program_.Return(final_budget.Get());
         });
   });
+
+  auto main_func_ptr = program_.GetFunctionPointer(main_func.Get());
+
+  auto cardinality = materialized_buffer->Size();
+  program_.StoreI32(progress_idx, cardinality.Get());
+
+  auto index_array_ptr =
+      program_.ConstGEP(index_array_type, index_array, {0, 0});
+
+  auto predicate_array_ptr =
+      program_.ConstGEP(predicate_array_type, predicate_array, {0, 0});
+
+  proxy::SkinnerScanSelectExecutor::ExecutePermutableScanSelect(
+      program_, index_evaluatable_predicates, main_func_ptr, index_array_ptr,
+      index_array_size, predicate_array_ptr, predicate_fns.size(), progress_idx);
 
   program_.Call(main_func.Get(), {});
   materialized_buffer->Reset();

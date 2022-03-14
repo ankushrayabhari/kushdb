@@ -1,6 +1,9 @@
 #pragma once
 
+#include <memory>
+
 #include "compile/proxy/column_data.h"
+#include "compile/proxy/column_index.h"
 #include "compile/proxy/materialized_buffer.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
@@ -21,6 +24,9 @@ class SkinnerScanSelectTranslator : public OperatorTranslator {
 
  private:
   std::unique_ptr<proxy::DiskMaterializedBuffer> GenerateBuffer();
+  bool HasIndex(int col_idx) const;
+  std::unique_ptr<proxy::ColumnIndex> GenerateIndex(
+      khir::ProgramBuilder& program, int col_idx);
 
   const plan::SkinnerScanSelectOperator& scan_select_;
   khir::ProgramBuilder& program_;

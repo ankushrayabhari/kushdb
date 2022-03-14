@@ -381,29 +381,34 @@ function():
 */
 
 void ExecutePermutableSkinnerScanSelect(
-    int num_predicates, const std::vector<int32_t>* indexed_predicates,
-    std::add_pointer<int32_t(int32_t, int8_t)>::type index_scan_fn,
-    std::add_pointer<int32_t(int32_t, int8_t)>::type scan_fn,
-    int32_t* num_handlers, std::add_pointer<int8_t()>::type* handlers,
-    int32_t* idx) {
-  int32_t cardinality = *idx;
-  PermutableScanSelectExecutionEngineFlags execution_engine{
-      .idx = idx, .num_handlers = num_handlers, .handlers = handlers};
-  std::vector<std::add_pointer<int8_t()>::type> predicate_fn;
-  for (int i = 0; i < num_predicates; i++) {
-    predicate_fn.push_back(handlers[i]);
-  }
+    absl::flat_hash_set<int>* index_executable_predicates,
+    std::add_pointer<int32_t(int32_t, int32_t)>::type main_fn,
+    int32_t* index_array, int32_t* index_array_size, int32_t num_predicates,
+    int32_t* progress_idx) {
+  /*
+int32_t cardinality = *idx;
+PermutableScanSelectExecutionEngineFlags execution_engine{
+  .idx = idx, .num_handlers = num_handlers, .handlers = handlers};
+std::vector<std::add_pointer<int8_t()>::type> predicate_fn;
+for (int i = 0; i < num_predicates; i++) {
+predicate_fn.push_back(handlers[i]);
+}
 
-  PermutableScanSelectEnvironment environment(
-      cardinality, index_scan_fn, scan_fn, predicate_fn, execution_engine);
+PermutableScanSelectEnvironment environment(
+  cardinality, index_scan_fn, scan_fn, predicate_fn, execution_engine);
 
-  bool can_index = index_scan_fn == nullptr;
-  UctScanSelectAgent agent(num_predicates, can_index, *indexed_predicates,
-                           environment);
+bool can_index = index_scan_fn == nullptr;
+UctScanSelectAgent agent(num_predicates, can_index, *indexed_predicates,
+                       environment);
 
-  while (!environment.IsComplete()) {
-    agent.Act();
-  }
+while (!environment.IsComplete()) {
+agent.Act();
+} */
+}
+
+std::add_pointer<bool()>::type GetPredicateFn(
+    std::add_pointer<bool()>::type** preds, int idx) {
+  return preds[0][idx];
 }
 
 }  // namespace kush::runtime

@@ -50,6 +50,20 @@ void BucketListSortedIntersectionInit(ColumnIndexBucket* bucket_list,
   }
 }
 
+int32_t BucketListSortedIntersectionPopulateResultFilter(
+    ColumnIndexBucket* bucket_list, int32_t* intersection_state,
+    int32_t* result, int32_t result_max_size, int* index_filter,
+    int index_filter_size) {
+  ColumnIndexBucket* filtered_buckets[index_filter_size];
+  for (int i = 0; i < index_filter_size; i++) {
+    filtered_buckets[i] = &bucket_list[i];
+  }
+
+  return BucketListSortedIntersectionPopulateResult(
+      filtered_buckets[0], index_filter_size, intersection_state, result,
+      result_max_size);
+}
+
 int32_t BucketListSortedIntersectionPopulateResult(
     ColumnIndexBucket* bucket_list, int32_t bucket_list_size,
     int32_t* intersection_state, int32_t* result, int32_t result_max_size) {

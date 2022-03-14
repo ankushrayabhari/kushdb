@@ -31,6 +31,10 @@ constexpr std::string_view BucketListSortedIntersectionPopulateResultName(
     "kush::runtime::ColumnIndexBucket::"
     "BucketListSortedIntersectionPopulateResult");
 
+constexpr std::string_view BucketListSortedIntersectionPopulateResultFilterName(
+    "kush::runtime::ColumnIndexBucket::"
+    "BucketListSortedIntersectionPopulateResultFilter");
+
 constexpr std::string_view BucketListSortedIntersectionResultGetName(
     "kush::runtime::ColumnIndexBucket::BucketListSortedIntersectionResultGet");
 
@@ -106,6 +110,14 @@ void ColumnIndexBucket::ForwardDeclare(khir::ProgramBuilder& program) {
        program.PointerType(program.I32Type()), program.I32Type()},
       reinterpret_cast<void*>(
           &runtime::BucketListSortedIntersectionPopulateResult));
+
+  program.DeclareExternalFunction(
+      BucketListSortedIntersectionPopulateResultFilterName, program.I32Type(),
+      {index_bucket_ptr_type, program.PointerType(program.I32Type()),
+       program.PointerType(program.I32Type()), program.I32Type(),
+       program.PointerType(program.I32Type()), program.I32Type()},
+      reinterpret_cast<void*>(
+          &runtime::BucketListSortedIntersectionPopulateResultFilter));
 
   program.DeclareExternalFunction(
       BucketListSortedIntersectionResultGetName, program.I32Type(),
@@ -197,6 +209,24 @@ proxy::Int32 ColumnIndexBucketArray::PopulateSortedIntersectionResult(
            program_.ConstGEP(program_.ArrayType(program_.I32Type(), max_size_),
                              sorted_intersection_idx_value_, {0, 0}),
            result, program_.ConstI32(result_max_size)}));
+}
+
+proxy::Int32 ColumnIndexBucketArray::PopulateSortedIntersectionResult(
+    khir::Value result, int32_t result_max_size, khir::Value filters,
+    proxy::Int32 filters_size) {
+  return proxy::Int32(
+      program_,
+      program_.Call(
+          program_.GetFunction(
+              BucketListSortedIntersectionPopulateResultFilterName),
+          {program_.ConstGEP(
+               program_.ArrayType(program_.GetStructType(ColumnIndexBucketName),
+                                  max_size_),
+               value_, {0, 0}),
+           program_.ConstGEP(program_.ArrayType(program_.I32Type(), max_size_),
+                             sorted_intersection_idx_value_, {0, 0}),
+           result, program_.ConstI32(result_max_size), filters,
+           filters_size.Get()}));
 }
 
 proxy::Int32 SortedIntersectionResultGet(khir::ProgramBuilder& program,

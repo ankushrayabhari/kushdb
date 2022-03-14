@@ -23,6 +23,11 @@ int32_t BucketListSortedIntersectionPopulateResult(
     ColumnIndexBucket* bucket_list, int32_t size, int32_t* intersection_state,
     int32_t* result, int32_t result_max_size);
 
+int32_t BucketListSortedIntersectionPopulateResultFilter(
+    ColumnIndexBucket* bucket_list, int32_t* intersection_state,
+    int32_t* result, int32_t result_max_size, int* index_filter,
+    int index_filter_size);
+
 int32_t BucketListSortedIntersectionResultGet(int32_t* result, int32_t idx);
 
 }  // namespace kush::runtime

@@ -12,37 +12,53 @@ namespace kush::compile::proxy {
 constexpr std::string_view permutable_scan_select_fn(
     "kush::runtime::ExecutePermutableScanSelect");
 
+constexpr std::string_view get_predicate_fn("kush::runtime::GetPredicateFn");
+
 void SkinnerScanSelectExecutor::ExecutePermutableScanSelect(
-    khir::ProgramBuilder& program, int num_predicates,
-    std::vector<int32_t>* indexed_predicates, khir::Value index_scan_fn,
-    khir::Value scan_fn, khir::Value num_handlers, khir::Value handlers,
-    khir::Value idx) {
-  program.Call(
-      program.GetFunction(permutable_scan_select_fn),
-      {program.ConstI32(num_predicates), program.ConstPtr(indexed_predicates),
-       index_scan_fn, scan_fn, num_handlers, handlers, idx});
+    khir::ProgramBuilder& program,
+    absl::flat_hash_set<int>& index_executable_predicates,
+    khir::Value main_func, khir::Value index_array,
+    khir::Value index_array_size, khir::Value predicate_array,
+    int num_predicates, khir::Value progress_idx) {
+  program.Call(program.GetFunction(permutable_scan_select_fn),
+               {program.ConstPtr(&index_executable_predicates), main_func,
+                index_array, index_array_size, predicate_array,
+                program.ConstI32(num_predicates), progress_idx});
+}
+
+khir::Value SkinnerScanSelectExecutor::GetFn(khir::ProgramBuilder& program,
+                                             khir::Value f_arr,
+                                             proxy::Int32 i) {
+  return program.Call(program.GetFunction(get_predicate_fn), {f_arr, i.Get()});
 }
 
 void SkinnerScanSelectExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
-  auto scan_type = program.FunctionType(program.I32Type(),
-                                        {program.I32Type(), program.I1Type()});
-  auto scan_pointer_type = program.PointerType(scan_type);
-
   auto predicate_type = program.FunctionType(program.I32Type(), {});
   auto predicate_pointer_type = program.PointerType(predicate_type);
+
+  auto main_fn_type = program.FunctionType(
+      program.I32Type(), {program.I32Type(), program.I32Type()});
+  auto main_fn_ptr_type = program.PointerType(main_fn_type);
 
   program.DeclareExternalFunction(
       permutable_scan_select_fn, program.VoidType(),
       {
-          program.I32Type(),
           program.PointerType(program.I8Type()),
-          scan_pointer_type,
-          scan_pointer_type,
+          program.I32Type(),
+          main_fn_ptr_type,
+          program.PointerType(program.I32Type()),
+          program.PointerType(program.I32Type()),
           program.PointerType(program.I32Type()),
           program.PointerType(predicate_pointer_type),
+          program.I32Type(),
           program.PointerType(program.I32Type()),
       },
       reinterpret_cast<void*>(&runtime::ExecutePermutableSkinnerScanSelect));
+
+  program.DeclareExternalFunction(
+      get_predicate_fn, predicate_pointer_type,
+      {program.PointerType(predicate_pointer_type), program.I32Type()},
+      reinterpret_cast<void*>(&runtime::GetPredicateFn));
 }
 
 }  // namespace kush::compile::proxy
