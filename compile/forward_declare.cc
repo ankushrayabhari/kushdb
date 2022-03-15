@@ -5,6 +5,7 @@
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/skinner_join_executor.h"
+#include "compile/proxy/skinner_scan_select_executor.h"
 #include "compile/proxy/tuple_idx_table.h"
 #include "compile/proxy/value/ir_value.h"
 #include "compile/proxy/vector.h"
@@ -58,6 +59,7 @@ void ForwardDeclare(khir::ProgramBuilder& program) {
 
   proxy::TupleIdxTable::ForwardDeclare(program);
   proxy::SkinnerJoinExecutor::ForwardDeclare(program);
+  proxy::SkinnerScanSelectExecutor::ForwardDeclare(program);
 }
 
 }  // namespace kush::compile

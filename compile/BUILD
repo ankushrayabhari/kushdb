@@ -31,6 +31,7 @@ cc_library(
         "//compile/proxy:column_index",
         "//compile/proxy:hash_table",
         "//compile/proxy:skinner_join_executor",
+        "//compile/proxy:skinner_scan_select_executor",
         "//compile/proxy:tuple_idx_table",
         "//compile/proxy:vector",
         "//compile/proxy/value:ir_value",

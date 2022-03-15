@@ -22,9 +22,17 @@ ABSL_FLAG(bool, scan_select_forget, false,
 
 namespace kush::runtime {
 
+struct PermutableScanSelectExecutionEngineFlags {
+  int32_t* idx;
+  int32_t* index_array;
+  int32_t* index_array_size;
+  std::add_pointer<bool()>::type* predicate_arr;
+};
+
 class ScanSelectEnvironment {
  public:
-  virtual double Execute(bool index, const std::vector<int>& order) = 0;
+  virtual double Execute(const std::vector<int>& index_order,
+                         const std::vector<int>& orders) = 0;
 
   int32_t ComputeLastCompletedTuple(int last_completed_tuple, int status) {
     auto should_decrement = status == -2;
@@ -42,51 +50,27 @@ class ScanSelectEnvironment {
   }
 };
 
-class ScanSelectUctNode {
+class IndexUCTNode;
+
+class PredicateOrderUCTNode {
  public:
-  ScanSelectUctNode(int round_ctr, int num_predicates, bool can_index,
-                    const std::vector<int32_t>& indexed_predicates,
-                    ScanSelectEnvironment& environment)
-      : environment_(environment),
-        indexed_predicates_(indexed_predicates),
-        created_in_(round_ctr),
-        tree_level_(0),
-        num_predicates_(num_predicates),
-        num_actions_(can_index ? 2 : 1),
-        child_nodes_(num_actions_),
-        num_visits_(0),
-        num_tries_per_action_(num_actions_, 0),
-        acc_reward_per_action_(num_actions_, 0),
-        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
-    for (int i = 0; i < num_predicates_; i++) {
-      unevaluated_predicates_.push_back(i);
-    }
+  PredicateOrderUCTNode(int round_ctr, IndexUCTNode& parent);
 
-    if (can_index) {
-      priority_actions_ = {1, 0};
-    } else {
-      priority_actions_ = {0};
-    }
-  }
-
-  ScanSelectUctNode(int round_ctr, ScanSelectUctNode& parent,
-                    const std::vector<int>& evaluated_predicates)
+  PredicateOrderUCTNode(int round_ctr, PredicateOrderUCTNode& parent,
+                        int predicate)
       : environment_(parent.environment_),
-        indexed_predicates_(parent.indexed_predicates_),
         created_in_(round_ctr),
-        tree_level_(parent.tree_level_ + 1),
         num_predicates_(parent.num_predicates_),
-        num_actions_(parent.unevaluated_predicates_.size() -
-                     evaluated_predicates.size()),
+        num_actions_(num_predicates_ - parent.evaluated_predicates_.size() - 1),
         child_nodes_(num_actions_),
         num_visits_(0),
         num_tries_per_action_(num_actions_, 0),
         acc_reward_per_action_(num_actions_, 0),
         predicate_per_action_(num_actions_),
-        evaluated_predicates_(parent.evaluated_predicates_),
         rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
-    evaluated_predicates_.insert(evaluated_predicates.begin(),
-                                 evaluated_predicates.end());
+    evaluated_predicates_.insert(parent.evaluated_predicates_.begin(),
+                                 parent.evaluated_predicates_.end());
+    evaluated_predicates_.insert(predicate);
     int action = 0;
     for (int i = 0; i < num_predicates_; i++) {
       if (!evaluated_predicates_.contains(i)) {
@@ -97,61 +81,40 @@ class ScanSelectUctNode {
     }
   }
 
-  double Sample(int round_ctr, bool& use_index, std::vector<int>& order) {
+  double Sample(int round_ctr, std::vector<int>& index_order,
+                std::vector<int>& order) {
     if (num_actions_ == 0) {
-      return environment_.Execute(use_index, order);
+      return environment_.Execute(index_order, order);
     }
 
     int action = SelectAction();
-
-    std::vector<int> evaluated_predicates;
-    if (tree_level_ == 0) {
-      use_index = action != 0;
-
-      if (use_index) {
-        evaluated_predicates = indexed_predicates_;
-      }
-    } else {
-      int predicate = predicate_per_action_[action];
-      order.push_back(predicate);
-      evaluated_predicates.push_back(predicate);
-    }
+    int predicate = predicate_per_action_[action];
+    order.push_back(predicate);
 
     bool can_expand = created_in_ != round_ctr;
     if (can_expand && child_nodes_[action] == nullptr) {
-      child_nodes_[action] = std::make_unique<ScanSelectUctNode>(
-          round_ctr, *this, evaluated_predicates);
+      child_nodes_[action] =
+          std::make_unique<PredicateOrderUCTNode>(round_ctr, *this, predicate);
     }
 
-    ScanSelectUctNode* child = child_nodes_[action].get();
+    PredicateOrderUCTNode* child = child_nodes_[action].get();
 
     double reward = child != nullptr
-                        ? child->Sample(round_ctr, use_index, order)
-                        : Playout(use_index, order);
+                        ? child->Sample(round_ctr, index_order, order)
+                        : Playout(index_order, order);
 
     UpdateStatistics(action, reward);
     return reward;
   }
 
  private:
-  double Playout(bool& use_index, std::vector<int>& order) {
-    absl::btree_set<int> current_evaluated;
+  double Playout(std::vector<int>& index_order, std::vector<int>& order) {
     std::vector<int> current_unevaluated;
-    if (tree_level_ == 0) {
-      if (use_index) {
-        current_evaluated.insert(indexed_predicates_.begin(),
-                                 indexed_predicates_.end());
-      }
-    } else {
-      current_evaluated.insert(evaluated_predicates_.begin(),
-                               evaluated_predicates_.end());
-      current_evaluated.insert(order.back());
-    }
-
     for (int i = 0; i < num_predicates_; i++) {
-      if (!current_evaluated.contains(i)) {
-        current_unevaluated.push_back(i);
+      if (evaluated_predicates_.contains(i) || order.back() == i) {
+        continue;
       }
+      current_unevaluated.push_back(i);
     }
 
     std::shuffle(current_unevaluated.begin(), current_unevaluated.end(), rng_);
@@ -159,18 +122,14 @@ class ScanSelectUctNode {
       int predicate = current_unevaluated[i];
       order.push_back(predicate);
     }
-    return environment_.Execute(use_index, order);
+
+    return environment_.Execute(index_order, order);
   }
 
   int SelectAction() {
     if (!priority_actions_.empty()) {
       int num_untried = priority_actions_.size();
-
       int action_idx = rng_() % num_untried;
-      if (tree_level_ == 0) {
-        action_idx = 0;
-      }
-
       int action = priority_actions_[action_idx];
       priority_actions_.erase(priority_actions_.begin() + action_idx);
       return action;
@@ -204,14 +163,11 @@ class ScanSelectUctNode {
     assert(acc_reward_per_action_[action] >= 0);
   }
 
- private:
   ScanSelectEnvironment& environment_;
-  const std::vector<int32_t>& indexed_predicates_;
   int created_in_;
-  int tree_level_;
   int num_predicates_;
   int num_actions_;
-  std::vector<std::unique_ptr<ScanSelectUctNode>> child_nodes_;
+  std::vector<std::unique_ptr<PredicateOrderUCTNode>> child_nodes_;
   int num_visits_;
   std::vector<int> priority_actions_;
   std::vector<int> num_tries_per_action_;
@@ -224,34 +180,224 @@ class ScanSelectUctNode {
   static constexpr double EXPLORATION_WEIGHT_ = 1E-5;
 };
 
+class IndexUCTNode {
+ public:
+  IndexUCTNode(int round_ctr, ScanSelectEnvironment& environment,
+               int num_predicates, const std::vector<int>& index_predicates)
+      : environment_(environment),
+        created_in_(round_ctr),
+        num_predicates_(num_predicates),
+        index_predicates_(index_predicates),
+        current_idx_(0),
+        num_actions_(current_idx_ == index_predicates_.size() ? 1 : 2),
+        child_nodes_(num_actions_),
+        num_visits_(0),
+        num_tries_per_action_(num_actions_, 0),
+        acc_reward_per_action_(num_actions_, 0),
+        predicate_per_action_(num_actions_),
+        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+    // action 0 is not selecting index_predicates[0]
+    // action 1 is selecting index_predicates[0]
+    for (int i = 0; i < num_actions_; i++) {
+      priority_actions_.push_back(i);
+    }
+  }
+
+  IndexUCTNode(int round_ctr, IndexUCTNode& parent, bool selected)
+      : environment_(parent.environment_),
+        created_in_(round_ctr),
+        num_predicates_(parent.num_predicates_),
+        index_predicates_(parent.index_predicates_),
+        current_idx_(parent.current_idx_ + 1),
+        num_actions_(current_idx_ == index_predicates_.size() ? 1 : 2),
+        child_nodes_(num_actions_),
+        num_visits_(0),
+        num_tries_per_action_(num_actions_, 0),
+        acc_reward_per_action_(num_actions_, 0),
+        predicate_per_action_(num_actions_),
+        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+    evaluated_predicates_.insert(parent.evaluated_predicates_.begin(),
+                                 parent.evaluated_predicates_.end());
+    if (selected) {
+      evaluated_predicates_.insert(index_predicates_[parent.current_idx_]);
+    }
+
+    for (int i = 0; i < num_actions_; i++) {
+      priority_actions_.push_back(i);
+    }
+  }
+
+  double Sample(int round_ctr, std::vector<int>& index_order,
+                std::vector<int>& order) {
+    bool can_expand = created_in_ != round_ctr;
+    if (num_actions_ == 1) {
+      if (can_expand && predicate_order_node_ == nullptr) {
+        predicate_order_node_ =
+            std::make_unique<PredicateOrderUCTNode>(round_ctr, *this);
+      }
+
+      double reward =
+          predicate_order_node_ != nullptr
+              ? predicate_order_node_->Sample(round_ctr, index_order, order)
+              : Playout(index_order, order);
+      UpdateStatistics(0, reward);
+      return reward;
+    } else {
+      int action = SelectAction();
+
+      bool selected = action == 1;
+      if (selected) {
+        index_order.push_back(index_predicates_[current_idx_]);
+      }
+
+      if (can_expand && child_nodes_[action] == nullptr) {
+        child_nodes_[action] =
+            std::make_unique<IndexUCTNode>(round_ctr, *this, selected);
+      }
+
+      IndexUCTNode* child = child_nodes_[action].get();
+      double reward = child != nullptr
+                          ? child->Sample(round_ctr, index_order, order)
+                          : Playout(index_order, order);
+
+      UpdateStatistics(action, reward);
+      return reward;
+    }
+  }
+
+ private:
+  double Playout(std::vector<int>& index_order, std::vector<int>& order) {
+    auto dist = std::uniform_int_distribution<int>(0, 1);
+    for (int i = current_idx_ + 1; i < index_predicates_.size(); i++) {
+      if (dist(rng_)) {
+        index_order.push_back(index_predicates_[i]);
+      }
+    }
+
+    absl::flat_hash_set<int> evaluated_predicates(index_order.begin(),
+                                                  index_order.end());
+    for (int i = 0; i < num_predicates_; i++) {
+      if (evaluated_predicates.contains(i)) {
+        continue;
+      }
+      order.push_back(i);
+    }
+
+    std::shuffle(order.begin(), order.end(), rng_);
+    return environment_.Execute(index_order, order);
+  }
+
+  int SelectAction() {
+    if (!priority_actions_.empty()) {
+      int num_untried = priority_actions_.size();
+      int action_idx = rng_() % num_untried;
+      int action = priority_actions_[action_idx];
+      priority_actions_.erase(priority_actions_.begin() + action_idx);
+      return action;
+    }
+
+    int offset = rng_() % num_actions_;
+    int best_action = -1;
+    double best_quality = -1;
+    for (int action_idx = 0; action_idx < num_actions_; ++action_idx) {
+      int action = (offset + action_idx) % num_actions_;
+
+      double mean_reward =
+          acc_reward_per_action_[action] / num_tries_per_action_[action];
+      double exploration =
+          std::sqrt(std::log(num_visits_) / num_tries_per_action_[action]);
+
+      double quality = mean_reward + EXPLORATION_WEIGHT_ * exploration;
+      if (quality > best_quality) {
+        best_action = action;
+        best_quality = quality;
+      }
+    }
+    assert(best_action >= 0);
+    return best_action;
+  }
+
+  void UpdateStatistics(int action, double reward) {
+    num_visits_++;
+    num_tries_per_action_[action]++;
+    acc_reward_per_action_[action] += reward;
+    assert(acc_reward_per_action_[action] >= 0);
+  }
+
+  ScanSelectEnvironment& environment_;
+  int created_in_;
+  int num_predicates_;
+  const std::vector<int>& index_predicates_;
+  int current_idx_;
+  int num_actions_;
+  std::unique_ptr<PredicateOrderUCTNode> predicate_order_node_;
+  std::vector<std::unique_ptr<IndexUCTNode>> child_nodes_;
+  int num_visits_;
+  std::vector<int> priority_actions_;
+  std::vector<int> num_tries_per_action_;
+  std::vector<double> acc_reward_per_action_;
+  std::vector<int> predicate_per_action_;
+  absl::btree_set<int> evaluated_predicates_;
+  std::vector<int> unevaluated_predicates_;
+  std::default_random_engine rng_;
+
+  static constexpr double EXPLORATION_WEIGHT_ = 1E-5;
+
+  friend class PredicateOrderUCTNode;
+};
+
+PredicateOrderUCTNode::PredicateOrderUCTNode(int round_ctr,
+                                             IndexUCTNode& parent)
+    : environment_(parent.environment_),
+      created_in_(round_ctr),
+      num_predicates_(parent.num_predicates_),
+      num_actions_(num_predicates_ - parent.evaluated_predicates_.size()),
+      child_nodes_(num_actions_),
+      num_visits_(0),
+      num_tries_per_action_(num_actions_, 0),
+      acc_reward_per_action_(num_actions_, 0),
+      predicate_per_action_(num_actions_),
+      rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+  evaluated_predicates_.insert(parent.evaluated_predicates_.begin(),
+                               parent.evaluated_predicates_.end());
+  int action = 0;
+  for (int i = 0; i < num_predicates_; i++) {
+    if (!evaluated_predicates_.contains(i)) {
+      unevaluated_predicates_.push_back(i);
+      priority_actions_.push_back(action);
+      predicate_per_action_[action++] = i;
+    }
+  }
+}
+
 class UctScanSelectAgent {
  public:
-  UctScanSelectAgent(int num_predicates, bool can_index,
+  UctScanSelectAgent(int num_predicates,
                      const std::vector<int32_t>& indexed_predicates,
                      ScanSelectEnvironment& environment)
       : environment_(environment),
         round_ctr_(0),
         num_predicates_(num_predicates),
-        can_index_(can_index),
         indexed_predicates_(indexed_predicates),
         should_forget_(FLAGS_scan_select_forget.Get()),
         next_forget_(10),
-        root_(std::make_unique<ScanSelectUctNode>(
-            round_ctr_, num_predicates_, can_index_, indexed_predicates_,
-            environment_)) {}
+        root_(std::make_unique<IndexUCTNode>(
+            round_ctr_, environment_, num_predicates_, indexed_predicates_)) {
+    order_.reserve(num_predicates_);
+    index_order_.reserve(num_predicates_);
+  }
 
   void Act() {
     round_ctr_++;
-    bool use_index;
-    std::vector<int> order;
-    order.reserve(num_predicates_);
-    root_->Sample(round_ctr_, use_index, order);
+
+    order_.clear();
+    index_order_.clear();
+    root_->Sample(round_ctr_, index_order_, order_);
 
     // Consider memory loss
     if (should_forget_ && round_ctr_ == next_forget_) {
-      root_ = std::make_unique<ScanSelectUctNode>(
-          round_ctr_, num_predicates_, can_index_, indexed_predicates_,
-          environment_);
+      root_ = std::make_unique<IndexUCTNode>(
+          round_ctr_, environment_, num_predicates_, indexed_predicates_);
       next_forget_ *= 10;
     }
   }
@@ -260,11 +406,12 @@ class UctScanSelectAgent {
   ScanSelectEnvironment& environment_;
   int round_ctr_;
   int num_predicates_;
-  bool can_index_;
   const std::vector<int32_t>& indexed_predicates_;
   bool should_forget_;
   int64_t next_forget_;
-  std::unique_ptr<ScanSelectUctNode> root_;
+  std::unique_ptr<IndexUCTNode> root_;
+  std::vector<int> order_;
+  std::vector<int> index_order_;
 };
 
 class ScanSelectState {
@@ -274,9 +421,7 @@ class ScanSelectState {
 
   bool IsComplete() { return last_completed_tuple_ == cardinality_; }
 
-  std::optional<int32_t> GetLastCompletedTupleIdx() {
-    return last_completed_tuple_;
-  }
+  int32_t GetLastCompletedTupleIdx() { return last_completed_tuple_; }
 
   void Update(int32_t last_completed_tuple) {
     if (last_completed_tuple < last_completed_tuple_) {
@@ -291,65 +436,56 @@ class ScanSelectState {
   int32_t last_completed_tuple_;
 };
 
-struct PermutableScanSelectExecutionEngineFlags {
-  int32_t* idx;
-  int32_t* num_handlers;
-  std::add_pointer<int8_t()>::type* handlers;
-};
-
 class PermutableScanSelectEnvironment : public ScanSelectEnvironment {
  public:
   PermutableScanSelectEnvironment(
       int32_t cardinality,
-      const std::add_pointer<int32_t(int32_t, int8_t)>::type index_scan_fn,
-      const std::add_pointer<int32_t(int32_t, int8_t)>::type scan_fn,
-      const std::vector<std::add_pointer<int8_t()>::type> predicate_fn,
+      const std::add_pointer<int32_t(int32_t, int32_t)>::type main_fn,
+      const std::vector<std::add_pointer<bool()>::type> predicate_fn,
       PermutableScanSelectExecutionEngineFlags execution_engine)
       : cardinality_(cardinality),
         budget_per_episode_(FLAGS_scan_select_budget_per_episode.Get()),
-        index_scan_fn_(index_scan_fn),
-        scan_fn_(scan_fn),
+        main_fn_(main_fn),
         predicate_fn_(predicate_fn),
         state_(cardinality),
         execution_engine_(execution_engine) {}
 
   bool IsComplete() { return state_.IsComplete(); }
 
-  double Execute(bool index, const std::vector<int>& order) override {
+  double Execute(const std::vector<int>& index_order,
+                 const std::vector<int>& order) override {
     auto initial_last_completed_tuple = state_.GetLastCompletedTupleIdx();
-    auto base = SetExecutionEngine(index, order, initial_last_completed_tuple);
-    auto status = base(budget_per_episode_,
-                       initial_last_completed_tuple.has_value() ? 1 : 0);
+
+    SetExecutionEngine(index_order, order);
+    auto status =
+        main_fn_(budget_per_episode_, initial_last_completed_tuple + 1);
 
     auto final_last_completed_tuple =
         ComputeLastCompletedTuple(*execution_engine_.idx, status);
 
     state_.Update(final_last_completed_tuple);
 
-    return Reward(initial_last_completed_tuple.value_or(0),
-                  final_last_completed_tuple, cardinality_);
+    return Reward(initial_last_completed_tuple, final_last_completed_tuple,
+                  cardinality_);
   }
 
  private:
-  std::add_pointer<int(int, int8_t)>::type SetExecutionEngine(
-      bool index, const std::vector<int>& orders,
-      std::optional<int32_t> initial_last_completed_tuple) {
-    *execution_engine_.idx = initial_last_completed_tuple.value_or(-1);
-    *execution_engine_.num_handlers = orders.size();
-
-    int handler_pos = 0;
-    for (int p : orders) {
-      execution_engine_.handlers[handler_pos++] = predicate_fn_[p];
+  void SetExecutionEngine(const std::vector<int>& index_order,
+                          const std::vector<int>& order) {
+    *execution_engine_.index_array_size = index_order.size();
+    for (int i = 0; i < index_order.size(); i++) {
+      execution_engine_.index_array[i] = index_order[i];
     }
 
-    return index ? index_scan_fn_ : scan_fn_;
+    for (int i = 0; i < order.size(); i++) {
+      execution_engine_.predicate_arr[i] = predicate_fn_[order[i]];
+    }
   }
 
   int32_t cardinality_;
   int32_t budget_per_episode_;
-  const std::add_pointer<int32_t(int32_t, int8_t)>::type index_scan_fn_;
-  const std::add_pointer<int32_t(int32_t, int8_t)>::type scan_fn_;
-  const std::vector<std::add_pointer<int8_t()>::type> predicate_fn_;
+  const std::add_pointer<int32_t(int32_t, int32_t)>::type main_fn_;
+  const std::vector<std::add_pointer<bool()>::type> predicate_fn_;
   ScanSelectState state_;
   PermutableScanSelectExecutionEngineFlags execution_engine_;
 };
@@ -381,29 +517,33 @@ function():
 */
 
 void ExecutePermutableSkinnerScanSelect(
-    absl::flat_hash_set<int>* index_executable_predicates,
+    std::vector<int>* index_executable_predicates,
     std::add_pointer<int32_t(int32_t, int32_t)>::type main_fn,
-    int32_t* index_array, int32_t* index_array_size, int32_t num_predicates,
-    int32_t* progress_idx) {
-  /*
-int32_t cardinality = *idx;
-PermutableScanSelectExecutionEngineFlags execution_engine{
-  .idx = idx, .num_handlers = num_handlers, .handlers = handlers};
-std::vector<std::add_pointer<int8_t()>::type> predicate_fn;
-for (int i = 0; i < num_predicates; i++) {
-predicate_fn.push_back(handlers[i]);
-}
+    int32_t* index_array, int32_t* index_array_size,
+    std::add_pointer<bool()>::type* predicate_arr, int32_t num_predicates,
+    int32_t* idx) {
+  int32_t cardinality = *idx;
+  PermutableScanSelectExecutionEngineFlags execution_engine{
+      .idx = idx,
+      .index_array = index_array,
+      .index_array_size = index_array_size,
+      .predicate_arr = predicate_arr,
+  };
 
-PermutableScanSelectEnvironment environment(
-  cardinality, index_scan_fn, scan_fn, predicate_fn, execution_engine);
+  std::vector<std::add_pointer<bool()>::type> predicate_fn;
+  for (int i = 0; i < num_predicates; i++) {
+    predicate_fn.push_back(predicate_arr[i]);
+  }
 
-bool can_index = index_scan_fn == nullptr;
-UctScanSelectAgent agent(num_predicates, can_index, *indexed_predicates,
-                       environment);
+  PermutableScanSelectEnvironment environment(cardinality, main_fn,
+                                              predicate_fn, execution_engine);
 
-while (!environment.IsComplete()) {
-agent.Act();
-} */
+  UctScanSelectAgent agent(num_predicates, *index_executable_predicates,
+                           environment);
+
+  while (!environment.IsComplete()) {
+    agent.Act();
+  }
 }
 
 std::add_pointer<bool()>::type GetPredicateFn(
