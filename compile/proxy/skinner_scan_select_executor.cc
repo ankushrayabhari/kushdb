@@ -16,10 +16,9 @@ constexpr std::string_view get_predicate_fn("kush::runtime::GetPredicateFn");
 
 void SkinnerScanSelectExecutor::ExecutePermutableScanSelect(
     khir::ProgramBuilder& program,
-    absl::flat_hash_set<int>& index_executable_predicates,
-    khir::Value main_func, khir::Value index_array,
-    khir::Value index_array_size, khir::Value predicate_array,
-    int num_predicates, khir::Value progress_idx) {
+    std::vector<int>& index_executable_predicates, khir::Value main_func,
+    khir::Value index_array, khir::Value index_array_size,
+    khir::Value predicate_array, int num_predicates, khir::Value progress_idx) {
   program.Call(program.GetFunction(permutable_scan_select_fn),
                {program.ConstPtr(&index_executable_predicates), main_func,
                 index_array, index_array_size, predicate_array,
@@ -33,7 +32,7 @@ khir::Value SkinnerScanSelectExecutor::GetFn(khir::ProgramBuilder& program,
 }
 
 void SkinnerScanSelectExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
-  auto predicate_type = program.FunctionType(program.I32Type(), {});
+  auto predicate_type = program.FunctionType(program.I1Type(), {});
   auto predicate_pointer_type = program.PointerType(predicate_type);
 
   auto main_fn_type = program.FunctionType(
@@ -44,9 +43,7 @@ void SkinnerScanSelectExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
       permutable_scan_select_fn, program.VoidType(),
       {
           program.PointerType(program.I8Type()),
-          program.I32Type(),
           main_fn_ptr_type,
-          program.PointerType(program.I32Type()),
           program.PointerType(program.I32Type()),
           program.PointerType(program.I32Type()),
           program.PointerType(predicate_pointer_type),

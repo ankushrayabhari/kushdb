@@ -278,7 +278,6 @@ void SkinnerScanSelectTranslator::Produce() {
 
   // Find index evaluatable predicates
   // In this case, equality predicates with a columnref and literal.
-  absl::flat_hash_set<int> index_evaluatable_predicates;
   absl::flat_hash_map<int, std::unique_ptr<proxy::ColumnIndex>>
       index_predicate_to_column_index;
   absl::flat_hash_map<int, const plan::LiteralExpression*>
@@ -299,7 +298,7 @@ void SkinnerScanSelectTranslator::Produce() {
         if (auto l = dynamic_cast<const plan::ColumnRefExpression*>(left)) {
           if (auto r = dynamic_cast<const plan::LiteralExpression*>(right)) {
             if (HasIndex(l->GetColumnIdx())) {
-              index_evaluatable_predicates.insert(i);
+              index_evaluatable_predicates_.push_back(i);
               index_predicate_to_column_index[i] =
                   GenerateIndex(program_, l->GetColumnIdx());
               index_predicate_to_column_index[i]->Init();
@@ -313,8 +312,8 @@ void SkinnerScanSelectTranslator::Produce() {
 
   // Setup full list of index buckets
   proxy::ColumnIndexBucketArray index_bucket_array(
-      program_, index_evaluatable_predicates.size());
-  for (int i : index_evaluatable_predicates) {
+      program_, index_evaluatable_predicates_.size());
+  for (int i : index_evaluatable_predicates_) {
     auto literal =
         expr_translator_.Compute(*index_predicate_to_literal_values[i]);
     auto bucket = index_predicate_to_column_index[i]->GetBucket(literal.Get());
@@ -323,9 +322,9 @@ void SkinnerScanSelectTranslator::Produce() {
 
   // Setup valid index list.
   std::vector<khir::Value> initial_index_values(
-      index_evaluatable_predicates.size(), program_.ConstI32(0));
+      index_evaluatable_predicates_.size(), program_.ConstI32(0));
   auto index_array_type = program_.ArrayType(
-      program_.I32Type(), index_evaluatable_predicates.size());
+      program_.I32Type(), index_evaluatable_predicates_.size());
   auto index_array = program_.Global(
       false, true, index_array_type,
       program_.ConstantArray(index_array_type, initial_index_values));
@@ -335,16 +334,17 @@ void SkinnerScanSelectTranslator::Produce() {
       program_.Global(false, true, program_.I32Type(), program_.ConstI32(0));
 
   // Setup function pointer array.
+  auto predicate_ptr_ty =
+      program_.PointerType(program_.FunctionType(program_.I1Type(), {}));
   std::vector<khir::Value> initial_predicate_array;
   for (auto& f : predicate_fns) {
     initial_predicate_array.push_back(program_.GetFunctionPointer(f.Get()));
   }
-  auto predicate_array_type = program_.ArrayType(
-      program_.PointerType(program_.FunctionType(program_.I1Type(), {})),
-      conditions.size());
+  auto predicate_array_type =
+      program_.ArrayType(predicate_ptr_ty, predicate_fns.size());
   auto predicate_array = program_.Global(
-      false, true, index_array_type,
-      program_.ConstantArray(index_array_type, initial_predicate_array));
+      false, true, predicate_array_type,
+      program_.ConstantArray(predicate_array_type, initial_predicate_array));
 
   // Setup idx array.
   auto progress_idx =
@@ -356,7 +356,7 @@ void SkinnerScanSelectTranslator::Produce() {
     auto cardinality = materialized_buffer->Size();
     proxy::Int32 current_index_size(program_,
                                     program_.LoadI32(index_array_size));
-    proxy::If(
+    auto final_budget = proxy::Ternary(
         program_, current_index_size > 0,
         [&]() {
           index_bucket_array.InitSortedIntersection(next_tuple);
@@ -374,7 +374,9 @@ void SkinnerScanSelectTranslator::Produce() {
 
           auto result_initial_size =
               index_bucket_array.PopulateSortedIntersectionResult(
-                  result, result_max_size, index_array, current_index_size);
+                  result, result_max_size,
+                  program_.ConstGEP(index_array_type, index_array, {0, 0}),
+                  current_index_size);
 
           proxy::Loop loop(
               program_,
@@ -462,7 +464,10 @@ void SkinnerScanSelectTranslator::Produce() {
 
                             auto predicate =
                                 proxy::SkinnerScanSelectExecutor::GetFn(
-                                    program_, predicate_array, i);
+                                    program_,
+                                    program_.ConstGEP(predicate_array_type,
+                                                      predicate_array, {0, 0}),
+                                    i);
 
                             proxy::Bool value(program_,
                                               program_.Call(predicate, {}));
@@ -474,6 +479,7 @@ void SkinnerScanSelectTranslator::Produce() {
                           });
 
                       this->virtual_values_.SetValues(values);
+                      this->values_.ResetValues();
                       for (const auto& column :
                            scan_select_.Schema().Columns()) {
                         this->values_.AddVariable(
@@ -493,17 +499,18 @@ void SkinnerScanSelectTranslator::Produce() {
                     result_loop.template GetLoopVariable<proxy::Int32>(1);
                 auto next_result_size =
                     index_bucket_array.PopulateSortedIntersectionResult(
-                        result, result_max_size, index_array,
+                        result, result_max_size,
+                        program_.ConstGEP(index_array_type, index_array,
+                                          {0, 0}),
                         current_index_size);
                 return loop.Continue(next_budget, next_result_size);
               });
 
           auto final_budget = loop.template GetLoopVariable<proxy::Int32>(0);
           program_.StoreI32(progress_idx, cardinality.Get());
-          program_.Return(final_budget.Get());
+          return final_budget;
         },
         [&]() {
-          auto cardinality = materialized_buffer->Size();
           proxy::Loop loop(
               program_,
               [&](auto& loop) {
@@ -553,9 +560,13 @@ void SkinnerScanSelectTranslator::Produce() {
                       });
 
                       auto predicate = proxy::SkinnerScanSelectExecutor::GetFn(
-                          program_, predicate_array, i);
+                          program_,
+                          program_.ConstGEP(predicate_array_type,
+                                            predicate_array, {0, 0}),
+                          i);
 
                       proxy::Bool value(program_, program_.Call(predicate, {}));
+
                       proxy::If(program_, !value, [&]() {
                         loop.Continue(next_tuple + 1, budget);
                       });
@@ -564,6 +575,7 @@ void SkinnerScanSelectTranslator::Produce() {
                     });
 
                 this->virtual_values_.SetValues(values);
+                this->values_.ResetValues();
                 for (const auto& column : scan_select_.Schema().Columns()) {
                   this->values_.AddVariable(
                       expr_translator_.Compute(column.Expr()));
@@ -578,8 +590,10 @@ void SkinnerScanSelectTranslator::Produce() {
 
           auto final_budget = loop.template GetLoopVariable<proxy::Int32>(1);
           program_.StoreI32(progress_idx, cardinality.Get());
-          program_.Return(final_budget.Get());
+          return final_budget;
         });
+
+    program_.Return(final_budget.Get());
   });
 
   auto main_func_ptr = program_.GetFunctionPointer(main_func.Get());
@@ -594,10 +608,10 @@ void SkinnerScanSelectTranslator::Produce() {
       program_.ConstGEP(predicate_array_type, predicate_array, {0, 0});
 
   proxy::SkinnerScanSelectExecutor::ExecutePermutableScanSelect(
-      program_, index_evaluatable_predicates, main_func_ptr, index_array_ptr,
-      index_array_size, predicate_array_ptr, predicate_fns.size(), progress_idx);
+      program_, index_evaluatable_predicates_, main_func_ptr, index_array_ptr,
+      index_array_size, predicate_array_ptr, predicate_fns.size(),
+      progress_idx);
 
-  program_.Call(main_func.Get(), {});
   materialized_buffer->Reset();
 }
 

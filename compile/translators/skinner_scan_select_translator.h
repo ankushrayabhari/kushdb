@@ -31,6 +31,7 @@ class SkinnerScanSelectTranslator : public OperatorTranslator {
   const plan::SkinnerScanSelectOperator& scan_select_;
   khir::ProgramBuilder& program_;
   ExpressionTranslator expr_translator_;
+  std::vector<int> index_evaluatable_predicates_;
 };
 
 }  // namespace kush::compile

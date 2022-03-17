@@ -17,7 +17,7 @@ class SkinnerScanSelectExecutor {
  public:
   static void ExecutePermutableScanSelect(
       khir::ProgramBuilder& program,
-      absl::flat_hash_set<int>& index_executable_predicates,
+      std::vector<int>& index_executable_predicates,
       khir::Value main_func, khir::Value index_array,
       khir::Value index_array_size, khir::Value predicate_array,
       int num_predicates, khir::Value progress_idx);

@@ -547,8 +547,8 @@ void ExecutePermutableSkinnerScanSelect(
 }
 
 std::add_pointer<bool()>::type GetPredicateFn(
-    std::add_pointer<bool()>::type** preds, int idx) {
-  return preds[0][idx];
+    std::add_pointer<bool()>::type* preds, int idx) {
+  return preds[idx];
 }
 
 }  // namespace kush::runtime
