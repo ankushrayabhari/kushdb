@@ -19,8 +19,17 @@ ABSL_FLAG(int32_t, scan_select_budget_per_episode, 10000,
           "Scan/Select budget per episode");
 ABSL_FLAG(bool, scan_select_forget, false,
           "Scan/Select forget learned info periodically.");
+ABSL_FLAG(int64_t, scan_select_seed, 0, "Scan/Select seed.");
 
 namespace kush::runtime {
+
+int64_t GetScanSelectSeed() {
+  if (FLAGS_scan_select_seed.Get() > 0) {
+    return FLAGS_scan_select_seed.Get();
+  }
+
+  return std::chrono::system_clock::now().time_since_epoch().count();
+}
 
 struct PermutableScanSelectExecutionEngineFlags {
   int32_t* idx;
@@ -67,7 +76,7 @@ class PredicateOrderUCTNode {
         num_tries_per_action_(num_actions_, 0),
         acc_reward_per_action_(num_actions_, 0),
         predicate_per_action_(num_actions_),
-        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+        rng_(GetScanSelectSeed()) {
     evaluated_predicates_.insert(parent.evaluated_predicates_.begin(),
                                  parent.evaluated_predicates_.end());
     evaluated_predicates_.insert(predicate);
@@ -195,7 +204,7 @@ class IndexUCTNode {
         num_tries_per_action_(num_actions_, 0),
         acc_reward_per_action_(num_actions_, 0),
         predicate_per_action_(num_actions_),
-        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+        rng_(GetScanSelectSeed()) {
     // action 0 is not selecting index_predicates[0]
     // action 1 is selecting index_predicates[0]
     for (int i = 0; i < num_actions_; i++) {
@@ -215,7 +224,7 @@ class IndexUCTNode {
         num_tries_per_action_(num_actions_, 0),
         acc_reward_per_action_(num_actions_, 0),
         predicate_per_action_(num_actions_),
-        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+        rng_(GetScanSelectSeed()) {
     evaluated_predicates_.insert(parent.evaluated_predicates_.begin(),
                                  parent.evaluated_predicates_.end());
     if (selected) {
@@ -357,7 +366,7 @@ PredicateOrderUCTNode::PredicateOrderUCTNode(int round_ctr,
       num_tries_per_action_(num_actions_, 0),
       acc_reward_per_action_(num_actions_, 0),
       predicate_per_action_(num_actions_),
-      rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+      rng_(GetScanSelectSeed()) {
   evaluated_predicates_.insert(parent.evaluated_predicates_.begin(),
                                parent.evaluated_predicates_.end());
   int action = 0;

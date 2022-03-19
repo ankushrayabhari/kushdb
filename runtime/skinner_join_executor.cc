@@ -19,8 +19,17 @@
 
 ABSL_FLAG(int32_t, budget_per_episode, 10000, "Budget per episode");
 ABSL_FLAG(bool, forget, false, "Forget learned info periodically.");
+ABSL_FLAG(int64_t, join_seed, -1, "Join seed.");
 
 namespace kush::runtime {
+
+int64_t GetJoinSeed() {
+  if (FLAGS_join_seed.Get() > 0) {
+    return FLAGS_join_seed.Get();
+  }
+
+  return std::chrono::system_clock::now().time_since_epoch().count();
+}
 
 class JoinState {
  private:
@@ -557,7 +566,7 @@ class UctNode {
         num_tries_per_action_(num_actions_, 0),
         acc_reward_per_action_(num_actions_, 0),
         table_per_action_(num_actions_),
-        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+        rng_(GetJoinSeed()) {
     for (int i = 0; i < num_actions_; i++) {
       priority_actions_.push_back(i);
       recommended_actions_.insert(i);
@@ -582,7 +591,7 @@ class UctNode {
         joined_tables_(parent.joined_tables_),
         unjoined_tables_(parent.unjoined_tables_),
         table_per_action_(num_actions_),
-        rng_(std::chrono::system_clock::now().time_since_epoch().count()) {
+        rng_(GetJoinSeed()) {
     joined_tables_.insert(joined_table);
 
     auto it = std::find(unjoined_tables_.begin(), unjoined_tables_.end(),

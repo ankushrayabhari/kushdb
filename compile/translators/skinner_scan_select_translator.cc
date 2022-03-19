@@ -289,13 +289,15 @@ void SkinnerScanSelectTranslator::Produce() {
         auto left = &eq->LeftChild();
         auto right = &eq->RightChild();
 
-        if (auto r = dynamic_cast<const plan::ColumnRefExpression*>(right)) {
+        if (auto r =
+                dynamic_cast<const plan::VirtualColumnRefExpression*>(right)) {
           if (auto l = dynamic_cast<const plan::LiteralExpression*>(left)) {
             std::swap(left, right);
           }
         }
 
-        if (auto l = dynamic_cast<const plan::ColumnRefExpression*>(left)) {
+        if (auto l =
+                dynamic_cast<const plan::VirtualColumnRefExpression*>(left)) {
           if (auto r = dynamic_cast<const plan::LiteralExpression*>(right)) {
             if (HasIndex(l->GetColumnIdx())) {
               index_evaluatable_predicates_.push_back(i);
