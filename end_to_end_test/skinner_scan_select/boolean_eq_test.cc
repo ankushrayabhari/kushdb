@@ -37,7 +37,7 @@ using namespace std::literals;
 
 class SelectTest : public testing::TestWithParam<ParameterValues> {};
 
-TEST_P(SelectTest, TextCol) {
+TEST_P(SelectTest, BooleanEqTest) {
   SetFlags(GetParam());
 
   auto db = Schema();
@@ -45,29 +45,30 @@ TEST_P(SelectTest, TextCol) {
   std::unique_ptr<Operator> query;
   {
     OperatorSchema scan_schema;
-    scan_schema.AddGeneratedColumns(db["people"], {"name"});
+    scan_schema.AddGeneratedColumns(db["info"], {"cheated"});
 
-    std::unique_ptr<Expression> filter =
-        Gt(VirtColRef(
-               scan_schema.Columns()[scan_schema.GetColumnIndex("name")].Expr(),
-               0),
-           Literal("M"sv));
+    std::unique_ptr<Expression> filter = Eq(
+        VirtColRef(
+            scan_schema.Columns()[scan_schema.GetColumnIndex("cheated")].Expr(),
+            0),
+        Literal(true));
 
     // output
     OperatorSchema schema;
     schema.AddDerivedColumn(
-        "name",
+        "cheated",
         VirtColRef(
-            scan_schema.Columns()[scan_schema.GetColumnIndex("name")].Expr(),
+            scan_schema.Columns()[scan_schema.GetColumnIndex("cheated")].Expr(),
             0));
 
     query = std::make_unique<OutputOperator>(
         std::make_unique<SkinnerScanSelectOperator>(
-            std::move(schema), std::move(scan_schema), db["people"],
+            std::move(schema), std::move(scan_schema), db["info"],
             util::MakeVector(std::move(filter))));
   }
 
-  auto expected_file = "end_to_end_test/skinner_scan_select/text_expected.tbl";
+  auto expected_file =
+      "end_to_end_test/skinner_scan_select/boolean_eq_expected.tbl";
   auto output_file = ExecuteAndCapture(*query);
 
   auto expected = GetFileContents(expected_file);
