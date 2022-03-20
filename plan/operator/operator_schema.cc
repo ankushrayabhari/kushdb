@@ -13,6 +13,7 @@
 #include "nlohmann/json.hpp"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/expression.h"
+#include "plan/expression/virtual_column_ref_expression.h"
 
 namespace kush::plan {
 
@@ -80,6 +81,18 @@ void OperatorSchema::AddPassthroughColumns(
     auto nullable = col.Expr().Nullable();
     AddDerivedColumn(name, std::make_unique<ColumnRefExpression>(
                                type, nullable, child_idx, idx));
+  }
+}
+
+void OperatorSchema::AddVirtualPassthroughColumns(
+    const OperatorSchema& schema, const std::vector<std::string>& columns) {
+  for (const auto& name : columns) {
+    auto idx = schema.GetColumnIndex(name);
+    const auto& col = schema.Columns()[idx];
+    auto type = col.Expr().Type();
+    auto nullable = col.Expr().Nullable();
+    AddDerivedColumn(name, std::make_unique<VirtualColumnRefExpression>(
+                               type, nullable, idx));
   }
 }
 

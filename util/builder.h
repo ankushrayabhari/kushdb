@@ -60,6 +60,18 @@ std::unique_ptr<kush::plan::VirtualColumnRefExpression> VirtColRef(
       expr.Type(), expr.Nullable(), idx);
 }
 
+std::unique_ptr<kush::plan::VirtualColumnRefExpression> VirtColRef(
+    const plan::OperatorSchema& schema, std::string_view col) {
+  int idx = schema.GetColumnIndex(col);
+  const auto& cols = schema.Columns();
+  return VirtColRef(cols[idx].Expr(), idx);
+}
+
+template <typename T>
+std::unique_ptr<kush::plan::Expression> Exp(T t) {
+  return t;
+}
+
 template <typename T>
 std::unique_ptr<kush::plan::LiteralExpression> Literal(T t) {
   return std::make_unique<kush::plan::LiteralExpression>(t);
