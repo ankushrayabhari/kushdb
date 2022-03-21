@@ -47,20 +47,10 @@ TEST_P(SelectTest, BooleanEqTest) {
     OperatorSchema scan_schema;
     scan_schema.AddGeneratedColumns(db["info"], {"cheated"});
 
-    std::unique_ptr<Expression> filter = Eq(
-        VirtColRef(
-            scan_schema.Columns()[scan_schema.GetColumnIndex("cheated")].Expr(),
-            0),
-        Literal(true));
+    auto filter = Exp(Eq(VirtColRef(scan_schema, "cheated"), Literal(true)));
 
-    // output
     OperatorSchema schema;
-    schema.AddDerivedColumn(
-        "cheated",
-        VirtColRef(
-            scan_schema.Columns()[scan_schema.GetColumnIndex("cheated")].Expr(),
-            0));
-
+    schema.AddVirtualPassthroughColumns(scan_schema, {"cheated"});
     query = std::make_unique<OutputOperator>(
         std::make_unique<SkinnerScanSelectOperator>(
             std::move(schema), std::move(scan_schema), db["info"],

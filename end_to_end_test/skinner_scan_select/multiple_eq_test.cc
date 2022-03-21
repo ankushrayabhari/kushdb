@@ -47,31 +47,13 @@ TEST_P(SelectTest, MultipleEqTest) {
     OperatorSchema scan_schema;
     scan_schema.AddGeneratedColumns(db["info"], {"cheated", "date"});
 
-    std::unique_ptr<Expression> filter1 = Eq(
-        VirtColRef(
-            scan_schema.Columns()[scan_schema.GetColumnIndex("cheated")].Expr(),
-            0),
-        Literal(true));
+    auto filter1 = Exp(Eq(VirtColRef(scan_schema, "cheated"), Literal(true)));
 
-    std::unique_ptr<Expression> filter2 =
-        Eq(VirtColRef(
-               scan_schema.Columns()[scan_schema.GetColumnIndex("date")].Expr(),
-               1),
-           Literal(absl::CivilDay(2021, 1, 29)));
+    auto filter2 = Exp(Eq(VirtColRef(scan_schema, "date"),
+                          Literal(absl::CivilDay(2021, 1, 29))));
 
-    // output
     OperatorSchema schema;
-    schema.AddDerivedColumn(
-        "cheated",
-        VirtColRef(
-            scan_schema.Columns()[scan_schema.GetColumnIndex("cheated")].Expr(),
-            0));
-    schema.AddDerivedColumn(
-        "date",
-        VirtColRef(
-            scan_schema.Columns()[scan_schema.GetColumnIndex("date")].Expr(),
-            1));
-
+    schema.AddVirtualPassthroughColumns(scan_schema, {"cheated", "date"});
     query = std::make_unique<OutputOperator>(
         std::make_unique<SkinnerScanSelectOperator>(
             std::move(schema), std::move(scan_schema), db["info"],

@@ -48,21 +48,10 @@ TEST_P(SelectTest, IntCol) {
     scan_schema.AddGeneratedColumns(db["customer"], {"c_custkey"});
 
     std::unique_ptr<Expression> filter =
-        Eq(VirtColRef(
-               scan_schema.Columns()[scan_schema.GetColumnIndex("c_custkey")]
-                   .Expr(),
-               0),
-           Literal(555));
+        Eq(VirtColRef(scan_schema, "c_custkey"), Literal(555));
 
-    // output
     OperatorSchema schema;
-    schema.AddDerivedColumn(
-        "c_custkey",
-        VirtColRef(
-            scan_schema.Columns()[scan_schema.GetColumnIndex("c_custkey")]
-                .Expr(),
-            0));
-
+    schema.AddVirtualPassthroughColumns(scan_schema, {"c_custkey"});
     query = std::make_unique<OutputOperator>(
         std::make_unique<SkinnerScanSelectOperator>(
             std::move(schema), std::move(scan_schema), db["customer"],

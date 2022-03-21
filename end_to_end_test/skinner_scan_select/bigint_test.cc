@@ -47,18 +47,10 @@ TEST_P(SelectTest, BigIntCol) {
     OperatorSchema scan_schema;
     scan_schema.AddGeneratedColumns(db["info"], {"num2"});
 
-    std::unique_ptr<Expression> filter =
-        Gt(VirtColRef(
-               scan_schema.Columns()[scan_schema.GetColumnIndex("num2")].Expr(),
-               0),
-           Literal(INT64_C(0)));
+    auto filter = Exp(Gt(VirtColRef(scan_schema, "num2"), Literal(INT64_C(0))));
 
     OperatorSchema schema;
-    schema.AddDerivedColumn(
-        "num2",
-        VirtColRef(
-            scan_schema.Columns()[scan_schema.GetColumnIndex("num2")].Expr(),
-            0));
+    schema.AddVirtualPassthroughColumns(scan_schema, {"num2"});
     query = std::make_unique<OutputOperator>(
         std::make_unique<SkinnerScanSelectOperator>(
             std::move(schema), std::move(scan_schema), db["info"],

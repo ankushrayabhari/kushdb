@@ -47,19 +47,11 @@ TEST_P(SelectTest, DateCol) {
     OperatorSchema scan_schema;
     scan_schema.AddGeneratedColumns(db["info"], {"date"});
 
-    std::unique_ptr<Expression> filter = Geq(
-        VirtColRef(
-            scan_schema.Columns()[scan_schema.GetColumnIndex("date")].Expr(),
-            0),
-        Literal(absl::CivilDay(2021, 1, 1)));
+    auto filter = Exp(Geq(VirtColRef(scan_schema, "date"),
+                          Literal(absl::CivilDay(2021, 1, 1))));
 
-    // output
     OperatorSchema schema;
-    schema.AddDerivedColumn(
-        "date",
-        VirtColRef(
-            scan_schema.Columns()[scan_schema.GetColumnIndex("date")].Expr(),
-            0));
+    schema.AddDerivedColumn("date", VirtColRef(scan_schema, "date"));
     query = std::make_unique<OutputOperator>(
         std::make_unique<SkinnerScanSelectOperator>(
             std::move(schema), std::move(scan_schema), db["info"],
