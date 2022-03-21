@@ -85,6 +85,18 @@ void OperatorSchema::AddPassthroughColumns(
 }
 
 void OperatorSchema::AddVirtualPassthroughColumns(
+    const OperatorSchema& schema) {
+  for (const auto& col : schema.Columns()) {
+    auto type = col.Expr().Type();
+    auto nullable = col.Expr().Nullable();
+    auto name = col.Name();
+    auto idx = schema.GetColumnIndex(name);
+    AddDerivedColumn(name, std::make_unique<VirtualColumnRefExpression>(
+                               type, nullable, idx));
+  }
+}
+
+void OperatorSchema::AddVirtualPassthroughColumns(
     const OperatorSchema& schema, const std::vector<std::string>& columns) {
   for (const auto& name : columns) {
     auto idx = schema.GetColumnIndex(name);

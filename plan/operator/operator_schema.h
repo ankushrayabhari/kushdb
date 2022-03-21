@@ -47,6 +47,7 @@ class OperatorSchema {
   void AddPassthroughColumn(const OperatorSchemaProvider& op,
                             std::string_view base_name,
                             std::string_view derived_name, int child_idx = 0);
+  void AddVirtualPassthroughColumns(const OperatorSchema& schema);
   void AddVirtualPassthroughColumns(const OperatorSchema& schema,
                                     const std::vector<std::string>& columns);
 

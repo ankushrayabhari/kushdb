@@ -25,6 +25,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/test_util.h"
 
@@ -36,40 +37,29 @@ using namespace kush::catalog;
 
 const Database db = Schema();
 
-// Scan(lineitem)
-std::unique_ptr<Operator> ScanLineitem() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["lineitem"], {"l_extendedprice", "l_discount",
-                                              "l_shipdate", "l_quantity"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
-}
-
 // Select(l_shipdate >= '1993-01-01' AND l_shipdate < '1994-01-01' AND
 // l_discount  >= 0.02 AND l_discount <= 0.04 AND l_quantity < 25)
 std::unique_ptr<Operator> SelectLineitem() {
-  auto lineitem = ScanLineitem();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(
+      db["lineitem"],
+      {"l_extendedprice", "l_discount", "l_shipdate", "l_quantity"});
 
-  std::unique_ptr<Expression> cond;
-  {
-    std::unique_ptr<Expression> p1 = Geq(ColRef(lineitem, "l_shipdate"),
-                                         Literal(absl::CivilDay(1993, 1, 1)));
-    std::unique_ptr<Expression> p2 =
-        Lt(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1994, 1, 1)));
-    std::unique_ptr<Expression> p3 =
-        Geq(ColRef(lineitem, "l_discount"), Literal(0.02));
-    std::unique_ptr<Expression> p4 =
-        Leq(ColRef(lineitem, "l_discount"), Literal(0.04));
-    std::unique_ptr<Expression> p5 =
-        Lt(ColRef(lineitem, "l_quantity"), Literal(25.0));
-
-    cond = And(util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
-                                std::move(p4), std::move(p5)));
-  }
+  auto p1 = Exp(Geq(VirtColRef(scan_schema, "l_shipdate"),
+                    Literal(absl::CivilDay(1993, 1, 1))));
+  auto p2 = Exp(Lt(VirtColRef(scan_schema, "l_shipdate"),
+                   Literal(absl::CivilDay(1994, 1, 1))));
+  auto p3 = Exp(Geq(VirtColRef(scan_schema, "l_discount"), Literal(0.02)));
+  auto p4 = Exp(Leq(VirtColRef(scan_schema, "l_discount"), Literal(0.04)));
+  auto p5 = Exp(Lt(VirtColRef(scan_schema, "l_quantity"), Literal(25.0)));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*lineitem, {"l_extendedprice", "l_discount"});
-  return std::make_unique<SelectOperator>(std::move(schema),
-                                          std::move(lineitem), std::move(cond));
+  schema.AddVirtualPassthroughColumns(scan_schema,
+                                      {"l_extendedprice", "l_discount"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["lineitem"],
+      util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
+                       std::move(p4), std::move(p5)));
 }
 
 // Agg
