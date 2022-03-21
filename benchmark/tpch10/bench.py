@@ -33,7 +33,7 @@ def bench(database, flags):
                 print(database, 'TPC-H SF10', query_num, t, sep=',')
 
 if __name__ == "__main__":
-    bench('kushdb ASM (Skinner Join Permutable)', ['--backend=asm', '--skinner=permute'])
-    bench('kushdb ASM (Skinner Join Recompiling)', ['--backend=asm', '--skinner=recompile'])
-    bench('kushdb LLVM (Skinner Join Permutable)', ['--backend=llvm', '--skinner=permute'])
-    bench('kushdb LLVM (Skinner Join Recompiling)', ['--backend=llvm', '--skinner=recompile'])
+    bench('kushdb ASM (Skinner Join Permutable)', ['--backend=asm', '--skinner_join=permute'])
+    bench('kushdb ASM (Skinner Join Recompiling)', ['--backend=asm', '--skinner_join=recompile'])
+    bench('kushdb LLVM (Skinner Join Permutable)', ['--backend=llvm', '--skinner_join=permute'])
+    bench('kushdb LLVM (Skinner Join Recompiling)', ['--backend=llvm', '--skinner_join=recompile'])

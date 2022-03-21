@@ -1,4 +1,4 @@
-#include "compile/translators/skinner_scan_select_translator.h"
+#include "compile/translators/permutable_skinner_scan_select_translator.h"
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
@@ -67,7 +67,7 @@ class BaseFunction {
 };
 int BaseFunction::funcid_ = 0;
 
-SkinnerScanSelectTranslator::SkinnerScanSelectTranslator(
+PermutableSkinnerScanSelectTranslator::PermutableSkinnerScanSelectTranslator(
     const plan::SkinnerScanSelectOperator& scan_select,
     khir::ProgramBuilder& program)
     : OperatorTranslator(scan_select, {}),
@@ -76,7 +76,7 @@ SkinnerScanSelectTranslator::SkinnerScanSelectTranslator(
       expr_translator_(program, *this) {}
 
 std::unique_ptr<proxy::DiskMaterializedBuffer>
-SkinnerScanSelectTranslator::GenerateBuffer() {
+PermutableSkinnerScanSelectTranslator::GenerateBuffer() {
   const auto& table = scan_select_.Relation();
   const auto& cols = scan_select_.ScanSchema().Columns();
   auto num_cols = cols.size();
@@ -135,14 +135,15 @@ SkinnerScanSelectTranslator::GenerateBuffer() {
       program_, std::move(column_data), std::move(null_data));
 }
 
-bool SkinnerScanSelectTranslator::HasIndex(int col_idx) const {
+bool PermutableSkinnerScanSelectTranslator::HasIndex(int col_idx) const {
   const auto& table = scan_select_.Relation();
   const auto& cols = scan_select_.ScanSchema().Columns();
   auto col_name = cols[col_idx].Name();
   return table[col_name].HasIndex();
 }
 
-std::unique_ptr<proxy::ColumnIndex> SkinnerScanSelectTranslator::GenerateIndex(
+std::unique_ptr<proxy::ColumnIndex>
+PermutableSkinnerScanSelectTranslator::GenerateIndex(
     khir::ProgramBuilder& program, int col_idx) {
   const auto& table = scan_select_.Relation();
   const auto& cols = scan_select_.ScanSchema().Columns();
@@ -175,7 +176,7 @@ std::unique_ptr<proxy::ColumnIndex> SkinnerScanSelectTranslator::GenerateIndex(
   }
 }
 
-void SkinnerScanSelectTranslator::Produce() {
+void PermutableSkinnerScanSelectTranslator::Produce() {
   const auto& scan_schema_columns = scan_select_.ScanSchema().Columns();
   auto conditions = scan_select_.Filters();
 
@@ -618,7 +619,7 @@ void SkinnerScanSelectTranslator::Produce() {
   materialized_buffer->Reset();
 }
 
-void SkinnerScanSelectTranslator::Consume(OperatorTranslator& src) {
+void PermutableSkinnerScanSelectTranslator::Consume(OperatorTranslator& src) {
   throw std::runtime_error("Scan cannot consume tuples - leaf operator");
 }
 

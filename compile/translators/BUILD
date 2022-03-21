@@ -79,9 +79,31 @@ cc_library(
 )
 
 cc_library(
-    name = "skinner_scan_select_translator",
-    srcs = ["skinner_scan_select_translator.cc"],
-    hdrs = ["skinner_scan_select_translator.h"],
+    name = "none_skinner_scan_select_translator",
+    srcs = ["none_skinner_scan_select_translator.cc"],
+    hdrs = ["none_skinner_scan_select_translator.h"],
+    deps = [
+        ":expression_translator",
+        ":operator_translator",
+        ":predicate_column_collector",
+        "//catalog:sql_type",
+        "//compile/proxy:column_data",
+        "//compile/proxy:column_index",
+        "//compile/proxy:materialized_buffer",
+        "//compile/proxy:skinner_scan_select_executor",
+        "//compile/proxy/control_flow:if",
+        "//compile/proxy/control_flow:loop",
+        "//khir:program_builder",
+        "//plan/operator:skinner_scan_select_operator",
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/container:flat_hash_set",
+    ],
+)
+
+cc_library(
+    name = "permutable_skinner_scan_select_translator",
+    srcs = ["permutable_skinner_scan_select_translator.cc"],
+    hdrs = ["permutable_skinner_scan_select_translator.h"],
     deps = [
         ":expression_translator",
         ":operator_translator",
@@ -275,14 +297,15 @@ cc_library(
         ":cross_product_translator",
         ":group_by_aggregate_translator",
         ":hash_join_translator",
+        ":none_skinner_scan_select_translator",
         ":operator_translator",
         ":order_by_translator",
         ":output_translator",
         ":permutable_skinner_join_translator",
+        ":permutable_skinner_scan_select_translator",
         ":recompiling_skinner_join_translator",
         ":scan_translator",
         ":select_translator",
-        ":skinner_scan_select_translator",
         "//compile/proxy:hash_table",
         "//compile/proxy:vector",
         "//execution:pipeline",

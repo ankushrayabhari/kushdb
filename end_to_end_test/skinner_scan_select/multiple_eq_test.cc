@@ -72,131 +72,302 @@ TEST_P(SelectTest, MultipleEqTest) {
   EXPECT_EQ(output, expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed1, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed1_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "stack_spill",
                              .scan_select_seed = 1337,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed2, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed2_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "stack_spill",
                              .scan_select_seed = 100,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed3, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed3_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "stack_spill",
                              .scan_select_seed = 420,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed1, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed1_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "linear_scan",
                              .scan_select_seed = 1337,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed2, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed2_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "linear_scan",
                              .scan_select_seed = 420,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed3, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed3_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "linear_scan",
                              .scan_select_seed = 100,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed1, SelectTest,
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed1_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "llvm",
                              .scan_select_seed = 1337,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed2, SelectTest,
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed2_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "llvm",
                              .scan_select_seed = 420,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed3, SelectTest,
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed3_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "llvm",
                              .scan_select_seed = 100,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed1_LowBudget, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed1_LowBudget_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "stack_spill",
                              .scan_select_seed = 1337,
                              .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed2_LowBudget, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed2_LowBudget_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "stack_spill",
                              .scan_select_seed = 100,
                              .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed3_LowBudget, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed3_LowBudget_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "stack_spill",
                              .scan_select_seed = 420,
                              .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed1_LowBudget, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed1_LowBudget_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "linear_scan",
                              .scan_select_seed = 1337,
                              .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed2_LowBudget, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed2_LowBudget_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "linear_scan",
                              .scan_select_seed = 420,
                              .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed3_LowBudget, SelectTest,
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed3_LowBudget_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
                              .reg_alloc = "linear_scan",
                              .scan_select_seed = 100,
                              .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed1_LowBudget, SelectTest,
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed1_LowBudget_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "llvm",
                              .scan_select_seed = 1337,
                              .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed2_LowBudget, SelectTest,
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed2_LowBudget_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "llvm",
                              .scan_select_seed = 420,
                              .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "none",
                          }));
 
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed3_LowBudget, SelectTest,
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed3_LowBudget_None, SelectTest,
                          testing::Values(ParameterValues{
                              .backend = "llvm",
                              .scan_select_seed = 100,
                              .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "none",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed1_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "stack_spill",
+                             .scan_select_seed = 1337,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed2_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "stack_spill",
+                             .scan_select_seed = 100,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed3_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "stack_spill",
+                             .scan_select_seed = 420,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed1_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
+                             .scan_select_seed = 1337,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed2_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
+                             .scan_select_seed = 420,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed3_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
+                             .scan_select_seed = 100,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed1_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "llvm",
+                             .scan_select_seed = 1337,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed2_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "llvm",
+                             .scan_select_seed = 420,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed3_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "llvm",
+                             .scan_select_seed = 100,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed1_LowBudget_Permute,
+                         SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "stack_spill",
+                             .scan_select_seed = 1337,
+                             .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed2_LowBudget_Permute,
+                         SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "stack_spill",
+                             .scan_select_seed = 100,
+                             .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Seed3_LowBudget_Permute,
+                         SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "stack_spill",
+                             .scan_select_seed = 420,
+                             .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed1_LowBudget_Permute,
+                         SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
+                             .scan_select_seed = 1337,
+                             .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed2_LowBudget_Permute,
+                         SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
+                             .scan_select_seed = 420,
+                             .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Seed3_LowBudget_Permute,
+                         SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "asm",
+                             .reg_alloc = "linear_scan",
+                             .scan_select_seed = 100,
+                             .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed1_LowBudget_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "llvm",
+                             .scan_select_seed = 1337,
+                             .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed2_LowBudget_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "llvm",
+                             .scan_select_seed = 420,
+                             .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "permute",
+                         }));
+
+INSTANTIATE_TEST_SUITE_P(LLVMBackend_Seed3_LowBudget_Permute, SelectTest,
+                         testing::Values(ParameterValues{
+                             .backend = "llvm",
+                             .scan_select_seed = 100,
+                             .scan_select_budget_per_episode = 5,
+                             .skinner_scan_select = "permute",
                          }));

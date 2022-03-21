@@ -24,6 +24,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -37,22 +38,19 @@ using namespace std::literals;
 
 const Database db = Schema();
 
-// Scan(region)
-std::unique_ptr<Operator> ScanRegion() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["region"], {"r_regionkey", "r_name"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["region"]);
-}
-
 // Select(r_name = 'MIDDLE EAST')
 std::unique_ptr<Operator> SelectRegion() {
-  auto region = ScanRegion();
-  auto eq = Eq(ColRef(region, "r_name"), Literal("MIDDLE EAST"sv));
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(db["region"], {"r_regionkey", "r_name"});
+
+  auto eq =
+      Exp(Eq(VirtColRef(scan_schema, "r_name"), Literal("MIDDLE EAST"sv)));
 
   OperatorSchema schema;
-  schema.AddGeneratedColumns(db["region"], {"r_regionkey"});
-  return std::make_unique<SelectOperator>(std::move(schema), std::move(region),
-                                          std::move(eq));
+  schema.AddVirtualPassthroughColumns(scan_schema, {"r_regionkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["region"],
+      util::MakeVector(std::move(eq)));
 }
 
 // Scan(nation)
@@ -72,31 +70,22 @@ std::unique_ptr<Operator> ScanSupplier() {
   return std::make_unique<ScanOperator>(std::move(schema), db["supplier"]);
 }
 
-// Scan(part)
-std::unique_ptr<Operator> ScanPart() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["part"],
-                             {"p_partkey", "p_mfgr", "p_size", "p_type"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
-}
-
-// Select(p_size = 38 and p_type ENDS WITH 'TIN')
+// Select(p_size = 35 and p_type ENDS WITH 'TIN')
 std::unique_ptr<Operator> SelectPart() {
-  auto part = ScanPart();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(db["part"],
+                                  {"p_partkey", "p_mfgr", "p_size", "p_type"});
 
-  std::unique_ptr<Expression> cond;
-  {
-    std::unique_ptr<Expression> ends_with =
-        EndsWith(ColRef(part, "p_type"), Literal("TIN"sv));
-    std::unique_ptr<Expression> eq = Eq(ColRef(part, "p_size"), Literal(35));
-    cond = And(util::MakeVector(std::move(eq), std::move(ends_with)));
-  }
+  auto ends_with =
+      Exp(EndsWith(VirtColRef(scan_schema, "p_type"), Literal("TIN"sv)));
+  auto eq = Exp(Eq(VirtColRef(scan_schema, "p_size"), Literal(35)));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*part, {"p_partkey", "p_mfgr"});
+  schema.AddVirtualPassthroughColumns(scan_schema, {"p_partkey", "p_mfgr"});
 
-  return std::make_unique<SelectOperator>(std::move(schema), std::move(part),
-                                          std::move(cond));
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["part"],
+      util::MakeVector(std::move(eq), std::move(ends_with)));
 }
 
 // Scan(partsupp)

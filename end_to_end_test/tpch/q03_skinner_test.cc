@@ -38,7 +38,7 @@ using namespace std::literals;
 
 const Database db = Schema();
 
-// Select(c_mktsegment = 'FURNITURE')
+// Select(c_mktsegment = 'AUTOMOBILE')
 std::unique_ptr<Operator> SelectCustomer() {
   OperatorSchema scan_schema;
   scan_schema.AddGeneratedColumns(db["customer"],

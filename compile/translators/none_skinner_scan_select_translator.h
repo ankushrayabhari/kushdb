@@ -12,21 +12,18 @@
 
 namespace kush::compile {
 
-class SkinnerScanSelectTranslator : public OperatorTranslator {
+class NoneSkinnerScanSelectTranslator : public OperatorTranslator {
  public:
-  SkinnerScanSelectTranslator(
+  NoneSkinnerScanSelectTranslator(
       const plan::SkinnerScanSelectOperator& scan_select,
       khir::ProgramBuilder& program);
-  virtual ~SkinnerScanSelectTranslator() = default;
+  virtual ~NoneSkinnerScanSelectTranslator() = default;
 
   void Produce() override;
   void Consume(OperatorTranslator& src) override;
 
  private:
   std::unique_ptr<proxy::DiskMaterializedBuffer> GenerateBuffer();
-  bool HasIndex(int col_idx) const;
-  std::unique_ptr<proxy::ColumnIndex> GenerateIndex(
-      khir::ProgramBuilder& program, int col_idx);
 
   const plan::SkinnerScanSelectOperator& scan_select_;
   khir::ProgramBuilder& program_;

@@ -240,7 +240,7 @@ TEST_P(TPCHTest, Q02Skinner) {
   EXPECT_TRUE(
       CHECK_EQ_TBL(expected, output, query->Child().Schema().Columns()));
 }
-/*
+
 INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Recompile_HighBudget, TPCHTest,
                          testing::Values(ParameterValues{
                              .backend = "asm",
@@ -312,7 +312,7 @@ INSTANTIATE_TEST_SUITE_P(
     LLVMBackend_Recompile_LowBudget, TPCHTest,
     testing::Values(ParameterValues{
         .backend = "llvm", .skinner = "recompile", .budget_per_episode = 10}));
-*/
+
 INSTANTIATE_TEST_SUITE_P(LLVMBackend_Permute_LowBudget, TPCHTest,
                          testing::Values(ParameterValues{
                              .backend = "llvm",

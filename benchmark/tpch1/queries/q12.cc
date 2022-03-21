@@ -25,6 +25,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -38,45 +39,35 @@ using namespace std::literals;
 
 const Database db = Schema();
 
-// Scan(lineitem)
-std::unique_ptr<Operator> ScanLineitem() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["lineitem"],
-                             {"l_shipmode", "l_commitdate", "l_shipdate",
-                              "l_receiptdate", "l_orderkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
-}
-
 // Select((l_shipmode = 'RAIL' OR l_shipmode = 'MAIL') AND l_commitdate <
 // l_receiptdate AND l_shipdate < l_commitdate AND l_receiptdate >=
 // '1994-01-01' and l_receiptdate < '1995-01-01')
 std::unique_ptr<Operator> SelectLineitem() {
-  auto lineitem = ScanLineitem();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(db["lineitem"],
+                                  {"l_shipmode", "l_commitdate", "l_shipdate",
+                                   "l_receiptdate", "l_orderkey"});
 
-  std::unique_ptr<Expression> p1 =
-      Eq(ColRef(lineitem, "l_shipmode"), Literal("RAIL"sv));
-  std::unique_ptr<Expression> p2 =
-      Eq(ColRef(lineitem, "l_shipmode"), Literal("MAIL"sv));
-  std::unique_ptr<Expression> or_expr =
-      Or(util::MakeVector(std::move(p1), std::move(p2)));
+  auto or_1 = Exp(Eq(VirtColRef(scan_schema, "l_shipmode"), Literal("RAIL"sv)));
+  auto or_2 = Exp(Eq(VirtColRef(scan_schema, "l_shipmode"), Literal("MAIL"sv)));
+  auto p1 = Exp(Or(util::MakeVector(std::move(or_1), std::move(or_2))));
 
-  std::unique_ptr<Expression> p3 =
-      Lt(ColRef(lineitem, "l_commitdate"), ColRef(lineitem, "l_receiptdate"));
-  std::unique_ptr<Expression> p4 =
-      Lt(ColRef(lineitem, "l_shipdate"), ColRef(lineitem, "l_commitdate"));
-  std::unique_ptr<Expression> p5 = Geq(ColRef(lineitem, "l_receiptdate"),
-                                       Literal(absl::CivilDay(1994, 1, 1)));
-  std::unique_ptr<Expression> p6 = Lt(ColRef(lineitem, "l_receiptdate"),
-                                      Literal(absl::CivilDay(1995, 1, 1)));
-
-  auto cond =
-      And(util::MakeVector(std::move(or_expr), std::move(p3), std::move(p4),
-                           std::move(p5), std::move(p6)));
+  auto p2 = Exp(Lt(VirtColRef(scan_schema, "l_commitdate"),
+                   VirtColRef(scan_schema, "l_receiptdate")));
+  auto p3 = Exp(Lt(VirtColRef(scan_schema, "l_shipdate"),
+                   VirtColRef(scan_schema, "l_commitdate")));
+  auto p4 = Exp(Geq(VirtColRef(scan_schema, "l_receiptdate"),
+                    Literal(absl::CivilDay(1994, 1, 1))));
+  auto p5 = Exp(Lt(VirtColRef(scan_schema, "l_receiptdate"),
+                   Literal(absl::CivilDay(1995, 1, 1))));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*lineitem, {"l_shipmode", "l_orderkey"});
-  return std::make_unique<SelectOperator>(std::move(schema),
-                                          std::move(lineitem), std::move(cond));
+  schema.AddVirtualPassthroughColumns(scan_schema,
+                                      {"l_shipmode", "l_orderkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["lineitem"],
+      util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
+                       std::move(p4), std::move(p5)));
 }
 
 // Scan(orders)
