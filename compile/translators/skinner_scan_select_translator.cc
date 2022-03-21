@@ -319,6 +319,7 @@ void SkinnerScanSelectTranslator::Produce() {
     auto literal =
         expr_translator_.Compute(*index_predicate_to_literal_values[i]);
     auto bucket = index_predicate_to_column_index[i]->GetBucket(literal.Get());
+    proxy::If(program_, bucket.DoesNotExist(), [&]() { program_.Return(); });
     index_bucket_array.PushBack(bucket);
   }
 
@@ -474,7 +475,7 @@ void SkinnerScanSelectTranslator::Produce() {
                             proxy::Bool value(program_,
                                               program_.Call(predicate, {}));
                             proxy::If(program_, !value, [&]() {
-                              result_loop.Continue(next_tuple + 1, budget);
+                              result_loop.Continue(bucket_idx + 1, budget);
                             });
 
                             return inner_loop.Continue(i + 1, budget);

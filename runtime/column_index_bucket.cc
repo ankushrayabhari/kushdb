@@ -56,7 +56,7 @@ int32_t BucketListSortedIntersectionPopulateResultFilter(
     int index_filter_size) {
   ColumnIndexBucket* filtered_buckets[index_filter_size];
   for (int i = 0; i < index_filter_size; i++) {
-    filtered_buckets[i] = &bucket_list[i];
+    filtered_buckets[i] = &bucket_list[index_filter[i]];
   }
 
   return BucketListSortedIntersectionPopulateResult(
