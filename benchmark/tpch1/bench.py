@@ -33,7 +33,11 @@ def bench(database, flags):
                 print(database, 'TPC-H SF1', query_num, t, sep=',')
 
 if __name__ == "__main__":
-    bench('kushdb ASM (Skinner Join Permutable)', ['--backend=asm', '--skinner_join=permute'])
-    bench('kushdb ASM (Skinner Join Recompiling)', ['--backend=asm', '--skinner_join=recompile'])
-    bench('kushdb LLVM (Skinner Join Permutable)', ['--backend=llvm', '--skinner_join=permute'])
-    bench('kushdb LLVM (Skinner Join Recompiling)', ['--backend=llvm', '--skinner_join=recompile'])
+    bench('kushdb ASM (Skinner Join Permute)', ['--backend=asm', '--skinner_join=permute', '--skinner_scan_select=none'])
+    bench('kushdb ASM (Skinner Join Recompile)', ['--backend=asm', '--skinner_join=recompile', '--skinner_scan_select=none'])
+    bench('kushdb LLVM (Skinner Join Permute)', ['--backend=llvm', '--skinner_join=permute', '--skinner_scan_select=none'])
+    bench('kushdb LLVM (Skinner Join Recompile)', ['--backend=llvm', '--skinner_join=recompile', '--skinner_scan_select=none'])
+    bench('kushdb ASM (Skinner Join Permute | Scan/Select Permute)', ['--backend=asm', '--skinner_join=permute', '--skinner_scan_select=permute'])
+    bench('kushdb ASM (Skinner Join Recompile | Scan/Select Permute)', ['--backend=asm', '--skinner_join=recompile', '--skinner_scan_select=permute'])
+    bench('kushdb LLVM (Skinner Join Permute | Scan/Select Permute)', ['--backend=llvm', '--skinner_join=permute', '--skinner_scan_select=permute'])
+    bench('kushdb LLVM (Skinner Join Recompile | Scan/Select Permute)', ['--backend=llvm', '--skinner_join=recompile', '--skinner_scan_select=permute'])
