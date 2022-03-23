@@ -24,6 +24,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -37,31 +38,22 @@ using namespace std::literals;
 
 const Database db = Schema();
 
-// Scan(orders)
-std::unique_ptr<Operator> ScanOrders() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["orders"],
-                             {"o_custkey", "o_orderkey", "o_orderdate"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["orders"]);
-}
-
 // Select(o_orderdate >= '1994-02-01' and o_orderdate < '1994-05-01')
 std::unique_ptr<Operator> SelectOrders() {
-  auto scan_orders = ScanOrders();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(db["orders"],
+                                  {"o_custkey", "o_orderkey", "o_orderdate"});
 
-  std::unique_ptr<Expression> cond;
-  {
-    std::unique_ptr<Expression> geq = Geq(ColRef(scan_orders, "o_orderdate"),
-                                          Literal(absl::CivilDay(1994, 2, 1)));
-    std::unique_ptr<Expression> lt = Lt(ColRef(scan_orders, "o_orderdate"),
-                                        Literal(absl::CivilDay(1994, 5, 1)));
-    cond = And(util::MakeVector(std::move(geq), std::move(lt)));
-  }
+  auto geq = Exp(Geq(VirtColRef(scan_schema, "o_orderdate"),
+                     Literal(absl::CivilDay(1994, 2, 1))));
+  auto lt = Exp(Lt(VirtColRef(scan_schema, "o_orderdate"),
+                   Literal(absl::CivilDay(1994, 5, 1))));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*scan_orders, {"o_custkey", "o_orderkey"});
-  return std::make_unique<SelectOperator>(
-      std::move(schema), std::move(scan_orders), std::move(cond));
+  schema.AddVirtualPassthroughColumns(scan_schema, {"o_custkey", "o_orderkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["orders"],
+      util::MakeVector(std::move(geq), std::move(lt)));
 }
 
 // Scan(customer)
@@ -80,25 +72,21 @@ std::unique_ptr<Operator> ScanNation() {
   return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
-// Scan(lineitem)
-std::unique_ptr<Operator> ScanLineitem() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["lineitem"], {"l_orderkey", "l_returnflag",
-                                              "l_extendedprice", "l_discount"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
-}
-
 // Select(l_returnflag = 'R')
 std::unique_ptr<Operator> SelectLineitem() {
-  auto lineitem = ScanLineitem();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(
+      db["lineitem"],
+      {"l_orderkey", "l_returnflag", "l_extendedprice", "l_discount"});
 
-  auto cond = Eq(ColRef(lineitem, "l_returnflag"), Literal("R"sv));
+  auto cond = Exp(Eq(VirtColRef(scan_schema, "l_returnflag"), Literal("R"sv)));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*lineitem,
-                               {"l_orderkey", "l_extendedprice", "l_discount"});
-  return std::make_unique<SelectOperator>(std::move(schema),
-                                          std::move(lineitem), std::move(cond));
+  schema.AddVirtualPassthroughColumns(
+      scan_schema, {"l_orderkey", "l_extendedprice", "l_discount"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["lineitem"],
+      util::MakeVector(std::move(cond)));
 }
 
 // orders

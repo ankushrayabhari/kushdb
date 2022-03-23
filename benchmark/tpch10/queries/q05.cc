@@ -24,6 +24,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -37,23 +38,18 @@ using namespace std::literals;
 
 const Database db = Schema();
 
-// Scan(region)
-std::unique_ptr<Operator> ScanRegion() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["region"], {"r_name", "r_regionkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["region"]);
-}
-
 // Select(r_name = 'EUROPE')
 std::unique_ptr<Operator> SelectRegion() {
-  auto region = ScanRegion();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(db["region"], {"r_name", "r_regionkey"});
 
-  auto eq = Eq(ColRef(region, "r_name"), Literal("EUROPE"sv));
+  auto eq = Exp(Eq(VirtColRef(scan_schema, "r_name"), Literal("EUROPE"sv)));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*region, {"r_regionkey"});
-  return std::make_unique<SelectOperator>(std::move(schema), std::move(region),
-                                          std::move(eq));
+  schema.AddVirtualPassthroughColumns(scan_schema, {"r_regionkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["region"],
+      util::MakeVector(std::move(eq)));
 }
 
 // Scan(nation)
@@ -89,22 +85,20 @@ std::unique_ptr<Operator> ScanLineitem() {
 
 // Select(o_orderdate >= date '1997-01-01' and o_orderdate < date '1998-01-01')
 std::unique_ptr<Operator> SelectOrders() {
-  auto orders = ScanOrders();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(db["orders"],
+                                  {"o_custkey", "o_orderkey", "o_orderdate"});
 
-  std::unique_ptr<Expression> cond;
-  {
-    std::unique_ptr<Expression> geq =
-        Geq(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1997, 1, 1)));
-    std::unique_ptr<Expression> lt =
-        Lt(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1998, 1, 1)));
-
-    cond = And(util::MakeVector(std::move(geq), std::move(lt)));
-  }
+  auto geq = Exp(Geq(VirtColRef(scan_schema, "o_orderdate"),
+                     Literal(absl::CivilDay(1997, 1, 1))));
+  auto lt = Exp(Lt(VirtColRef(scan_schema, "o_orderdate"),
+                   Literal(absl::CivilDay(1998, 1, 1))));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*orders, {"o_custkey", "o_orderkey"});
-  return std::make_unique<SelectOperator>(std::move(schema), std::move(orders),
-                                          std::move(cond));
+  schema.AddVirtualPassthroughColumns(scan_schema, {"o_custkey", "o_orderkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["orders"],
+      util::MakeVector(std::move(geq), std::move(lt)));
 }
 
 // Scan(supplier)

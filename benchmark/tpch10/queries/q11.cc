@@ -25,6 +25,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -38,22 +39,18 @@ using namespace std::literals;
 
 const Database db = Schema();
 
-// Scan(nation)
-std::unique_ptr<Operator> ScanNation() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["nation"], {"n_name", "n_nationkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
-}
-
 // Select(n_name = 'VIETNAM')
 std::unique_ptr<Operator> SelectNation() {
-  auto nation = ScanNation();
-  auto eq = Eq(ColRef(nation, "n_name"), Literal("VIETNAM"sv));
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(db["nation"], {"n_name", "n_nationkey"});
+
+  auto eq = Exp(Eq(VirtColRef(scan_schema, "n_name"), Literal("VIETNAM"sv)));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*nation, {"n_nationkey"});
-  return std::make_unique<SelectOperator>(std::move(schema), std::move(nation),
-                                          std::move(eq));
+  schema.AddVirtualPassthroughColumns(scan_schema, {"n_nationkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["nation"],
+      util::MakeVector(std::move(eq)));
 }
 
 // Scan(supplier)

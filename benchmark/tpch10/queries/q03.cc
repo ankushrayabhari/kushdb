@@ -24,6 +24,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -37,23 +38,20 @@ using namespace std::literals;
 
 const Database db = Schema();
 
-// Scan(customer)
-std::unique_ptr<Operator> ScanCustomer() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["customer"], {"c_mktsegment", "c_custkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["customer"]);
-}
-
 // Select(c_mktsegment = 'HOUSEHOLD')
 std::unique_ptr<Operator> SelectCustomer() {
-  auto scan_customer = ScanCustomer();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(db["customer"],
+                                  {"c_mktsegment", "c_custkey"});
 
-  auto eq = Eq(ColRef(scan_customer, "c_mktsegment"), Literal("HOUSEHOLD"sv));
+  auto eq =
+      Exp(Eq(VirtColRef(scan_schema, "c_mktsegment"), Literal("HOUSEHOLD"sv)));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*scan_customer, {"c_custkey"});
-  return std::make_unique<SelectOperator>(
-      std::move(schema), std::move(scan_customer), std::move(eq));
+  schema.AddVirtualPassthroughColumns(scan_schema, {"c_custkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["customer"],
+      util::MakeVector(std::move(eq)));
 }
 
 // Scan(orders)
