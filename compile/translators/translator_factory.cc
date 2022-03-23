@@ -29,7 +29,7 @@
 ABSL_FLAG(std::string, skinner_join, "permute",
           "Skinner Join Implementation: permute or recompile");
 
-ABSL_FLAG(std::string, skinner_scan_select, "permute",
+ABSL_FLAG(std::string, skinner_scan_select, "none",
           "Skinner Scan/Select Implementation: none, permute or recompile");
 
 namespace kush::compile {
