@@ -24,6 +24,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -82,32 +83,25 @@ std::unique_ptr<Operator> ScanOrders() {
   return std::make_unique<ScanOperator>(std::move(schema), db["orders"]);
 }
 
-// Scan(lineitem)
-std::unique_ptr<Operator> ScanLineitem() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["lineitem"],
-                             {"l_shipdate", "l_extendedprice", "l_discount",
-                              "l_suppkey", "l_orderkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
-}
-
 // Select(l_shipdate >= '1993-01-01' and l_shipdate <= '1994-12-31')
 std::unique_ptr<Operator> SelectLineitem() {
-  auto lineitem = ScanLineitem();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(
+      db["lineitem"], {"l_shipdate", "l_extendedprice", "l_discount",
+                       "l_suppkey", "l_orderkey"});
 
-  std::unique_ptr<Expression> ge =
-      Geq(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1993, 1, 1)));
-  std::unique_ptr<Expression> le = Leq(ColRef(lineitem, "l_shipdate"),
-                                       Literal(absl::CivilDay(1994, 12, 31)));
-  std::unique_ptr<Expression> cond =
-      And(util::MakeVector(std::move(ge), std::move(le)));
+  auto ge = Exp(Geq(VirtColRef(scan_schema, "l_shipdate"),
+                    Literal(absl::CivilDay(1993, 1, 1))));
+  auto le = Exp(Leq(VirtColRef(scan_schema, "l_shipdate"),
+                    Literal(absl::CivilDay(1994, 12, 31))));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(
-      *lineitem, {"l_shipdate", "l_extendedprice", "l_discount", "l_suppkey",
-                  "l_orderkey"});
-  return std::make_unique<SelectOperator>(std::move(schema),
-                                          std::move(lineitem), std::move(cond));
+  schema.AddVirtualPassthroughColumns(
+      scan_schema, {"l_shipdate", "l_extendedprice", "l_discount", "l_suppkey",
+                    "l_orderkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["lineitem"],
+      util::MakeVector(std::move(ge), std::move(le)));
 }
 
 // supplier

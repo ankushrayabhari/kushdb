@@ -25,6 +25,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -38,29 +39,24 @@ using namespace std::literals;
 
 const Database db = Schema();
 
-// Scan(lineitem)
-std::unique_ptr<Operator> ScanLineitem() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["lineitem"], {"l_shipdate", "l_extendedprice",
-                                              "l_discount", "l_partkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
-}
-
 // Select(l_shipdate >= '1993-05-01' and l_receiptdate < '1993-06-01')
 std::unique_ptr<Operator> SelectLineitem() {
-  auto lineitem = ScanLineitem();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(
+      db["lineitem"],
+      {"l_shipdate", "l_extendedprice", "l_discount", "l_partkey"});
 
-  std::unique_ptr<Expression> p1 =
-      Geq(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1993, 5, 1)));
-  std::unique_ptr<Expression> p2 =
-      Lt(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1993, 6, 1)));
-  auto cond = And(util::MakeVector(std::move(p1), std::move(p2)));
+  auto p1 = Exp(Geq(VirtColRef(scan_schema, "l_shipdate"),
+                    Literal(absl::CivilDay(1993, 5, 1))));
+  auto p2 = Exp(Lt(VirtColRef(scan_schema, "l_shipdate"),
+                   Literal(absl::CivilDay(1993, 6, 1))));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*lineitem,
-                               {"l_extendedprice", "l_discount", "l_partkey"});
-  return std::make_unique<SelectOperator>(std::move(schema),
-                                          std::move(lineitem), std::move(cond));
+  schema.AddVirtualPassthroughColumns(
+      scan_schema, {"l_extendedprice", "l_discount", "l_partkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["lineitem"],
+      util::MakeVector(std::move(p1), std::move(p2)));
 }
 
 // Scan(part)
