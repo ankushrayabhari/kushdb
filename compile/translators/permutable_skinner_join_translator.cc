@@ -127,7 +127,11 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                  col_ref.get().GetColumnIdx()};
 
       if (!column_to_index_idx_.contains(key)) {
-        column_to_index_idx_[key] = index_idx++;
+        if (join_.PrefixOrder().empty() ||
+            join_.PrefixOrder()[0] != key.first) {
+          column_to_index_idx_[key] = index_idx++;
+        }
+
         predicate_columns_.push_back(col_ref);
       }
     }
@@ -301,6 +305,10 @@ void PermutableSkinnerJoinTranslator::Produce() {
     }
 
     for (auto t : tables) {
+      if (!join_.PrefixOrder().empty() && join_.PrefixOrder()[0] == t) {
+        continue;
+      }
+
       pred_table_to_flag_[{pred, t}] = total_flags++;
     }
   }
@@ -929,10 +937,9 @@ void PermutableSkinnerJoinTranslator::Produce() {
   }
 
   // Execute build side of skinner join
-  proxy::SkinnerJoinExecutor executor(program_);
-  executor.ExecutePermutableJoin(
-      child_operators.size(), conditions.size(), &pred_table_to_flag_,
-      &table_connections_,
+  proxy::SkinnerJoinExecutor::ExecutePermutableJoin(
+      program_, child_operators.size(), conditions.size(), &pred_table_to_flag_,
+      &table_connections_, &join_.PrefixOrder(),
       program_.ConstGEP(handler_pointer_array_type, handler_pointer_array,
                         {0, 0}),
       program_.GetFunctionPointer(valid_tuple_handler.Get()), total_flags,

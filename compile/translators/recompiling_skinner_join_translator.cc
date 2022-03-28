@@ -800,7 +800,11 @@ void RecompilingSkinnerJoinTranslator::Produce() {
                                  col_ref.get().GetColumnIdx()};
 
       if (!column_to_index_idx_.contains(key)) {
-        column_to_index_idx_[key] = index_idx++;
+        if (join_.PrefixOrder().empty() ||
+            join_.PrefixOrder()[0] != key.first) {
+          column_to_index_idx_[key] = index_idx++;
+        }
+
         predicate_columns_.push_back(col_ref);
       }
     }
@@ -973,12 +977,11 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   }
 
   // 3. Execute join
-  proxy::SkinnerJoinExecutor executor(program_);
   auto compile_fn = static_cast<RecompilingJoinTranslator*>(this);
-  executor.ExecuteRecompilingJoin(
-      child_translators.size(),
+  proxy::SkinnerJoinExecutor::ExecuteRecompilingJoin(
+      program_, child_translators.size(),
       program_.ConstGEP(cardinalities_array_type, cardinalities_array, {0, 0}),
-      &table_connections_, compile_fn,
+      &table_connections_, &join_.PrefixOrder(), compile_fn,
       program_.ConstGEP(materialized_buffer_array_type,
                         materialized_buffer_array, {0, 0}),
       program_.ConstGEP(materialized_index_array_type, materialized_index_array,

@@ -555,12 +555,13 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
 
 class UctNode {
  public:
-  UctNode(int round_ctr, int num_tables, JoinEnvironment& environment)
+  UctNode(int round_ctr, int num_tables, JoinEnvironment& environment,
+          const std::vector<int>& already_joined)
       : environment_(environment),
         created_in_(round_ctr),
         tree_level_(0),
         num_tables_(num_tables),
-        num_actions_(num_tables),
+        num_actions_(num_tables - already_joined.size()),
         child_nodes_(num_actions_),
         num_visits_(0),
         num_tries_per_action_(num_actions_, 0),
@@ -572,9 +573,16 @@ class UctNode {
       recommended_actions_.insert(i);
     }
 
+    for (int x : already_joined) {
+      joined_tables_.insert(x);
+    }
+
+    int action = 0;
     for (int i = 0; i < num_tables_; i++) {
-      unjoined_tables_.push_back(i);
-      table_per_action_[i] = i;
+      if (!joined_tables_.contains(i)) {
+        unjoined_tables_.push_back(i);
+        table_per_action_[action++] = i;
+      }
     }
   }
 
@@ -633,7 +641,7 @@ class UctNode {
 
     int action = SelectAction();
     int table = table_per_action_[action];
-    order[tree_level_] = table;
+    order[joined_tables_.size()] = table;
 
     bool can_expand = created_in_ != round_ctr;
     if (can_expand && child_nodes_[action] == nullptr) {
@@ -651,7 +659,7 @@ class UctNode {
 
  private:
   double Playout(std::vector<int>& order) {
-    int last_table = order[tree_level_];
+    int last_table = order[joined_tables_.size()];
 
     absl::btree_set<int> current_joined;
     current_joined.insert(joined_tables_.begin(), joined_tables_.end());
@@ -666,7 +674,7 @@ class UctNode {
 
     if (USE_HEURISTIC_) {
       std::shuffle(current_unjoined.begin(), current_unjoined.end(), rng_);
-      for (int pos = tree_level_ + 1; pos < num_tables_; pos++) {
+      for (int pos = joined_tables_.size() + 1; pos < num_tables_; pos++) {
         bool found_table = false;
         for (int table : current_unjoined) {
           if (current_joined.find(table) == current_joined.end() &&
@@ -691,7 +699,7 @@ class UctNode {
       std::shuffle(current_unjoined.begin(), current_unjoined.end(), rng_);
       for (int i = 0; i < current_unjoined.size(); i++) {
         int table = current_unjoined[i];
-        order[(tree_level_ + 1) + i] = table;
+        order[(joined_tables_.size() + 1) + i] = table;
       }
     }
 
@@ -767,22 +775,31 @@ class UctNode {
 
 class UctJoinAgent {
  public:
-  UctJoinAgent(int num_tables, JoinEnvironment& environment)
+  UctJoinAgent(int num_tables, JoinEnvironment& environment,
+               const std::vector<int>* joined)
       : environment_(environment),
         round_ctr_(0),
         num_tables_(num_tables),
         should_forget_(FLAGS_forget.Get()),
         next_forget_(10),
-        root_(std::make_unique<UctNode>(round_ctr_, num_tables, environment)) {}
+        joined_(joined),
+        root_(std::make_unique<UctNode>(round_ctr_, num_tables, environment,
+                                        *joined_)),
+        order_(num_tables_) {
+    int i = 0;
+    for (int t : *joined_) {
+      order_[i++] = t;
+    }
+  }
 
   void Act() {
     round_ctr_++;
-    std::vector<int> order(num_tables_);
-    root_->Sample(round_ctr_, order);
+    root_->Sample(round_ctr_, order_);
 
     // Consider memory loss
     if (should_forget_ && round_ctr_ == next_forget_) {
-      root_ = std::make_unique<UctNode>(round_ctr_, num_tables_, environment_);
+      root_ = std::make_unique<UctNode>(round_ctr_, num_tables_, environment_,
+                                        *joined_);
       next_forget_ *= 10;
     }
   }
@@ -793,7 +810,9 @@ class UctJoinAgent {
   int num_tables_;
   bool should_forget_;
   int64_t next_forget_;
+  const std::vector<int>* joined_;
   std::unique_ptr<UctNode> root_;
+  std::vector<int> order_;
 };
 
 std::vector<std::add_pointer<int(int, int8_t)>::type> ReconstructTableFunctions(
@@ -819,6 +838,7 @@ void ExecutePermutableSkinnerJoin(
     int32_t num_tables, int32_t num_preds,
     const absl::flat_hash_map<std::pair<int, int>, int>* pred_table_to_flag,
     const absl::flat_hash_set<std::pair<int, int>>* table_connections,
+    const std::vector<int>* prefix_order,
     std::add_pointer<int32_t(int32_t, int8_t)>::type* join_handler_fn_arr,
     std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler,
     int32_t num_flags, int8_t* flag_arr, int32_t* progress_arr,
@@ -848,7 +868,7 @@ void ExecutePermutableSkinnerJoin(
       num_preds, num_flags, pred_table_to_flag, table_connections,
       cardinalities, table_functions, valid_tuple_handler, execution_engine);
 
-  UctJoinAgent agent(num_tables, environment);
+  UctJoinAgent agent(num_tables, environment, prefix_order);
 
   while (!environment.IsComplete()) {
     agent.Act();
@@ -858,6 +878,7 @@ void ExecutePermutableSkinnerJoin(
 void ExecuteRecompilingSkinnerJoin(
     int32_t num_tables, int32_t* cardinality_arr,
     const absl::flat_hash_set<std::pair<int, int>>* table_connections,
+    const std::vector<int>* prefix_order,
     compile::RecompilingJoinTranslator* codegen, void** materialized_buffers,
     void** materialized_indexes, void* tuple_idx_table) {
   auto cardinalities = ReconstructCardinalities(num_tables, cardinality_arr);
@@ -896,7 +917,7 @@ void ExecuteRecompilingSkinnerJoin(
       codegen, materialized_buffers, materialized_indexes, tuple_idx_table,
       table_connections, cardinalities, execution_engine);
 
-  UctJoinAgent agent(num_tables, environment);
+  UctJoinAgent agent(num_tables, environment, prefix_order);
 
   while (!environment.IsComplete()) {
     agent.Act();

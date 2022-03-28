@@ -14,11 +14,13 @@ class SkinnerJoinOperator final : public Operator {
  public:
   SkinnerJoinOperator(OperatorSchema schema,
                       std::vector<std::unique_ptr<Operator>> children,
-                      std::vector<std::unique_ptr<Expression>> conditions);
+                      std::vector<std::unique_ptr<Expression>> conditions,
+                      std::vector<int> prefix_order = {});
 
   std::vector<std::reference_wrapper<const plan::Expression>> Conditions()
       const;
   std::vector<std::reference_wrapper<plan::Expression>> MutableConditions();
+  const std::vector<int>& PrefixOrder() const;
 
   void Accept(OperatorVisitor& visitor) override;
   void Accept(ImmutableOperatorVisitor& visitor) const override;
@@ -27,6 +29,7 @@ class SkinnerJoinOperator final : public Operator {
 
  private:
   std::vector<std::unique_ptr<Expression>> conditions_;
+  std::vector<int> prefix_order_;
 };
 
 }  // namespace kush::plan

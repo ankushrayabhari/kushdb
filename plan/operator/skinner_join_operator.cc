@@ -13,13 +13,19 @@ namespace kush::plan {
 
 SkinnerJoinOperator::SkinnerJoinOperator(
     OperatorSchema schema, std::vector<std::unique_ptr<Operator>> children,
-    std::vector<std::unique_ptr<Expression>> conditions)
+    std::vector<std::unique_ptr<Expression>> conditions,
+    std::vector<int> prefix_order)
     : Operator(std::move(schema), std::move(children)),
-      conditions_(std::move(conditions)) {}
+      conditions_(std::move(conditions)),
+      prefix_order_(prefix_order) {}
 
 std::vector<std::reference_wrapper<const kush::plan::Expression>>
 SkinnerJoinOperator::Conditions() const {
   return util::ImmutableReferenceVector(conditions_);
+}
+
+const std::vector<int>& SkinnerJoinOperator::PrefixOrder() const {
+  return prefix_order_;
 }
 
 std::vector<std::reference_wrapper<kush::plan::Expression>>
