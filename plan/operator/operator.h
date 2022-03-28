@@ -28,6 +28,7 @@ class Operator : public OperatorSchemaProvider {
   std::optional<std::reference_wrapper<const Operator>> Parent() const;
   std::vector<std::reference_wrapper<Operator>> Children();
   std::vector<std::reference_wrapper<const Operator>> Children() const;
+  std::vector<std::unique_ptr<Operator>>& MutableChildren();
 
   virtual nlohmann::json ToJson() const = 0;
 

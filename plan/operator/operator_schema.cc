@@ -27,6 +27,14 @@ const Expression& OperatorSchema::Column::Expr() const { return *expr_; }
 
 Expression& OperatorSchema::Column::MutableExpr() { return *expr_; }
 
+std::unique_ptr<Expression> OperatorSchema::Column::DestroyExpr() {
+  return std::move(expr_);
+}
+
+void OperatorSchema::Column::SetExpr(std::unique_ptr<Expression> e) {
+  expr_ = std::move(e);
+}
+
 void OperatorSchema::AddDerivedColumn(std::string_view name,
                                       std::unique_ptr<Expression> expr) {
   column_name_to_idx_[name] = columns_.size();

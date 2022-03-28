@@ -25,6 +25,8 @@ class OperatorSchema {
 
     Expression& MutableExpr();
     const Expression& Expr() const;
+    std::unique_ptr<Expression> DestroyExpr();
+    void SetExpr(std::unique_ptr<Expression> e);
 
    private:
     std::string name_;

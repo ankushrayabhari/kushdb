@@ -28,6 +28,10 @@ std::vector<std::reference_wrapper<Operator>> Operator::Children() {
   return util::ReferenceVector(children_);
 }
 
+std::vector<std::unique_ptr<Operator>>& Operator::MutableChildren() {
+  return children_;
+}
+
 std::vector<std::reference_wrapper<const Operator>> Operator::Children() const {
   return util::ImmutableReferenceVector(children_);
 }

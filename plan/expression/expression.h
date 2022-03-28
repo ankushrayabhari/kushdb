@@ -25,7 +25,8 @@ class Expression {
   virtual void Accept(ImmutableExpressionVisitor& visitor) const = 0;
 
   virtual nlohmann::json ToJson() const = 0;
-  std::vector<std::unique_ptr<Expression>> DestroyAndGetChildren();
+  std::vector<std::unique_ptr<Expression>> DestroyChildren();
+  void SetChildren(std::vector<std::unique_ptr<Expression>> children);
 
  private:
   catalog::SqlType type_;

@@ -22,8 +22,13 @@ std::vector<std::reference_wrapper<Expression>> Expression::MutableChildren() {
   return util::ReferenceVector(children_);
 }
 
-std::vector<std::unique_ptr<Expression>> Expression::DestroyAndGetChildren() {
+std::vector<std::unique_ptr<Expression>> Expression::DestroyChildren() {
   return std::move(children_);
+}
+
+void Expression::SetChildren(
+    std::vector<std::unique_ptr<Expression>> children) {
+  children_ = std::move(children);
 }
 
 bool Expression::Nullable() const { return nullable_; }

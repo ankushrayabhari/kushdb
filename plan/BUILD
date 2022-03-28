@@ -28,6 +28,7 @@ cc_library(
         "//plan/operator:scan_operator",
         "//plan/operator:select_operator",
         "//plan/operator:skinner_join_operator",
+        "//plan/operator:skinner_scan_select_operator",
         "//util:vector_util",
         "@absl//absl/container:flat_hash_map",
         "@absl//absl/container:flat_hash_set",

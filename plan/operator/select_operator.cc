@@ -26,6 +26,14 @@ nlohmann::json SelectOperator::ToJson() const {
   return j;
 }
 
+std::unique_ptr<Expression> SelectOperator::DestroyExpr() {
+  return std::move(expression_);
+}
+
+void SelectOperator::SetExpr(std::unique_ptr<Expression> expr) {
+  expression_ = std::move(expr);
+}
+
 void SelectOperator::Accept(OperatorVisitor& visitor) { visitor.Visit(*this); }
 
 void SelectOperator::Accept(ImmutableOperatorVisitor& visitor) const {

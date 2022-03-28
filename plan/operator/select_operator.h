@@ -18,6 +18,8 @@ class SelectOperator final : public UnaryOperator {
 
   const Expression& Expr() const;
   Expression& MutableExpr();
+  std::unique_ptr<Expression> DestroyExpr();
+  void SetExpr(std::unique_ptr<Expression> expr);
 
   void Accept(OperatorVisitor& visitor) override;
   void Accept(ImmutableOperatorVisitor& visitor) const override;

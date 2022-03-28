@@ -27,6 +27,7 @@
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
 #include "plan/operator/skinner_join_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/vector_util.h"
 
 namespace kush::plan {
@@ -381,7 +382,7 @@ std::vector<std::unique_ptr<Expression>> Decompose(
   if (auto v = dynamic_cast<BinaryArithmeticExpression*>(e_raw)) {
     if (v->OpType() == BinaryArithmeticExpressionType::AND) {
       std::vector<std::unique_ptr<Expression>> results;
-      auto children = v->DestroyAndGetChildren();
+      auto children = v->DestroyChildren();
       results = Decompose(std::move(children[0]));
       auto right = Decompose(std::move(children[1]));
 
@@ -650,10 +651,88 @@ void EarlyProjection(Operator& op) {
   throw std::runtime_error("Not supported.");
 }
 
+bool IsIndexFilter(Expression& e) {
+  if (auto eq = dynamic_cast<BinaryArithmeticExpression*>(&e)) {
+    if (eq->OpType() == BinaryArithmeticExpressionType::EQ) {
+      if (auto l = dynamic_cast<ColumnRefExpression*>(&eq->LeftChild())) {
+        if (auto r = dynamic_cast<LiteralExpression*>(&eq->RightChild())) {
+          return true;
+        }
+      }
+
+      if (auto l = dynamic_cast<LiteralExpression*>(&eq->LeftChild())) {
+        if (auto r = dynamic_cast<ColumnRefExpression*>(&eq->RightChild())) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+void RewriteColRefToVirtColRef(std::unique_ptr<Expression>& e) {
+  if (auto col_ref = dynamic_cast<ColumnRefExpression*>(e.get())) {
+    e = std::make_unique<VirtualColumnRefExpression>(
+        col_ref->Type(), col_ref->Nullable(), col_ref->GetColumnIdx());
+    return;
+  }
+
+  auto children = e->DestroyChildren();
+  for (auto& expr : children) {
+    RewriteColRefToVirtColRef(expr);
+  }
+  e->SetChildren(std::move(children));
+}
+
+void AdaptiveScanSelect(std::unique_ptr<Operator>& op) {
+  if (auto select = dynamic_cast<SelectOperator*>(op.get())) {
+    if (auto scan = dynamic_cast<ScanOperator*>(&select->Children()[0].get())) {
+      // scan / select
+      auto exprs = Decompose(select->DestroyExpr());
+
+      if ((exprs.size() == 1 && IsIndexFilter(*exprs[0])) || exprs.size() > 1) {
+        for (auto& expr : exprs) {
+          RewriteColRefToVirtColRef(expr);
+        }
+        const auto& relation = scan->Relation();
+        auto scan_schema = std::move(scan->MutableSchema());
+        auto select_schema = std::move(select->MutableSchema());
+
+        for (auto& col : select_schema.MutableColumns()) {
+          auto e = col.DestroyExpr();
+          RewriteColRefToVirtColRef(e);
+          col.SetExpr(std::move(e));
+        }
+
+        op = std::make_unique<SkinnerScanSelectOperator>(
+            std::move(select_schema), std::move(scan_schema), relation,
+            std::move(exprs));
+      } else {
+        std::unique_ptr<Expression> filter = std::move(exprs.back());
+
+        for (int i = exprs.size() - 2; i >= 0; i--) {
+          filter = std::make_unique<BinaryArithmeticExpression>(
+              BinaryArithmeticExpressionType::AND, std::move(exprs[i]),
+              std::move(filter));
+        }
+
+        select->SetExpr(std::move(filter));
+      }
+
+      return;
+    }
+  }
+
+  for (auto& child : op->MutableChildren()) {
+    AdaptiveScanSelect(child);
+  }
+}
+
 std::unique_ptr<Operator> Planner::Plan(const parse::Statement& stmt) {
   if (auto v = dynamic_cast<const parse::SelectStatement*>(&stmt)) {
     auto result = Plan(*v);
     EarlyProjection(*result);
+    AdaptiveScanSelect(result);
     return result;
   }
 
