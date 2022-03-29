@@ -78,4 +78,8 @@ bool Key::operator==(const Key& k) const {
   return true;
 }
 
+int32_t& Key::operator[](std::size_t i) { return data_[i]; }
+
+const int32_t& Key::operator[](std::size_t i) const { return data_[i]; }
+
 }  // namespace runtime::TupleIdxTable
