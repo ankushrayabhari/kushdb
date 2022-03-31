@@ -7,21 +7,17 @@
 
 namespace runtime::TupleIdxTable {
 
-Key::Key(std::unique_ptr<int32_t[]> data, int32_t len)
+Key::Key(std::unique_ptr<uint8_t[]> data, int32_t len)
     : data_(std::move(data)), len_(len) {}
 
 std::unique_ptr<Key> Key::CreateKey(int32_t* data, int32_t len) {
-  auto copy = std::unique_ptr<int32_t[]>(new int32_t[len]);
+  auto copy = std::unique_ptr<uint8_t[]>(new uint8_t[len * sizeof(int32_t)]);
   memcpy(copy.get(), data, len * sizeof(int32_t));
   return std::make_unique<Key>(std::move(copy), len);
 }
 
 bool Key::operator>(const Key& k) const {
-  if (len_ != k.len_) {
-    throw std::runtime_error("mismatched lengths");
-  }
-
-  for (int i = 0; i < len_; i++) {
+  for (int i = 0; i < std::min(len_, k.len_); i++) {
     if (data_[i] > k.data_[i]) {
       return true;
     } else if (data_[i] < k.data_[i]) {
@@ -29,15 +25,11 @@ bool Key::operator>(const Key& k) const {
     }
   }
 
-  return false;
+  return len_ > k.len_;
 }
 
 bool Key::operator>=(const Key& k) const {
-  if (len_ != k.len_) {
-    throw std::runtime_error("mismatched lengths");
-  }
-
-  for (int i = 0; i < len_; i++) {
+  for (int i = 0; i < std::min(len_, k.len_); i++) {
     if (data_[i] > k.data_[i]) {
       return true;
     } else if (data_[i] < k.data_[i]) {
@@ -45,15 +37,11 @@ bool Key::operator>=(const Key& k) const {
     }
   }
 
-  return true;
+  return len_ >= k.len_;
 }
 
 bool Key::operator<(const Key& k) const {
-  if (len_ != k.len_) {
-    throw std::runtime_error("mismatched lengths");
-  }
-
-  for (int i = 0; i < len_; i++) {
+  for (int i = 0; i < std::min(len_, k.len_); i++) {
     if (data_[i] < k.data_[i]) {
       return true;
     } else if (data_[i] > k.data_[i]) {
@@ -61,12 +49,12 @@ bool Key::operator<(const Key& k) const {
     }
   }
 
-  return false;
+  return len_ < k.len_;
 }
 
 bool Key::operator==(const Key& k) const {
   if (len_ != k.len_) {
-    throw std::runtime_error("mismatched lengths");
+    return false;
   }
 
   for (int i = 0; i < len_; i++) {
@@ -78,8 +66,8 @@ bool Key::operator==(const Key& k) const {
   return true;
 }
 
-int32_t& Key::operator[](std::size_t i) { return data_[i]; }
+uint8_t& Key::operator[](std::size_t i) { return data_[i]; }
 
-const int32_t& Key::operator[](std::size_t i) const { return data_[i]; }
+const uint8_t& Key::operator[](std::size_t i) const { return data_[i]; }
 
 }  // namespace runtime::TupleIdxTable

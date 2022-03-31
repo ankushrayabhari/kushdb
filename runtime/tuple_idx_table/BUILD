@@ -8,3 +8,38 @@ cc_library(
     hdrs = ["key.h"],
     deps = [],
 )
+
+cc_library(
+    name = "node",
+    srcs = [
+        "node.cc",
+        "node16.cc",
+        "node256.cc",
+        "node4.cc",
+        "node48.cc",
+    ],
+    hdrs = [
+        "node.h",
+        "node16.h",
+        "node256.h",
+        "node4.h",
+        "node48.h",
+    ],
+    deps = [
+        ":key",
+    ],
+)
+
+cc_library(
+    name = "leaf",
+    srcs = [
+        "leaf.cc",
+    ],
+    hdrs = [
+        "leaf.h",
+    ],
+    deps = [
+        ":key",
+        ":node",
+    ],
+)
