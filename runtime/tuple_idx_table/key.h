@@ -19,6 +19,8 @@ class Key {
   bool operator>=(const Key &k) const;
   bool operator==(const Key &k) const;
 
+  int32_t Length() const;
+
  private:
   std::unique_ptr<uint8_t[]> data_;
   int32_t len_;

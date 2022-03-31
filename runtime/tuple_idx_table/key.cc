@@ -70,4 +70,6 @@ uint8_t& Key::operator[](std::size_t i) { return data_[i]; }
 
 const uint8_t& Key::operator[](std::size_t i) const { return data_[i]; }
 
+int32_t Key::Length() const { return len_; }
+
 }  // namespace runtime::TupleIdxTable

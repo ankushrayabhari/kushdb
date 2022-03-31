@@ -32,14 +32,21 @@ cc_library(
 
 cc_library(
     name = "leaf",
-    srcs = [
-        "leaf.cc",
-    ],
-    hdrs = [
-        "leaf.h",
-    ],
+    srcs = ["leaf.cc"],
+    hdrs = ["leaf.h"],
     deps = [
         ":key",
+        ":node",
+    ],
+)
+
+cc_library(
+    name = "tuple_idx_table",
+    srcs = ["tuple_idx_table.cc"],
+    hdrs = ["tuple_idx_table.h"],
+    deps = [
+        ":key",
+        ":leaf",
         ":node",
     ],
 )
