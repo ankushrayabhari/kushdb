@@ -5,7 +5,7 @@
 #include <cstring>
 #include <memory>
 
-namespace runtime::TupleIdxTable {
+namespace kush::runtime::TupleIdxTable {
 
 Key::Key(std::unique_ptr<uint8_t[]> data, int32_t len)
     : data_(std::move(data)), len_(len) {}
@@ -13,7 +13,7 @@ Key::Key(std::unique_ptr<uint8_t[]> data, int32_t len)
 std::unique_ptr<Key> Key::CreateKey(int32_t* data, int32_t len) {
   auto copy = std::unique_ptr<uint8_t[]>(new uint8_t[len * sizeof(int32_t)]);
   memcpy(copy.get(), data, len * sizeof(int32_t));
-  return std::make_unique<Key>(std::move(copy), len);
+  return std::make_unique<Key>(std::move(copy), len * sizeof(int32_t));
 }
 
 bool Key::operator>(const Key& k) const {
@@ -72,4 +72,6 @@ const uint8_t& Key::operator[](std::size_t i) const { return data_[i]; }
 
 int32_t Key::Length() const { return len_; }
 
-}  // namespace runtime::TupleIdxTable
+int32_t* Key::Data() const { return (int32_t*)data_.get(); }
+
+}  // namespace kush::runtime::TupleIdxTable

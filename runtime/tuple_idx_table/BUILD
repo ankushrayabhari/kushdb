@@ -50,3 +50,13 @@ cc_library(
         ":node",
     ],
 )
+
+cc_test(
+    name = "tuple_idx_table_test",
+    size = "small",
+    srcs = ["tuple_idx_table_test.cc"],
+    deps = [
+        ":tuple_idx_table",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

@@ -5,7 +5,7 @@
 
 #include "runtime/tuple_idx_table/key.h"
 
-namespace runtime::TupleIdxTable {
+namespace kush::runtime::TupleIdxTable {
 
 enum class NodeType : uint8_t { N4 = 0, N16 = 1, N48 = 2, N256 = 3, NLeaf = 4 };
 
@@ -68,4 +68,4 @@ class Node {
   std::unique_ptr<uint8_t[]> prefix;
 };
 
-}  // namespace runtime::TupleIdxTable
+}  // namespace kush::runtime::TupleIdxTable

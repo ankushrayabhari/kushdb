@@ -5,7 +5,7 @@
 
 #include "runtime/tuple_idx_table/node.h"
 
-namespace runtime::TupleIdxTable {
+namespace kush::runtime::TupleIdxTable {
 
 class Leaf : public Node {
  public:
@@ -14,4 +14,4 @@ class Leaf : public Node {
   std::unique_ptr<Key> value;
 };
 
-}  // namespace runtime
+}  // namespace kush::runtime::TupleIdxTable

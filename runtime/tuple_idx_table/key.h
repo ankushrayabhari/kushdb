@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace runtime::TupleIdxTable {
+namespace kush::runtime::TupleIdxTable {
 
 class Key {
  public:
@@ -19,6 +19,7 @@ class Key {
   bool operator>=(const Key &k) const;
   bool operator==(const Key &k) const;
 
+  int32_t *Data() const;
   int32_t Length() const;
 
  private:
@@ -26,4 +27,4 @@ class Key {
   int32_t len_;
 };
 
-}  // namespace runtime::TupleIdxTable
+}  // namespace kush::runtime::TupleIdxTable

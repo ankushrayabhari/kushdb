@@ -3,7 +3,7 @@
 #include "runtime/tuple_idx_table/node16.h"
 #include "runtime/tuple_idx_table/node256.h"
 
-namespace runtime::TupleIdxTable {
+namespace kush::runtime::TupleIdxTable {
 
 Node48::Node48(std::size_t compression_length)
     : Node(NodeType::N48, compression_length) {
@@ -114,4 +114,4 @@ void Node48::Erase(std::unique_ptr<Node>& node, int pos) {
   }
 }
 
-}  // namespace runtime::TupleIdxTable
+}  // namespace kush::runtime::TupleIdxTable

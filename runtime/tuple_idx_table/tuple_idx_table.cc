@@ -1,5 +1,6 @@
 #include "runtime/tuple_idx_table/tuple_idx_table.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -13,7 +14,7 @@
 #include "runtime/tuple_idx_table/node4.h"
 #include "runtime/tuple_idx_table/node48.h"
 
-namespace runtime::TupleIdxTable {
+namespace kush::runtime::TupleIdxTable {
 
 void TupleIdxTable::Insert(int32_t* tuple_idx, int32_t len) {
   Insert(tree_, Key::CreateKey(tuple_idx, len), 0);
@@ -96,4 +97,91 @@ void TupleIdxTable::Insert(std::unique_ptr<Node>& node,
   Node::InsertLeaf(node, key[depth], new_node);
 }
 
-}  // namespace runtime::TupleIdxTable
+IteratorEntry::IteratorEntry() : node(nullptr), pos(0) {}
+
+IteratorEntry::IteratorEntry(Node* n, int32_t p) : node(n), pos(p) {}
+
+void Iterator::SetEntry(int32_t entry_depth, IteratorEntry entry) {
+  if (stack.size() < entry_depth + 1) {
+    stack.resize(std::max(
+        {(std::size_t)8, (std::size_t)entry_depth + 1, stack.size() * 2}));
+  }
+  stack[entry_depth] = entry;
+}
+
+bool TupleIdxTable::Begin(Iterator& it) {
+  if (tree_) {
+    BeginImpl(it, *tree_);
+    return true;
+  }
+  return false;
+}
+
+void TupleIdxTable::BeginImpl(Iterator& it, Node& node) {
+  Node* next = nullptr;
+  int32_t pos = 0;
+  switch (node.type) {
+    case NodeType::NLeaf:
+      it.node = (Leaf*)&node;
+      return;
+    case NodeType::N4:
+      next = ((Node4&)node).child[0].get();
+      break;
+    case NodeType::N16:
+      next = ((Node16&)node).child[0].get();
+      break;
+    case NodeType::N48: {
+      auto& n48 = (Node48&)node;
+      while (n48.child_index[pos] == Node::EMPTY_MARKER) {
+        pos++;
+      }
+      next = n48.child[n48.child_index[pos]].get();
+      break;
+    }
+    case NodeType::N256: {
+      auto& n256 = (Node256&)node;
+      while (!n256.child[pos]) {
+        pos++;
+      }
+      next = n256.child[pos].get();
+      break;
+    }
+  }
+  it.SetEntry(it.depth, IteratorEntry(&node, pos));
+  it.depth++;
+  return BeginImpl(it, *next);
+}
+
+bool TupleIdxTable::IteratorNext(Iterator& it) {
+  // Skip leaf
+  if ((it.depth) && ((it.stack[it.depth - 1].node)->type == NodeType::NLeaf)) {
+    it.depth--;
+  }
+
+  // Look for the next leaf
+  while (it.depth > 0) {
+    auto& top = it.stack[it.depth - 1];
+    Node* node = top.node;
+
+    if (node->type == NodeType::NLeaf) {
+      // found a leaf: move to next node
+      it.node = (Leaf*)node;
+      return true;
+    }
+
+    // Find next node
+    top.pos = node->GetNextPos(top.pos);
+    if (top.pos != -1) {
+      // next node found: go there
+      it.SetEntry(it.depth, IteratorEntry(node->GetChild(top.pos)->get(), -1));
+      it.depth++;
+    } else {
+      // no node found: move up the tree
+      it.depth--;
+    }
+  }
+
+  return false;
+}
+
+}  // namespace kush::runtime::TupleIdxTable

@@ -10,7 +10,7 @@
 #include "runtime/tuple_idx_table/node4.h"
 #include "runtime/tuple_idx_table/node48.h"
 
-namespace runtime::TupleIdxTable {
+namespace kush::runtime::TupleIdxTable {
 
 Node::Node(NodeType type, std::size_t compressed_prefix_size)
     : prefix_length(0),
@@ -79,4 +79,4 @@ void Node::Erase(std::unique_ptr<Node>& node, int32_t pos) {
   }
 }
 
-}  // namespace runtime::TupleIdxTable
+}  // namespace kush::runtime::TupleIdxTable

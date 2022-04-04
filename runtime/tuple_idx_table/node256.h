@@ -5,7 +5,7 @@
 
 #include "runtime/tuple_idx_table/node.h"
 
-namespace runtime::TupleIdxTable {
+namespace kush::runtime::TupleIdxTable {
 
 class Node256 : public Node {
  public:
@@ -39,4 +39,4 @@ class Node256 : public Node {
   // Shrink to node 48
   static void Erase(std::unique_ptr<Node>& node, int pos);
 };
-}  // namespace runtime::TupleIdxTable
+}  // namespace kush::runtime::TupleIdxTable
