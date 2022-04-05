@@ -95,13 +95,6 @@ cc_library(
 )
 
 cc_library(
-    name = "tuple_idx_table",
-    srcs = ["tuple_idx_table.cc"],
-    hdrs = ["tuple_idx_table.h"],
-    deps = [],
-)
-
-cc_library(
     name = "skinner_join_executor",
     srcs = ["skinner_join_executor.cc"],
     hdrs = ["skinner_join_executor.h"],

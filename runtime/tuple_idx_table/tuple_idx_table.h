@@ -23,34 +23,28 @@ struct IteratorEntry {
 };
 
 struct Iterator {
-  //! The current Leaf Node, valid if depth>0
   Leaf* node = nullptr;
-
-  //! The current depth
   int32_t depth = 0;
-
-  //! Stack, the size is determined at runtime
   std::vector<IteratorEntry> stack;
-
-  bool start = false;
 
   void SetEntry(int32_t depth, IteratorEntry entry);
 };
 
-class TupleIdxTable final {
- public:
-  void Insert(int32_t* tuple_idx, int32_t len);
-
-  // Scan
-  bool Begin(Iterator& it);
-  bool IteratorNext(Iterator& it);
-
- private:
-  void BeginImpl(Iterator& it, Node& node);
-  void Insert(std::unique_ptr<Node>& node, std::unique_ptr<Key> value,
-              uint32_t depth);
-
-  std::unique_ptr<Node> tree_;
+struct TupleIdxTable {
+  std::unique_ptr<Node> tree;
 };
+
+void Insert(TupleIdxTable* t, const int32_t* tuple_idx, int32_t len);
+
+bool Begin(TupleIdxTable* t, Iterator* it);
+
+bool IteratorNext(TupleIdxTable* t, Iterator* it);
+
+TupleIdxTable* Create();
+void Free(TupleIdxTable* t);
+
+Iterator* CreateIt();
+void FreeIt(Iterator* t);
+int32_t* Get(Iterator* t);
 
 }  // namespace kush::runtime::TupleIdxTable

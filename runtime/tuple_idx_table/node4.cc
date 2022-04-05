@@ -106,23 +106,23 @@ void Node4::Erase(std::unique_ptr<Node>& node, int pos) {
   // This is a one way node
   if (n->count == 1) {
     auto childref = n->child[0].get();
-    //! concatenate prefixes
+    // concatenate prefixes
     auto new_length = node->prefix_length + childref->prefix_length + 1;
-    //! have to allocate space in our prefix array
+    // have to allocate space in our prefix array
     std::unique_ptr<uint8_t[]> new_prefix(new uint8_t[new_length]);
 
-    //! first move the existing prefix (if any)
+    // first move the existing prefix (if any)
     for (uint32_t i = 0; i < childref->prefix_length; i++) {
       new_prefix[new_length - (i + 1)] =
           childref->prefix[childref->prefix_length - (i + 1)];
     }
-    //! now move the current key as part of the prefix
+    // now move the current key as part of the prefix
     new_prefix[node->prefix_length] = n->key[0];
-    //! finally add the old prefix
+    // finally add the old prefix
     for (uint32_t i = 0; i < node->prefix_length; i++) {
       new_prefix[i] = node->prefix[i];
     }
-    //! set new prefix and move the child
+    // set new prefix and move the child
     childref->prefix = std::move(new_prefix);
     childref->prefix_length = new_length;
     node = std::move(n->child[0]);

@@ -16,12 +16,8 @@
 
 namespace kush::runtime::TupleIdxTable {
 
-void TupleIdxTable::Insert(int32_t* tuple_idx, int32_t len) {
-  Insert(tree_, Key::CreateKey(tuple_idx, len), 0);
-}
-
-void TupleIdxTable::Insert(std::unique_ptr<Node>& node,
-                           std::unique_ptr<Key> value, uint32_t depth) {
+void InsertImpl(std::unique_ptr<Node>& node, std::unique_ptr<Key> value,
+                uint32_t depth) {
   Key& key = *value;
   if (!node) {
     // node is currently empty, create a leaf here with the key
@@ -91,10 +87,14 @@ void TupleIdxTable::Insert(std::unique_ptr<Node>& node,
   int32_t pos = node->GetChildPos(key[depth]);
   if (pos != -1) {
     auto child = node->GetChild(pos);
-    return Insert(*child, std::move(value), depth + 1);
+    return InsertImpl(*child, std::move(value), depth + 1);
   }
   std::unique_ptr<Node> new_node = std::make_unique<Leaf>(std::move(value));
   Node::InsertLeaf(node, key[depth], new_node);
+}
+
+void Insert(TupleIdxTable* t, const int32_t* tuple_idx, int32_t len) {
+  InsertImpl(t->tree, Key::CreateKey(tuple_idx, len), 0);
 }
 
 IteratorEntry::IteratorEntry() : node(nullptr), pos(0) {}
@@ -109,15 +109,7 @@ void Iterator::SetEntry(int32_t entry_depth, IteratorEntry entry) {
   stack[entry_depth] = entry;
 }
 
-bool TupleIdxTable::Begin(Iterator& it) {
-  if (tree_) {
-    BeginImpl(it, *tree_);
-    return true;
-  }
-  return false;
-}
-
-void TupleIdxTable::BeginImpl(Iterator& it, Node& node) {
+void BeginImpl(Iterator& it, Node& node) {
   Node* next = nullptr;
   int32_t pos = 0;
   switch (node.type) {
@@ -152,20 +144,29 @@ void TupleIdxTable::BeginImpl(Iterator& it, Node& node) {
   return BeginImpl(it, *next);
 }
 
-bool TupleIdxTable::IteratorNext(Iterator& it) {
+bool Begin(TupleIdxTable* table, Iterator* it) {
+  if (table->tree) {
+    BeginImpl(*it, *table->tree);
+    return true;
+  }
+  return false;
+}
+
+bool IteratorNext(TupleIdxTable* table, Iterator* it) {
   // Skip leaf
-  if ((it.depth) && ((it.stack[it.depth - 1].node)->type == NodeType::NLeaf)) {
-    it.depth--;
+  if ((it->depth) &&
+      ((it->stack[it->depth - 1].node)->type == NodeType::NLeaf)) {
+    it->depth--;
   }
 
   // Look for the next leaf
-  while (it.depth > 0) {
-    auto& top = it.stack[it.depth - 1];
+  while (it->depth > 0) {
+    auto& top = it->stack[it->depth - 1];
     Node* node = top.node;
 
     if (node->type == NodeType::NLeaf) {
       // found a leaf: move to next node
-      it.node = (Leaf*)node;
+      it->node = (Leaf*)node;
       return true;
     }
 
@@ -173,15 +174,26 @@ bool TupleIdxTable::IteratorNext(Iterator& it) {
     top.pos = node->GetNextPos(top.pos);
     if (top.pos != -1) {
       // next node found: go there
-      it.SetEntry(it.depth, IteratorEntry(node->GetChild(top.pos)->get(), -1));
-      it.depth++;
+      it->SetEntry(it->depth,
+                   IteratorEntry(node->GetChild(top.pos)->get(), -1));
+      it->depth++;
     } else {
       // no node found: move up the tree
-      it.depth--;
+      it->depth--;
     }
   }
 
   return false;
 }
+
+TupleIdxTable* Create() { return new TupleIdxTable; }
+
+void Free(TupleIdxTable* t) { delete t; }
+
+Iterator* CreateIt() { return new Iterator; }
+
+void FreeIt(Iterator* t) { delete t; }
+
+int32_t* Get(Iterator* t) { return t->node->value->Data(); }
 
 }  // namespace kush::runtime::TupleIdxTable

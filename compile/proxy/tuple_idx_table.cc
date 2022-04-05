@@ -5,25 +5,29 @@
 #include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
-#include "runtime/tuple_idx_table.h"
+#include "runtime/tuple_idx_table/tuple_idx_table.h"
 #include "util/vector_util.h"
 
 namespace kush::compile::proxy {
 
 constexpr std::string_view tuple_idx_table_iterator_name(
     "kush::runtime::TupleIdxTable::Iterator");
-constexpr std::string_view create_fn_name(
-    "kush::runtime::TupleIdxTable::Create");
-constexpr std::string_view insert_fn_name(
-    "kush::runtime::TupleIdxTable::Insert");
-constexpr std::string_view free_fn_name("kush::runtime::TupleIdxTable::Free");
-constexpr std::string_view size_fn_name("kush::runtime::TupleIdxTable::Size");
-constexpr std::string_view begin_fn_name("kush::runtime::TupleIdxTable::Begin");
-constexpr std::string_view increment_fn_name(
-    "kush::runtime::TupleIdxTable::Increment");
-constexpr std::string_view get_fn_name("kush::runtime::TupleIdxTable::Get");
+constexpr std::string_view create_it_fn_name(
+    "kush::runtime::TupleIdxTable::CreateIt");
 constexpr std::string_view free_it_fn_name(
     "kush::runtime::TupleIdxTable::FreeIt");
+constexpr std::string_view get_fn_name(
+    "kush::runtime::TupleIdxTable::Iterator::Get");
+
+constexpr std::string_view create_fn_name(
+    "kush::runtime::TupleIdxTable::Create");
+constexpr std::string_view free_fn_name("kush::runtime::TupleIdxTable::Free");
+constexpr std::string_view insert_fn_name(
+    "kush::runtime::TupleIdxTable::TupleIdxTable::Insert");
+constexpr std::string_view begin_fn_name(
+    "kush::runtime::TupleIdxTable::TupleIdxTable::Begin");
+constexpr std::string_view next_fn_name(
+    "kush::runtime::TupleIdxTable::TupleIdxTable::IteratorNext");
 
 TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program)
     : program_(program),
@@ -55,40 +59,26 @@ void TupleIdxTable::Insert(const khir::Value& idx_arr,
 
 khir::Value TupleIdxTable::Get() { return program_.LoadPtr(value_); }
 
-Int32 TupleIdxTable::Size() {
-  auto tuple_idx_table = program_.LoadPtr(value_);
-  return Int32(program_, program_.Call(program_.GetFunction(size_fn_name),
-                                       {tuple_idx_table}));
-}
-
 void TupleIdxTable::ForEach(std::function<void(const khir::Value&)> handler) {
   auto tuple_idx_table = program_.LoadPtr(value_);
 
-  auto size = Int32(program_, program_.Call(program_.GetFunction(size_fn_name),
-                                            {tuple_idx_table}));
-
-  auto tuple_it = program_.Alloca(program_.PointerType(
-      program_.GetOpaqueType(tuple_idx_table_iterator_name)));
-  program_.Call(program_.GetFunction(begin_fn_name),
-                {tuple_idx_table, tuple_it});
+  auto tuple_it = program_.Call(program_.GetFunction(create_it_fn_name));
+  Bool has_next(program_, program_.Call(program_.GetFunction(begin_fn_name),
+                                        {tuple_idx_table, tuple_it}));
 
   Loop(
-      program_, [&](auto& loop) { loop.AddLoopVariable(Int32(program_, 0)); },
+      program_, [&](auto& loop) { loop.AddLoopVariable(has_next); },
+      [&](auto& loop) { return loop.template GetLoopVariable<Bool>(0); },
       [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<Int32>(0);
-        return i < size;
-      },
-      [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<Int32>(0);
-
         auto tuple_idx_arr =
             program_.Call(program_.GetFunction(get_fn_name), {tuple_it});
 
         handler(tuple_idx_arr);
 
-        program_.Call(program_.GetFunction(increment_fn_name), {tuple_it});
-
-        return loop.Continue(i + 1);
+        Bool has_next(program_,
+                      program_.Call(program_.GetFunction(next_fn_name),
+                                    {tuple_idx_table, tuple_it}));
+        return loop.Continue(has_next);
       });
 
   program_.Call(program_.GetFunction(free_it_fn_name), {tuple_it});
@@ -101,38 +91,37 @@ void TupleIdxTable::ForwardDeclare(khir::ProgramBuilder& program) {
       create_fn_name, tuple_idx_table_ptr_type, {},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Create));
   program.DeclareExternalFunction(
+      free_fn_name, program.VoidType(), {tuple_idx_table_ptr_type},
+      reinterpret_cast<void*>(&runtime::TupleIdxTable::Free));
+  program.DeclareExternalFunction(
       insert_fn_name, program.VoidType(),
       {tuple_idx_table_ptr_type, program.PointerType(program.I32Type()),
        program.I32Type()},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Insert));
-  program.DeclareExternalFunction(
-      free_fn_name, program.VoidType(), {tuple_idx_table_ptr_type},
-      reinterpret_cast<void*>(&runtime::TupleIdxTable::Free));
-  program.DeclareExternalFunction(
-      size_fn_name, program.I32Type(), {tuple_idx_table_ptr_type},
-      reinterpret_cast<void*>(&runtime::TupleIdxTable::Size));
 
   auto tuple_idx_iterator_type =
       program.OpaqueType(tuple_idx_table_iterator_name);
   auto tuple_idx_iterator_ptr_type =
       program.PointerType(tuple_idx_iterator_type);
   program.DeclareExternalFunction(
-      begin_fn_name, program.VoidType(),
-      {tuple_idx_table_ptr_type,
-       program.PointerType(tuple_idx_iterator_ptr_type)},
+      create_it_fn_name, tuple_idx_iterator_ptr_type, {},
+      reinterpret_cast<void*>(&runtime::TupleIdxTable::CreateIt));
+  program.DeclareExternalFunction(
+      free_it_fn_name, program.VoidType(), {tuple_idx_iterator_ptr_type},
+      reinterpret_cast<void*>(&runtime::TupleIdxTable::FreeIt));
+
+  program.DeclareExternalFunction(
+      begin_fn_name, program.I1Type(),
+      {tuple_idx_table_ptr_type, tuple_idx_iterator_ptr_type},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Begin));
   program.DeclareExternalFunction(
-      increment_fn_name, program.VoidType(),
-      {program.PointerType(tuple_idx_iterator_ptr_type)},
-      reinterpret_cast<void*>(&runtime::TupleIdxTable::Increment));
+      next_fn_name, program.I1Type(),
+      {tuple_idx_table_ptr_type, tuple_idx_iterator_ptr_type},
+      reinterpret_cast<void*>(&runtime::TupleIdxTable::IteratorNext));
   program.DeclareExternalFunction(
       get_fn_name, program.PointerType(program.I32Type()),
-      {program.PointerType(tuple_idx_iterator_ptr_type)},
+      {tuple_idx_iterator_ptr_type},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Get));
-  program.DeclareExternalFunction(
-      free_it_fn_name, program.VoidType(),
-      {program.PointerType(tuple_idx_iterator_ptr_type)},
-      reinterpret_cast<void*>(&runtime::TupleIdxTable::FreeIt));
 }
 
 }  // namespace kush::compile::proxy

@@ -8,8 +8,8 @@ using namespace kush::runtime;
 TEST(TupleIdxTableTest, EmptyScan) {
   TupleIdxTable::TupleIdxTable table;
   TupleIdxTable::Iterator it;
-  table.Begin(it);
-  EXPECT_FALSE(table.IteratorNext(it));
+  EXPECT_FALSE(Begin(&table, &it));
+  EXPECT_FALSE(IteratorNext(&table, &it));
 }
 
 TEST(TupleIdxTableTest, SingleEntryScan) {
@@ -17,13 +17,12 @@ TEST(TupleIdxTableTest, SingleEntryScan) {
   int tuple_idx[len]{0, 1, 2};
 
   TupleIdxTable::TupleIdxTable table;
-  table.Insert(tuple_idx, len);
+  Insert(&table, tuple_idx, len);
 
   TupleIdxTable::Iterator it;
-  EXPECT_TRUE(table.Begin(it));
-  EXPECT_EQ(memcmp(tuple_idx, it.node->value->Data(), len * sizeof(int32_t)),
-            0);
-  EXPECT_FALSE(table.IteratorNext(it));
+  EXPECT_TRUE(Begin(&table, &it));
+  EXPECT_EQ(memcmp(tuple_idx, Get(&it), len * sizeof(int32_t)), 0);
+  EXPECT_FALSE(IteratorNext(&table, &it));
 }
 
 TEST(TupleIdxTableTest, MultipleValuesSortedOrder) {
@@ -33,21 +32,18 @@ TEST(TupleIdxTableTest, MultipleValuesSortedOrder) {
   int tuple_idx3[len]{1, 2, 0};
 
   TupleIdxTable::TupleIdxTable table;
-  table.Insert(tuple_idx1, len);
-  table.Insert(tuple_idx2, len);
-  table.Insert(tuple_idx3, len);
+  Insert(&table, tuple_idx1, len);
+  Insert(&table, tuple_idx2, len);
+  Insert(&table, tuple_idx3, len);
 
   TupleIdxTable::Iterator it;
-  EXPECT_TRUE(table.Begin(it));
-  EXPECT_EQ(memcmp(tuple_idx2, it.node->value->Data(), len * sizeof(int32_t)),
-            0);
-  EXPECT_TRUE(table.IteratorNext(it));
-  EXPECT_EQ(memcmp(tuple_idx1, it.node->value->Data(), len * sizeof(int32_t)),
-            0);
-  EXPECT_TRUE(table.IteratorNext(it));
-  EXPECT_EQ(memcmp(tuple_idx3, it.node->value->Data(), len * sizeof(int32_t)),
-            0);
-  EXPECT_FALSE(table.IteratorNext(it));
+  EXPECT_TRUE(Begin(&table, &it));
+  EXPECT_EQ(memcmp(tuple_idx2, Get(&it), len * sizeof(int32_t)), 0);
+  EXPECT_TRUE(IteratorNext(&table, &it));
+  EXPECT_EQ(memcmp(tuple_idx1, Get(&it), len * sizeof(int32_t)), 0);
+  EXPECT_TRUE(IteratorNext(&table, &it));
+  EXPECT_EQ(memcmp(tuple_idx3, Get(&it), len * sizeof(int32_t)), 0);
+  EXPECT_FALSE(IteratorNext(&table, &it));
 }
 
 TEST(TupleIdxTableTest, MultipleValuesSortedOrderWithDuplicates) {
@@ -57,22 +53,19 @@ TEST(TupleIdxTableTest, MultipleValuesSortedOrderWithDuplicates) {
   int tuple_idx3[len]{1, 2, 0};
 
   TupleIdxTable::TupleIdxTable table;
-  table.Insert(tuple_idx1, len);
-  table.Insert(tuple_idx2, len);
-  table.Insert(tuple_idx3, len);
-  table.Insert(tuple_idx3, len);
-  table.Insert(tuple_idx2, len);
-  table.Insert(tuple_idx1, len);
+  Insert(&table, tuple_idx1, len);
+  Insert(&table, tuple_idx2, len);
+  Insert(&table, tuple_idx3, len);
+  Insert(&table, tuple_idx3, len);
+  Insert(&table, tuple_idx2, len);
+  Insert(&table, tuple_idx1, len);
 
   TupleIdxTable::Iterator it;
-  EXPECT_TRUE(table.Begin(it));
-  EXPECT_EQ(memcmp(tuple_idx2, it.node->value->Data(), len * sizeof(int32_t)),
-            0);
-  EXPECT_TRUE(table.IteratorNext(it));
-  EXPECT_EQ(memcmp(tuple_idx1, it.node->value->Data(), len * sizeof(int32_t)),
-            0);
-  EXPECT_TRUE(table.IteratorNext(it));
-  EXPECT_EQ(memcmp(tuple_idx3, it.node->value->Data(), len * sizeof(int32_t)),
-            0);
-  EXPECT_FALSE(table.IteratorNext(it));
+  EXPECT_TRUE(Begin(&table, &it));
+  EXPECT_EQ(memcmp(tuple_idx2, Get(&it), len * sizeof(int32_t)), 0);
+  EXPECT_TRUE(IteratorNext(&table, &it));
+  EXPECT_EQ(memcmp(tuple_idx1, Get(&it), len * sizeof(int32_t)), 0);
+  EXPECT_TRUE(IteratorNext(&table, &it));
+  EXPECT_EQ(memcmp(tuple_idx3, Get(&it), len * sizeof(int32_t)), 0);
+  EXPECT_FALSE(IteratorNext(&table, &it));
 }

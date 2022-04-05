@@ -79,7 +79,7 @@ cc_library(
         "//compile/proxy/control_flow:loop",
         "//compile/proxy/value:ir_value",
         "//khir:program_builder",
-        "//runtime:tuple_idx_table",
+        "//runtime/tuple_idx_table",
         "//util:vector_util",
     ],
 )

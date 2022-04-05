@@ -10,7 +10,7 @@ namespace kush::runtime::TupleIdxTable {
 Key::Key(std::unique_ptr<uint8_t[]> data, int32_t len)
     : data_(std::move(data)), len_(len) {}
 
-std::unique_ptr<Key> Key::CreateKey(int32_t* data, int32_t len) {
+std::unique_ptr<Key> Key::CreateKey(const int32_t* data, int32_t len) {
   auto copy = std::unique_ptr<uint8_t[]>(new uint8_t[len * sizeof(int32_t)]);
   memcpy(copy.get(), data, len * sizeof(int32_t));
   return std::make_unique<Key>(std::move(copy), len * sizeof(int32_t));

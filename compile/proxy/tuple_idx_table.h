@@ -14,7 +14,6 @@ class TupleIdxTable {
 
   void Reset();
   khir::Value Get();
-  Int32 Size();
 
   void Insert(const khir::Value& idx_arr, const Int32& num_tables);
   void ForEach(std::function<void(const khir::Value&)> handler);
