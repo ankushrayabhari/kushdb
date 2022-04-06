@@ -503,28 +503,33 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                         printer.PrintNewline();
                         */
 
-                        auto current_table_values = buffer[next_tuple];
-
                         // Store each of this table's predicate column
                         // values into the global_predicate_struct.
+                        std::vector<std::pair<int, int>> cols;
                         for (auto [col_ref, field] :
                              colref_to_predicate_struct_field_) {
                           auto [child_idx, col_idx] = col_ref;
                           if (child_idx == table_idx) {
-                            global_predicate_struct.Update(
-                                field, current_table_values[col_idx]);
-
-                            // Additionally, update this table's values to
-                            // read from the unpacked tuple instead of the
-                            // old loaded value from
-                            // global_predicate_struct.
-                            child_translators[table_idx]
-                                .get()
-                                .SchemaValues()
-                                .SetValue(
-                                    col_idx,
-                                    std::move(current_table_values[col_idx]));
+                            cols.emplace_back(col_idx, field);
                           }
+                        }
+                        std::sort(cols.begin(), cols.end(),
+                                  [](const auto& p1, const auto& p2) {
+                                    return p1.first < p2.first;
+                                  });
+
+                        for (auto [col_idx, field] : cols) {
+                          auto value = buffer.Get(next_tuple, col_idx);
+                          global_predicate_struct.Update(field, value);
+
+                          // Additionally, update this table's values to
+                          // read from the unpacked tuple instead of the
+                          // old loaded value from
+                          // global_predicate_struct.
+                          child_translators[table_idx]
+                              .get()
+                              .SchemaValues()
+                              .SetValue(col_idx, std::move(value));
                         }
 
                         for (auto pred : conditions_per_table_[table_idx]) {
@@ -680,27 +685,31 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                   printer.PrintNewline();
                   */
 
-                  auto current_table_values = buffer[next_tuple];
-
                   // Store each of this table's predicate column
                   // values into the global_predicate_struct.
+                  std::vector<std::pair<int, int>> cols;
                   for (auto [col_ref, field] :
                        colref_to_predicate_struct_field_) {
                     auto [child_idx, col_idx] = col_ref;
                     if (child_idx == table_idx) {
-                      global_predicate_struct.Update(
-                          field, current_table_values[col_idx]);
-
-                      // Additionally, update this table's values to
-                      // read from the unpacked tuple instead of the
-                      // old loaded value from
-                      // global_predicate_struct.
-                      child_translators[table_idx]
-                          .get()
-                          .SchemaValues()
-                          .SetValue(col_idx,
-                                    std::move(current_table_values[col_idx]));
+                      cols.emplace_back(col_idx, field);
                     }
+                  }
+                  std::sort(cols.begin(), cols.end(),
+                            [](const auto& p1, const auto& p2) {
+                              return p1.first < p2.first;
+                            });
+
+                  for (auto [col_idx, field] : cols) {
+                    auto value = buffer.Get(next_tuple, col_idx);
+                    global_predicate_struct.Update(field, value);
+
+                    // Additionally, update this table's values to
+                    // read from the unpacked tuple instead of the
+                    // old loaded value from
+                    // global_predicate_struct.
+                    child_translators[table_idx].get().SchemaValues().SetValue(
+                        col_idx, std::move(value));
                   }
 
                   for (auto pred : conditions_per_table_[table_idx]) {
