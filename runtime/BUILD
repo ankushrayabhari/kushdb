@@ -95,6 +95,13 @@ cc_library(
 )
 
 cc_library(
+    name = "aggregate_hash_table",
+    srcs = ["aggregate_hash_table.cc"],
+    hdrs = ["aggregate_hash_table.h"],
+    deps = [],
+)
+
+cc_library(
     name = "skinner_join_executor",
     srcs = ["skinner_join_executor.cc"],
     hdrs = ["skinner_join_executor.h"],
