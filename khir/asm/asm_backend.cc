@@ -2943,6 +2943,42 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I64_TRUNC_I16: {
+      Type2InstructionReader reader(instr);
+      Value v(reader.Arg0());
+
+      auto dest = dest_assign.IsRegister()
+                      ? NormalRegister(dest_assign.Register())
+                      : Register::RAX;
+      MoveQWordValue(dest.GetQ(), v, offsets, constant_instrs, i64_constants,
+                     register_assign);
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->mov(x86::word_ptr(x86::rbp, offset), dest.GetW());
+      }
+      return;
+    }
+
+    case Opcode::I64_TRUNC_I32: {
+      Type2InstructionReader reader(instr);
+      Value v(reader.Arg0());
+
+      auto dest = dest_assign.IsRegister()
+                      ? NormalRegister(dest_assign.Register())
+                      : Register::RAX;
+      MoveQWordValue(dest.GetQ(), v, offsets, constant_instrs, i64_constants,
+                     register_assign);
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->mov(x86::dword_ptr(x86::rbp, offset), dest.GetD());
+      }
+      return;
+    }
+
     case Opcode::I64_CONV_F64: {
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());

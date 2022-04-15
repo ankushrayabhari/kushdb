@@ -4186,6 +4186,98 @@ TEST_P(BackendTest, I64_CONV_F64Const) {
   }
 }
 
+TEST_P(BackendTest, I64_TRUNC_I16) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  for (int i = 0; i < 10; i++) {
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I16Type(),
+                                             {program.I64Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.I16TruncI64(args[0]));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<uint16_t(int64_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    uint64_t c = distrib(gen);
+    uint16_t conv = c;
+    EXPECT_EQ(conv, compute(c));
+  }
+}
+
+TEST_P(BackendTest, I64_TRUNC_I16Const) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  for (int i = 0; i < 10; i++) {
+    uint64_t c = distrib(gen);
+
+    ProgramBuilder program;
+    program.CreatePublicFunction(program.I16Type(), {program.I64Type()},
+                                 "compute");
+    program.Return(program.I16TruncI64(program.ConstI64(c)));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<uint16_t()>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    uint16_t conv = c;
+    EXPECT_EQ(conv, compute());
+  }
+}
+
+TEST_P(BackendTest, I64_TRUNC_I32) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  for (int i = 0; i < 10; i++) {
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I32Type(),
+                                             {program.I64Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.I16TruncI64(args[0]));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<uint32_t(int64_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    uint64_t c = distrib(gen);
+    uint32_t conv = c;
+    EXPECT_EQ(conv, compute(c));
+  }
+}
+
+TEST_P(BackendTest, I64_TRUNC_I32Const) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  for (int i = 0; i < 10; i++) {
+    uint64_t c = distrib(gen);
+
+    ProgramBuilder program;
+    program.CreatePublicFunction(program.I32Type(), {program.I64Type()},
+                                 "compute");
+    program.Return(program.I32TruncI64(program.ConstI64(c)));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<uint32_t()>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    uint32_t conv = c;
+    EXPECT_EQ(conv, compute());
+  }
+}
+
 TEST_P(BackendTest, I64_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());

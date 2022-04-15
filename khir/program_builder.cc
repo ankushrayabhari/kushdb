@@ -637,12 +637,14 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::I16_MUL:
     case Opcode::I16_SUB:
     case Opcode::I16_LOAD:
+    case Opcode::I64_TRUNC_I16:
       return type_manager_.I16Type();
 
     case Opcode::I32_ADD:
     case Opcode::I32_MUL:
     case Opcode::I32_SUB:
     case Opcode::I32_LOAD:
+    case Opcode::I64_TRUNC_I32:
       return type_manager_.I32Type();
 
     case Opcode::I64_ADD:
@@ -1235,6 +1237,22 @@ Value ProgramBuilder::RShiftI64(Value v1, uint8_t v2) {
           .SetOpcode(OpcodeTo(Opcode::I64_RSHIFT))
           .SetArg0(v1.Serialize())
           .SetArg1(materialized_v2.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::I16TruncI64(Value v) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I64_TRUNC_I16))
+          .SetArg0(v.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::I32TruncI64(Value v) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I64_TRUNC_I32))
+          .SetArg0(v.Serialize())
           .Build());
 }
 

@@ -555,6 +555,20 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I64_TRUNC_I16: {
+      Type2InstructionReader reader(instr);
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
+      values[instr_idx] = builder_->CreateTrunc(v, builder_->getInt16Ty());
+      return;
+    }
+
+    case Opcode::I64_TRUNC_I32: {
+      Type2InstructionReader reader(instr);
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
+      values[instr_idx] = builder_->CreateTrunc(v, builder_->getInt32Ty());
+      return;
+    }
+
     case Opcode::I8_CONV_F64:
     case Opcode::I16_CONV_F64:
     case Opcode::I32_CONV_F64:

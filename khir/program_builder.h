@@ -283,6 +283,8 @@ class ProgramBuilder {
   Value RShiftI64(Value v1, uint8_t v2);
   Value AndI64(Value v1, Value v2);
   Value OrI64(Value v1, Value v2);
+  Value I16TruncI64(Value v);
+  Value I32TruncI64(Value v);
   Value LoadI64(Value ptr);
   void StoreI64(Value ptr, Value v);
 

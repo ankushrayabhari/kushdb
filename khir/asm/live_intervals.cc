@@ -199,12 +199,14 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::I16_MUL:
     case Opcode::I16_SUB:
     case Opcode::I16_LOAD:
+    case Opcode::I64_TRUNC_I16:
       return manager.I16Type();
 
     case Opcode::I32_ADD:
     case Opcode::I32_MUL:
     case Opcode::I32_SUB:
     case Opcode::I32_LOAD:
+    case Opcode::I64_TRUNC_I32:
       return manager.I32Type();
 
     case Opcode::I64_LSHIFT:
@@ -334,6 +336,8 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I32_ZEXT_I64:
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
+    case Opcode::I64_TRUNC_I16:
+    case Opcode::I64_TRUNC_I32:
     case Opcode::F64_CONV_I64:
     case Opcode::I8_LOAD:
     case Opcode::I16_LOAD:
@@ -483,6 +487,8 @@ std::vector<Value> GetReadValues(int instr_idx, int bb_start, int bb_end,
     case Opcode::I32_ZEXT_I64:
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
+    case Opcode::I64_TRUNC_I16:
+    case Opcode::I64_TRUNC_I32:
     case Opcode::F64_CONV_I64:
     case Opcode::PTR_CMP_NULLPTR: {
       Type2InstructionReader reader(instr);

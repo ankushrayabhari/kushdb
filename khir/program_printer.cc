@@ -206,6 +206,8 @@ void ProgramPrinter::OutputInstr(
     case Opcode::I32_ZEXT_I64:
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
+    case Opcode::I64_TRUNC_I32:
+    case Opcode::I64_TRUNC_I16:
     case Opcode::F64_CONV_I64:
     case Opcode::PTR_CMP_NULLPTR:
     case Opcode::I8_LOAD:

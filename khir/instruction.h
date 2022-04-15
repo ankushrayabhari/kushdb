@@ -112,6 +112,8 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I64_CMP_LT
 // [MD] [ARG0] [ARG1] I64_CMP_LE
 // [MD] [ARG0] [0]    I64_CONV_F64
+// [MD] [ARG0] [0]    I64_TRUNC_I16
+// [MD] [ARG0] [0]    I64_TRUNC_I32
 // [MD] [ARG0] [ARG1] F64_ADD
 // [MD] [ARG0] [ARG1] F64_MUL
 // [MD] [ARG0] [ARG1] F64_SUB
