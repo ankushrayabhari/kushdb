@@ -154,6 +154,10 @@ void ProgramPrinter::OutputInstr(
     case Opcode::I32_CMP_GT:
     case Opcode::I32_CMP_GE:
     case Opcode::I64_ADD:
+    case Opcode::I64_LSHIFT:
+    case Opcode::I64_RSHIFT:
+    case Opcode::I64_AND:
+    case Opcode::I64_OR:
     case Opcode::I64_MUL:
     case Opcode::I64_SUB:
     case Opcode::I64_CMP_EQ:

@@ -648,6 +648,10 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::I64_ADD:
     case Opcode::I64_MUL:
     case Opcode::I64_SUB:
+    case Opcode::I64_LSHIFT:
+    case Opcode::I64_RSHIFT:
+    case Opcode::I64_AND:
+    case Opcode::I64_OR:
     case Opcode::I1_ZEXT_I64:
     case Opcode::I8_ZEXT_I64:
     case Opcode::I16_ZEXT_I64:
@@ -1208,6 +1212,43 @@ Value ProgramBuilder::MulI64(Value v1, Value v2) {
 Value ProgramBuilder::SubI64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I64_SUB))
+                                         .SetArg0(v1.Serialize())
+                                         .SetArg1(v2.Serialize())
+                                         .Build());
+}
+
+Value ProgramBuilder::LShiftI64(Value v1, uint8_t v2) {
+  auto materialized_v2 = ConstI64(v2);
+
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I64_LSHIFT))
+          .SetArg0(v1.Serialize())
+          .SetArg1(materialized_v2.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::RShiftI64(Value v1, uint8_t v2) {
+  auto materialized_v2 = ConstI64(v2);
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I64_RSHIFT))
+          .SetArg0(v1.Serialize())
+          .SetArg1(materialized_v2.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::AndI64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(OpcodeTo(Opcode::I64_AND))
+                                         .SetArg0(v1.Serialize())
+                                         .SetArg1(v2.Serialize())
+                                         .Build());
+}
+
+Value ProgramBuilder::OrI64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(OpcodeTo(Opcode::I64_OR))
                                          .SetArg0(v1.Serialize())
                                          .SetArg1(v2.Serialize())
                                          .Build());

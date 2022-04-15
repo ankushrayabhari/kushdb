@@ -376,7 +376,8 @@ void LLVMBackend::TranslateInstr(
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
-    case Opcode::I1_AND: {
+    case Opcode::I1_AND:
+    case Opcode::I64_AND: {
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
@@ -384,7 +385,8 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::I1_OR: {
+    case Opcode::I1_OR:
+    case Opcode::I64_OR: {
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
@@ -449,6 +451,22 @@ void LLVMBackend::TranslateInstr(
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       values[instr_idx] = builder_->CreateAdd(v0, v1);
+      return;
+    }
+
+    case Opcode::I64_LSHIFT: {
+      Type2InstructionReader reader(instr);
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
+      values[instr_idx] = builder_->CreateShl(v0, v1);
+      return;
+    }
+
+    case Opcode::I64_RSHIFT: {
+      Type2InstructionReader reader(instr);
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
+      values[instr_idx] = builder_->CreateLShr(v0, v1);
       return;
     }
 

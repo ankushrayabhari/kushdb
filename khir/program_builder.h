@@ -279,6 +279,10 @@ class ProgramBuilder {
   Value SubI64(Value v1, Value v2);
   Value CmpI64(CompType cmp, Value v1, Value v2);
   Value F64ConvI64(Value v);
+  Value LShiftI64(Value v1, uint8_t v2);
+  Value RShiftI64(Value v1, uint8_t v2);
+  Value AndI64(Value v1, Value v2);
+  Value OrI64(Value v1, Value v2);
   Value LoadI64(Value ptr);
   void StoreI64(Value ptr, Value v);
 

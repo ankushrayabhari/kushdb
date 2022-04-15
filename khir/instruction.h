@@ -101,6 +101,10 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I64_ADD
 // [MD] [ARG0] [ARG1] I64_MUL
 // [MD] [ARG0] [ARG1] I64_SUB
+// [MD] [ARG0] [ARG1] I64_AND
+// [MD] [ARG0] [ARG1] I64_OR
+// [MD] [ARG0] [ARG1] I64_LSHIFT
+// [MD] [ARG0] [ARG1] I64_RSHIFT
 // [MD] [ARG0] [ARG1] I64_CMP_EQ
 // [MD] [ARG0] [ARG1] I64_CMP_NE
 // [MD] [ARG0] [ARG1] I64_CMP_GT

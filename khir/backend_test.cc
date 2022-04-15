@@ -3695,6 +3695,272 @@ TEST_P(BackendTest, I64_ADDConstArg1) {
   }
 }
 
+TEST_P(BackendTest, I64_AND) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto sum = program.AndI64(args[0], args[1]);
+  program.Return(sum);
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  for (int i = 0; i < 10; i++) {
+    int64_t a0 = distrib(gen);
+    int64_t a1 = distrib(gen);
+    int64_t res = a0 & a1;
+    EXPECT_EQ(res, compute(a0, a1));
+  }
+}
+
+TEST_P(BackendTest, I64_ANDConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+
+  for (int i = 0; i < 10; i++) {
+    int64_t a0 = distrib(gen);
+    int64_t a1 = distrib(gen);
+
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I64Type(),
+                                             {program.I64Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    auto sum = program.AndI64(program.ConstI64(a0), args[0]);
+    program.Return(sum);
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    int64_t res = a0 & a1;
+    EXPECT_EQ(res, compute(a1));
+  }
+}
+
+TEST_P(BackendTest, I64_ANDConstArg1) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+
+  for (int i = 0; i < 10; i++) {
+    int64_t a0 = distrib(gen);
+    int64_t a1 = distrib(gen);
+
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I64Type(),
+                                             {program.I64Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    auto sum = program.AndI64(args[0], program.ConstI64(a1));
+    program.Return(sum);
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    int64_t res = a0 & a1;
+    EXPECT_EQ(res, compute(a0));
+  }
+}
+
+TEST_P(BackendTest, I64_OR) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto sum = program.OrI64(args[0], args[1]);
+  program.Return(sum);
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  for (int i = 0; i < 10; i++) {
+    int64_t a0 = distrib(gen);
+    int64_t a1 = distrib(gen);
+    int64_t res = a0 | a1;
+    EXPECT_EQ(res, compute(a0, a1));
+  }
+}
+
+TEST_P(BackendTest, I64_ORConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+
+  for (int i = 0; i < 10; i++) {
+    int64_t a0 = distrib(gen);
+    int64_t a1 = distrib(gen);
+
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I64Type(),
+                                             {program.I64Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    auto sum = program.OrI64(program.ConstI64(a0), args[0]);
+    program.Return(sum);
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    int64_t res = a0 | a1;
+    EXPECT_EQ(res, compute(a1));
+  }
+}
+
+TEST_P(BackendTest, I64_ORConstArg1) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+
+  for (int i = 0; i < 10; i++) {
+    int64_t a0 = distrib(gen);
+    int64_t a1 = distrib(gen);
+
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I64Type(),
+                                             {program.I64Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    auto sum = program.OrI64(args[0], program.ConstI64(a1));
+    program.Return(sum);
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    int64_t res = a0 | a1;
+    EXPECT_EQ(res, compute(a0));
+  }
+}
+
+TEST_P(BackendTest, I64_LSHIFT) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  std::uniform_int_distribution<uint8_t> shift_distrib(0, 63);
+
+  for (int i = 0; i < 10; i++) {
+    int64_t a0 = distrib(gen);
+    uint8_t a1 = shift_distrib(gen);
+
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I64Type(),
+                                             {program.I64Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    auto sum = program.LShiftI64(args[0], a1);
+    program.Return(sum);
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    int64_t res = a0 << a1;
+    EXPECT_EQ(res, compute(a0));
+  }
+}
+
+TEST_P(BackendTest, I64_LSHIFTConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  std::uniform_int_distribution<uint8_t> shift_distrib(0, 63);
+
+  for (int i = 0; i < 10; i++) {
+    int64_t a0 = distrib(gen);
+    uint8_t a1 = shift_distrib(gen);
+
+    ProgramBuilder program;
+    program.CreatePublicFunction(program.I64Type(), {}, "compute");
+    auto sum = program.LShiftI64(program.ConstI64(a0), a1);
+    program.Return(sum);
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int64_t()>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    int64_t res = a0 << a1;
+    EXPECT_EQ(res, compute());
+  }
+}
+
+TEST_P(BackendTest, I64_RSHIFT) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  std::uniform_int_distribution<uint8_t> shift_distrib(0, 63);
+
+  for (int i = 0; i < 10; i++) {
+    uint64_t a0 = distrib(gen);
+    uint8_t a1 = shift_distrib(gen);
+
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(program.I64Type(),
+                                             {program.I64Type()}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    auto sum = program.RShiftI64(args[0], a1);
+    program.Return(sum);
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    int64_t res = a0 >> a1;
+    EXPECT_EQ(res, compute(a0));
+  }
+}
+
+TEST_P(BackendTest, I64_RSHIFTConstArg0) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  std::uniform_int_distribution<uint8_t> shift_distrib(0, 63);
+
+  for (int i = 0; i < 10; i++) {
+    uint64_t a0 = distrib(gen);
+    uint8_t a1 = shift_distrib(gen);
+
+    ProgramBuilder program;
+    program.CreatePublicFunction(program.I64Type(), {}, "compute");
+    auto sum = program.RShiftI64(program.ConstI64(a0), a1);
+    program.Return(sum);
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int64_t()>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    int64_t res = a0 >> a1;
+    EXPECT_EQ(res, compute());
+  }
+}
+
 TEST_P(BackendTest, I64_SUB) {
   std::random_device rd;
   std::mt19937 gen(rd());

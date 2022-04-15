@@ -1375,6 +1375,123 @@ void ASMBackend::SubQWordValue(
   }
 }
 
+template <typename T>
+void ASMBackend::AndQWordValue(
+    T dest, Value v, std::vector<int32_t>& offsets,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<uint64_t>& i64_constants,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (v.IsConstantGlobal()) {
+    int64_t c64 =
+        i64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
+                          .Constant()];
+
+    if constexpr (std::is_same_v<T, x86::Mem>) {
+      asm_->mov(x86::rax, c64);
+      asm_->and_(dest, x86::rax);
+    } else {
+      asm_->and_(dest, x86::qword_ptr(EmbedI64(c64)));
+    }
+  } else if (register_assign[v.GetIdx()].IsRegister()) {
+    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    asm_->and_(dest, v_reg.GetQ());
+  } else {
+    if constexpr (std::is_same_v<T, x86::Mem>) {
+      asm_->mov(Register::RAX.GetQ(),
+                x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+      asm_->and_(dest, Register::RAX.GetQ());
+    } else {
+      asm_->and_(dest,
+                 x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+    }
+  }
+}
+
+template <typename T>
+void ASMBackend::OrQWordValue(
+    T dest, Value v, std::vector<int32_t>& offsets,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<uint64_t>& i64_constants,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (v.IsConstantGlobal()) {
+    int64_t c64 =
+        i64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
+                          .Constant()];
+
+    if constexpr (std::is_same_v<T, x86::Mem>) {
+      asm_->mov(x86::rax, c64);
+      asm_->or_(dest, x86::rax);
+    } else {
+      asm_->or_(dest, x86::qword_ptr(EmbedI64(c64)));
+    }
+  } else if (register_assign[v.GetIdx()].IsRegister()) {
+    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    asm_->or_(dest, v_reg.GetQ());
+  } else {
+    if constexpr (std::is_same_v<T, x86::Mem>) {
+      asm_->mov(Register::RAX.GetQ(),
+                x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+      asm_->or_(dest, Register::RAX.GetQ());
+    } else {
+      asm_->or_(dest, x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+    }
+  }
+}
+
+template <typename T>
+void ASMBackend::LShiftQWordValue(
+    T dest, Value v, std::vector<int32_t>& offsets,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<uint64_t>& i64_constants,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (!v.IsConstantGlobal()) {
+    throw std::runtime_error("Invalid LShift - must be constant");
+  }
+
+  int64_t c64 =
+      i64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
+                        .Constant()];
+
+  if (c64 < 0 || c64 >= 64) {
+    throw std::runtime_error("Shift constant must be in 0-63 range");
+  }
+
+  uint8_t c8 = c64;
+
+  if constexpr (std::is_same_v<T, x86::Mem>) {
+    asm_->shl(dest, c8);
+  } else {
+    asm_->shl(dest, c8);
+  }
+}
+
+template <typename T>
+void ASMBackend::RShiftQWordValue(
+    T dest, Value v, std::vector<int32_t>& offsets,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<uint64_t>& i64_constants,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (!v.IsConstantGlobal()) {
+    throw std::runtime_error("Invalid LShift - must be constant");
+  }
+
+  int64_t c64 =
+      i64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
+                        .Constant()];
+
+  if (c64 < 0 || c64 >= 64) {
+    throw std::runtime_error("Shift constant must be in 0-63 range");
+  }
+
+  uint8_t c8 = c64;
+
+  if constexpr (std::is_same_v<T, x86::Mem>) {
+    asm_->shr(dest, c8);
+  } else {
+    asm_->shr(dest, c8);
+  }
+}
+
 void ASMBackend::MulQWordValue(
     x86::Gpq dest, Value v, std::vector<int32_t>& offsets,
     const std::vector<uint64_t>& constant_instrs,
@@ -2651,6 +2768,98 @@ void ASMBackend::TranslateInstr(
                        register_assign);
         SubQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
                       register_assign);
+      }
+      return;
+    }
+
+    case Opcode::I64_AND: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      if (dest_assign.IsRegister()) {
+        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                       register_assign);
+        AndQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
+                      register_assign);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        auto dest = x86::qword_ptr(x86::rbp, offset);
+        MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                       register_assign);
+        AndQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
+                      register_assign);
+      }
+      return;
+    }
+
+    case Opcode::I64_OR: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      if (dest_assign.IsRegister()) {
+        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                       register_assign);
+        OrQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
+                     register_assign);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        auto dest = x86::qword_ptr(x86::rbp, offset);
+        MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                       register_assign);
+        OrQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
+                     register_assign);
+      }
+      return;
+    }
+
+    case Opcode::I64_LSHIFT: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      if (dest_assign.IsRegister()) {
+        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                       register_assign);
+        LShiftQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
+                         register_assign);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        auto dest = x86::qword_ptr(x86::rbp, offset);
+        MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                       register_assign);
+        LShiftQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
+                         register_assign);
+      }
+      return;
+    }
+
+    case Opcode::I64_RSHIFT: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      if (dest_assign.IsRegister()) {
+        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                       register_assign);
+        RShiftQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
+                         register_assign);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        auto dest = x86::qword_ptr(x86::rbp, offset);
+        MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                       register_assign);
+        RShiftQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
+                         register_assign);
       }
       return;
     }
