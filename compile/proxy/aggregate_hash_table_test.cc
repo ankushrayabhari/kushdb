@@ -130,6 +130,39 @@ TEST_P(AggregateHashTableTest, GetOffset) {
   }
 }
 
+TEST_P(AggregateHashTableTest, Set) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<uint16_t> w_distrib(0, UINT16_MAX);
+  std::uniform_int_distribution<uint32_t> dw_distrib(0, UINT32_MAX);
+  for (int i = 0; i < 10; i++) {
+    auto salt = w_distrib(gen);
+    auto offset = w_distrib(gen);
+    auto idx = dw_distrib(gen);
+
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.VoidType(), {program.PointerType(program.I64Type())},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    AggregateHashTableEntry ht_entry(program, args[0]);
+    ht_entry.Set(Int16(program, salt), Int16(program, offset),
+                 Int32(program, idx));
+    program.Return();
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<void(uint64_t*)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    auto entry = runtime::AggregateHashTable::ConstructEntry(salt, offset, idx);
+    uint64_t output;
+    compute(&output);
+    EXPECT_EQ(entry, output);
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, AggregateHashTableTest,
                          testing::Values(std::make_pair(
                              BackendType::LLVM, RegAllocImpl::STACK_SPILL)));
