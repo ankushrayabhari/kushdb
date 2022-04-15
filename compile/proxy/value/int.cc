@@ -228,6 +228,10 @@ Int64 Int16::Hash() const {
   return Int64(program_, program_.I64ZextI16(value_));
 }
 
+Int64 Int16::Zext() const {
+  return Int64(program_, program_.I64ZextI16(value_));
+}
+
 khir::ProgramBuilder& Int16::ProgramBuilder() const { return program_; }
 
 Int32::Int32(khir::ProgramBuilder& program, const khir::Value& value)

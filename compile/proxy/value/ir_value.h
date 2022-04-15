@@ -120,6 +120,7 @@ class Int16 : public IRValue {
   Bool operator>=(int16_t rhs) const;
 
   Int64 Hash() const override;
+  Int64 Zext() const;
   khir::Value Get() const override;
   void Print(Printer& printer) const override;
   std::unique_ptr<Int16> ToPointer() const;
