@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -40,6 +40,31 @@ cc_library(
         "//compile/proxy/value:ir_value",
         "//compile/proxy/value:sql_value",
         "//khir:program_builder",
+    ],
+)
+
+cc_library(
+    name = "aggregate_hash_table",
+    srcs = ["aggregate_hash_table.cc"],
+    hdrs = ["aggregate_hash_table.h"],
+    deps = [
+        "//compile/proxy/value:ir_value",
+        "//khir:program_builder",
+        "//runtime:aggregate_hash_table",
+    ],
+)
+
+cc_test(
+    name = "aggregate_hash_table_test",
+    srcs = ["aggregate_hash_table_test.cc"],
+    deps = [
+        ":aggregate_hash_table",
+        "//khir:backend",
+        "//khir:program",
+        "//khir:program_builder",
+        "//khir/asm:asm_backend",
+        "//khir/llvm:llvm_backend",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
