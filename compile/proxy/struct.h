@@ -43,6 +43,7 @@ class Struct {
   void Pack(const std::vector<SQLValue>& value);
   void Update(int field, const SQLValue& v);
   std::vector<SQLValue> Unpack();
+  SQLValue Get(int field);
 
  private:
   void Store(catalog::SqlType t, khir::Value ptr, const IRValue& v);

@@ -163,7 +163,7 @@ std::vector<SQLValue> MemoryMaterializedBuffer::operator[](Int32 i) {
 }
 
 SQLValue MemoryMaterializedBuffer::Get(Int32 i, int col) {
-  return vector_[i].Unpack()[col];
+  return vector_[i].Get(col);
 }
 
 khir::Value MemoryMaterializedBuffer::Serialize() {

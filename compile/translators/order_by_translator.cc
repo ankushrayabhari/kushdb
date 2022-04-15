@@ -60,16 +60,13 @@ void OrderByTranslator::Produce() {
       program_, packed,
       [&](proxy::Struct& s1, proxy::Struct& s2,
           std::function<void(proxy::Bool)> Return) {
-        auto s1_fields = s1.Unpack();
-        auto s2_fields = s2.Unpack();
-
         const auto sort_keys = order_by_.KeyExprs();
         const auto& ascending = order_by_.Ascending();
         for (int i = 0; i < sort_keys.size(); i++) {
           int field_idx = sort_keys[i].get().GetColumnIdx();
 
-          auto& s1_field = s1_fields[field_idx];
-          auto& s2_field = s2_fields[field_idx];
+          auto s1_field = s1.Get(field_idx);
+          auto s2_field = s2.Get(field_idx);
           auto asc = ascending[i];
 
           proxy::If(program_, LessThan(s1_field, s2_field),

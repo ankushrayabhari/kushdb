@@ -139,6 +139,36 @@ std::vector<SQLValue> Struct::Unpack() {
   return result;
 }
 
+SQLValue Struct::Get(int i) {
+  auto types = fields_.Types();
+
+  auto [field_idx, null_field_idx] = fields_.GetFieldNullableIdx(i);
+
+  auto ptr = program_.ConstGEP(fields_.Type(), value_, {0, field_idx});
+  auto null = null_field_idx >= 0
+                  ? Int8(program_,
+                         program_.LoadI8(program_.ConstGEP(
+                             fields_.Type(), value_, {0, null_field_idx}))) != 0
+                  : Bool(program_, false);
+
+  switch (types[i]) {
+    case catalog::SqlType::SMALLINT:
+      return SQLValue(Int16(program_, program_.LoadI16(ptr)), null);
+    case catalog::SqlType::INT:
+      return SQLValue(Int32(program_, program_.LoadI32(ptr)), null);
+    case catalog::SqlType::BIGINT:
+      return SQLValue(Int64(program_, program_.LoadI64(ptr)), null);
+    case catalog::SqlType::DATE:
+      return SQLValue(Date(program_, program_.LoadI64(ptr)), null);
+    case catalog::SqlType::REAL:
+      return SQLValue(Float64(program_, program_.LoadF64(ptr)), null);
+    case catalog::SqlType::TEXT:
+      return SQLValue(String(program_, ptr), null);
+    case catalog::SqlType::BOOLEAN:
+      return SQLValue(Int8(program_, program_.LoadI8(ptr)) != 0, null);
+  }
+}
+
 void Struct::Store(catalog::SqlType t, khir::Value ptr, const IRValue& v) {
   auto value = v.Get();
   switch (t) {
