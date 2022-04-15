@@ -34,8 +34,4 @@ void Resize(AggregateHashTable* ht);
 
 void Free(AggregateHashTable* ht);
 
-uint16_t ComputeSalt(uint64_t hash);
-
-int32_t ComputeMod(uint64_t hash, uint64_t mask);
-
 }  // namespace kush::runtime::AggregateHashTable

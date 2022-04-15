@@ -37,8 +37,6 @@ void AllocateNewPage(AggregateHashTable* ht) {
   ht->payload_block_size++;
 }
 
-uint16_t ComputeSalt(uint64_t hash) { return hash >> 48; }
-
 int32_t GetBlockIdx(uint64_t entry) { return entry & 0xFFFFFFFF; }
 
 uint64_t ConstructEntry(uint16_t salt, uint16_t block_offset,
@@ -64,6 +62,7 @@ void Resize(AggregateHashTable* ht) {
          block_offset += ht->tuple_size) {
       auto ptr = ht->payload_block[block_idx] + block_offset;
       auto hash = *((uint64_t*)ptr + ht->tuple_hash_offset);
+      uint16_t salt = hash >> 48;
 
       auto entry_idx = (int32_t)hash & mask;
       auto entry = entries[entry_idx];
@@ -74,8 +73,7 @@ void Resize(AggregateHashTable* ht) {
         }
       }
 
-      entries[entry_idx] =
-          ConstructEntry(ComputeSalt(hash), block_idx, block_offset);
+      entries[entry_idx] = ConstructEntry(salt, block_idx, block_offset);
     }
   }
 
