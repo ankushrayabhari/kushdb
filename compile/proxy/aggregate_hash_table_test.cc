@@ -80,10 +80,6 @@ TEST_P(AggregateHashTableTest, GetSalt) {
 
     auto entry = runtime::AggregateHashTable::ConstructEntry(salt, offset, idx);
 
-    std::cerr << std::hex << salt << ' ' << std::hex << offset << ' '
-              << std::hex << idx << std::endl;
-    std::cerr << std::hex << entry << std::endl;
-
     ProgramBuilder program;
     auto func = program.CreatePublicFunction(
         program.I16Type(), {program.PointerType(program.I64Type())}, "compute");

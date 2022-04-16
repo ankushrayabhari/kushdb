@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "compile/proxy/aggregator.h"
 #include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
 #include "runtime/aggregate_hash_table.h"
@@ -42,6 +43,69 @@ void AggregateHashTableEntry::Set(Int16 salt, Int16 offset, Int32 idx) {
   auto i64 = program_.OrI64(salt_offset, idx_pos);
 
   program_.StoreI64(value_, i64);
+}
+
+AggregateHashTablePayload::AggregateHashTablePayload(
+    khir::ProgramBuilder& program, const StructBuilder& format, khir::Value v)
+    : program_(program), content_(program, format, v) {}
+
+void AggregateHashTablePayload::Initialize(
+    Int64 hash, const std::vector<SQLValue>& keys,
+    const std::vector<std::unique_ptr<Aggregator>>& aggregators) {
+  content_.Update(0, SQLValue(hash, Bool(program_, false)));
+
+  for (int i = 0; i < keys.size(); i++) {
+    content_.Update(i + 1, keys[i]);
+  }
+
+  for (const auto& agg : aggregators) {
+    agg->Initialize(content_);
+  }
+}
+
+void AggregateHashTablePayload::Update(
+    const std::vector<std::unique_ptr<Aggregator>>& aggregators) {
+  for (const auto& agg : aggregators) {
+    agg->Update(content_);
+  }
+}
+
+std::vector<SQLValue> AggregateHashTablePayload::GetPayload(
+    int num_keys, const std::vector<std::unique_ptr<Aggregator>>& aggregators) {
+  std::vector<SQLValue> output;
+
+  for (int i = 0; i < num_keys; i++) {
+    output.push_back(content_.Get(i + 1));
+  }
+
+  for (const auto& agg : aggregators) {
+    output.push_back(agg->Get(content_));
+  }
+
+  return output;
+}
+
+StructBuilder AggregateHashTablePayload::ConstructPayloadFormat(
+    khir::ProgramBuilder& program,
+    const std::vector<std::pair<catalog::SqlType, bool>>& key_types,
+    const std::vector<std::unique_ptr<Aggregator>>& aggregators) {
+  proxy::StructBuilder format(program);
+
+  // hash
+  format.Add(catalog::SqlType::BIGINT, false);
+
+  // keys
+  for (auto [type, nullable] : key_types) {
+    format.Add(type, nullable);
+  }
+
+  // agg state
+  for (const auto& agg : aggregators) {
+    agg->AddFields(format);
+  }
+
+  format.Build();
+  return format;
 }
 
 }  // namespace kush::compile::proxy

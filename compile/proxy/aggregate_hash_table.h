@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "compile/proxy/aggregator.h"
+#include "compile/proxy/struct.h"
 #include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
 
@@ -25,6 +27,30 @@ class AggregateHashTableEntry {
  private:
   khir::ProgramBuilder& program_;
   khir::Value value_;
+};
+
+class AggregateHashTablePayload {
+ public:
+  AggregateHashTablePayload(khir::ProgramBuilder& program,
+                            const StructBuilder& format, khir::Value v);
+
+  void Initialize(Int64 hash, const std::vector<SQLValue>& keys,
+                  const std::vector<std::unique_ptr<Aggregator>>& aggregators);
+  void Update(const std::vector<std::unique_ptr<Aggregator>>& aggregators);
+
+  // Gets the vector of <key values, aggregate values>
+  std::vector<SQLValue> GetPayload(
+      int num_keys,
+      const std::vector<std::unique_ptr<Aggregator>>& aggregators);
+
+  static StructBuilder ConstructPayloadFormat(
+      khir::ProgramBuilder& program,
+      const std::vector<std::pair<catalog::SqlType, bool>>& key_types,
+      const std::vector<std::unique_ptr<Aggregator>>& aggregators);
+
+ private:
+  khir::ProgramBuilder& program_;
+  Struct content_;
 };
 
 }  // namespace kush::compile::proxy

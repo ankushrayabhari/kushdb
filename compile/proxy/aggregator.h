@@ -16,9 +16,9 @@ class Aggregator {
   virtual ~Aggregator() = default;
 
   virtual void AddFields(StructBuilder& fields) = 0;
-  virtual void AddInitialEntry(std::vector<SQLValue>& values) = 0;
-  virtual void Update(std::vector<SQLValue>& current_values, Struct& entry) = 0;
-  virtual SQLValue Get(std::vector<SQLValue>& current_values) = 0;
+  virtual void Initialize(Struct& entry) = 0;
+  virtual void Update(Struct& entry) = 0;
+  virtual SQLValue Get(Struct& entry) = 0;
 };
 
 class SumAggregator : public Aggregator {
@@ -31,9 +31,9 @@ class SumAggregator : public Aggregator {
   virtual ~SumAggregator() = default;
 
   void AddFields(StructBuilder& fields) override;
-  void AddInitialEntry(std::vector<SQLValue>& values) override;
-  void Update(std::vector<SQLValue>& current_values, Struct& entry) override;
-  SQLValue Get(std::vector<SQLValue>& current_values) override;
+  void Initialize(Struct& entry) override;
+  void Update(Struct& entry) override;
+  SQLValue Get(Struct& entry) override;
 
  private:
   khir::ProgramBuilder& program_;
@@ -53,9 +53,9 @@ class MinMaxAggregator : public Aggregator {
   virtual ~MinMaxAggregator() = default;
 
   void AddFields(StructBuilder& fields) override;
-  void AddInitialEntry(std::vector<SQLValue>& values) override;
-  void Update(std::vector<SQLValue>& current_values, Struct& entry) override;
-  SQLValue Get(std::vector<SQLValue>& current_values) override;
+  void Initialize(Struct& entry) override;
+  void Update(Struct& entry) override;
+  SQLValue Get(Struct& entry) override;
 
  private:
   khir::ProgramBuilder& program_;
@@ -76,9 +76,9 @@ class AverageAggregator : public Aggregator {
   virtual ~AverageAggregator() = default;
 
   void AddFields(StructBuilder& fields) override;
-  void AddInitialEntry(std::vector<SQLValue>& values) override;
-  void Update(std::vector<SQLValue>& current_values, Struct& entry) override;
-  SQLValue Get(std::vector<SQLValue>& current_values) override;
+  void Initialize(Struct& entry) override;
+  void Update(Struct& entry) override;
+  SQLValue Get(Struct& entry) override;
 
  private:
   Float64 ToFloat(IRValue& v);
@@ -101,9 +101,9 @@ class CountAggregator : public Aggregator {
   virtual ~CountAggregator() = default;
 
   void AddFields(StructBuilder& fields) override;
-  void AddInitialEntry(std::vector<SQLValue>& values) override;
-  void Update(std::vector<SQLValue>& current_values, Struct& entry) override;
-  SQLValue Get(std::vector<SQLValue>& current_values) override;
+  void Initialize(Struct& entry) override;
+  void Update(Struct& entry) override;
+  SQLValue Get(Struct& entry) override;
 
  private:
   khir::ProgramBuilder& program_;

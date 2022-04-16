@@ -48,6 +48,7 @@ cc_library(
     srcs = ["aggregate_hash_table.cc"],
     hdrs = ["aggregate_hash_table.h"],
     deps = [
+        ":aggregator",
         "//compile/proxy/value:ir_value",
         "//khir:program_builder",
         "//runtime:aggregate_hash_table",

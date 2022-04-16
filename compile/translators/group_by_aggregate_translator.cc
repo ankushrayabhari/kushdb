@@ -89,12 +89,11 @@ void GroupByAggregateTranslator::Produce() {
   // Loop over elements of HT and output row
   program_.SetCurrentBlock(output_pipeline_func);
   buffer_->ForEach([&](proxy::Struct& packed) {
-    auto values = packed.Unpack();
     for (int i = 0; i < group_by_exprs.size(); i++) {
-      this->virtual_values_.AddVariable(std::move(values[i]));
+      this->virtual_values_.AddVariable(packed.Get(i));
     }
     for (auto& aggregator : aggregators_) {
-      this->virtual_values_.AddVariable(aggregator->Get(values));
+      this->virtual_values_.AddVariable(aggregator->Get(packed));
     }
 
     // generate output variables
@@ -137,17 +136,17 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
         auto i = loop.template GetLoopVariable<proxy::Int32>(0);
 
         auto packed = bucket[i];
-        auto values = packed.Unpack();
 
         for (int expr_idx = 0; expr_idx < keys.size(); expr_idx++) {
-          proxy::If(program_, !proxy::Equal(values[expr_idx], keys[expr_idx]),
+          proxy::If(program_,
+                    !proxy::Equal(packed.Get(expr_idx), keys[expr_idx]),
                     [&]() { loop.Continue(i + 1); });
         }
 
         program_.StoreI8(found_, proxy::Int8(program_, 1).Get());
         // update each aggregator
         for (auto& aggregator : aggregators_) {
-          aggregator->Update(values, packed);
+          aggregator->Update(packed);
         }
         return loop.Continue(size);
       });
@@ -156,11 +155,13 @@ void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {
             [&]() {
               auto inserted = buffer_->Insert(keys);
 
-              for (auto& aggregator : aggregators_) {
-                aggregator->AddInitialEntry(keys);
+              for (int i = 0; i < keys.size(); i++) {
+                inserted.Update(i, keys[i]);
               }
 
-              inserted.Pack(keys);
+              for (auto& aggregator : aggregators_) {
+                aggregator->Initialize(inserted);
+              }
             });
 }
 

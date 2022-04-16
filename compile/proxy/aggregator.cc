@@ -25,13 +25,12 @@ void SumAggregator::AddFields(StructBuilder& fields) {
   field_ = fields.Add(agg_.Type(), agg_.Nullable());
 }
 
-void SumAggregator::AddInitialEntry(std::vector<SQLValue>& values) {
-  values.push_back(expr_translator_.Compute(agg_.Child()));
+void SumAggregator::Initialize(Struct& entry) {
+  entry.Update(field_, expr_translator_.Compute(agg_.Child()));
 }
 
-void SumAggregator::Update(std::vector<SQLValue>& current_values,
-                           Struct& entry) {
-  const auto& current_value = current_values[field_];
+void SumAggregator::Update(Struct& entry) {
+  auto current_value = entry.Get(field_);
   auto next = expr_translator_.Compute(agg_.Child());
 
   If(program_, !next.IsNull(), [&] {
@@ -81,9 +80,7 @@ void SumAggregator::Update(std::vector<SQLValue>& current_values,
   });
 }
 
-SQLValue SumAggregator::Get(std::vector<SQLValue>& current_values) {
-  return std::move(current_values[field_]);
-}
+SQLValue SumAggregator::Get(Struct& entry) { return entry.Get(field_); }
 
 MinMaxAggregator::MinMaxAggregator(
     khir::ProgramBuilder& program,
@@ -99,13 +96,12 @@ void MinMaxAggregator::AddFields(StructBuilder& fields) {
   field_ = fields.Add(agg_.Type(), agg_.Nullable());
 }
 
-void MinMaxAggregator::AddInitialEntry(std::vector<SQLValue>& values) {
-  values.push_back(expr_translator_.Compute(agg_.Child()));
+void MinMaxAggregator::Initialize(Struct& entry) {
+  entry.Update(field_, expr_translator_.Compute(agg_.Child()));
 }
 
-void MinMaxAggregator::Update(std::vector<SQLValue>& current_values,
-                              Struct& entry) {
-  const auto& current_value = current_values[field_];
+void MinMaxAggregator::Update(Struct& entry) {
+  auto current_value = entry.Get(field_);
   auto next = expr_translator_.Compute(agg_.Child());
   If(program_, !next.IsNull(), [&] {
     // checked that it's not null so this is safe
@@ -163,9 +159,7 @@ void MinMaxAggregator::Update(std::vector<SQLValue>& current_values,
   });
 }
 
-SQLValue MinMaxAggregator::Get(std::vector<SQLValue>& current_values) {
-  return std::move(current_values[field_]);
-}
+SQLValue MinMaxAggregator::Get(Struct& entry) { return entry.Get(field_); }
 
 AverageAggregator::AverageAggregator(
     khir::ProgramBuilder& program,
@@ -181,16 +175,23 @@ void AverageAggregator::AddFields(StructBuilder& fields) {
   count_field_ = fields.Add(catalog::SqlType::REAL, false);
 }
 
-void AverageAggregator::AddInitialEntry(std::vector<SQLValue>& values) {
+void AverageAggregator::Initialize(Struct& entry) {
   auto value = expr_translator_.Compute(agg_.Child());
-  values.push_back(proxy::NullableTernary<Float64>(
-      program_, value.IsNull(),
-      [&]() { return SQLValue(Float64(program_, 0), Bool(program_, true)); },
-      [&]() {
-        // checked that it's not null so this is safe
-        return SQLValue(ToFloat(value.Get()), Bool(program_, false));
-      }));
-  values.push_back(SQLValue(Float64(program_, 1), Bool(program_, false)));
+
+  entry.Update(value_field_, proxy::NullableTernary<Float64>(
+                                 program_, value.IsNull(),
+                                 [&]() {
+                                   return SQLValue(Float64(program_, 0),
+                                                   Bool(program_, true));
+                                 },
+                                 [&]() {
+                                   // checked that it's not null so this is safe
+                                   return SQLValue(ToFloat(value.Get()),
+                                                   Bool(program_, false));
+                                 }));
+
+  entry.Update(count_field_,
+               SQLValue(Float64(program_, 1), Bool(program_, false)));
 }
 
 Float64 AverageAggregator::ToFloat(IRValue& v) {
@@ -217,16 +218,15 @@ Float64 AverageAggregator::ToFloat(IRValue& v) {
   throw std::runtime_error("Can't convert to float.");
 }
 
-void AverageAggregator::Update(std::vector<SQLValue>& current_values,
-                               Struct& entry) {
-  // if value is
-  const auto& record_count =
-      static_cast<Float64&>(current_values[count_field_].Get());
-  const auto& current_value = current_values[value_field_];
+void AverageAggregator::Update(Struct& entry) {
   auto next = expr_translator_.Compute(agg_.Child());
   If(program_, !next.IsNull(), [&] {
     // checked that it's not null so this is safe
     auto next_value = ToFloat(next.Get());
+
+    auto record_count_field = entry.Get(count_field_);
+    const auto& record_count = static_cast<Float64&>(record_count_field.Get());
+    auto current_value = entry.Get(value_field_);
     If(
         program_, current_value.IsNull(),
         [&]() {
@@ -249,8 +249,8 @@ void AverageAggregator::Update(std::vector<SQLValue>& current_values,
   });
 }
 
-SQLValue AverageAggregator::Get(std::vector<SQLValue>& current_values) {
-  return std::move(current_values[value_field_]);
+SQLValue AverageAggregator::Get(Struct& entry) {
+  return entry.Get(value_field_);
 }
 
 CountAggregator::CountAggregator(
@@ -264,21 +264,19 @@ void CountAggregator::AddFields(StructBuilder& fields) {
   field_ = fields.Add(catalog::SqlType::BIGINT, false);
 }
 
-void CountAggregator::AddInitialEntry(std::vector<SQLValue>& values) {
-  values.push_back(SQLValue(Int64(program_, 1), Bool(program_, false)));
+void CountAggregator::Initialize(Struct& entry) {
+  entry.Update(field_, SQLValue(Int64(program_, 1), Bool(program_, false)));
 }
 
-void CountAggregator::Update(std::vector<SQLValue>& current_values,
-                             Struct& entry) {
-  const auto& record_count = static_cast<Int64&>(current_values[field_].Get());
+void CountAggregator::Update(Struct& entry) {
   auto next = expr_translator_.Compute(agg_.Child());
   If(program_, !next.IsNull(), [&] {
+    auto record_count_field = entry.Get(field_);
+    auto record_count = static_cast<Int64&>(record_count_field.Get());
     entry.Update(field_, SQLValue(record_count + 1, Bool(program_, false)));
   });
 }
 
-SQLValue CountAggregator::Get(std::vector<SQLValue>& current_values) {
-  return std::move(current_values[field_]);
-}
+SQLValue CountAggregator::Get(Struct& entry) { return entry.Get(field_); }
 
 }  // namespace kush::compile::proxy
