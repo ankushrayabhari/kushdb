@@ -67,6 +67,7 @@ class AggregateHashTable {
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
+  std::pair<Int64, Int16> HashSalt(const std::vector<SQLValue>& keys);
   AggregateHashTablePayload Insert(AggregateHashTableEntry& entry, Int64 hash,
                                    Int16 salt);
 

@@ -374,6 +374,10 @@ Int64 Int64::operator+(const Int64& rhs) const {
   return Int64(program_, program_.AddI64(value_, rhs.value_));
 }
 
+Int64 Int64::operator^(const Int64& rhs) const {
+  return Int64(program_, program_.AddI64(value_, rhs.value_));
+}
+
 Int64 Int64::operator-(const Int64& rhs) const {
   return Int64(program_, program_.SubI64(value_, rhs.value_));
 }
@@ -414,6 +418,18 @@ Bool Int64::operator>=(const Int64& rhs) const {
 
 Int64 Int64::operator+(int64_t rhs) const {
   return Int64(program_, program_.AddI64(value_, program_.ConstI64(rhs)));
+}
+
+Int64 Int64::operator^(int64_t rhs) const {
+  return Int64(program_, program_.XorI64(value_, program_.ConstI64(rhs)));
+}
+
+Int64 Int64::operator<<(uint8_t rhs) const {
+  return Int64(program_, program_.LShiftI64(value_, rhs));
+}
+
+Int64 Int64::operator>>(uint8_t rhs) const {
+  return Int64(program_, program_.RShiftI64(value_, rhs));
 }
 
 Int64 Int64::operator-(int64_t rhs) const {

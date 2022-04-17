@@ -181,6 +181,10 @@ class Int64 : public IRValue {
 
   Int64 operator+(const Int64& rhs) const;
   Int64 operator+(int64_t rhs) const;
+  Int64 operator^(const Int64& rhs) const;
+  Int64 operator^(int64_t rhs) const;
+  Int64 operator<<(uint8_t rhs) const;
+  Int64 operator>>(uint8_t rhs) const;
   Int64 operator-(const Int64& rhs) const;
   Int64 operator-(int64_t rhs) const;
   Int64 operator*(const Int64& rhs) const;

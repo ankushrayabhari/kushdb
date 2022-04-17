@@ -192,6 +192,23 @@ AggregateHashTablePayload AggregateHashTable::Insert(
   return GetPayload(block_idx, offset);
 }
 
+std::pair<Int64, Int16> AggregateHashTable::HashSalt(
+    const std::vector<SQLValue>& keys) {
+  Int64 hash(program_, 0);
+
+  Int64 magic(program_, 0x9e3779b97f4a7c15);
+
+  for (auto& k : keys) {
+    auto key_hash = proxy::Ternary(
+        program_, k.IsNull(), [&]() { return Int64(program_, 0); },
+        [&]() { return k.Get().Hash(); });
+
+    hash = hash ^ (key_hash + magic + (hash << 12) + (hash >> 4));
+  }
+
+  return {hash, Int16(program_, program_.I16TruncI64(hash.Get()))};
+}
+
 void AggregateHashTable::Reset() {
   program_.Call(program_.GetFunction(FreeFnName), {value_});
 }
