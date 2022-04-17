@@ -164,13 +164,50 @@ AggregateHashTable::AggregateHashTable(
        AggregateHashTablePayload::GetHashOffset(program_, payload_format_)});
 }
 
+void AggregateHashTable::Reset() {
+  program_.Call(program_.GetFunction(FreeFnName), {value_});
+}
+
+void AggregateHashTable::AllocateNewPage() {
+  program_.Call(program_.GetFunction(AllocateNewPageFnName), {value_});
+}
+
+void AggregateHashTable::Resize() {
+  program_.Call(program_.GetFunction(ResizeFnName), {value_});
+}
+
+Int64 AggregateHashTable::PayloadSize() {
+  return Int64(program_, program_.LoadI64(program_.ConstGEP(
+                             payload_format_.Type(), value_, {0, 0})));
+}
+
+Int64 AggregateHashTable::PayloadHashOffset() {
+  return Int64(program_, program_.LoadI64(program_.ConstGEP(
+                             payload_format_.Type(), value_, {0, 1})));
+}
+
+Int32 AggregateHashTable::Size() {
+  return Int32(program_, program_.LoadI32(program_.ConstGEP(
+                             payload_format_.Type(), value_, {0, 2})));
+}
+
+Int32 AggregateHashTable::Capacity() {
+  return Int32(program_, program_.LoadI32(program_.ConstGEP(
+                             payload_format_.Type(), value_, {0, 3})));
+}
+
+Int64 AggregateHashTable::Mask() {
+  return Int64(program_, program_.LoadI64(program_.ConstGEP(
+                             payload_format_.Type(), value_, {0, 4})));
+}
+
 void AggregateHashTable::ForwardDeclare(khir::ProgramBuilder& program) {
   auto block_ptr = program.PointerType(program.I8Type());
 
   auto struct_type = program.StructType(
       {
           program.I64Type(),                       // payload_size
-          program.I64Type(),                       // tuple_hash_offset
+          program.I64Type(),                       // payload_hash_offset
           program.I32Type(),                       // size
           program.I32Type(),                       // capacity
           program.I64Type(),                       // mask

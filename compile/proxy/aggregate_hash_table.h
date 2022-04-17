@@ -48,8 +48,8 @@ class AggregateHashTablePayload {
       const std::vector<std::pair<catalog::SqlType, bool>>& key_types,
       const std::vector<std::unique_ptr<Aggregator>>& aggregators);
 
-  static khir::Value GetHashOffset(
-      khir::ProgramBuilder& program, StructBuilder& format);
+  static khir::Value GetHashOffset(khir::ProgramBuilder& program,
+                                   StructBuilder& format);
 
  private:
   khir::ProgramBuilder& program_;
@@ -62,9 +62,20 @@ class AggregateHashTable {
                      std::vector<std::pair<catalog::SqlType, bool>> key_types,
                      std::vector<std::unique_ptr<Aggregator>> aggregators);
 
+  void Reset();
+
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
+  void Resize();
+  void AllocateNewPage();
+
+  Int32 Size();
+  Int64 Mask();
+  Int32 Capacity();
+  Int64 PayloadSize();
+  Int64 PayloadHashOffset();
+
   khir::ProgramBuilder& program_;
   StructBuilder payload_format_;
   khir::Value value_;
