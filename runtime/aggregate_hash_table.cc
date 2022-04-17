@@ -6,10 +6,10 @@
 
 namespace kush::runtime::AggregateHashTable {
 
-void Init(AggregateHashTable* ht, uint64_t tuple_size,
-          uint64_t tuple_hash_offset) {
-  ht->tuple_size = tuple_size;
-  ht->tuple_hash_offset = tuple_hash_offset;
+void Init(AggregateHashTable* ht, uint64_t payload_size,
+          uint64_t payload_hash_offset) {
+  ht->payload_size = payload_size;
+  ht->payload_hash_offset = payload_hash_offset;
 
   ht->capacity = 1024;
   ht->size = 0;
@@ -60,12 +60,15 @@ void Resize(AggregateHashTable* ht) {
   auto entries = new uint64_t[capacity];
   memset(entries, 0, sizeof(uint64_t) * capacity);
 
-  for (uint32_t block_idx = 1; block_idx < ht->payload_block_size - 1;
+  for (uint32_t block_idx = 1; block_idx < ht->payload_block_size;
        block_idx++) {
-    for (uint16_t block_offset = 0; block_offset < BLOCK_SIZE;
-         block_offset += ht->tuple_size) {
+    const auto end = block_idx == ht->payload_block_size - 1
+                         ? ht->last_payload_offset
+                         : BLOCK_SIZE;
+    for (uint16_t block_offset = 0; block_offset < end;
+         block_offset += ht->payload_size) {
       auto ptr = ht->payload_block[block_idx] + block_offset;
-      auto hash = *((uint64_t*)ptr + ht->tuple_hash_offset);
+      auto hash = *((uint64_t*)ptr + ht->payload_hash_offset);
       uint16_t salt = hash >> 48;
 
       auto entry_idx = (uint32_t)hash & mask;

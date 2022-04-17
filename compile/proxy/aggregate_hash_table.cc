@@ -11,6 +11,8 @@
 
 namespace kush::compile::proxy {
 
+namespace {
+
 constexpr std::string_view StructName(
     "kush::runtime::AggregateHashTable::AggregateHashTable");
 
@@ -25,6 +27,8 @@ constexpr std::string_view ResizeFnName(
 
 constexpr std::string_view FreeFnName(
     "kush::runtime::AggregateHashTable::Free");
+
+}  // namespace
 
 AggregateHashTableEntry::AggregateHashTableEntry(khir::ProgramBuilder& program,
                                                  khir::Value v)
@@ -123,12 +127,51 @@ StructBuilder AggregateHashTablePayload::ConstructPayloadFormat(
   return format;
 }
 
+khir::Value AggregateHashTablePayload::GetHashOffset(
+    khir::ProgramBuilder& program, StructBuilder& format) {
+  auto payload_type = format.Type();
+  return program.PointerCast(
+      program.ConstGEP(payload_type, program.NullPtr(payload_type), {0, 0}),
+      program.I64Type());
+}
+
+AggregateHashTable::AggregateHashTable(
+    khir::ProgramBuilder& program,
+    std::vector<std::pair<catalog::SqlType, bool>> key_types,
+    std::vector<std::unique_ptr<Aggregator>> aggregators)
+    : program_(program),
+      payload_format_(AggregateHashTablePayload::ConstructPayloadFormat(
+          program, key_types, aggregators)),
+      value_(program_.Global(
+          false, true, program_.GetStructType(StructName),
+          program_.ConstantStruct(
+              program_.GetStructType(StructName),
+              {
+                  program.ConstI64(0),
+                  program.ConstI64(0),
+                  program.ConstI32(0),
+                  program.ConstI32(0),
+                  program.ConstI64(0),
+                  program.NullPtr(program.PointerType(program.I64Type())),
+                  program.NullPtr(program.PointerType(
+                      program.PointerType(program.I8Type()))),
+                  program.ConstI32(0),
+                  program.ConstI32(0),
+                  program.ConstI16(0),
+              }))) {
+  auto payload_type = payload_format_.Type();
+  program_.Call(
+      program_.GetFunction(InitFnName),
+      {value_, program_.SizeOf(payload_type),
+       AggregateHashTablePayload::GetHashOffset(program_, payload_format_)});
+}
+
 void AggregateHashTable::ForwardDeclare(khir::ProgramBuilder& program) {
   auto block_ptr = program.PointerType(program.I8Type());
 
   auto struct_type = program.StructType(
       {
-          program.I64Type(),                       // tuple_size
+          program.I64Type(),                       // payload_size
           program.I64Type(),                       // tuple_hash_offset
           program.I32Type(),                       // size
           program.I32Type(),                       // capacity

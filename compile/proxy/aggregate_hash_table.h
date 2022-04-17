@@ -48,6 +48,9 @@ class AggregateHashTablePayload {
       const std::vector<std::pair<catalog::SqlType, bool>>& key_types,
       const std::vector<std::unique_ptr<Aggregator>>& aggregators);
 
+  static khir::Value GetHashOffset(
+      khir::ProgramBuilder& program, StructBuilder& format);
+
  private:
   khir::ProgramBuilder& program_;
   Struct content_;
@@ -55,7 +58,16 @@ class AggregateHashTablePayload {
 
 class AggregateHashTable {
  public:
+  AggregateHashTable(khir::ProgramBuilder& program,
+                     std::vector<std::pair<catalog::SqlType, bool>> key_types,
+                     std::vector<std::unique_ptr<Aggregator>> aggregators);
+
   static void ForwardDeclare(khir::ProgramBuilder& program);
+
+ private:
+  khir::ProgramBuilder& program_;
+  StructBuilder payload_format_;
+  khir::Value value_;
 };
 
 }  // namespace kush::compile::proxy

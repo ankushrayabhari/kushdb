@@ -9,8 +9,8 @@ constexpr static int BLOCK_SIZE = 1 << 12;
 constexpr static double LOAD_FACTOR = 1.5;
 
 struct AggregateHashTable {
-  uint64_t tuple_size;
-  uint64_t tuple_hash_offset;
+  uint64_t payload_size;
+  uint64_t payload_hash_offset;
 
   // Entry storage
   uint32_t size;
@@ -25,8 +25,8 @@ struct AggregateHashTable {
   uint16_t last_payload_offset;
 };
 
-void Init(AggregateHashTable* ht, uint64_t tuple_size,
-          uint64_t tuple_hash_offset);
+void Init(AggregateHashTable* ht, uint64_t payload_size,
+          uint64_t payload_hash_offset);
 
 void AllocateNewPage(AggregateHashTable* ht);
 
