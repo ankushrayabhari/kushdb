@@ -54,11 +54,6 @@ cc_library(
 )
 
 cc_library(
-    name = "hash_util",
-    hdrs = ["hash_util.h"],
-)
-
-cc_library(
     name = "vector_util",
     hdrs = ["vector_util.h"],
 )

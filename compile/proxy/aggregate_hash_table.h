@@ -67,6 +67,9 @@ class AggregateHashTable {
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
+  AggregateHashTablePayload Insert(AggregateHashTableEntry& entry, Int64 hash,
+                                   Int16 salt);
+
   void Resize();
   void AllocateNewPage();
 

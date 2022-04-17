@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "compile/proxy/aggregator.h"
+#include "compile/proxy/control_flow/if.h"
+#include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
 #include "runtime/aggregate_hash_table.h"
@@ -162,6 +164,32 @@ AggregateHashTable::AggregateHashTable(
       program_.GetFunction(InitFnName),
       {value_, program_.SizeOf(payload_type),
        AggregateHashTablePayload::GetHashOffset(program_, payload_format_)});
+}
+
+AggregateHashTablePayload AggregateHashTable::Insert(
+    AggregateHashTableEntry& entry, Int64 hash, Int16 salt) {
+  auto size = Size();
+  auto capacity = Capacity();
+  If(
+      program_, size + 1 <= capacity, [&]() { Resize(); },
+      [&]() {
+        If(program_,
+           Float64(program_, size) >
+               Float64(program_, capacity) /
+                   Float64(program_, runtime::AggregateHashTable::LOAD_FACTOR),
+           [&]() { Resize(); });
+      });
+
+  If(program_,
+     PayloadBlocksOffset().Zext() + PayloadSize() >=
+         Int64(program_, runtime::AggregateHashTable::BLOCK_SIZE),
+     [&]() { AllocateNewPage(); });
+
+  auto block_idx = PayloadBlocksSize();
+  auto offset = PayloadBlocksOffset();
+  entry.Set(salt, offset, block_idx);
+
+  return GetPayload(block_idx, offset);
 }
 
 void AggregateHashTable::Reset() {
