@@ -5,8 +5,7 @@
 
 namespace kush::compile::proxy {
 
-const std::string_view String::StringStructName(
-    "kush::runtime::String::String");
+namespace {
 constexpr std::string_view CopyFnName("kush::runtime::String::Copy");
 constexpr std::string_view FreeFnName("kush::runtime::String::Free");
 constexpr std::string_view ContainsFnName("kush::runtime::String::Contains");
@@ -24,6 +23,7 @@ constexpr std::string_view GreaterThanFnName(
 constexpr std::string_view GreaterThanEqualsFnName(
     "kush::runtime::String::GreaterThanEquals");
 constexpr std::string_view HashFnName("kush::runtime::String::Hash");
+}  // namespace
 
 String::String(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}

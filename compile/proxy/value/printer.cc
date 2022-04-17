@@ -5,6 +5,7 @@
 
 namespace kush::compile::proxy {
 
+namespace {
 constexpr std::string_view i1_fn_name("kush::runtime::Printer::PrintBool");
 constexpr std::string_view i8_fn_name("kush::runtime::Printer::PrintInt8");
 constexpr std::string_view i16_fn_name("kush::runtime::Printer::PrintInt16");
@@ -34,6 +35,7 @@ constexpr std::string_view newline_fn_name_debug(
     "kush::runtime::Printer::PrintNewlineDebug");
 constexpr std::string_view string_fn_name_debug(
     "kush::runtime::Printer::PrintStringDebug");
+}  // namespace
 
 Printer::Printer(khir::ProgramBuilder& program, bool debug)
     : program_(program), debug_(debug) {}

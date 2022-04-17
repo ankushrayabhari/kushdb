@@ -12,7 +12,6 @@
 namespace kush::compile::proxy {
 
 namespace {
-
 constexpr std::string_view StructName(
     "kush::runtime::AggregateHashTable::AggregateHashTable");
 
@@ -27,7 +26,6 @@ constexpr std::string_view ResizeFnName(
 
 constexpr std::string_view FreeFnName(
     "kush::runtime::AggregateHashTable::Free");
-
 }  // namespace
 
 AggregateHashTableEntry::AggregateHashTableEntry(khir::ProgramBuilder& program,

@@ -12,31 +12,26 @@
 
 namespace kush::compile::proxy {
 
+namespace {
 constexpr std::string_view ColumnIndexBucketName(
     "kush::runtime::ColumnIndexBucket");
-
 constexpr std::string_view FastForwardBucketName(
     "kush::runtime::ColumnIndexBucket::FastForwardBucket");
-
 constexpr std::string_view ColumnIndexBucketGetName(
     "kush::runtime::ColumnIndexBucket::GetBucketValue");
-
 constexpr std::string_view BucketListGetName(
     "kush::runtime::ColumnIndexBucket::BucketListGet");
-
 constexpr std::string_view BucketListSortedIntersectionInitName(
     "kush::runtime::ColumnIndexBucket::BucketListSortedIntersectionInit");
-
 constexpr std::string_view BucketListSortedIntersectionPopulateResultName(
     "kush::runtime::ColumnIndexBucket::"
     "BucketListSortedIntersectionPopulateResult");
-
 constexpr std::string_view BucketListSortedIntersectionPopulateResultFilterName(
     "kush::runtime::ColumnIndexBucket::"
     "BucketListSortedIntersectionPopulateResultFilter");
-
 constexpr std::string_view BucketListSortedIntersectionResultGetName(
     "kush::runtime::ColumnIndexBucket::BucketListSortedIntersectionResultGet");
+}  // namespace
 
 ColumnIndexBucket::ColumnIndexBucket(khir::ProgramBuilder& program,
                                      khir::Value v)

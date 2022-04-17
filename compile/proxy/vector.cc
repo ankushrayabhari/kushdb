@@ -7,17 +7,14 @@
 
 namespace kush::compile::proxy {
 
+namespace {
 constexpr std::string_view CreateFnName("kush::runtime::Vector::Create");
-
 constexpr std::string_view PushBackFnName("kush::runtime::Vector::PushBack");
-
 constexpr std::string_view GetFnName("kush::runtime::Vector::Get");
-
 constexpr std::string_view SizeFnName("kush::runtime::Vector::Size");
-
 constexpr std::string_view FreeFnName("kush::runtime::Vector::Free");
-
 constexpr std::string_view SortFnName("kush::runtime::Vector::Sort");
+}  // namespace
 
 Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content)
     : program_(program),

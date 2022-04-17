@@ -13,6 +13,7 @@
 
 namespace kush::compile::proxy {
 
+namespace {
 constexpr std::string_view BucketListStructName(
     "kush::runtime::HashTable::BucketList");
 constexpr std::string_view HashTableStructName(
@@ -32,6 +33,7 @@ constexpr std::string_view BucketListFreeFnName =
     "kush::runtime::HashTable::BucketListFree";
 constexpr std::string_view BucketListGetBucketIdxFnName =
     "kush::runtime::HashTable::GetBucketIdx";
+}  // namespace
 
 class BucketList {
  public:

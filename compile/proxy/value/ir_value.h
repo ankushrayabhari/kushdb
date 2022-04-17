@@ -286,7 +286,8 @@ class String : public IRValue {
   khir::ProgramBuilder& ProgramBuilder() const override;
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
-  static const std::string_view StringStructName;
+  static constexpr std::string_view StringStructName =
+      "kush::runtime::String::String";
 
  private:
   khir::ProgramBuilder& program_;

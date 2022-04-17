@@ -11,11 +11,12 @@
 
 namespace kush::compile::proxy {
 
+namespace {
 constexpr std::string_view permutable_fn(
     "kush::runtime::ExecutePermutableSkinnerJoin");
-
 constexpr std::string_view recompiling_fn(
     "kush::runtime::ExecuteRecompilingSkinnerJoin");
+}  // namespace
 
 void SkinnerJoinExecutor::ExecutePermutableJoin(
     khir::ProgramBuilder& program, int32_t num_tables, int32_t num_preds,

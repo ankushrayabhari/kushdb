@@ -10,6 +10,7 @@
 
 namespace kush::compile::proxy {
 
+namespace {
 constexpr std::string_view tuple_idx_table_iterator_name(
     "kush::runtime::TupleIdxTable::Iterator");
 constexpr std::string_view create_it_fn_name(
@@ -18,7 +19,6 @@ constexpr std::string_view free_it_fn_name(
     "kush::runtime::TupleIdxTable::FreeIt");
 constexpr std::string_view get_fn_name(
     "kush::runtime::TupleIdxTable::Iterator::Get");
-
 constexpr std::string_view create_fn_name(
     "kush::runtime::TupleIdxTable::Create");
 constexpr std::string_view free_fn_name("kush::runtime::TupleIdxTable::Free");
@@ -28,6 +28,7 @@ constexpr std::string_view begin_fn_name(
     "kush::runtime::TupleIdxTable::TupleIdxTable::Begin");
 constexpr std::string_view next_fn_name(
     "kush::runtime::TupleIdxTable::TupleIdxTable::IteratorNext");
+}  // namespace
 
 TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program)
     : program_(program),

@@ -9,10 +9,11 @@
 
 namespace kush::compile::proxy {
 
+namespace {
 constexpr std::string_view permutable_scan_select_fn(
     "kush::runtime::ExecutePermutableScanSelect");
-
 constexpr std::string_view get_predicate_fn("kush::runtime::GetPredicateFn");
+}  // namespace
 
 void SkinnerScanSelectExecutor::ExecutePermutableScanSelect(
     khir::ProgramBuilder& program,
