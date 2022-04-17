@@ -75,6 +75,10 @@ class AggregateHashTable {
   Int32 Capacity();
   Int64 PayloadSize();
   Int64 PayloadHashOffset();
+  Int32 PayloadBlocksSize();
+  Int16 PayloadBlocksOffset();
+  AggregateHashTablePayload GetPayload(Int32 block_idx, Int16 block_offset);
+  AggregateHashTableEntry GetEntry(Int32 entry_idx);
 
   khir::ProgramBuilder& program_;
   StructBuilder payload_format_;

@@ -99,4 +99,13 @@ void Free(AggregateHashTable* ht) {
   delete[] ht->payload_block;
 }
 
+void* GetPayload(AggregateHashTable* ht, uint32_t block_idx,
+                 uint16_t block_offset) {
+  return ht->payload_block[block_idx] + block_offset;
+}
+
+void* GetEntry(AggregateHashTable* ht, uint32_t idx) {
+  return &ht->entries[idx];
+}
+
 }  // namespace kush::runtime::AggregateHashTable

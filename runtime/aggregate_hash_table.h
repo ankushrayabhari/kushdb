@@ -37,4 +37,9 @@ void Free(AggregateHashTable* ht);
 uint64_t ConstructEntry(uint16_t salt, uint16_t block_offset,
                         uint32_t block_idx);
 
+void* GetPayload(AggregateHashTable* ht, uint32_t block_idx,
+                 uint16_t block_offset);
+
+void* GetEntry(AggregateHashTable* ht, uint32_t idx);
+
 }  // namespace kush::runtime::AggregateHashTable
