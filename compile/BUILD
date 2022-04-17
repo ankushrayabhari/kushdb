@@ -27,6 +27,7 @@ cc_library(
     hdrs = ["forward_declare.h"],
     deps = [
         "//catalog:sql_type",
+        "//compile/proxy:aggregate_hash_table",
         "//compile/proxy:column_data",
         "//compile/proxy:column_index",
         "//compile/proxy:hash_table",

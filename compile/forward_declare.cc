@@ -1,6 +1,7 @@
 #include "compile/forward_declare.h"
 
 #include "catalog/sql_type.h"
+#include "compile/proxy/aggregate_hash_table.h"
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/hash_table.h"
@@ -27,6 +28,9 @@ void ForwardDeclare(khir::ProgramBuilder& program) {
 
   // Forward declare hash functions
   proxy::HashTable::ForwardDeclare(program);
+
+  // Forward declare hash functions
+  proxy::AggregateHashTable::ForwardDeclare(program);
 
   // Forward declare print function
   proxy::Printer::ForwardDeclare(program);

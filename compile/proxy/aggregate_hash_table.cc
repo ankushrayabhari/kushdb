@@ -11,6 +11,21 @@
 
 namespace kush::compile::proxy {
 
+constexpr std::string_view StructName(
+    "kush::runtime::AggregateHashTable::AggregateHashTable");
+
+constexpr std::string_view InitFnName(
+    "kush::runtime::AggregateHashTable::Init");
+
+constexpr std::string_view AllocateNewPageFnName(
+    "kush::runtime::AggregateHashTable::AllocateNewPage");
+
+constexpr std::string_view ResizeFnName(
+    "kush::runtime::AggregateHashTable::Resize");
+
+constexpr std::string_view FreeFnName(
+    "kush::runtime::AggregateHashTable::Free");
+
 AggregateHashTableEntry::AggregateHashTableEntry(khir::ProgramBuilder& program,
                                                  khir::Value v)
     : program_(program), value_(v) {}
@@ -106,6 +121,43 @@ StructBuilder AggregateHashTablePayload::ConstructPayloadFormat(
 
   format.Build();
   return format;
+}
+
+void AggregateHashTable::ForwardDeclare(khir::ProgramBuilder& program) {
+  auto block_ptr = program.PointerType(program.I8Type());
+
+  auto struct_type = program.StructType(
+      {
+          program.I64Type(),                       // tuple_size
+          program.I64Type(),                       // tuple_hash_offset
+          program.I32Type(),                       // size
+          program.I32Type(),                       // capacity
+          program.I64Type(),                       // mask
+          program.PointerType(program.I64Type()),  // entries
+          program.PointerType(block_ptr),          // payload_block
+          program.I32Type(),                       // payload_block_capacity
+          program.I32Type(),                       // payload_block_size
+          program.I16Type(),                       // last_payload_offset
+      },
+      StructName);
+  auto struct_ptr = program.PointerType(struct_type);
+
+  program.DeclareExternalFunction(
+      InitFnName, program.VoidType(),
+      {struct_ptr, program.I64Type(), program.I64Type()},
+      reinterpret_cast<void*>(&runtime::AggregateHashTable::Init));
+
+  program.DeclareExternalFunction(
+      AllocateNewPageFnName, program.VoidType(), {struct_ptr},
+      reinterpret_cast<void*>(&runtime::AggregateHashTable::AllocateNewPage));
+
+  program.DeclareExternalFunction(
+      ResizeFnName, program.VoidType(), {struct_ptr},
+      reinterpret_cast<void*>(&runtime::AggregateHashTable::Resize));
+
+  program.DeclareExternalFunction(
+      FreeFnName, program.VoidType(), {struct_ptr},
+      reinterpret_cast<void*>(&runtime::AggregateHashTable::Free));
 }
 
 }  // namespace kush::compile::proxy

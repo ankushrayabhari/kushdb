@@ -53,4 +53,9 @@ class AggregateHashTablePayload {
   Struct content_;
 };
 
+class AggregateHashTable {
+ public:
+  static void ForwardDeclare(khir::ProgramBuilder& program);
+};
+
 }  // namespace kush::compile::proxy
