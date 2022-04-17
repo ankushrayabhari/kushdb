@@ -256,8 +256,7 @@ cc_library(
     deps = [
         ":expression_translator",
         ":operator_translator",
-        "//compile/proxy:aggregator",
-        "//compile/proxy:hash_table",
+        "//compile/proxy:aggregate_hash_table",
         "//compile/proxy:struct",
         "//compile/proxy/control_flow:if",
         "//compile/proxy/control_flow:loop",
@@ -265,7 +264,6 @@ cc_library(
         "//execution:pipeline",
         "//khir:program_builder",
         "//plan/operator:group_by_aggregate_operator",
-        "//plan/operator:hash_join_operator",
         "//util:vector_util",
     ],
 )

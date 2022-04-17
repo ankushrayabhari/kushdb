@@ -6,20 +6,24 @@
 
 namespace kush::runtime::AggregateHashTable {
 
-void Init(AggregateHashTable* ht, uint64_t payload_size,
+void Init(AggregateHashTable* ht, uint16_t payload_size,
           uint64_t payload_hash_offset) {
   ht->payload_size = payload_size;
   ht->payload_hash_offset = payload_hash_offset;
 
   ht->capacity = 1024;
+  ht->mask = ht->capacity - 1;
   ht->size = 0;
-  auto entries = new uint64_t[ht->capacity];
-  memset(entries, 0, sizeof(uint64_t) * ht->capacity);
+  ht->entries = new uint64_t[ht->capacity];
+  memset(ht->entries, 0, sizeof(uint64_t) * ht->capacity);
 
-  ht->payload_block_size = 1;
+  ht->payload_block_size = 2;
   ht->payload_block_capacity = 4;
   ht->payload_block = new uint8_t*[ht->payload_block_capacity];
+  // skip block 0 bc use it as empty slot marker
   ht->payload_block[0] = nullptr;
+  // block 1
+  ht->payload_block[1] = new uint8_t[BLOCK_SIZE];
   ht->last_payload_offset = 0;
 }
 
@@ -36,9 +40,8 @@ void AllocateNewPage(AggregateHashTable* ht) {
 
   ht->payload_block[ht->payload_block_size] = new uint8_t[BLOCK_SIZE];
   ht->payload_block_size++;
+  ht->last_payload_offset = 0;
 }
-
-uint32_t GetBlockIdx(uint64_t entry) { return entry & 0xFFFFFFFF; }
 
 uint64_t ConstructEntry(uint16_t salt, uint16_t block_offset,
                         uint32_t block_idx) {
@@ -65,22 +68,19 @@ void Resize(AggregateHashTable* ht) {
     const auto end = block_idx == ht->payload_block_size - 1
                          ? ht->last_payload_offset
                          : BLOCK_SIZE;
-    for (uint16_t block_offset = 0; block_offset < end;
+    for (uint16_t block_offset = 0; block_offset + ht->payload_size <= end;
          block_offset += ht->payload_size) {
-      auto ptr = ht->payload_block[block_idx] + block_offset;
-      auto hash = *((uint64_t*)ptr + ht->payload_hash_offset);
+      auto hash_ptr =
+          ht->payload_block[block_idx] + block_offset + ht->payload_hash_offset;
+      auto hash = *(uint64_t*)(hash_ptr);
       uint16_t salt = hash >> 48;
 
-      auto entry_idx = (uint32_t)hash & mask;
-      auto entry = entries[entry_idx];
-      while (GetBlockIdx(entry) > 0) {
-        entry_idx++;
-        if (entry_idx >= capacity) {
-          entry_idx = 0;
-        }
+      uint32_t entry_idx = hash & mask;
+      while ((entries[entry_idx] & 0xFFFFFFFF) > 0) {
+        entry_idx = (entry_idx + 1) & mask;
       }
 
-      entries[entry_idx] = ConstructEntry(salt, block_idx, block_offset);
+      entries[entry_idx] = ConstructEntry(salt, block_offset, block_idx);
     }
   }
 
@@ -100,7 +100,7 @@ void Free(AggregateHashTable* ht) {
 }
 
 void* GetPayload(AggregateHashTable* ht, uint32_t block_idx,
-                 uint16_t block_offset) {
+                 uint64_t block_offset) {
   return ht->payload_block[block_idx] + block_offset;
 }
 

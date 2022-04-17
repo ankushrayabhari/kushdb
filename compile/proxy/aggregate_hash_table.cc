@@ -94,6 +94,10 @@ SQLValue AggregateHashTablePayload::GetKey(int field) {
   return content_.Get(field + 1);
 }
 
+Int64 AggregateHashTablePayload::GetHash() {
+  return (Int64&)content_.Get(0).Get();
+}
+
 std::vector<SQLValue> AggregateHashTablePayload::GetPayload(
     int num_keys, const std::vector<std::unique_ptr<Aggregator>>& aggregators) {
   std::vector<SQLValue> output;
@@ -113,7 +117,7 @@ StructBuilder AggregateHashTablePayload::ConstructPayloadFormat(
     khir::ProgramBuilder& program,
     const std::vector<std::pair<catalog::SqlType, bool>>& key_types,
     const std::vector<std::unique_ptr<Aggregator>>& aggregators) {
-  proxy::StructBuilder format(program);
+  StructBuilder format(program);
 
   // hash
   format.Add(catalog::SqlType::BIGINT, false);
@@ -134,9 +138,10 @@ StructBuilder AggregateHashTablePayload::ConstructPayloadFormat(
 
 khir::Value AggregateHashTablePayload::GetHashOffset(
     khir::ProgramBuilder& program, StructBuilder& format) {
-  auto payload_type = program.PointerType(format.Type());
+  auto type = format.Type();
   return program.PointerCast(
-      program.ConstGEP(payload_type, program.NullPtr(payload_type), {0, 0}),
+      program.ConstGEP(type, program.NullPtr(program.PointerType(type)),
+                       {0, 0}),
       program.I64Type());
 }
 
@@ -146,14 +151,14 @@ AggregateHashTable::AggregateHashTable(
     std::vector<std::unique_ptr<Aggregator>> aggregators)
     : program_(program),
       aggregators_(std::move(aggregators)),
+      num_keys_(key_types.size()),
       payload_format_(AggregateHashTablePayload::ConstructPayloadFormat(
-          program, key_types, aggregators_)),
+          program, std::move(key_types), aggregators_)),
       value_(program_.Global(
           false, true, program_.GetStructType(StructName),
           program_.ConstantStruct(
               program_.GetStructType(StructName),
               {
-                  program.ConstI64(0),
                   program.ConstI64(0),
                   program.ConstI32(0),
                   program.ConstI32(0),
@@ -164,11 +169,12 @@ AggregateHashTable::AggregateHashTable(
                   program.ConstI32(0),
                   program.ConstI32(0),
                   program.ConstI16(0),
+                  program.ConstI16(0),
               }))) {
   auto payload_type = payload_format_.Type();
   program_.Call(
       program_.GetFunction(InitFnName),
-      {value_, program_.SizeOf(payload_type),
+      {value_, program_.I16TruncI64(program_.SizeOf(payload_type)),
        AggregateHashTablePayload::GetHashOffset(program_, payload_format_)});
 }
 
@@ -186,101 +192,144 @@ Bool CheckEq(khir::ProgramBuilder& program, AggregateHashTablePayload& payload,
 }
 
 void AggregateHashTable::UpdateOrInsert(const std::vector<SQLValue>& keys) {
-  // entry_idx = hash & mask
-  // while !found
-  //     get the hash entry at entry_idx
-  //     if empty:
-  //        payload = hash_insert(entry, salt)
-  //        insert_handler(payload)
-  //        found = true
-  //     else if salt is equal and key_eq():
-  //        update()
-  //        found = true
-  //     else:
-  //         entry_idx++
-  //         if (entry_idx == capacity):
-  //             entry_idx = 0
+  {  // Ensure we have an empty slot for the entry
+    auto size = Size();
+    auto capacity = Capacity();
+    If(
+        program_, size == capacity, [&]() { Resize(); },
+        [&]() {
+          If(program_,
+             Float64(program_, size) >
+                 Float64(program_, capacity) /
+                     Float64(program_,
+                             runtime::AggregateHashTable::LOAD_FACTOR),
+             [&]() { Resize(); });
+        });
+  }
 
   auto hash = Hash(keys);
   auto salt = Salt(hash);
 
-  auto idx = hash & Mask();
+  auto mask = Mask();
+  auto idx = hash & mask;
   auto capacity = Capacity();
+
   Loop(
       program_,
       [&](auto& loop) {
-        loop.AddLoopVariable(Bool(program_, false));
+        loop.AddLoopVariable(Bool(program_, true));
         loop.AddLoopVariable(idx);
       },
       [&](auto& loop) {
-        auto found = loop.template GetLoopVariable<Bool>(0);
-        return found;
+        auto not_found = loop.template GetLoopVariable<Bool>(0);
+        return not_found;
       },
       [&](auto& loop) {
-        auto idx = loop.template GetLoopVariable<Int32>(1);
-        auto entry = GetEntry(idx);
+        auto idx = loop.template GetLoopVariable<Int64>(1);
+        auto entry = GetEntry(Int32(program_, program_.I32TruncI64(idx.Get())));
         auto entry_parts = entry.Get();
 
         If(program_, entry_parts.block_idx == 0, [&] {
           auto payload = Insert(entry, hash, salt);
           payload.Initialize(hash, keys, aggregators_);
-          loop.Continue(Bool(program_, true), idx);
+          loop.Continue(Bool(program_, false), Int64(program_, 0));
         });
 
         If(program_, entry_parts.salt == salt, [&] {
           auto payload =
               GetPayload(entry_parts.block_idx, entry_parts.block_offset);
+
           If(program_, CheckEq(program_, payload, keys), [&]() {
             payload.Update(aggregators_);
-            loop.Continue(Bool(program_, true), idx);
+            loop.Continue(Bool(program_, false), Int64(program_, 0));
           });
         });
 
-        auto next_idx = idx + 1;
-        auto next_idx_mod = Ternary(
-            program_, next_idx < capacity, [&]() { return next_idx; },
-            [&]() { return Int32(program_, 0); });
-        return loop.Continue(Bool(program_, false), next_idx_mod);
+        return loop.Continue(Bool(program_, true), (idx + 1) & mask);
+      });
+}
+
+void AggregateHashTable::ForEach(
+    std::function<void(std::vector<SQLValue>)> handler) {
+  auto payload_block_size = PayloadBlocksSize();
+  auto payload_size = PayloadSize();
+
+  Loop(
+      program_, [&](auto& loop) { loop.AddLoopVariable(Int32(program_, 1)); },
+      [&](auto& loop) {
+        auto block_idx = loop.template GetLoopVariable<Int32>(0);
+        return block_idx < payload_block_size;
+      },
+      [&](auto& loop) {
+        auto block_idx = loop.template GetLoopVariable<Int32>(0);
+
+        auto end = Ternary(
+            program_, block_idx == payload_block_size - 1,
+            [&]() { return PayloadBlocksOffset(); },
+            [&]() {
+              return Int16(program_, runtime::AggregateHashTable::BLOCK_SIZE);
+            });
+
+        Loop(
+            program_,
+            [&](auto& inner_loop) {
+              inner_loop.AddLoopVariable(Int16(program_, 0));
+            },
+            [&](auto& inner_loop) {
+              auto block_offset = inner_loop.template GetLoopVariable<Int16>(0);
+              return block_offset + payload_size <= end;
+            },
+            [&](auto& inner_loop) {
+              auto block_offset = inner_loop.template GetLoopVariable<Int16>(0);
+
+              auto payload = GetPayload(block_idx, block_offset);
+
+              handler(payload.GetPayload(num_keys_, aggregators_));
+
+              return inner_loop.Continue(block_offset + payload_size);
+            });
+
+        return loop.Continue(block_idx + 1);
       });
 }
 
 AggregateHashTablePayload AggregateHashTable::Insert(
     AggregateHashTableEntry& entry, Int64 hash, Int16 salt) {
-  auto size = Size();
-  auto capacity = Capacity();
-  If(
-      program_, size + 1 <= capacity, [&]() { Resize(); },
-      [&]() {
-        If(program_,
-           Float64(program_, size) >
-               Float64(program_, capacity) /
-                   Float64(program_, runtime::AggregateHashTable::LOAD_FACTOR),
-           [&]() { Resize(); });
-      });
+  SetSize(Size() + 1);
 
+  // Allocate a new page if we have no more space left on the last one
+  auto payload_size = PayloadSize();
   If(program_,
-     PayloadBlocksOffset().Zext() + PayloadSize() >=
-         Int64(program_, runtime::AggregateHashTable::BLOCK_SIZE),
+     PayloadBlocksOffset() + payload_size >
+         Int16(program_, runtime::AggregateHashTable::BLOCK_SIZE),
      [&]() { AllocateNewPage(); });
 
-  auto block_idx = PayloadBlocksSize();
+  // last page = size - 1
+  auto block_idx = PayloadBlocksSize() - 1;
   auto offset = PayloadBlocksOffset();
-  entry.Set(salt, offset, block_idx);
+  SetPayloadBlocksOffset(offset + payload_size);
 
+  entry.Set(salt, offset, block_idx);
   return GetPayload(block_idx, offset);
 }
 
 Int64 AggregateHashTable::Hash(const std::vector<SQLValue>& keys) {
   Int64 hash(program_, 0);
-
-  Int64 magic(program_, 0x9e3779b97f4a7c15);
+  Int64 magic(program_, 0xc6a4a7935bd1e995);
+  Int64 offset(program_, 0xe6546b64);
+  uint8_t r = 47;
 
   for (auto& k : keys) {
-    auto key_hash = proxy::Ternary(
+    auto key_hash = Ternary(
         program_, k.IsNull(), [&]() { return Int64(program_, 0); },
         [&]() { return k.Get().Hash(); });
 
-    hash = hash ^ (key_hash + magic + (hash << 12) + (hash >> 4));
+    key_hash = key_hash * magic;
+    key_hash = key_hash ^ (key_hash >> r);
+    key_hash = key_hash * magic;
+    hash = hash ^ key_hash;
+    hash = hash * magic;
+    hash = hash + offset;
   }
 
   return hash;
@@ -302,46 +351,58 @@ void AggregateHashTable::Resize() {
   program_.Call(program_.GetFunction(ResizeFnName), {value_});
 }
 
-Int64 AggregateHashTable::PayloadSize() {
-  auto type = program_.PointerType(payload_format_.Type());
+Int64 AggregateHashTable::PayloadHashOffset() {
   return Int64(program_,
-               program_.LoadI64(program_.ConstGEP(type, value_, {0, 0})));
+               program_.LoadI64(program_.ConstGEP(
+                   program_.GetStructType(StructName), value_, {0, 0})));
 }
 
-Int64 AggregateHashTable::PayloadHashOffset() {
-  auto type = program_.PointerType(payload_format_.Type());
-  return Int64(program_,
-               program_.LoadI64(program_.ConstGEP(type, value_, {0, 1})));
+void AggregateHashTable::SetSize(Int32 s) {
+  program_.StoreI32(
+      program_.ConstGEP(program_.GetStructType(StructName), value_, {0, 1}),
+      s.Get());
 }
 
 Int32 AggregateHashTable::Size() {
-  auto type = program_.PointerType(payload_format_.Type());
   return Int32(program_,
-               program_.LoadI32(program_.ConstGEP(type, value_, {0, 2})));
+               program_.LoadI32(program_.ConstGEP(
+                   program_.GetStructType(StructName), value_, {0, 1})));
 }
 
 Int32 AggregateHashTable::Capacity() {
-  auto type = program_.PointerType(payload_format_.Type());
   return Int32(program_,
-               program_.LoadI32(program_.ConstGEP(type, value_, {0, 3})));
+               program_.LoadI32(program_.ConstGEP(
+                   program_.GetStructType(StructName), value_, {0, 2})));
 }
 
 Int64 AggregateHashTable::Mask() {
-  auto type = program_.PointerType(payload_format_.Type());
   return Int64(program_,
-               program_.LoadI64(program_.ConstGEP(type, value_, {0, 4})));
+               program_.LoadI64(program_.ConstGEP(
+                   program_.GetStructType(StructName), value_, {0, 3})));
 }
 
 Int32 AggregateHashTable::PayloadBlocksSize() {
-  auto type = program_.PointerType(payload_format_.Type());
   return Int32(program_,
-               program_.LoadI32(program_.ConstGEP(type, value_, {0, 8})));
+               program_.LoadI32(program_.ConstGEP(
+                   program_.GetStructType(StructName), value_, {0, 7})));
+}
+
+void AggregateHashTable::SetPayloadBlocksOffset(Int16 s) {
+  program_.StoreI16(
+      program_.ConstGEP(program_.GetStructType(StructName), value_, {0, 8}),
+      s.Get());
 }
 
 Int16 AggregateHashTable::PayloadBlocksOffset() {
-  auto type = program_.PointerType(payload_format_.Type());
   return Int16(program_,
-               program_.LoadI16(program_.ConstGEP(type, value_, {0, 9})));
+               program_.LoadI16(program_.ConstGEP(
+                   program_.GetStructType(StructName), value_, {0, 8})));
+}
+
+Int16 AggregateHashTable::PayloadSize() {
+  return Int16(program_,
+               program_.LoadI64(program_.ConstGEP(
+                   program_.GetStructType(StructName), value_, {0, 9})));
 }
 
 AggregateHashTableEntry AggregateHashTable::GetEntry(Int32 entry_idx) {
@@ -357,7 +418,7 @@ AggregateHashTablePayload AggregateHashTable::GetPayload(Int32 block_idx,
       program_, payload_format_,
       program_.PointerCast(
           program_.Call(program_.GetFunction(GetPayloadFnName),
-                        {value_, block_idx.Get(), block_offset.Get()}),
+                        {value_, block_idx.Get(), block_offset.Zext().Get()}),
           type));
 }
 
@@ -366,7 +427,6 @@ void AggregateHashTable::ForwardDeclare(khir::ProgramBuilder& program) {
 
   auto struct_type = program.StructType(
       {
-          program.I64Type(),                       // payload_size
           program.I64Type(),                       // payload_hash_offset
           program.I32Type(),                       // size
           program.I32Type(),                       // capacity
@@ -376,13 +436,14 @@ void AggregateHashTable::ForwardDeclare(khir::ProgramBuilder& program) {
           program.I32Type(),                       // payload_block_capacity
           program.I32Type(),                       // payload_block_size
           program.I16Type(),                       // last_payload_offset
+          program.I16Type(),                       // payload_size
       },
       StructName);
   auto struct_ptr = program.PointerType(struct_type);
 
   program.DeclareExternalFunction(
       InitFnName, program.VoidType(),
-      {struct_ptr, program.I64Type(), program.I64Type()},
+      {struct_ptr, program.I16Type(), program.I64Type()},
       reinterpret_cast<void*>(&runtime::AggregateHashTable::Init));
 
   program.DeclareExternalFunction(
@@ -400,12 +461,12 @@ void AggregateHashTable::ForwardDeclare(khir::ProgramBuilder& program) {
   program.DeclareExternalFunction(
       GetEntryFnName, program.PointerType(program.I64Type()),
       {struct_ptr, program.I32Type()},
-      reinterpret_cast<void*>(&runtime::AggregateHashTable::Free));
+      reinterpret_cast<void*>(&runtime::AggregateHashTable::GetEntry));
 
   program.DeclareExternalFunction(
       GetPayloadFnName, program.PointerType(program.I8Type()),
-      {struct_ptr, program.I32Type(), program.I16Type()},
-      reinterpret_cast<void*>(&runtime::AggregateHashTable::Free));
+      {struct_ptr, program.I32Type(), program.I64Type()},
+      reinterpret_cast<void*>(&runtime::AggregateHashTable::GetPayload));
 }
 
 }  // namespace kush::compile::proxy

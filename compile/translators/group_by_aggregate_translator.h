@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "compile/proxy/aggregate_hash_table.h"
 #include "compile/proxy/aggregator.h"
-#include "compile/proxy/hash_table.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
@@ -31,9 +31,7 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
   ExpressionTranslator expr_translator_;
-  std::unique_ptr<proxy::HashTable> buffer_;
-  std::vector<std::unique_ptr<proxy::Aggregator>> aggregators_;
-  khir::Value found_;
+  std::unique_ptr<proxy::AggregateHashTable> hash_table_;
 };
 
 }  // namespace kush::compile
