@@ -157,6 +157,7 @@ void ProgramPrinter::OutputInstr(
     case Opcode::I64_LSHIFT:
     case Opcode::I64_RSHIFT:
     case Opcode::I64_AND:
+    case Opcode::I64_XOR:
     case Opcode::I64_OR:
     case Opcode::I64_MUL:
     case Opcode::I64_SUB:

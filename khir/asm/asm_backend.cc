@@ -1408,6 +1408,38 @@ void ASMBackend::AndQWordValue(
 }
 
 template <typename T>
+void ASMBackend::XorQWordValue(
+    T dest, Value v, std::vector<int32_t>& offsets,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<uint64_t>& i64_constants,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (v.IsConstantGlobal()) {
+    int64_t c64 =
+        i64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
+                          .Constant()];
+
+    if constexpr (std::is_same_v<T, x86::Mem>) {
+      asm_->mov(x86::rax, c64);
+      asm_->xor_(dest, x86::rax);
+    } else {
+      asm_->xor_(dest, x86::qword_ptr(EmbedI64(c64)));
+    }
+  } else if (register_assign[v.GetIdx()].IsRegister()) {
+    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    asm_->xor_(dest, v_reg.GetQ());
+  } else {
+    if constexpr (std::is_same_v<T, x86::Mem>) {
+      asm_->mov(Register::RAX.GetQ(),
+                x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+      asm_->xor_(dest, Register::RAX.GetQ());
+    } else {
+      asm_->xor_(dest,
+                 x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
+    }
+  }
+}
+
+template <typename T>
 void ASMBackend::OrQWordValue(
     T dest, Value v, std::vector<int32_t>& offsets,
     const std::vector<uint64_t>& constant_instrs,
@@ -2790,6 +2822,29 @@ void ASMBackend::TranslateInstr(
         MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
                        register_assign);
         AndQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
+                      register_assign);
+      }
+      return;
+    }
+
+    case Opcode::I64_XOR: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      if (dest_assign.IsRegister()) {
+        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                       register_assign);
+        XorQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
+                      register_assign);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        auto dest = x86::qword_ptr(x86::rbp, offset);
+        MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                       register_assign);
+        XorQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
                       register_assign);
       }
       return;

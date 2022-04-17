@@ -212,6 +212,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::I64_LSHIFT:
     case Opcode::I64_RSHIFT:
     case Opcode::I64_AND:
+    case Opcode::I64_XOR:
     case Opcode::I64_OR:
     case Opcode::I64_ADD:
     case Opcode::I64_MUL:
@@ -310,6 +311,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I64_RSHIFT:
     case Opcode::I64_AND:
     case Opcode::I64_OR:
+    case Opcode::I64_XOR:
     case Opcode::I64_CMP_EQ:
     case Opcode::I64_CMP_NE:
     case Opcode::I64_CMP_LT:
@@ -432,6 +434,7 @@ std::vector<Value> GetReadValues(int instr_idx, int bb_start, int bb_end,
     case Opcode::I64_RSHIFT:
     case Opcode::I64_AND:
     case Opcode::I64_OR:
+    case Opcode::I64_XOR:
     case Opcode::I64_CMP_EQ:
     case Opcode::I64_CMP_NE:
     case Opcode::I64_CMP_LT:

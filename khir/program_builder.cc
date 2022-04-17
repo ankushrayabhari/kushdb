@@ -653,6 +653,7 @@ Type ProgramBuilder::TypeOf(Value value) {
     case Opcode::I64_LSHIFT:
     case Opcode::I64_RSHIFT:
     case Opcode::I64_AND:
+    case Opcode::I64_XOR:
     case Opcode::I64_OR:
     case Opcode::I1_ZEXT_I64:
     case Opcode::I8_ZEXT_I64:
@@ -1259,6 +1260,14 @@ Value ProgramBuilder::I32TruncI64(Value v) {
 Value ProgramBuilder::AndI64(Value v1, Value v2) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I64_AND))
+                                         .SetArg0(v1.Serialize())
+                                         .SetArg1(v2.Serialize())
+                                         .Build());
+}
+
+Value ProgramBuilder::XorI64(Value v1, Value v2) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(OpcodeTo(Opcode::I64_XOR))
                                          .SetArg0(v1.Serialize())
                                          .SetArg1(v2.Serialize())
                                          .Build());

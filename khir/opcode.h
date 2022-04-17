@@ -72,6 +72,7 @@ enum class Opcode : uint8_t {
   I64_LSHIFT,
   I64_RSHIFT,
   I64_AND,
+  I64_XOR,
   I64_OR,
   I64_TRUNC_I16,
   I64_TRUNC_I32,

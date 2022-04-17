@@ -394,6 +394,14 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I64_XOR: {
+      Type2InstructionReader reader(instr);
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
+      values[instr_idx] = builder_->CreateXor(v0, v1);
+      return;
+    }
+
     case Opcode::I1_CMP_EQ:
     case Opcode::I1_CMP_NE:
     case Opcode::I8_CMP_EQ:
