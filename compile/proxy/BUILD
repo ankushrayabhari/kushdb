@@ -49,6 +49,7 @@ cc_library(
     hdrs = ["aggregate_hash_table.h"],
     deps = [
         ":aggregator",
+        ":evaluate",
         "//compile/proxy/control_flow:if",
         "//compile/proxy/control_flow:loop",
         "//compile/proxy/value:ir_value",

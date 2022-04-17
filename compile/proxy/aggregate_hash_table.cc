@@ -7,6 +7,7 @@
 #include "compile/proxy/aggregator.h"
 #include "compile/proxy/control_flow/if.h"
 #include "compile/proxy/control_flow/loop.h"
+#include "compile/proxy/evaluate.h"
 #include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
 #include "runtime/aggregate_hash_table.h"
@@ -89,6 +90,10 @@ void AggregateHashTablePayload::Update(
   }
 }
 
+SQLValue AggregateHashTablePayload::GetKey(int field) {
+  return content_.Get(field + 1);
+}
+
 std::vector<SQLValue> AggregateHashTablePayload::GetPayload(
     int num_keys, const std::vector<std::unique_ptr<Aggregator>>& aggregators) {
   std::vector<SQLValue> output;
@@ -140,8 +145,9 @@ AggregateHashTable::AggregateHashTable(
     std::vector<std::pair<catalog::SqlType, bool>> key_types,
     std::vector<std::unique_ptr<Aggregator>> aggregators)
     : program_(program),
+      aggregators_(std::move(aggregators)),
       payload_format_(AggregateHashTablePayload::ConstructPayloadFormat(
-          program, key_types, aggregators)),
+          program, key_types, aggregators_)),
       value_(program_.Global(
           false, true, program_.GetStructType(StructName),
           program_.ConstantStruct(
@@ -164,6 +170,78 @@ AggregateHashTable::AggregateHashTable(
       program_.GetFunction(InitFnName),
       {value_, program_.SizeOf(payload_type),
        AggregateHashTablePayload::GetHashOffset(program_, payload_format_)});
+}
+
+Bool CheckEq(khir::ProgramBuilder& program, AggregateHashTablePayload& payload,
+             const std::vector<SQLValue>& keys, int idx = 0) {
+  if (idx == keys.size()) {
+    return Bool(program, true);
+  }
+
+  auto value = payload.GetKey(idx);
+  return Ternary(
+      program, Equal(value, keys[idx]),
+      [&] { return CheckEq(program, payload, keys, idx + 1); },
+      [&]() { return Bool(program, false); });
+}
+
+void AggregateHashTable::UpdateOrInsert(const std::vector<SQLValue>& keys) {
+  // entry_idx = hash & mask
+  // while !found
+  //     get the hash entry at entry_idx
+  //     if empty:
+  //        payload = hash_insert(entry, salt)
+  //        insert_handler(payload)
+  //        found = true
+  //     else if salt is equal and key_eq():
+  //        update()
+  //        found = true
+  //     else:
+  //         entry_idx++
+  //         if (entry_idx == capacity):
+  //             entry_idx = 0
+
+  auto hash = Hash(keys);
+  auto salt = Salt(hash);
+
+  auto idx = hash & Mask();
+  auto capacity = Capacity();
+  Loop(
+      program_,
+      [&](auto& loop) {
+        loop.AddLoopVariable(Bool(program_, false));
+        loop.AddLoopVariable(idx);
+      },
+      [&](auto& loop) {
+        auto found = loop.template GetLoopVariable<Bool>(0);
+        return found;
+      },
+      [&](auto& loop) {
+        auto idx = loop.template GetLoopVariable<Int32>(1);
+        auto entry = GetEntry(idx);
+        auto entry_parts = entry.Get();
+
+        If(program_, entry_parts.block_idx == 0, [&] {
+          auto payload = Insert(entry, hash, salt);
+          payload.Initialize(hash, keys, aggregators_);
+          loop.Continue(Bool(program_, true), idx);
+        });
+
+        If(program_, entry_parts.salt == salt, [&] {
+          auto payload =
+              GetPayload(entry_parts.block_idx, entry_parts.block_offset);
+          If(program_, CheckEq(program_, payload, keys), [&]() {
+            payload.Update(aggregators_);
+            loop.Continue(Bool(program_, true), idx);
+          });
+        });
+
+        auto next_idx = idx + 1;
+        auto next_idx_mod = Ternary(
+            program_, next_idx < capacity, [&]() { return next_idx; },
+            [&]() { return Int32(program_, 0); });
+        return loop.Continue(Bool(program_, false), next_idx_mod);
+      });
 }
 
 AggregateHashTablePayload AggregateHashTable::Insert(
@@ -192,8 +270,7 @@ AggregateHashTablePayload AggregateHashTable::Insert(
   return GetPayload(block_idx, offset);
 }
 
-std::pair<Int64, Int16> AggregateHashTable::HashSalt(
-    const std::vector<SQLValue>& keys) {
+Int64 AggregateHashTable::Hash(const std::vector<SQLValue>& keys) {
   Int64 hash(program_, 0);
 
   Int64 magic(program_, 0x9e3779b97f4a7c15);
@@ -206,7 +283,11 @@ std::pair<Int64, Int16> AggregateHashTable::HashSalt(
     hash = hash ^ (key_hash + magic + (hash << 12) + (hash >> 4));
   }
 
-  return {hash, Int16(program_, program_.I16TruncI64(hash.Get()))};
+  return hash;
+}
+
+Int16 AggregateHashTable::Salt(Int64 hash) {
+  return Int16(program_, program_.I16TruncI64((hash >> 48).Get()));
 }
 
 void AggregateHashTable::Reset() {

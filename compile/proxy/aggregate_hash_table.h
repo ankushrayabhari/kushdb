@@ -38,6 +38,8 @@ class AggregateHashTablePayload {
                   const std::vector<std::unique_ptr<Aggregator>>& aggregators);
   void Update(const std::vector<std::unique_ptr<Aggregator>>& aggregators);
 
+  SQLValue GetKey(int key);
+
   // Gets the vector of <key values, aggregate values>
   std::vector<SQLValue> GetPayload(
       int num_keys,
@@ -61,13 +63,14 @@ class AggregateHashTable {
   AggregateHashTable(khir::ProgramBuilder& program,
                      std::vector<std::pair<catalog::SqlType, bool>> key_types,
                      std::vector<std::unique_ptr<Aggregator>> aggregators);
-
+  void UpdateOrInsert(const std::vector<SQLValue>& keys);
   void Reset();
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
  private:
-  std::pair<Int64, Int16> HashSalt(const std::vector<SQLValue>& keys);
+  Int64 Hash(const std::vector<SQLValue>& keys);
+  Int16 Salt(Int64 hash);
   AggregateHashTablePayload Insert(AggregateHashTableEntry& entry, Int64 hash,
                                    Int16 salt);
 
@@ -85,6 +88,7 @@ class AggregateHashTable {
   AggregateHashTableEntry GetEntry(Int32 entry_idx);
 
   khir::ProgramBuilder& program_;
+  std::vector<std::unique_ptr<Aggregator>> aggregators_;
   StructBuilder payload_format_;
   khir::Value value_;
 };
