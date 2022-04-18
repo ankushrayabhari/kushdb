@@ -250,6 +250,25 @@ cc_library(
 )
 
 cc_library(
+    name = "aggregate_translator",
+    srcs = ["aggregate_translator.cc"],
+    hdrs = ["aggregate_translator.h"],
+    deps = [
+        ":expression_translator",
+        ":operator_translator",
+        "//compile/proxy:aggregator",
+        "//compile/proxy:struct",
+        "//compile/proxy/control_flow:if",
+        "//compile/proxy/control_flow:loop",
+        "//compile/proxy/value:ir_value",
+        "//execution:pipeline",
+        "//khir:program_builder",
+        "//plan/operator:aggregate_operator",
+        "//util:vector_util",
+    ],
+)
+
+cc_library(
     name = "group_by_aggregate_translator",
     srcs = ["group_by_aggregate_translator.cc"],
     hdrs = ["group_by_aggregate_translator.h"],
@@ -292,6 +311,7 @@ cc_library(
     srcs = ["translator_factory.cc"],
     hdrs = ["translator_factory.h"],
     deps = [
+        ":aggregate_translator",
         ":cross_product_translator",
         ":group_by_aggregate_translator",
         ":hash_join_translator",

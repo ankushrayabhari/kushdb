@@ -8,6 +8,7 @@ class SkinnerScanSelectOperator;
 class OutputOperator;
 class HashJoinOperator;
 class SkinnerJoinOperator;
+class AggregateOperator;
 class GroupByAggregateOperator;
 class OrderByOperator;
 class CrossProductOperator;
@@ -22,6 +23,7 @@ class OperatorVisitor {
   virtual void Visit(HashJoinOperator& hash_join) = 0;
   virtual void Visit(SkinnerJoinOperator& skinner_join) = 0;
   virtual void Visit(GroupByAggregateOperator& group_by_agg) = 0;
+  virtual void Visit(AggregateOperator& agg) = 0;
   virtual void Visit(OrderByOperator& order_by) = 0;
   virtual void Visit(CrossProductOperator& cross_product) = 0;
 };
@@ -36,6 +38,7 @@ class ImmutableOperatorVisitor {
   virtual void Visit(const HashJoinOperator& hash_join) = 0;
   virtual void Visit(const SkinnerJoinOperator& skinner_join) = 0;
   virtual void Visit(const GroupByAggregateOperator& group_by_agg) = 0;
+  virtual void Visit(const AggregateOperator& agg) = 0;
   virtual void Visit(const OrderByOperator& order_by) = 0;
   virtual void Visit(const CrossProductOperator& cross_product) = 0;
 };

@@ -35,6 +35,7 @@ class TranslatorFactory
   void Visit(const plan::HashJoinOperator& hash_join) override;
   void Visit(const plan::CrossProductOperator& cross_product) override;
   void Visit(const plan::GroupByAggregateOperator& group_by_agg) override;
+  void Visit(const plan::AggregateOperator& agg) override;
   void Visit(const plan::OrderByOperator& order_by) override;
 
  private:

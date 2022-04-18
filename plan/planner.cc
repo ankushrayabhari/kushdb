@@ -21,7 +21,7 @@
 #include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
-#include "plan/operator/group_by_aggregate_operator.h"
+#include "plan/operator/aggregate_operator.h"
 #include "plan/operator/operator.h"
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
@@ -510,14 +510,12 @@ std::unique_ptr<Operator> Planner::Plan(const parse::SelectStatement& stmt) {
     col_idx++;
   }
 
-  return std::make_unique<OutputOperator>(
-      std::make_unique<GroupByAggregateOperator>(
-          std::move(schema), std::move(result),
-          std::vector<std::unique_ptr<Expression>>(), std::move(aggs)));
+  return std::make_unique<OutputOperator>(std::make_unique<AggregateOperator>(
+      std::move(schema), std::move(result), std::move(aggs)));
 }
 
 void EarlyProjection(Operator& op) {
-  if (auto group_by = dynamic_cast<GroupByAggregateOperator*>(&op)) {
+  if (auto group_by = dynamic_cast<AggregateOperator*>(&op)) {
     // see which columns the group by references. delete the ones that we don't
     // and then rewrite.
     absl::flat_hash_set<std::pair<int, int>> refs;

@@ -16,6 +16,7 @@
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
+#include "plan/operator/aggregate_operator.h"
 #include "plan/operator/cross_product_operator.h"
 #include "plan/operator/group_by_aggregate_operator.h"
 #include "plan/operator/hash_join_operator.h"
@@ -83,9 +84,8 @@ std::unique_ptr<Operator> Agg() {
   OperatorSchema schema;
   schema.AddDerivedColumn("revenue", VirtColRef(revenue, 0));
 
-  return std::make_unique<GroupByAggregateOperator>(
+  return std::make_unique<AggregateOperator>(
       std::move(schema), std::move(lineitem),
-      std::vector<std::unique_ptr<Expression>>(),
       util::MakeVector(std::move(revenue)));
 }
 

@@ -4,6 +4,7 @@
 
 #include "absl/flags/flag.h"
 
+#include "compile/translators/aggregate_translator.h"
 #include "compile/translators/cross_product_translator.h"
 #include "compile/translators/group_by_aggregate_translator.h"
 #include "compile/translators/hash_join_translator.h"
@@ -110,6 +111,11 @@ void TranslatorFactory::Visit(
   this->Return(std::make_unique<GroupByAggregateTranslator>(
       group_by_agg, program_, pipeline_builder_,
       GetChildTranslators(group_by_agg)));
+}
+
+void TranslatorFactory::Visit(const plan::AggregateOperator& agg) {
+  this->Return(std::make_unique<AggregateTranslator>(
+      agg, program_, pipeline_builder_, GetChildTranslators(agg)));
 }
 
 void TranslatorFactory::Visit(const plan::OrderByOperator& order_by) {
