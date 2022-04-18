@@ -875,6 +875,12 @@ void ProgramBuilder::Return() {
 }
 
 Value ProgramBuilder::LNotI1(Value v) {
+  if (v.IsConstantGlobal()) {
+    auto value =
+        Type1InstructionReader(constant_instrs_[v.GetIdx()]).Constant();
+    return ConstI1(value == 0 ? true : false);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I1_LNOT))
                                          .SetArg0(v.Serialize())
@@ -882,6 +888,28 @@ Value ProgramBuilder::LNotI1(Value v) {
 }
 
 Value ProgramBuilder::AndI1(Value v1, Value v2) {
+  if (v1.IsConstantGlobal()) {
+    auto value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+
+    if (value1 == 0) {
+      return ConstI1(false);
+    } else {
+      return v2;
+    }
+  }
+
+  if (v2.IsConstantGlobal()) {
+    auto value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    if (value2 == 0) {
+      return ConstI1(false);
+    } else {
+      return v1;
+    }
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I1_AND))
                                          .SetArg0(v1.Serialize())
@@ -890,6 +918,28 @@ Value ProgramBuilder::AndI1(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::OrI1(Value v1, Value v2) {
+  if (v1.IsConstantGlobal()) {
+    auto value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+
+    if (value1 == 1) {
+      return ConstI1(true);
+    } else {
+      return v2;
+    }
+  }
+
+  if (v2.IsConstantGlobal()) {
+    auto value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    if (value2 == 1) {
+      return ConstI1(true);
+    } else {
+      return v1;
+    }
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I1_OR))
                                          .SetArg0(v1.Serialize())
@@ -898,6 +948,28 @@ Value ProgramBuilder::OrI1(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::CmpI1(CompType cmp, Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    auto value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    auto value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    switch (cmp) {
+      case CompType::EQ:
+        return ConstI1(value1 == value2);
+
+      case CompType::NE:
+        return ConstI1(value1 != value2);
+
+      default:
+        throw std::runtime_error("Invalid comp type for I1");
+    }
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -929,6 +1001,17 @@ Value ProgramBuilder::ConstI1(bool v) {
 }
 
 Value ProgramBuilder::I64ZextI1(Value v) {
+  if (v.IsConstantGlobal()) {
+    auto value =
+        Type1InstructionReader(constant_instrs_[v.GetIdx()]).Constant();
+
+    if (value == 0) {
+      return ConstI64(0);
+    } else {
+      return ConstI64(1);
+    }
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I1_ZEXT_I64))
@@ -937,6 +1020,17 @@ Value ProgramBuilder::I64ZextI1(Value v) {
 }
 
 Value ProgramBuilder::I8ZextI1(Value v) {
+  if (v.IsConstantGlobal()) {
+    auto value =
+        Type1InstructionReader(constant_instrs_[v.GetIdx()]).Constant();
+
+    if (value == 0) {
+      return ConstI8(0);
+    } else {
+      return ConstI8(1);
+    }
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I1_ZEXT_I8))
@@ -945,6 +1039,19 @@ Value ProgramBuilder::I8ZextI1(Value v) {
 }
 
 Value ProgramBuilder::AddI8(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int8_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int8_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    return ConstI8(value1 + value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I8_ADD))
                                          .SetArg0(v1.Serialize())
@@ -953,6 +1060,19 @@ Value ProgramBuilder::AddI8(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::MulI8(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int8_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int8_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    return ConstI8(value1 * value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I8_MUL))
                                          .SetArg0(v1.Serialize())
@@ -961,6 +1081,15 @@ Value ProgramBuilder::MulI8(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::SubI8(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int8_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int8_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    return ConstI8(value1 - value2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I8_SUB))
                                          .SetArg0(v1.Serialize())
@@ -969,6 +1098,62 @@ Value ProgramBuilder::SubI8(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::CmpI8(CompType cmp, Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int8_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int8_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    switch (cmp) {
+      case CompType::EQ:
+        return ConstI1(value1 == value2);
+
+      case CompType::NE:
+        return ConstI1(value1 != value2);
+
+      case CompType::LT:
+        return ConstI1(value1 < value2);
+
+      case CompType::LE:
+        return ConstI1(value1 <= value2);
+
+      case CompType::GT:
+        return ConstI1(value1 > value2);
+
+      case CompType::GE:
+        return ConstI1(value1 >= value2);
+    }
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    switch (cmp) {
+      case CompType::EQ:
+      case CompType::NE:
+        std::swap(v1, v2);
+        break;
+
+      case CompType::LT:
+        std::swap(v1, v2);
+        cmp = CompType::GT;
+        break;
+
+      case CompType::LE:
+        std::swap(v1, v2);
+        cmp = CompType::GE;
+        break;
+
+      case CompType::GT:
+        std::swap(v1, v2);
+        cmp = CompType::LT;
+        break;
+
+      case CompType::GE:
+        std::swap(v1, v2);
+        cmp = CompType::LE;
+        break;
+    }
+  }
+
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -1012,6 +1197,13 @@ Value ProgramBuilder::ConstI8(uint8_t v) {
 }
 
 Value ProgramBuilder::I64ZextI8(Value v) {
+  if (v.IsConstantGlobal()) {
+    uint8_t value =
+        Type1InstructionReader(constant_instrs_[v.GetIdx()]).Constant();
+    uint64_t value_as_64 = value;
+    return ConstI64(value_as_64);
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I8_ZEXT_I64))
@@ -1020,6 +1212,13 @@ Value ProgramBuilder::I64ZextI8(Value v) {
 }
 
 Value ProgramBuilder::F64ConvI8(Value v) {
+  if (v.IsConstantGlobal()) {
+    int8_t value =
+        Type1InstructionReader(constant_instrs_[v.GetIdx()]).Constant();
+    double value_as_f = value;
+    return ConstF64(value_as_f);
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I8_CONV_F64))
@@ -1029,6 +1228,19 @@ Value ProgramBuilder::F64ConvI8(Value v) {
 
 // I16
 Value ProgramBuilder::AddI16(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int16_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int16_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    return ConstI16(value1 + value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I16_ADD))
                                          .SetArg0(v1.Serialize())
@@ -1037,6 +1249,19 @@ Value ProgramBuilder::AddI16(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::MulI16(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int16_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int16_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    return ConstI16(value1 * value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I16_MUL))
                                          .SetArg0(v1.Serialize())
@@ -1045,6 +1270,15 @@ Value ProgramBuilder::MulI16(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::SubI16(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int16_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int16_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    return ConstI16(value1 - value2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I16_SUB))
                                          .SetArg0(v1.Serialize())
@@ -1053,6 +1287,62 @@ Value ProgramBuilder::SubI16(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::CmpI16(CompType cmp, Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int16_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int16_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    switch (cmp) {
+      case CompType::EQ:
+        return ConstI1(value1 == value2);
+
+      case CompType::NE:
+        return ConstI1(value1 != value2);
+
+      case CompType::LT:
+        return ConstI1(value1 < value2);
+
+      case CompType::LE:
+        return ConstI1(value1 <= value2);
+
+      case CompType::GT:
+        return ConstI1(value1 > value2);
+
+      case CompType::GE:
+        return ConstI1(value1 >= value2);
+    }
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    switch (cmp) {
+      case CompType::EQ:
+      case CompType::NE:
+        std::swap(v1, v2);
+        break;
+
+      case CompType::LT:
+        std::swap(v1, v2);
+        cmp = CompType::GT;
+        break;
+
+      case CompType::LE:
+        std::swap(v1, v2);
+        cmp = CompType::GE;
+        break;
+
+      case CompType::GT:
+        std::swap(v1, v2);
+        cmp = CompType::LT;
+        break;
+
+      case CompType::GE:
+        std::swap(v1, v2);
+        cmp = CompType::LE;
+        break;
+    }
+  }
+
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -1096,6 +1386,13 @@ Value ProgramBuilder::ConstI16(uint16_t v) {
 }
 
 Value ProgramBuilder::I64ZextI16(Value v) {
+  if (v.IsConstantGlobal()) {
+    uint16_t value =
+        Type1InstructionReader(constant_instrs_[v.GetIdx()]).Constant();
+    uint64_t value_zext = value;
+    return ConstI64(value_zext);
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I16_ZEXT_I64))
@@ -1104,6 +1401,13 @@ Value ProgramBuilder::I64ZextI16(Value v) {
 }
 
 Value ProgramBuilder::F64ConvI16(Value v) {
+  if (v.IsConstantGlobal()) {
+    int16_t value =
+        Type1InstructionReader(constant_instrs_[v.GetIdx()]).Constant();
+    double value_as_f = value;
+    return ConstF64(value_as_f);
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I16_CONV_F64))
@@ -1113,6 +1417,19 @@ Value ProgramBuilder::F64ConvI16(Value v) {
 
 // I32
 Value ProgramBuilder::AddI32(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int32_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int32_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    return ConstI32(value1 + value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I32_ADD))
                                          .SetArg0(v1.Serialize())
@@ -1121,6 +1438,19 @@ Value ProgramBuilder::AddI32(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::MulI32(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int32_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int32_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    return ConstI32(value1 * value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I32_MUL))
                                          .SetArg0(v1.Serialize())
@@ -1129,6 +1459,15 @@ Value ProgramBuilder::MulI32(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::SubI32(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int32_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int32_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    return ConstI32(value1 - value2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I32_SUB))
                                          .SetArg0(v1.Serialize())
@@ -1137,6 +1476,62 @@ Value ProgramBuilder::SubI32(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::CmpI32(CompType cmp, Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int32_t value1 =
+        Type1InstructionReader(constant_instrs_[v1.GetIdx()]).Constant();
+    int32_t value2 =
+        Type1InstructionReader(constant_instrs_[v2.GetIdx()]).Constant();
+
+    switch (cmp) {
+      case CompType::EQ:
+        return ConstI1(value1 == value2);
+
+      case CompType::NE:
+        return ConstI1(value1 != value2);
+
+      case CompType::LT:
+        return ConstI1(value1 < value2);
+
+      case CompType::LE:
+        return ConstI1(value1 <= value2);
+
+      case CompType::GT:
+        return ConstI1(value1 > value2);
+
+      case CompType::GE:
+        return ConstI1(value1 >= value2);
+    }
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    switch (cmp) {
+      case CompType::EQ:
+      case CompType::NE:
+        std::swap(v1, v2);
+        break;
+
+      case CompType::LT:
+        std::swap(v1, v2);
+        cmp = CompType::GT;
+        break;
+
+      case CompType::LE:
+        std::swap(v1, v2);
+        cmp = CompType::GE;
+        break;
+
+      case CompType::GT:
+        std::swap(v1, v2);
+        cmp = CompType::LT;
+        break;
+
+      case CompType::GE:
+        std::swap(v1, v2);
+        cmp = CompType::LE;
+        break;
+    }
+  }
+
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -1180,6 +1575,13 @@ Value ProgramBuilder::ConstI32(uint32_t v) {
 }
 
 Value ProgramBuilder::I64ZextI32(Value v) {
+  if (v.IsConstantGlobal()) {
+    uint32_t value =
+        Type1InstructionReader(constant_instrs_[v.GetIdx()]).Constant();
+    uint32_t value_zext = value;
+    return ConstI64(value_zext);
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I32_ZEXT_I64))
@@ -1188,6 +1590,13 @@ Value ProgramBuilder::I64ZextI32(Value v) {
 }
 
 Value ProgramBuilder::F64ConvI32(Value v) {
+  if (v.IsConstantGlobal()) {
+    int32_t value =
+        Type1InstructionReader(constant_instrs_[v.GetIdx()]).Constant();
+    double value_as_f = value;
+    return ConstF64(value_as_f);
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I32_CONV_F64))
@@ -1197,6 +1606,21 @@ Value ProgramBuilder::F64ConvI32(Value v) {
 
 // I64
 Value ProgramBuilder::AddI64(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int64_t value1 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    int64_t value2 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    return ConstI64(value1 + value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I64_ADD))
                                          .SetArg0(v1.Serialize())
@@ -1205,6 +1629,21 @@ Value ProgramBuilder::AddI64(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::MulI64(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int64_t value1 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    int64_t value2 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    return ConstI64(value1 * value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I64_MUL))
                                          .SetArg0(v1.Serialize())
@@ -1213,6 +1652,17 @@ Value ProgramBuilder::MulI64(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::SubI64(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int64_t value1 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    int64_t value2 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    return ConstI64(value1 - value2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I64_SUB))
                                          .SetArg0(v1.Serialize())
@@ -1221,8 +1671,15 @@ Value ProgramBuilder::SubI64(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::LShiftI64(Value v1, uint8_t v2) {
-  auto materialized_v2 = ConstI64(v2);
+  if (v1.IsConstantGlobal()) {
+    uint64_t value1 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
 
+    return ConstI64(value1 << v2);
+  }
+
+  auto materialized_v2 = ConstI64(v2);
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I64_LSHIFT))
@@ -1232,6 +1689,14 @@ Value ProgramBuilder::LShiftI64(Value v1, uint8_t v2) {
 }
 
 Value ProgramBuilder::RShiftI64(Value v1, uint8_t v2) {
+  if (v1.IsConstantGlobal()) {
+    uint64_t value1 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+
+    return ConstI64(value1 >> v2);
+  }
+
   auto materialized_v2 = ConstI64(v2);
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
@@ -1242,6 +1707,14 @@ Value ProgramBuilder::RShiftI64(Value v1, uint8_t v2) {
 }
 
 Value ProgramBuilder::I16TruncI64(Value v) {
+  if (v.IsConstantGlobal()) {
+    uint64_t value =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v.GetIdx()])
+                           .Constant()];
+    uint16_t value_trunc = value;
+    return ConstI16(value_trunc);
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I64_TRUNC_I16))
@@ -1250,6 +1723,14 @@ Value ProgramBuilder::I16TruncI64(Value v) {
 }
 
 Value ProgramBuilder::I32TruncI64(Value v) {
+  if (v.IsConstantGlobal()) {
+    uint64_t value =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v.GetIdx()])
+                           .Constant()];
+    uint32_t value_trunc = value;
+    return ConstI32(value_trunc);
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I64_TRUNC_I32))
@@ -1258,6 +1739,21 @@ Value ProgramBuilder::I32TruncI64(Value v) {
 }
 
 Value ProgramBuilder::AndI64(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    uint64_t value1 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    uint64_t value2 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    return ConstI64(value1 & value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I64_AND))
                                          .SetArg0(v1.Serialize())
@@ -1266,6 +1762,21 @@ Value ProgramBuilder::AndI64(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::XorI64(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    uint64_t value1 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    uint64_t value2 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    return ConstI64(value1 ^ value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I64_XOR))
                                          .SetArg0(v1.Serialize())
@@ -1274,6 +1785,21 @@ Value ProgramBuilder::XorI64(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::OrI64(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    uint64_t value1 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    uint64_t value2 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    return ConstI64(value1 | value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I64_OR))
                                          .SetArg0(v1.Serialize())
@@ -1282,6 +1808,64 @@ Value ProgramBuilder::OrI64(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::CmpI64(CompType cmp, Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    int64_t value1 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    int64_t value2 =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    switch (cmp) {
+      case CompType::EQ:
+        return ConstI1(value1 == value2);
+
+      case CompType::NE:
+        return ConstI1(value1 != value2);
+
+      case CompType::LT:
+        return ConstI1(value1 < value2);
+
+      case CompType::LE:
+        return ConstI1(value1 <= value2);
+
+      case CompType::GT:
+        return ConstI1(value1 > value2);
+
+      case CompType::GE:
+        return ConstI1(value1 >= value2);
+    }
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    switch (cmp) {
+      case CompType::EQ:
+      case CompType::NE:
+        std::swap(v1, v2);
+        break;
+
+      case CompType::LT:
+        std::swap(v1, v2);
+        cmp = CompType::GT;
+        break;
+
+      case CompType::LE:
+        std::swap(v1, v2);
+        cmp = CompType::GE;
+        break;
+
+      case CompType::GT:
+        std::swap(v1, v2);
+        cmp = CompType::LT;
+        break;
+
+      case CompType::GE:
+        std::swap(v1, v2);
+        cmp = CompType::LE;
+        break;
+    }
+  }
+
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -1317,6 +1901,15 @@ Value ProgramBuilder::CmpI64(CompType cmp, Value v1, Value v2) {
 }
 
 Value ProgramBuilder::IsNullPtr(Value v) {
+  if (v.IsConstantGlobal()) {
+    auto v_opcode = ConstantOpcodeFrom(
+        GenericInstructionReader(constant_instrs_[v.GetIdx()]).Opcode());
+
+    if (v_opcode == ConstantOpcode::NULLPTR) {
+      return ConstI1(true);
+    }
+  }
+
   if (!v.IsConstantGlobal()) {
     auto v_instr = GetCurrentFunction().GetInstruction(v);
     auto v_opcode = OpcodeFrom(GenericInstructionReader(v_instr).Opcode());
@@ -1351,6 +1944,14 @@ Value ProgramBuilder::ConstI64(uint64_t v) {
 }
 
 Value ProgramBuilder::F64ConvI64(Value v) {
+  if (v.IsConstantGlobal()) {
+    int64_t value =
+        i64_constants_[Type1InstructionReader(constant_instrs_[v.GetIdx()])
+                           .Constant()];
+    double value_as_f = value;
+    return ConstF64(value_as_f);
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I64_CONV_F64))
@@ -1360,6 +1961,21 @@ Value ProgramBuilder::F64ConvI64(Value v) {
 
 // F64
 Value ProgramBuilder::AddF64(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    double value1 =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    double value2 =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    return ConstF64(value1 + value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::F64_ADD))
                                          .SetArg0(v1.Serialize())
@@ -1368,6 +1984,21 @@ Value ProgramBuilder::AddF64(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::MulF64(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    double value1 =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    double value2 =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    return ConstF64(value1 * value2);
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    std::swap(v1, v2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::F64_MUL))
                                          .SetArg0(v1.Serialize())
@@ -1376,6 +2007,17 @@ Value ProgramBuilder::MulF64(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::DivF64(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    double value1 =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    double value2 =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    return ConstF64(value1 / value2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::F64_DIV))
                                          .SetArg0(v1.Serialize())
@@ -1384,6 +2026,17 @@ Value ProgramBuilder::DivF64(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::SubF64(Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    double value1 =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    double value2 =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    return ConstF64(value1 - value2);
+  }
+
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::F64_SUB))
                                          .SetArg0(v1.Serialize())
@@ -1392,6 +2045,64 @@ Value ProgramBuilder::SubF64(Value v1, Value v2) {
 }
 
 Value ProgramBuilder::CmpF64(CompType cmp, Value v1, Value v2) {
+  if (v1.IsConstantGlobal() && v2.IsConstantGlobal()) {
+    double value1 =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v1.GetIdx()])
+                           .Constant()];
+    double value2 =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v2.GetIdx()])
+                           .Constant()];
+
+    switch (cmp) {
+      case CompType::EQ:
+        return ConstI1(value1 == value2);
+
+      case CompType::NE:
+        return ConstI1(value1 != value2);
+
+      case CompType::LT:
+        return ConstI1(value1 < value2);
+
+      case CompType::LE:
+        return ConstI1(value1 <= value2);
+
+      case CompType::GT:
+        return ConstI1(value1 > value2);
+
+      case CompType::GE:
+        return ConstI1(value1 >= value2);
+    }
+  }
+
+  if (v1.IsConstantGlobal() && !v2.IsConstantGlobal()) {
+    switch (cmp) {
+      case CompType::EQ:
+      case CompType::NE:
+        std::swap(v1, v2);
+        break;
+
+      case CompType::LT:
+        std::swap(v1, v2);
+        cmp = CompType::GT;
+        break;
+
+      case CompType::LE:
+        std::swap(v1, v2);
+        cmp = CompType::GE;
+        break;
+
+      case CompType::GT:
+        std::swap(v1, v2);
+        cmp = CompType::LT;
+        break;
+
+      case CompType::GE:
+        std::swap(v1, v2);
+        cmp = CompType::LE;
+        break;
+    }
+  }
+
   Opcode opcode;
   switch (cmp) {
     case CompType::EQ:
@@ -1447,6 +2158,14 @@ Value ProgramBuilder::ConstPtr(void* v) {
 }
 
 Value ProgramBuilder::I64ConvF64(Value v) {
+  if (v.IsConstantGlobal()) {
+    double value =
+        f64_constants_[Type1InstructionReader(constant_instrs_[v.GetIdx()])
+                           .Constant()];
+    int64_t value_as_i64 = value;
+    return ConstI64(value_as_i64);
+  }
+
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::F64_CONV_I64))
