@@ -3,19 +3,12 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "program",
-    hdrs = ["program.h"],
-    deps = [],
-)
-
-cc_library(
     name = "compilation_cache",
     srcs = ["compilation_cache.cc"],
     hdrs = ["compilation_cache.h"],
     deps = [
         ":backend",
-        "//khir:program",
-        "//khir:program_builder",
+        ":program_builder",
         "//khir/asm:asm_backend",
         "//khir/asm:reg_alloc_impl",
         "//khir/llvm:llvm_backend",
@@ -58,7 +51,6 @@ cc_library(
         ":instruction",
         ":opcode",
         ":type_manager",
-        "//khir:program",
         "@absl//absl/types:span",
         "@type_safe",
     ],
@@ -96,9 +88,8 @@ cc_test(
     size = "medium",
     srcs = ["backend_test.cc"],
     deps = [
-        "//khir:backend",
-        "//khir:program",
-        "//khir:program_builder",
+        ":backend",
+        ":program_builder",
         "//khir/asm:asm_backend",
         "//khir/llvm:llvm_backend",
         "@com_google_googletest//:gtest_main",

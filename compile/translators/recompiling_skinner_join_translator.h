@@ -17,7 +17,6 @@
 #include "compile/translators/recompiling_join_translator.h"
 #include "execution/pipeline.h"
 #include "khir/compilation_cache.h"
-#include "khir/program.h"
 #include "khir/program_builder.h"
 #include "plan/operator/skinner_join_operator.h"
 

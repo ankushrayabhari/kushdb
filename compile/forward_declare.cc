@@ -11,7 +11,6 @@
 #include "compile/proxy/value/ir_value.h"
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
-#include "khir/program.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile {

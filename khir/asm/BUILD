@@ -148,7 +148,6 @@ cc_library(
         ":register_assignment",
         ":stack_spill_reg_alloc",
         "//khir:opcode",
-        "//khir:program",
         "//khir:program_builder",
         "//khir:program_printer",
         "//khir:type_manager",

@@ -9,7 +9,6 @@
 #include "khir/asm/reg_alloc_impl.h"
 #include "khir/backend.h"
 #include "khir/llvm/llvm_backend.h"
-#include "khir/program.h"
 #include "khir/program_builder.h"
 
 namespace kush::khir {

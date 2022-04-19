@@ -9,6 +9,6 @@
 namespace kush::khir {
 
 std::vector<RegisterAssignment> LinearScanRegisterAlloc(
-    const Function& func, const TypeManager& manager);
+    const FunctionBuilder& func, const TypeManager& manager);
 
 }  // namespace kush::khir

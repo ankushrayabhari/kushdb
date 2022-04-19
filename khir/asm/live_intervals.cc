@@ -677,7 +677,7 @@ absl::flat_hash_set<Value> Union(
   return out;
 }
 
-std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
+std::vector<LiveInterval> ComputeLiveIntervals(const FunctionBuilder& func,
                                                const TypeManager& manager) {
   auto bb = func.BasicBlocks();
   auto bb_succ = func.BasicBlockSuccessors();

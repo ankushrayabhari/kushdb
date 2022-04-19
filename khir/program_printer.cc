@@ -19,7 +19,7 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
                  const std::vector<StructConstant>& struct_constants,
                  const std::vector<ArrayConstant>& array_constants,
                  const std::vector<Global>& globals,
-                 const std::vector<Function>& functions) {
+                 const std::vector<FunctionBuilder>& functions) {
   if (v.IsConstantGlobal()) {
     auto instr = constant_instrs[v.GetIdx()];
     auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
@@ -117,7 +117,8 @@ void ProgramPrinter::OutputInstr(
     const std::vector<ArrayConstant>& array_constants,
     const std::vector<Global>& globals,
     const std::vector<uint64_t>& constant_instrs,
-    const std::vector<Function>& functions, const Function& func) {
+    const std::vector<FunctionBuilder>& functions,
+    const FunctionBuilder& func) {
   auto instrs = func.Instructions();
 
   auto opcode = OpcodeFrom(GenericInstructionReader(instrs[idx]).Opcode());
@@ -412,7 +413,7 @@ void ProgramPrinter::Translate(
     const std::vector<ArrayConstant>& array_constants,
     const std::vector<Global>& globals,
     const std::vector<uint64_t>& constant_instrs,
-    const std::vector<Function>& functions) {
+    const std::vector<FunctionBuilder>& functions) {
   manager_ = &manager;
   manager.Translate(*this);
 

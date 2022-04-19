@@ -64,7 +64,6 @@ cc_test(
     deps = [
         ":aggregate_hash_table",
         "//khir:backend",
-        "//khir:program",
         "//khir:program_builder",
         "//khir/asm:asm_backend",
         "//khir/llvm:llvm_backend",

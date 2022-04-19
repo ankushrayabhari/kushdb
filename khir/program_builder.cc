@@ -13,10 +13,12 @@
 
 namespace kush::khir {
 
-Function::Function(ProgramBuilder& program_builder, std::string_view name,
-                   khir::Type function_type, khir::Type result_type,
-                   absl::Span<const khir::Type> arg_types, bool external,
-                   bool p, void* func)
+FunctionBuilder::FunctionBuilder(ProgramBuilder& program_builder,
+                                 std::string_view name,
+                                 khir::Type function_type,
+                                 khir::Type result_type,
+                                 absl::Span<const khir::Type> arg_types,
+                                 bool external, bool p, void* func)
     : program_builder_(program_builder),
       name_(name),
       return_type_(result_type),
@@ -26,7 +28,7 @@ Function::Function(ProgramBuilder& program_builder, std::string_view name,
       external_(external),
       public_(p) {}
 
-void Function::InitBody() {
+void FunctionBuilder::InitBody() {
   current_basic_block_ = GenerateBasicBlock();
   for (int i = 0; i < arg_types_.size(); i++) {
     arg_values_.push_back(Append(Type3InstructionBuilder()
@@ -37,7 +39,7 @@ void Function::InitBody() {
   }
 }
 
-absl::Span<const Value> Function::GetFunctionArguments() const {
+absl::Span<const Value> FunctionBuilder::GetFunctionArguments() const {
   if (external_) {
     throw std::runtime_error(
         "Cannot get argument registers of external function");
@@ -46,35 +48,37 @@ absl::Span<const Value> Function::GetFunctionArguments() const {
   return arg_values_;
 }
 
-khir::Type Function::ReturnType() const { return return_type_; }
+khir::Type FunctionBuilder::ReturnType() const { return return_type_; }
 
-khir::Type Function::Type() const { return function_type_; }
+khir::Type FunctionBuilder::Type() const { return function_type_; }
 
-bool Function::External() const { return external_; }
+bool FunctionBuilder::External() const { return external_; }
 
-bool Function::Public() const { return public_; }
+bool FunctionBuilder::Public() const { return public_; }
 
-void* Function::Addr() const { return func_; }
+void* FunctionBuilder::Addr() const { return func_; }
 
-std::string_view Function::Name() const { return name_; }
+std::string_view FunctionBuilder::Name() const { return name_; }
 
-const std::vector<int>& Function::BasicBlockOrder() const {
+const std::vector<int>& FunctionBuilder::BasicBlockOrder() const {
   return basic_block_order_;
 }
 
-const std::vector<std::pair<int, int>>& Function::BasicBlocks() const {
+const std::vector<std::pair<int, int>>& FunctionBuilder::BasicBlocks() const {
   return basic_blocks_;
 }
 
-const std::vector<std::vector<int>>& Function::BasicBlockSuccessors() const {
+const std::vector<std::vector<int>>& FunctionBuilder::BasicBlockSuccessors()
+    const {
   return basic_block_successors_;
 }
 
-const std::vector<std::vector<int>>& Function::BasicBlockPredecessors() const {
+const std::vector<std::vector<int>>& FunctionBuilder::BasicBlockPredecessors()
+    const {
   return basic_block_predecessors_;
 }
 
-const std::vector<uint64_t>& Function::Instructions() const {
+const std::vector<uint64_t>& FunctionBuilder::Instructions() const {
   return instructions_;
 }
 
@@ -142,7 +146,7 @@ void UpdateSuccessors(std::vector<std::vector<int>>& pred,
   }
 }
 
-Value Function::Append(uint64_t instr) {
+Value FunctionBuilder::Append(uint64_t instr) {
   if (external_) {
     throw std::runtime_error("Cannot get add body to external function");
   }
@@ -170,7 +174,7 @@ Value Function::Append(uint64_t instr) {
   return Value(idx, false);
 }
 
-void Function::Update(Value pos, uint64_t instr) {
+void FunctionBuilder::Update(Value pos, uint64_t instr) {
   if (external_) {
     throw std::runtime_error("Cannot mutate body of external function");
   }
@@ -179,7 +183,7 @@ void Function::Update(Value pos, uint64_t instr) {
   instructions_[idx] = instr;
 }
 
-uint64_t Function::GetInstruction(Value v) {
+uint64_t FunctionBuilder::GetInstruction(Value v) {
   if (external_) {
     throw std::runtime_error("Cannot get body of external function");
   }
@@ -191,7 +195,7 @@ uint64_t Function::GetInstruction(Value v) {
   return instructions_[v.GetIdx()];
 }
 
-int Function::GenerateBasicBlock() {
+int FunctionBuilder::GenerateBasicBlock() {
   if (external_) {
     throw std::runtime_error("Cannot update body of external function");
   }
@@ -203,14 +207,14 @@ int Function::GenerateBasicBlock() {
   return idx;
 }
 
-void Function::SetCurrentBasicBlock(int basic_block_id) {
+void FunctionBuilder::SetCurrentBasicBlock(int basic_block_id) {
   if (external_) {
     throw std::runtime_error("Cannot update body of external function");
   }
 
   current_basic_block_ = basic_block_id;
 }
-int Function::GetCurrentBasicBlock() {
+int FunctionBuilder::GetCurrentBasicBlock() {
   if (external_) {
     throw std::runtime_error("Cannot get body of external function");
   }
@@ -218,7 +222,7 @@ int Function::GetCurrentBasicBlock() {
   return current_basic_block_;
 }
 
-bool Function::IsTerminated(int basic_block_id) {
+bool FunctionBuilder::IsTerminated(int basic_block_id) {
   if (external_) {
     throw std::runtime_error("Cannot get body of external function");
   }
@@ -241,7 +245,7 @@ uint64_t ProgramBuilder::GetConstantGlobalInstr(Value v) {
   return constant_instrs_[v.GetIdx()];
 }
 
-Function& ProgramBuilder::GetCurrentFunction() {
+FunctionBuilder& ProgramBuilder::GetCurrentFunction() {
   return functions_[current_function_];
 }
 
@@ -282,6 +286,19 @@ void ProgramBuilder::Branch(BasicBlockRef b) {
 }
 
 void ProgramBuilder::Branch(Value cond, BasicBlockRef b1, BasicBlockRef b2) {
+  /*
+  if (cond.IsConstantGlobal()) {
+    auto value =
+        Type1InstructionReader(constant_instrs_[cond.GetIdx()]).Constant();
+
+    if (value == 1) {
+      return Branch(b1);
+    } else {
+      return Branch(b2);
+    }
+  }
+  */
+
   GetCurrentFunction().Append(Type5InstructionBuilder()
                                   .SetOpcode(OpcodeTo(Opcode::CONDBR))
                                   .SetArg(cond.Serialize())
@@ -2259,10 +2276,6 @@ void ProgramBuilder::Translate(Backend& backend) {
   backend.Translate(type_manager_, ptr_constants_, i64_constants_,
                     f64_constants_, char_array_constants_, struct_constants_,
                     array_constants_, globals_, constant_instrs_, functions_);
-}
-
-const Function& ProgramBuilder::GetFunction(FunctionRef func) const {
-  return functions_[func.GetID()];
 }
 
 const TypeManager& ProgramBuilder::GetTypeManager() const {

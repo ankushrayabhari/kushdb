@@ -13,7 +13,6 @@ cc_library(
         "//execution:executable_query",
         "//execution:pipeline",
         "//khir:backend",
-        "//khir:program",
         "//khir:program_builder",
         "//khir/asm:asm_backend",
         "//khir/asm:reg_alloc_impl",
@@ -37,7 +36,6 @@ cc_library(
         "//compile/proxy:vector",
         "//compile/proxy/value:ir_value",
         "//compile/translators:expression_translator",
-        "//khir:program",
         "//khir:program_builder",
     ],
 )

@@ -3,7 +3,6 @@
 #include <memory>
 #include <vector>
 
-#include "khir/program.h"
 #include "khir/program_builder.h"
 
 namespace kush::khir {
@@ -18,7 +17,7 @@ class CacheEntry {
 
  private:
   khir::ProgramBuilder program_builder_;
-  std::unique_ptr<Program> compiled_program_;
+  std::unique_ptr<Backend> compiled_program_;
 };
 
 class CompilationCache {

@@ -5,13 +5,12 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
-#include "khir/program.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
 
 namespace kush::khir {
 
-class LLVMBackend : public Backend, public TypeTranslator, public Program {
+class LLVMBackend : public Backend, public TypeTranslator {
  public:
   LLVMBackend();
   virtual ~LLVMBackend();
@@ -41,7 +40,7 @@ class LLVMBackend : public Backend, public TypeTranslator, public Program {
                  const std::vector<ArrayConstant>& array_constants,
                  const std::vector<Global>& globals,
                  const std::vector<uint64_t>& constant_instrs,
-                 const std::vector<Function>& functions) override;
+                 const std::vector<FunctionBuilder>& functions) override;
 
   // Program
   void Compile() override;

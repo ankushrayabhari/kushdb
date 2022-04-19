@@ -33,7 +33,7 @@ class ProgramPrinter : public Backend, public TypeTranslator {
                  const std::vector<ArrayConstant>& array_constants,
                  const std::vector<Global>& globals,
                  const std::vector<uint64_t>& constant_instrs,
-                 const std::vector<Function>& functions) override;
+                 const std::vector<FunctionBuilder>& functions) override;
 
   void OutputInstr(int idx, const std::vector<void*>& ptr_constants,
                    const std::vector<uint64_t>& i64_constants,
@@ -43,8 +43,8 @@ class ProgramPrinter : public Backend, public TypeTranslator {
                    const std::vector<ArrayConstant>& array_constants,
                    const std::vector<Global>& globals,
                    const std::vector<uint64_t>& constant_instrs,
-                   const std::vector<Function>& functions,
-                   const Function& func);
+                   const std::vector<FunctionBuilder>& functions,
+                   const FunctionBuilder& func);
 
  private:
   const TypeManager* manager_;

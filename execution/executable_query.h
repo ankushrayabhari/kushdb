@@ -2,14 +2,14 @@
 
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
-#include "khir/program.h"
+#include "khir/program_builder.h"
 
 namespace kush::execution {
 
 class ExecutableQuery {
  public:
   ExecutableQuery(std::unique_ptr<compile::OperatorTranslator> translator,
-                  std::unique_ptr<khir::Program> program,
+                  std::unique_ptr<khir::Backend> program,
                   std::unique_ptr<const Pipeline> output_pipeline);
 
   void Compile();
@@ -18,7 +18,7 @@ class ExecutableQuery {
  private:
   void ExecutePipeline(const Pipeline& pipeline);
   std::unique_ptr<compile::OperatorTranslator> translator_;
-  std::unique_ptr<khir::Program> program_;
+  std::unique_ptr<khir::Backend> program_;
   std::unique_ptr<const Pipeline> output_pipeline_;
 };
 

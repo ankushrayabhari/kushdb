@@ -219,7 +219,7 @@ void LLVMBackend::Translate(
     const std::vector<ArrayConstant>& array_constants,
     const std::vector<Global>& globals,
     const std::vector<uint64_t>& constant_instrs,
-    const std::vector<Function>& functions) {
+    const std::vector<FunctionBuilder>& functions) {
   // Populate types_ array
   manager.Translate(*this);
 

@@ -8,7 +8,6 @@
 #include "khir/asm/register.h"
 #include "khir/asm/register_assignment.h"
 #include "khir/opcode.h"
-#include "khir/program.h"
 #include "khir/program_builder.h"
 #include "khir/type_manager.h"
 
@@ -30,7 +29,7 @@ class StackSlotAllocator {
   int32_t size_;
 };
 
-class ASMBackend : public Backend, public Program {
+class ASMBackend : public Backend {
  public:
   ASMBackend(RegAllocImpl impl);
   virtual ~ASMBackend() = default;
@@ -44,7 +43,7 @@ class ASMBackend : public Backend, public Program {
                  const std::vector<ArrayConstant>& array_constants,
                  const std::vector<Global>& globals,
                  const std::vector<uint64_t>& constant_instrs,
-                 const std::vector<Function>& functions) override;
+                 const std::vector<FunctionBuilder>& functions) override;
 
   // Program
   void Compile() override;
@@ -69,17 +68,20 @@ class ASMBackend : public Backend, public Program {
   std::pair<khir::Value, int32_t> Gep(
       khir::Value v, const std::vector<uint64_t>& instructions,
       const std::vector<uint64_t>& constant_instrs);
-  void TranslateInstr(
-      const Function& current_function, const TypeManager& type_manager,
-      const std::vector<void*>& ptr_constants,
-      const std::vector<uint64_t>& i64_constants,
-      const std::vector<double>& f64_constants,
-      const std::vector<asmjit::Label>& basic_blocks,
-      const std::vector<Function>& functions, const asmjit::Label& epilogue,
-      std::vector<int32_t>& offsets, const std::vector<uint64_t>& instructions,
-      const std::vector<uint64_t>& constant_instrs, int instr_idx,
-      StackSlotAllocator& stack_allocator,
-      const std::vector<RegisterAssignment>& register_assign, int next_bb);
+  void TranslateInstr(const FunctionBuilder& current_function,
+                      const TypeManager& type_manager,
+                      const std::vector<void*>& ptr_constants,
+                      const std::vector<uint64_t>& i64_constants,
+                      const std::vector<double>& f64_constants,
+                      const std::vector<asmjit::Label>& basic_blocks,
+                      const std::vector<FunctionBuilder>& functions,
+                      const asmjit::Label& epilogue,
+                      std::vector<int32_t>& offsets,
+                      const std::vector<uint64_t>& instructions,
+                      const std::vector<uint64_t>& constant_instrs,
+                      int instr_idx, StackSlotAllocator& stack_allocator,
+                      const std::vector<RegisterAssignment>& register_assign,
+                      int next_bb);
   Register NormalRegister(int id);
   asmjit::x86::Xmm FPRegister(int id);
   asmjit::Label EmbedI8(int8_t d);

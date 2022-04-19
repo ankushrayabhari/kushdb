@@ -8,7 +8,6 @@
 
 #include "type_safe/strong_typedef.hpp"
 
-#include "khir/program.h"
 #include "khir/type_manager.h"
 
 namespace kush::khir {
@@ -104,12 +103,14 @@ class Global {
 
 class ProgramBuilder;
 
-class Function {
+class BasicBlock {};
+
+class FunctionBuilder {
  public:
-  Function(ProgramBuilder& program_builder, std::string_view name,
-           Type function_type, Type result_type,
-           absl::Span<const Type> arg_types, bool external, bool p,
-           void* func = nullptr);
+  FunctionBuilder(ProgramBuilder& program_builder, std::string_view name,
+                  Type function_type, Type result_type,
+                  absl::Span<const Type> arg_types, bool external, bool p,
+                  void* func = nullptr);
   absl::Span<const Value> GetFunctionArguments() const;
 
   void InitBody();
@@ -167,7 +168,10 @@ class Backend {
                          const std::vector<ArrayConstant>& array_constants,
                          const std::vector<Global>& globals,
                          const std::vector<uint64_t>& constant_instrs,
-                         const std::vector<Function>& functions) = 0;
+                         const std::vector<FunctionBuilder>& functions) = 0;
+
+  virtual void Compile() = 0;
+  virtual void* GetFunction(std::string_view name) const = 0;
 };
 
 class ProgramBuilder {
@@ -308,15 +312,14 @@ class ProgramBuilder {
 
   void Translate(Backend& backend);
 
-  const Function& GetFunction(FunctionRef func) const;
   const TypeManager& GetTypeManager() const;
 
  private:
   TypeManager type_manager_;
 
-  friend class Function;
-  std::vector<Function> functions_;
-  Function& GetCurrentFunction();
+  friend class FunctionBuilder;
+  std::vector<FunctionBuilder> functions_;
+  FunctionBuilder& GetCurrentFunction();
   int current_function_;
   absl::flat_hash_map<std::string, FunctionRef> name_to_function_;
 

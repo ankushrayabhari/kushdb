@@ -15,7 +15,7 @@ using namespace kush;
 using namespace kush::khir;
 using namespace kush::compile::proxy;
 
-std::unique_ptr<Program> Compile(
+std::unique_ptr<Backend> Compile(
     const std::pair<BackendType, khir::RegAllocImpl>& params,
     khir::ProgramBuilder& program_builder) {
   switch (params.first) {

@@ -183,7 +183,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
                            const std::vector<ArrayConstant>& array_constants,
                            const std::vector<Global>& globals,
                            const std::vector<uint64_t>& constant_instrs,
-                           const std::vector<Function>& functions) {
+                           const std::vector<FunctionBuilder>& functions) {
   code_.init(rt_.environment());
   asm_ = std::make_unique<x86::Assembler>(&code_);
 
@@ -2104,12 +2104,12 @@ void ASMBackend::CondBrF64Flag(
 }
 
 void ASMBackend::TranslateInstr(
-    const Function& current_function, const TypeManager& type_manager,
+    const FunctionBuilder& current_function, const TypeManager& type_manager,
     const std::vector<void*>& ptr_constants,
     const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
     const std::vector<Label>& basic_blocks,
-    const std::vector<Function>& functions, const Label& epilogue,
+    const std::vector<FunctionBuilder>& functions, const Label& epilogue,
     std::vector<int32_t>& offsets, const std::vector<uint64_t>& instructions,
     const std::vector<uint64_t>& constant_instrs, int instr_idx,
     StackSlotAllocator& stack_allocator,
