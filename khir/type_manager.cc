@@ -139,20 +139,38 @@ TypeManager::TypeManager()
 
   module_->setDataLayout(target_machine->createDataLayout());
 
-  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
-      BaseTypeId::VOID, static_cast<Type>(0), builder_->getVoidTy()));
-  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
-      BaseTypeId::I1, static_cast<Type>(1), builder_->getInt1Ty()));
-  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
-      BaseTypeId::I8, static_cast<Type>(2), builder_->getInt8Ty()));
-  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
-      BaseTypeId::I16, static_cast<Type>(3), builder_->getInt16Ty()));
-  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
-      BaseTypeId::I32, static_cast<Type>(4), builder_->getInt32Ty()));
-  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
-      BaseTypeId::I64, static_cast<Type>(5), builder_->getInt64Ty()));
-  type_id_to_impl_.push_back(std::make_unique<BaseTypeImpl>(
-      BaseTypeId::F64, static_cast<Type>(6), builder_->getDoubleTy()));
+  AddType(std::make_unique<BaseTypeImpl>(BaseTypeId::VOID, VoidType(),
+                                         builder_->getVoidTy()));
+  AddType(std::make_unique<BaseTypeImpl>(BaseTypeId::I1, I1Type(),
+                                         builder_->getInt1Ty()));
+  AddType(std::make_unique<BaseTypeImpl>(BaseTypeId::I8, I8Type(),
+                                         builder_->getInt8Ty()));
+  AddType(std::make_unique<BaseTypeImpl>(BaseTypeId::I16, I16Type(),
+                                         builder_->getInt16Ty()));
+  AddType(std::make_unique<BaseTypeImpl>(BaseTypeId::I32, I32Type(),
+                                         builder_->getInt32Ty()));
+  AddType(std::make_unique<BaseTypeImpl>(BaseTypeId::I64, I64Type(),
+                                         builder_->getInt64Ty()));
+  AddType(std::make_unique<BaseTypeImpl>(BaseTypeId::F64, F64Type(),
+                                         builder_->getDoubleTy()));
+  AddType(std::make_unique<PointerTypeImpl>(I8Type(), I8PtrType(),
+                                            builder_->getInt8PtrTy()));
+}
+
+Type TypeManager::GetOutputType() {
+  return static_cast<Type>(type_id_to_impl_.size());
+}
+
+Type TypeManager::AddType(std::unique_ptr<TypeImpl> mp) {
+  auto llvm_ty = mp->GetLLVM();
+  if (impl_to_type_id_.contains(llvm_ty)) {
+    throw std::runtime_error("Check the map first!");
+  }
+
+  auto output = GetOutputType();
+  impl_to_type_id_[llvm_ty] = output;
+  type_id_to_impl_.push_back(std::move(mp));
+  return output;
 }
 
 Type TypeManager::VoidType() const { return static_cast<Type>(0); }
@@ -169,14 +187,20 @@ Type TypeManager::I64Type() const { return static_cast<Type>(5); }
 
 Type TypeManager::F64Type() const { return static_cast<Type>(6); }
 
+Type TypeManager::I8PtrType() const { return static_cast<Type>(7); }
+
 Type TypeManager::OpaqueType(std::string_view name) {
-  auto output = static_cast<Type>(type_id_to_impl_.size());
-  auto impl = llvm::StructType::create(*context_, name);
-  type_id_to_impl_.push_back(
-      std::make_unique<OpaqueTypeImpl>(output, name, impl));
   if (opaque_name_to_type_id_.contains(name)) {
-    throw std::runtime_error("Name exists!");
+    throw std::runtime_error(std::string(name) + ": name exists!");
   }
+
+  auto impl = llvm::StructType::create(*context_, name);
+  if (impl_to_type_id_.contains(impl)) {
+    return impl_to_type_id_[impl];
+  }
+
+  auto output =
+      AddType(std::make_unique<OpaqueTypeImpl>(GetOutputType(), name, impl));
   opaque_name_to_type_id_[name] = output;
   return output;
 }
@@ -184,52 +208,53 @@ Type TypeManager::OpaqueType(std::string_view name) {
 Type TypeManager::NamedStructType(absl::Span<const Type> field_type_id,
                                   std::string_view name) {
   if (struct_name_to_type_id_.contains(name)) {
-    return struct_name_to_type_id_[name];
+    throw std::runtime_error(std::string(name) + ": name exists!");
   }
+
   auto id = StructType(field_type_id);
-  if (struct_name_to_type_id_.contains(name)) {
-    throw std::runtime_error("Name exists!");
-  }
   struct_name_to_type_id_[name] = id;
   return id;
 }
 
 Type TypeManager::StructType(absl::Span<const Type> field_type_id) {
-  auto output = static_cast<Type>(type_id_to_impl_.size());
-
   auto impl = llvm::StructType::create(
       *context_, GetTypeArray(type_id_to_impl_, field_type_id));
-  type_id_to_impl_.push_back(
-      std::make_unique<StructTypeImpl>(field_type_id, output, impl));
-  return output;
+  if (impl_to_type_id_.contains(impl)) {
+    return impl_to_type_id_[impl];
+  }
+  return AddType(
+      std::make_unique<StructTypeImpl>(field_type_id, GetOutputType(), impl));
 }
 
 Type TypeManager::PointerType(Type elem) {
-  auto output = static_cast<Type>(type_id_to_impl_.size());
   auto impl =
       llvm::PointerType::get(type_id_to_impl_[elem.GetID()]->GetLLVM(), 0);
-  type_id_to_impl_.push_back(
-      std::make_unique<PointerTypeImpl>(elem, output, impl));
-  return output;
+  if (impl_to_type_id_.contains(impl)) {
+    return impl_to_type_id_[impl];
+  }
+  return AddType(
+      std::make_unique<PointerTypeImpl>(elem, GetOutputType(), impl));
 }
 
 Type TypeManager::ArrayType(Type type, int len) {
-  auto output = static_cast<Type>(type_id_to_impl_.size());
   auto impl =
       llvm::ArrayType::get(type_id_to_impl_[type.GetID()]->GetLLVM(), len);
-  type_id_to_impl_.push_back(
-      std::make_unique<ArrayTypeImpl>(type, len, output, impl));
-  return output;
+  if (impl_to_type_id_.contains(impl)) {
+    return impl_to_type_id_[impl];
+  }
+  return AddType(
+      std::make_unique<ArrayTypeImpl>(type, len, GetOutputType(), impl));
 }
 
 Type TypeManager::FunctionType(Type result, absl::Span<const Type> args) {
-  auto output = static_cast<Type>(type_id_to_impl_.size());
   auto impl =
       llvm::FunctionType::get(type_id_to_impl_[result.GetID()]->GetLLVM(),
                               GetTypeArray(type_id_to_impl_, args), false);
-  type_id_to_impl_.push_back(
-      std::make_unique<FunctionTypeImpl>(result, args, output, impl));
-  return output;
+  if (impl_to_type_id_.contains(impl)) {
+    return impl_to_type_id_[impl];
+  }
+  return AddType(
+      std::make_unique<FunctionTypeImpl>(result, args, GetOutputType(), impl));
 }
 
 Type TypeManager::GetOpaqueType(std::string_view name) {

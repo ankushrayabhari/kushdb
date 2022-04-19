@@ -61,12 +61,14 @@ class ArrayConstant {
 
 class Global {
  public:
-  Global(khir::Type type, Value init);
+  Global(khir::Type type, khir::Type ptr_to_type, Value init);
+  khir::Type PointerToType() const;
   khir::Type Type() const;
   Value InitialValue() const;
 
  private:
   khir::Type type_;
+  khir::Type ptr_to_type_;
   Value init_;
 };
 
@@ -83,7 +85,7 @@ class FunctionBuilder {
   void InitBody();
   Value Append(uint64_t instr);
   void Update(Value pos, uint64_t instr);
-  uint64_t GetInstruction(Value v);
+  uint64_t GetInstruction(Value v) const;
 
   int GenerateBasicBlock();
   void SetCurrentBasicBlock(int basic_block_id);
@@ -160,7 +162,7 @@ class ProgramBuilder {
   Type PointerType(Type type);
   Type ArrayType(Type type, int len = 0);
   Type FunctionType(Type result, absl::Span<const Type> args);
-  Type TypeOf(Value value);
+  Type TypeOf(Value value) const;
   Value SizeOf(Type type);
 
   // Function
@@ -287,11 +289,12 @@ class ProgramBuilder {
   friend class FunctionBuilder;
   std::vector<FunctionBuilder> functions_;
   FunctionBuilder& GetCurrentFunction();
+  const FunctionBuilder& GetCurrentFunction() const;
   int current_function_;
   absl::flat_hash_map<std::string, FunctionRef> name_to_function_;
 
   Value AppendConstantGlobal(uint64_t);
-  uint64_t GetConstantGlobalInstr(Value v);
+  uint64_t GetConstantGlobalInstr(Value v) const;
   std::vector<uint64_t> constant_instrs_;
   std::vector<void*> ptr_constants_;
   std::vector<uint64_t> i64_constants_;

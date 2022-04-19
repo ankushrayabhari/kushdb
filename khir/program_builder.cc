@@ -96,11 +96,14 @@ khir::Type ArrayConstant::Type() const { return type_; }
 
 absl::Span<const Value> ArrayConstant::Elements() const { return elements_; }
 
-Global::Global(khir::Type type, Value init) : type_(type), init_(init) {}
+Global::Global(khir::Type type, khir::Type ptr_to_type, Value init)
+    : type_(type), ptr_to_type_(ptr_to_type), init_(init) {}
 
 Type Global::Type() const { return type_; }
 
 Value Global::InitialValue() const { return init_; }
+
+Type Global::PointerToType() const { return ptr_to_type_; }
 
 bool IsTerminatingInstr(Opcode opcode) {
   switch (opcode) {
@@ -178,7 +181,7 @@ void FunctionBuilder::Update(Value pos, uint64_t instr) {
   instructions_[idx] = instr;
 }
 
-uint64_t FunctionBuilder::GetInstruction(Value v) {
+uint64_t FunctionBuilder::GetInstruction(Value v) const {
   if (external_) {
     throw std::runtime_error("Cannot get body of external function");
   }
@@ -231,7 +234,7 @@ Value ProgramBuilder::AppendConstantGlobal(uint64_t instr) {
   return Value(idx, true);
 }
 
-uint64_t ProgramBuilder::GetConstantGlobalInstr(Value v) {
+uint64_t ProgramBuilder::GetConstantGlobalInstr(Value v) const {
   if (!v.IsConstantGlobal()) {
     throw std::runtime_error(
         "Can't get constant/global from a non constant/global value.");
@@ -241,6 +244,10 @@ uint64_t ProgramBuilder::GetConstantGlobalInstr(Value v) {
 }
 
 FunctionBuilder& ProgramBuilder::GetCurrentFunction() {
+  return functions_[current_function_];
+}
+
+const FunctionBuilder& ProgramBuilder::GetCurrentFunction() const {
   return functions_[current_function_];
 }
 
@@ -547,7 +554,7 @@ Type ProgramBuilder::FunctionType(Type result, absl::Span<const Type> args) {
   return type_manager_.FunctionType(result, args);
 }
 
-Type ProgramBuilder::TypeOf(Value value) {
+Type ProgramBuilder::TypeOf(Value value) const {
   if (value.IsConstantGlobal()) {
     auto instr = GetConstantGlobalInstr(value);
     auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
@@ -572,7 +579,7 @@ Type ProgramBuilder::TypeOf(Value value) {
         return type_manager_.F64Type();
 
       case ConstantOpcode::PTR_CONST:
-        return type_manager_.PointerType(type_manager_.I8Type());
+        return type_manager_.I8PtrType();
 
       case ConstantOpcode::PTR_CAST:
       case ConstantOpcode::NULLPTR:
@@ -580,7 +587,7 @@ Type ProgramBuilder::TypeOf(Value value) {
         return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
       case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST:
-        return type_manager_.PointerType(type_manager_.I8Type());
+        return type_manager_.I8PtrType();
 
       case ConstantOpcode::ARRAY_CONST:
         return array_constants_[Type1InstructionReader(instr).Constant()]
@@ -591,8 +598,8 @@ Type ProgramBuilder::TypeOf(Value value) {
             .Type();
 
       case ConstantOpcode::GLOBAL_REF:
-        return type_manager_.PointerType(
-            globals_[Type1InstructionReader(instr).Constant()].Type());
+        return globals_[Type1InstructionReader(instr).Constant()]
+            .PointerToType();
     }
   }
 
@@ -2261,7 +2268,8 @@ Value ProgramBuilder::ConstantArray(Type t, absl::Span<const Value> init) {
 
 Value ProgramBuilder::Global(Type t, Value init) {
   uint32_t idx = globals_.size();
-  globals_.emplace_back(t, init);
+  auto ptr_to_type = type_manager_.PointerType(t);
+  globals_.emplace_back(t, ptr_to_type, init);
   return AppendConstantGlobal(
       Type1InstructionBuilder()
           .SetOpcode(ConstantOpcodeTo(ConstantOpcode::GLOBAL_REF))

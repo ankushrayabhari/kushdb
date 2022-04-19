@@ -306,10 +306,16 @@ void ColumnData<S>::ForwardDeclare(khir::ProgramBuilder& program) {
         program.StructType({program.I32Type(), program.I64Type()}));
   }
 
+  khir::Type struct_type;
+  if constexpr (catalog::SqlType::DATE == S) {
+    struct_type = program.GetStructType(StructName<S>());
+  } else {
+    struct_type = program.StructType(
+        {program.PointerType(elem_type.value()), program.I64Type()},
+        StructName<S>());
+  }
+
   auto string_type = program.PointerType(program.I8Type());
-  auto struct_type = program.StructType(
-      {program.PointerType(elem_type.value()), program.I64Type()},
-      StructName<S>());
   auto struct_ptr = program.PointerType(struct_type);
 
   program.DeclareExternalFunction(OpenFnName<S>(), program.VoidType(),

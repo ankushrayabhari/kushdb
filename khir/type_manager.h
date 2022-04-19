@@ -52,6 +52,7 @@ class TypeManager {
   Type I32Type() const;
   Type I64Type() const;
   Type F64Type() const;
+  Type I8PtrType() const;
   Type OpaqueType(std::string_view name);
   Type NamedStructType(absl::Span<const Type> field_type_id,
                        std::string_view name);
@@ -190,6 +191,9 @@ class TypeManager {
     llvm::Type* type_impl_;
   };
 
+  Type AddType(std::unique_ptr<TypeImpl> mp);
+  Type GetOutputType();
+
   std::vector<llvm::Type*> GetTypeArray(
       std::vector<std::unique_ptr<TypeImpl>>& types,
       absl::Span<const Type> field_type_id);
@@ -198,6 +202,7 @@ class TypeManager {
   std::unique_ptr<llvm::Module> module_;
   std::unique_ptr<llvm::IRBuilder<>> builder_;
   std::vector<std::unique_ptr<TypeImpl>> type_id_to_impl_;
+  absl::flat_hash_map<llvm::Type*, Type> impl_to_type_id_;
   absl::flat_hash_map<std::string, Type> struct_name_to_type_id_;
   absl::flat_hash_map<std::string, Type> opaque_name_to_type_id_;
   static bool initialized_;
