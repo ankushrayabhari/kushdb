@@ -1005,11 +1005,16 @@ Value ProgramBuilder::CmpI1(CompType cmp, Value v1, Value v2) {
 }
 
 Value ProgramBuilder::ConstI1(bool v) {
-  return AppendConstantGlobal(
-      Type1InstructionBuilder()
-          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I1_CONST))
-          .SetConstant(v ? 1 : 0)
-          .Build());
+  if (i1_const_to_value_.find(v) == i1_const_to_value_.end()) {
+    auto value = AppendConstantGlobal(
+        Type1InstructionBuilder()
+            .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I1_CONST))
+            .SetConstant(v ? 1 : 0)
+            .Build());
+    i1_const_to_value_[v] = value;
+  }
+
+  return i1_const_to_value_[v];
 }
 
 Value ProgramBuilder::I64ZextI1(Value v) {
@@ -1201,11 +1206,16 @@ Value ProgramBuilder::CmpI8(CompType cmp, Value v1, Value v2) {
 }
 
 Value ProgramBuilder::ConstI8(uint8_t v) {
-  return AppendConstantGlobal(
-      Type1InstructionBuilder()
-          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I8_CONST))
-          .SetConstant(static_cast<uint8_t>(v))
-          .Build());
+  if (i8_const_to_value_.find(v) == i8_const_to_value_.end()) {
+    auto value = AppendConstantGlobal(
+        Type1InstructionBuilder()
+            .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I8_CONST))
+            .SetConstant(static_cast<uint8_t>(v))
+            .Build());
+    i8_const_to_value_[v] = value;
+  }
+
+  return i8_const_to_value_[v];
 }
 
 Value ProgramBuilder::I64ZextI8(Value v) {
@@ -1390,11 +1400,16 @@ Value ProgramBuilder::CmpI16(CompType cmp, Value v1, Value v2) {
 }
 
 Value ProgramBuilder::ConstI16(uint16_t v) {
-  return AppendConstantGlobal(
-      Type1InstructionBuilder()
-          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I16_CONST))
-          .SetConstant(v)
-          .Build());
+  if (i16_const_to_value_.find(v) == i16_const_to_value_.end()) {
+    auto value = AppendConstantGlobal(
+        Type1InstructionBuilder()
+            .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I16_CONST))
+            .SetConstant(v)
+            .Build());
+    i16_const_to_value_[v] = value;
+  }
+
+  return i16_const_to_value_[v];
 }
 
 Value ProgramBuilder::I64ZextI16(Value v) {
@@ -1579,11 +1594,16 @@ Value ProgramBuilder::CmpI32(CompType cmp, Value v1, Value v2) {
 }
 
 Value ProgramBuilder::ConstI32(uint32_t v) {
-  return AppendConstantGlobal(
-      Type1InstructionBuilder()
-          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I32_CONST))
-          .SetConstant(v)
-          .Build());
+  if (i32_const_to_value_.find(v) == i32_const_to_value_.end()) {
+    auto value = AppendConstantGlobal(
+        Type1InstructionBuilder()
+            .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I32_CONST))
+            .SetConstant(v)
+            .Build());
+    i32_const_to_value_[v] = value;
+  }
+
+  return i32_const_to_value_[v];
 }
 
 Value ProgramBuilder::I64ZextI32(Value v) {
@@ -1946,13 +1966,18 @@ Value ProgramBuilder::IsNullPtr(Value v) {
 }
 
 Value ProgramBuilder::ConstI64(uint64_t v) {
-  uint32_t id = i64_constants_.size();
-  i64_constants_.push_back(v);
-  return AppendConstantGlobal(
-      Type1InstructionBuilder()
-          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I64_CONST))
-          .SetConstant(id)
-          .Build());
+  if (i64_const_to_value_.find(v) == i64_const_to_value_.end()) {
+    uint32_t id = i64_constants_.size();
+    i64_constants_.push_back(v);
+    auto value = AppendConstantGlobal(
+        Type1InstructionBuilder()
+            .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I64_CONST))
+            .SetConstant(id)
+            .Build());
+    i64_const_to_value_[v] = value;
+  }
+
+  return i64_const_to_value_[v];
 }
 
 Value ProgramBuilder::F64ConvI64(Value v) {
@@ -2150,23 +2175,33 @@ Value ProgramBuilder::CmpF64(CompType cmp, Value v1, Value v2) {
 }
 
 Value ProgramBuilder::ConstF64(double v) {
-  uint32_t id = f64_constants_.size();
-  f64_constants_.push_back(v);
-  return AppendConstantGlobal(
-      Type1InstructionBuilder()
-          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::F64_CONST))
-          .SetConstant(id)
-          .Build());
+  if (f64_const_to_value_.find(v) == f64_const_to_value_.end()) {
+    uint32_t id = f64_constants_.size();
+    f64_constants_.push_back(v);
+    auto value = AppendConstantGlobal(
+        Type1InstructionBuilder()
+            .SetOpcode(ConstantOpcodeTo(ConstantOpcode::F64_CONST))
+            .SetConstant(id)
+            .Build());
+    f64_const_to_value_[v] = value;
+  }
+
+  return f64_const_to_value_[v];
 }
 
 Value ProgramBuilder::ConstPtr(void* v) {
-  uint32_t id = ptr_constants_.size();
-  ptr_constants_.push_back(v);
-  return AppendConstantGlobal(
-      Type1InstructionBuilder()
-          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::PTR_CONST))
-          .SetConstant(id)
-          .Build());
+  if (ptr_const_to_value_.find(v) == ptr_const_to_value_.end()) {
+    uint32_t id = ptr_constants_.size();
+    ptr_constants_.push_back(v);
+    auto value = AppendConstantGlobal(
+        Type1InstructionBuilder()
+            .SetOpcode(ConstantOpcodeTo(ConstantOpcode::PTR_CONST))
+            .SetConstant(id)
+            .Build());
+    ptr_const_to_value_[v] = value;
+  }
+
+  return ptr_const_to_value_[v];
 }
 
 Value ProgramBuilder::I64ConvF64(Value v) {
@@ -2186,14 +2221,20 @@ Value ProgramBuilder::I64ConvF64(Value v) {
 }
 
 // Globals
-Value ProgramBuilder::GlobalConstCharArray(std::string_view s) {
-  uint32_t idx = char_array_constants_.size();
-  char_array_constants_.emplace_back(s);
-  return AppendConstantGlobal(
-      Type1InstructionBuilder()
-          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST))
-          .SetConstant(idx)
-          .Build());
+Value ProgramBuilder::GlobalConstCharArray(std::string_view v) {
+  if (string_const_to_value_.find(v) == string_const_to_value_.end()) {
+    uint32_t idx = char_array_constants_.size();
+    char_array_constants_.emplace_back(v);
+    auto value =
+        AppendConstantGlobal(Type1InstructionBuilder()
+                                 .SetOpcode(ConstantOpcodeTo(
+                                     ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST))
+                                 .SetConstant(idx)
+                                 .Build());
+    string_const_to_value_[v] = value;
+  }
+
+  return string_const_to_value_[v];
 }
 
 Value ProgramBuilder::ConstantStruct(Type t, absl::Span<const Value> init) {

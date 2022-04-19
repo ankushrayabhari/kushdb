@@ -9,36 +9,9 @@
 #include "type_safe/strong_typedef.hpp"
 
 #include "khir/type_manager.h"
+#include "khir/value.h"
 
 namespace kush::khir {
-
-class Value {
- public:
-  Value() : idx_(UINT32_MAX) {}
-
-  explicit Value(uint32_t idx) : idx_(idx) {}
-
-  Value(uint32_t idx, bool constant_global) : idx_(idx) {
-    if (idx_ > 0x7FFFFF) {
-      throw std::runtime_error("Invalid idx");
-    }
-
-    if (constant_global) {
-      idx_ = idx_ | (1 << 23);
-    }
-  }
-
-  uint32_t Serialize() const { return idx_; }
-
-  uint32_t GetIdx() const { return idx_ & 0x7FFFFF; }
-
-  bool IsConstantGlobal() const { return (idx_ & (1 << 23)) != 0; }
-
-  bool operator==(const Value& rhs) const { return idx_ == rhs.idx_; }
-
- private:
-  uint32_t idx_;
-};
 
 struct FunctionRef
     : type_safe::strong_typedef<FunctionRef, int>,
@@ -98,8 +71,6 @@ class Global {
 };
 
 class ProgramBuilder;
-
-class BasicBlock {};
 
 class FunctionBuilder {
  public:
@@ -330,6 +301,15 @@ class ProgramBuilder {
   std::vector<ArrayConstant> array_constants_;
 
   std::vector<khir::Global> globals_;
+
+  std::unordered_map<bool, Value> i1_const_to_value_;
+  std::unordered_map<uint8_t, Value> i8_const_to_value_;
+  std::unordered_map<uint16_t, Value> i16_const_to_value_;
+  std::unordered_map<uint32_t, Value> i32_const_to_value_;
+  std::unordered_map<uint64_t, Value> i64_const_to_value_;
+  std::unordered_map<double, Value> f64_const_to_value_;
+  std::unordered_map<void*, Value> ptr_const_to_value_;
+  absl::flat_hash_map<std::string, Value> string_const_to_value_;
 };
 
 }  // namespace kush::khir

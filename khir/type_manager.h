@@ -68,7 +68,6 @@ class TypeManager {
   Type GetArrayElementType(Type ptr_type) const;
   std::pair<int32_t, Type> GetPointerOffset(Type t,
                                             absl::Span<const int32_t> idx);
-  std::pair<std::vector<int>, Type> GEPOffsetsAndResultType();
   std::vector<int32_t> GetStructFieldOffsets(Type t) const;
   absl::Span<const Type> GetStructElementTypes(Type ptr_type) const;
   int32_t GetTypeSize(Type t) const;

@@ -3,6 +3,13 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "value",
+    srcs = ["value.cc"],
+    hdrs = ["value.h"],
+    deps = [],
+)
+
+cc_library(
     name = "compilation_cache",
     srcs = ["compilation_cache.cc"],
     hdrs = ["compilation_cache.h"],
@@ -51,6 +58,7 @@ cc_library(
         ":instruction",
         ":opcode",
         ":type_manager",
+        ":value",
         "@absl//absl/types:span",
         "@type_safe",
     ],
