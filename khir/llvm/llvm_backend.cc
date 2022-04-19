@@ -198,10 +198,8 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
       auto init = constant_values[x.InitialValue().GetIdx()];
 
       return new llvm::GlobalVariable(
-          *module_, type, x.Constant(),
-          x.Public() ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
-                     : llvm::GlobalValue::LinkageTypes::InternalLinkage,
-          init);
+          *module_, type, false,
+          llvm::GlobalValue::LinkageTypes::ExternalLinkage, init);
     }
 
     case ConstantOpcode::FUNC_PTR: {

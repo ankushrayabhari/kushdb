@@ -89,17 +89,16 @@ HashTable::HashTable(khir::ProgramBuilder& program, StructBuilder& content)
       content_(content),
       content_type_(content_.Type()),
       value_(program_.Global(
-          false, true, program.GetStructType(HashTableStructName),
+          program.GetStructType(HashTableStructName),
           program.ConstantStruct(
               program.GetStructType(HashTableStructName),
               {
                   program.ConstI64(0),
                   program.NullPtr(program.PointerType(program.I8Type())),
               }))),
-      hash_ptr_(program_.Global(false, true, program_.I32Type(),
-                                program.ConstI32(0))),
+      hash_ptr_(program_.Global(program_.I32Type(), program.ConstI32(0))),
       bucket_list_(program_.Global(
-          false, true, program.GetStructType(BucketListStructName),
+          program.GetStructType(BucketListStructName),
           program.ConstantStruct(
               program.GetStructType(BucketListStructName),
               {

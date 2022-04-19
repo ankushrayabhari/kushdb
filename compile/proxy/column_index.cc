@@ -126,7 +126,6 @@ ColumnIndexBucketArray::ColumnIndexBucketArray(khir::ProgramBuilder& program,
                                                int max_size)
     : program_(program),
       value_(program.Global(
-          false, false,
           program.ArrayType(program.GetStructType(ColumnIndexBucketName),
                             max_size),
           program.ConstantArray(
@@ -139,12 +138,11 @@ ColumnIndexBucketArray::ColumnIndexBucketArray(khir::ProgramBuilder& program,
                       {program.NullPtr(program.PointerType(program.I32Type())),
                        program.ConstI32(0)}))))),
       sorted_intersection_idx_value_(program.Global(
-          false, false, program.ArrayType(program.I32Type(), max_size),
+          program.ArrayType(program.I32Type(), max_size),
           program.ConstantArray(
               program.ArrayType(program.I32Type(), max_size),
               std::vector<khir::Value>(max_size, program.ConstI32(0))))),
-      idx_value_(program_.Global(false, false, program_.I32Type(),
-                                 program.ConstI32(0))),
+      idx_value_(program_.Global(program_.I32Type(), program.ConstI32(0))),
       max_size_(max_size) {
   program_.StoreI32(idx_value_, program_.ConstI32(0));
 }
@@ -427,12 +425,11 @@ template <catalog::SqlType S>
 MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program)
     : program_(program),
       value_(program.Global(
-          false, false,
           program.PointerType(program.GetOpaqueType(TypeName<S>())),
           program.NullPtr(
               program.PointerType(program.GetOpaqueType(TypeName<S>()))))),
       get_value_(program.Global(
-          false, true, program.GetStructType(ColumnIndexBucketName),
+          program.GetStructType(ColumnIndexBucketName),
           program.ConstantStruct(
               program.GetStructType(ColumnIndexBucketName),
               {program.NullPtr(program.PointerType(program.I32Type())),
@@ -446,10 +443,9 @@ MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program,
                                         khir::Value v)
     : program_(program),
       value_(program.Global(
-          false, false,
           program.PointerType(program.GetOpaqueType(TypeName<S>())), v)),
       get_value_(program.Global(
-          false, true, program.GetStructType(ColumnIndexBucketName),
+          program.GetStructType(ColumnIndexBucketName),
           program.ConstantStruct(
               program.GetStructType(ColumnIndexBucketName),
               {program.NullPtr(program.PointerType(program.I32Type())),
@@ -589,14 +585,14 @@ DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
       path_(path),
       path_value_(program.GlobalConstCharArray(path)),
       value_(program.Global(
-          false, true, program.GetStructType(DiskColumnIndexName),
+          program.GetStructType(DiskColumnIndexName),
           program.ConstantStruct(
               program.GetStructType(DiskColumnIndexName),
               {program.NullPtr(program.PointerType(
                    program.GetOpaqueType(DiskColumnIndexDataName))),
                program.ConstI64(0)}))),
       get_value_(program.Global(
-          false, true, program.GetStructType(ColumnIndexBucketName),
+          program.GetStructType(ColumnIndexBucketName),
           program.ConstantStruct(
               program.GetStructType(ColumnIndexBucketName),
               {program.NullPtr(program.PointerType(program.I32Type())),
@@ -610,7 +606,7 @@ DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
       path_value_(program.GlobalConstCharArray(path)),
       value_(v),
       get_value_(program.Global(
-          false, true, program.GetStructType(ColumnIndexBucketName),
+          program.GetStructType(ColumnIndexBucketName),
           program.ConstantStruct(
               program.GetStructType(ColumnIndexBucketName),
               {program.NullPtr(program.PointerType(program.I32Type())),

@@ -247,7 +247,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
   proxy::Struct global_predicate_struct(
       program_, *predicate_struct,
       program_.Global(
-          false, true, predicate_struct->Type(),
+          predicate_struct->Type(),
           program_.ConstantStruct(predicate_struct->Type(),
                                   predicate_struct->DefaultValues())));
 
@@ -257,7 +257,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
   auto idx_array_type =
       program_.ArrayType(program_.I32Type(), child_operators.size());
   auto idx_array = program_.Global(
-      false, true, idx_array_type,
+      idx_array_type,
       program_.ConstantArray(idx_array_type, initial_idx_values));
 
   // Setup progress array
@@ -266,7 +266,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
   auto progress_array_type =
       program_.ArrayType(program_.I32Type(), child_operators.size());
   auto progress_arr = program_.Global(
-      false, true, progress_array_type,
+      progress_array_type,
       program_.ConstantArray(progress_array_type, initial_progress_values));
 
   // Setup offset array
@@ -275,19 +275,19 @@ void PermutableSkinnerJoinTranslator::Produce() {
   auto offset_array_type =
       program_.ArrayType(program_.I32Type(), child_operators.size());
   auto offset_array = program_.Global(
-      false, true, offset_array_type,
+      offset_array_type,
       program_.ConstantArray(offset_array_type, initial_offset_values));
 
   // Setup table_ctr
   auto table_ctr_type = program_.ArrayType(program_.I32Type(), 1);
   auto table_ctr_ptr = program_.Global(
-      false, true, table_ctr_type,
+      table_ctr_type,
       program_.ConstantArray(table_ctr_type, {program_.ConstI32(0)}));
 
   // Setup # of result_tuples
   auto num_result_tuples_type = program_.ArrayType(program_.I32Type(), 1);
   auto num_result_tuples_ptr = program_.Global(
-      false, true, num_result_tuples_type,
+      num_result_tuples_type,
       program_.ConstantArray(num_result_tuples_type, {program_.ConstI32(0)}));
 
   // Setup flag array for each table.
@@ -316,7 +316,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
   auto flag_type = program_.I8Type();
   auto flag_array_type = program_.ArrayType(flag_type, total_flags);
   auto flag_array = program_.Global(
-      false, true, flag_array_type,
+      flag_array_type,
       program_.ConstantArray(
           flag_array_type,
           std::vector<khir::Value>(total_flags, program_.ConstI8(0))));
@@ -331,8 +331,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
       handler_pointer_array_type,
       std::vector<khir::Value>(child_translators.size(),
                                program_.NullPtr(handler_pointer_type)));
-  auto handler_pointer_array = program_.Global(
-      false, true, handler_pointer_array_type, handler_pointer_init);
+  auto handler_pointer_array =
+      program_.Global(handler_pointer_array_type, handler_pointer_init);
 
   std::vector<TableFunction> table_functions;
   // initially fill the child_translators schema values with garbage
@@ -517,7 +517,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
             std::vector<khir::Value> initial_result_values(
                 result_max_size, program_.ConstI32(0));
             auto result_array =
-                program_.Global(false, true, result_array_type,
+                program_.Global(result_array_type,
                                 program_.ConstantArray(result_array_type,
                                                        initial_result_values));
             auto result =

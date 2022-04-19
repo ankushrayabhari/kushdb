@@ -69,10 +69,8 @@ void AggregateTranslator::Produce() {
   value_ = std::make_unique<proxy::Struct>(
       program_, *agg_struct_,
       program_.Global(
-          false, true, type,
-          program_.ConstantStruct(type, agg_struct_->DefaultValues())));
-  empty_value_ =
-      program_.Global(false, true, program_.I64Type(), program_.ConstI64(0));
+          type, program_.ConstantStruct(type, agg_struct_->DefaultValues())));
+  empty_value_ = program_.Global(program_.I64Type(), program_.ConstI64(0));
 
   // Fill aggregators
   this->Child().Produce();

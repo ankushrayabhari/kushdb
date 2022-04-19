@@ -21,7 +21,7 @@ Vector::Vector(khir::ProgramBuilder& program, StructBuilder& content)
       content_(content),
       content_type_(content_.Type()),
       value_(program_.Global(
-          false, true, program_.GetStructType(Vector::VectorStructName),
+          program_.GetStructType(Vector::VectorStructName),
           program_.ConstantStruct(
               program_.GetStructType(Vector::VectorStructName),
               {

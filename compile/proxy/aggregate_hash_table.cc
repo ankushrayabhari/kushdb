@@ -155,7 +155,7 @@ AggregateHashTable::AggregateHashTable(
       payload_format_(AggregateHashTablePayload::ConstructPayloadFormat(
           program, std::move(key_types), aggregators_)),
       value_(program_.Global(
-          false, true, program_.GetStructType(StructName),
+          program_.GetStructType(StructName),
           program_.ConstantStruct(
               program_.GetStructType(StructName),
               {

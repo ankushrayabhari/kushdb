@@ -88,15 +88,11 @@ class ArrayConstant {
 
 class Global {
  public:
-  Global(bool constant, bool pub, khir::Type type, Value init);
-  bool Constant() const;
-  bool Public() const;
+  Global(khir::Type type, Value init);
   khir::Type Type() const;
   Value InitialValue() const;
 
  private:
-  bool constant_;
-  bool public_;
   khir::Type type_;
   Value init_;
 };
@@ -308,7 +304,7 @@ class ProgramBuilder {
   Value GlobalConstCharArray(std::string_view s);
   Value ConstantStruct(Type t, absl::Span<const Value> v);
   Value ConstantArray(Type t, absl::Span<const Value> v);
-  Value Global(bool constant, bool pub, Type t, Value v);
+  Value Global(Type t, Value v);
 
   void Translate(Backend& backend);
 

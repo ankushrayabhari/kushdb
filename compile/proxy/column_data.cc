@@ -205,8 +205,7 @@ ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
     : program_(program),
       path_(path),
       path_value_(program_.GlobalConstCharArray(path)),
-      value_(program_.Global(false, true,
-                             program.GetStructType(StructName<S>()),
+      value_(program_.Global(program.GetStructType(StructName<S>()),
                              GetStructInit<S>(program))) {
   if constexpr (S == catalog::SqlType::TEXT) {
     result_ = String::Global(program_, "").Get();

@@ -33,7 +33,7 @@ constexpr std::string_view next_fn_name(
 TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program)
     : program_(program),
       value_(program.Global(
-          false, true, program.PointerType(program.GetOpaqueType(TypeName)),
+          program.PointerType(program.GetOpaqueType(TypeName)),
           program.NullPtr(
               program.PointerType(program.GetOpaqueType(TypeName))))) {
   auto tuple_idx_table = program_.Call(program_.GetFunction(create_fn_name));
@@ -43,8 +43,7 @@ TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program)
 TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program, khir::Value value)
     : program_(program),
       value_(program.Global(
-          false, true, program.PointerType(program.GetOpaqueType(TypeName)),
-          value)) {}
+          program.PointerType(program.GetOpaqueType(TypeName)), value)) {}
 
 void TupleIdxTable::Reset() {
   auto tuple_idx_table = program_.LoadPtr(value_);

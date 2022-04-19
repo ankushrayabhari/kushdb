@@ -97,8 +97,7 @@ TEST_P(BackendTest, PTR_CAST) {
 
 TEST_P(BackendTest, PTR_CASTGlobal) {
   ProgramBuilder program;
-  auto global =
-      program.Global(false, true, program.I64Type(), program.ConstI64(5));
+  auto global = program.Global(program.I64Type(), program.ConstI64(5));
   program.CreatePublicFunction(program.PointerType(program.F64Type()), {},
                                "compute");
   program.Return(
@@ -311,7 +310,7 @@ TEST_P(BackendTest, PTR_LOAD) {
 TEST_P(BackendTest, PTR_LOADGlobal) {
   ProgramBuilder program;
   auto global =
-      program.Global(true, false, program.PointerType(program.I64Type()),
+      program.Global(program.PointerType(program.I64Type()),
                      program.NullPtr(program.PointerType(program.I64Type())));
   program.CreatePublicFunction(program.PointerType(program.I64Type()), {},
                                "compute");
@@ -397,8 +396,7 @@ TEST_P(BackendTest, PTR_STOREGlobal) {
       program.I64Type(),
       {program.PointerType(program.PointerType(program.I64Type()))}, "compute");
   auto args = program.GetFunctionArguments(func);
-  auto global =
-      program.Global(true, false, program.I64Type(), program.ConstI64(-1));
+  auto global = program.Global(program.I64Type(), program.ConstI64(-1));
   program.StorePtr(args[0], global);
   auto ptr = program.LoadPtr(args[0]);
   program.Return(program.LoadI64(ptr));
@@ -469,7 +467,7 @@ TEST_P(BackendTest, PTR_STOREGlobalDest) {
       {program.PointerType(program.I64Type())}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto global =
-      program.Global(false, true, program.PointerType(program.I64Type()),
+      program.Global(program.PointerType(program.I64Type()),
                      program.NullPtr(program.PointerType(program.I64Type())));
   program.StorePtr(
       global,
@@ -1621,8 +1619,7 @@ TEST_P(BackendTest, I8_LOADGlobal) {
     int8_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto global =
-        program.Global(true, false, program.I8Type(), program.ConstI8(c));
+    auto global = program.Global(program.I8Type(), program.ConstI8(c));
     program.CreatePublicFunction(program.I8Type(), {}, "compute");
     program.Return(program.LoadI8(global));
 
@@ -1726,8 +1723,7 @@ TEST_P(BackendTest, I8_STOREGlobal) {
     int8_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto global =
-        program.Global(true, false, program.I8Type(), program.ConstI8(c));
+    auto global = program.Global(program.I8Type(), program.ConstI8(c));
     auto func = program.CreatePublicFunction(
         program.PointerType(program.I8Type()), {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
@@ -2471,8 +2467,7 @@ TEST_P(BackendTest, I16_LOADGlobal) {
     int16_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto global =
-        program.Global(true, false, program.I16Type(), program.ConstI16(c));
+    auto global = program.Global(program.I16Type(), program.ConstI16(c));
     program.CreatePublicFunction(program.I16Type(), {}, "compute");
     program.Return(program.LoadI16(global));
 
@@ -2577,8 +2572,7 @@ TEST_P(BackendTest, I16_STOREGlobal) {
     int16_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto global =
-        program.Global(true, false, program.I16Type(), program.ConstI16(c));
+    auto global = program.Global(program.I16Type(), program.ConstI16(c));
     auto func = program.CreatePublicFunction(
         program.PointerType(program.I16Type()), {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
@@ -3323,8 +3317,7 @@ TEST_P(BackendTest, I32_LOADGlobal) {
     int32_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto global =
-        program.Global(true, false, program.I32Type(), program.ConstI32(c));
+    auto global = program.Global(program.I32Type(), program.ConstI32(c));
     program.CreatePublicFunction(program.I32Type(), {}, "compute");
     program.Return(program.LoadI32(global));
 
@@ -3429,8 +3422,7 @@ TEST_P(BackendTest, I32_STOREGlobal) {
     int32_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto global =
-        program.Global(true, false, program.I32Type(), program.ConstI32(c));
+    auto global = program.Global(program.I32Type(), program.ConstI32(c));
     auto func = program.CreatePublicFunction(
         program.PointerType(program.I32Type()), {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
@@ -4585,8 +4577,7 @@ TEST_P(BackendTest, I64_LOADGlobal) {
     int64_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto global =
-        program.Global(true, false, program.I64Type(), program.ConstI64(c));
+    auto global = program.Global(program.I64Type(), program.ConstI64(c));
     program.CreatePublicFunction(program.I64Type(), {}, "compute");
     program.Return(program.LoadI64(global));
 
@@ -4691,8 +4682,7 @@ TEST_P(BackendTest, I64_STOREGlobal) {
     int64_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto global =
-        program.Global(true, false, program.I64Type(), program.ConstI64(c));
+    auto global = program.Global(program.I64Type(), program.ConstI64(c));
     auto func = program.CreatePublicFunction(
         program.PointerType(program.I64Type()), {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
@@ -5471,8 +5461,7 @@ TEST_P(BackendTest, F64_LOADGlobal) {
     double c = distrib(gen);
 
     ProgramBuilder program;
-    auto global =
-        program.Global(true, false, program.F64Type(), program.ConstF64(c));
+    auto global = program.Global(program.F64Type(), program.ConstF64(c));
     program.CreatePublicFunction(program.F64Type(), {}, "compute");
     program.Return(
         program.LoadF64(program.ConstGEP(program.F64Type(), global, {0})));
@@ -5578,8 +5567,7 @@ TEST_P(BackendTest, F64_STOREGlobal) {
     double c = distrib(gen);
 
     ProgramBuilder program;
-    auto global =
-        program.Global(true, false, program.F64Type(), program.ConstF64(c));
+    auto global = program.Global(program.F64Type(), program.ConstF64(c));
     auto func = program.CreatePublicFunction(
         program.PointerType(program.F64Type()), {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);

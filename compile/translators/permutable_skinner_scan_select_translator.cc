@@ -216,7 +216,7 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
   proxy::Struct global_predicate_struct(
       program_, *predicate_struct,
       program_.Global(
-          false, true, predicate_struct->Type(),
+          predicate_struct->Type(),
           program_.ConstantStruct(predicate_struct->Type(),
                                   predicate_struct->DefaultValues())));
 
@@ -330,12 +330,12 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
   auto index_array_type = program_.ArrayType(
       program_.I32Type(), index_evaluatable_predicates_.size());
   auto index_array = program_.Global(
-      false, true, index_array_type,
+      index_array_type,
       program_.ConstantArray(index_array_type, initial_index_values));
 
   // Setup idx array.
   auto index_array_size =
-      program_.Global(false, true, program_.I32Type(), program_.ConstI32(0));
+      program_.Global(program_.I32Type(), program_.ConstI32(0));
 
   // Setup function pointer array.
   auto predicate_ptr_ty =
@@ -347,12 +347,11 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
   auto predicate_array_type =
       program_.ArrayType(predicate_ptr_ty, predicate_fns.size());
   auto predicate_array = program_.Global(
-      false, true, predicate_array_type,
+      predicate_array_type,
       program_.ConstantArray(predicate_array_type, initial_predicate_array));
 
   // Setup idx array.
-  auto progress_idx =
-      program_.Global(false, true, program_.I32Type(), program_.ConstI32(0));
+  auto progress_idx = program_.Global(program_.I32Type(), program_.ConstI32(0));
 
   // Main function
   BaseFunction main_func(program_, [&](proxy::Int32 initial_budget,
@@ -371,7 +370,7 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
           std::vector<khir::Value> initial_result_values(result_max_size,
                                                          program_.ConstI32(0));
           auto result_array = program_.Global(
-              false, true, result_array_type,
+              result_array_type,
               program_.ConstantArray(result_array_type, initial_result_values));
           auto result =
               program_.ConstGEP(result_array_type, result_array, {0, 0});

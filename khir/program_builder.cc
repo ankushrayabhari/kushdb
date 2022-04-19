@@ -96,12 +96,7 @@ khir::Type ArrayConstant::Type() const { return type_; }
 
 absl::Span<const Value> ArrayConstant::Elements() const { return elements_; }
 
-Global::Global(bool constant, bool pub, khir::Type type, Value init)
-    : constant_(constant), public_(pub), type_(type), init_(init) {}
-
-bool Global::Constant() const { return constant_; }
-
-bool Global::Public() const { return public_; }
+Global::Global(khir::Type type, Value init) : type_(type), init_(init) {}
 
 Type Global::Type() const { return type_; }
 
@@ -2223,9 +2218,9 @@ Value ProgramBuilder::ConstantArray(Type t, absl::Span<const Value> init) {
           .Build());
 }
 
-Value ProgramBuilder::Global(bool constant, bool pub, Type t, Value init) {
+Value ProgramBuilder::Global(Type t, Value init) {
   uint32_t idx = globals_.size();
-  globals_.emplace_back(constant, pub, t, init);
+  globals_.emplace_back(t, init);
   return AppendConstantGlobal(
       Type1InstructionBuilder()
           .SetOpcode(ConstantOpcodeTo(ConstantOpcode::GLOBAL_REF))

@@ -220,7 +220,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   proxy::Struct global_predicate_struct(
       program, *predicate_struct,
       program.Global(
-          false, true, predicate_struct->Type(),
+          predicate_struct->Type(),
           program.ConstantStruct(predicate_struct->Type(),
                                  predicate_struct->DefaultValues())));
 
@@ -432,7 +432,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
             std::vector<khir::Value> initial_result_values(result_max_size,
                                                            program.ConstI32(0));
             auto result_array =
-                program.Global(false, true, result_array_type,
+                program.Global(result_array_type,
                                program.ConstantArray(result_array_type,
                                                      initial_result_values));
             auto result =
@@ -916,9 +916,8 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       std::vector<khir::Value>(
           materialized_buffers_.size(),
           program_.NullPtr(program_.PointerType(program_.I8Type()))));
-  auto materialized_buffer_array =
-      program_.Global(false, true, materialized_buffer_array_type,
-                      materialized_buffer_array_init);
+  auto materialized_buffer_array = program_.Global(
+      materialized_buffer_array_type, materialized_buffer_array_init);
   for (int i = 0; i < materialized_buffers_.size(); i++) {
     program_.StorePtr(program_.ConstGEP(materialized_buffer_array_type,
                                         materialized_buffer_array, {0, i}),
@@ -933,9 +932,8 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       std::vector<khir::Value>(
           indexes_.size(),
           program_.NullPtr(program_.PointerType(program_.I8Type()))));
-  auto materialized_index_array =
-      program_.Global(false, true, materialized_index_array_type,
-                      materialized_index_array_init);
+  auto materialized_index_array = program_.Global(
+      materialized_index_array_type, materialized_index_array_init);
   for (int i = 0; i < indexes_.size(); i++) {
     program_.StorePtr(program_.ConstGEP(materialized_index_array_type,
                                         materialized_index_array, {0, i}),
@@ -948,8 +946,8 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   auto cardinalities_array_init = program_.ConstantArray(
       cardinalities_array_type,
       std::vector<khir::Value>(child_translators.size(), program_.ConstI32(0)));
-  auto cardinalities_array = program_.Global(
-      false, true, cardinalities_array_type, cardinalities_array_init);
+  auto cardinalities_array =
+      program_.Global(cardinalities_array_type, cardinalities_array_init);
 
   for (int i = 0; i < materialized_buffers_.size(); i++) {
     program_.StoreI32(program_.ConstGEP(cardinalities_array_type,
