@@ -2,10 +2,10 @@
 
 #include <vector>
 
+#include "khir/program.h"
+
 namespace kush::khir {
 
-std::vector<std::vector<int>> FindLoops(
-    const std::vector<std::vector<int>>& bb_succ,
-    const std::vector<std::vector<int>>& bb_pred);
+std::vector<std::vector<int>> FindLoops(const std::vector<BasicBlock>& bb);
 
 }  // namespace kush::khir

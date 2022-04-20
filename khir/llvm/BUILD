@@ -25,7 +25,9 @@ cc_library(
     hdrs = ["llvm_backend.h"],
     deps = [
         ":perf_jit_event_listener",
-        "//khir:program_builder",
+        "//khir:backend",
+        "//khir:instruction",
+        "//khir:program",
         "@absl//absl/flags:flag",
         "@absl//absl/types:span",
         "@llvm-project//llvm:BitWriter",

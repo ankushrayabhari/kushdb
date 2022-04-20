@@ -7,8 +7,9 @@
 #include "khir/asm/reg_alloc_impl.h"
 #include "khir/asm/register.h"
 #include "khir/asm/register_assignment.h"
+#include "khir/backend.h"
 #include "khir/opcode.h"
-#include "khir/program_builder.h"
+#include "khir/program.h"
 #include "khir/type_manager.h"
 
 namespace kush::khir {
@@ -34,31 +35,15 @@ class ASMBackend : public Backend {
   ASMBackend(RegAllocImpl impl);
   virtual ~ASMBackend() = default;
 
-  void Translate(const TypeManager& type_manager,
-                 const std::vector<void*>& ptr_constants,
-                 const std::vector<uint64_t>& i64_constants,
-                 const std::vector<double>& f64_constants,
-                 const std::vector<std::string>& char_array_constants,
-                 const std::vector<StructConstant>& struct_constants,
-                 const std::vector<ArrayConstant>& array_constants,
-                 const std::vector<Global>& globals,
-                 const std::vector<uint64_t>& constant_instrs,
-                 const std::vector<FunctionBuilder>& functions) override;
-
   // Program
+  void Translate(const Program& program) override;
+
+  // Backend
   void Compile() override;
   void* GetFunction(std::string_view name) const override;
 
  private:
-  uint64_t OutputConstant(uint64_t instr, const TypeManager& type_manager,
-                          const std::vector<uint64_t>& constant_instrs,
-                          const std::vector<void*>& ptr_constants,
-                          const std::vector<uint64_t>& i64_constants,
-                          const std::vector<double>& f64_constants,
-                          const std::vector<std::string>& char_array_constants,
-                          const std::vector<StructConstant>& struct_constants,
-                          const std::vector<ArrayConstant>& array_constants,
-                          const std::vector<Global>& globals);
+  uint64_t OutputConstant(uint64_t instr, const Program& program);
   bool IsNullPtr(khir::Value v, const std::vector<uint64_t>& constant_instrs);
   bool IsConstantPtr(khir::Value v,
                      const std::vector<uint64_t>& constant_instrs);
@@ -68,20 +53,17 @@ class ASMBackend : public Backend {
   std::pair<khir::Value, int32_t> Gep(
       khir::Value v, const std::vector<uint64_t>& instructions,
       const std::vector<uint64_t>& constant_instrs);
-  void TranslateInstr(const FunctionBuilder& current_function,
-                      const TypeManager& type_manager,
-                      const std::vector<void*>& ptr_constants,
-                      const std::vector<uint64_t>& i64_constants,
-                      const std::vector<double>& f64_constants,
-                      const std::vector<asmjit::Label>& basic_blocks,
-                      const std::vector<FunctionBuilder>& functions,
-                      const asmjit::Label& epilogue,
-                      std::vector<int32_t>& offsets,
-                      const std::vector<uint64_t>& instructions,
-                      const std::vector<uint64_t>& constant_instrs,
-                      int instr_idx, StackSlotAllocator& stack_allocator,
-                      const std::vector<RegisterAssignment>& register_assign,
-                      int next_bb);
+  void TranslateInstr(
+      const Function& current_function, const TypeManager& type_manager,
+      const std::vector<void*>& ptr_constants,
+      const std::vector<uint64_t>& i64_constants,
+      const std::vector<double>& f64_constants,
+      const std::vector<asmjit::Label>& basic_blocks,
+      const std::vector<Function>& functions, const asmjit::Label& epilogue,
+      std::vector<int32_t>& offsets, const std::vector<uint64_t>& instructions,
+      const std::vector<uint64_t>& constant_instrs, int instr_idx,
+      StackSlotAllocator& stack_allocator,
+      const std::vector<RegisterAssignment>& register_assign, int next_bb);
   Register NormalRegister(int id);
   asmjit::x86::Xmm FPRegister(int id);
   asmjit::Label EmbedI8(int8_t d);

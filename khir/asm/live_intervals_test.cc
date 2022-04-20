@@ -2,7 +2,7 @@
 
 #include "gtest/gtest.h"
 
-#include "khir/program_printer.h"
+#include "khir/program_builder.h"
 
 using namespace kush;
 using namespace kush::khir;
@@ -14,15 +14,14 @@ TEST(LiveIntervalsTest, SingleBasicBlock) {
   auto ex = program.DeclareExternalFunction("test", program.PointerType(type),
                                             {}, nullptr);
 
-  auto func = program.CreatePublicFunction(type, {}, "compute");
+  program.CreatePublicFunction(type, {}, "compute");
   auto x_arr = program.Call(ex);
   auto x1 = program.LoadI32(program.ConstGEP(type, x_arr, {0}));
   auto x2 = program.LoadI32(program.ConstGEP(type, x_arr, {1}));
   program.Return(program.AddI32(x1, x2));
 
-  /*
-  TODO: enable this once the refactor is complete
-  auto res =
-      ComputeLiveIntervals(program.GetFunction(func), program.GetTypeManager());
-  */
+  auto built = program.Build();
+  auto res = ComputeLiveIntervals(built.Functions()[1], built.TypeManager());
+
+  // TODO: add expectations
 }

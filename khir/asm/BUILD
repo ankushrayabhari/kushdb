@@ -39,6 +39,7 @@ cc_library(
     srcs = ["dominators.cc"],
     hdrs = ["dominators.h"],
     deps = [
+        "//khir:program",
         "@absl//absl/container:btree",
     ],
 )
@@ -57,7 +58,9 @@ cc_library(
     name = "dfs_label",
     srcs = ["dfs_label.cc"],
     hdrs = ["dfs_label.h"],
-    deps = [],
+    deps = [
+        "//khir:program",
+    ],
 )
 
 cc_test(
@@ -99,6 +102,7 @@ cc_library(
         ":register_assignment",
         "//khir:instruction",
         "//khir:opcode",
+        "//khir:program",
     ],
 )
 
@@ -109,6 +113,7 @@ cc_library(
     deps = [
         ":dfs_label",
         ":loops",
+        "//khir:instruction",
         "//khir:program_builder",
         "//util:union_find",
         "@absl//absl/container:flat_hash_set",
@@ -147,8 +152,9 @@ cc_library(
         ":reg_alloc_impl",
         ":register_assignment",
         ":stack_spill_reg_alloc",
+        "//khir:backend",
         "//khir:opcode",
-        "//khir:program_builder",
+        "//khir:program",
         "//khir:program_printer",
         "//khir:type_manager",
         "//util:profile_map_generator",

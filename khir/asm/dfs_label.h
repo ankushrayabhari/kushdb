@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "khir/program.h"
+
 namespace kush::khir {
 
 struct LabelResult {
@@ -9,6 +11,6 @@ struct LabelResult {
   std::vector<int> preorder_label;
 };
 
-LabelResult DFSLabel(const std::vector<std::vector<int>>& succ);
+LabelResult DFSLabel(const std::vector<BasicBlock>& bb);
 
 }  // namespace kush::khir

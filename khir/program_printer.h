@@ -1,11 +1,11 @@
 #pragma once
 
-#include "khir/program_builder.h"
+#include "khir/program.h"
 #include "khir/type_manager.h"
 
 namespace kush::khir {
 
-class ProgramPrinter : public Backend, public TypeTranslator {
+class ProgramPrinter : public TypeTranslator, public ProgramTranslator {
  public:
   virtual ~ProgramPrinter() = default;
 
@@ -24,27 +24,9 @@ class ProgramPrinter : public Backend, public TypeTranslator {
                              absl::Span<const Type> arg_types) override;
   void TranslateStructType(absl::Span<const Type> elem_types) override;
 
-  void Translate(const TypeManager& manager,
-                 const std::vector<void*>& ptr_constants,
-                 const std::vector<uint64_t>& i64_constants,
-                 const std::vector<double>& f64_constants,
-                 const std::vector<std::string>& char_array_constants,
-                 const std::vector<StructConstant>& struct_constants,
-                 const std::vector<ArrayConstant>& array_constants,
-                 const std::vector<Global>& globals,
-                 const std::vector<uint64_t>& constant_instrs,
-                 const std::vector<FunctionBuilder>& functions) override;
+  void Translate(const Program& program) override;
 
-  void OutputInstr(int idx, const std::vector<void*>& ptr_constants,
-                   const std::vector<uint64_t>& i64_constants,
-                   const std::vector<double>& f64_constants,
-                   const std::vector<std::string>& char_array_constants,
-                   const std::vector<StructConstant>& struct_constants,
-                   const std::vector<ArrayConstant>& array_constants,
-                   const std::vector<Global>& globals,
-                   const std::vector<uint64_t>& constant_instrs,
-                   const std::vector<FunctionBuilder>& functions,
-                   const FunctionBuilder& func);
+  void OutputInstr(int idx, const Program& program, const Function& func);
 
  private:
   const TypeManager* manager_;

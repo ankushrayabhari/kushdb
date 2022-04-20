@@ -9,7 +9,7 @@ cc_library(
     deps = [
         ":pipeline",
         "//compile/translators:operator_translator",
-        "//khir:program_builder",
+        "//khir:backend",
     ],
 )
 

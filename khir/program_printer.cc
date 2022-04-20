@@ -6,22 +6,13 @@
 
 #include "khir/instruction.h"
 #include "khir/opcode.h"
-#include "khir/program_builder.h"
+#include "khir/program.h"
 
 namespace kush::khir {
 
-void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
-                 const std::vector<uint64_t>& constant_instrs,
-                 const std::vector<void*>& ptr_constants,
-                 const std::vector<uint64_t>& i64_constants,
-                 const std::vector<double>& f64_constants,
-                 const std::vector<std::string>& char_array_constants,
-                 const std::vector<StructConstant>& struct_constants,
-                 const std::vector<ArrayConstant>& array_constants,
-                 const std::vector<Global>& globals,
-                 const std::vector<FunctionBuilder>& functions) {
+void OutputValue(khir::Value v, const Program& program) {
   if (v.IsConstantGlobal()) {
-    auto instr = constant_instrs[v.GetIdx()];
+    auto instr = program.ConstantInstrs()[v.GetIdx()];
     auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
 
     switch (opcode) {
@@ -51,13 +42,13 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
 
       case ConstantOpcode::I64_CONST: {
         int v = Type1InstructionReader(instr).Constant();
-        std::cerr << "i64:" << i64_constants[v];
+        std::cerr << "i64:" << program.I64Constants()[v];
         return;
       }
 
       case ConstantOpcode::F64_CONST: {
         int v = Type1InstructionReader(instr).Constant();
-        std::cerr << "f64:" << f64_constants[v];
+        std::cerr << "f64:" << program.F64Constants()[v];
         return;
       }
 
@@ -84,22 +75,21 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
       }
 
       case ConstantOpcode::FUNC_PTR: {
-        std::cerr << functions[Type3InstructionReader(instr).Arg()].Name();
+        std::cerr
+            << program.Functions()[Type3InstructionReader(instr).Arg()].Name();
         return;
       }
 
       case ConstantOpcode::PTR_CONST: {
         int v = Type1InstructionReader(instr).Constant();
-        std::cerr << "ptr:" << ptr_constants[v];
+        std::cerr << "ptr:" << program.PtrConstants()[v];
         return;
       }
 
       case ConstantOpcode::PTR_CAST: {
         auto reader = Type3InstructionReader(instr);
         Value v(reader.Arg());
-        OutputValue(v, instrs, constant_instrs, ptr_constants, i64_constants,
-                    f64_constants, char_array_constants, struct_constants,
-                    array_constants, globals, functions);
+        OutputValue(v, program);
         return;
       }
     }
@@ -108,18 +98,9 @@ void OutputValue(khir::Value v, const std::vector<uint64_t>& instrs,
   std::cerr << "%" << v.GetIdx();
 }
 
-void ProgramPrinter::OutputInstr(
-    int idx, const std::vector<void*>& ptr_constants,
-    const std::vector<uint64_t>& i64_constants,
-    const std::vector<double>& f64_constants,
-    const std::vector<std::string>& char_array_constants,
-    const std::vector<StructConstant>& struct_constants,
-    const std::vector<ArrayConstant>& array_constants,
-    const std::vector<Global>& globals,
-    const std::vector<uint64_t>& constant_instrs,
-    const std::vector<FunctionBuilder>& functions,
-    const FunctionBuilder& func) {
-  auto instrs = func.Instructions();
+void ProgramPrinter::OutputInstr(int idx, const Program& program,
+                                 const Function& func) {
+  auto instrs = func.Instrs();
 
   auto opcode = OpcodeFrom(GenericInstructionReader(instrs[idx]).Opcode());
   switch (opcode) {
@@ -186,13 +167,9 @@ void ProgramPrinter::OutputInstr(
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
-                  f64_constants, char_array_constants, struct_constants,
-                  array_constants, globals, functions);
+      OutputValue(v0, program);
       std::cerr << " ";
-      OutputValue(v1, instrs, constant_instrs, ptr_constants, i64_constants,
-                  f64_constants, char_array_constants, struct_constants,
-                  array_constants, globals, functions);
+      OutputValue(v1, program);
       std::cerr << "\n";
 
       return;
@@ -222,9 +199,7 @@ void ProgramPrinter::OutputInstr(
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
-                  f64_constants, char_array_constants, struct_constants,
-                  array_constants, globals, functions);
+      OutputValue(v0, program);
       std::cerr << "\n";
 
       return;
@@ -241,13 +216,9 @@ void ProgramPrinter::OutputInstr(
       Value v1(reader.Arg1());
 
       std::cerr << "   " << magic_enum::enum_name(opcode) << " ";
-      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
-                  f64_constants, char_array_constants, struct_constants,
-                  array_constants, globals, functions);
+      OutputValue(v0, program);
       std::cerr << " ";
-      OutputValue(v1, instrs, constant_instrs, ptr_constants, i64_constants,
-                  f64_constants, char_array_constants, struct_constants,
-                  array_constants, globals, functions);
+      OutputValue(v1, program);
       std::cerr << "\n";
       return;
     }
@@ -270,9 +241,7 @@ void ProgramPrinter::OutputInstr(
       Value v0(reader.Arg());
 
       std::cerr << "   " << magic_enum::enum_name(opcode) << " ";
-      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
-                  f64_constants, char_array_constants, struct_constants,
-                  array_constants, globals, functions);
+      OutputValue(v0, program);
       int label0 = reader.Marg0();
       int label1 = reader.Marg1();
       std::cerr << " ." << label0 << " ." << label1 << "\n";
@@ -290,9 +259,7 @@ void ProgramPrinter::OutputInstr(
       Value v0(reader.Arg());
 
       std::cerr << "   " << magic_enum::enum_name(opcode) << " ";
-      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
-                  f64_constants, char_array_constants, struct_constants,
-                  array_constants, globals, functions);
+      OutputValue(v0, program);
       std::cerr << "\n";
 
       return;
@@ -309,9 +276,7 @@ void ProgramPrinter::OutputInstr(
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, instrs, constant_instrs, ptr_constants, i64_constants,
-                  f64_constants, char_array_constants, struct_constants,
-                  array_constants, globals, functions);
+      OutputValue(v0, program);
       std::cerr << "\n";
 
       return;
@@ -338,7 +303,7 @@ void ProgramPrinter::OutputInstr(
       }
 
       std::cerr << magic_enum::enum_name(opcode) << " "
-                << functions[reader.Arg()].Name() << "\n";
+                << program.Functions()[reader.Arg()].Name() << "\n";
       return;
     }
   }
@@ -404,30 +369,22 @@ void ProgramPrinter::TranslateStructType(absl::Span<const Type> elem_types) {
   type_to_string_.push_back(output);
 }
 
-void ProgramPrinter::Translate(
-    const TypeManager& manager, const std::vector<void*>& ptr_constants,
-    const std::vector<uint64_t>& i64_constants,
-    const std::vector<double>& f64_constants,
-    const std::vector<std::string>& char_array_constants,
-    const std::vector<StructConstant>& struct_constants,
-    const std::vector<ArrayConstant>& array_constants,
-    const std::vector<Global>& globals,
-    const std::vector<uint64_t>& constant_instrs,
-    const std::vector<FunctionBuilder>& functions) {
-  manager_ = &manager;
-  manager.Translate(*this);
+void ProgramPrinter::Translate(const Program& program) {
+  manager_ = &program.TypeManager();
+  program.TypeManager().Translate(*this);
 
-  for (int i = 0; i < char_array_constants.size(); i++) {
-    std::cerr << "$" << i << " = \"" << char_array_constants[i] << "\";\n\n";
+  int i = 0;
+  for (const auto& v : program.CharArrayConstants()) {
+    std::cerr << "$" << i++ << " = \"" << v << "\";\n\n";
   }
 
-  for (int i = 0; i < globals.size(); i++) {
-    const auto& glob = globals[i];
-    std::cerr << "#" << i << " = " << type_to_string_[glob.Type().GetID()]
+  i = 0;
+  for (const auto& glob : program.Globals()) {
+    std::cerr << "#" << i++ << " = " << type_to_string_[glob.Type().GetID()]
               << ";\n\n";
   }
 
-  for (const auto& func : functions) {
+  for (const auto& func : program.Functions()) {
     const auto& basic_blocks = func.BasicBlocks();
 
     if (func.External()) {
@@ -439,11 +396,12 @@ void ProgramPrinter::Translate(
     std::cerr << func.Name() << type_to_string_[func.Type().GetID()] << " {\n";
     for (int i = 0; i < basic_blocks.size(); i++) {
       std::cerr << " ." << i << ":\n";
-      const auto& [i_start, i_end] = basic_blocks[i];
-      for (int j = i_start; j <= i_end; j++) {
-        OutputInstr(j, ptr_constants, i64_constants, f64_constants,
-                    char_array_constants, struct_constants, array_constants,
-                    globals, constant_instrs, functions, func);
+
+      const auto& block = basic_blocks[i];
+      for (const auto& [segment_start, segment_end] : block.Segments()) {
+        for (int j = segment_start; j <= segment_end; j++) {
+          OutputInstr(j, program, func);
+        }
       }
     }
     std::cerr << "}\n" << std::endl;

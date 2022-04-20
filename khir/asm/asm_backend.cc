@@ -11,8 +11,8 @@
 #include "khir/asm/linear_scan_reg_alloc.h"
 #include "khir/asm/register_assignment.h"
 #include "khir/asm/stack_spill_reg_alloc.h"
+#include "khir/backend.h"
 #include "khir/instruction.h"
-#include "khir/program_builder.h"
 #include "khir/type_manager.h"
 #include "util/profile_map_generator.h"
 
@@ -37,16 +37,7 @@ void ExceptionErrorHandler::handleError(Error err, const char* message,
 
 ASMBackend::ASMBackend(RegAllocImpl impl) : reg_alloc_impl_(impl) {}
 
-uint64_t ASMBackend::OutputConstant(
-    uint64_t instr, const TypeManager& type_manager,
-    const std::vector<uint64_t>& constant_instrs,
-    const std::vector<void*>& ptr_constants,
-    const std::vector<uint64_t>& i64_constants,
-    const std::vector<double>& f64_constants,
-    const std::vector<std::string>& char_array_constants,
-    const std::vector<StructConstant>& struct_constants,
-    const std::vector<ArrayConstant>& array_constants,
-    const std::vector<Global>& globals) {
+uint64_t ASMBackend::OutputConstant(uint64_t instr, const Program& program) {
   auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
@@ -72,19 +63,20 @@ uint64_t ASMBackend::OutputConstant(
 
     case ConstantOpcode::I64_CONST: {
       auto i64_id = Type1InstructionReader(instr).Constant();
-      asm_->embedUInt64(i64_constants[i64_id]);
+      asm_->embedUInt64(program.I64Constants()[i64_id]);
       return 8;
     }
 
     case ConstantOpcode::PTR_CONST: {
       auto ptr_id = Type1InstructionReader(instr).Constant();
-      asm_->embedUInt64(reinterpret_cast<uint64_t>(ptr_constants[ptr_id]));
+      asm_->embedUInt64(
+          reinterpret_cast<uint64_t>(program.PtrConstants()[ptr_id]));
       return 8;
     }
 
     case ConstantOpcode::F64_CONST: {
       auto f64_id = Type1InstructionReader(instr).Constant();
-      asm_->embedDouble(f64_constants[f64_id]);
+      asm_->embedDouble(program.F64Constants()[f64_id]);
       return 8;
     }
 
@@ -107,11 +99,7 @@ uint64_t ASMBackend::OutputConstant(
 
     case ConstantOpcode::PTR_CAST: {
       khir::Value v(Type3InstructionReader(instr).Arg());
-
-      return OutputConstant(constant_instrs[v.GetIdx()], type_manager,
-                            constant_instrs, ptr_constants, i64_constants,
-                            f64_constants, char_array_constants,
-                            struct_constants, array_constants, globals);
+      return OutputConstant(program.ConstantInstrs()[v.GetIdx()], program);
     }
 
     case ConstantOpcode::FUNC_PTR: {
@@ -122,11 +110,11 @@ uint64_t ASMBackend::OutputConstant(
 
     case ConstantOpcode::STRUCT_CONST: {
       auto struct_id = Type1InstructionReader(instr).Constant();
-      const auto& struct_const = struct_constants[struct_id];
+      const auto& struct_const = program.StructConstants()[struct_id];
 
       auto field_offsets =
-          type_manager.GetStructFieldOffsets(struct_const.Type());
-      auto type_size = type_manager.GetTypeSize(struct_const.Type());
+          program.TypeManager().GetStructFieldOffsets(struct_const.Type());
+      auto type_size = program.TypeManager().GetTypeSize(struct_const.Type());
       auto field_constants = struct_const.Fields();
 
       uint64_t bytes_written = 0;
@@ -140,12 +128,9 @@ uint64_t ASMBackend::OutputConstant(
           bytes_written++;
         }
 
-        auto field_const_instr = constant_instrs[field_const.GetIdx()];
+        auto field_const_instr = program.ConstantInstrs()[field_const.GetIdx()];
 
-        bytes_written += OutputConstant(
-            field_const_instr, type_manager, constant_instrs, ptr_constants,
-            i64_constants, f64_constants, char_array_constants,
-            struct_constants, array_constants, globals);
+        bytes_written += OutputConstant(field_const_instr, program);
       }
 
       while (bytes_written < type_size) {
@@ -158,32 +143,20 @@ uint64_t ASMBackend::OutputConstant(
 
     case ConstantOpcode::ARRAY_CONST: {
       auto arr_id = Type1InstructionReader(instr).Constant();
-      const auto& arr_const = array_constants[arr_id];
+      const auto& arr_const = program.ArrayConstants()[arr_id];
 
       uint64_t bytes_written = 0;
       for (auto elem_const : arr_const.Elements()) {
-        auto elem_const_instr = constant_instrs[elem_const.GetIdx()];
+        auto elem_const_instr = program.ConstantInstrs()[elem_const.GetIdx()];
         // arrays have no padding
-        bytes_written += OutputConstant(
-            elem_const_instr, type_manager, constant_instrs, ptr_constants,
-            i64_constants, f64_constants, char_array_constants,
-            struct_constants, array_constants, globals);
+        bytes_written += OutputConstant(elem_const_instr, program);
       }
       return bytes_written;
     }
   }
 }
 
-void ASMBackend::Translate(const TypeManager& type_manager,
-                           const std::vector<void*>& ptr_constants,
-                           const std::vector<uint64_t>& i64_constants,
-                           const std::vector<double>& f64_constants,
-                           const std::vector<std::string>& char_array_constants,
-                           const std::vector<StructConstant>& struct_constants,
-                           const std::vector<ArrayConstant>& array_constants,
-                           const std::vector<Global>& globals,
-                           const std::vector<uint64_t>& constant_instrs,
-                           const std::vector<FunctionBuilder>& functions) {
+void ASMBackend::Translate(const Program& program) {
   code_.init(rt_.environment());
   asm_ = std::make_unique<x86::Assembler>(&code_);
 
@@ -193,13 +166,13 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   asm_->section(data_section_);
 
   // Declare all functions
-  for (const auto& function : functions) {
+  for (const auto& function : program.Functions()) {
     external_func_addr_.push_back(function.Addr());
     internal_func_labels_.push_back(asm_->newLabel());
   }
 
   // Write out all string constants
-  for (const auto& str : char_array_constants) {
+  for (const auto& str : program.CharArrayConstants()) {
     char_array_constants_.push_back(asm_->newLabel());
     asm_->bind(char_array_constants_.back());
     for (char c : str) {
@@ -209,14 +182,11 @@ void ASMBackend::Translate(const TypeManager& type_manager,
   }
 
   // Write out all global variables
-  for (const auto& global : globals) {
+  for (const auto& global : program.Globals()) {
     globals_.push_back(asm_->newLabel());
     asm_->bind(globals_.back());
     auto v = global.InitialValue();
-    OutputConstant(constant_instrs[v.GetIdx()], type_manager, constant_instrs,
-                   ptr_constants, i64_constants, f64_constants,
-                   char_array_constants, struct_constants, array_constants,
-                   globals);
+    OutputConstant(program.ConstantInstrs()[v.GetIdx()], program);
   }
 
   asm_->section(text_section_);
@@ -225,12 +195,12 @@ void ASMBackend::Translate(const TypeManager& type_manager,
       x86::rbx, x86::r12, x86::r13, x86::r14, x86::r15};
 
   // Translate all function bodies
-  for (int func_idx = 0; func_idx < functions.size(); func_idx++) {
-    const auto& func = functions[func_idx];
+  for (int func_idx = 0; func_idx < program.Functions().size(); func_idx++) {
+    const auto& func = program.Functions()[func_idx];
     if (func.External()) {
       continue;
     }
-    const auto& instructions = func.Instructions();
+    const auto& instructions = func.Instrs();
     const auto& basic_blocks = func.BasicBlocks();
 
     num_floating_point_args_ = 0;
@@ -242,7 +212,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
     function_start_end_[func.Name()] =
         std::make_pair(internal_func_labels_[func_idx], func_end_label);
 
-    auto order_analysis = DFSLabel(func.BasicBlockSuccessors());
+    auto order_analysis = DFSLabel(basic_blocks);
 
     std::vector<int> order(basic_blocks.size());
     for (int i = 0; i < basic_blocks.size(); i++) {
@@ -260,7 +230,7 @@ void ASMBackend::Translate(const TypeManager& type_manager,
         break;
 
       case RegAllocImpl::LINEAR_SCAN:
-        register_assign = LinearScanRegisterAlloc(func, type_manager);
+        register_assign = LinearScanRegisterAlloc(func, program.TypeManager());
         break;
     }
 
@@ -295,12 +265,16 @@ void ASMBackend::Translate(const TypeManager& type_manager,
       int next_bb = k + 1 < order.size() ? order[k + 1] : -1;
 
       asm_->bind(basic_blocks_impl[bb]);
-      const auto& [i_start, i_end] = basic_blocks[bb];
-      for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
-        TranslateInstr(func, type_manager, ptr_constants, i64_constants,
-                       f64_constants, basic_blocks_impl, functions, epilogue,
-                       value_offsets, instructions, constant_instrs, instr_idx,
-                       static_stack_allocator, register_assign, next_bb);
+
+      for (const auto& [seg_start, seg_end] : basic_blocks[bb].Segments()) {
+        for (int instr_idx = seg_start; instr_idx <= seg_end; instr_idx++) {
+          TranslateInstr(func, program.TypeManager(), program.PtrConstants(),
+                         program.I64Constants(), program.F64Constants(),
+                         basic_blocks_impl, program.Functions(), epilogue,
+                         value_offsets, instructions, program.ConstantInstrs(),
+                         instr_idx, static_stack_allocator, register_assign,
+                         next_bb);
+        }
       }
     }
 
@@ -2104,12 +2078,12 @@ void ASMBackend::CondBrF64Flag(
 }
 
 void ASMBackend::TranslateInstr(
-    const FunctionBuilder& current_function, const TypeManager& type_manager,
+    const Function& current_function, const TypeManager& type_manager,
     const std::vector<void*>& ptr_constants,
     const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
     const std::vector<Label>& basic_blocks,
-    const std::vector<FunctionBuilder>& functions, const Label& epilogue,
+    const std::vector<Function>& functions, const Label& epilogue,
     std::vector<int32_t>& offsets, const std::vector<uint64_t>& instructions,
     const std::vector<uint64_t>& constant_instrs, int instr_idx,
     StackSlotAllocator& stack_allocator,
@@ -3876,7 +3850,7 @@ void ASMBackend::TranslateInstr(
         } else {
           asm_->call(internal_func_labels_[reader.Arg()]);
         }
-        return_type = func.ReturnType();
+        return_type = type_manager.GetFunctionReturnType(func.Type());
 
       } else {
         Type3InstructionReader reader(instr);

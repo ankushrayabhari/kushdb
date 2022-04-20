@@ -8,7 +8,7 @@
 
 #include "khir/asm/loops.h"
 #include "khir/instruction.h"
-#include "khir/program_builder.h"
+#include "khir/program.h"
 #include "util/union_find.h"
 
 namespace std {
@@ -390,7 +390,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
   }
 }
 
-std::vector<Value> GetReadValues(int instr_idx, int bb_start, int bb_end,
+std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
                                  const std::vector<uint64_t>& instrs) {
   auto instr = instrs[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
@@ -614,7 +614,7 @@ std::vector<Value> GetReadValues(int instr_idx, int bb_start, int bb_end,
         }
       }
 
-      for (int j = instr_idx - 1; j >= bb_start; j--) {
+      for (int j = instr_idx - 1; j >= seg_start; j--) {
         auto opcode = OpcodeFrom(GenericInstructionReader(instrs[j]).Opcode());
         if (opcode == Opcode::CALL_ARG) {
           result.emplace_back(j);
@@ -637,32 +637,35 @@ std::vector<Value> GetReadValues(int instr_idx, int bb_start, int bb_end,
 }
 
 void AddExternalUses(absl::flat_hash_set<Value>& values,
-                     const std::vector<uint64_t> instrs,
-                     const std::pair<int, int>& bb,
+                     const std::vector<uint64_t> instrs, const BasicBlock& bb,
                      const TypeManager& manager) {
   absl::flat_hash_set<kush::khir::Value> written_to;
 
-  for (int i = bb.first; i <= bb.second; i++) {
-    for (auto v : GetReadValues(i, bb.first, bb.second, instrs)) {
-      if (!written_to.contains(v)) {
-        values.insert(v);
+  for (const auto& [seg_start, seg_end] : bb.Segments()) {
+    for (int i = seg_start; i <= seg_end; i++) {
+      for (auto v : GetReadValues(i, seg_start, seg_end, instrs)) {
+        if (!written_to.contains(v)) {
+          values.insert(v);
+        }
       }
-    }
 
-    auto written_value = GetWrittenValue(i, instrs, manager);
-    if (written_value.has_value()) {
-      written_to.insert(written_value.value());
+      auto written_value = GetWrittenValue(i, instrs, manager);
+      if (written_value.has_value()) {
+        written_to.insert(written_value.value());
+      }
     }
   }
 }
 
 void AddDefs(absl::flat_hash_set<Value>& values,
              const std::vector<uint64_t> instrs, const TypeManager& manager,
-             const std::pair<int, int>& bb) {
-  for (int i = bb.first; i <= bb.second; i++) {
-    auto v = GetWrittenValue(i, instrs, manager);
-    if (v.has_value()) {
-      values.insert(v.value());
+             const BasicBlock& bb) {
+  for (const auto& [seg_start, seg_end] : bb.Segments()) {
+    for (int i = seg_start; i <= seg_end; i++) {
+      auto v = GetWrittenValue(i, instrs, manager);
+      if (v.has_value()) {
+        values.insert(v.value());
+      }
     }
   }
 }
@@ -677,12 +680,10 @@ absl::flat_hash_set<Value> Union(
   return out;
 }
 
-std::vector<LiveInterval> ComputeLiveIntervals(const FunctionBuilder& func,
+std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
                                                const TypeManager& manager) {
-  auto bb = func.BasicBlocks();
-  auto bb_succ = func.BasicBlockSuccessors();
-  auto bb_pred = func.BasicBlockPredecessors();
-  const auto& instrs = func.Instructions();
+  const auto& bb = func.BasicBlocks();
+  const auto& instrs = func.Instrs();
 
   std::vector<absl::flat_hash_set<Value>> live_in(bb.size());
   std::vector<absl::flat_hash_set<Value>> uses(bb.size());
@@ -698,7 +699,7 @@ std::vector<LiveInterval> ComputeLiveIntervals(const FunctionBuilder& func,
     int curr_block = worklist.top();
     worklist.pop();
 
-    auto live_out = Union(bb_succ[curr_block], live_in);
+    auto live_out = Union(bb[curr_block].Successors(), live_in);
 
     auto initial_size = live_in[curr_block].size();
     for (auto v : live_out) {
@@ -708,7 +709,7 @@ std::vector<LiveInterval> ComputeLiveIntervals(const FunctionBuilder& func,
     }
 
     if (live_in[curr_block].size() != initial_size) {
-      for (const int pred : bb_pred[curr_block]) {
+      for (const int pred : bb[curr_block].Predecessors()) {
         worklist.push(pred);
       }
     }
@@ -721,26 +722,38 @@ std::vector<LiveInterval> ComputeLiveIntervals(const FunctionBuilder& func,
     live_intervals.emplace_back(v, TypeOf(instrs[i], instrs, manager));
   }
 
+  absl::flat_hash_map<std::tuple<int, int>, int> instr_map;
+  {
+    int total_past_instrs = 0;
+    for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
+      for (const auto& [seg_start, seg_end] : bb[bb_idx].Segments()) {
+        for (int i = seg_start; i <= seg_end; i++) {
+          instr_map[{bb_idx, i}] = total_past_instrs++;
+        }
+      }
+    }
+  }
+
   for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
-    auto currently_live = Union(bb_succ[bb_idx], live_in);
+    auto currently_live = Union(bb[bb_idx].Successors(), live_in);
 
-    const auto& [bb_start, bb_end] = bb[bb_idx];
+    for (const auto& [seg_start, seg_end] : bb[bb_idx].Segments()) {
+      for (int i = seg_end; i >= seg_start; i--) {
+        for (auto v : currently_live) {
+          live_intervals[v.GetIdx()].Extend(instr_map.at({bb_idx, i}));
+        }
 
-    for (int i = bb_end; i >= bb_start; i--) {
-      for (auto v : currently_live) {
-        live_intervals[v.GetIdx()].Extend(i);
-      }
+        auto written_value = GetWrittenValue(i, instrs, manager);
+        if (written_value.has_value()) {
+          currently_live.erase(written_value.value());
+        }
+        for (auto v : GetReadValues(i, seg_start, seg_end, instrs)) {
+          currently_live.insert(v);
+        }
 
-      auto written_value = GetWrittenValue(i, instrs, manager);
-      if (written_value.has_value()) {
-        currently_live.erase(written_value.value());
-      }
-      for (auto v : GetReadValues(i, bb_start, bb_end, instrs)) {
-        currently_live.insert(v);
-      }
-
-      for (auto v : currently_live) {
-        live_intervals[v.GetIdx()].Extend(i);
+        for (auto v : currently_live) {
+          live_intervals[v.GetIdx()].Extend(instr_map.at({bb_idx, i}));
+        }
       }
     }
 
@@ -751,22 +764,24 @@ std::vector<LiveInterval> ComputeLiveIntervals(const FunctionBuilder& func,
 
   // Create an interval for each store instruction
   for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
-    const auto& [bb_start, bb_end] = bb[bb_idx];
-    for (int i = bb_start; i <= bb_end; i++) {
-      auto i_opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
-      switch (i_opcode) {
-        case Opcode::I8_STORE:
-        case Opcode::I16_STORE:
-        case Opcode::I32_STORE:
-        case Opcode::I64_STORE:
-        case Opcode::F64_STORE:
-        case Opcode::PTR_STORE: {
-          live_intervals[i].Extend(i);
-          break;
-        }
+    for (const auto& [seg_start, seg_end] : bb[bb_idx].Segments()) {
+      for (int i = seg_start; i <= seg_end; i++) {
+        auto i_opcode =
+            OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
+        switch (i_opcode) {
+          case Opcode::I8_STORE:
+          case Opcode::I16_STORE:
+          case Opcode::I32_STORE:
+          case Opcode::I64_STORE:
+          case Opcode::F64_STORE:
+          case Opcode::PTR_STORE: {
+            live_intervals[i].Extend(instr_map.at({bb_idx, i}));
+            break;
+          }
 
-        default:
-          break;
+          default:
+            break;
+        }
       }
     }
   }
@@ -814,14 +829,14 @@ std::vector<LiveInterval> ComputeLiveIntervals(const FunctionBuilder& func,
     if (manager.IsF64Type(type)) {
       auto reg = fp_arg_reg[fp_arg_ctr++];
       LiveInterval interval(reg);
-      interval.Extend(0);
-      interval.Extend(i);
+      interval.Extend(instr_map.at({0, 0}));
+      interval.Extend(instr_map.at({0, i}));
       live_intervals.push_back(interval);
     } else {
       auto reg = normal_arg_reg[normal_arg_ctr++];
       LiveInterval interval(reg);
-      interval.Extend(0);
-      interval.Extend(i);
+      interval.Extend(instr_map.at({0, 0}));
+      interval.Extend(instr_map.at({0, i}));
       live_intervals.push_back(interval);
     }
   }
@@ -830,74 +845,75 @@ std::vector<LiveInterval> ComputeLiveIntervals(const FunctionBuilder& func,
   int normal_arg_ctr = 0;
   int fp_arg_ctr = 0;
   for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
-    const auto& [bb_start, bb_end] = bb[bb_idx];
-    for (int i = bb_start; i <= bb_end; i++) {
-      auto i_opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
-      auto i_type = TypeOf(instrs[i], instrs, manager);
-      switch (i_opcode) {
-        case Opcode::CALL_ARG: {
-          if (manager.IsF64Type(i_type)) {
-            // Passing argument by stack so just move on.
-            if (fp_arg_ctr >= fp_arg_reg.size()) {
-              fp_arg_ctr++;
+    for (const auto& [seg_start, seg_end] : bb[bb_idx].Segments()) {
+      for (int i = seg_start; i <= seg_end; i++) {
+        auto i_opcode =
+            OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
+        auto i_type = TypeOf(instrs[i], instrs, manager);
+        switch (i_opcode) {
+          case Opcode::CALL_ARG: {
+            if (manager.IsF64Type(i_type)) {
+              // Passing argument by stack so just move on.
+              if (fp_arg_ctr >= fp_arg_reg.size()) {
+                fp_arg_ctr++;
+              } else {
+                int reg = fp_arg_reg[fp_arg_ctr++];
+                live_intervals[i].ChangeToPrecolored(reg);
+              }
             } else {
-              int reg = fp_arg_reg[fp_arg_ctr++];
-              live_intervals[i].ChangeToPrecolored(reg);
+              // Passing argument by stack so just move on.
+              if (normal_arg_ctr >= normal_arg_reg.size()) {
+                normal_arg_ctr++;
+              } else {
+                int reg = normal_arg_reg[normal_arg_ctr++];
+                live_intervals[i].ChangeToPrecolored(reg);
+              }
             }
-          } else {
-            // Passing argument by stack so just move on.
-            if (normal_arg_ctr >= normal_arg_reg.size()) {
-              normal_arg_ctr++;
-            } else {
+            break;
+          }
+
+          case Opcode::CALL_INDIRECT:
+          case Opcode::CALL: {
+            // add in live intervals for all remaining arg regs since they are
+            // clobbered
+            while (normal_arg_ctr < normal_arg_reg.size()) {
               int reg = normal_arg_reg[normal_arg_ctr++];
-              live_intervals[i].ChangeToPrecolored(reg);
+              LiveInterval interval(reg);
+              interval.Extend(instr_map.at({bb_idx, i}));
+              live_intervals.push_back(interval);
             }
+
+            while (fp_arg_ctr < fp_arg_reg.size()) {
+              int reg = fp_arg_reg[fp_arg_ctr++];
+              LiveInterval interval(reg);
+              interval.Extend(instr_map.at({bb_idx, i}));
+              live_intervals.push_back(interval);
+            }
+
+            // clobber remaining caller saved registers
+            // FP registers have already been clobbered.
+            const std::vector<int> caller_saved_normal_registers = {7, 8};
+            for (int reg : caller_saved_normal_registers) {
+              LiveInterval interval(reg);
+              interval.Extend(instr_map.at({bb_idx, i}));
+              live_intervals.push_back(interval);
+            }
+
+            // reset arg counters
+            normal_arg_ctr = 0;
+            fp_arg_ctr = 0;
+            break;
           }
-          break;
+
+          default:
+            break;
         }
-
-        case Opcode::CALL_INDIRECT:
-        case Opcode::CALL: {
-          // add in live intervals for all remaining arg regs since they are
-          // clobbered
-          while (normal_arg_ctr < normal_arg_reg.size()) {
-            int reg = normal_arg_reg[normal_arg_ctr++];
-            LiveInterval interval(reg);
-            interval.Extend(i);
-            live_intervals.push_back(interval);
-          }
-
-          while (fp_arg_ctr < fp_arg_reg.size()) {
-            int reg = fp_arg_reg[fp_arg_ctr++];
-            LiveInterval interval(reg);
-            interval.Extend(i);
-            live_intervals.push_back(interval);
-          }
-
-          // clobber remaining caller saved registers
-          // FP registers have already been clobbered.
-          const std::vector<int> caller_saved_normal_registers = {7, 8};
-          for (int reg : caller_saved_normal_registers) {
-            LiveInterval interval(reg);
-            interval.Extend(i);
-            live_intervals.push_back(interval);
-          }
-
-          // reset arg counters
-          normal_arg_ctr = 0;
-          fp_arg_ctr = 0;
-          break;
-        }
-
-        default:
-          break;
       }
     }
   }
 
   // update cost of the live intervals
-  auto loop_tree =
-      FindLoops(func.BasicBlockSuccessors(), func.BasicBlockPredecessors());
+  auto loop_tree = FindLoops(bb);
   // compute depth in loop tree
   std::vector<int> loop_depth(bb.size(), 0);
   {
@@ -925,16 +941,16 @@ std::vector<LiveInterval> ComputeLiveIntervals(const FunctionBuilder& func,
   }
   // update spill costs
   for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
-    const auto& [bb_start, bb_end] = bb[bb_idx];
-
-    for (int i = bb_start; i <= bb_end; i++) {
-      auto written_value = GetWrittenValue(i, instrs, manager);
-      if (written_value.has_value()) {
-        live_intervals[written_value.value().GetIdx()].UpdateSpillCostWithUse(
-            loop_depth[bb_idx]);
-      }
-      for (auto v : GetReadValues(i, bb_start, bb_end, instrs)) {
-        live_intervals[v.GetIdx()].UpdateSpillCostWithUse(loop_depth[bb_idx]);
+    for (const auto& [seg_start, seg_end] : bb[bb_idx].Segments()) {
+      for (int i = seg_start; i <= seg_end; i++) {
+        auto written_value = GetWrittenValue(i, instrs, manager);
+        if (written_value.has_value()) {
+          live_intervals[written_value.value().GetIdx()].UpdateSpillCostWithUse(
+              loop_depth[bb_idx]);
+        }
+        for (auto v : GetReadValues(i, seg_start, seg_end, instrs)) {
+          live_intervals[v.GetIdx()].UpdateSpillCostWithUse(loop_depth[bb_idx]);
+        }
       }
     }
   }

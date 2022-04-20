@@ -18,13 +18,13 @@ namespace kush::compile {
 QueryTranslator::QueryTranslator(const plan::Operator& op) : op_(op) {}
 
 execution::ExecutableQuery QueryTranslator::Translate() {
-  khir::ProgramBuilder program;
+  khir::ProgramBuilder program_builder;
   execution::PipelineBuilder pipeline_builder;
 
-  ForwardDeclare(program);
+  ForwardDeclare(program_builder);
 
   // Generate code for operator
-  TranslatorFactory factory(program, pipeline_builder);
+  TranslatorFactory factory(program_builder, pipeline_builder);
   auto translator = factory.Compute(op_);
   translator->Produce();
 
@@ -32,25 +32,23 @@ execution::ExecutableQuery QueryTranslator::Translate() {
 
   // khir::ProgramPrinter printer;
   // program.Translate(printer);
+  auto program = program_builder.Build();
 
+  std::unique_ptr<khir::Backend> backend;
   switch (khir::GetBackendType()) {
     case khir::BackendType::ASM: {
-      auto backend =
-          std::make_unique<khir::ASMBackend>(khir::GetRegAllocImpl());
-      program.Translate(*backend);
-      return execution::ExecutableQuery(std::move(translator),
-                                        std::move(backend),
-                                        std::move(output_pipeline));
+      backend = std::make_unique<khir::ASMBackend>(khir::GetRegAllocImpl());
+      break;
     }
 
     case khir::BackendType::LLVM: {
-      auto backend = std::make_unique<khir::LLVMBackend>();
-      program.Translate(*backend);
-      return execution::ExecutableQuery(std::move(translator),
-                                        std::move(backend),
-                                        std::move(output_pipeline));
+      backend = std::make_unique<khir::LLVMBackend>();
+      break;
     }
   }
+  backend->Translate(program);
+  return execution::ExecutableQuery(std::move(translator), std::move(backend),
+                                    std::move(output_pipeline));
 }
 
 }  // namespace kush::compile

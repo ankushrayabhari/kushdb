@@ -15,17 +15,18 @@ using namespace kush::khir;
 std::unique_ptr<Backend> Compile(
     const std::pair<BackendType, khir::RegAllocImpl>& params,
     khir::ProgramBuilder& program_builder) {
+  auto program = program_builder.Build();
   switch (params.first) {
     case BackendType::ASM: {
       auto backend = std::make_unique<khir::ASMBackend>(params.second);
-      program_builder.Translate(*backend);
+      backend->Translate(program);
       backend->Compile();
       return std::move(backend);
     }
 
     case BackendType::LLVM: {
       auto backend = std::make_unique<khir::LLVMBackend>();
-      program_builder.Translate(*backend);
+      backend->Translate(program);
       backend->Compile();
       return std::move(backend);
     }

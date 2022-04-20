@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "khir/program_builder.h"
+#include "khir/backend.h"
 
 namespace kush::khir {
 

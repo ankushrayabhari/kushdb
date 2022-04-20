@@ -24,18 +24,19 @@ void* CacheEntry::Func(std::string_view name) const {
 khir::ProgramBuilder& CacheEntry::ProgramBuilder() { return program_builder_; }
 
 void CacheEntry::Compile() {
+  auto program = program_builder_.Build();
   switch (GetBackendType()) {
     case BackendType::ASM: {
       auto backend =
           std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::STACK_SPILL);
-      program_builder_.Translate(*backend);
+      backend->Translate(program);
       compiled_program_ = std::move(backend);
       break;
     }
 
     case BackendType::LLVM: {
       auto backend = std::make_unique<khir::LLVMBackend>();
-      program_builder_.Translate(*backend);
+      backend->Translate(program);
       compiled_program_ = std::move(backend);
       break;
     }

@@ -27,7 +27,18 @@ cc_library(
     srcs = ["backend.cc"],
     hdrs = ["backend.h"],
     deps = [
+        ":program",
         "@absl//absl/flags:flag",
+    ],
+)
+
+cc_library(
+    name = "program",
+    srcs = ["program.cc"],
+    hdrs = ["program.h"],
+    deps = [
+        ":type_manager",
+        ":value",
     ],
 )
 
@@ -45,7 +56,7 @@ cc_library(
     deps = [
         ":instruction",
         ":opcode",
-        ":program_builder",
+        ":program",
         "@magic_enum",
     ],
 )
@@ -57,6 +68,7 @@ cc_library(
     deps = [
         ":instruction",
         ":opcode",
+        ":program",
         ":type_manager",
         ":value",
         "@absl//absl/types:span",

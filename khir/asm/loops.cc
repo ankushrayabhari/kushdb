@@ -48,22 +48,20 @@ void ConstructLoopTreeHelper(int header,
   }
 }
 
-std::vector<std::vector<int>> FindLoops(
-    const std::vector<std::vector<int>>& bb_succ,
-    const std::vector<std::vector<int>>& bb_pred) {
-  auto dom_tree = ComputeDominatorTree(bb_succ, bb_pred);
+std::vector<std::vector<int>> FindLoops(const std::vector<BasicBlock>& bb) {
+  auto dom_tree = ComputeDominatorTree(bb);
 
-  std::vector<std::vector<int>> backedges(bb_succ.size());
-  for (int i = 0; i < bb_succ.size(); i++) {
-    for (int j : bb_succ[i]) {
+  std::vector<std::vector<int>> backedges(bb.size());
+  for (int i = 0; i < bb.size(); i++) {
+    for (int j : bb[i].Successors()) {
       if (Dominates(dom_tree, j, i)) {
         backedges[j].push_back(i);
       }
     }
   }
 
-  std::vector<absl::flat_hash_set<int>> loops(bb_succ.size());
-  for (int i = 0; i < bb_succ.size(); i++) {
+  std::vector<absl::flat_hash_set<int>> loops(bb.size());
+  for (int i = 0; i < bb.size(); i++) {
     if (backedges[i].empty()) {
       continue;
     }
@@ -72,7 +70,7 @@ std::vector<std::vector<int>> FindLoops(
     loop.insert(i);
 
     // reverse BFS from each of the backedge nodes ignoring any edge to i
-    std::vector<bool> visited(bb_succ.size(), false);
+    std::vector<bool> visited(bb.size(), false);
     visited[i] = true;
 
     std::queue<int> bfs;
@@ -86,7 +84,7 @@ std::vector<std::vector<int>> FindLoops(
       bfs.pop();
       loop.insert(z);
 
-      for (int y : bb_pred[z]) {
+      for (int y : bb[z].Predecessors()) {
         if (!visited[y]) {
           visited[y] = true;
 
@@ -99,8 +97,8 @@ std::vector<std::vector<int>> FindLoops(
   }
 
   // construct loop tree
-  std::vector<std::vector<int>> loop_tree(bb_succ.size());
-  std::vector<int> union_find(bb_succ.size());
+  std::vector<std::vector<int>> loop_tree(bb.size());
+  std::vector<int> union_find(bb.size());
   for (int i = 0; i < union_find.size(); i++) {
     union_find[i] = i;
   }

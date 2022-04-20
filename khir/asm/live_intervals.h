@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "khir/program_builder.h"
+#include "khir/program.h"
 
 namespace kush::khir {
 
@@ -41,7 +41,7 @@ class LiveInterval {
   int spill_cost_;
 };
 
-std::vector<LiveInterval> ComputeLiveIntervals(const FunctionBuilder& func,
+std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
                                                const TypeManager& manager);
 
 }  // namespace kush::khir

@@ -5,29 +5,28 @@
 
 namespace kush::khir {
 
-void DFS(int curr, const std::vector<std::vector<int>>& bb_succ,
+void DFS(int curr, const std::vector<BasicBlock>& bb,
          std::vector<int>& preorder, std::vector<int>& postorder,
          std::vector<bool>& visited, int& idx) {
   preorder[curr] = idx++;
   visited[curr] = true;
 
-  const auto& successors = bb_succ[curr];
-  for (int succ : successors) {
+  for (int succ : bb[curr].Successors()) {
     if (!visited[succ]) {
-      DFS(succ, bb_succ, preorder, postorder, visited, idx);
+      DFS(succ, bb, preorder, postorder, visited, idx);
     }
   }
 
   postorder[curr] = idx++;
 }
 
-LabelResult DFSLabel(const std::vector<std::vector<int>>& bb_succ) {
+LabelResult DFSLabel(const std::vector<BasicBlock>& bb) {
   LabelResult result;
-  std::vector<bool> visited(bb_succ.size(), false);
+  std::vector<bool> visited(bb.size(), false);
   int idx = 0;
-  result.preorder_label = std::vector<int>(bb_succ.size(), -1);
-  result.postorder_label = std::vector<int>(bb_succ.size(), -1);
-  DFS(0, bb_succ, result.preorder_label, result.postorder_label, visited, idx);
+  result.preorder_label = std::vector<int>(bb.size(), -1);
+  result.postorder_label = std::vector<int>(bb.size(), -1);
+  DFS(0, bb, result.preorder_label, result.postorder_label, visited, idx);
   return result;
 }
 

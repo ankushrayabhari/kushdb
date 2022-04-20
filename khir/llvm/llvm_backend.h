@@ -5,7 +5,8 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
-#include "khir/program_builder.h"
+#include "khir/backend.h"
+#include "khir/program.h"
 #include "khir/type_manager.h"
 
 namespace kush::khir {
@@ -30,32 +31,17 @@ class LLVMBackend : public Backend, public TypeTranslator {
                              absl::Span<const Type> arg_types) override;
   void TranslateStructType(absl::Span<const Type> elem_types) override;
 
-  // Globals
-  void Translate(const TypeManager& manager,
-                 const std::vector<void*>& ptr_constants,
-                 const std::vector<uint64_t>& i64_constants,
-                 const std::vector<double>& f64_constants,
-                 const std::vector<std::string>& char_array_constants,
-                 const std::vector<StructConstant>& struct_constants,
-                 const std::vector<ArrayConstant>& array_constants,
-                 const std::vector<Global>& globals,
-                 const std::vector<uint64_t>& constant_instrs,
-                 const std::vector<FunctionBuilder>& functions) override;
-
   // Program
+  void Translate(const Program& program) override;
+
+  // Backend
   void Compile() override;
   void* GetFunction(std::string_view name) const override;
 
  private:
   llvm::Constant* ConvertConstantInstr(
       uint64_t instr, std::vector<llvm::Constant*>& constant_values,
-      const std::vector<void*>& ptr_constants,
-      const std::vector<uint64_t>& i64_constants,
-      const std::vector<double>& f64_constants,
-      const std::vector<std::string>& char_array_constants,
-      const std::vector<StructConstant>& struct_constants,
-      const std::vector<ArrayConstant>& array_constants,
-      const std::vector<Global>& globals);
+      const Program& program);
 
   void TranslateInstr(
       const TypeManager& manager, const std::vector<llvm::Value*>& func_args,

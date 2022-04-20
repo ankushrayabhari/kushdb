@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <unordered_map>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -8,6 +9,7 @@
 
 #include "type_safe/strong_typedef.hpp"
 
+#include "khir/program.h"
 #include "khir/type_manager.h"
 #include "khir/value.h"
 
@@ -36,41 +38,6 @@ struct BasicBlockRef
 };
 
 enum class CompType { EQ, NE, LT, LE, GT, GE };
-
-class StructConstant {
- public:
-  StructConstant(khir::Type type, absl::Span<const Value> fields);
-  khir::Type Type() const;
-  absl::Span<const Value> Fields() const;
-
- private:
-  khir::Type type_;
-  std::vector<Value> fields_;
-};
-
-class ArrayConstant {
- public:
-  ArrayConstant(khir::Type type, absl::Span<const Value> elements);
-  khir::Type Type() const;
-  absl::Span<const Value> Elements() const;
-
- private:
-  khir::Type type_;
-  std::vector<Value> elements_;
-};
-
-class Global {
- public:
-  Global(khir::Type type, khir::Type ptr_to_type, Value init);
-  khir::Type PointerToType() const;
-  khir::Type Type() const;
-  Value InitialValue() const;
-
- private:
-  khir::Type type_;
-  khir::Type ptr_to_type_;
-  Value init_;
-};
 
 class ProgramBuilder;
 
@@ -105,6 +72,8 @@ class FunctionBuilder {
   const std::vector<uint64_t>& Instructions() const;
 
  private:
+  friend class ProgramBuilder;
+
   ProgramBuilder& program_builder_;
   std::string name_;
   khir::Type return_type_;
@@ -122,25 +91,6 @@ class FunctionBuilder {
   int current_basic_block_;
   bool external_;
   bool public_;
-};
-
-class Backend {
- public:
-  virtual ~Backend() = default;
-
-  virtual void Translate(const TypeManager& manager,
-                         const std::vector<void*>& ptr_constants,
-                         const std::vector<uint64_t>& i64_constants,
-                         const std::vector<double>& f64_constants,
-                         const std::vector<std::string>& char_array_constants,
-                         const std::vector<StructConstant>& struct_constants,
-                         const std::vector<ArrayConstant>& array_constants,
-                         const std::vector<Global>& globals,
-                         const std::vector<uint64_t>& constant_instrs,
-                         const std::vector<FunctionBuilder>& functions) = 0;
-
-  virtual void Compile() = 0;
-  virtual void* GetFunction(std::string_view name) const = 0;
 };
 
 class ProgramBuilder {
@@ -279,9 +229,9 @@ class ProgramBuilder {
   Value ConstantArray(Type t, absl::Span<const Value> v);
   Value Global(Type t, Value v);
 
-  void Translate(Backend& backend);
-
   const TypeManager& GetTypeManager() const;
+
+  Program Build();
 
  private:
   TypeManager type_manager_;

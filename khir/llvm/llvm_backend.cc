@@ -31,9 +31,9 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 
+#include "khir/backend.h"
 #include "khir/instruction.h"
 #include "khir/llvm/perf_jit_event_listener.h"
-#include "khir/program_builder.h"
 #include "khir/type_manager.h"
 
 namespace kush::khir {
@@ -103,13 +103,7 @@ void LLVMBackend::TranslateStructType(absl::Span<const Type> elem_types) {
 
 llvm::Constant* LLVMBackend::ConvertConstantInstr(
     uint64_t instr, std::vector<llvm::Constant*>& constant_values,
-    const std::vector<void*>& ptr_constants,
-    const std::vector<uint64_t>& i64_constants,
-    const std::vector<double>& f64_constants,
-    const std::vector<std::string>& char_array_constants,
-    const std::vector<StructConstant>& struct_constants,
-    const std::vector<ArrayConstant>& array_constants,
-    const std::vector<Global>& globals) {
+    const Program& program) {
   auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
@@ -131,18 +125,18 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
 
     case ConstantOpcode::I64_CONST: {
       return builder_->getInt64(
-          i64_constants[Type1InstructionReader(instr).Constant()]);
+          program.I64Constants()[Type1InstructionReader(instr).Constant()]);
     }
 
     case ConstantOpcode::F64_CONST: {
       return llvm::ConstantFP::get(
           builder_->getDoubleTy(),
-          f64_constants[Type1InstructionReader(instr).Constant()]);
+          program.F64Constants()[Type1InstructionReader(instr).Constant()]);
     }
 
     case ConstantOpcode::PTR_CONST: {
       auto i64_v = builder_->getInt64(reinterpret_cast<uint64_t>(
-          ptr_constants[Type1InstructionReader(instr).Constant()]));
+          program.PtrConstants()[Type1InstructionReader(instr).Constant()]));
       return llvm::ConstantExpr::getIntToPtr(i64_v, builder_->getInt8PtrTy());
     }
 
@@ -155,13 +149,14 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
 
     case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST: {
       return builder_->CreateGlobalStringPtr(
-          char_array_constants[Type1InstructionReader(instr).Constant()], "", 0,
-          module_.get());
+          program
+              .CharArrayConstants()[Type1InstructionReader(instr).Constant()],
+          "", 0, module_.get());
     }
 
     case ConstantOpcode::STRUCT_CONST: {
       const auto& x =
-          struct_constants[Type1InstructionReader(instr).Constant()];
+          program.StructConstants()[Type1InstructionReader(instr).Constant()];
       std::vector<llvm::Constant*> init;
       for (auto field_init : x.Fields()) {
         assert(field_init.IsConstantGlobal());
@@ -172,7 +167,8 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
     }
 
     case ConstantOpcode::ARRAY_CONST: {
-      const auto& x = array_constants[Type1InstructionReader(instr).Constant()];
+      const auto& x =
+          program.ArrayConstants()[Type1InstructionReader(instr).Constant()];
 
       std::vector<llvm::Constant*> init;
       for (auto element_init : x.Elements()) {
@@ -190,7 +186,8 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
     }
 
     case ConstantOpcode::GLOBAL_REF: {
-      const auto& x = globals[Type1InstructionReader(instr).Constant()];
+      const auto& x =
+          program.Globals()[Type1InstructionReader(instr).Constant()];
 
       auto type = types_[x.Type().GetID()];
 
@@ -208,21 +205,12 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
   }
 }
 
-void LLVMBackend::Translate(
-    const TypeManager& manager, const std::vector<void*>& ptr_constants,
-    const std::vector<uint64_t>& i64_constants,
-    const std::vector<double>& f64_constants,
-    const std::vector<std::string>& char_array_constants,
-    const std::vector<StructConstant>& struct_constants,
-    const std::vector<ArrayConstant>& array_constants,
-    const std::vector<Global>& globals,
-    const std::vector<uint64_t>& constant_instrs,
-    const std::vector<FunctionBuilder>& functions) {
+void LLVMBackend::Translate(const Program& program) {
   // Populate types_ array
-  manager.Translate(*this);
+  program.TypeManager().Translate(*this);
 
   // Translate all func decls
-  for (const auto& func : functions) {
+  for (const auto& func : program.Functions()) {
     std::string fn_name(func.Name());
     auto type = llvm::dyn_cast<llvm::FunctionType>(types_[func.Type().GetID()]);
     auto linkage = (func.External() || func.Public())
@@ -234,15 +222,14 @@ void LLVMBackend::Translate(
 
   // Convert all constants
   std::vector<llvm::Constant*> constant_values;
-  for (auto instr : constant_instrs) {
-    constant_values.push_back(ConvertConstantInstr(
-        instr, constant_values, ptr_constants, i64_constants, f64_constants,
-        char_array_constants, struct_constants, array_constants, globals));
+  for (auto instr : program.ConstantInstrs()) {
+    constant_values.push_back(
+        ConvertConstantInstr(instr, constant_values, program));
   }
 
   // Translate all func bodies
-  for (int func_idx = 0; func_idx < functions.size(); func_idx++) {
-    const auto& func = functions[func_idx];
+  for (int func_idx = 0; func_idx < program.Functions().size(); func_idx++) {
+    const auto& func = program.Functions()[func_idx];
     if (func.External()) {
       external_functions_.emplace_back(func.Name(), func.Addr());
       continue;
@@ -258,9 +245,8 @@ void LLVMBackend::Translate(
       args.push_back(&a);
     }
 
-    const auto& instructions = func.Instructions();
+    const auto& instructions = func.Instrs();
     const auto& basic_blocks = func.BasicBlocks();
-    const auto& basic_block_order = func.BasicBlockOrder();
 
     absl::flat_hash_map<uint32_t,
                         std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>
@@ -273,14 +259,14 @@ void LLVMBackend::Translate(
           llvm::BasicBlock::Create(*context_, "", function));
     }
 
-    for (int i : basic_block_order) {
-      const auto& [i_start, i_end] = basic_blocks[i];
-
+    for (int i = 0; i < basic_blocks.size(); i++) {
       builder_->SetInsertPoint(basic_blocks_impl[i]);
-      for (int instr_idx = i_start; instr_idx <= i_end; instr_idx++) {
-        TranslateInstr(manager, args, basic_blocks_impl, values,
-                       constant_values, phi_member_list, instructions,
-                       instr_idx);
+      for (const auto& [b_start, b_end] : basic_blocks[i].Segments()) {
+        for (int instr_idx = b_start; instr_idx <= b_end; instr_idx++) {
+          TranslateInstr(program.TypeManager(), args, basic_blocks_impl, values,
+                         constant_values, phi_member_list, instructions,
+                         instr_idx);
+        }
       }
     }
   }

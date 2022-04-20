@@ -82,29 +82,6 @@ const std::vector<uint64_t>& FunctionBuilder::Instructions() const {
   return instructions_;
 }
 
-StructConstant::StructConstant(khir::Type type, absl::Span<const Value> fields)
-    : type_(type), fields_(fields.begin(), fields.end()) {}
-
-khir::Type StructConstant::Type() const { return type_; }
-
-absl::Span<const Value> StructConstant::Fields() const { return fields_; }
-
-ArrayConstant::ArrayConstant(khir::Type type, absl::Span<const Value> elements)
-    : type_(type), elements_(elements.begin(), elements.end()) {}
-
-khir::Type ArrayConstant::Type() const { return type_; }
-
-absl::Span<const Value> ArrayConstant::Elements() const { return elements_; }
-
-Global::Global(khir::Type type, khir::Type ptr_to_type, Value init)
-    : type_(type), ptr_to_type_(ptr_to_type), init_(init) {}
-
-Type Global::Type() const { return type_; }
-
-Value Global::InitialValue() const { return init_; }
-
-Type Global::PointerToType() const { return ptr_to_type_; }
-
 bool IsTerminatingInstr(Opcode opcode) {
   switch (opcode) {
     case Opcode::BR:
@@ -2316,14 +2293,34 @@ Value ProgramBuilder::ConstGEP(Type t, Value v, absl::Span<const int32_t> idx) {
                                          .Build());
 }
 
-void ProgramBuilder::Translate(Backend& backend) {
-  backend.Translate(type_manager_, ptr_constants_, i64_constants_,
-                    f64_constants_, char_array_constants_, struct_constants_,
-                    array_constants_, globals_, constant_instrs_, functions_);
-}
-
 const TypeManager& ProgramBuilder::GetTypeManager() const {
   return type_manager_;
+}
+
+Program ProgramBuilder::Build() {
+  std::vector<Function> functions;
+  for (auto& func : functions_) {
+    if (func.External()) {
+      functions.emplace_back(std::move(func.name_), func.Type(), func.Addr());
+      continue;
+    }
+
+    std::vector<BasicBlock> basic_blocks;
+    for (int i = 0; i < func.basic_blocks_.size(); i++) {
+      basic_blocks.emplace_back(
+          std::vector<std::pair<int, int>>{func.basic_blocks_[i]},
+          func.basic_block_successors_[i], func.basic_block_predecessors_[i]);
+    }
+    functions.emplace_back(std::move(func.name_), func.Type(), func.Public(),
+                           std::move(func.instructions_),
+                           std::move(basic_blocks));
+  }
+
+  return Program(std::move(type_manager_), std::move(functions),
+                 std::move(constant_instrs_), std::move(ptr_constants_),
+                 std::move(i64_constants_), std::move(f64_constants_),
+                 std::move(char_array_constants_), std::move(struct_constants_),
+                 std::move(array_constants_), std::move(globals_));
 }
 
 }  // namespace kush::khir

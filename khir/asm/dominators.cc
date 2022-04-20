@@ -9,7 +9,7 @@
 
 namespace kush::khir {
 
-void POHelper(int curr, const std::vector<std::vector<int>>& bb_succ,
+void POHelper(int curr, const std::vector<BasicBlock>& bb,
               std::vector<bool>& visited, std::vector<int>& result) {
   if (visited[curr]) {
     return;
@@ -17,25 +17,24 @@ void POHelper(int curr, const std::vector<std::vector<int>>& bb_succ,
 
   visited[curr] = true;
 
-  for (auto s : bb_succ[curr]) {
-    POHelper(s, bb_succ, visited, result);
+  for (auto s : bb[curr].Successors()) {
+    POHelper(s, bb, visited, result);
   }
 
   result.push_back(curr);
 }
 
-std::vector<int> GeneratePO(const std::vector<std::vector<int>>& bb_succ) {
-  std::vector<bool> visited(bb_succ.size(), false);
+std::vector<int> GeneratePO(const std::vector<BasicBlock>& bb) {
+  std::vector<bool> visited(bb.size(), false);
   std::vector<int> result;
-  POHelper(0, bb_succ, visited, result);
+  POHelper(0, bb, visited, result);
   return result;
 }
 
 std::vector<std::vector<int>> ComputeDominatorTree(
-    const std::vector<std::vector<int>>& bb_succ,
-    const std::vector<std::vector<int>>& bb_pred) {
-  int num_blocks = bb_succ.size();
-  auto po = GeneratePO(bb_succ);
+    const std::vector<BasicBlock>& bb) {
+  int num_blocks = bb.size();
+  auto po = GeneratePO(bb);
   std::vector<int> label(num_blocks, -1);
   for (int i = 0; i < po.size(); i++) {
     label[po[i]] = i;
@@ -56,7 +55,7 @@ std::vector<std::vector<int>> ComputeDominatorTree(
       }
 
       int new_idom = -1;
-      for (auto p : bb_pred[b]) {
+      for (auto p : bb[b].Predecessors()) {
         if (idom[p] < 0) {
           continue;
         }
