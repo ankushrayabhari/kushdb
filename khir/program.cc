@@ -42,6 +42,8 @@ const std::vector<std::pair<int, int>>& BasicBlock::Segments() const {
   return segments_;
 }
 
+std::vector<std::pair<int, int>>& BasicBlock::Segments() { return segments_; }
+
 const std::vector<int>& BasicBlock::Successors() const { return succ_; }
 
 const std::vector<int>& BasicBlock::Predecessors() const { return pred_; }

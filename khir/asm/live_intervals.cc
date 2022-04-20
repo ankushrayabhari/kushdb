@@ -737,7 +737,9 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
   for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
     auto currently_live = Union(bb[bb_idx].Successors(), live_in);
 
-    for (const auto& [seg_start, seg_end] : bb[bb_idx].Segments()) {
+    for (int seg_idx = bb[bb_idx].Segments().size() - 1; seg_idx >= 0;
+         seg_idx--) {
+      auto [seg_start, seg_end] = bb[bb_idx].Segments()[seg_idx];
       for (int i = seg_end; i >= seg_start; i--) {
         for (auto v : currently_live) {
           live_intervals[v.GetIdx()].Extend(instr_map.at({bb_idx, i}));

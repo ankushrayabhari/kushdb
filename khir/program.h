@@ -51,6 +51,7 @@ class BasicBlock {
   const std::vector<std::pair<int, int>>& Segments() const;
   const std::vector<int>& Successors() const;
   const std::vector<int>& Predecessors() const;
+  std::vector<std::pair<int, int>>& Segments();
   void SetSuccessors(std::vector<int> succ);
   void SetPredecessors(std::vector<int> pred);
 
