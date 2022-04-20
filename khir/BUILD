@@ -23,6 +23,16 @@ cc_library(
 )
 
 cc_library(
+    name = "cfg_simplify",
+    srcs = ["cfg_simplify.cc"],
+    hdrs = ["cfg_simplify.h"],
+    deps = [
+        ":instruction",
+        ":program",
+    ],
+)
+
+cc_library(
     name = "backend",
     srcs = ["backend.cc"],
     hdrs = ["backend.h"],
@@ -66,6 +76,7 @@ cc_library(
     srcs = ["program_builder.cc"],
     hdrs = ["program_builder.h"],
     deps = [
+        ":cfg_simplify",
         ":instruction",
         ":opcode",
         ":program",

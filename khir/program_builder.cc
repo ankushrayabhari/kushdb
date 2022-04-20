@@ -8,6 +8,7 @@
 
 #include "type_safe/strong_typedef.hpp"
 
+#include "khir/cfg_simplify.h"
 #include "khir/instruction.h"
 #include "khir/opcode.h"
 
@@ -265,7 +266,6 @@ void ProgramBuilder::Branch(BasicBlockRef b) {
 }
 
 void ProgramBuilder::Branch(Value cond, BasicBlockRef b1, BasicBlockRef b2) {
-  /*
   if (cond.IsConstantGlobal()) {
     auto value =
         Type1InstructionReader(constant_instrs_[cond.GetIdx()]).Constant();
@@ -276,7 +276,6 @@ void ProgramBuilder::Branch(Value cond, BasicBlockRef b1, BasicBlockRef b2) {
       return Branch(b2);
     }
   }
-  */
 
   GetCurrentFunction().Append(Type5InstructionBuilder()
                                   .SetOpcode(OpcodeTo(Opcode::CONDBR))
@@ -2311,6 +2310,7 @@ Program ProgramBuilder::Build() {
           std::vector<std::pair<int, int>>{func.basic_blocks_[i]},
           func.basic_block_successors_[i], func.basic_block_predecessors_[i]);
     }
+    basic_blocks = CFGSimplify(func.instructions_, std::move(basic_blocks));
     functions.emplace_back(std::move(func.name_), func.Type(), func.Public(),
                            std::move(func.instructions_),
                            std::move(basic_blocks));

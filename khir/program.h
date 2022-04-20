@@ -51,11 +51,13 @@ class BasicBlock {
   const std::vector<std::pair<int, int>>& Segments() const;
   const std::vector<int>& Successors() const;
   const std::vector<int>& Predecessors() const;
+  void SetSuccessors(std::vector<int> succ);
+  void SetPredecessors(std::vector<int> pred);
 
  private:
-  const std::vector<std::pair<int, int>> segments_;
-  const std::vector<int> succ_;
-  const std::vector<int> pred_;
+  std::vector<std::pair<int, int>> segments_;
+  std::vector<int> succ_;
+  std::vector<int> pred_;
 };
 
 class Function {
@@ -78,14 +80,14 @@ class Function {
   const std::vector<BasicBlock>& BasicBlocks() const;
 
  private:
-  const bool external_;
-  void* const addr_;
+  bool external_;
+  void* addr_;
 
-  const std::string name_;
-  const khir::Type type_;
-  const bool public_;
-  const std::vector<uint64_t> instructions_;
-  const std::vector<BasicBlock> basic_blocks_;
+  std::string name_;
+  khir::Type type_;
+  bool public_;
+  std::vector<uint64_t> instructions_;
+  std::vector<BasicBlock> basic_blocks_;
 };
 
 class Program {
@@ -111,16 +113,16 @@ class Program {
   const std::vector<Global>& Globals() const;
 
  private:
-  const khir::TypeManager type_manager_;
-  const std::vector<Function> functions_;
-  const std::vector<uint64_t> constant_instrs_;
-  const std::vector<void*> ptr_constants_;
-  const std::vector<uint64_t> i64_constants_;
-  const std::vector<double> f64_constants_;
-  const std::vector<std::string> char_array_constants_;
-  const std::vector<StructConstant> struct_constants_;
-  const std::vector<ArrayConstant> array_constants_;
-  const std::vector<Global> globals_;
+  khir::TypeManager type_manager_;
+  std::vector<Function> functions_;
+  std::vector<uint64_t> constant_instrs_;
+  std::vector<void*> ptr_constants_;
+  std::vector<uint64_t> i64_constants_;
+  std::vector<double> f64_constants_;
+  std::vector<std::string> char_array_constants_;
+  std::vector<StructConstant> struct_constants_;
+  std::vector<ArrayConstant> array_constants_;
+  std::vector<Global> globals_;
 };
 
 class ProgramTranslator {

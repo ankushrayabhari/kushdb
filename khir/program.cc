@@ -46,6 +46,14 @@ const std::vector<int>& BasicBlock::Successors() const { return succ_; }
 
 const std::vector<int>& BasicBlock::Predecessors() const { return pred_; }
 
+void BasicBlock::SetSuccessors(std::vector<int> succ) {
+  succ_ = std::move(succ);
+}
+
+void BasicBlock::SetPredecessors(std::vector<int> pred) {
+  pred_ = std::move(pred);
+}
+
 Function::Function(std::string name, khir::Type type, bool pub,
                    std::vector<uint64_t> instructions,
                    std::vector<BasicBlock> basic_blocks)
