@@ -2,7 +2,7 @@ load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
     name = "q01_test",
-    size = "small",
+    size = "large",
     srcs = ["q01_test.cc"],
     data = [
         "q01_expected.tbl",
@@ -36,7 +36,7 @@ cc_test(
 
 cc_test(
     name = "q02_test",
-    size = "small",
+    size = "large",
     srcs = ["q02_test.cc"],
     data = [
         "q02_expected.tbl",
@@ -70,7 +70,7 @@ cc_test(
 
 cc_test(
     name = "q02_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q02_skinner_test.cc"],
     data = [
         "q02_expected.tbl",
@@ -104,7 +104,7 @@ cc_test(
 
 cc_test(
     name = "q03_test",
-    size = "small",
+    size = "large",
     srcs = ["q03_test.cc"],
     data = [
         "q03_expected.tbl",
@@ -138,7 +138,7 @@ cc_test(
 
 cc_test(
     name = "q03_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q03_skinner_test.cc"],
     data = [
         "q03_expected.tbl",
@@ -172,7 +172,7 @@ cc_test(
 
 cc_test(
     name = "q05_test",
-    size = "small",
+    size = "large",
     srcs = ["q05_test.cc"],
     data = [
         "q05_expected.tbl",
@@ -206,7 +206,7 @@ cc_test(
 
 cc_test(
     name = "q05_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q05_skinner_test.cc"],
     data = [
         "q05_expected.tbl",
@@ -240,7 +240,7 @@ cc_test(
 
 cc_test(
     name = "q06_test",
-    size = "small",
+    size = "large",
     srcs = ["q06_test.cc"],
     data = [
         "q06_expected.tbl",
@@ -274,7 +274,7 @@ cc_test(
 
 cc_test(
     name = "q06_skinner_test",
-    size = "small",
+    size = "large",
     srcs = ["q06_skinner_test.cc"],
     data = [
         "q06_expected.tbl",
@@ -308,7 +308,7 @@ cc_test(
 
 cc_test(
     name = "q07_test",
-    size = "small",
+    size = "large",
     srcs = ["q07_test.cc"],
     data = [
         "q07_expected.tbl",
@@ -342,7 +342,7 @@ cc_test(
 
 cc_test(
     name = "q07_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q07_skinner_test.cc"],
     data = [
         "q07_expected.tbl",
@@ -376,7 +376,7 @@ cc_test(
 
 cc_test(
     name = "q08_test",
-    size = "small",
+    size = "large",
     srcs = ["q08_test.cc"],
     data = [
         "q08_expected.tbl",
@@ -410,7 +410,7 @@ cc_test(
 
 cc_test(
     name = "q08_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q08_skinner_test.cc"],
     data = [
         "q08_expected.tbl",
@@ -444,7 +444,7 @@ cc_test(
 
 cc_test(
     name = "q09_test",
-    size = "small",
+    size = "large",
     srcs = ["q09_test.cc"],
     data = [
         "q09_expected.tbl",
@@ -478,7 +478,7 @@ cc_test(
 
 cc_test(
     name = "q09_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q09_skinner_test.cc"],
     data = [
         "q09_expected.tbl",
@@ -512,7 +512,7 @@ cc_test(
 
 cc_test(
     name = "q10_test",
-    size = "small",
+    size = "large",
     srcs = ["q10_test.cc"],
     data = [
         "q10_expected.tbl",
@@ -546,7 +546,7 @@ cc_test(
 
 cc_test(
     name = "q10_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q10_skinner_test.cc"],
     data = [
         "q10_expected.tbl",
@@ -580,7 +580,7 @@ cc_test(
 
 cc_test(
     name = "q11_test",
-    size = "small",
+    size = "large",
     srcs = ["q11_test.cc"],
     data = [
         "q11_expected.tbl",
@@ -614,7 +614,7 @@ cc_test(
 
 cc_test(
     name = "q11_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q11_skinner_test.cc"],
     data = [
         "q11_expected.tbl",
@@ -648,7 +648,7 @@ cc_test(
 
 cc_test(
     name = "q12_test",
-    size = "small",
+    size = "large",
     srcs = ["q12_test.cc"],
     data = [
         "q12_expected.tbl",
@@ -682,7 +682,7 @@ cc_test(
 
 cc_test(
     name = "q12_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q12_skinner_test.cc"],
     data = [
         "q12_expected.tbl",
@@ -716,7 +716,7 @@ cc_test(
 
 cc_test(
     name = "q14_test",
-    size = "small",
+    size = "large",
     srcs = ["q14_test.cc"],
     data = [
         "q14_expected.tbl",
@@ -750,7 +750,7 @@ cc_test(
 
 cc_test(
     name = "q14_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q14_skinner_test.cc"],
     data = [
         "q14_expected.tbl",
@@ -784,7 +784,7 @@ cc_test(
 
 cc_test(
     name = "q18_test",
-    size = "small",
+    size = "large",
     srcs = ["q18_test.cc"],
     data = [
         "q18_expected.tbl",
@@ -818,7 +818,7 @@ cc_test(
 
 cc_test(
     name = "q18_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q18_skinner_test.cc"],
     data = [
         "q18_expected.tbl",
@@ -852,7 +852,7 @@ cc_test(
 
 cc_test(
     name = "q19_test",
-    size = "small",
+    size = "large",
     srcs = ["q19_test.cc"],
     data = [
         "q19_expected.tbl",
@@ -886,7 +886,7 @@ cc_test(
 
 cc_test(
     name = "q19_skinner_test",
-    size = "medium",
+    size = "large",
     srcs = ["q19_skinner_test.cc"],
     data = [
         "q19_expected.tbl",
