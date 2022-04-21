@@ -21,9 +21,9 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Host.h"
-#include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
@@ -698,8 +698,7 @@ void LLVMBackend::TranslateInstr(
     case Opcode::CALL_INDIRECT: {
       Type3InstructionReader reader(instr);
       auto func = GetValue(Value(reader.Arg()), constant_values, values);
-      auto func_type =
-          llvm::dyn_cast<llvm::PointerType>(func->getType())->getElementType();
+      auto func_type = func->getType()->getPointerElementType();
       values[instr_idx] = llvm::CallInst::Create(
           llvm::dyn_cast<llvm::FunctionType>(func_type), func, call_args_, "",
           builder_->GetInsertBlock());
