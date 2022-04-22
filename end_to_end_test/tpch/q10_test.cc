@@ -51,10 +51,10 @@ std::unique_ptr<Operator> SelectOrders() {
 
   std::unique_ptr<Expression> cond;
   {
-    std::unique_ptr<Expression> geq = Geq(ColRef(scan_orders, "o_orderdate"),
-                                          Literal(absl::CivilDay(1995, 1, 1)));
-    std::unique_ptr<Expression> lt = Lt(ColRef(scan_orders, "o_orderdate"),
-                                        Literal(absl::CivilDay(1995, 4, 1)));
+    std::unique_ptr<Expression> geq =
+        Geq(ColRef(scan_orders, "o_orderdate"), Literal(1995, 1, 1));
+    std::unique_ptr<Expression> lt =
+        Lt(ColRef(scan_orders, "o_orderdate"), Literal(1995, 4, 1));
     cond = And(util::MakeVector(std::move(geq), std::move(lt)));
   }
 

@@ -105,7 +105,7 @@ void Printer::ForwardDeclare(khir::ProgramBuilder& program) {
       i64_fn_name, program.VoidType(), {program.I64Type()},
       reinterpret_cast<void*>(&runtime::Printer::PrintInt64));
   program.DeclareExternalFunction(
-      date_fn_name, program.VoidType(), {program.I64Type()},
+      date_fn_name, program.VoidType(), {program.I32Type()},
       reinterpret_cast<void*>(&runtime::Printer::PrintDate));
   program.DeclareExternalFunction(
       f64_fn_name, program.VoidType(), {program.F64Type()},
@@ -134,7 +134,7 @@ void Printer::ForwardDeclare(khir::ProgramBuilder& program) {
       i64_fn_name_debug, program.VoidType(), {program.I64Type()},
       reinterpret_cast<void*>(&runtime::Printer::PrintInt64Debug));
   program.DeclareExternalFunction(
-      date_fn_name_debug, program.VoidType(), {program.I64Type()},
+      date_fn_name_debug, program.VoidType(), {program.I32Type()},
       reinterpret_cast<void*>(&runtime::Printer::PrintDateDebug));
   program.DeclareExternalFunction(
       f64_fn_name_debug, program.VoidType(), {program.F64Type()},

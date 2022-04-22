@@ -63,10 +63,10 @@ std::unique_ptr<Operator> SelectLineitem() {
       Lt(ColRef(lineitem, "l_commitdate"), ColRef(lineitem, "l_receiptdate"));
   std::unique_ptr<Expression> p4 =
       Lt(ColRef(lineitem, "l_shipdate"), ColRef(lineitem, "l_commitdate"));
-  std::unique_ptr<Expression> p5 = Geq(ColRef(lineitem, "l_receiptdate"),
-                                       Literal(absl::CivilDay(1994, 1, 1)));
-  std::unique_ptr<Expression> p6 = Lt(ColRef(lineitem, "l_receiptdate"),
-                                      Literal(absl::CivilDay(1995, 1, 1)));
+  std::unique_ptr<Expression> p5 =
+      Geq(ColRef(lineitem, "l_receiptdate"), Literal(1994, 1, 1));
+  std::unique_ptr<Expression> p6 =
+      Lt(ColRef(lineitem, "l_receiptdate"), Literal(1995, 1, 1));
 
   auto cond =
       And(util::MakeVector(std::move(or_expr), std::move(p3), std::move(p4),

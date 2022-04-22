@@ -51,9 +51,8 @@ TEST_P(GroupByAggregateTest, DateCol) {
     }
 
     // Group By
-    std::unique_ptr<Expression> cheated =
-        Case(ColRefE(base, "cheated"), Literal(absl::CivilDay(1993, 1, 1)),
-             Literal(absl::CivilDay(1200, 12, 31)));
+    std::unique_ptr<Expression> cheated = Case(
+        ColRefE(base, "cheated"), Literal(1993, 1, 1), Literal(1200, 12, 31));
 
     // Aggregate
     auto min = Min(ColRef(base, "date"));

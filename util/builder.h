@@ -5,8 +5,6 @@
 #include <memory>
 #include <string>
 
-#include "absl/time/civil_time.h"
-
 #include "re2/re2.h"
 
 #include "catalog/catalog.h"
@@ -28,6 +26,7 @@
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
 #include "plan/operator/skinner_join_operator.h"
+#include "runtime/date.h"
 #include "util/vector_util.h"
 
 namespace kush::util {
@@ -75,6 +74,12 @@ std::unique_ptr<kush::plan::Expression> Exp(T t) {
 template <typename T>
 std::unique_ptr<kush::plan::LiteralExpression> Literal(T t) {
   return std::make_unique<kush::plan::LiteralExpression>(t);
+}
+
+std::unique_ptr<kush::plan::LiteralExpression> Literal(int32_t y, int32_t m,
+                                                       int32_t d) {
+  return std::make_unique<kush::plan::LiteralExpression>(
+      runtime::Date::DateBuilder(y, m, d));
 }
 
 std::unique_ptr<kush::plan::BinaryArithmeticExpression> Eq(

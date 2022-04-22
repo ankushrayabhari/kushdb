@@ -235,10 +235,10 @@ template <catalog::SqlType S>
 std::string_view TypeName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return "kush::runtime::MemoryColumnIndex::Int16Index";
-  } else if constexpr (catalog::SqlType::INT == S) {
-    return "kush::runtime::MemoryColumnIndex::Int32Index";
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
+  } else if constexpr (catalog::SqlType::INT == S ||
                        catalog::SqlType::DATE == S) {
+    return "kush::runtime::MemoryColumnIndex::Int32Index";
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return "kush::runtime::MemoryColumnIndex::Int64Index";
   } else if constexpr (catalog::SqlType::REAL == S) {
     return "kush::runtime::MemoryColumnIndex::Float64Index";
@@ -253,10 +253,10 @@ template <catalog::SqlType S>
 std::string_view CreateFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return "kush::runtime::MemoryColumnIndex::CreateInt16Index";
-  } else if constexpr (catalog::SqlType::INT == S) {
-    return "kush::runtime::MemoryColumnIndex::CreateInt32Index";
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
+  } else if constexpr (catalog::SqlType::INT == S ||
                        catalog::SqlType::DATE == S) {
+    return "kush::runtime::MemoryColumnIndex::CreateInt32Index";
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return "kush::runtime::MemoryColumnIndex::CreateInt64Index";
   } else if constexpr (catalog::SqlType::REAL == S) {
     return "kush::runtime::MemoryColumnIndex::CreateFloat64Index";
@@ -272,11 +272,11 @@ void* CreateFn() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return reinterpret_cast<void*>(
         &runtime::MemoryColumnIndex::CreateInt16Index);
-  } else if constexpr (catalog::SqlType::INT == S) {
+  } else if constexpr (catalog::SqlType::INT == S ||
+                       catalog::SqlType::DATE == S) {
     return reinterpret_cast<void*>(
         &runtime::MemoryColumnIndex::CreateInt32Index);
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
-                       catalog::SqlType::DATE == S) {
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return reinterpret_cast<void*>(
         &runtime::MemoryColumnIndex::CreateInt64Index);
   } else if constexpr (catalog::SqlType::REAL == S) {
@@ -295,10 +295,10 @@ template <catalog::SqlType S>
 std::string_view FreeFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return "kush::runtime::MemoryColumnIndex::FreeInt16Index";
-  } else if constexpr (catalog::SqlType::INT == S) {
-    return "kush::runtime::MemoryColumnIndex::FreeInt32Index";
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
+  } else if constexpr (catalog::SqlType::INT == S ||
                        catalog::SqlType::DATE == S) {
+    return "kush::runtime::MemoryColumnIndex::FreeInt32Index";
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return "kush::runtime::MemoryColumnIndex::FreeInt64Index";
   } else if constexpr (catalog::SqlType::REAL == S) {
     return "kush::runtime::MemoryColumnIndex::FreeFloat64Index";
@@ -313,10 +313,10 @@ template <catalog::SqlType S>
 void* FreeFn() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FreeInt16Index);
-  } else if constexpr (catalog::SqlType::INT == S) {
-    return reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FreeInt32Index);
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
+  } else if constexpr (catalog::SqlType::INT == S ||
                        catalog::SqlType::DATE == S) {
+    return reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FreeInt32Index);
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FreeInt64Index);
   } else if constexpr (catalog::SqlType::REAL == S) {
     return reinterpret_cast<void*>(
@@ -332,10 +332,10 @@ template <catalog::SqlType S>
 std::string_view GetBucketFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return "kush::runtime::MemoryColumnIndex::GetBucketInt16Index";
-  } else if constexpr (catalog::SqlType::INT == S) {
-    return "kush::runtime::MemoryColumnIndex::GetBucketInt32Index";
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
+  } else if constexpr (catalog::SqlType::INT == S ||
                        catalog::SqlType::DATE == S) {
+    return "kush::runtime::MemoryColumnIndex::GetBucketInt32Index";
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return "kush::runtime::MemoryColumnIndex::GetBucketInt64Index";
   } else if constexpr (catalog::SqlType::REAL == S) {
     return "kush::runtime::MemoryColumnIndex::GetBucketFloat64Index";
@@ -351,11 +351,11 @@ void* GetBucketFn() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return reinterpret_cast<void*>(
         &runtime::MemoryColumnIndex::GetBucketInt16Index);
-  } else if constexpr (catalog::SqlType::INT == S) {
+  } else if constexpr (catalog::SqlType::INT == S ||
+                       catalog::SqlType::DATE == S) {
     return reinterpret_cast<void*>(
         &runtime::MemoryColumnIndex::GetBucketInt32Index);
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
-                       catalog::SqlType::DATE == S) {
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return reinterpret_cast<void*>(
         &runtime::MemoryColumnIndex::GetBucketInt64Index);
   } else if constexpr (catalog::SqlType::REAL == S) {
@@ -374,10 +374,10 @@ template <catalog::SqlType S>
 std::string_view InsertFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return "kush::runtime::MemoryColumnIndex::InsertInt16Index";
-  } else if constexpr (catalog::SqlType::INT == S) {
-    return "kush::runtime::MemoryColumnIndex::InsertInt32Index";
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
+  } else if constexpr (catalog::SqlType::INT == S ||
                        catalog::SqlType::DATE == S) {
+    return "kush::runtime::MemoryColumnIndex::InsertInt32Index";
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return "kush::runtime::MemoryColumnIndex::InsertInt64Index";
   } else if constexpr (catalog::SqlType::REAL == S) {
     return "kush::runtime::MemoryColumnIndex::InsertFloat64Index";
@@ -393,11 +393,11 @@ void* InsertFn() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return reinterpret_cast<void*>(
         &runtime::MemoryColumnIndex::InsertInt16Index);
-  } else if constexpr (catalog::SqlType::INT == S) {
+  } else if constexpr (catalog::SqlType::INT == S ||
+                       catalog::SqlType::DATE == S) {
     return reinterpret_cast<void*>(
         &runtime::MemoryColumnIndex::InsertInt32Index);
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
-                       catalog::SqlType::DATE == S) {
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return reinterpret_cast<void*>(
         &runtime::MemoryColumnIndex::InsertInt64Index);
   } else if constexpr (catalog::SqlType::REAL == S) {
@@ -481,21 +481,16 @@ std::unique_ptr<ColumnIndex> MemoryColumnIndex<S>::Regenerate(
 
 template <catalog::SqlType S>
 void MemoryColumnIndex<S>::ForwardDeclare(khir::ProgramBuilder& program) {
-  std::optional<khir::Type> index_type;
-  if constexpr (catalog::SqlType::DATE == S) {
-    index_type = program.GetOpaqueType(TypeName<S>());
-  } else {
-    index_type = program.OpaqueType(TypeName<S>());
-  }
-  auto index_ptr_type = program.PointerType(index_type.value());
+  auto index_type = program.OpaqueType(TypeName<S>());
+  auto index_ptr_type = program.PointerType(index_type);
 
   std::optional<khir::Type> value_type;
   if constexpr (catalog::SqlType::SMALLINT == S) {
     value_type = program.I16Type();
-  } else if constexpr (catalog::SqlType::INT == S) {
-    value_type = program.I32Type();
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
+  } else if constexpr (catalog::SqlType::INT == S ||
                        catalog::SqlType::DATE == S) {
+    value_type = program.I32Type();
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     value_type = program.I64Type();
   } else if constexpr (catalog::SqlType::REAL == S) {
     value_type = program.F64Type();
@@ -546,10 +541,10 @@ template <catalog::SqlType S>
 std::string_view DiskColumnIndexGetBucketFnName() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return "kush::runtime::ColumnIndex::GetInt16";
-  } else if constexpr (catalog::SqlType::INT == S) {
-    return "kush::runtime::ColumnIndex::GetInt32";
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
+  } else if constexpr (catalog::SqlType::INT == S ||
                        catalog::SqlType::DATE == S) {
+    return "kush::runtime::ColumnIndex::GetInt32";
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return "kush::runtime::ColumnIndex::GetInt64";
   } else if constexpr (catalog::SqlType::REAL == S) {
     return "kush::runtime::ColumnIndex::GetFloat64";
@@ -564,10 +559,10 @@ template <catalog::SqlType S>
 void* DiskColumnIndexGetBucketFn() {
   if constexpr (catalog::SqlType::SMALLINT == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt16);
-  } else if constexpr (catalog::SqlType::INT == S) {
-    return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt32);
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
+  } else if constexpr (catalog::SqlType::INT == S ||
                        catalog::SqlType::DATE == S) {
+    return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt32);
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt64);
   } else if constexpr (catalog::SqlType::REAL == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetFloat64);
@@ -669,10 +664,10 @@ void DiskColumnIndex<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   std::optional<khir::Type> key_type;
   if constexpr (catalog::SqlType::SMALLINT == S) {
     key_type = program.I16Type();
-  } else if constexpr (catalog::SqlType::INT == S) {
-    key_type = program.I32Type();
-  } else if constexpr (catalog::SqlType::BIGINT == S ||
+  } else if constexpr (catalog::SqlType::INT == S ||
                        catalog::SqlType::DATE == S) {
+    key_type = program.I32Type();
+  } else if constexpr (catalog::SqlType::BIGINT == S) {
     key_type = program.I64Type();
   } else if constexpr (catalog::SqlType::REAL == S) {
     key_type = program.F64Type();

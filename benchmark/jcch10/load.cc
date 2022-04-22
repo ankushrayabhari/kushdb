@@ -110,9 +110,9 @@ void Lineitem() {
     DECLARE_NOT_NULL_COL(double, l_extendedprice);
     DECLARE_NOT_NULL_COL(double, l_discount);
     DECLARE_NOT_NULL_COL(double, l_tax);
-    DECLARE_NOT_NULL_COL(int64_t, l_shipdate);
-    DECLARE_NOT_NULL_COL(int64_t, l_commitdate);
-    DECLARE_NOT_NULL_COL(int64_t, l_receiptdate);
+    DECLARE_NOT_NULL_COL(int32_t, l_shipdate);
+    DECLARE_NOT_NULL_COL(int32_t, l_commitdate);
+    DECLARE_NOT_NULL_COL(int32_t, l_receiptdate);
 
     std::ifstream fin(raw + "lineitem.tbl");
     int32_t tuple_idx = 0;
@@ -142,9 +142,9 @@ void Lineitem() {
     SERIALIZE_NOT_NULL(double, l_extendedprice, dest, "l_extendedprice");
     SERIALIZE_NOT_NULL(double, l_discount, dest, "l_discount");
     SERIALIZE_NOT_NULL(double, l_tax, dest, "l_tax");
-    SERIALIZE_NOT_NULL(int64_t, l_shipdate, dest, "l_shipdate");
-    SERIALIZE_NOT_NULL(int64_t, l_commitdate, dest, "l_commitdate");
-    SERIALIZE_NOT_NULL(int64_t, l_receiptdate, dest, "l_receiptdate");
+    SERIALIZE_NOT_NULL(int32_t, l_shipdate, dest, "l_shipdate");
+    SERIALIZE_NOT_NULL(int32_t, l_commitdate, dest, "l_commitdate");
+    SERIALIZE_NOT_NULL(int32_t, l_receiptdate, dest, "l_receiptdate");
   }
 
   {
@@ -242,7 +242,7 @@ void Orders() {
   DECLARE_NOT_NULL_COL(int32_t, o_custkey);
   DECLARE_NOT_NULL_COL(std::string, o_orderstatus);
   DECLARE_NOT_NULL_COL(double, o_totalprice);
-  DECLARE_NOT_NULL_COL(int64_t, o_orderdate);
+  DECLARE_NOT_NULL_COL(int32_t, o_orderdate);
   DECLARE_NOT_NULL_COL(std::string, o_orderpriority);
   DECLARE_NOT_NULL_COL(std::string, o_clerk);
   DECLARE_NOT_NULL_COL(int32_t, o_shippriority);
@@ -270,7 +270,7 @@ void Orders() {
   SERIALIZE_NOT_NULL(int32_t, o_custkey, dest, "o_custkey");
   SERIALIZE_NOT_NULL(std::string, o_orderstatus, dest, "o_orderstatus");
   SERIALIZE_NOT_NULL(double, o_totalprice, dest, "o_totalprice");
-  SERIALIZE_NOT_NULL(int64_t, o_orderdate, dest, "o_orderdate");
+  SERIALIZE_NOT_NULL(int32_t, o_orderdate, dest, "o_orderdate");
   SERIALIZE_NOT_NULL(std::string, o_orderpriority, dest, "o_orderpriority");
   SERIALIZE_NOT_NULL(std::string, o_clerk, dest, "o_clerk");
   SERIALIZE_NOT_NULL(int32_t, o_shippriority, dest, "o_shippriority");

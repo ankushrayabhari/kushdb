@@ -39,7 +39,6 @@ void ForwardDeclare(khir::ProgramBuilder& program) {
   proxy::ColumnData<catalog::SqlType::INT>::ForwardDeclare(program);
   proxy::ColumnData<catalog::SqlType::BIGINT>::ForwardDeclare(program);
   proxy::ColumnData<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
-  proxy::ColumnData<catalog::SqlType::DATE>::ForwardDeclare(program);
   proxy::ColumnData<catalog::SqlType::REAL>::ForwardDeclare(program);
   proxy::ColumnData<catalog::SqlType::TEXT>::ForwardDeclare(program);
 
@@ -49,14 +48,12 @@ void ForwardDeclare(khir::ProgramBuilder& program) {
   proxy::DiskColumnIndex<catalog::SqlType::INT>::ForwardDeclare(program);
   proxy::DiskColumnIndex<catalog::SqlType::BIGINT>::ForwardDeclare(program);
   proxy::DiskColumnIndex<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
-  proxy::DiskColumnIndex<catalog::SqlType::DATE>::ForwardDeclare(program);
   proxy::DiskColumnIndex<catalog::SqlType::REAL>::ForwardDeclare(program);
   proxy::DiskColumnIndex<catalog::SqlType::TEXT>::ForwardDeclare(program);
   proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>::ForwardDeclare(program);
   proxy::MemoryColumnIndex<catalog::SqlType::INT>::ForwardDeclare(program);
   proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>::ForwardDeclare(program);
   proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
-  proxy::MemoryColumnIndex<catalog::SqlType::DATE>::ForwardDeclare(program);
   proxy::MemoryColumnIndex<catalog::SqlType::REAL>::ForwardDeclare(program);
   proxy::MemoryColumnIndex<catalog::SqlType::TEXT>::ForwardDeclare(program);
 

@@ -9,11 +9,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "absl/time/civil_time.h"
-#include "absl/time/time.h"
-
 #include "runtime/column_data.h"
 #include "runtime/column_index.h"
+#include "runtime/date.h"
 
 #define DECLARE_NULL_COL(T, x)  \
   std::vector<T> x;             \
@@ -91,17 +89,15 @@ std::vector<std::string> Split(const std::string& s, char delim, int num_cols) {
   return elems;
 }
 
-int64_t ParseDate(const std::string& s) {
+int32_t ParseDate(const std::string& s) {
   if (s.empty()) {
-    return 0;
+    return runtime::Date::DateBuilder(0, 1, 1).Build();
   }
 
   auto parts = Split(s, '-', 3);
-  auto day = absl::CivilDay(std::stoi(parts[0]), std::stoi(parts[1]),
-                            std::stoi(parts[2]));
-  absl::TimeZone utc = absl::UTCTimeZone();
-  absl::Time time = absl::FromCivil(day, utc);
-  return absl::ToUnixMillis(time);
+  return runtime::Date::DateBuilder(std::stoi(parts[0]), std::stoi(parts[1]),
+                                    std::stoi(parts[2]))
+      .Build();
 }
 
 int8_t ParseInt8(const std::string& s) {

@@ -67,8 +67,7 @@ std::unique_ptr<Operator> ScanOrders() {
 // Select(o_orderdate < '1995-03-30')
 std::unique_ptr<Operator> SelectOrders() {
   auto scan_orders = ScanOrders();
-  auto lt = Lt(ColRef(scan_orders, "o_orderdate"),
-               Literal(absl::CivilDay(1995, 3, 30)));
+  auto lt = Lt(ColRef(scan_orders, "o_orderdate"), Literal(1995, 3, 30));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*scan_orders, {"o_orderdate", "o_shippriority",
@@ -105,8 +104,7 @@ std::unique_ptr<Operator> ScanLineitem() {
 // Select(l_shipdate > '1995-03-30')
 std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLineitem();
-  auto gt =
-      Gt(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1995, 3, 30)));
+  auto gt = Gt(ColRef(lineitem, "l_shipdate"), Literal(1995, 3, 30));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*lineitem,

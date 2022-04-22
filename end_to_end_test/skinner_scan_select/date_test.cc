@@ -47,8 +47,8 @@ TEST_P(SelectTest, DateCol) {
     OperatorSchema scan_schema;
     scan_schema.AddGeneratedColumns(db["info"], {"date"});
 
-    auto filter = Exp(Geq(VirtColRef(scan_schema, "date"),
-                          Literal(absl::CivilDay(2021, 1, 1))));
+    auto filter =
+        Exp(Geq(VirtColRef(scan_schema, "date"), Literal(2021, 1, 1)));
 
     OperatorSchema schema;
     schema.AddDerivedColumn("date", VirtColRef(scan_schema, "date"));

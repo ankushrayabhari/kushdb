@@ -24,7 +24,7 @@ cc_library(
     hdrs = ["literal_expression.h"],
     deps = [
         ":expression",
-        "@absl//absl/time",
+        "//runtime:date",
     ],
 )
 

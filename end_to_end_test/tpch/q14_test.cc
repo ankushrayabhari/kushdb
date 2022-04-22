@@ -50,9 +50,9 @@ std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLineitem();
 
   std::unique_ptr<Expression> p1 =
-      Geq(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1995, 12, 1)));
+      Geq(ColRef(lineitem, "l_shipdate"), Literal(1995, 12, 1));
   std::unique_ptr<Expression> p2 =
-      Lt(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1996, 1, 1)));
+      Lt(ColRef(lineitem, "l_shipdate"), Literal(1996, 1, 1));
   auto cond = And(util::MakeVector(std::move(p1), std::move(p2)));
 
   OperatorSchema schema;

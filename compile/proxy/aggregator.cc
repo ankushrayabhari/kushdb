@@ -119,6 +119,14 @@ void MinMaxAggregator::Update(Struct& entry) {
               break;
             }
 
+            case catalog::SqlType::DATE: {
+              auto& v1 = static_cast<Date&>(next.Get());
+              auto& v2 = static_cast<Date&>(current_value.Get());
+              If(program_, min_ ? v1 < v2 : v2 < v1,
+                 [&]() { entry.Update(field_, not_null_next); });
+              break;
+            }
+
             case catalog::SqlType::INT: {
               auto& v1 = static_cast<Int32&>(next.Get());
               auto& v2 = static_cast<Int32&>(current_value.Get());
@@ -127,7 +135,6 @@ void MinMaxAggregator::Update(Struct& entry) {
               break;
             }
 
-            case catalog::SqlType::DATE:
             case catalog::SqlType::BIGINT: {
               auto& v1 = static_cast<Int64&>(next.Get());
               auto& v2 = static_cast<Int64&>(current_value.Get());

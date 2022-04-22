@@ -50,8 +50,7 @@ TEST_P(SelectTest, DateCol) {
       base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
     }
 
-    auto filter =
-        Geq(ColRef(base, "date"), Literal(absl::CivilDay(2021, 1, 1)));
+    auto filter = Geq(ColRef(base, "date"), Literal(2021, 1, 1));
 
     // output
     OperatorSchema schema;

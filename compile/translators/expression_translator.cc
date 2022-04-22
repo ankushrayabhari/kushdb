@@ -17,22 +17,22 @@
 #include "plan/expression/extract_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
-#include "runtime/date_extractor.h"
+#include "runtime/date.h"
 
 namespace kush::compile {
 
 namespace {
 constexpr std::string_view ExtractYearFnName(
-    "kush::runtime::DateExtractor::ExtractYear");
+    "kush::runtime::Date::ExtractYear");
 }
 
 void ExpressionTranslator::ForwardDeclare(khir::ProgramBuilder& program) {
-  auto date_type = program.I64Type();
+  auto date_type = program.I32Type();
   auto result_type = program.I32Type();
 
   program.DeclareExternalFunction(
       ExtractYearFnName, result_type, {date_type},
-      reinterpret_cast<void*>(&runtime::DateExtractor::ExtractYear));
+      reinterpret_cast<void*>(&runtime::Date::ExtractYear));
 }
 
 ExpressionTranslator::ExpressionTranslator(khir::ProgramBuilder& program,
@@ -144,7 +144,7 @@ void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
         Return(proxy::SQLValue(proxy::Bool(program_, v),
                                proxy::Bool(program_, null)));
       },
-      [&](absl::CivilDay v, bool null) {
+      [&](runtime::Date::DateBuilder v, bool null) {
         Return(proxy::SQLValue(proxy::Date(program_, v),
                                proxy::Bool(program_, null)));
       });

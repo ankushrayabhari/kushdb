@@ -96,10 +96,10 @@ std::unique_ptr<Operator> SelectOrders() {
   scan_schema.AddGeneratedColumns(db["orders"],
                                   {"o_orderkey", "o_custkey", "o_orderdate"});
 
-  auto geq = Exp(Geq(VirtColRef(scan_schema, "o_orderdate"),
-                     Literal(absl::CivilDay(1993, 1, 1))));
-  auto leq = Exp(Leq(VirtColRef(scan_schema, "o_orderdate"),
-                     Literal(absl::CivilDay(1994, 12, 31))));
+  auto geq =
+      Exp(Geq(VirtColRef(scan_schema, "o_orderdate"), Literal(1993, 1, 1)));
+  auto leq =
+      Exp(Leq(VirtColRef(scan_schema, "o_orderdate"), Literal(1994, 12, 31)));
 
   OperatorSchema schema;
   schema.AddVirtualPassthroughColumns(scan_schema);

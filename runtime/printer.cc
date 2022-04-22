@@ -1,12 +1,11 @@
 #include "runtime/printer.h"
 
 #include <cstdint>
+#include <iomanip>
 #include <iostream>
 #include <string_view>
 
-#include "absl/time/civil_time.h"
-#include "absl/time/time.h"
-
+#include "runtime/date.h"
 #include "runtime/string.h"
 
 namespace kush::runtime::Printer {
@@ -21,11 +20,11 @@ void PrintInt32(int32_t v) { std::cout << v << "|"; }
 
 void PrintInt64(int64_t v) { std::cout << v << "|"; }
 
-void PrintDate(int64_t v) {
-  auto time = absl::FromUnixMillis(v);
-  auto utc = absl::UTCTimeZone();
-  auto day = absl::ToCivilDay(time, utc);
-  std::cout << absl::FormatCivilTime(day) << "|";
+void PrintDate(int32_t v) {
+  int32_t y(0), m(0), d(0);
+  runtime::Date::SplitDate(v, &y, &m, &d);
+  std::cout << y << '-' << std::setw(2) << std::setfill('0') << m << '-'
+            << std::setw(2) << std::setfill('0') << d << "|";
 }
 
 void PrintFloat64(double v) { std::cout << std::fixed << v << "|"; }
@@ -46,11 +45,11 @@ void PrintInt32Debug(int32_t v) { std::cerr << v << "|"; }
 
 void PrintInt64Debug(int64_t v) { std::cerr << v << "|"; }
 
-void PrintDateDebug(int64_t v) {
-  auto time = absl::FromUnixMillis(v);
-  auto utc = absl::UTCTimeZone();
-  auto day = absl::ToCivilDay(time, utc);
-  std::cerr << absl::FormatCivilTime(day) << "|";
+void PrintDateDebug(int32_t v) {
+  int32_t y, m, d;
+  runtime::Date::SplitDate(v, &y, &m, &d);
+  std::cerr << y << '-' << std::setw(2) << std::setfill('0') << m << '-'
+            << std::setw(2) << std::setfill('0') << d << "|";
 }
 
 void PrintFloat64Debug(double v) { std::cerr << std::fixed << v << "|"; }

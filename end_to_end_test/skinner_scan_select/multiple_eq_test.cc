@@ -49,8 +49,8 @@ TEST_P(SelectTest, MultipleEqTest) {
 
     auto filter1 = Exp(Eq(VirtColRef(scan_schema, "cheated"), Literal(true)));
 
-    auto filter2 = Exp(Eq(VirtColRef(scan_schema, "date"),
-                          Literal(absl::CivilDay(2021, 1, 29))));
+    auto filter2 =
+        Exp(Eq(VirtColRef(scan_schema, "date"), Literal(2021, 1, 29)));
 
     OperatorSchema schema;
     schema.AddVirtualPassthroughColumns(scan_schema, {"cheated", "date"});

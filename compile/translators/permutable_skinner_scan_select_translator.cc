@@ -232,9 +232,9 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
             proxy::Int32(program_, 0), proxy::Bool(program_, false)));
         break;
       case catalog::SqlType::DATE:
-        this->virtual_values_.AddVariable(
-            proxy::SQLValue(proxy::Date(program_, absl::CivilDay(2000, 1, 1)),
-                            proxy::Bool(program_, false)));
+        this->virtual_values_.AddVariable(proxy::SQLValue(
+            proxy::Date(program_, runtime::Date::DateBuilder(2000, 1, 1)),
+            proxy::Bool(program_, false)));
         break;
       case catalog::SqlType::BIGINT:
         this->virtual_values_.AddVariable(proxy::SQLValue(

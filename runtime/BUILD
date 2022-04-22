@@ -12,11 +12,19 @@ cc_library(
 )
 
 cc_library(
-    name = "date_extractor",
-    srcs = ["date_extractor.cc"],
-    hdrs = ["date_extractor.h"],
+    name = "date",
+    srcs = ["date.cc"],
+    hdrs = ["date.h"],
+    deps = [],
+)
+
+cc_test(
+    name = "date_test",
+    size = "small",
+    srcs = ["date_test.cc"],
     deps = [
-        "@absl//absl/time",
+        ":date",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -65,6 +73,7 @@ cc_library(
     hdrs = ["column_data.h"],
     deps = [
         ":buffer_pool_manager",
+        ":date",
         ":string",
     ],
 )
@@ -131,7 +140,7 @@ cc_library(
     srcs = ["printer.cc"],
     hdrs = ["printer.h"],
     deps = [
+        ":date",
         ":string",
-        "@absl//absl/time",
     ],
 )

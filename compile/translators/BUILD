@@ -43,7 +43,7 @@ cc_library(
         "//plan/expression:extract_expression",
         "//plan/expression:literal_expression",
         "//plan/expression:virtual_column_ref_expression",
-        "//runtime:date_extractor",
+        "//runtime:date",
         "//util:visitor",
     ],
 )

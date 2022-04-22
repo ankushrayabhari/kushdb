@@ -7,6 +7,7 @@
 #include "re2/re2.h"
 
 #include "khir/program_builder.h"
+#include "runtime/date.h"
 
 namespace kush::compile::proxy {
 
@@ -303,7 +304,7 @@ class String : public IRValue {
 class Date : public IRValue {
  public:
   Date(khir::ProgramBuilder& program, const khir::Value& value);
-  Date(khir::ProgramBuilder& program, absl::CivilDay value);
+  Date(khir::ProgramBuilder& program, const runtime::Date::DateBuilder& value);
   Date(const Date& rhs) = default;
   Date(Date&& rhs) = default;
   Date& operator=(const Date& rhs);

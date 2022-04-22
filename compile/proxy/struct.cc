@@ -29,6 +29,7 @@ int StructBuilder::Add(catalog::SqlType type, bool nullable) {
       values_.push_back(program_.ConstI16(0));
       break;
     case catalog::SqlType::INT:
+    case catalog::SqlType::DATE:
       fields_.push_back(program_.I32Type());
       values_.push_back(program_.ConstI32(0));
       break;
@@ -39,10 +40,6 @@ int StructBuilder::Add(catalog::SqlType type, bool nullable) {
     case catalog::SqlType::REAL:
       fields_.push_back(program_.F64Type());
       values_.push_back(program_.ConstF64(0));
-      break;
-    case catalog::SqlType::DATE:
-      fields_.push_back(program_.I64Type());
-      values_.push_back(program_.ConstI64(0));
       break;
     case catalog::SqlType::TEXT:
       fields_.push_back(program_.GetStructType(String::StringStructName));
@@ -123,7 +120,7 @@ std::vector<SQLValue> Struct::Unpack() {
         result.emplace_back(Int64(program_, program_.LoadI64(ptr)), null);
         break;
       case catalog::SqlType::DATE:
-        result.emplace_back(Date(program_, program_.LoadI64(ptr)), null);
+        result.emplace_back(Date(program_, program_.LoadI32(ptr)), null);
         break;
       case catalog::SqlType::REAL:
         result.emplace_back(Float64(program_, program_.LoadF64(ptr)), null);
@@ -159,7 +156,7 @@ SQLValue Struct::Get(int i) {
     case catalog::SqlType::BIGINT:
       return SQLValue(Int64(program_, program_.LoadI64(ptr)), null);
     case catalog::SqlType::DATE:
-      return SQLValue(Date(program_, program_.LoadI64(ptr)), null);
+      return SQLValue(Date(program_, program_.LoadI32(ptr)), null);
     case catalog::SqlType::REAL:
       return SQLValue(Float64(program_, program_.LoadF64(ptr)), null);
     case catalog::SqlType::TEXT:
@@ -175,11 +172,11 @@ void Struct::Store(catalog::SqlType t, khir::Value ptr, const IRValue& v) {
     case catalog::SqlType::SMALLINT:
       program_.StoreI16(ptr, value);
       break;
+    case catalog::SqlType::DATE:
     case catalog::SqlType::INT:
       program_.StoreI32(ptr, value);
       break;
     case catalog::SqlType::BIGINT:
-    case catalog::SqlType::DATE:
       program_.StoreI64(ptr, value);
       break;
     case catalog::SqlType::REAL:

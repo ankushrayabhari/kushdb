@@ -7,13 +7,11 @@
 #include <type_traits>
 #include <variant>
 
-#include "absl/time/civil_time.h"
-#include "absl/time/time.h"
-
 #include "magic_enum.hpp"
 
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
+#include "runtime/date.h"
 
 namespace kush::plan {
 
@@ -40,7 +38,7 @@ LiteralExpression::LiteralExpression(double value)
       value_(value),
       null_(false) {}
 
-LiteralExpression::LiteralExpression(absl::CivilDay value)
+LiteralExpression::LiteralExpression(runtime::Date::DateBuilder value)
     : Expression(catalog::SqlType::DATE, false, {}),
       value_(value),
       null_(false) {}
@@ -83,7 +81,7 @@ LiteralExpression::LiteralExpression(catalog::SqlType type)
       break;
 
     case catalog::SqlType::DATE:
-      value_ = absl::CivilDay(2000, 0, 0);
+      value_ = runtime::Date::DateBuilder(2000, 1, 1);
       break;
   }
 }
@@ -94,7 +92,7 @@ void LiteralExpression::Visit(
     std::function<void(int64_t, bool)> f3, std::function<void(double, bool)> f4,
     std::function<void(std::string, bool)> f5,
     std::function<void(bool, bool)> f6,
-    std::function<void(absl::CivilDay, bool)> f7) const {
+    std::function<void(runtime::Date::DateBuilder, bool)> f7) const {
   std::visit(
       [&](auto&& arg) {
         using T = std::decay_t<decltype(arg)>;
@@ -111,7 +109,7 @@ void LiteralExpression::Visit(
           f5(arg, null_);
         } else if constexpr (std::is_same_v<T, bool>) {
           f6(arg, null_);
-        } else if constexpr (std::is_same_v<T, absl::CivilDay>) {
+        } else if constexpr (std::is_same_v<T, runtime::Date::DateBuilder>) {
           f7(arg, null_);
         } else {
           static_assert(always_false_v<T>, "unreachable");
@@ -148,8 +146,9 @@ nlohmann::json LiteralExpression::ToJson() const {
         j["value"] = v;
         j["null"] = null;
       },
-      [&](absl::CivilDay v, bool null) {
-        j["value"] = absl::FormatCivilTime(v);
+      [&](runtime::Date::DateBuilder v, bool null) {
+        j["value"] = std::to_string(v.year) + "-" + std::to_string(v.month) +
+                     "-" + std::to_string(v.day);
         j["null"] = null;
       });
   return j;

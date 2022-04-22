@@ -113,9 +113,9 @@ std::unique_ptr<Operator> SelectOrders() {
   auto orders = ScanOrders();
 
   std::unique_ptr<Expression> geq =
-      Geq(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1995, 1, 1)));
+      Geq(ColRef(orders, "o_orderdate"), Literal(1995, 1, 1));
   std::unique_ptr<Expression> leq =
-      Leq(ColRef(orders, "o_orderdate"), Literal(absl::CivilDay(1996, 12, 31)));
+      Leq(ColRef(orders, "o_orderdate"), Literal(1996, 12, 31));
   std::unique_ptr<Expression> cond =
       And(util::MakeVector(std::move(geq), std::move(leq)));
 

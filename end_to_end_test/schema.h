@@ -28,7 +28,7 @@ kush::catalog::Database Schema() {
       CREATE TABLE info (
         id INTEGER,
         cheated BOOLEAN,
-        date TIMESTAMP,
+        date DATE,
         zscore REAL,
         num1 SMALLINT,
         num2 BIGINT,

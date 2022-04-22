@@ -96,9 +96,9 @@ std::unique_ptr<Operator> SelectLineitem() {
   auto lineitem = ScanLineitem();
 
   std::unique_ptr<Expression> ge =
-      Geq(ColRef(lineitem, "l_shipdate"), Literal(absl::CivilDay(1995, 1, 1)));
-  std::unique_ptr<Expression> le = Leq(ColRef(lineitem, "l_shipdate"),
-                                       Literal(absl::CivilDay(1996, 12, 31)));
+      Geq(ColRef(lineitem, "l_shipdate"), Literal(1995, 1, 1));
+  std::unique_ptr<Expression> le =
+      Leq(ColRef(lineitem, "l_shipdate"), Literal(1996, 12, 31));
   std::unique_ptr<Expression> cond =
       And(util::MakeVector(std::move(ge), std::move(le)));
 

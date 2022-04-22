@@ -174,9 +174,9 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
               proxy::Int32(program, 0), proxy::Bool(program, false)));
           break;
         case catalog::SqlType::DATE:
-          child_translator.SchemaValues().AddVariable(
-              proxy::SQLValue(proxy::Date(program, absl::CivilDay(2000, 1, 1)),
-                              proxy::Bool(program, false)));
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Date(program, runtime::Date::DateBuilder(2000, 1, 1)),
+              proxy::Bool(program, false)));
           break;
         case catalog::SqlType::BIGINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
@@ -1029,9 +1029,9 @@ void RecompilingSkinnerJoinTranslator::Produce() {
               proxy::Int32(program_, 0), proxy::Bool(program_, false)));
           break;
         case catalog::SqlType::DATE:
-          child_translator.SchemaValues().AddVariable(
-              proxy::SQLValue(proxy::Date(program_, absl::CivilDay(2000, 1, 1)),
-                              proxy::Bool(program_, false)));
+          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+              proxy::Date(program_, runtime::Date::DateBuilder(2000, 1, 1)),
+              proxy::Bool(program_, false)));
           break;
         case catalog::SqlType::BIGINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(

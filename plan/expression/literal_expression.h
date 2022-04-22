@@ -6,10 +6,9 @@
 #include <string_view>
 #include <variant>
 
-#include "absl/time/civil_time.h"
-
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
+#include "runtime/date.h"
 
 namespace kush::plan {
 
@@ -19,7 +18,7 @@ class LiteralExpression : public Expression {
   explicit LiteralExpression(int32_t value);
   explicit LiteralExpression(int64_t value);
   explicit LiteralExpression(double value);
-  explicit LiteralExpression(absl::CivilDay value);
+  explicit LiteralExpression(runtime::Date::DateBuilder d);
   explicit LiteralExpression(std::string_view value);
   explicit LiteralExpression(bool value);
   explicit LiteralExpression(catalog::SqlType type);
@@ -31,7 +30,7 @@ class LiteralExpression : public Expression {
              std::function<void(double, bool)>,
              std::function<void(std::string, bool)>,
              std::function<void(bool, bool)>,
-             std::function<void(absl::CivilDay, bool)>) const;
+             std::function<void(runtime::Date::DateBuilder, bool)>) const;
   void Accept(ExpressionVisitor& visitor) override;
   void Accept(ImmutableExpressionVisitor& visitor) const override;
 
@@ -39,7 +38,7 @@ class LiteralExpression : public Expression {
 
  private:
   std::variant<int16_t, int32_t, int64_t, double, std::string, bool,
-               absl::CivilDay>
+               runtime::Date::DateBuilder>
       value_;
   bool null_;
 };

@@ -29,10 +29,10 @@ execution::ExecutableQuery QueryTranslator::Translate() {
   translator->Produce();
 
   auto output_pipeline = pipeline_builder.FinishPipeline();
+  auto program = program_builder.Build();
 
   // khir::ProgramPrinter printer;
-  // program.Translate(printer);
-  auto program = program_builder.Build();
+  // printer.Translate(program);
 
   std::unique_ptr<khir::Backend> backend;
   switch (khir::GetBackendType()) {

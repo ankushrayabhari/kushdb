@@ -1,3 +1,5 @@
+#include "runtime/date.h"
+
 #include <cstdint>
 #include <memory>
 
@@ -9,14 +11,9 @@ namespace kush::compile::proxy {
 Date::Date(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-int64_t ToUnixMillis(absl::CivilDay value) {
-  absl::TimeZone utc = absl::UTCTimeZone();
-  absl::Time time = absl::FromCivil(value, utc);
-  return absl::ToUnixMillis(time);
-}
-
-Date::Date(khir::ProgramBuilder& program, absl::CivilDay value)
-    : program_(program), value_(program_.ConstI64(ToUnixMillis(value))) {}
+Date::Date(khir::ProgramBuilder& program,
+           const runtime::Date::DateBuilder& value)
+    : program_(program), value_(program_.ConstI32(value.Build())) {}
 
 Date& Date::operator=(const Date& rhs) {
   value_ = rhs.value_;
@@ -34,32 +31,32 @@ khir::Value Date::Get() const { return value_; }
 
 Bool Date::operator==(const Date& rhs) const {
   return Bool(program_,
-              program_.CmpI64(khir::CompType::EQ, value_, rhs.value_));
+              program_.CmpI32(khir::CompType::EQ, value_, rhs.value_));
 }
 
 Bool Date::operator!=(const Date& rhs) const {
   return Bool(program_,
-              program_.CmpI64(khir::CompType::NE, value_, rhs.value_));
+              program_.CmpI32(khir::CompType::NE, value_, rhs.value_));
 }
 
 Bool Date::operator<(const Date& rhs) const {
   return Bool(program_,
-              program_.CmpI64(khir::CompType::LT, value_, rhs.value_));
+              program_.CmpI32(khir::CompType::LT, value_, rhs.value_));
 }
 
 Bool Date::operator<=(const Date& rhs) const {
   return Bool(program_,
-              program_.CmpI64(khir::CompType::LE, value_, rhs.value_));
+              program_.CmpI32(khir::CompType::LE, value_, rhs.value_));
 }
 
 Bool Date::operator>(const Date& rhs) const {
   return Bool(program_,
-              program_.CmpI64(khir::CompType::GT, value_, rhs.value_));
+              program_.CmpI32(khir::CompType::GT, value_, rhs.value_));
 }
 
 Bool Date::operator>=(const Date& rhs) const {
   return Bool(program_,
-              program_.CmpI64(khir::CompType::GE, value_, rhs.value_));
+              program_.CmpI32(khir::CompType::GE, value_, rhs.value_));
 }
 
 std::unique_ptr<Date> Date::ToPointer() const {
@@ -68,7 +65,7 @@ std::unique_ptr<Date> Date::ToPointer() const {
 
 void Date::Print(Printer& printer) const { printer.Print(*this); }
 
-Int64 Date::Hash() const { return Int64(program_, value_); }
+Int64 Date::Hash() const { return Int32(program_, value_).Hash(); }
 
 khir::ProgramBuilder& Date::ProgramBuilder() const { return program_; }
 

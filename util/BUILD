@@ -12,7 +12,7 @@ cc_library(
     deps = [
         "//runtime:column_data",
         "//runtime:column_index",
-        "@absl//absl/time",
+        "//runtime:date",
     ],
 )
 
@@ -37,6 +37,7 @@ cc_library(
         "//plan/operator:scan_operator",
         "//plan/operator:select_operator",
         "//plan/operator:skinner_join_operator",
+        "//runtime:date",
         "@re2",
     ],
 )

@@ -51,7 +51,7 @@ std::unique_ptr<Operator> SelectLineitem() {
 
   auto leq = std::make_unique<BinaryArithmeticExpression>(
       BinaryArithmeticExpressionType::LEQ, ColRef(scan_lineitem, "l_shipdate"),
-      Literal(absl::CivilDay(1998, 8, 12)));
+      Literal(1998, 8, 12));
 
   OperatorSchema schema;
   schema.AddPassthroughColumns(*scan_lineitem,

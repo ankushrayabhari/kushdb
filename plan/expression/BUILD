@@ -28,7 +28,7 @@ cc_library(
     deps = [
         ":expression",
         ":expression_visitor",
-        "@absl//absl/time",
+        "//runtime:date",
         "@json",
         "@magic_enum",
     ],

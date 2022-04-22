@@ -45,10 +45,9 @@ std::unique_ptr<Operator> SelectLineitem() {
       db["lineitem"],
       {"l_extendedprice", "l_discount", "l_shipdate", "l_quantity"});
 
-  auto p1 = Exp(Geq(VirtColRef(scan_schema, "l_shipdate"),
-                    Literal(absl::CivilDay(1997, 1, 1))));
-  auto p2 = Exp(Lt(VirtColRef(scan_schema, "l_shipdate"),
-                   Literal(absl::CivilDay(1998, 1, 1))));
+  auto p1 =
+      Exp(Geq(VirtColRef(scan_schema, "l_shipdate"), Literal(1997, 1, 1)));
+  auto p2 = Exp(Lt(VirtColRef(scan_schema, "l_shipdate"), Literal(1998, 1, 1)));
   auto p3 = Exp(Geq(VirtColRef(scan_schema, "l_discount"), Literal(0.04)));
   auto p4 = Exp(Leq(VirtColRef(scan_schema, "l_discount"), Literal(0.06)));
   auto p5 = Exp(Lt(VirtColRef(scan_schema, "l_quantity"), Literal(24.0)));

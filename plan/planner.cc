@@ -338,7 +338,7 @@ std::unique_ptr<Expression> Planner::Plan(
         result = std::make_unique<LiteralExpression>(arg);
       },
       [&](bool arg) { result = std::make_unique<LiteralExpression>(arg); },
-      [&](absl::CivilDay arg) {
+      [&](runtime::Date::DateBuilder arg) {
         result = std::make_unique<LiteralExpression>(arg);
       });
   return result;

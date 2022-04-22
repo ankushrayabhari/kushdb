@@ -90,10 +90,10 @@ std::unique_ptr<Operator> SelectLineitem() {
       db["lineitem"], {"l_shipdate", "l_extendedprice", "l_discount",
                        "l_suppkey", "l_orderkey"});
 
-  auto ge = Exp(Geq(VirtColRef(scan_schema, "l_shipdate"),
-                    Literal(absl::CivilDay(1995, 1, 1))));
-  auto le = Exp(Leq(VirtColRef(scan_schema, "l_shipdate"),
-                    Literal(absl::CivilDay(1996, 12, 31))));
+  auto ge =
+      Exp(Geq(VirtColRef(scan_schema, "l_shipdate"), Literal(1995, 1, 1)));
+  auto le =
+      Exp(Leq(VirtColRef(scan_schema, "l_shipdate"), Literal(1996, 12, 31)));
 
   OperatorSchema schema;
   schema.AddVirtualPassthroughColumns(
