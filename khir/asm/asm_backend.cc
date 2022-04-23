@@ -402,7 +402,7 @@ std::pair<khir::Value, int32_t> ASMBackend::Gep(
 
   auto gep_offset_instr = instructions[khir::Value(gep_reader.Arg()).GetIdx()];
   Type2InstructionReader gep_offset_reader(gep_offset_instr);
-  if (OpcodeFrom(gep_offset_reader.Opcode()) != Opcode::GEP_OFFSET) {
+  if (OpcodeFrom(gep_offset_reader.Opcode()) != Opcode::GEP_STATIC_OFFSET) {
     throw std::runtime_error("Invalid GEP_STATIC Offset");
   }
 
@@ -3122,7 +3122,7 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::GEP_OFFSET: {
+    case Opcode::GEP_STATIC_OFFSET: {
       // do nothing since it is an auxiliary instruction
       return;
     }

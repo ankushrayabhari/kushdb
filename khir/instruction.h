@@ -138,7 +138,7 @@ class Type1InstructionReader {
 // [MD] [ARG0] [0]    I64_LOAD
 // [MD] [ARG0] [0]    F64_LOAD
 // [MD] [ARG0] [ARG1] PHI_MEMBER
-// [MD] [ARG0] [ARG1] GEP_OFFSET
+// [MD] [ARG0] [ARG1] GEP_STATIC_OFFSET
 
 class Type2InstructionBuilder {
  public:

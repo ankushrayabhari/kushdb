@@ -648,7 +648,7 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::GEP_OFFSET: {
+    case Opcode::GEP_STATIC_OFFSET: {
       Type2InstructionReader reader(instr);
       auto ptr = GetValue(Value(reader.Arg0()), constant_values, values);
       auto offset = GetValue(Value(reader.Arg1()), constant_values, values);

@@ -645,8 +645,9 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::CALL_INDIRECT:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
-    case Opcode::GEP_OFFSET:
-      throw std::runtime_error("GEP_OFFSET needs to be under a GEP_STATIC.");
+    case Opcode::GEP_STATIC_OFFSET:
+      throw std::runtime_error(
+          "GEP_STATIC_OFFSET needs to be under a GEP_STATIC.");
       break;
 
     case Opcode::PHI_MEMBER:
@@ -2155,12 +2156,12 @@ Value ProgramBuilder::ConstGEP(Type t, Value v, absl::Span<const int32_t> idx) {
   auto [offset, result_type] = type_manager_.GetPointerOffset(t, idx);
   auto offset_v = ConstI32(offset);
 
-  auto untyped_location_v =
-      GetCurrentFunction().Append(Type2InstructionBuilder()
-                                      .SetOpcode(OpcodeTo(Opcode::GEP_OFFSET))
-                                      .SetArg0(v.Serialize())
-                                      .SetArg1(offset_v.Serialize())
-                                      .Build());
+  auto untyped_location_v = GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::GEP_STATIC_OFFSET))
+          .SetArg0(v.Serialize())
+          .SetArg1(offset_v.Serialize())
+          .Build());
 
   return GetCurrentFunction().Append(
       Type3InstructionBuilder()

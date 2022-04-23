@@ -160,7 +160,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::F64_CMP_GT:
     case Opcode::F64_CMP_GE:
     case Opcode::PHI_MEMBER:
-    case Opcode::GEP_OFFSET: {
+    case Opcode::GEP_STATIC_OFFSET: {
       Type2InstructionReader reader(instrs[idx]);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());

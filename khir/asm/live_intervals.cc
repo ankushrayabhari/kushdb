@@ -138,7 +138,7 @@ khir::Value Gep(khir::Value v, const std::vector<uint64_t>& instructions) {
 
   auto gep_offset_instr = instructions[khir::Value(gep_reader.Arg()).GetIdx()];
   Type2InstructionReader gep_offset_reader(gep_offset_instr);
-  if (OpcodeFrom(gep_offset_reader.Opcode()) != Opcode::GEP_OFFSET) {
+  if (OpcodeFrom(gep_offset_reader.Opcode()) != Opcode::GEP_STATIC_OFFSET) {
     throw std::runtime_error("Invalid GEP_STATIC Offset");
   }
 
@@ -258,7 +258,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::FUNC_ARG:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
-    case Opcode::GEP_OFFSET:
+    case Opcode::GEP_STATIC_OFFSET:
     case Opcode::PHI_MEMBER:
     case Opcode::CALL_ARG:
       return manager.VoidType();
@@ -384,7 +384,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
     case Opcode::PTR_STORE:
-    case Opcode::GEP_OFFSET:
+    case Opcode::GEP_STATIC_OFFSET:
     case Opcode::BR:
     case Opcode::CONDBR:
     case Opcode::RETURN:
@@ -633,7 +633,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::BR:
     case Opcode::FUNC_ARG:
     case Opcode::GEP_STATIC:
-    case Opcode::GEP_OFFSET:
+    case Opcode::GEP_STATIC_OFFSET:
     case Opcode::PHI:
     case Opcode::ALLOCA:
       return {};
