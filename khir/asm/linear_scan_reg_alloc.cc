@@ -207,9 +207,10 @@ void SpillAtInterval(LiveInterval& curr,
 }
 
 std::vector<RegisterAssignment> LinearScanRegisterAlloc(
-    const Function& func, const TypeManager& manager) {
+    const Function& func, const std::vector<bool>& materialize_gep,
+    const TypeManager& manager) {
   auto instrs = func.Instrs();
-  auto live_intervals = ComputeLiveIntervals(func, manager);
+  auto live_intervals = ComputeLiveIntervals(func, materialize_gep, manager);
 
   /*
   for (auto& x : live_intervals) {

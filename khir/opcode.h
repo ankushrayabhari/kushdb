@@ -114,7 +114,6 @@ enum class Opcode : uint8_t {
   PHI,
   PTR_CAST,
   GEP,
-  PTR_MATERIALIZE,
   FUNC_ARG,
   ALLOCA,
   CALL_ARG,

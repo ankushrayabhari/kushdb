@@ -74,6 +74,17 @@ cc_test(
 )
 
 cc_library(
+    name = "materialize_gep",
+    srcs = ["materialize_gep.cc"],
+    hdrs = ["materialize_gep.h"],
+    deps = [
+        "//khir:instruction",
+        "//khir:program",
+        "//khir:value",
+    ],
+)
+
+cc_library(
     name = "register_assignment",
     srcs = ["register_assignment.cc"],
     hdrs = ["register_assignment.h"],
@@ -149,6 +160,7 @@ cc_library(
         ":dfs_label",
         ":linear_scan_reg_alloc",
         ":live_intervals",
+        ":materialize_gep",
         ":reg_alloc_impl",
         ":register_assignment",
         ":stack_spill_reg_alloc",

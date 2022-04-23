@@ -9,6 +9,7 @@
 
 #include "khir/asm/dfs_label.h"
 #include "khir/asm/linear_scan_reg_alloc.h"
+#include "khir/asm/materialize_gep.h"
 #include "khir/asm/register_assignment.h"
 #include "khir/asm/stack_spill_reg_alloc.h"
 #include "khir/backend.h"
@@ -223,6 +224,9 @@ void ASMBackend::Translate(const Program& program) {
              order_analysis.postorder_label[bb1];
     });
 
+    // Determine if GEPs should be materialized
+    auto gep_materialize = ComputeGEPMaterialize(func);
+
     std::vector<RegisterAssignment> register_assign;
     switch (reg_alloc_impl_) {
       case RegAllocImpl::STACK_SPILL:
@@ -230,7 +234,8 @@ void ASMBackend::Translate(const Program& program) {
         break;
 
       case RegAllocImpl::LINEAR_SCAN:
-        register_assign = LinearScanRegisterAlloc(func, program.TypeManager());
+        register_assign = LinearScanRegisterAlloc(func, gep_materialize,
+                                                  program.TypeManager());
         break;
     }
 
@@ -273,7 +278,7 @@ void ASMBackend::Translate(const Program& program) {
                          basic_blocks_impl, program.Functions(), epilogue,
                          value_offsets, instructions, program.ConstantInstrs(),
                          instr_idx, static_stack_allocator, register_assign,
-                         next_bb);
+                         gep_materialize, next_bb);
         }
       }
     }
@@ -2087,7 +2092,8 @@ void ASMBackend::TranslateInstr(
     std::vector<int32_t>& offsets, const std::vector<uint64_t>& instructions,
     const std::vector<uint64_t>& constant_instrs, int instr_idx,
     StackSlotAllocator& stack_allocator,
-    const std::vector<RegisterAssignment>& register_assign, int next_bb) {
+    const std::vector<RegisterAssignment>& register_assign,
+    const std::vector<bool>& gep_materialize, int next_bb) {
   auto instr = instructions[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
@@ -3116,15 +3122,18 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::GEP:
     case Opcode::GEP_OFFSET: {
-      // do nothing since we lazily compute GEPs
+      // do nothing since it is an auxiliary instruction
       return;
     }
 
-    case Opcode::PTR_MATERIALIZE: {
+    case Opcode::GEP: {
+      if (!gep_materialize[instr_idx]) {
+        return;
+      }
+
       Type3InstructionReader reader(instr);
-      Value v(reader.Arg());
+      Value v(instr_idx);
 
       if (dest_assign.IsRegister()) {
         auto dest_reg = NormalRegister(dest_assign.Register()).GetQ();

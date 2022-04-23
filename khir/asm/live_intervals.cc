@@ -253,7 +253,6 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::PHI:
     case Opcode::CALL:
     case Opcode::PTR_LOAD:
-    case Opcode::PTR_MATERIALIZE:
     case Opcode::PTR_CAST:
     case Opcode::GEP:
     case Opcode::FUNC_ARG:
@@ -268,6 +267,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
 
 std::optional<Value> GetWrittenValue(int instr_idx,
                                      const std::vector<uint64_t>& instrs,
+                                     const std::vector<bool>& materialize_gep,
                                      const TypeManager& manager) {
   auto instr = instrs[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
@@ -348,7 +348,6 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::F64_LOAD:
     case Opcode::FUNC_ARG:
     case Opcode::PTR_CAST:
-    case Opcode::PTR_MATERIALIZE:
     case Opcode::PTR_LOAD:
     case Opcode::CALL_ARG:
     case Opcode::ALLOCA:
@@ -372,13 +371,19 @@ std::optional<Value> GetWrittenValue(int instr_idx,
       return Value(v0.GetIdx());
     }
 
+    case Opcode::GEP: {
+      if (materialize_gep[instr_idx]) {
+        return Value(instr_idx);
+      }
+      return std::nullopt;
+    }
+
     case Opcode::I8_STORE:
     case Opcode::I16_STORE:
     case Opcode::I32_STORE:
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
     case Opcode::PTR_STORE:
-    case Opcode::GEP:
     case Opcode::GEP_OFFSET:
     case Opcode::BR:
     case Opcode::CONDBR:
@@ -524,7 +529,6 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
       return result;
     }
 
-    case Opcode::PTR_MATERIALIZE:
     case Opcode::PTR_CAST:
     case Opcode::PTR_LOAD: {
       Type3InstructionReader reader(instr);
@@ -637,8 +641,9 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
 }
 
 void AddExternalUses(absl::flat_hash_set<Value>& values,
-                     const std::vector<uint64_t> instrs, const BasicBlock& bb,
-                     const TypeManager& manager) {
+                     const std::vector<uint64_t>& instrs,
+                     const std::vector<bool>& gep_materialize,
+                     const BasicBlock& bb, const TypeManager& manager) {
   absl::flat_hash_set<kush::khir::Value> written_to;
 
   for (const auto& [seg_start, seg_end] : bb.Segments()) {
@@ -649,7 +654,7 @@ void AddExternalUses(absl::flat_hash_set<Value>& values,
         }
       }
 
-      auto written_value = GetWrittenValue(i, instrs, manager);
+      auto written_value = GetWrittenValue(i, instrs, gep_materialize, manager);
       if (written_value.has_value()) {
         written_to.insert(written_value.value());
       }
@@ -658,11 +663,12 @@ void AddExternalUses(absl::flat_hash_set<Value>& values,
 }
 
 void AddDefs(absl::flat_hash_set<Value>& values,
-             const std::vector<uint64_t> instrs, const TypeManager& manager,
-             const BasicBlock& bb) {
+             const std::vector<uint64_t>& instrs,
+             const std::vector<bool>& gep_materialize,
+             const TypeManager& manager, const BasicBlock& bb) {
   for (const auto& [seg_start, seg_end] : bb.Segments()) {
     for (int i = seg_start; i <= seg_end; i++) {
-      auto v = GetWrittenValue(i, instrs, manager);
+      auto v = GetWrittenValue(i, instrs, gep_materialize, manager);
       if (v.has_value()) {
         values.insert(v.value());
       }
@@ -680,8 +686,9 @@ absl::flat_hash_set<Value> Union(
   return out;
 }
 
-std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
-                                               const TypeManager& manager) {
+std::vector<LiveInterval> ComputeLiveIntervals(
+    const Function& func, const std::vector<bool>& gep_materialize,
+    const TypeManager& manager) {
   const auto& bb = func.BasicBlocks();
   const auto& instrs = func.Instrs();
 
@@ -690,8 +697,8 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
   std::vector<absl::flat_hash_set<Value>> defs(bb.size());
   std::stack<int> worklist;
   for (int i = 0; i < bb.size(); i++) {
-    AddExternalUses(live_in[i], instrs, bb[i], manager);
-    AddDefs(defs[i], instrs, manager, bb[i]);
+    AddExternalUses(live_in[i], instrs, gep_materialize, bb[i], manager);
+    AddDefs(defs[i], instrs, gep_materialize, manager, bb[i]);
     worklist.push(i);
   }
 
@@ -745,7 +752,8 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
           live_intervals[v.GetIdx()].Extend(instr_map.at({bb_idx, i}));
         }
 
-        auto written_value = GetWrittenValue(i, instrs, manager);
+        auto written_value =
+            GetWrittenValue(i, instrs, gep_materialize, manager);
         if (written_value.has_value()) {
           currently_live.erase(written_value.value());
         }
@@ -945,7 +953,8 @@ std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
   for (int bb_idx = 0; bb_idx < bb.size(); bb_idx++) {
     for (const auto& [seg_start, seg_end] : bb[bb_idx].Segments()) {
       for (int i = seg_start; i <= seg_end; i++) {
-        auto written_value = GetWrittenValue(i, instrs, manager);
+        auto written_value =
+            GetWrittenValue(i, instrs, gep_materialize, manager);
         if (written_value.has_value()) {
           live_intervals[written_value.value().GetIdx()].UpdateSpillCostWithUse(
               loop_depth[bb_idx]);

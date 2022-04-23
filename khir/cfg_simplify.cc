@@ -149,7 +149,6 @@ void RewriteInstr(uint64_t& instr,
       return;
     }
 
-    case Opcode::PTR_MATERIALIZE:
     case Opcode::PTR_CAST:
     case Opcode::PTR_LOAD:
     case Opcode::RETURN_VALUE:

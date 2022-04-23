@@ -9,6 +9,7 @@
 namespace kush::khir {
 
 std::vector<RegisterAssignment> LinearScanRegisterAlloc(
-    const Function& func, const TypeManager& manager);
+    const Function& func, const std::vector<bool>& materialize_gep,
+    const TypeManager& manager);
 
 }  // namespace kush::khir

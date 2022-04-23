@@ -41,7 +41,8 @@ class LiveInterval {
   int spill_cost_;
 };
 
-std::vector<LiveInterval> ComputeLiveIntervals(const Function& func,
-                                               const TypeManager& manager);
+std::vector<LiveInterval> ComputeLiveIntervals(
+    const Function& func, const std::vector<bool>& materialize_gep,
+    const TypeManager& manager);
 
 }  // namespace kush::khir
