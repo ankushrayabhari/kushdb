@@ -4,11 +4,11 @@
 #include <vector>
 
 #include "parse/expression/case_expression.h"
-#include "third_party/duckdb_libpgquery/parser.h"
+#include "third_party/libpgquery/parser.h"
 
 namespace kush::parse {
 
 std::unique_ptr<CaseExpression> TransformCaseExpression(
-    duckdb_libpgquery::PGCaseExpr& expr);
+    libpgquery::PGCaseExpr& expr);
 
 }  // namespace kush::parse

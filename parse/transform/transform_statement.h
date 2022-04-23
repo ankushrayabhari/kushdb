@@ -3,10 +3,10 @@
 #include <memory>
 
 #include "parse/statement/statement.h"
-#include "third_party/duckdb_libpgquery/parser.h"
+#include "third_party/libpgquery/parser.h"
 
 namespace kush::parse {
 
-std::unique_ptr<Statement> TransformStatement(duckdb_libpgquery::PGNode& stmt);
+std::unique_ptr<Statement> TransformStatement(libpgquery::PGNode& stmt);
 
 }  // namespace kush::parse

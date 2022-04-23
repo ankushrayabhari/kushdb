@@ -37,7 +37,7 @@ cc_library(
         "//parse/statement",
         "//parse/statement:select_statement",
         "//parse/table",
-        "//third_party/duckdb_libpgquery",
+        "//third_party/libpgquery",
         "@magic_enum",
     ],
 )

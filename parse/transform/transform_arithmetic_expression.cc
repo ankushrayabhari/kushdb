@@ -8,7 +8,7 @@
 #include "parse/expression/expression.h"
 #include "parse/expression/in_expression.h"
 #include "parse/transform/transform_expression.h"
-#include "third_party/duckdb_libpgquery/parser.h"
+#include "third_party/libpgquery/parser.h"
 
 namespace kush::parse {
 
@@ -69,34 +69,33 @@ std::unique_ptr<Expression> TransformBinaryOperator(
 }
 
 std::unique_ptr<Expression> TransformArithmeticExpression(
-    duckdb_libpgquery::PGAExpr& expr) {
-  auto name = std::string((reinterpret_cast<duckdb_libpgquery::PGValue*>(
-                               expr.name->head->data.ptr_value))
-                              ->val.str);
+    libpgquery::PGAExpr& expr) {
+  auto name = std::string(
+      (reinterpret_cast<libpgquery::PGValue*>(expr.name->head->data.ptr_value))
+          ->val.str);
 
   switch (expr.kind) {
-    case duckdb_libpgquery::PG_AEXPR_OP_ALL:
-    case duckdb_libpgquery::PG_AEXPR_OP_ANY: {
+    case libpgquery::PG_AEXPR_OP_ALL:
+    case libpgquery::PG_AEXPR_OP_ANY: {
       throw std::runtime_error("ANY/ALL unsupported.");
     }
 
-    case duckdb_libpgquery::PG_AEXPR_NULLIF: {
+    case libpgquery::PG_AEXPR_NULLIF: {
       throw std::runtime_error("NULLIF unsupported.");
     }
 
-    case duckdb_libpgquery::PG_AEXPR_SIMILAR: {
+    case libpgquery::PG_AEXPR_SIMILAR: {
       throw std::runtime_error("SIMILAR unsupported.");
     }
 
-    case duckdb_libpgquery::PG_AEXPR_DISTINCT:
-    case duckdb_libpgquery::PG_AEXPR_NOT_DISTINCT: {
+    case libpgquery::PG_AEXPR_DISTINCT:
+    case libpgquery::PG_AEXPR_NOT_DISTINCT: {
       throw std::runtime_error("DISTINCT unsupported.");
     }
 
-    case duckdb_libpgquery::PG_AEXPR_IN: {
+    case libpgquery::PG_AEXPR_IN: {
       auto child = TransformExpression(*expr.lexpr);
-      auto valid =
-          TransformExpressionList(*((duckdb_libpgquery::PGList*)expr.rexpr));
+      auto valid = TransformExpressionList(*((libpgquery::PGList*)expr.rexpr));
 
       auto base =
           std::make_unique<InExpression>(std::move(child), std::move(valid));
@@ -111,10 +110,9 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
 
     // rewrite (NOT) X BETWEEN A AND B into (NOT) AND(GREATERTHANOREQUALTO(X,
     // A), LESSTHANOREQUALTO(X, B))
-    case duckdb_libpgquery::PG_AEXPR_BETWEEN:
-    case duckdb_libpgquery::PG_AEXPR_NOT_BETWEEN: {
-      auto between_args =
-          reinterpret_cast<duckdb_libpgquery::PGList*>(expr.rexpr);
+    case libpgquery::PG_AEXPR_BETWEEN:
+    case libpgquery::PG_AEXPR_NOT_BETWEEN: {
+      auto between_args = reinterpret_cast<libpgquery::PGList*>(expr.rexpr);
       if (between_args->length != 2 || !between_args->head->data.ptr_value ||
           !between_args->tail->data.ptr_value) {
         throw std::runtime_error("(NOT) BETWEEN needs two args");
@@ -123,10 +121,10 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
       auto left_input = TransformExpression(*expr.lexpr);
       auto right_input = TransformExpression(*expr.lexpr);
       auto between_left =
-          TransformExpression(*reinterpret_cast<duckdb_libpgquery::PGNode*>(
+          TransformExpression(*reinterpret_cast<libpgquery::PGNode*>(
               between_args->head->data.ptr_value));
       auto between_right =
-          TransformExpression(*reinterpret_cast<duckdb_libpgquery::PGNode*>(
+          TransformExpression(*reinterpret_cast<libpgquery::PGNode*>(
               between_args->tail->data.ptr_value));
 
       auto geq = std::make_unique<BinaryArithmeticExpression>(
@@ -140,7 +138,7 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
       auto both = std::make_unique<BinaryArithmeticExpression>(
           BinaryArithmeticExpressionType::AND, std::move(leq), std::move(geq));
 
-      if (expr.kind == duckdb_libpgquery::PG_AEXPR_BETWEEN) {
+      if (expr.kind == libpgquery::PG_AEXPR_BETWEEN) {
         return std::move(both);
       } else {
         return std::make_unique<UnaryArithmeticExpression>(
@@ -165,16 +163,16 @@ std::unique_ptr<Expression> TransformArithmeticExpression(
 }
 
 std::unique_ptr<Expression> TransformNullTestExpression(
-    duckdb_libpgquery::PGNullTest& expr) {
-  auto arg = TransformExpression(
-      *reinterpret_cast<duckdb_libpgquery::PGNode*>(expr.arg));
+    libpgquery::PGNullTest& expr) {
+  auto arg =
+      TransformExpression(*reinterpret_cast<libpgquery::PGNode*>(expr.arg));
   if (expr.argisrow) {
     throw std::runtime_error("IS NULL argisrow not supported.");
   }
 
   auto base = std::make_unique<UnaryArithmeticExpression>(
       UnaryArithmeticExpressionType::IS_NULL, std::move(arg));
-  if (expr.nulltesttype == duckdb_libpgquery::PG_IS_NULL) {
+  if (expr.nulltesttype == libpgquery::PG_IS_NULL) {
     return std::move(base);
   } else {
     return std::make_unique<UnaryArithmeticExpression>(
@@ -183,14 +181,14 @@ std::unique_ptr<Expression> TransformNullTestExpression(
 }
 
 std::unique_ptr<Expression> TransformBoolExpression(
-    duckdb_libpgquery::PGBoolExpr& expr) {
+    libpgquery::PGBoolExpr& expr) {
   std::unique_ptr<Expression> result;
   for (auto node = expr.args->head; node != nullptr; node = node->next) {
     auto next = TransformExpression(
-        *reinterpret_cast<duckdb_libpgquery::PGNode*>(node->data.ptr_value));
+        *reinterpret_cast<libpgquery::PGNode*>(node->data.ptr_value));
 
     switch (expr.boolop) {
-      case duckdb_libpgquery::PG_AND_EXPR: {
+      case libpgquery::PG_AND_EXPR: {
         if (!result) {
           result = std::move(next);
         } else {
@@ -201,7 +199,7 @@ std::unique_ptr<Expression> TransformBoolExpression(
         break;
       }
 
-      case duckdb_libpgquery::PG_OR_EXPR: {
+      case libpgquery::PG_OR_EXPR: {
         if (!result) {
           result = std::move(next);
         } else {
@@ -211,7 +209,7 @@ std::unique_ptr<Expression> TransformBoolExpression(
         break;
       }
 
-      case duckdb_libpgquery::PG_NOT_EXPR: {
+      case libpgquery::PG_NOT_EXPR: {
         result = std::make_unique<UnaryArithmeticExpression>(
             UnaryArithmeticExpressionType::NOT, std::move(next));
         break;

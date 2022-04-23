@@ -5,13 +5,13 @@
 #include "parse/statement/select_statement.h"
 #include "parse/transform/transform_expression.h"
 #include "parse/transform/transform_from.h"
-#include "third_party/duckdb_libpgquery/parser.h"
+#include "third_party/libpgquery/parser.h"
 
 namespace kush::parse {
 
 std::unique_ptr<SelectStatement> TransformSelectStatement(
-    duckdb_libpgquery::PGNode& node) {
-  auto& stmt = reinterpret_cast<duckdb_libpgquery::PGSelectStmt&>(node);
+    libpgquery::PGNode& node) {
+  auto& stmt = reinterpret_cast<libpgquery::PGSelectStmt&>(node);
 
   if (stmt.withClause != nullptr) {
     throw std::runtime_error("WITH clause not supported.");

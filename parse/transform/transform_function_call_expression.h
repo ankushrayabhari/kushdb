@@ -4,11 +4,11 @@
 #include <vector>
 
 #include "parse/expression/expression.h"
-#include "third_party/duckdb_libpgquery/parser.h"
+#include "third_party/libpgquery/parser.h"
 
 namespace kush::parse {
 
 std::unique_ptr<Expression> TransformFunctionCallExpression(
-    duckdb_libpgquery::PGFuncCall& func);
+    libpgquery::PGFuncCall& func);
 
 }  // namespace kush::parse

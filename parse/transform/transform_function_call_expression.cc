@@ -7,12 +7,12 @@
 #include "parse/expression/aggregate_expression.h"
 #include "parse/expression/expression.h"
 #include "parse/transform/transform_expression.h"
-#include "third_party/duckdb_libpgquery/parser.h"
+#include "third_party/libpgquery/parser.h"
 
 namespace kush::parse {
 
 std::unique_ptr<Expression> TransformFunctionCallExpression(
-    duckdb_libpgquery::PGFuncCall &func) {
+    libpgquery::PGFuncCall &func) {
   auto name_list = func.funcname;
   if (name_list->length == 2) {
     throw std::runtime_error("Unsupported schema specifier in function call.");
@@ -38,14 +38,14 @@ std::unique_ptr<Expression> TransformFunctionCallExpression(
     throw std::runtime_error("Aggregate within group not supported.");
   }
 
-  std::string function_name = reinterpret_cast<duckdb_libpgquery::PGValue *>(
-                                  name_list->head->data.ptr_value)
-                                  ->val.str;
+  std::string function_name =
+      reinterpret_cast<libpgquery::PGValue *>(name_list->head->data.ptr_value)
+          ->val.str;
 
   std::vector<std::unique_ptr<Expression>> children;
   if (func.args != nullptr) {
     for (auto node = func.args->head; node != nullptr; node = node->next) {
-      auto child_expr = (duckdb_libpgquery::PGNode *)node->data.ptr_value;
+      auto child_expr = (libpgquery::PGNode *)node->data.ptr_value;
       children.push_back(TransformExpression(*child_expr));
     }
   }

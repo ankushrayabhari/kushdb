@@ -5,22 +5,22 @@
 #include <vector>
 
 #include "parse/expression/literal_expression.h"
-#include "third_party/duckdb_libpgquery/parser.h"
+#include "third_party/libpgquery/parser.h"
 
 namespace kush::parse {
 
 std::unique_ptr<LiteralExpression> TransformLiteralExpression(
-    duckdb_libpgquery::PGValue value) {
+    libpgquery::PGValue value) {
   switch (value.type) {
-    case duckdb_libpgquery::T_PGInteger:
+    case libpgquery::T_PGInteger:
       assert(value.val.ival >= INT32_MIN && value.val.ival <= INT32_MAX);
       return std::make_unique<LiteralExpression>((int32_t)value.val.ival);
 
-    case duckdb_libpgquery::T_PGString:
+    case libpgquery::T_PGString:
       return std::make_unique<LiteralExpression>(
           std::string_view(value.val.str));
 
-    case duckdb_libpgquery::T_PGFloat: {
+    case libpgquery::T_PGFloat: {
       std::string str_val(value.val.str);
       bool try_cast_as_integer = true;
       int decimal_position = -1;
@@ -56,7 +56,7 @@ std::unique_ptr<LiteralExpression> TransformLiteralExpression(
       throw std::runtime_error("Invalid constant " + str_val);
     }
 
-    case duckdb_libpgquery::T_PGBitString:
+    case libpgquery::T_PGBitString:
     default:
       throw std::runtime_error("Unsupported value type. " +
                                std::to_string(value.type));

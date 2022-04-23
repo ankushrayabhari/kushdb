@@ -4,17 +4,17 @@
 #include <vector>
 
 #include "parse/expression/expression.h"
-#include "third_party/duckdb_libpgquery/parser.h"
+#include "third_party/libpgquery/parser.h"
 
 namespace kush::parse {
 
 std::unique_ptr<Expression> TransformBoolExpression(
-    duckdb_libpgquery::PGBoolExpr& expr);
+    libpgquery::PGBoolExpr& expr);
 
 std::unique_ptr<Expression> TransformNullTestExpression(
-    duckdb_libpgquery::PGNullTest& expr);
+    libpgquery::PGNullTest& expr);
 
 std::unique_ptr<Expression> TransformArithmeticExpression(
-    duckdb_libpgquery::PGAExpr& expr);
+    libpgquery::PGAExpr& expr);
 
 }  // namespace kush::parse

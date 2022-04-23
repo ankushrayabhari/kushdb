@@ -4,10 +4,10 @@
 #include <vector>
 
 #include "parse/table/table.h"
-#include "third_party/duckdb_libpgquery/parser.h"
+#include "third_party/libpgquery/parser.h"
 
 namespace kush::parse {
 
-std::unique_ptr<Table> TransformFrom(duckdb_libpgquery::PGList& from);
+std::unique_ptr<Table> TransformFrom(libpgquery::PGList& from);
 
 }  // namespace kush::parse

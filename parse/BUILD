@@ -9,6 +9,6 @@ cc_library(
     deps = [
         "//parse/statement",
         "//parse/transform",
-        "//third_party/duckdb_libpgquery",
+        "//third_party/libpgquery",
     ],
 )
