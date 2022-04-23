@@ -9,7 +9,7 @@ void MarkMaterialization(khir::Value value, const std::vector<uint64_t>& instrs,
                          std::vector<bool>& should_materialize) {
   if (!value.IsConstantGlobal() &&
       OpcodeFrom(GenericInstructionReader(instrs[value.GetIdx()]).Opcode()) ==
-          Opcode::GEP) {
+          Opcode::GEP_STATIC) {
     should_materialize[value.GetIdx()] = true;
   }
 }

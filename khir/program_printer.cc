@@ -268,7 +268,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::PTR_CAST:
     case Opcode::PTR_LOAD:
     case Opcode::CALL_ARG:
-    case Opcode::GEP:
+    case Opcode::GEP_STATIC:
     case Opcode::CALL_INDIRECT: {
       Type3InstructionReader reader(instrs[idx]);
       Value v0(reader.Arg());

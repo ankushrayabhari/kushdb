@@ -389,28 +389,28 @@ bool ASMBackend::IsGep(khir::Value v,
   }
   return OpcodeFrom(
              GenericInstructionReader(instructions[v.GetIdx()]).Opcode()) ==
-         Opcode::GEP;
+         Opcode::GEP_STATIC;
 }
 
 std::pair<khir::Value, int32_t> ASMBackend::Gep(
     khir::Value v, const std::vector<uint64_t>& instructions,
     const std::vector<uint64_t>& constant_instrs) {
   Type3InstructionReader gep_reader(instructions[v.GetIdx()]);
-  if (OpcodeFrom(gep_reader.Opcode()) != Opcode::GEP) {
-    throw std::runtime_error("Invalid GEP");
+  if (OpcodeFrom(gep_reader.Opcode()) != Opcode::GEP_STATIC) {
+    throw std::runtime_error("Invalid GEP_STATIC");
   }
 
   auto gep_offset_instr = instructions[khir::Value(gep_reader.Arg()).GetIdx()];
   Type2InstructionReader gep_offset_reader(gep_offset_instr);
   if (OpcodeFrom(gep_offset_reader.Opcode()) != Opcode::GEP_OFFSET) {
-    throw std::runtime_error("Invalid GEP Offset");
+    throw std::runtime_error("Invalid GEP_STATIC Offset");
   }
 
   auto ptr = khir::Value(gep_offset_reader.Arg0());
 
   auto constant_value = khir::Value(gep_offset_reader.Arg1());
   if (!constant_value.IsConstantGlobal()) {
-    throw std::runtime_error("Invalid GEP offset");
+    throw std::runtime_error("Invalid GEP_STATIC offset");
   }
   int32_t offset =
       Type1InstructionReader(constant_instrs[constant_value.GetIdx()])
@@ -3127,7 +3127,7 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::GEP: {
+    case Opcode::GEP_STATIC: {
       if (!gep_materialize[instr_idx]) {
         return;
       }

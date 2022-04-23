@@ -632,7 +632,7 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::GEP: {
+    case Opcode::GEP_STATIC: {
       Type3InstructionReader reader(instr);
       auto t = types_[reader.TypeID()];
       auto v = GetValue(Value(reader.Arg()), constant_values, values);

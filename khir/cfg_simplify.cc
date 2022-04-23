@@ -181,7 +181,7 @@ void RewriteInstr(uint64_t& instr,
     case Opcode::RETURN:
     case Opcode::BR:
     case Opcode::FUNC_ARG:
-    case Opcode::GEP:
+    case Opcode::GEP_STATIC:
     case Opcode::GEP_OFFSET:
     case Opcode::PHI:
     case Opcode::ALLOCA:
