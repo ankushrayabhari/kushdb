@@ -136,7 +136,7 @@ khir::Value Gep(khir::Value v, const std::vector<uint64_t>& instructions) {
     throw std::runtime_error("Invalid GEP_STATIC");
   }
 
-  auto gep_offset_instr = instructions[khir::Value(gep_reader.Arg()).GetIdx()];
+  auto gep_offset_instr = instructions[v.GetIdx() - 1];
   Type2InstructionReader gep_offset_reader(gep_offset_instr);
   if (OpcodeFrom(gep_offset_reader.Opcode()) != Opcode::GEP_STATIC_OFFSET) {
     throw std::runtime_error("Invalid GEP_STATIC Offset");

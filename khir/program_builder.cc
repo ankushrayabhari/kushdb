@@ -2157,7 +2157,7 @@ Value ProgramBuilder::StaticGEP(Type t, Value v,
   auto [offset, result_type] = type_manager_.GetPointerOffset(t, idx);
   auto offset_v = ConstI32(offset);
 
-  auto untyped_location_v = GetCurrentFunction().Append(
+  GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::GEP_STATIC_OFFSET))
           .SetArg0(v.Serialize())
@@ -2167,7 +2167,6 @@ Value ProgramBuilder::StaticGEP(Type t, Value v,
   return GetCurrentFunction().Append(
       Type3InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::GEP_STATIC))
-          .SetArg(untyped_location_v.Serialize())
           .SetTypeID(result_type.GetID())
           .Build());
 }
