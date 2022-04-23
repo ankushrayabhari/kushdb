@@ -140,8 +140,8 @@ khir::Value AggregateHashTablePayload::GetHashOffset(
     khir::ProgramBuilder& program, StructBuilder& format) {
   auto type = format.Type();
   return program.PointerCast(
-      program.ConstGEP(type, program.NullPtr(program.PointerType(type)),
-                       {0, 0}),
+      program.StaticGEP(type, program.NullPtr(program.PointerType(type)),
+                        {0, 0}),
       program.I64Type());
 }
 
@@ -353,55 +353,55 @@ void AggregateHashTable::Resize() {
 
 Int64 AggregateHashTable::PayloadHashOffset() {
   return Int64(program_,
-               program_.LoadI64(program_.ConstGEP(
+               program_.LoadI64(program_.StaticGEP(
                    program_.GetStructType(StructName), value_, {0, 0})));
 }
 
 void AggregateHashTable::SetSize(Int32 s) {
   program_.StoreI32(
-      program_.ConstGEP(program_.GetStructType(StructName), value_, {0, 1}),
+      program_.StaticGEP(program_.GetStructType(StructName), value_, {0, 1}),
       s.Get());
 }
 
 Int32 AggregateHashTable::Size() {
   return Int32(program_,
-               program_.LoadI32(program_.ConstGEP(
+               program_.LoadI32(program_.StaticGEP(
                    program_.GetStructType(StructName), value_, {0, 1})));
 }
 
 Int32 AggregateHashTable::Capacity() {
   return Int32(program_,
-               program_.LoadI32(program_.ConstGEP(
+               program_.LoadI32(program_.StaticGEP(
                    program_.GetStructType(StructName), value_, {0, 2})));
 }
 
 Int64 AggregateHashTable::Mask() {
   return Int64(program_,
-               program_.LoadI64(program_.ConstGEP(
+               program_.LoadI64(program_.StaticGEP(
                    program_.GetStructType(StructName), value_, {0, 3})));
 }
 
 Int32 AggregateHashTable::PayloadBlocksSize() {
   return Int32(program_,
-               program_.LoadI32(program_.ConstGEP(
+               program_.LoadI32(program_.StaticGEP(
                    program_.GetStructType(StructName), value_, {0, 7})));
 }
 
 void AggregateHashTable::SetPayloadBlocksOffset(Int16 s) {
   program_.StoreI16(
-      program_.ConstGEP(program_.GetStructType(StructName), value_, {0, 8}),
+      program_.StaticGEP(program_.GetStructType(StructName), value_, {0, 8}),
       s.Get());
 }
 
 Int16 AggregateHashTable::PayloadBlocksOffset() {
   return Int16(program_,
-               program_.LoadI16(program_.ConstGEP(
+               program_.LoadI16(program_.StaticGEP(
                    program_.GetStructType(StructName), value_, {0, 8})));
 }
 
 Int16 AggregateHashTable::PayloadSize() {
   return Int16(program_,
-               program_.LoadI64(program_.ConstGEP(
+               program_.LoadI64(program_.StaticGEP(
                    program_.GetStructType(StructName), value_, {0, 9})));
 }
 

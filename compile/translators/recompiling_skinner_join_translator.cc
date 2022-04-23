@@ -277,13 +277,13 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
       [&](const auto& budget, const auto& resume_progress) {
         // Insert tuple idx into hash table
         auto tuple_idx_arr =
-            program.ConstGEP(idx_array_type, idx_array, {0, 0});
+            program.StaticGEP(idx_array_type, idx_array, {0, 0});
 
         proxy::Int32 num_tables(program, child_translators.size());
         tuple_idx_table.Insert(tuple_idx_arr, num_tables);
 
-        auto result_ptr = program.ConstGEP(num_result_tuples_type,
-                                           num_result_tuples_ptr, {0, 0});
+        auto result_ptr = program.StaticGEP(num_result_tuples_type,
+                                            num_result_tuples_ptr, {0, 0});
         proxy::Int32 num_result_tuples(program, program.LoadI32(result_ptr));
         program.StoreI32(result_ptr, (num_result_tuples + 1).Get());
 
@@ -364,12 +364,12 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                   proxy::If(
                       program, budget == 0,
                       [&]() {
-                        auto idx_ptr = program.ConstGEP(
+                        auto idx_ptr = program.StaticGEP(
                             idx_array_type, idx_array, {0, table_idx});
                         program.StoreI32(idx_ptr, (cardinality - 1).Get());
                         program.StoreI32(
-                            program.ConstGEP(table_ctr_type, table_ctr_ptr,
-                                             {0, 0}),
+                            program.StaticGEP(table_ctr_type, table_ctr_ptr,
+                                              {0, 0}),
                             program.ConstI32(table_idx));
                         program.Return(program.ConstI32(-1));
                       },
@@ -391,12 +391,12 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                     proxy::If(
                         program, budget == 0,
                         [&]() {
-                          auto idx_ptr = program.ConstGEP(
+                          auto idx_ptr = program.StaticGEP(
                               idx_array_type, idx_array, {0, table_idx});
                           program.StoreI32(idx_ptr, (cardinality - 1).Get());
                           program.StoreI32(
-                              program.ConstGEP(table_ctr_type, table_ctr_ptr,
-                                               {0, 0}),
+                              program.StaticGEP(table_ctr_type, table_ctr_ptr,
+                                                {0, 0}),
                               program.ConstI32(table_idx));
                           program.Return(program.ConstI32(-1));
                         },
@@ -409,13 +409,13 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
             auto progress_next_tuple = proxy::Ternary(
                 program, resume_progress,
                 [&]() {
-                  auto progress_ptr = program.ConstGEP(
+                  auto progress_ptr = program.StaticGEP(
                       progress_array_type, progress_arr, {0, table_idx});
                   return proxy::Int32(program, program.LoadI32(progress_ptr));
                 },
                 [&]() { return proxy::Int32(program, 0); });
             auto offset_next_tuple =
-                proxy::Int32(program, program.LoadI32(program.ConstGEP(
+                proxy::Int32(program, program.LoadI32(program.StaticGEP(
                                           offset_array_type, offset_array,
                                           {0, table_idx}))) +
                 1;
@@ -436,7 +436,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                                program.ConstantArray(result_array_type,
                                                      initial_result_values));
             auto result =
-                program.ConstGEP(result_array_type, result_array, {0, 0});
+                program.StaticGEP(result_array_type, result_array, {0, 0});
             auto result_initial_size =
                 bucket_list.PopulateSortedIntersectionResult(result,
                                                              result_max_size);
@@ -466,7 +466,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                         auto continue_resume_progress = proxy::Ternary(
                             program, resume_progress,
                             [&]() {
-                              auto bucket_next_tuple_ptr = program.ConstGEP(
+                              auto bucket_next_tuple_ptr = program.StaticGEP(
                                   program.I32Type(), result, {0});
                               auto initial_next_tuple = proxy::Int32(
                                   program,
@@ -492,7 +492,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                         auto next_tuple = SortedIntersectionResultGet(
                             program, result, bucket_idx);
 
-                        auto idx_ptr = program.ConstGEP(
+                        auto idx_ptr = program.StaticGEP(
                             idx_array_type, idx_array, {0, table_idx});
                         program.StoreI32(idx_ptr, next_tuple.Get());
 
@@ -554,9 +554,9 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                                     program, budget == 0,
                                     [&]() {
                                       program.StoreI32(
-                                          program.ConstGEP(table_ctr_type,
-                                                           table_ctr_ptr,
-                                                           {0, 0}),
+                                          program.StaticGEP(table_ctr_type,
+                                                            table_ctr_ptr,
+                                                            {0, 0}),
                                           program.ConstI32(table_idx));
                                       program.Return(program.ConstI32(-1));
                                     },
@@ -577,9 +577,9 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                                           program, budget == 0,
                                           [&]() {
                                             program.StoreI32(
-                                                program.ConstGEP(table_ctr_type,
-                                                                 table_ctr_ptr,
-                                                                 {0, 0}),
+                                                program.StaticGEP(
+                                                    table_ctr_type,
+                                                    table_ctr_ptr, {0, 0}),
                                                 program.ConstI32(table_idx));
                                             program.Return(
                                                 program.ConstI32(-1));
@@ -595,8 +595,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
 
                         proxy::If(program, budget == 0, [&]() {
                           program.StoreI32(
-                              program.ConstGEP(table_ctr_type, table_ctr_ptr,
-                                               {0, 0}),
+                              program.StaticGEP(table_ctr_type, table_ctr_ptr,
+                                                {0, 0}),
                               program.ConstI32(table_idx));
                           program.Return(program.ConstI32(-2));
                         });
@@ -630,14 +630,14 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                   auto progress_next_tuple = proxy::Ternary(
                       program, resume_progress,
                       [&]() {
-                        auto progress_ptr = program.ConstGEP(
+                        auto progress_ptr = program.StaticGEP(
                             progress_array_type, progress_arr, {0, table_idx});
                         return proxy::Int32(program,
                                             program.LoadI32(progress_ptr));
                       },
                       [&]() { return proxy::Int32(program, 0); });
                   auto offset_next_tuple =
-                      proxy::Int32(program, program.LoadI32(program.ConstGEP(
+                      proxy::Int32(program, program.LoadI32(program.StaticGEP(
                                                 offset_array_type, offset_array,
                                                 {0, table_idx}))) +
                       1;
@@ -652,7 +652,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                   auto continue_resume_progress = proxy::Ternary(
                       program, resume_progress,
                       [&]() {
-                        auto progress_ptr = program.ConstGEP(
+                        auto progress_ptr = program.StaticGEP(
                             progress_array_type, progress_arr, {0, table_idx});
                         auto progress_next_tuple = proxy::Int32(
                             program, program.LoadI32(progress_ptr));
@@ -674,8 +674,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                   auto resume_progress =
                       loop.template GetLoopVariable<proxy::Bool>(2);
 
-                  auto idx_ptr = program.ConstGEP(idx_array_type, idx_array,
-                                                  {0, table_idx});
+                  auto idx_ptr = program.StaticGEP(idx_array_type, idx_array,
+                                                   {0, table_idx});
                   program.StoreI32(idx_ptr, next_tuple.Get());
 
                   /*
@@ -728,8 +728,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                               program, budget == 0,
                               [&]() {
                                 program.StoreI32(
-                                    program.ConstGEP(table_ctr_type,
-                                                     table_ctr_ptr, {0, 0}),
+                                    program.StaticGEP(table_ctr_type,
+                                                      table_ctr_ptr, {0, 0}),
                                     program.ConstI32(table_idx));
                                 program.Return(program.ConstI32(-1));
                               },
@@ -749,9 +749,9 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                                     program, budget == 0,
                                     [&]() {
                                       program.StoreI32(
-                                          program.ConstGEP(table_ctr_type,
-                                                           table_ctr_ptr,
-                                                           {0, 0}),
+                                          program.StaticGEP(table_ctr_type,
+                                                            table_ctr_ptr,
+                                                            {0, 0}),
                                           program.ConstI32(table_idx));
                                       program.Return(program.ConstI32(-1));
                                     },
@@ -765,9 +765,9 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                   }
 
                   proxy::If(program, budget == 0, [&]() {
-                    program.StoreI32(
-                        program.ConstGEP(table_ctr_type, table_ctr_ptr, {0, 0}),
-                        program.ConstI32(table_idx));
+                    program.StoreI32(program.StaticGEP(table_ctr_type,
+                                                       table_ctr_ptr, {0, 0}),
+                                     program.ConstI32(table_idx));
                     program.Return(program.ConstI32(-2));
                   });
 
@@ -919,8 +919,8 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   auto materialized_buffer_array = program_.Global(
       materialized_buffer_array_type, materialized_buffer_array_init);
   for (int i = 0; i < materialized_buffers_.size(); i++) {
-    program_.StorePtr(program_.ConstGEP(materialized_buffer_array_type,
-                                        materialized_buffer_array, {0, i}),
+    program_.StorePtr(program_.StaticGEP(materialized_buffer_array_type,
+                                         materialized_buffer_array, {0, i}),
                       materialized_buffers_[i]->Serialize());
   }
 
@@ -935,8 +935,8 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   auto materialized_index_array = program_.Global(
       materialized_index_array_type, materialized_index_array_init);
   for (int i = 0; i < indexes_.size(); i++) {
-    program_.StorePtr(program_.ConstGEP(materialized_index_array_type,
-                                        materialized_index_array, {0, i}),
+    program_.StorePtr(program_.StaticGEP(materialized_index_array_type,
+                                         materialized_index_array, {0, i}),
                       indexes_[i]->Serialize());
   }
 
@@ -950,8 +950,8 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       program_.Global(cardinalities_array_type, cardinalities_array_init);
 
   for (int i = 0; i < materialized_buffers_.size(); i++) {
-    program_.StoreI32(program_.ConstGEP(cardinalities_array_type,
-                                        cardinalities_array, {0, i}),
+    program_.StoreI32(program_.StaticGEP(cardinalities_array_type,
+                                         cardinalities_array, {0, i}),
                       materialized_buffers_[i]->Size().Get());
   }
 
@@ -987,12 +987,12 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   auto compile_fn = static_cast<RecompilingJoinTranslator*>(this);
   proxy::SkinnerJoinExecutor::ExecuteRecompilingJoin(
       program_, child_translators.size(),
-      program_.ConstGEP(cardinalities_array_type, cardinalities_array, {0, 0}),
+      program_.StaticGEP(cardinalities_array_type, cardinalities_array, {0, 0}),
       &table_connections_, &join_.PrefixOrder(), compile_fn,
-      program_.ConstGEP(materialized_buffer_array_type,
-                        materialized_buffer_array, {0, 0}),
-      program_.ConstGEP(materialized_index_array_type, materialized_index_array,
-                        {0, 0}),
+      program_.StaticGEP(materialized_buffer_array_type,
+                         materialized_buffer_array, {0, 0}),
+      program_.StaticGEP(materialized_index_array_type,
+                         materialized_index_array, {0, 0}),
       tuple_idx_table.Get());
 
   program_.Return();
@@ -1062,7 +1062,7 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       auto& child_translator = child_translators[i].get();
 
       auto tuple_idx_ptr =
-          program_.ConstGEP(program_.I32Type(), tuple_idx_arr, {i});
+          program_.StaticGEP(program_.I32Type(), tuple_idx_arr, {i});
       auto tuple_idx = proxy::Int32(program_, program_.LoadI32(tuple_idx_ptr));
 
       auto& buffer = *materialized_buffers_[current_buffer++];

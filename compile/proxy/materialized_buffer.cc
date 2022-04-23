@@ -107,11 +107,11 @@ khir::Value DiskMaterializedBuffer::Serialize() {
   auto value = program_.Alloca(i8_ptr_ty, 2 * column_data_.size());
 
   for (int i = 0; i < column_data_.size(); i++) {
-    program_.StorePtr(program_.ConstGEP(i8_ptr_ty, value, {2 * i}),
+    program_.StorePtr(program_.StaticGEP(i8_ptr_ty, value, {2 * i}),
                       program_.PointerCast(column_data_[i]->Get(), i8_ptr_ty));
 
     if (null_data_[i] != nullptr) {
-      program_.StorePtr(program_.ConstGEP(i8_ptr_ty, value, {2 * i + 1}),
+      program_.StorePtr(program_.StaticGEP(i8_ptr_ty, value, {2 * i + 1}),
                         program_.PointerCast(null_data_[i]->Get(), i8_ptr_ty));
     }
   }

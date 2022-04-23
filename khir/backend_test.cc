@@ -123,7 +123,7 @@ TEST_P(BackendTest, PTR_CASTStruct) {
       program.CreatePublicFunction(program.PointerType(program.F64Type()),
                                    {program.PointerType(st)}, "compute");
   auto args = program.GetFunctionArguments(func);
-  program.Return(program.PointerCast(program.ConstGEP(st, args[0], {0, 0}),
+  program.Return(program.PointerCast(program.StaticGEP(st, args[0], {0, 0}),
                                      program.PointerType(program.F64Type())));
 
   auto backend = Compile(GetParam(), program);
@@ -269,10 +269,11 @@ TEST_P(BackendTest, ALLOCAStruct) {
                                            {handler_pointer_type}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto ptr = program.Alloca(test_type);
-  program.StoreI8(program.ConstGEP(test_type, ptr, {0, 0}), program.ConstI8(0));
-  program.StoreI16(program.ConstGEP(test_type, ptr, {0, 1}),
+  program.StoreI8(program.StaticGEP(test_type, ptr, {0, 0}),
+                  program.ConstI8(0));
+  program.StoreI16(program.StaticGEP(test_type, ptr, {0, 1}),
                    program.ConstI16(1000));
-  program.StoreI64(program.ConstGEP(test_type, ptr, {0, 2}),
+  program.StoreI64(program.StaticGEP(test_type, ptr, {0, 2}),
                    program.ConstI64(2));
   program.Call(args[0], {ptr});
   program.Return();
@@ -336,7 +337,7 @@ TEST_P(BackendTest, PTR_LOADStruct) {
       program.CreatePublicFunction(program.PointerType(program.I64Type()),
                                    {program.PointerType(st)}, "compute");
   auto args = program.GetFunctionArguments(func);
-  program.Return(program.LoadPtr(program.ConstGEP(st, args[0], {0, 0})));
+  program.Return(program.LoadPtr(program.StaticGEP(st, args[0], {0, 0})));
 
   auto backend = Compile(GetParam(), program);
 
@@ -425,7 +426,7 @@ TEST_P(BackendTest, PTR_STOREGep) {
        program.PointerType(st)},
       "compute");
   auto args = program.GetFunctionArguments(func);
-  program.StorePtr(args[0], program.ConstGEP(st, args[1], {0, 1}));
+  program.StorePtr(args[0], program.StaticGEP(st, args[1], {0, 1}));
   program.Return();
 
   auto backend = Compile(GetParam(), program);
@@ -449,7 +450,7 @@ TEST_P(BackendTest, PTR_CMP_NULLPTR_Gep) {
   auto func = program.CreatePublicFunction(
       program.I1Type(), {program.PointerType(st)}, "compute");
   auto args = program.GetFunctionArguments(func);
-  auto v = program.LoadPtr(program.ConstGEP(st, args[0], {0, 0}));
+  auto v = program.LoadPtr(program.StaticGEP(st, args[0], {0, 0}));
   program.Return(program.IsNullPtr(v));
 
   auto backend = Compile(GetParam(), program);
@@ -497,7 +498,7 @@ TEST_P(BackendTest, PTR_STOREGepDest) {
       {program.PointerType(st), program.PointerType(program.I64Type())},
       "compute");
   auto args = program.GetFunctionArguments(func);
-  program.StorePtr(program.ConstGEP(st, args[0], {0, 0}), args[1]);
+  program.StorePtr(program.StaticGEP(st, args[0], {0, 0}), args[1]);
   program.Return();
 
   auto backend = Compile(GetParam(), program);
@@ -1650,7 +1651,7 @@ TEST_P(BackendTest, I8_LOADStruct) {
     auto func = program.CreatePublicFunction(
         program.I8Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.Return(program.LoadI8(program.ConstGEP(st, args[0], {0, 0})));
+    program.Return(program.LoadI8(program.StaticGEP(st, args[0], {0, 0})));
 
     auto backend = Compile(GetParam(), program);
 
@@ -1759,7 +1760,7 @@ TEST_P(BackendTest, I8_STOREStruct) {
         program.VoidType(), {program.PointerType(st), program.I8Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI8(program.ConstGEP(st, args[0], {0, 0}), args[1]);
+    program.StoreI8(program.StaticGEP(st, args[0], {0, 0}), args[1]);
     program.Return();
 
     auto backend = Compile(GetParam(), program);
@@ -2498,7 +2499,7 @@ TEST_P(BackendTest, I16_LOADStruct) {
     auto func = program.CreatePublicFunction(
         program.I16Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.Return(program.LoadI16(program.ConstGEP(st, args[0], {0, 0})));
+    program.Return(program.LoadI16(program.StaticGEP(st, args[0], {0, 0})));
 
     auto backend = Compile(GetParam(), program);
 
@@ -2608,7 +2609,7 @@ TEST_P(BackendTest, I16_STOREStruct) {
         program.VoidType(), {program.PointerType(st), program.I16Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI16(program.ConstGEP(st, args[0], {0, 0}), args[1]);
+    program.StoreI16(program.StaticGEP(st, args[0], {0, 0}), args[1]);
     program.Return();
 
     auto backend = Compile(GetParam(), program);
@@ -3348,7 +3349,7 @@ TEST_P(BackendTest, I32_LOADStruct) {
     auto func = program.CreatePublicFunction(
         program.I32Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.Return(program.LoadI32(program.ConstGEP(st, args[0], {0, 0})));
+    program.Return(program.LoadI32(program.StaticGEP(st, args[0], {0, 0})));
 
     auto backend = Compile(GetParam(), program);
 
@@ -3458,7 +3459,7 @@ TEST_P(BackendTest, I32_STOREStruct) {
         program.VoidType(), {program.PointerType(st), program.I32Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI32(program.ConstGEP(st, args[0], {0, 0}), args[1]);
+    program.StoreI32(program.StaticGEP(st, args[0], {0, 0}), args[1]);
     program.Return();
 
     auto backend = Compile(GetParam(), program);
@@ -4608,7 +4609,7 @@ TEST_P(BackendTest, I64_LOADStruct) {
     auto func = program.CreatePublicFunction(
         program.I64Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.Return(program.LoadI64(program.ConstGEP(st, args[0], {0, 0})));
+    program.Return(program.LoadI64(program.StaticGEP(st, args[0], {0, 0})));
 
     auto backend = Compile(GetParam(), program);
 
@@ -4718,7 +4719,7 @@ TEST_P(BackendTest, I64_STOREStruct) {
         program.VoidType(), {program.PointerType(st), program.I64Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreI64(program.ConstGEP(st, args[0], {0, 0}), args[1]);
+    program.StoreI64(program.StaticGEP(st, args[0], {0, 0}), args[1]);
     program.Return();
 
     auto backend = Compile(GetParam(), program);
@@ -5465,7 +5466,7 @@ TEST_P(BackendTest, F64_LOADGlobal) {
     auto global = program.Global(program.F64Type(), program.ConstF64(c));
     program.CreatePublicFunction(program.F64Type(), {}, "compute");
     program.Return(
-        program.LoadF64(program.ConstGEP(program.F64Type(), global, {0})));
+        program.LoadF64(program.StaticGEP(program.F64Type(), global, {0})));
 
     auto backend = Compile(GetParam(), program);
 
@@ -5493,7 +5494,7 @@ TEST_P(BackendTest, F64_LOADStruct) {
     auto func = program.CreatePublicFunction(
         program.F64Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.Return(program.LoadF64(program.ConstGEP(st, args[0], {0, 0})));
+    program.Return(program.LoadF64(program.StaticGEP(st, args[0], {0, 0})));
 
     auto backend = Compile(GetParam(), program);
 
@@ -5572,7 +5573,8 @@ TEST_P(BackendTest, F64_STOREGlobal) {
     auto func = program.CreatePublicFunction(
         program.PointerType(program.F64Type()), {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreF64(program.ConstGEP(program.F64Type(), global, {0}), args[0]);
+    program.StoreF64(program.StaticGEP(program.F64Type(), global, {0}),
+                     args[0]);
     program.Return(global);
 
     auto backend = Compile(GetParam(), program);
@@ -5603,7 +5605,7 @@ TEST_P(BackendTest, F64_STOREStruct) {
         program.VoidType(), {program.PointerType(st), program.F64Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
-    program.StoreF64(program.ConstGEP(st, args[0], {0, 0}), args[1]);
+    program.StoreF64(program.StaticGEP(st, args[0], {0, 0}), args[1]);
     program.Return();
 
     auto backend = Compile(GetParam(), program);

@@ -373,12 +373,12 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
               result_array_type,
               program_.ConstantArray(result_array_type, initial_result_values));
           auto result =
-              program_.ConstGEP(result_array_type, result_array, {0, 0});
+              program_.StaticGEP(result_array_type, result_array, {0, 0});
 
           auto result_initial_size =
               index_bucket_array.PopulateSortedIntersectionResult(
                   result, result_max_size,
-                  program_.ConstGEP(index_array_type, index_array, {0, 0}),
+                  program_.StaticGEP(index_array_type, index_array, {0, 0}),
                   current_index_size);
 
           proxy::Loop loop(
@@ -468,8 +468,8 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
                             auto predicate =
                                 proxy::SkinnerScanSelectExecutor::GetFn(
                                     program_,
-                                    program_.ConstGEP(predicate_array_type,
-                                                      predicate_array, {0, 0}),
+                                    program_.StaticGEP(predicate_array_type,
+                                                       predicate_array, {0, 0}),
                                     i);
 
                             proxy::Bool value(program_,
@@ -503,8 +503,8 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
                 auto next_result_size =
                     index_bucket_array.PopulateSortedIntersectionResult(
                         result, result_max_size,
-                        program_.ConstGEP(index_array_type, index_array,
-                                          {0, 0}),
+                        program_.StaticGEP(index_array_type, index_array,
+                                           {0, 0}),
                         current_index_size);
                 return loop.Continue(next_budget, next_result_size);
               });
@@ -564,8 +564,8 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
 
                       auto predicate = proxy::SkinnerScanSelectExecutor::GetFn(
                           program_,
-                          program_.ConstGEP(predicate_array_type,
-                                            predicate_array, {0, 0}),
+                          program_.StaticGEP(predicate_array_type,
+                                             predicate_array, {0, 0}),
                           i);
 
                       proxy::Bool value(program_, program_.Call(predicate, {}));
@@ -605,10 +605,10 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
   program_.StoreI32(progress_idx, cardinality.Get());
 
   auto index_array_ptr =
-      program_.ConstGEP(index_array_type, index_array, {0, 0});
+      program_.StaticGEP(index_array_type, index_array, {0, 0});
 
   auto predicate_array_ptr =
-      program_.ConstGEP(predicate_array_type, predicate_array, {0, 0});
+      program_.StaticGEP(predicate_array_type, predicate_array, {0, 0});
 
   proxy::SkinnerScanSelectExecutor::ExecutePermutableScanSelect(
       program_, index_evaluatable_predicates_, main_func_ptr, index_array_ptr,

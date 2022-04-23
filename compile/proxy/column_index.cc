@@ -40,11 +40,11 @@ ColumnIndexBucket::ColumnIndexBucket(khir::ProgramBuilder& program,
 void ColumnIndexBucket::Copy(const ColumnIndexBucket& rhs) {
   auto st = program_.GetStructType(ColumnIndexBucketName);
   program_.StorePtr(
-      program_.ConstGEP(st, value_, {0, 0}),
-      program_.LoadPtr(program_.ConstGEP(st, rhs.value_, {0, 0})));
+      program_.StaticGEP(st, value_, {0, 0}),
+      program_.LoadPtr(program_.StaticGEP(st, rhs.value_, {0, 0})));
   program_.StoreI32(
-      program_.ConstGEP(st, value_, {0, 1}),
-      program_.LoadI32(program_.ConstGEP(st, rhs.value_, {0, 1})));
+      program_.StaticGEP(st, value_, {0, 1}),
+      program_.LoadI32(program_.StaticGEP(st, rhs.value_, {0, 1})));
 }
 
 Int32 ColumnIndexBucket::FastForwardToStart(const Int32& last_tuple) {
@@ -54,7 +54,7 @@ Int32 ColumnIndexBucket::FastForwardToStart(const Int32& last_tuple) {
 }
 
 Int32 ColumnIndexBucket::Size() {
-  auto size_ptr = program_.ConstGEP(
+  auto size_ptr = program_.StaticGEP(
       program_.GetStructType(ColumnIndexBucketName), value_, {0, 1});
   return Int32(program_, program_.LoadI32(size_ptr));
 }
@@ -68,7 +68,7 @@ Int32 ColumnIndexBucket::operator[](const Int32& v) {
 Bool ColumnIndexBucket::DoesNotExist() {
   auto st = program_.GetStructType(ColumnIndexBucketName);
   return Bool(program_, program_.IsNullPtr(program_.LoadPtr(
-                            program_.ConstGEP(st, value_, {0, 0}))));
+                            program_.StaticGEP(st, value_, {0, 0}))));
 }
 
 void ColumnIndexBucket::ForwardDeclare(khir::ProgramBuilder& program) {
@@ -156,7 +156,7 @@ ColumnIndexBucket ColumnIndexBucketArray::Get(Int32 idx) {
       program_,
       program_.Call(
           program_.GetFunction(BucketListGetName),
-          {program_.ConstGEP(
+          {program_.StaticGEP(
                program_.ArrayType(program_.GetStructType(ColumnIndexBucketName),
                                   max_size_),
                value_, {0, 0}),
@@ -178,13 +178,13 @@ void ColumnIndexBucketArray::InitSortedIntersection(
     const proxy::Int32& next_tuple) {
   program_.Call(
       program_.GetFunction(BucketListSortedIntersectionInitName),
-      {program_.ConstGEP(
+      {program_.StaticGEP(
            program_.ArrayType(program_.GetStructType(ColumnIndexBucketName),
                               max_size_),
            value_, {0, 0}),
        program_.LoadI32(idx_value_),
-       program_.ConstGEP(program_.ArrayType(program_.I32Type(), max_size_),
-                         sorted_intersection_idx_value_, {0, 0}),
+       program_.StaticGEP(program_.ArrayType(program_.I32Type(), max_size_),
+                          sorted_intersection_idx_value_, {0, 0}),
        next_tuple.Get()});
 }
 
@@ -194,13 +194,13 @@ proxy::Int32 ColumnIndexBucketArray::PopulateSortedIntersectionResult(
       program_,
       program_.Call(
           program_.GetFunction(BucketListSortedIntersectionPopulateResultName),
-          {program_.ConstGEP(
+          {program_.StaticGEP(
                program_.ArrayType(program_.GetStructType(ColumnIndexBucketName),
                                   max_size_),
                value_, {0, 0}),
            program_.LoadI32(idx_value_),
-           program_.ConstGEP(program_.ArrayType(program_.I32Type(), max_size_),
-                             sorted_intersection_idx_value_, {0, 0}),
+           program_.StaticGEP(program_.ArrayType(program_.I32Type(), max_size_),
+                              sorted_intersection_idx_value_, {0, 0}),
            result, program_.ConstI32(result_max_size)}));
 }
 
@@ -212,12 +212,12 @@ proxy::Int32 ColumnIndexBucketArray::PopulateSortedIntersectionResult(
       program_.Call(
           program_.GetFunction(
               BucketListSortedIntersectionPopulateResultFilterName),
-          {program_.ConstGEP(
+          {program_.StaticGEP(
                program_.ArrayType(program_.GetStructType(ColumnIndexBucketName),
                                   max_size_),
                value_, {0, 0}),
-           program_.ConstGEP(program_.ArrayType(program_.I32Type(), max_size_),
-                             sorted_intersection_idx_value_, {0, 0}),
+           program_.StaticGEP(program_.ArrayType(program_.I32Type(), max_size_),
+                              sorted_intersection_idx_value_, {0, 0}),
            result, program_.ConstI32(result_max_size), filters,
            filters_size.Get()}));
 }

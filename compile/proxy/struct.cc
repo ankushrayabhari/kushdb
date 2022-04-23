@@ -100,12 +100,12 @@ std::vector<SQLValue> Struct::Unpack() {
   for (int i = 0; i < types.size(); i++) {
     auto [field_idx, null_field_idx] = fields_.GetFieldNullableIdx(i);
 
-    auto ptr = program_.ConstGEP(fields_.Type(), value_, {0, field_idx});
+    auto ptr = program_.StaticGEP(fields_.Type(), value_, {0, field_idx});
     auto null =
         null_field_idx >= 0
             ? Int8(program_,
-                   program_.LoadI8(program_.ConstGEP(fields_.Type(), value_,
-                                                     {0, null_field_idx}))) != 0
+                   program_.LoadI8(program_.StaticGEP(
+                       fields_.Type(), value_, {0, null_field_idx}))) != 0
             : Bool(program_, false);
 
     std::unique_ptr<IRValue> value;
@@ -141,10 +141,10 @@ SQLValue Struct::Get(int i) {
 
   auto [field_idx, null_field_idx] = fields_.GetFieldNullableIdx(i);
 
-  auto ptr = program_.ConstGEP(fields_.Type(), value_, {0, field_idx});
+  auto ptr = program_.StaticGEP(fields_.Type(), value_, {0, field_idx});
   auto null = null_field_idx >= 0
                   ? Int8(program_,
-                         program_.LoadI8(program_.ConstGEP(
+                         program_.LoadI8(program_.StaticGEP(
                              fields_.Type(), value_, {0, null_field_idx}))) != 0
                   : Bool(program_, false);
 
@@ -198,7 +198,7 @@ void Struct::Update(int field, const SQLValue& v) {
   auto struct_type = fields_.Type();
 
   if (null_field_idx < 0) {
-    auto ptr = program_.ConstGEP(struct_type, value_, {0, field_idx});
+    auto ptr = program_.StaticGEP(struct_type, value_, {0, field_idx});
     const auto& value = v.Get();
     auto type = v.Type();
     Store(type, ptr, value);
@@ -207,15 +207,15 @@ void Struct::Update(int field, const SQLValue& v) {
         program_, v.IsNull(),
         [&]() {
           auto null_ptr =
-              program_.ConstGEP(struct_type, value_, {0, null_field_idx});
+              program_.StaticGEP(struct_type, value_, {0, null_field_idx});
           program_.StoreI8(null_ptr, program_.ConstI8(1));
         },
         [&]() {
           auto null_ptr =
-              program_.ConstGEP(struct_type, value_, {0, null_field_idx});
+              program_.StaticGEP(struct_type, value_, {0, null_field_idx});
           program_.StoreI8(null_ptr, program_.ConstI8(0));
 
-          auto ptr = program_.ConstGEP(struct_type, value_, {0, field_idx});
+          auto ptr = program_.StaticGEP(struct_type, value_, {0, field_idx});
           const auto& value = v.Get();
           auto type = v.Type();
           Store(type, ptr, value);
