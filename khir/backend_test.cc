@@ -348,6 +348,32 @@ TEST_P(BackendTest, PTR_LOADStruct) {
   EXPECT_EQ(t.x, compute(&t));
 }
 
+TEST_P(BackendTest, PTR_LOADStructDynamic) {
+  struct Test {
+    int64_t* x;
+  };
+
+  ProgramBuilder program;
+  auto st = program.StructType({program.PointerType(program.I64Type())});
+  auto func = program.CreatePublicFunction(
+      program.PointerType(program.I64Type()),
+      {program.PointerType(st), program.I32Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(
+      program.LoadPtr(program.DynamicGEP(st, args[0], args[1], {0})));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int64_t*(Test*, int32_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  Test t[2];
+  t[0].x = reinterpret_cast<int64_t*>(0xDEADBEEF);
+  t[1].x = reinterpret_cast<int64_t*>(0xBEEFDEAD);
+  EXPECT_EQ(t[0].x, compute(t, 0));
+  EXPECT_EQ(t[1].x, compute(t, 1));
+}
+
 TEST_P(BackendTest, PTR_STORE) {
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
@@ -440,6 +466,40 @@ TEST_P(BackendTest, PTR_STOREGep) {
   EXPECT_EQ(&x.b, loc);
 }
 
+TEST_P(BackendTest, PTR_STOREDynamicGep) {
+  struct Test {
+    int32_t a;
+    int64_t b;
+  };
+
+  ProgramBuilder program;
+  auto st = program.StructType({program.I32Type(), program.I64Type()});
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(program.PointerType(program.I64Type())),
+       program.PointerType(st), program.I32Type()},
+      "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StorePtr(args[0], program.DynamicGEP(st, args[1], args[2], {1}));
+  program.Return();
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<void(int64_t**, Test*, int32_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  Test x[2];
+  x[0].a = 100;
+  x[0].b = -1000;
+  x[1].a = 787;
+  x[1].b = -777;
+  int64_t* loc = nullptr;
+  compute(&loc, x, 0);
+  EXPECT_EQ(&x[0].b, loc);
+  compute(&loc, x, 1);
+  EXPECT_EQ(&x[1].b, loc);
+}
+
 TEST_P(BackendTest, PTR_CMP_NULLPTR_Gep) {
   struct Test {
     int64_t* a;
@@ -511,6 +571,38 @@ TEST_P(BackendTest, PTR_STOREGepDest) {
   int64_t* ptr = reinterpret_cast<int64_t*>(value);
   compute(&t, ptr);
   EXPECT_EQ(ptr, t.x);
+}
+
+TEST_P(BackendTest, PTR_STOREDynamicGepDest) {
+  struct Test {
+    int64_t* x;
+  };
+
+  ProgramBuilder program;
+  auto st = program.StructType({program.PointerType(program.I64Type())});
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(st), program.PointerType(program.I64Type()),
+       program.I32Type()},
+      "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.StorePtr(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
+  program.Return();
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<void(Test*, int64_t*, int32_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  Test t[2];
+  t[0].x = nullptr;
+  t[1].x = nullptr;
+  int64_t value = 0xDEADBEEF;
+  int64_t* ptr = reinterpret_cast<int64_t*>(value);
+  compute(t, ptr, 0);
+  EXPECT_EQ(ptr, t[0].x);
+  compute(t, ptr, 1);
+  EXPECT_EQ(ptr, t[1].x);
 }
 
 TEST_P(BackendTest, PHIPTR) {
@@ -1664,6 +1756,40 @@ TEST_P(BackendTest, I8_LOADStruct) {
   }
 }
 
+TEST_P(BackendTest, I8_LOADStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
+
+    struct Test {
+      int8_t x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.I8Type()});
+    auto func = program.CreatePublicFunction(
+        program.I8Type(), {program.PointerType(st), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(
+        program.LoadI8(program.DynamicGEP(st, args[0], args[1], {0})));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int8_t(Test*, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    t[0].x = c;
+    t[1].x = 0;
+    EXPECT_EQ(c, compute(t, 0));
+    EXPECT_EQ(0, compute(t, 1));
+  }
+}
+
 TEST_P(BackendTest, I8_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -1772,6 +1898,41 @@ TEST_P(BackendTest, I8_STOREStruct) {
     Test t;
     compute(&t, c);
     EXPECT_EQ(t.x, c);
+  }
+}
+
+TEST_P(BackendTest, I8_STOREStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
+
+    struct Test {
+      int8_t x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.I8Type()});
+    auto func = program.CreatePublicFunction(
+        program.VoidType(),
+        {program.PointerType(st), program.I8Type(), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.StoreI8(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
+    program.Return();
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<void(Test*, int8_t, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    compute(t, c, 0);
+    EXPECT_EQ(t[0].x, c);
+    compute(t, c, 1);
+    EXPECT_EQ(t[1].x, c);
   }
 }
 
@@ -2512,6 +2673,40 @@ TEST_P(BackendTest, I16_LOADStruct) {
   }
 }
 
+TEST_P(BackendTest, I16_LOADStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
+  for (int i = 0; i < 10; i++) {
+    int16_t c = distrib(gen);
+
+    struct Test {
+      int16_t x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.I16Type()});
+    auto func = program.CreatePublicFunction(
+        program.I16Type(), {program.PointerType(st), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(
+        program.LoadI16(program.DynamicGEP(st, args[0], args[1], {0})));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int16_t(Test*, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    t[0].x = c;
+    t[1].x = 0;
+    EXPECT_EQ(c, compute(t, 0));
+    EXPECT_EQ(0, compute(t, 1));
+  }
+}
+
 TEST_P(BackendTest, I16_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -2621,6 +2816,41 @@ TEST_P(BackendTest, I16_STOREStruct) {
     Test t;
     compute(&t, c);
     EXPECT_EQ(t.x, c);
+  }
+}
+
+TEST_P(BackendTest, I16_STOREStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
+  for (int i = 0; i < 10; i++) {
+    int16_t c = distrib(gen);
+
+    struct Test {
+      int16_t x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.I16Type()});
+    auto func = program.CreatePublicFunction(
+        program.VoidType(),
+        {program.PointerType(st), program.I16Type(), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.StoreI16(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
+    program.Return();
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<void(Test*, int16_t, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    compute(t, c, 0);
+    EXPECT_EQ(t[0].x, c);
+    compute(t, c, 1);
+    EXPECT_EQ(t[1].x, c);
   }
 }
 
@@ -3362,6 +3592,40 @@ TEST_P(BackendTest, I32_LOADStruct) {
   }
 }
 
+TEST_P(BackendTest, I32_LOADStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
+  for (int i = 0; i < 10; i++) {
+    int32_t c = distrib(gen);
+
+    struct Test {
+      int32_t x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.I32Type()});
+    auto func = program.CreatePublicFunction(
+        program.I32Type(), {program.PointerType(st), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(
+        program.LoadI32(program.DynamicGEP(st, args[0], args[1], {0})));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int32_t(Test*, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    t[0].x = c;
+    t[1].x = 0;
+    EXPECT_EQ(c, compute(t, 0));
+    EXPECT_EQ(0, compute(t, 1));
+  }
+}
+
 TEST_P(BackendTest, I32_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -3471,6 +3735,41 @@ TEST_P(BackendTest, I32_STOREStruct) {
     Test t;
     compute(&t, c);
     EXPECT_EQ(t.x, c);
+  }
+}
+
+TEST_P(BackendTest, I32_STOREStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
+  for (int i = 0; i < 10; i++) {
+    int32_t c = distrib(gen);
+
+    struct Test {
+      int32_t x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.I32Type()});
+    auto func = program.CreatePublicFunction(
+        program.VoidType(),
+        {program.PointerType(st), program.I32Type(), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.StoreI32(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
+    program.Return();
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<void(Test*, int32_t, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    compute(t, c, 0);
+    EXPECT_EQ(t[0].x, c);
+    compute(t, c, 1);
+    EXPECT_EQ(t[1].x, c);
   }
 }
 
@@ -4314,7 +4613,7 @@ TEST_P(BackendTest, I64_TRUNC_I32) {
     auto func = program.CreatePublicFunction(program.I32Type(),
                                              {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
-    program.Return(program.I16TruncI64(args[0]));
+    program.Return(program.I32TruncI64(args[0]));
 
     auto backend = Compile(GetParam(), program);
 
@@ -4622,6 +4921,40 @@ TEST_P(BackendTest, I64_LOADStruct) {
   }
 }
 
+TEST_P(BackendTest, I64_LOADStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  for (int i = 0; i < 10; i++) {
+    int64_t c = distrib(gen);
+
+    struct Test {
+      int64_t x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.I64Type()});
+    auto func = program.CreatePublicFunction(
+        program.I64Type(), {program.PointerType(st), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(
+        program.LoadI64(program.DynamicGEP(st, args[0], args[1], {0})));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int64_t(Test*, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    t[0].x = c;
+    t[1].x = 0;
+    EXPECT_EQ(c, compute(t, 0));
+    EXPECT_EQ(0, compute(t, 1));
+  }
+}
+
 TEST_P(BackendTest, I64_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -4731,6 +5064,41 @@ TEST_P(BackendTest, I64_STOREStruct) {
     Test t;
     compute(&t, c);
     EXPECT_EQ(t.x, c);
+  }
+}
+
+TEST_P(BackendTest, I64_STOREStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+  for (int i = 0; i < 10; i++) {
+    int64_t c = distrib(gen);
+
+    struct Test {
+      int64_t x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.I64Type()});
+    auto func = program.CreatePublicFunction(
+        program.VoidType(),
+        {program.PointerType(st), program.I64Type(), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.StoreI64(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
+    program.Return();
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<void(Test*, int64_t, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    compute(t, c, 0);
+    EXPECT_EQ(t[0].x, c);
+    compute(t, c, 1);
+    EXPECT_EQ(t[1].x, c);
   }
 }
 
@@ -5507,6 +5875,40 @@ TEST_P(BackendTest, F64_LOADStruct) {
   }
 }
 
+TEST_P(BackendTest, F64_LOADStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> distrib(-1e100, 1e100);
+  for (int i = 0; i < 10; i++) {
+    double c = distrib(gen);
+
+    struct Test {
+      double x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.F64Type()});
+    auto func = program.CreatePublicFunction(
+        program.F64Type(), {program.PointerType(st), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(
+        program.LoadF64(program.DynamicGEP(st, args[0], args[1], {0})));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<double(Test*, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    t[0].x = c;
+    t[1].x = 0;
+    EXPECT_EQ(c, compute(t, 0));
+    EXPECT_EQ(0, compute(t, 1));
+  }
+}
+
 TEST_P(BackendTest, F64_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -5617,6 +6019,41 @@ TEST_P(BackendTest, F64_STOREStruct) {
     Test t;
     compute(&t, c);
     EXPECT_EQ(t.x, c);
+  }
+}
+
+TEST_P(BackendTest, F64_STOREStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> distrib(-1e100, 1e100);
+  for (int i = 0; i < 10; i++) {
+    double c = distrib(gen);
+
+    struct Test {
+      double x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.F64Type()});
+    auto func = program.CreatePublicFunction(
+        program.VoidType(),
+        {program.PointerType(st), program.F64Type(), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.StoreF64(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
+    program.Return();
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<void(Test*, double, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    compute(t, c, 0);
+    EXPECT_EQ(t[0].x, c);
+    compute(t, c, 1);
+    EXPECT_EQ(t[1].x, c);
   }
 }
 

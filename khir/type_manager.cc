@@ -303,11 +303,20 @@ int32_t TypeManager::GetTypeSize(Type t) const {
 }
 
 std::pair<int32_t, Type> TypeManager::GetPointerOffset(
-    Type t, absl::Span<const int32_t> idx) {
-  int32_t offset = idx[0] * GetTypeSize(t);
+    Type t, absl::Span<const int32_t> idx, bool dynamic) {
+  int i;
+  int32_t offset;
+
+  if (dynamic) {
+    i = 0;
+    offset = 0;
+  } else {
+    i = 1;
+    offset = idx[0] * GetTypeSize(t);
+  }
 
   TypeImpl* result_type = type_id_to_impl_[t.GetID()].get();
-  for (int i = 1; i < idx.size(); i++) {
+  for (; i < idx.size(); i++) {
     if (auto ptr_type = dynamic_cast<PointerTypeImpl*>(result_type)) {
       // nothing changes
       result_type = type_id_to_impl_[ptr_type->ElementType().GetID()].get();

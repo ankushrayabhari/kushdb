@@ -635,19 +635,23 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::BR:
       return type_manager_.VoidType();
 
+    case Opcode::GEP_DYNAMIC_IDX:
+      return type_manager_.I64Type();
+
     case Opcode::ALLOCA:
     case Opcode::PHI:
     case Opcode::CALL:
     case Opcode::PTR_LOAD:
     case Opcode::PTR_CAST:
+    case Opcode::GEP_DYNAMIC:
     case Opcode::GEP_STATIC:
     case Opcode::FUNC_ARG:
     case Opcode::CALL_INDIRECT:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
+    case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::GEP_STATIC_OFFSET:
-      throw std::runtime_error(
-          "GEP_STATIC_OFFSET needs to be under a GEP_STATIC.");
+      throw std::runtime_error("GEP offsets needs to be under a GEP.");
       break;
 
     case Opcode::PHI_MEMBER:
@@ -2148,13 +2152,13 @@ Value ProgramBuilder::Global(Type t, Value init) {
 }
 
 Value ProgramBuilder::SizeOf(Type type) {
-  auto [offset, result_type] = type_manager_.GetPointerOffset(type, {1});
+  auto [offset, result_type] = type_manager_.GetPointerOffset(type, {1}, false);
   return ConstI64(offset);
 }
 
 Value ProgramBuilder::StaticGEP(Type t, Value v,
                                 absl::Span<const int32_t> idx) {
-  auto [offset, result_type] = type_manager_.GetPointerOffset(t, idx);
+  auto [offset, result_type] = type_manager_.GetPointerOffset(t, idx, false);
   auto offset_v = ConstI32(offset);
 
   GetCurrentFunction().Append(
@@ -2167,6 +2171,36 @@ Value ProgramBuilder::StaticGEP(Type t, Value v,
   return GetCurrentFunction().Append(
       Type3InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::GEP_STATIC))
+          .SetTypeID(result_type.GetID())
+          .Build());
+}
+
+Value ProgramBuilder::DynamicGEP(Type t, Value v, Value dynamic_idx,
+                                 absl::Span<const int32_t> idx) {
+  auto [offset, result_type] = type_manager_.GetPointerOffset(t, idx, true);
+  auto offset_v = ConstI32(offset);
+
+  auto type_size = type_manager_.GetTypeSize(t);
+  auto type_size_v = ConstI64(type_size);
+
+  auto index = GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::GEP_DYNAMIC_IDX))
+          .SetArg0(dynamic_idx.Serialize())
+          .SetArg1(type_size_v.Serialize())
+          .Build());
+
+  GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::GEP_DYNAMIC_OFFSET))
+          .SetArg0(index.Serialize())
+          .SetArg1(offset_v.Serialize())
+          .Build());
+
+  return GetCurrentFunction().Append(
+      Type3InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::GEP_DYNAMIC))
+          .SetArg(v.Serialize())
           .SetTypeID(result_type.GetID())
           .Build());
 }

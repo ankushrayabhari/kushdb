@@ -45,6 +45,10 @@ std::vector<RegisterAssignment> StackSpillingRegisterAlloc(
   for (int i = 0; i < instrs.size(); i++) {
     auto opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
     switch (opcode) {
+      case Opcode::GEP_DYNAMIC_IDX:
+        assignments[i].SetRegister(11);
+        break;
+
       case Opcode::I8_STORE:
       case Opcode::I16_STORE:
       case Opcode::I32_STORE:

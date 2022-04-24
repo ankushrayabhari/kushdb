@@ -133,7 +133,9 @@ void RewriteInstr(uint64_t& instr,
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
     case Opcode::PTR_STORE:
-    case Opcode::GEP_STATIC_OFFSET: {
+    case Opcode::GEP_STATIC_OFFSET:
+    case Opcode::GEP_DYNAMIC_IDX:
+    case Opcode::GEP_DYNAMIC_OFFSET: {
       Type2InstructionReader reader(instr);
       auto v0 = reader.Arg0();
       auto v1 = reader.Arg1();
@@ -150,6 +152,7 @@ void RewriteInstr(uint64_t& instr,
       return;
     }
 
+    case Opcode::GEP_DYNAMIC:
     case Opcode::PTR_CAST:
     case Opcode::PTR_LOAD:
     case Opcode::RETURN_VALUE:

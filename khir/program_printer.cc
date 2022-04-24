@@ -159,7 +159,8 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::F64_CMP_LE:
     case Opcode::F64_CMP_GT:
     case Opcode::F64_CMP_GE:
-    case Opcode::PHI_MEMBER: {
+    case Opcode::PHI_MEMBER:
+    case Opcode::GEP_DYNAMIC_IDX: {
       Type2InstructionReader reader(instrs[idx]);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
@@ -278,6 +279,29 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
       OutputValue(v0, program);
       std::cerr << " ";
       OutputValue(v1, program);
+      std::cerr << "\n";
+
+      return;
+    }
+
+    case Opcode::GEP_DYNAMIC_OFFSET: {
+      return;
+    }
+
+    case Opcode::GEP_DYNAMIC: {
+      Type3InstructionReader reader1(instrs[idx]);
+      Type2InstructionReader reader2(instrs[idx]);
+      Value v0(reader1.Arg());
+      Value v1(reader2.Arg0());
+      Value v2(reader2.Arg1());
+
+      std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
+                << " ";
+      OutputValue(v0, program);
+      std::cerr << " ";
+      OutputValue(v1, program);
+      std::cerr << " ";
+      OutputValue(v2, program);
       std::cerr << "\n";
 
       return;

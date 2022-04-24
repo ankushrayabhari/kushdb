@@ -14,6 +14,7 @@
 #include "khir/asm/stack_spill_reg_alloc.h"
 #include "khir/backend.h"
 #include "khir/instruction.h"
+#include "khir/opcode.h"
 #include "khir/type_manager.h"
 #include "util/profile_map_generator.h"
 
@@ -382,8 +383,7 @@ bool ASMBackend::IsConstantCastedPtr(
          ConstantOpcode::PTR_CAST;
 }
 
-bool ASMBackend::IsGep(khir::Value v,
-                       const std::vector<uint64_t>& instructions) {
+bool IsStaticGEP(khir::Value v, const std::vector<uint64_t>& instructions) {
   if (v.IsConstantGlobal()) {
     return false;
   }
@@ -392,30 +392,73 @@ bool ASMBackend::IsGep(khir::Value v,
          Opcode::GEP_STATIC;
 }
 
-std::pair<khir::Value, int32_t> ASMBackend::Gep(
-    khir::Value v, const std::vector<uint64_t>& instructions,
-    const std::vector<uint64_t>& constant_instrs) {
-  Type3InstructionReader gep_reader(instructions[v.GetIdx()]);
-  if (OpcodeFrom(gep_reader.Opcode()) != Opcode::GEP_STATIC) {
+bool IsDynamicGEP(khir::Value v, const std::vector<uint64_t>& instructions) {
+  if (v.IsConstantGlobal()) {
+    return false;
+  }
+  return OpcodeFrom(
+             GenericInstructionReader(instructions[v.GetIdx()]).Opcode()) ==
+         Opcode::GEP_DYNAMIC;
+}
+
+struct GEPInfo {
+  khir::Value ptr;
+  khir::Value index_offset;
+  int32_t offset;
+};
+
+GEPInfo StaticGEP(khir::Value v, const std::vector<uint64_t>& instrs,
+                  const std::vector<uint64_t>& constant_instrs) {
+  if (v.IsConstantGlobal() ||
+      OpcodeFrom(GenericInstructionReader(instrs[v.GetIdx()]).Opcode()) !=
+          Opcode::GEP_STATIC) {
     throw std::runtime_error("Invalid GEP_STATIC");
   }
 
-  auto gep_offset_instr = instructions[v.GetIdx() - 1];
-  Type2InstructionReader gep_offset_reader(gep_offset_instr);
-  if (OpcodeFrom(gep_offset_reader.Opcode()) != Opcode::GEP_STATIC_OFFSET) {
-    throw std::runtime_error("Invalid GEP_STATIC Offset");
+  Type2InstructionReader reader(instrs[v.GetIdx() - 1]);
+  if (OpcodeFrom(reader.Opcode()) != Opcode::GEP_STATIC_OFFSET) {
+    throw std::runtime_error("Invalid GEP_STATIC_OFFSET");
   }
 
-  auto ptr = khir::Value(gep_offset_reader.Arg0());
+  auto ptr = khir::Value(reader.Arg0());
 
-  auto constant_value = khir::Value(gep_offset_reader.Arg1());
+  auto constant_value = khir::Value(reader.Arg1());
   if (!constant_value.IsConstantGlobal()) {
-    throw std::runtime_error("Invalid GEP_STATIC offset");
+    throw std::runtime_error("Invalid GEP_STATIC_OFFSET constant");
   }
   int32_t offset =
       Type1InstructionReader(constant_instrs[constant_value.GetIdx()])
           .Constant();
-  return {ptr, offset};
+
+  return GEPInfo{.ptr = ptr, .index_offset = khir::Value(0), .offset = offset};
+}
+
+GEPInfo DynamicGEP(khir::Value v, const std::vector<uint64_t>& instrs,
+                   const std::vector<uint64_t>& constant_instrs) {
+  if (v.IsConstantGlobal() ||
+      OpcodeFrom(GenericInstructionReader(instrs[v.GetIdx()]).Opcode()) !=
+          Opcode::GEP_DYNAMIC) {
+    throw std::runtime_error("Invalid GEP_DYNAMIC");
+  }
+
+  Type3InstructionReader reader1(instrs[v.GetIdx()]);
+  Type2InstructionReader reader2(instrs[v.GetIdx() - 1]);
+  if (OpcodeFrom(reader2.Opcode()) != Opcode::GEP_DYNAMIC_OFFSET) {
+    throw std::runtime_error("Invalid GEP_DYNAMIC_OFFSET");
+  }
+
+  auto ptr = khir::Value(reader1.Arg());
+  auto index = khir::Value(reader2.Arg0());
+
+  auto constant_value = khir::Value(reader2.Arg1());
+  if (!constant_value.IsConstantGlobal()) {
+    throw std::runtime_error("Invalid GEP_DYNAMIC_OFFSET constant");
+  }
+  int32_t offset =
+      Type1InstructionReader(constant_instrs[constant_value.GetIdx()])
+          .Constant();
+
+  return GEPInfo{.ptr = ptr, .index_offset = index, .offset = offset};
 }
 
 int32_t GetOffset(const std::vector<int32_t>& offsets, int i) {
@@ -789,10 +832,20 @@ x86::Mem ASMBackend::GetBytePtrValue(
     const std::vector<void*>& ptr_constants,
     const std::vector<RegisterAssignment>& register_assign) {
   int32_t offset = 0;
-  if (IsGep(v, instrs)) {
-    auto [ptr, o] = Gep(v, instrs, constant_instrs);
-    v = ptr;
-    offset = o;
+  bool use_index_addr = false;
+  x86::Gpq index = Register::RAX.GetQ();
+  if (IsStaticGEP(v, instrs)) {
+    auto info = StaticGEP(v, instrs, constant_instrs);
+    v = info.ptr;
+    offset = info.offset;
+  } else if (IsDynamicGEP(v, instrs)) {
+    auto info = DynamicGEP(v, instrs, constant_instrs);
+    v = info.ptr;
+    index =
+        NormalRegister(register_assign[info.index_offset.GetIdx()].Register())
+            .GetQ();
+    offset = info.offset;
+    use_index_addr = true;
   }
 
   if (v.IsConstantGlobal()) {
@@ -801,24 +854,31 @@ x86::Mem ASMBackend::GetBytePtrValue(
     }
 
     if (IsNullPtr(v, constant_instrs)) {
-      return x86::byte_ptr(offset);
+      return use_index_addr ? x86::byte_ptr(offset, index, 0)
+                            : x86::byte_ptr(offset);
     } else if (IsConstantPtr(v, constant_instrs)) {
       uint64_t c64 = reinterpret_cast<uint64_t>(
           ptr_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
                             .Constant()]);
       asm_->mov(Register::RAX.GetQ(), c64);
-      return x86::byte_ptr(Register::RAX.GetQ(), offset);
+      return use_index_addr
+                 ? x86::byte_ptr(Register::RAX.GetQ(), index, 0, offset)
+                 : x86::byte_ptr(Register::RAX.GetQ(), offset);
     }
 
     auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
-    return x86::byte_ptr(label, offset);
+    return use_index_addr ? x86::byte_ptr(label, index, 0, offset)
+                          : x86::byte_ptr(label, offset);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
-    return x86::byte_ptr(v_reg.GetQ(), offset);
+    return use_index_addr ? x86::byte_ptr(v_reg.GetQ(), index, 0, offset)
+                          : x86::byte_ptr(v_reg.GetQ(), offset);
   } else {
     asm_->mov(Register::RAX.GetQ(),
               x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
-    return x86::byte_ptr(Register::RAX.GetQ(), offset);
+    return use_index_addr
+               ? x86::byte_ptr(Register::RAX.GetQ(), index, 0, offset)
+               : x86::byte_ptr(Register::RAX.GetQ(), offset);
   }
 }
 
@@ -987,10 +1047,20 @@ x86::Mem ASMBackend::GetWordPtrValue(
     const std::vector<void*>& ptr_constants,
     const std::vector<RegisterAssignment>& register_assign) {
   int32_t offset = 0;
-  if (IsGep(v, instrs)) {
-    auto [ptr, o] = Gep(v, instrs, constant_instrs);
-    v = ptr;
-    offset = o;
+  bool use_index_addr = false;
+  x86::Gpq index = Register::RAX.GetQ();
+  if (IsStaticGEP(v, instrs)) {
+    auto info = StaticGEP(v, instrs, constant_instrs);
+    v = info.ptr;
+    offset = info.offset;
+  } else if (IsDynamicGEP(v, instrs)) {
+    auto info = DynamicGEP(v, instrs, constant_instrs);
+    v = info.ptr;
+    index =
+        NormalRegister(register_assign[info.index_offset.GetIdx()].Register())
+            .GetQ();
+    offset = info.offset;
+    use_index_addr = true;
   }
 
   if (v.IsConstantGlobal()) {
@@ -999,24 +1069,31 @@ x86::Mem ASMBackend::GetWordPtrValue(
     }
 
     if (IsNullPtr(v, constant_instrs)) {
-      return x86::word_ptr(offset);
+      return use_index_addr ? x86::word_ptr(offset, index, 0)
+                            : x86::word_ptr(offset);
     } else if (IsConstantPtr(v, constant_instrs)) {
       uint64_t c64 = reinterpret_cast<uint64_t>(
           ptr_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
                             .Constant()]);
       asm_->mov(Register::RAX.GetQ(), c64);
-      return x86::word_ptr(Register::RAX.GetQ(), offset);
+      return use_index_addr
+                 ? x86::word_ptr(Register::RAX.GetQ(), index, 0, offset)
+                 : x86::word_ptr(Register::RAX.GetQ(), offset);
     }
 
     auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
-    return x86::word_ptr(label, offset);
+    return use_index_addr ? x86::word_ptr(label, index, 0, offset)
+                          : x86::word_ptr(label, offset);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
-    return x86::word_ptr(v_reg.GetQ(), offset);
+    return use_index_addr ? x86::word_ptr(v_reg.GetQ(), index, 0, offset)
+                          : x86::word_ptr(v_reg.GetQ(), offset);
   } else {
     asm_->mov(Register::RAX.GetQ(),
               x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
-    return x86::word_ptr(Register::RAX.GetQ(), offset);
+    return use_index_addr
+               ? x86::word_ptr(Register::RAX.GetQ(), index, 0, offset)
+               : x86::word_ptr(Register::RAX.GetQ(), offset);
   }
 }
 
@@ -1167,10 +1244,20 @@ x86::Mem ASMBackend::GetDWordPtrValue(
     const std::vector<void*>& ptr_constants,
     const std::vector<RegisterAssignment>& register_assign) {
   int32_t offset = 0;
-  if (IsGep(v, instrs)) {
-    auto [ptr, o] = Gep(v, instrs, constant_instrs);
-    v = ptr;
-    offset = o;
+  bool use_index_addr = false;
+  x86::Gpq index = Register::RAX.GetQ();
+  if (IsStaticGEP(v, instrs)) {
+    auto info = StaticGEP(v, instrs, constant_instrs);
+    v = info.ptr;
+    offset = info.offset;
+  } else if (IsDynamicGEP(v, instrs)) {
+    auto info = DynamicGEP(v, instrs, constant_instrs);
+    v = info.ptr;
+    index =
+        NormalRegister(register_assign[info.index_offset.GetIdx()].Register())
+            .GetQ();
+    offset = info.offset;
+    use_index_addr = true;
   }
 
   if (v.IsConstantGlobal()) {
@@ -1179,24 +1266,31 @@ x86::Mem ASMBackend::GetDWordPtrValue(
     }
 
     if (IsNullPtr(v, constant_instrs)) {
-      return x86::dword_ptr(offset);
+      return use_index_addr ? x86::dword_ptr(offset, index, 0)
+                            : x86::dword_ptr(offset);
     } else if (IsConstantPtr(v, constant_instrs)) {
       uint64_t c64 = reinterpret_cast<uint64_t>(
           ptr_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
                             .Constant()]);
       asm_->mov(Register::RAX.GetQ(), c64);
-      return x86::dword_ptr(Register::RAX.GetQ(), offset);
+      return use_index_addr
+                 ? x86::dword_ptr(Register::RAX.GetQ(), index, 0, offset)
+                 : x86::dword_ptr(Register::RAX.GetQ(), offset);
     }
 
     auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
-    return x86::dword_ptr(label, offset);
+    return use_index_addr ? x86::dword_ptr(label, index, 0, offset)
+                          : x86::dword_ptr(label, offset);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
-    return x86::dword_ptr(v_reg.GetQ(), offset);
+    return use_index_addr ? x86::dword_ptr(v_reg.GetQ(), index, 0, offset)
+                          : x86::dword_ptr(v_reg.GetQ(), offset);
   } else {
     asm_->mov(Register::RAX.GetQ(),
               x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
-    return x86::dword_ptr(Register::RAX.GetQ(), offset);
+    return use_index_addr
+               ? x86::dword_ptr(Register::RAX.GetQ(), index, 0, offset)
+               : x86::dword_ptr(Register::RAX.GetQ(), offset);
   }
 }
 
@@ -1576,10 +1670,20 @@ x86::Mem ASMBackend::GetQWordPtrValue(
     const std::vector<void*>& ptr_constants,
     const std::vector<RegisterAssignment>& register_assign) {
   int32_t offset = 0;
-  if (IsGep(v, instrs)) {
-    auto [ptr, o] = Gep(v, instrs, constant_instrs);
-    v = ptr;
-    offset = o;
+  bool use_index_addr = false;
+  x86::Gpq index = Register::RAX.GetQ();
+  if (IsStaticGEP(v, instrs)) {
+    auto info = StaticGEP(v, instrs, constant_instrs);
+    v = info.ptr;
+    offset = info.offset;
+  } else if (IsDynamicGEP(v, instrs)) {
+    auto info = DynamicGEP(v, instrs, constant_instrs);
+    v = info.ptr;
+    index =
+        NormalRegister(register_assign[info.index_offset.GetIdx()].Register())
+            .GetQ();
+    offset = info.offset;
+    use_index_addr = true;
   }
 
   if (v.IsConstantGlobal()) {
@@ -1588,24 +1692,31 @@ x86::Mem ASMBackend::GetQWordPtrValue(
     }
 
     if (IsNullPtr(v, constant_instrs)) {
-      return x86::qword_ptr(offset);
+      return use_index_addr ? x86::qword_ptr(offset, index, 0)
+                            : x86::qword_ptr(offset);
     } else if (IsConstantPtr(v, constant_instrs)) {
       uint64_t c64 = reinterpret_cast<uint64_t>(
           ptr_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
                             .Constant()]);
       asm_->mov(Register::RAX.GetQ(), c64);
-      return x86::qword_ptr(Register::RAX.GetQ(), offset);
+      return use_index_addr
+                 ? x86::qword_ptr(Register::RAX.GetQ(), index, 0, offset)
+                 : x86::qword_ptr(Register::RAX.GetQ(), offset);
     }
 
     auto label = GetGlobalPointer(constant_instrs[v.GetIdx()]);
-    return x86::qword_ptr(label, offset);
+    return use_index_addr ? x86::qword_ptr(label, index, 0, offset)
+                          : x86::qword_ptr(label, offset);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
-    return x86::qword_ptr(v_reg.GetQ(), offset);
+    return use_index_addr ? x86::qword_ptr(v_reg.GetQ(), index, 0, offset)
+                          : x86::qword_ptr(v_reg.GetQ(), offset);
   } else {
     asm_->mov(Register::RAX.GetQ(),
               x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
-    return x86::qword_ptr(Register::RAX.GetQ(), offset);
+    return use_index_addr
+               ? x86::qword_ptr(Register::RAX.GetQ(), index, 0, offset)
+               : x86::qword_ptr(Register::RAX.GetQ(), offset);
   }
 }
 
@@ -1615,39 +1726,77 @@ void ASMBackend::MaterializeGep(
     const std::vector<uint64_t>& constant_instrs,
     const std::vector<void*>& ptr_constants,
     const std::vector<RegisterAssignment>& register_assign) {
-  assert(IsGep(v, instrs));
-  auto [ptr, offset] = Gep(v, instrs, constant_instrs);
+  GEPInfo info;
+  bool use_addr = false;
+  x86::Gpq index = Register::RAX.GetQ();
+  if (IsStaticGEP(v, instrs)) {
+    info = StaticGEP(v, instrs, constant_instrs);
+  } else if (IsDynamicGEP(v, instrs)) {
+    use_addr = true;
+    info = DynamicGEP(v, instrs, constant_instrs);
+    index =
+        NormalRegister(register_assign[info.index_offset.GetIdx()].Register())
+            .GetQ();
+  } else {
+    throw std::runtime_error("Invalid GEP");
+  }
 
-  if (ptr.IsConstantGlobal()) {
-    while (IsConstantCastedPtr(ptr, constant_instrs)) {
-      ptr = GetConstantCastedPtr(ptr, constant_instrs);
+  if (info.ptr.IsConstantGlobal()) {
+    while (IsConstantCastedPtr(info.ptr, constant_instrs)) {
+      info.ptr = GetConstantCastedPtr(info.ptr, constant_instrs);
     }
 
-    if (IsNullPtr(ptr, constant_instrs)) {
-      asm_->mov(dest, offset);
+    if (IsNullPtr(info.ptr, constant_instrs)) {
+      asm_->mov(dest, info.offset);
+      if (use_addr) {
+        asm_->add(dest, index);
+      }
       return;
-    } else if (IsConstantPtr(ptr, constant_instrs)) {
+    } else if (IsConstantPtr(info.ptr, constant_instrs)) {
       uint64_t c64 = reinterpret_cast<uint64_t>(
-          ptr_constants[Type1InstructionReader(constant_instrs[ptr.GetIdx()])
+          ptr_constants[Type1InstructionReader(
+                            constant_instrs[info.ptr.GetIdx()])
                             .Constant()]);
       asm_->mov(Register::RAX.GetQ(), c64);
+      if (use_addr) {
+        asm_->lea(Register::RAX.GetQ(),
+                  x86::ptr(Register::RAX.GetQ(), index, 0, info.offset));
+      } else if (info.offset > 0) {
+        asm_->lea(Register::RAX.GetQ(),
+                  x86::ptr(Register::RAX.GetQ(), info.offset));
+      }
       asm_->mov(dest, Register::RAX.GetQ());
-      asm_->add(dest, offset);
       return;
     }
 
-    auto label = GetGlobalPointer(constant_instrs[ptr.GetIdx()]);
-    asm_->lea(Register::RAX.GetQ(), x86::ptr(label, offset));
+    auto label = GetGlobalPointer(constant_instrs[info.ptr.GetIdx()]);
+    if (use_addr) {
+      asm_->lea(Register::RAX.GetQ(), x86::ptr(label, index, 0, info.offset));
+    } else {
+      asm_->lea(Register::RAX.GetQ(), x86::ptr(label, info.offset));
+    }
     asm_->mov(dest, Register::RAX.GetQ());
-  } else if (register_assign[ptr.GetIdx()].IsRegister()) {
-    auto ptr_reg = NormalRegister(register_assign[ptr.GetIdx()].Register());
-    asm_->mov(dest, ptr_reg.GetQ());
-    asm_->add(dest, offset);
+  } else if (register_assign[info.ptr.GetIdx()].IsRegister()) {
+    auto ptr_reg =
+        NormalRegister(register_assign[info.ptr.GetIdx()].Register());
+    if (use_addr) {
+      asm_->lea(Register::RAX.GetQ(),
+                x86::ptr(ptr_reg.GetQ(), index, 0, info.offset));
+    } else {
+      asm_->lea(Register::RAX.GetQ(), x86::ptr(ptr_reg.GetQ(), info.offset));
+    }
+    asm_->mov(dest, Register::RAX.GetQ());
   } else {
     asm_->mov(Register::RAX.GetQ(),
-              x86::qword_ptr(x86::rbp, GetOffset(offsets, ptr.GetIdx())));
+              x86::qword_ptr(x86::rbp, GetOffset(offsets, info.ptr.GetIdx())));
+    if (use_addr) {
+      asm_->lea(Register::RAX.GetQ(),
+                x86::ptr(Register::RAX.GetQ(), index, 0, info.offset));
+    } else if (info.offset > 0) {
+      asm_->lea(Register::RAX.GetQ(),
+                x86::ptr(Register::RAX.GetQ(), info.offset));
+    }
     asm_->mov(dest, Register::RAX.GetQ());
-    asm_->add(dest, offset);
   }
 }
 
@@ -1657,35 +1806,69 @@ void ASMBackend::MaterializeGep(
     const std::vector<uint64_t>& constant_instrs,
     const std::vector<void*>& ptr_constants,
     const std::vector<RegisterAssignment>& register_assign) {
-  assert(IsGep(v, instrs));
-  auto [ptr, offset] = Gep(v, instrs, constant_instrs);
+  GEPInfo info;
+  bool use_addr = false;
+  x86::Gpq index = Register::RAX.GetQ();
+  if (IsStaticGEP(v, instrs)) {
+    info = StaticGEP(v, instrs, constant_instrs);
+  } else if (IsDynamicGEP(v, instrs)) {
+    use_addr = true;
+    info = DynamicGEP(v, instrs, constant_instrs);
+    index =
+        NormalRegister(register_assign[info.index_offset.GetIdx()].Register())
+            .GetQ();
+  } else {
+    throw std::runtime_error("Invalid GEP");
+  }
 
-  if (ptr.IsConstantGlobal()) {
-    while (IsConstantCastedPtr(ptr, constant_instrs)) {
-      ptr = GetConstantCastedPtr(ptr, constant_instrs);
+  if (info.ptr.IsConstantGlobal()) {
+    while (IsConstantCastedPtr(info.ptr, constant_instrs)) {
+      info.ptr = GetConstantCastedPtr(info.ptr, constant_instrs);
     }
 
-    if (IsNullPtr(ptr, constant_instrs)) {
-      asm_->mov(dest, offset);
+    if (IsNullPtr(info.ptr, constant_instrs)) {
+      if (use_addr) {
+        asm_->lea(dest, x86::ptr(info.offset, index, 0));
+      } else {
+        asm_->mov(dest, info.offset);
+      }
       return;
-    } else if (IsConstantPtr(ptr, constant_instrs)) {
+    } else if (IsConstantPtr(info.ptr, constant_instrs)) {
       uint64_t c64 = reinterpret_cast<uint64_t>(
-          ptr_constants[Type1InstructionReader(constant_instrs[ptr.GetIdx()])
+          ptr_constants[Type1InstructionReader(
+                            constant_instrs[info.ptr.GetIdx()])
                             .Constant()]);
       asm_->mov(Register::RAX.GetQ(), c64);
-      asm_->lea(dest, x86::ptr(Register::RAX.GetQ(), offset));
+      if (use_addr) {
+        asm_->lea(dest, x86::ptr(Register::RAX.GetQ(), index, 0, info.offset));
+      } else {
+        asm_->lea(dest, x86::ptr(Register::RAX.GetQ(), info.offset));
+      }
       return;
     }
 
-    auto label = GetGlobalPointer(constant_instrs[ptr.GetIdx()]);
-    asm_->lea(dest, x86::ptr(label, offset));
-  } else if (register_assign[ptr.GetIdx()].IsRegister()) {
-    auto ptr_reg = NormalRegister(register_assign[ptr.GetIdx()].Register());
-    asm_->lea(dest, x86::ptr(ptr_reg.GetQ(), offset));
+    auto label = GetGlobalPointer(constant_instrs[info.ptr.GetIdx()]);
+    if (use_addr) {
+      asm_->lea(dest, x86::ptr(label, index, 0, info.offset));
+    } else {
+      asm_->lea(dest, x86::ptr(label, info.offset));
+    }
+  } else if (register_assign[info.ptr.GetIdx()].IsRegister()) {
+    auto ptr_reg =
+        NormalRegister(register_assign[info.ptr.GetIdx()].Register());
+    if (use_addr) {
+      asm_->lea(dest, x86::ptr(ptr_reg.GetQ(), index, 0, info.offset));
+    } else {
+      asm_->lea(dest, x86::ptr(ptr_reg.GetQ(), info.offset));
+    }
   } else {
     asm_->mov(Register::RAX.GetQ(),
-              x86::qword_ptr(x86::rbp, GetOffset(offsets, ptr.GetIdx())));
-    asm_->lea(dest, x86::ptr(Register::RAX.GetQ(), offset));
+              x86::qword_ptr(x86::rbp, GetOffset(offsets, info.ptr.GetIdx())));
+    if (use_addr) {
+      asm_->lea(dest, x86::ptr(Register::RAX.GetQ(), index, 0, info.offset));
+    } else {
+      asm_->lea(dest, x86::ptr(Register::RAX.GetQ(), info.offset));
+    }
   }
 }
 
@@ -3122,11 +3305,29 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::GEP_DYNAMIC_IDX: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      if (!dest_assign.IsRegister()) {
+        throw std::runtime_error("Requried GEP_DYNAMIC_IDX to be in register.");
+      }
+
+      auto dest = NormalRegister(dest_assign.Register());
+      ZextDWordValue(dest, v0, offsets, constant_instrs, register_assign);
+      MulQWordValue(dest.GetQ(), v1, offsets, constant_instrs, i64_constants,
+                    register_assign);
+      return;
+    }
+
+    case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::GEP_STATIC_OFFSET: {
       // do nothing since it is an auxiliary instruction
       return;
     }
 
+    case Opcode::GEP_DYNAMIC:
     case Opcode::GEP_STATIC: {
       if (!gep_materialize[instr_idx]) {
         return;

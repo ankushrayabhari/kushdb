@@ -49,10 +49,6 @@ class ASMBackend : public Backend {
                      const std::vector<uint64_t>& constant_instrs);
   bool IsConstantCastedPtr(khir::Value v,
                            const std::vector<uint64_t>& constant_instrs);
-  bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions);
-  std::pair<khir::Value, int32_t> Gep(
-      khir::Value v, const std::vector<uint64_t>& instructions,
-      const std::vector<uint64_t>& constant_instrs);
   void TranslateInstr(const Function& current_function,
                       const TypeManager& type_manager,
                       const std::vector<void*>& ptr_constants,

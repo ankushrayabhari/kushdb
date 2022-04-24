@@ -139,6 +139,8 @@ class Type1InstructionReader {
 // [MD] [ARG0] [0]    F64_LOAD
 // [MD] [ARG0] [ARG1] PHI_MEMBER
 // [MD] [ARG0] [ARG1] GEP_STATIC_OFFSET
+// [MD] [ARG0] [ARG1] GEP_DYNAMIC_OFFSET
+// [MD] [ARG0] [ARG1] GEP_DYNAMIC_IDX
 
 class Type2InstructionBuilder {
  public:
@@ -178,6 +180,7 @@ class Type2InstructionReader {
 // [MD] [0]  [SARG] [ARG] CALL_ARG
 // [MD] [ID] [0]    [ARG] PTR_CAST
 // [MD] [ID] [0]    [0]   GEP_STATIC
+// [MD] [ID] [0]    [ARG] GEP_DYNAMIC
 // [MD] [ID] [0]          NULLPTR
 // [MD] [ID] [SARG] [0]   FUNC_ARG
 // [MD] [ID] [0]    [ARG] PTR_LOAD

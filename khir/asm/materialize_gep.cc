@@ -9,7 +9,8 @@ void MarkMaterialization(Value value, const std::vector<uint64_t>& instrs,
                          std::vector<bool>& should_materialize) {
   auto opcode =
       OpcodeFrom(GenericInstructionReader(instrs[value.GetIdx()]).Opcode());
-  if (!value.IsConstantGlobal() && (opcode == Opcode::GEP_STATIC)) {
+  if (!value.IsConstantGlobal() &&
+      (opcode == Opcode::GEP_STATIC || opcode == Opcode::GEP_DYNAMIC)) {
     should_materialize[value.GetIdx()] = true;
   }
 }
@@ -24,6 +25,7 @@ std::vector<bool> ComputeGEPMaterialize(const Function& func) {
       for (int i = seg_start; i <= seg_end; i++) {
         auto opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
         switch (opcode) {
+          case Opcode::GEP_DYNAMIC:
           case Opcode::RETURN_VALUE:
           case Opcode::CALL_INDIRECT:
           case Opcode::PTR_CAST:

@@ -113,13 +113,16 @@ enum class Opcode : uint8_t {
   CALL,
   PHI,
   PTR_CAST,
-  GEP_STATIC,
   FUNC_ARG,
   ALLOCA,
   CALL_ARG,
   CALL_INDIRECT,
-  GEP_STATIC_OFFSET,
   PTR_CMP_NULLPTR,
+  GEP_STATIC,
+  GEP_STATIC_OFFSET,
+  GEP_DYNAMIC,
+  GEP_DYNAMIC_OFFSET,
+  GEP_DYNAMIC_IDX,
 };
 
 Opcode OpcodeFrom(uint8_t t);

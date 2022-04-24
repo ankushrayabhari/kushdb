@@ -115,9 +115,9 @@ bool IsGep(Value v, const std::vector<uint64_t>& instructions) {
   if (v.IsConstantGlobal()) {
     return false;
   }
-  return OpcodeFrom(
-             GenericInstructionReader(instructions[v.GetIdx()]).Opcode()) ==
-         Opcode::GEP_STATIC;
+  auto opcode =
+      OpcodeFrom(GenericInstructionReader(instructions[v.GetIdx()]).Opcode());
+  return opcode == Opcode::GEP_STATIC || opcode == Opcode::GEP_DYNAMIC;
 }
 
 bool IsPhi(Value v, const std::vector<uint64_t>& instructions) {
@@ -147,6 +147,30 @@ std::vector<Value> GetReadValuesGEP(int instr_idx,
       std::vector<Value> result;
       if (!ptr.IsConstantGlobal()) {
         result.push_back(ptr);
+      }
+      return result;
+    }
+
+    case Opcode::GEP_DYNAMIC: {
+      Type3InstructionReader reader1(instrs[instr_idx]);
+      Type2InstructionReader reader2(instrs[instr_idx - 1]);
+      if (OpcodeFrom(reader2.Opcode()) != Opcode::GEP_DYNAMIC_OFFSET) {
+        throw std::runtime_error("Invalid GEP_DYNAMIC_OFFSET");
+      }
+
+      auto ptr = Value(reader1.Arg());
+      auto index_offset = Value(reader2.Arg0());
+      auto offset = Value(reader2.Arg1());
+
+      std::vector<Value> result;
+      if (!ptr.IsConstantGlobal()) {
+        result.push_back(ptr);
+      }
+      if (!index_offset.IsConstantGlobal()) {
+        result.push_back(index_offset);
+      }
+      if (!offset.IsConstantGlobal()) {
+        result.push_back(offset);
       }
       return result;
     }
@@ -234,6 +258,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::I32_ZEXT_I64:
     case Opcode::F64_CONV_I64:
     case Opcode::I64_LOAD:
+    case Opcode::GEP_DYNAMIC_IDX:
       return manager.I64Type();
 
     case Opcode::F64_ADD:
@@ -266,10 +291,12 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::PTR_LOAD:
     case Opcode::PTR_CAST:
     case Opcode::GEP_STATIC:
+    case Opcode::GEP_DYNAMIC:
     case Opcode::FUNC_ARG:
       return static_cast<Type>(Type3InstructionReader(instr).TypeID());
 
     case Opcode::GEP_STATIC_OFFSET:
+    case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::PHI_MEMBER:
     case Opcode::CALL_ARG:
       return manager.VoidType();
@@ -362,7 +389,8 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::PTR_LOAD:
     case Opcode::CALL_ARG:
     case Opcode::ALLOCA:
-    case Opcode::PTR_CMP_NULLPTR: {
+    case Opcode::PTR_CMP_NULLPTR:
+    case Opcode::GEP_DYNAMIC_IDX: {
       return Value(instr_idx);
     }
 
@@ -382,6 +410,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
       return Value(v0.GetIdx());
     }
 
+    case Opcode::GEP_DYNAMIC:
     case Opcode::GEP_STATIC: {
       if (materialize_gep[instr_idx]) {
         return Value(instr_idx);
@@ -396,6 +425,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::F64_STORE:
     case Opcode::PTR_STORE:
     case Opcode::GEP_STATIC_OFFSET:
+    case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::BR:
     case Opcode::CONDBR:
     case Opcode::RETURN:
@@ -467,7 +497,8 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::F64_CMP_LT:
     case Opcode::F64_CMP_LE:
     case Opcode::F64_CMP_GT:
-    case Opcode::F64_CMP_GE: {
+    case Opcode::F64_CMP_GE:
+    case Opcode::GEP_DYNAMIC_IDX: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
@@ -674,6 +705,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
       return result;
     }
 
+    case Opcode::GEP_DYNAMIC:
     case Opcode::GEP_STATIC: {
       if (materialize_gep[instr_idx]) {
         return GetReadValuesGEP(instr_idx, instrs);
@@ -685,6 +717,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::BR:
     case Opcode::FUNC_ARG:
     case Opcode::GEP_STATIC_OFFSET:
+    case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::PHI:
     case Opcode::ALLOCA:
       return {};
