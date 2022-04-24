@@ -111,7 +111,7 @@ int LiveInterval::PrecoloredRegister() const {
 
 bool LiveInterval::IsPrecolored() const { return register_ >= 0; }
 
-bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions) {
+bool IsGep(Value v, const std::vector<uint64_t>& instructions) {
   if (v.IsConstantGlobal()) {
     return false;
   }
@@ -120,7 +120,7 @@ bool IsGep(khir::Value v, const std::vector<uint64_t>& instructions) {
          Opcode::GEP_STATIC;
 }
 
-bool IsPhi(khir::Value v, const std::vector<uint64_t>& instructions) {
+bool IsPhi(Value v, const std::vector<uint64_t>& instructions) {
   if (v.IsConstantGlobal()) {
     return false;
   }
@@ -130,19 +130,30 @@ bool IsPhi(khir::Value v, const std::vector<uint64_t>& instructions) {
          Opcode::PHI;
 }
 
-khir::Value Gep(khir::Value v, const std::vector<uint64_t>& instructions) {
-  Type3InstructionReader gep_reader(instructions[v.GetIdx()]);
-  if (OpcodeFrom(gep_reader.Opcode()) != Opcode::GEP_STATIC) {
-    throw std::runtime_error("Invalid GEP_STATIC");
-  }
+std::vector<Value> GetReadValuesGEP(int instr_idx,
+                                    const std::vector<uint64_t>& instrs) {
+  auto opcode =
+      OpcodeFrom(GenericInstructionReader(instrs[instr_idx]).Opcode());
 
-  auto gep_offset_instr = instructions[v.GetIdx() - 1];
-  Type2InstructionReader gep_offset_reader(gep_offset_instr);
-  if (OpcodeFrom(gep_offset_reader.Opcode()) != Opcode::GEP_STATIC_OFFSET) {
-    throw std::runtime_error("Invalid GEP_STATIC Offset");
-  }
+  switch (opcode) {
+    case Opcode::GEP_STATIC: {
+      Type2InstructionReader reader(instrs[instr_idx - 1]);
+      if (OpcodeFrom(reader.Opcode()) != Opcode::GEP_STATIC_OFFSET) {
+        throw std::runtime_error("Invalid GEP_STATIC_OFFSET");
+      }
 
-  return khir::Value(gep_offset_reader.Arg0());
+      auto ptr = Value(reader.Arg0());
+
+      std::vector<Value> result;
+      if (!ptr.IsConstantGlobal()) {
+        result.push_back(ptr);
+      }
+      return result;
+    }
+
+    default:
+      throw std::runtime_error("Not a GEP");
+  }
 }
 
 Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
@@ -396,6 +407,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
 }
 
 std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
+                                 const std::vector<bool>& materialize_gep,
                                  const std::vector<uint64_t>& instrs) {
   auto instr = instrs[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
@@ -478,6 +490,10 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
 
       std::vector<Value> result;
 
+      if (IsGep(v1, instrs) && !materialize_gep[v1.GetIdx()]) {
+        throw std::runtime_error("Requried materialized GEP into PHI_MEMBER.");
+      }
+
       if (!v1.IsConstantGlobal()) {
         result.push_back(v1);
       }
@@ -497,12 +513,28 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::I64_CONV_F64:
     case Opcode::I64_TRUNC_I16:
     case Opcode::I64_TRUNC_I32:
-    case Opcode::F64_CONV_I64:
+    case Opcode::F64_CONV_I64: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+
+      std::vector<Value> result;
+      if (!v0.IsConstantGlobal()) {
+        result.push_back(v0);
+      }
+
+      return result;
+    }
+
     case Opcode::PTR_CMP_NULLPTR: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
 
       std::vector<Value> result;
+      if (IsGep(v0, instrs) && !materialize_gep[v0.GetIdx()]) {
+        throw std::runtime_error(
+            "Requried materialized GEP into PTR_CMP_NULLPTR.");
+      }
+
       if (!v0.IsConstantGlobal()) {
         result.push_back(v0);
       }
@@ -518,28 +550,38 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
 
-      if (IsGep(v, instrs)) {
-        v = Gep(v, instrs);
-      }
-
       std::vector<Value> result;
-      if (!v.IsConstantGlobal()) {
+      if (IsGep(v, instrs) && !materialize_gep[v.GetIdx()]) {
+        result = GetReadValuesGEP(v.GetIdx(), instrs);
+      } else if (!v.IsConstantGlobal()) {
         result.push_back(v);
       }
       return result;
     }
 
-    case Opcode::PTR_CAST:
+    case Opcode::PTR_CAST: {
+      Type3InstructionReader reader(instr);
+      Value v0(reader.Arg());
+
+      std::vector<Value> result;
+      if (IsGep(v0, instrs) && !materialize_gep[v0.GetIdx()]) {
+        throw std::runtime_error("Required materialized GEP into PTR_CAST.");
+      }
+      if (!v0.IsConstantGlobal()) {
+        result.push_back(v0);
+      }
+
+      return result;
+    }
+
     case Opcode::PTR_LOAD: {
       Type3InstructionReader reader(instr);
       Value v0(reader.Arg());
 
-      if (IsGep(v0, instrs)) {
-        v0 = Gep(v0, instrs);
-      }
-
       std::vector<Value> result;
-      if (!v0.IsConstantGlobal()) {
+      if (IsGep(v0, instrs) && !materialize_gep[v0.GetIdx()]) {
+        result = GetReadValuesGEP(v0.GetIdx(), instrs);
+      } else if (!v0.IsConstantGlobal()) {
         result.push_back(v0);
       }
 
@@ -556,15 +598,16 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
 
-      if (IsGep(v0, instrs)) {
-        v0 = Gep(v0, instrs);
-      }
-
       std::vector<Value> result;
-      if (!v0.IsConstantGlobal()) {
+      if (IsGep(v0, instrs) && !materialize_gep[v0.GetIdx()]) {
+        result = GetReadValuesGEP(v0.GetIdx(), instrs);
+      } else if (!v0.IsConstantGlobal()) {
         result.push_back(v0);
       }
 
+      if (IsGep(v1, instrs) && !materialize_gep[v1.GetIdx()]) {
+        throw std::runtime_error("Required materialized GEP into XXX_STORE.");
+      }
       if (!v1.IsConstantGlobal()) {
         result.push_back(v1);
       }
@@ -589,11 +632,12 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
       Type3InstructionReader reader(instr);
       Value v0(reader.Arg());
 
-      if (IsGep(v0, instrs)) {
-        v0 = Gep(v0, instrs);
+      std::vector<Value> result;
+      if (IsGep(v0, instrs) && !materialize_gep[v0.GetIdx()]) {
+        throw std::runtime_error(
+            "Required materialized GEP into RETURN_VALUE/CALL_ARG.");
       }
 
-      std::vector<Value> result;
       if (!v0.IsConstantGlobal()) {
         result.push_back(v0);
       }
@@ -609,8 +653,9 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
         Type3InstructionReader reader(instr);
         Value v0(reader.Arg());
 
-        if (IsGep(v0, instrs)) {
-          v0 = Gep(v0, instrs);
+        if (IsGep(v0, instrs) && !materialize_gep[v0.GetIdx()]) {
+          throw std::runtime_error(
+              "Required materialized GEP into CALL_INDIRECT.");
         }
 
         if (!v0.IsConstantGlobal()) {
@@ -629,10 +674,16 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
       return result;
     }
 
+    case Opcode::GEP_STATIC: {
+      if (materialize_gep[instr_idx]) {
+        return GetReadValuesGEP(instr_idx, instrs);
+      }
+      return {};
+    }
+
     case Opcode::RETURN:
     case Opcode::BR:
     case Opcode::FUNC_ARG:
-    case Opcode::GEP_STATIC:
     case Opcode::GEP_STATIC_OFFSET:
     case Opcode::PHI:
     case Opcode::ALLOCA:
@@ -644,11 +695,12 @@ void AddExternalUses(absl::flat_hash_set<Value>& values,
                      const std::vector<uint64_t>& instrs,
                      const std::vector<bool>& gep_materialize,
                      const BasicBlock& bb, const TypeManager& manager) {
-  absl::flat_hash_set<kush::khir::Value> written_to;
+  absl::flat_hash_set<Value> written_to;
 
   for (const auto& [seg_start, seg_end] : bb.Segments()) {
     for (int i = seg_start; i <= seg_end; i++) {
-      for (auto v : GetReadValues(i, seg_start, seg_end, instrs)) {
+      for (auto v :
+           GetReadValues(i, seg_start, seg_end, gep_materialize, instrs)) {
         if (!written_to.contains(v)) {
           values.insert(v);
         }
@@ -757,7 +809,8 @@ std::vector<LiveInterval> ComputeLiveIntervals(
         if (written_value.has_value()) {
           currently_live.erase(written_value.value());
         }
-        for (auto v : GetReadValues(i, seg_start, seg_end, instrs)) {
+        for (auto v :
+             GetReadValues(i, seg_start, seg_end, gep_materialize, instrs)) {
           currently_live.insert(v);
         }
 
@@ -959,7 +1012,8 @@ std::vector<LiveInterval> ComputeLiveIntervals(
           live_intervals[written_value.value().GetIdx()].UpdateSpillCostWithUse(
               loop_depth[bb_idx]);
         }
-        for (auto v : GetReadValues(i, seg_start, seg_end, instrs)) {
+        for (auto v :
+             GetReadValues(i, seg_start, seg_end, gep_materialize, instrs)) {
           live_intervals[v.GetIdx()].UpdateSpillCostWithUse(loop_depth[bb_idx]);
         }
       }
