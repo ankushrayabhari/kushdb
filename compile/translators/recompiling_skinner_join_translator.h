@@ -69,6 +69,9 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   absl::flat_hash_map<std::pair<int, int>, int> column_to_index_idx_;
   std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>
       predicate_columns_;
+  std::vector<
+      std::vector<std::reference_wrapper<const plan::ColumnRefExpression>>>
+      columns_per_predicate_;
   std::vector<absl::flat_hash_set<int>> tables_per_condition_;
   std::vector<absl::btree_set<int>> conditions_per_table_;
   absl::flat_hash_set<std::pair<int, int>> table_connections_;

@@ -607,16 +607,10 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
                         for (auto [col_idx, field] : cols) {
                           auto value = buffer.Get(next_tuple, col_idx);
-                          global_predicate_struct.Update(field, value);
-
-                          // Additionally, update this table's values to
-                          // read from the unpacked tuple instead of the
-                          // old loaded value from
-                          // global_predicate_struct.
                           child_translators[table_idx]
                               .get()
                               .SchemaValues()
-                              .SetValue(col_idx, std::move(value));
+                              .SetValue(col_idx, value);
                         }
 
                         for (auto [pred_table, flag] : pred_table_to_flag_) {
@@ -690,6 +684,14 @@ void PermutableSkinnerJoinTranslator::Produce() {
                               program_.ConstI32(table_idx));
                           program_.Return(program_.ConstI32(-2));
                         });
+
+                        for (auto [col_idx, field] : cols) {
+                          auto value = child_translators[table_idx]
+                                           .get()
+                                           .SchemaValues()
+                                           .Value(col_idx);
+                          global_predicate_struct.Update(field, value);
+                        }
 
                         // Valid tuple
                         auto next_budget = proxy::Int32(
@@ -778,8 +780,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
                   printer.PrintNewline();
                   */
 
-                  // Store each of this table's predicate column
-                  // values into the global_predicate_struct.
                   std::vector<std::pair<int, int>> cols;
                   for (auto [col_ref, field] :
                        colref_to_predicate_struct_field_) {
@@ -795,12 +795,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
 
                   for (auto [col_idx, field] : cols) {
                     auto value = buffer.Get(next_tuple, col_idx);
-                    global_predicate_struct.Update(field, value);
-
-                    // Additionally, update this table's values to
-                    // read from the unpacked tuple instead of the
-                    // old loaded value from
-                    // global_predicate_struct.
                     child_translators[table_idx].get().SchemaValues().SetValue(
                         col_idx, std::move(value));
                   }
@@ -871,6 +865,13 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                       program_.ConstI32(table_idx));
                     program_.Return(program_.ConstI32(-2));
                   });
+
+                  for (auto [col_idx, field] : cols) {
+                    auto value =
+                        child_translators[table_idx].get().SchemaValues().Value(
+                            col_idx);
+                    global_predicate_struct.Update(field, value);
+                  }
 
                   // Valid tuple
                   auto next_budget = proxy::Int32(

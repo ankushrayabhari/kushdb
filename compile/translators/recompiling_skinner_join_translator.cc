@@ -305,22 +305,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
     table_functions.emplace_back(
         func_names[table_idx], program,
         [&](auto& initial_budget, auto& resume_progress) {
-          {
-            // Unpack the predicate struct.
-            auto column_values = global_predicate_struct.Unpack();
-
-            for (const auto& [colref, field] :
-                 colref_to_predicate_struct_field_) {
-              auto [child_idx, col_idx] = colref;
-
-              // Set the ColumnIdx value of the ChildIdx operator to be the
-              // unpacked value.
-              auto& child_translator = child_translators[child_idx].get();
-              child_translator.SchemaValues().SetValue(col_idx,
-                                                       column_values[field]);
-            }
-          }
-
+          absl::flat_hash_set<std::pair<int, int>> loaded_columns;
           auto& buffer = *materialized_buffers[table_idx];
           auto cardinality = buffer.Size();
 
@@ -350,12 +335,24 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
             const auto& right =
                 dynamic_cast<const plan::ColumnRefExpression&>(eq.RightChild());
 
-            auto other_side_value = left.GetChildIdx() == table_idx
-                                        ? expr_translator.Compute(right)
-                                        : expr_translator.Compute(left);
-            auto table_column = left.GetChildIdx() == table_idx
-                                    ? left.GetColumnIdx()
-                                    : right.GetColumnIdx();
+            // load if loaded
+            const auto& table_colref =
+                left.GetChildIdx() == table_idx ? left : right;
+            auto table_column = table_colref.GetColumnIdx();
+            const auto& other_colref =
+                left.GetChildIdx() == table_idx ? right : left;
+
+            std::pair<int, int> key = {other_colref.GetChildIdx(),
+                                       other_colref.GetColumnIdx()};
+            if (!loaded_columns.contains(key)) {
+              auto field = colref_to_predicate_struct_field_.at(key);
+              auto& child_translator = child_translators[key.first].get();
+              child_translator.SchemaValues().SetValue(
+                  key.second, global_predicate_struct.Get(field));
+              loaded_columns.insert(key);
+            }
+
+            auto other_side_value = expr_translator.Compute(other_colref);
 
             proxy::If(
                 program, other_side_value.IsNull(),
@@ -520,16 +517,10 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
 
                         for (auto [col_idx, field] : cols) {
                           auto value = buffer.Get(next_tuple, col_idx);
-                          global_predicate_struct.Update(field, value);
-
-                          // Additionally, update this table's values to
-                          // read from the unpacked tuple instead of the
-                          // old loaded value from
-                          // global_predicate_struct.
                           child_translators[table_idx]
                               .get()
                               .SchemaValues()
-                              .SetValue(col_idx, std::move(value));
+                              .SetValue(col_idx, value);
                         }
 
                         for (auto pred : conditions_per_table_[table_idx]) {
@@ -540,6 +531,23 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
 
                           if (executed.contains(pred)) {
                             continue;
+                          }
+
+                          for (const auto& col : columns_per_predicate_[pred]) {
+                            std::pair<int, int> key = {
+                                col.get().GetChildIdx(),
+                                col.get().GetColumnIdx()};
+                            if (key.first == table_idx) continue;
+                            if (!loaded_columns.contains(key)) {
+                              auto field =
+                                  colref_to_predicate_struct_field_.at(key);
+                              auto& child_translator =
+                                  child_translators[key.first].get();
+                              child_translator.SchemaValues().SetValue(
+                                  key.second,
+                                  global_predicate_struct.Get(field));
+                              loaded_columns.insert(key);
+                            }
                           }
 
                           auto cond =
@@ -600,6 +608,14 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                               program.ConstI32(table_idx));
                           program.Return(program.ConstI32(-2));
                         });
+
+                        for (auto [col_idx, field] : cols) {
+                          auto value = child_translators[table_idx]
+                                           .get()
+                                           .SchemaValues()
+                                           .Value(col_idx);
+                          global_predicate_struct.Update(field, value);
+                        }
 
                         // Valid tuple
                         auto next_budget = proxy::Int32(
@@ -702,12 +718,6 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
 
                   for (auto [col_idx, field] : cols) {
                     auto value = buffer.Get(next_tuple, col_idx);
-                    global_predicate_struct.Update(field, value);
-
-                    // Additionally, update this table's values to
-                    // read from the unpacked tuple instead of the
-                    // old loaded value from
-                    // global_predicate_struct.
                     child_translators[table_idx].get().SchemaValues().SetValue(
                         col_idx, std::move(value));
                   }
@@ -715,6 +725,20 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                   for (auto pred : conditions_per_table_[table_idx]) {
                     if (!ShouldExecute(pred, table_idx, available_tables)) {
                       continue;
+                    }
+
+                    for (const auto& col : columns_per_predicate_[pred]) {
+                      std::pair<int, int> key = {col.get().GetChildIdx(),
+                                                 col.get().GetColumnIdx()};
+                      if (key.first == table_idx) continue;
+                      if (!loaded_columns.contains(key)) {
+                        auto field = colref_to_predicate_struct_field_.at(key);
+                        auto& child_translator =
+                            child_translators[key.first].get();
+                        child_translator.SchemaValues().SetValue(
+                            key.second, global_predicate_struct.Get(field));
+                        loaded_columns.insert(key);
+                      }
                     }
 
                     auto cond = expr_translator.Compute(conditions[pred].get());
@@ -771,6 +795,13 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
                     program.Return(program.ConstI32(-2));
                   });
 
+                  for (auto [col_idx, field] : cols) {
+                    auto value =
+                        child_translators[table_idx].get().SchemaValues().Value(
+                            col_idx);
+                    global_predicate_struct.Update(field, value);
+                  }
+
                   // Valid tuple
                   auto next_budget = proxy::Int32(
                       program, program.Call(handler, {budget.Get(),
@@ -802,9 +833,9 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   for (int i = 0; i < conditions.size(); i++) {
     PredicateColumnCollector collector;
     conditions[i].get().Accept(collector);
-    auto cond = collector.PredicateColumns();
+    columns_per_predicate_.push_back(collector.PredicateColumns());
 
-    for (const auto& col_ref : cond) {
+    for (const auto& col_ref : columns_per_predicate_.back()) {
       std::pair<int, int> key = {col_ref.get().GetChildIdx(),
                                  col_ref.get().GetColumnIdx()};
 
