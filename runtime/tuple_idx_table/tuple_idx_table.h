@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+#include "runtime/tuple_idx_table/allocator.h"
 #include "runtime/tuple_idx_table/key.h"
 #include "runtime/tuple_idx_table/leaf.h"
 #include "runtime/tuple_idx_table/node.h"
@@ -31,7 +32,8 @@ struct Iterator {
 };
 
 struct TupleIdxTable {
-  std::unique_ptr<Node> tree;
+  Allocator allocator;
+  Node* tree = nullptr;
 };
 
 void Insert(TupleIdxTable* t, const int32_t* tuple_idx, int32_t len);

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "runtime/tuple_idx_table/allocator.h"
 #include "runtime/tuple_idx_table/key.h"
 
 namespace kush::runtime::TupleIdxTable {
@@ -13,7 +14,7 @@ class Node {
  public:
   static const uint8_t EMPTY_MARKER = 48;
 
-  Node(NodeType type, std::size_t compressed_prefix_size);
+  Node(Allocator& allocator, NodeType type, std::size_t compressed_prefix_size);
   virtual ~Node() {}
 
   // Get the position of a child corresponding exactly to the specific byte,
@@ -30,18 +31,14 @@ class Node {
 
   // Get the child at the specified position in the node. pos should be between
   // [0, count). Throws an assertion if the element is not found.
-  virtual std::unique_ptr<Node>* GetChild(int32_t pos);
+  virtual Node** GetChild(int32_t pos);
 
   // Compare the key with the prefix of the node, return the number matching
   // bytes
   static uint32_t PrefixMismatch(Node* node, Key& key, uint64_t depth);
 
   // Insert leaf into inner node
-  static void InsertLeaf(std::unique_ptr<Node>& node, uint8_t key,
-                         std::unique_ptr<Node>& new_node);
-
-  // Erase entry from node
-  static void Erase(std::unique_ptr<Node>& node, int32_t pos);
+  static void InsertLeaf(Node*& node, uint8_t key, Node*& new_node);
 
   // Get the position of the first child that is greater or equal to the
   // specific byte, or -1 if there are no children
@@ -65,7 +62,9 @@ class Node {
   NodeType type;
 
   // compressed path (prefix)
-  std::unique_ptr<uint8_t[]> prefix;
+  uint8_t* prefix;
+
+  Allocator& allocator;
 };
 
 }  // namespace kush::runtime::TupleIdxTable

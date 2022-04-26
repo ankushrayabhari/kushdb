@@ -9,9 +9,9 @@ namespace kush::runtime::TupleIdxTable {
 
 class Leaf : public Node {
  public:
-  Leaf(std::unique_ptr<Key> value);
+  Leaf(Allocator& allocator, Key* value);
 
-  std::unique_ptr<Key> value;
+  Key* value;
 };
 
 }  // namespace kush::runtime::TupleIdxTable

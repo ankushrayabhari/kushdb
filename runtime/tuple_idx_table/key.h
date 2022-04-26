@@ -3,28 +3,30 @@
 #include <cstdint>
 #include <memory>
 
+#include "runtime/tuple_idx_table/allocator.h"
+
 namespace kush::runtime::TupleIdxTable {
 
 class Key {
  public:
-  Key(std::unique_ptr<uint8_t[]> data, int32_t len);
+  Key(uint8_t* data, int32_t len);
 
-  static std::unique_ptr<Key> CreateKey(const int32_t *tuple_idx_array,
-                                        int32_t len);
+  static Key* CreateKey(Allocator& allocator, const int32_t* tuple_idx_array,
+                        int32_t len);
 
-  uint8_t &operator[](std::size_t i);
-  const uint8_t &operator[](std::size_t i) const;
+  uint8_t& operator[](std::size_t i);
+  const uint8_t& operator[](std::size_t i) const;
 
-  bool operator>(const Key &k) const;
-  bool operator<(const Key &k) const;
-  bool operator>=(const Key &k) const;
-  bool operator==(const Key &k) const;
+  bool operator>(const Key& k) const;
+  bool operator<(const Key& k) const;
+  bool operator>=(const Key& k) const;
+  bool operator==(const Key& k) const;
 
-  int32_t *Data() const;
+  int32_t* Data() const;
   int32_t Length() const;
 
  private:
-  std::unique_ptr<uint8_t[]> data_;
+  uint8_t* data_;
   int32_t len_;
 };
 

@@ -7,7 +7,7 @@
 
 namespace kush::runtime::TupleIdxTable {
 
-Leaf::Leaf(std::unique_ptr<Key> v)
-    : Node(NodeType::NLeaf, 0), value(std::move(v)) {}
+Leaf::Leaf(Allocator& allocator, Key* v)
+    : Node(allocator, NodeType::NLeaf, 0), value(v) {}
 
 }  // namespace kush::runtime::TupleIdxTable

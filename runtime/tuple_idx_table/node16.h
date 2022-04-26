@@ -9,10 +9,10 @@ namespace kush::runtime::TupleIdxTable {
 
 class Node16 : public Node {
  public:
-  Node16(std::size_t compression_length);
+  Node16(Allocator& allocator, std::size_t compression_length);
 
   uint8_t key[16];
-  std::unique_ptr<Node> child[16];
+  Node* child[16];
 
  public:
   // Get position of a byte, returns -1 if not exists
@@ -28,15 +28,11 @@ class Node16 : public Node {
   int32_t GetNextPos(int32_t pos) override;
 
   // Get Node16 Child
-  std::unique_ptr<Node>* GetChild(int32_t pos) override;
+  Node** GetChild(int32_t pos) override;
 
   int32_t GetMin() override;
 
   // Insert node into Node16
-  static void Insert(std::unique_ptr<Node>& node, uint8_t key_byte,
-                     std::unique_ptr<Node>& child);
-
-  // Shrink to node 4
-  static void Erase(std::unique_ptr<Node>& node, int pos);
+  static void Insert(Node*& node, uint8_t key_byte, Node*& child);
 };
 }  // namespace kush::runtime::TupleIdxTable

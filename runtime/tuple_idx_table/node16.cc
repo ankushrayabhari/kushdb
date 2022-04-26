@@ -7,9 +7,10 @@
 
 namespace kush::runtime::TupleIdxTable {
 
-Node16::Node16(std::size_t compression_length)
-    : Node(NodeType::N16, compression_length) {
+Node16::Node16(Allocator &allocator, std::size_t compression_length)
+    : Node(allocator, NodeType::N16, compression_length) {
   memset(key, 16, sizeof(key));
+  memset(child, 0, sizeof(child));
 }
 
 int32_t Node16::GetChildPos(uint8_t k) {
@@ -44,13 +45,12 @@ int32_t Node16::GetNextPos(int32_t pos) {
   return pos < count ? pos : -1;
 }
 
-std::unique_ptr<Node> *Node16::GetChild(int32_t pos) { return &child[pos]; }
+Node **Node16::GetChild(int32_t pos) { return &child[pos]; }
 
 int32_t Node16::GetMin() { return 0; }
 
-void Node16::Insert(std::unique_ptr<Node> &node, uint8_t key_byte,
-                    std::unique_ptr<Node> &child) {
-  Node16 *n = static_cast<Node16 *>(node.get());
+void Node16::Insert(Node *&node, uint8_t key_byte, Node *&child) {
+  Node16 *n = static_cast<Node16 *>(node);
 
   if (n->count < 16) {
     // Insert element
@@ -69,38 +69,17 @@ void Node16::Insert(std::unique_ptr<Node> &node, uint8_t key_byte,
     n->count++;
   } else {
     // Grow to Node48
-    auto new_node = std::make_unique<Node48>(n->prefix_length);
+    auto dest = n->allocator.AllocateData(sizeof(Node48));
+    auto new_node = new (dest) Node48(n->allocator, n->prefix_length);
     for (int32_t i = 0; i < node->count; i++) {
       new_node->child_index[n->key[i]] = i;
       new_node->child[i] = std::move(n->child[i]);
     }
-    CopyPrefix(n, new_node.get());
+    CopyPrefix(n, new_node);
     new_node->count = node->count;
     node = std::move(new_node);
 
     Node48::Insert(node, key_byte, child);
-  }
-}
-
-void Node16::Erase(std::unique_ptr<Node> &node, int pos) {
-  Node16 *n = static_cast<Node16 *>(node.get());
-  // erase the child and decrease the count
-  n->child[pos].reset();
-  n->count--;
-  // potentially move any children backwards
-  for (; pos < n->count; pos++) {
-    n->key[pos] = n->key[pos + 1];
-    n->child[pos] = std::move(n->child[pos + 1]);
-  }
-  if (node->count <= 3) {
-    // Shrink node
-    auto new_node = std::make_unique<Node4>(n->prefix_length);
-    for (unsigned i = 0; i < n->count; i++) {
-      new_node->key[new_node->count] = n->key[i];
-      new_node->child[new_node->count++] = std::move(n->child[i]);
-    }
-    CopyPrefix(n, new_node.get());
-    node = std::move(new_node);
   }
 }
 

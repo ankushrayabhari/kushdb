@@ -3,15 +3,11 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "key",
-    srcs = ["key.cc"],
-    hdrs = ["key.h"],
-    deps = [],
-)
-
-cc_library(
     name = "node",
     srcs = [
+        "allocator.cc",
+        "key.cc",
+        "leaf.cc",
         "node.cc",
         "node16.cc",
         "node256.cc",
@@ -19,25 +15,16 @@ cc_library(
         "node48.cc",
     ],
     hdrs = [
+        "allocator.h",
+        "key.h",
+        "leaf.h",
         "node.h",
         "node16.h",
         "node256.h",
         "node4.h",
         "node48.h",
     ],
-    deps = [
-        ":key",
-    ],
-)
-
-cc_library(
-    name = "leaf",
-    srcs = ["leaf.cc"],
-    hdrs = ["leaf.h"],
-    deps = [
-        ":key",
-        ":node",
-    ],
+    deps = [],
 )
 
 cc_library(
@@ -45,8 +32,6 @@ cc_library(
     srcs = ["tuple_idx_table.cc"],
     hdrs = ["tuple_idx_table.h"],
     deps = [
-        ":key",
-        ":leaf",
         ":node",
     ],
 )

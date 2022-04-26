@@ -9,7 +9,7 @@ namespace kush::runtime::TupleIdxTable {
 
 class Node4 : public Node {
  public:
-  Node4(std::size_t compression_length);
+  Node4(Allocator& allocator, std::size_t compression_length);
 
   // Get position of a byte, returns -1 if not exists
   int32_t GetChildPos(uint8_t k) override;
@@ -24,19 +24,15 @@ class Node4 : public Node {
   int32_t GetNextPos(int32_t pos) override;
 
   // Get Node4 Child
-  std::unique_ptr<Node>* GetChild(int32_t pos) override;
+  Node** GetChild(int32_t pos) override;
 
   int32_t GetMin() override;
 
   // Insert Leaf to the Node4
-  static void Insert(std::unique_ptr<Node>& node, uint8_t key_byte,
-                     std::unique_ptr<Node>& child);
-
-  // Remove Leaf from Node4
-  static void Erase(std::unique_ptr<Node>& node, int pos);
+  static void Insert(Node*& node, uint8_t key_byte, Node*& child);
 
   uint8_t key[4];
-  std::unique_ptr<Node> child[4];
+  Node* child[4];
 };
 
 }  // namespace kush::runtime::TupleIdxTable
