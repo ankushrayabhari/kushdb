@@ -12,10 +12,7 @@
 namespace kush::runtime::String {
 
 void Copy(String* dest, String* src) {
-  auto* cpy = (char*)malloc(sizeof(char) * src->length);
-  memcpy(cpy, src->data, src->length);
-
-  dest->data = cpy;
+  dest->data = src->data;
   dest->length = src->length;
 }
 
