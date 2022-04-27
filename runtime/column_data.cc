@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include "runtime/buffer_pool_manager.h"
+#include "runtime/file_manager.h"
 
 namespace kush::runtime::ColumnData {
 
@@ -23,7 +23,7 @@ namespace kush::runtime::ColumnData {
 
 template <typename T>
 inline void OpenImpl(T*& data, uint64_t& file_length, const char* path) {
-  auto fi = BufferPoolManager::Get().Open(path);
+  auto fi = FileManager::Get().Open(path);
   file_length = fi.file_length;
   data = reinterpret_cast<T*>(fi.data);
 }

@@ -1,4 +1,4 @@
-#include "runtime/buffer_pool_manager.h"
+#include "runtime/file_manager.h"
 
 #include <cstdint>
 #include <cstring>
@@ -19,7 +19,7 @@
 
 namespace kush::runtime {
 
-FileInformation BufferPoolManager::Open(std::string_view path) {
+FileInformation FileManager::Open(std::string_view path) {
   if (!info_.contains(path)) {
     int fd = open(std::string(path).c_str(), O_RDONLY);
     if (fd == -1) {
@@ -36,8 +36,8 @@ FileInformation BufferPoolManager::Open(std::string_view path) {
     }
     uint64_t file_length = sb.st_size;
 
-    void* data = mmap(nullptr, file_length, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (data == MAP_FAILED) {
+    void* data = malloc(file_length);
+    if (pread(fd, data, file_length, 0) < 0) {
       throw std::system_error(
           errno, std::generic_category(),
           std::string(__FILE__) + ":" + std::to_string(__LINE__));
@@ -55,8 +55,8 @@ FileInformation BufferPoolManager::Open(std::string_view path) {
   return info_[path];
 }
 
-BufferPoolManager::~BufferPoolManager() {
-  // TODO: munmap files
+FileManager::~FileManager() {
+  // TODO: clear files
 }
 
 }  // namespace kush::runtime

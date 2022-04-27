@@ -16,7 +16,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "runtime/buffer_pool_manager.h"
+#include "runtime/file_manager.h"
 
 namespace kush::runtime::ColumnIndex {
 
@@ -65,7 +65,7 @@ uint64_t ToUInt64(T key) {
 }
 
 void Open(ColumnIndex* col, const char* path) {
-  auto fi = BufferPoolManager::Get().Open(path);
+  auto fi = FileManager::Get().Open(path);
   col->data = reinterpret_cast<ColumnIndexData*>(fi.data);
   col->file_length = fi.file_length;
 }

@@ -3,9 +3,9 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "buffer_pool_manager",
-    srcs = ["buffer_pool_manager.cc"],
-    hdrs = ["buffer_pool_manager.h"],
+    name = "file_manager",
+    srcs = ["file_manager.cc"],
+    hdrs = ["file_manager.h"],
     deps = [
         "@absl//absl/container:flat_hash_map",
     ],
@@ -61,8 +61,8 @@ cc_library(
     srcs = ["column_index.cc"],
     hdrs = ["column_index.h"],
     deps = [
-        ":buffer_pool_manager",
         ":column_index_bucket",
+        ":file_manager",
         ":string",
     ],
 )
@@ -72,8 +72,8 @@ cc_library(
     srcs = ["column_data.cc"],
     hdrs = ["column_data.h"],
     deps = [
-        ":buffer_pool_manager",
         ":date",
+        ":file_manager",
         ":string",
     ],
 )

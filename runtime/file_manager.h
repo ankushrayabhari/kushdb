@@ -12,21 +12,21 @@ struct FileInformation {
   uint64_t file_length;
 };
 
-class BufferPoolManager {
+class FileManager {
  public:
-  static BufferPoolManager& Get() {
-    static BufferPoolManager instance;  // Guaranteed to be destroyed.
-                                        // Instantiated on first use.
+  static FileManager& Get() {
+    static FileManager instance;  // Guaranteed to be destroyed.
+                                  // Instantiated on first use.
     return instance;
   }
 
  private:
-  BufferPoolManager() = default;
-  ~BufferPoolManager();
+  FileManager() = default;
+  ~FileManager();
 
  public:
-  BufferPoolManager(BufferPoolManager const&) = delete;
-  void operator=(BufferPoolManager const&) = delete;
+  FileManager(FileManager const&) = delete;
+  void operator=(FileManager const&) = delete;
 
   FileInformation Open(std::string_view path);
 
