@@ -88,6 +88,13 @@ cc_library(
 )
 
 cc_library(
+    name = "allocator",
+    srcs = ["allocator.cc"],
+    hdrs = ["allocator.h"],
+    deps = [],
+)
+
+cc_library(
     name = "vector",
     srcs = ["vector.cc"],
     hdrs = ["vector.h"],

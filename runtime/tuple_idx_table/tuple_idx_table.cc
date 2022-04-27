@@ -20,8 +20,7 @@ void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
   Key& key = *value;
   if (!node) {
     // node is currently empty, create a leaf here with the key
-    auto leaf_dest = allocator.AllocateData(sizeof(Leaf));
-    node = new (leaf_dest) Leaf(allocator, value);
+    node = allocator.Allocate<Leaf>(allocator, value);
     return;
   }
 
@@ -47,14 +46,12 @@ void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
       }
     }
 
-    auto dest = allocator.AllocateData(sizeof(Node4));
-    Node* new_node = new (dest) Node4(allocator, new_prefix_length);
+    Node* new_node = allocator.Allocate<Node4>(allocator, new_prefix_length);
     new_node->prefix_length = new_prefix_length;
     memcpy(new_node->prefix, &key[depth], new_prefix_length);
     Node4::Insert(new_node, existing_key[depth + new_prefix_length], node);
 
-    auto leaf_dest = allocator.AllocateData(sizeof(Leaf));
-    Node* leaf_node = new (leaf_dest) Leaf(allocator, std::move(value));
+    Node* leaf_node = allocator.Allocate<Leaf>(allocator, std::move(value));
     Node4::Insert(new_node, key[depth + new_prefix_length], leaf_node);
     node = std::move(new_node);
     return;
@@ -65,8 +62,7 @@ void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
     uint32_t mismatch_pos = Node::PrefixMismatch(node, key, depth);
     if (mismatch_pos != node->prefix_length) {
       // Prefix differs, create new node
-      auto dest = allocator.AllocateData(sizeof(Node4));
-      Node* new_node = new (dest) Node4(allocator, mismatch_pos);
+      Node* new_node = allocator.Allocate<Node4>(allocator, mismatch_pos);
       new_node->prefix_length = mismatch_pos;
       memcpy(new_node->prefix, node->prefix, mismatch_pos);
 
@@ -77,8 +73,7 @@ void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
       memmove(node_ptr->prefix, node_ptr->prefix + mismatch_pos + 1,
               node_ptr->prefix_length);
 
-      auto leaf_dest = allocator.AllocateData(sizeof(Leaf));
-      Node* leaf_node = new (leaf_dest) Leaf(allocator, std::move(value));
+      Node* leaf_node = allocator.Allocate<Leaf>(allocator, std::move(value));
       Node4::Insert(new_node, key[depth + mismatch_pos], leaf_node);
       node = std::move(new_node);
       return;
@@ -93,8 +88,7 @@ void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
     auto child = node->GetChild(pos);
     return InsertImpl(allocator, *child, std::move(value), depth + 1);
   }
-  auto dest = allocator.AllocateData(sizeof(Leaf));
-  Node* new_node = new (dest) Leaf(allocator, std::move(value));
+  Node* new_node = allocator.Allocate<Leaf>(allocator, std::move(value));
   Node::InsertLeaf(node, key[depth], new_node);
 }
 
@@ -193,10 +187,7 @@ bool IteratorNext(TupleIdxTable* table, Iterator* it) {
 
 TupleIdxTable* Create() { return new TupleIdxTable; }
 
-void Free(TupleIdxTable* t) {
-  t->allocator.Free();
-  delete t;
-}
+void Free(TupleIdxTable* t) { delete t; }
 
 Iterator* CreateIt() { return new Iterator; }
 

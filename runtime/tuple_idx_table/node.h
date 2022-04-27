@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "runtime/tuple_idx_table/allocator.h"
+#include "runtime/allocator.h"
 #include "runtime/tuple_idx_table/key.h"
 
 namespace kush::runtime::TupleIdxTable {

@@ -5,7 +5,6 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "node",
     srcs = [
-        "allocator.cc",
         "key.cc",
         "leaf.cc",
         "node.cc",
@@ -15,7 +14,6 @@ cc_library(
         "node48.cc",
     ],
     hdrs = [
-        "allocator.h",
         "key.h",
         "leaf.h",
         "node.h",
@@ -24,7 +22,9 @@ cc_library(
         "node4.h",
         "node48.h",
     ],
-    deps = [],
+    deps = [
+        "//runtime:allocator",
+    ],
 )
 
 cc_library(

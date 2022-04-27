@@ -10,11 +10,10 @@ namespace kush::runtime::TupleIdxTable {
 Key::Key(uint8_t* data, int32_t len) : data_(data), len_(len) {}
 
 Key* Key::CreateKey(Allocator& allocator, const int32_t* data, int32_t len) {
-  auto copy = allocator.AllocateData(len * sizeof(int32_t));
+  auto copy = allocator.Allocate(len * sizeof(int32_t));
   memcpy(copy, data, len * sizeof(int32_t));
 
-  auto dest = allocator.AllocateData(sizeof(Key));
-  return new (dest) Key(copy, len * sizeof(int32_t));
+  return allocator.Allocate<Key>(copy, len * sizeof(int32_t));
 }
 
 bool Key::operator>(const Key& k) const {

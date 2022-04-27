@@ -75,8 +75,8 @@ void Node4::Insert(Node*& node, uint8_t key_byte, Node*& child) {
     n->count++;
   } else {
     // Grow to Node16
-    auto dest = n->allocator.AllocateData(sizeof(Node16));
-    auto new_node = new (dest) Node16(n->allocator, n->prefix_length);
+    auto new_node =
+        n->allocator.Allocate<Node16>(n->allocator, n->prefix_length);
     new_node->count = 4;
     CopyPrefix(node, new_node);
     for (int32_t i = 0; i < 4; i++) {

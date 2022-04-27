@@ -69,8 +69,8 @@ void Node16::Insert(Node *&node, uint8_t key_byte, Node *&child) {
     n->count++;
   } else {
     // Grow to Node48
-    auto dest = n->allocator.AllocateData(sizeof(Node48));
-    auto new_node = new (dest) Node48(n->allocator, n->prefix_length);
+    auto new_node =
+        n->allocator.Allocate<Node48>(n->allocator, n->prefix_length);
     for (int32_t i = 0; i < node->count; i++) {
       new_node->child_index[n->key[i]] = i;
       new_node->child[i] = std::move(n->child[i]);

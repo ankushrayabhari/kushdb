@@ -4,7 +4,7 @@
 #include <cstring>
 #include <memory>
 
-#include "runtime/tuple_idx_table/allocator.h"
+#include "runtime/allocator.h"
 #include "runtime/tuple_idx_table/key.h"
 #include "runtime/tuple_idx_table/node16.h"
 #include "runtime/tuple_idx_table/node256.h"
@@ -17,7 +17,7 @@ Node::Node(Allocator& a, NodeType type, std::size_t compressed_prefix_size)
     : prefix_length(0),
       count(0),
       type(type),
-      prefix(a.AllocateData(compressed_prefix_size)),
+      prefix(a.Allocate(compressed_prefix_size)),
       allocator(a) {}
 
 void Node::CopyPrefix(Node* src, Node* dst) {

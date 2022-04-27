@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "runtime/tuple_idx_table/allocator.h"
+#include "runtime/allocator.h"
 #include "runtime/tuple_idx_table/key.h"
 #include "runtime/tuple_idx_table/leaf.h"
 #include "runtime/tuple_idx_table/node.h"
