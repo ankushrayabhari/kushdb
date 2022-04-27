@@ -805,9 +805,7 @@ void LLVMBackend::Compile() {
 
 #if PROFILE_ENABLED
   for (auto& func : *module_) {
-    auto attrs = func.getAttributes().addAttribute(
-        *context_, llvm::AttributeList::FunctionIndex, "frame-pointer", "all");
-    func.setAttributes(attrs);
+    func.addFnAttr("frame-pointer", "all");
   }
 #endif
 
