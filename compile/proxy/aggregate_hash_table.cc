@@ -94,10 +94,6 @@ SQLValue AggregateHashTablePayload::GetKey(int field) {
   return content_.Get(field + 1);
 }
 
-Int64 AggregateHashTablePayload::GetHash() {
-  return (Int64&)content_.Get(0).Get();
-}
-
 std::vector<SQLValue> AggregateHashTablePayload::GetPayload(
     int num_keys, const std::vector<std::unique_ptr<Aggregator>>& aggregators) {
   std::vector<SQLValue> output;

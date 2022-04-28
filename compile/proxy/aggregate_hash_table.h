@@ -39,7 +39,6 @@ class AggregateHashTablePayload {
   void Update(const std::vector<std::unique_ptr<Aggregator>>& aggregators);
 
   SQLValue GetKey(int key);
-  Int64 GetHash();
 
   // Gets the vector of <key values, aggregate values>
   std::vector<SQLValue> GetPayload(
