@@ -13,6 +13,10 @@ namespace kush::compile::proxy {
 std::string ColumnIndexBucket::StructName("kush::runtime::ColumnIndexBucket");
 
 namespace {
+constexpr std::string_view BucketInitName(
+    "kush::runtime::ColumnIndexBucket::BucketInit");
+constexpr std::string_view BucketPushBackName(
+    "kush::runtime::ColumnIndexBucket::BucketPushBack");
 constexpr std::string_view FastForwardBucketName(
     "kush::runtime::ColumnIndexBucket::FastForwardBucket");
 constexpr std::string_view ColumnIndexBucketGetName(
@@ -34,6 +38,14 @@ constexpr std::string_view BucketListSortedIntersectionResultGetName(
 ColumnIndexBucket::ColumnIndexBucket(khir::ProgramBuilder& program,
                                      khir::Value v)
     : program_(program), value_(v) {}
+
+void ColumnIndexBucket::Init(khir::Value allocator) {
+  program_.Call(program_.GetFunction(BucketInitName), {value_, allocator});
+}
+
+void ColumnIndexBucket::PushBack(const Int32& v) {
+  program_.Call(program_.GetFunction(BucketPushBackName), {value_, v.Get()});
+}
 
 void ColumnIndexBucket::Copy(const ColumnIndexBucket& rhs) {
   auto st = program_.GetStructType(ColumnIndexBucket::StructName);
@@ -71,9 +83,20 @@ Bool ColumnIndexBucket::DoesNotExist() {
 
 void ColumnIndexBucket::ForwardDeclare(khir::ProgramBuilder& program) {
   auto index_bucket_type = program.StructType(
-      {program.PointerType(program.I32Type()), program.I32Type()},
+      {program.PointerType(program.I32Type()), program.I32Type(),
+       program.I32Type(), program.PointerType(program.I8Type())},
       ColumnIndexBucket::StructName);
   auto index_bucket_ptr_type = program.PointerType(index_bucket_type);
+
+  program.DeclareExternalFunction(
+      BucketInitName, program.VoidType(),
+      {index_bucket_ptr_type, program.PointerType(program.I8Type())},
+      reinterpret_cast<void*>(&runtime::BucketInit));
+
+  program.DeclareExternalFunction(
+      BucketPushBackName, program.VoidType(),
+      {index_bucket_ptr_type, program.I32Type()},
+      reinterpret_cast<void*>(&runtime::BucketPushBack));
 
   program.DeclareExternalFunction(
       FastForwardBucketName, program.I32Type(),
@@ -135,7 +158,9 @@ ColumnIndexBucketArray::ColumnIndexBucketArray(khir::ProgramBuilder& program,
                   program.ConstantStruct(
                       program.GetStructType(ColumnIndexBucket::StructName),
                       {program.NullPtr(program.PointerType(program.I32Type())),
-                       program.ConstI32(0)}))))),
+                       program.ConstI32(0), program.ConstI32(0),
+                       program.NullPtr(
+                           program.PointerType(program.I8Type()))}))))),
       sorted_intersection_idx_value_(program.Global(
           program.ArrayType(program.I32Type(), max_size),
           program.ConstantArray(

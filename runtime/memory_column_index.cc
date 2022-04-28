@@ -14,175 +14,109 @@
 
 namespace kush::runtime::MemoryColumnIndex {
 
-// ---------- Create Index -------------
-absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt8Index() {
-  return new absl::flat_hash_map<int32_t, std::vector<int32_t>>;
+void Init(MemoryColumnIndex* ht, uint16_t payload_size,
+          uint64_t payload_hash_offset) {
+  ht->payload_size = payload_size;
+  ht->payload_hash_offset = payload_hash_offset;
+
+  ht->capacity = 1024;
+  ht->mask = ht->capacity - 1;
+  ht->size = 0;
+  ht->entries = new uint64_t[ht->capacity];
+  memset(ht->entries, 0, sizeof(uint64_t) * ht->capacity);
+
+  ht->payload_block_size = 2;
+  ht->payload_block_capacity = 4;
+  ht->payload_block = new uint8_t*[ht->payload_block_capacity];
+  // skip block 0 bc use it as empty slot marker
+  ht->payload_block[0] = nullptr;
+  // block 1
+  ht->payload_block[1] = new uint8_t[BLOCK_SIZE];
+  ht->last_payload_offset = 0;
+
+  ht->allocator = new Allocator;
 }
 
-absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt16Index() {
-  return new absl::flat_hash_map<int32_t, std::vector<int32_t>>;
-}
-
-absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt32Index() {
-  return new absl::flat_hash_map<int32_t, std::vector<int32_t>>;
-}
-
-absl::flat_hash_map<int64_t, std::vector<int32_t>>* CreateInt64Index() {
-  return new absl::flat_hash_map<int64_t, std::vector<int32_t>>;
-}
-
-absl::flat_hash_map<double, std::vector<int32_t>>* CreateFloat64Index() {
-  return new absl::flat_hash_map<double, std::vector<int32_t>>;
-}
-
-absl::flat_hash_map<std::string, std::vector<int32_t>>* CreateTextIndex() {
-  return new absl::flat_hash_map<std::string, std::vector<int32_t>>;
-}
-
-// ---------- Free Index -------------
-void FreeInt8Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index) {
-  delete index;
-}
-
-void FreeInt16Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index) {
-  delete index;
-}
-
-void FreeInt32Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index) {
-  delete index;
-}
-
-void FreeInt64Index(absl::flat_hash_map<int64_t, std::vector<int32_t>>* index) {
-  delete index;
-}
-
-void FreeFloat64Index(
-    absl::flat_hash_map<double, std::vector<int32_t>>* index) {
-  delete index;
-}
-
-void FreeTextIndex(
-    absl::flat_hash_map<std::string, std::vector<int32_t>>* index) {
-  delete index;
-}
-
-// ---------- Insert -------------
-void InsertInt8Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
-                     int8_t value, int32_t tuple_idx) {
-  index->operator[](value).push_back(tuple_idx);
-}
-
-void InsertInt16Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
-                      int16_t value, int32_t tuple_idx) {
-  index->operator[](value).push_back(tuple_idx);
-}
-
-void InsertInt32Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
-                      int32_t value, int32_t tuple_idx) {
-  index->operator[](value).push_back(tuple_idx);
-}
-
-void InsertInt64Index(absl::flat_hash_map<int64_t, std::vector<int32_t>>* index,
-                      int64_t value, int32_t tuple_idx) {
-  index->operator[](value).push_back(tuple_idx);
-}
-
-void InsertFloat64Index(
-    absl::flat_hash_map<double, std::vector<int32_t>>* index, double value,
-    int32_t tuple_idx) {
-  index->operator[](value).push_back(tuple_idx);
-}
-
-void InsertTextIndex(
-    absl::flat_hash_map<std::string, std::vector<int32_t>>* index,
-    String::String* value, int32_t tuple_idx) {
-  index->operator[](std::string_view(value->data, value->length))
-      .push_back(tuple_idx);
-}
-
-// Get the next tuple that is greater than or equal to from index or cardinality
-int32_t FastForwardBucket(std::vector<int32_t>* bucket_ptr,
-                          int32_t prev_tuple) {
-  if (bucket_ptr->size() == 0) {
-    return INT32_MAX;
+void AllocateNewPage(MemoryColumnIndex* ht) {
+  if (ht->payload_block_size == ht->payload_block_capacity) {
+    auto new_capacity = ht->payload_block_capacity * 2;
+    auto new_payload_block = new uint8_t*[new_capacity];
+    memcpy(new_payload_block, ht->payload_block,
+           sizeof(uint8_t*) * ht->payload_block_capacity);
+    delete[] ht->payload_block;
+    ht->payload_block = new_payload_block;
+    ht->payload_block_capacity = new_capacity;
   }
 
-  // Binary search for tuple greater than prev_tuple
-  int start = 0;
-  const auto& bucket = *bucket_ptr;
-  int end = bucket.size() - 1;
+  ht->payload_block[ht->payload_block_size] = new uint8_t[BLOCK_SIZE];
+  ht->payload_block_size++;
+  ht->last_payload_offset = 0;
+}
 
-  int32_t next_greater_idx = INT32_MAX;
-  while (start <= end) {
-    int mid = (start + end) / 2;
+uint64_t ConstructEntry(uint16_t salt, uint16_t block_offset,
+                        uint32_t block_idx) {
+  uint64_t salt_64 = salt;
+  uint64_t block_offset_64 = block_offset;
+  uint64_t block_idx_64 = block_idx;
 
-    if (bucket[mid] < prev_tuple) {
-      start = mid + 1;
-    } else {
-      next_greater_idx = mid;
-      end = mid - 1;
+  uint64_t output = 0;
+  output |= salt_64 << 48;
+  output |= block_offset_64 << 32;
+  output |= block_idx_64;
+  return output;
+}
+
+void Resize(MemoryColumnIndex* ht) {
+  auto capacity = ht->capacity * 2;
+  auto mask = capacity - 1;
+
+  auto entries = new uint64_t[capacity];
+  memset(entries, 0, sizeof(uint64_t) * capacity);
+
+  for (uint32_t block_idx = 1; block_idx < ht->payload_block_size;
+       block_idx++) {
+    const auto end = block_idx == ht->payload_block_size - 1
+                         ? ht->last_payload_offset
+                         : BLOCK_SIZE;
+    for (uint16_t block_offset = 0; block_offset + ht->payload_size <= end;
+         block_offset += ht->payload_size) {
+      auto hash_ptr =
+          ht->payload_block[block_idx] + block_offset + ht->payload_hash_offset;
+      auto hash = *(uint64_t*)(hash_ptr);
+      uint16_t salt = hash >> 48;
+
+      uint32_t entry_idx = hash & mask;
+      while ((entries[entry_idx] & 0xFFFFFFFF) > 0) {
+        entry_idx = (entry_idx + 1) & mask;
+      }
+
+      entries[entry_idx] = ConstructEntry(salt, block_offset, block_idx);
     }
   }
 
-  return next_greater_idx;
+  delete[] ht->entries;
+  ht->entries = entries;
+  ht->capacity = capacity;
+  ht->mask = mask;
 }
 
-int32_t BucketSize(std::vector<int32_t>* bucket) { return bucket->size(); }
+void Free(MemoryColumnIndex* ht) {
+  delete[] ht->entries;
 
-int32_t BucketGet(std::vector<int32_t>* bucket, int32_t idx) {
-  return (*bucket)[idx];
-}
-
-// Get the next tuple from index or cardinality
-template <typename T, typename S>
-void GetBucketImpl(absl::flat_hash_map<T, std::vector<int32_t>>* index, S value,
-                   ColumnIndexBucket* result) {
-  auto it = index->find(value);
-
-  if (it == index->end()) {
-    result->size = 0;
-    result->data = nullptr;
-    return;
+  for (int i = 0; i < ht->payload_block_size; i++) {
+    delete[] ht->payload_block[i];
   }
+  delete[] ht->payload_block;
 
-  result->size = it->second.size();
-  result->data = it->second.data();
+  delete ht->allocator;
 }
 
-void GetBucketInt8Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int8_t value,
-    ColumnIndexBucket* result) {
-  GetBucketImpl(index, value, result);
+void* GetPayload(MemoryColumnIndex* ht, uint32_t block_idx,
+                 uint64_t block_offset) {
+  return ht->payload_block[block_idx] + block_offset;
 }
 
-void GetBucketInt16Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int16_t value,
-    ColumnIndexBucket* result) {
-  GetBucketImpl(index, value, result);
+void* GetEntry(MemoryColumnIndex* ht, uint32_t idx) {
+  return &ht->entries[idx];
 }
-
-void GetBucketInt32Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int32_t value,
-    ColumnIndexBucket* result) {
-  GetBucketImpl(index, value, result);
-}
-
-void GetBucketInt64Index(
-    absl::flat_hash_map<int64_t, std::vector<int32_t>>* index, int64_t value,
-    ColumnIndexBucket* result) {
-  GetBucketImpl(index, value, result);
-}
-
-void GetBucketFloat64Index(
-    absl::flat_hash_map<double, std::vector<int32_t>>* index, double value,
-    ColumnIndexBucket* result) {
-  GetBucketImpl(index, value, result);
-}
-
-void GetBucketTextIndex(
-    absl::flat_hash_map<std::string, std::vector<int32_t>>* index,
-    String::String* value, ColumnIndexBucket* result) {
-  GetBucketImpl(index, std::string_view(value->data, value->length), result);
-}
-
 }  // namespace kush::runtime::MemoryColumnIndex

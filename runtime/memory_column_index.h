@@ -9,62 +9,49 @@
 
 #include "absl/container/flat_hash_map.h"
 
+#include "runtime/allocator.h"
 #include "runtime/column_index_bucket.h"
 #include "runtime/string.h"
 
 namespace kush::runtime::MemoryColumnIndex {
 
-// Create the column index
-absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt8Index();
-absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt16Index();
-absl::flat_hash_map<int32_t, std::vector<int32_t>>* CreateInt32Index();
-absl::flat_hash_map<int64_t, std::vector<int32_t>>* CreateInt64Index();
-absl::flat_hash_map<double, std::vector<int32_t>>* CreateFloat64Index();
-absl::flat_hash_map<std::string, std::vector<int32_t>>* CreateTextIndex();
+constexpr static int BLOCK_SIZE = 1 << 14;
+constexpr static double LOAD_FACTOR = 1.5;
 
-// Free the column index
-void FreeInt8Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index);
-void FreeInt16Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index);
-void FreeInt32Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index);
-void FreeInt64Index(absl::flat_hash_map<int64_t, std::vector<int32_t>>* index);
-void FreeFloat64Index(absl::flat_hash_map<double, std::vector<int32_t>>* index);
-void FreeTextIndex(
-    absl::flat_hash_map<std::string, std::vector<int32_t>>* index);
+struct MemoryColumnIndex {
+  uint64_t payload_hash_offset;
 
-// Insert tuple idx
-void InsertInt8Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
-                     int8_t value, int32_t tuple_idx);
-void InsertInt16Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
-                      int16_t value, int32_t tuple_idx);
-void InsertInt32Index(absl::flat_hash_map<int32_t, std::vector<int32_t>>* index,
-                      int32_t value, int32_t tuple_idx);
-void InsertInt64Index(absl::flat_hash_map<int64_t, std::vector<int32_t>>* index,
-                      int64_t value, int32_t tuple_idx);
-void InsertFloat64Index(
-    absl::flat_hash_map<double, std::vector<int32_t>>* index, double value,
-    int32_t tuple_idx);
-void InsertTextIndex(
-    absl::flat_hash_map<std::string, std::vector<int32_t>>* index,
-    String::String* value, int32_t tuple_idx);
+  // Entry storage
+  uint32_t size;
+  uint32_t capacity;
+  uint64_t mask;
+  uint64_t* entries;
 
-// Get the bucket of tuple idx from index
-void GetBucketInt8Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int8_t value,
-    ColumnIndexBucket* result);
-void GetBucketInt16Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int16_t value,
-    ColumnIndexBucket* result);
-void GetBucketInt32Index(
-    absl::flat_hash_map<int32_t, std::vector<int32_t>>* index, int32_t value,
-    ColumnIndexBucket* result);
-void GetBucketInt64Index(
-    absl::flat_hash_map<int64_t, std::vector<int32_t>>* index, int64_t value,
-    ColumnIndexBucket* result);
-void GetBucketFloat64Index(
-    absl::flat_hash_map<double, std::vector<int32_t>>* index, double value,
-    ColumnIndexBucket* result);
-void GetBucketTextIndex(
-    absl::flat_hash_map<std::string, std::vector<int32_t>>* index,
-    String::String* value, ColumnIndexBucket* result);
+  // Tuple Storage
+  uint8_t** payload_block;
+  uint32_t payload_block_capacity;
+  uint32_t payload_block_size;
+  uint16_t last_payload_offset;
+  uint16_t payload_size;
+
+  Allocator* allocator;
+};
+
+void Init(MemoryColumnIndex* ht, uint16_t payload_size,
+          uint64_t payload_hash_offset);
+
+void AllocateNewPage(MemoryColumnIndex* ht);
+
+void Resize(MemoryColumnIndex* ht);
+
+void Free(MemoryColumnIndex* ht);
+
+uint64_t ConstructEntry(uint16_t salt, uint16_t block_offset,
+                        uint32_t block_idx);
+
+void* GetPayload(MemoryColumnIndex* ht, uint32_t block_idx,
+                 uint64_t block_offset);
+
+void* GetEntry(MemoryColumnIndex* ht, uint32_t idx);
 
 }  // namespace kush::runtime::MemoryColumnIndex

@@ -178,8 +178,12 @@ cc_library(
     hdrs = ["memory_column_index.h"],
     deps = [
         ":column_index",
+        ":evaluate",
         "//catalog:sql_type",
+        "//compile/proxy/control_flow:if",
+        "//compile/proxy/control_flow:loop",
         "//compile/proxy/value:ir_value",
+        "//compile/proxy/value:sql_value",
         "//khir:program_builder",
         "//runtime:column_index_bucket",
         "//runtime:memory_column_index",

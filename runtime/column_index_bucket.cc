@@ -1,6 +1,7 @@
 #include "runtime/column_index_bucket.h"
 
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <iostream>
 #include <queue>
@@ -8,6 +9,24 @@
 #include <vector>
 
 namespace kush::runtime {
+
+void BucketPushBack(ColumnIndexBucket* v, int32_t idx) {
+  if (v->capacity == v->size) {
+    v->capacity *= 2;
+    auto old = v->data;
+    v->data = (int32_t*)v->allocator->Allocate(v->capacity * sizeof(int32_t));
+    memcpy(v->data, old, sizeof(int32_t) * v->size);
+  }
+
+  v->data[v->size++] = idx;
+}
+
+void BucketInit(ColumnIndexBucket* v, Allocator* allocator) {
+  v->capacity = 4;
+  v->size = 0;
+  v->data = (int32_t*)v->allocator->Allocate(v->capacity * sizeof(int32_t));
+  v->allocator = allocator;
+}
 
 // Get the next tuple that is greater than or equal to from index or cardinality
 int32_t FastForwardBucket(ColumnIndexBucket* bucket, int32_t prev_tuple) {

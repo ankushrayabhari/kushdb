@@ -1,311 +1,173 @@
 #include "compile/proxy/memory_column_index.h"
 
-#include <iostream>
-#include <memory>
+#include <functional>
+#include <utility>
+#include <vector>
 
-#include "catalog/sql_type.h"
-#include "compile/proxy/column_index.h"
+#include "compile/proxy/control_flow/if.h"
+#include "compile/proxy/control_flow/loop.h"
+#include "compile/proxy/evaluate.h"
 #include "compile/proxy/value/ir_value.h"
 #include "khir/program_builder.h"
-#include "runtime/column_index_bucket.h"
 #include "runtime/memory_column_index.h"
 
 namespace kush::compile::proxy {
 
 namespace {
-template <catalog::SqlType S>
-std::string_view TypeName() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "kush::runtime::MemoryColumnIndex::Int16Index";
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
-    return "kush::runtime::MemoryColumnIndex::Int32Index";
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return "kush::runtime::MemoryColumnIndex::Int64Index";
-  } else if constexpr (catalog::SqlType::REAL == S) {
-    return "kush::runtime::MemoryColumnIndex::Float64Index";
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "kush::runtime::MemoryColumnIndex::Int8Index";
-  } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "kush::runtime::MemoryColumnIndex::TextIndex";
-  }
-}
-
-template <catalog::SqlType S>
-std::string_view CreateFnName() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "kush::runtime::MemoryColumnIndex::CreateInt16Index";
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
-    return "kush::runtime::MemoryColumnIndex::CreateInt32Index";
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return "kush::runtime::MemoryColumnIndex::CreateInt64Index";
-  } else if constexpr (catalog::SqlType::REAL == S) {
-    return "kush::runtime::MemoryColumnIndex::CreateFloat64Index";
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "kush::runtime::MemoryColumnIndex::CreateInt8Index";
-  } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "kush::runtime::MemoryColumnIndex::CreateTextIndex";
-  }
-}
-
-template <catalog::SqlType S>
-void* CreateFn() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::CreateInt16Index);
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::CreateInt32Index);
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::CreateInt64Index);
-  } else if constexpr (catalog::SqlType::REAL == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::CreateFloat64Index);
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::CreateInt8Index);
-  } else if constexpr (catalog::SqlType::TEXT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::CreateTextIndex);
-  }
-}
-
-template <catalog::SqlType S>
-std::string_view FreeFnName() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "kush::runtime::MemoryColumnIndex::FreeInt16Index";
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
-    return "kush::runtime::MemoryColumnIndex::FreeInt32Index";
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return "kush::runtime::MemoryColumnIndex::FreeInt64Index";
-  } else if constexpr (catalog::SqlType::REAL == S) {
-    return "kush::runtime::MemoryColumnIndex::FreeFloat64Index";
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "kush::runtime::MemoryColumnIndex::FreeInt8Index";
-  } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "kush::runtime::MemoryColumnIndex::FreeTextIndex";
-  }
-}
-
-template <catalog::SqlType S>
-void* FreeFn() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    return reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FreeInt16Index);
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
-    return reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FreeInt32Index);
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FreeInt64Index);
-  } else if constexpr (catalog::SqlType::REAL == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::FreeFloat64Index);
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FreeInt8Index);
-  } else if constexpr (catalog::SqlType::TEXT == S) {
-    return reinterpret_cast<void*>(&runtime::MemoryColumnIndex::FreeTextIndex);
-  }
-}
-
-template <catalog::SqlType S>
-std::string_view GetBucketFnName() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "kush::runtime::MemoryColumnIndex::GetBucketInt16Index";
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
-    return "kush::runtime::MemoryColumnIndex::GetBucketInt32Index";
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return "kush::runtime::MemoryColumnIndex::GetBucketInt64Index";
-  } else if constexpr (catalog::SqlType::REAL == S) {
-    return "kush::runtime::MemoryColumnIndex::GetBucketFloat64Index";
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "kush::runtime::MemoryColumnIndex::GetBucketInt8Index";
-  } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "kush::runtime::MemoryColumnIndex::GetBucketTextIndex";
-  }
-}
-
-template <catalog::SqlType S>
-void* GetBucketFn() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::GetBucketInt16Index);
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::GetBucketInt32Index);
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::GetBucketInt64Index);
-  } else if constexpr (catalog::SqlType::REAL == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::GetBucketFloat64Index);
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::GetBucketInt8Index);
-  } else if constexpr (catalog::SqlType::TEXT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::GetBucketTextIndex);
-  }
-}
-
-template <catalog::SqlType S>
-std::string_view InsertFnName() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    return "kush::runtime::MemoryColumnIndex::InsertInt16Index";
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
-    return "kush::runtime::MemoryColumnIndex::InsertInt32Index";
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return "kush::runtime::MemoryColumnIndex::InsertInt64Index";
-  } else if constexpr (catalog::SqlType::REAL == S) {
-    return "kush::runtime::MemoryColumnIndex::InsertFloat64Index";
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return "kush::runtime::MemoryColumnIndex::InsertInt8Index";
-  } else if constexpr (catalog::SqlType::TEXT == S) {
-    return "kush::runtime::MemoryColumnIndex::InsertTextIndex";
-  }
-}
-
-template <catalog::SqlType S>
-void* InsertFn() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::InsertInt16Index);
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::InsertInt32Index);
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::InsertInt64Index);
-  } else if constexpr (catalog::SqlType::REAL == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::InsertFloat64Index);
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::InsertInt8Index);
-  } else if constexpr (catalog::SqlType::TEXT == S) {
-    return reinterpret_cast<void*>(
-        &runtime::MemoryColumnIndex::InsertTextIndex);
-  }
-}
+constexpr std::string_view StructName(
+    "kush::runtime::MemoryColumnIndex::MemoryColumnIndex");
+constexpr std::string_view InitFnName("kush::runtime::MemoryColumnIndex::Init");
+constexpr std::string_view AllocateNewPageFnName(
+    "kush::runtime::MemoryColumnIndex::AllocateNewPage");
+constexpr std::string_view ResizeFnName(
+    "kush::runtime::MemoryColumnIndex::Resize");
+constexpr std::string_view FreeFnName("kush::runtime::MemoryColumnIndex::Free");
+constexpr std::string_view GetPayloadFnName(
+    "kush::runtime::MemoryColumnIndex::GetPayload");
+constexpr std::string_view GetEntryFnName(
+    "kush::runtime::MemoryColumnIndex::GetEntry");
 }  // namespace
 
-template <catalog::SqlType S>
-void MemoryColumnIndex<S>::Init() {}
+MemoryColumnIndexEntry::MemoryColumnIndexEntry(khir::ProgramBuilder& program,
+                                               khir::Value v)
+    : program_(program), value_(v) {}
 
-template <catalog::SqlType S>
-void MemoryColumnIndex<S>::Reset() {
-  program_.Call(program_.GetFunction(FreeFnName<S>()),
-                {program_.LoadPtr(value_)});
+MemoryColumnIndexEntry::Parts MemoryColumnIndexEntry::Get() {
+  auto i64 = program_.LoadI64(value_);
+
+  auto salt = program_.RShiftI64(i64, 48);
+  auto salt_typed = program_.I16TruncI64(salt);
+
+  auto block_offset_unmasked = program_.RShiftI64(i64, 32);
+  auto block_offset_typed = program_.I16TruncI64(block_offset_unmasked);
+
+  auto block_idx = program_.I32TruncI64(i64);
+
+  return Parts{.salt = Int16(program_, salt_typed),
+               .block_offset = Int16(program_, block_offset_typed),
+               .block_idx = Int32(program_, block_idx)};
 }
 
-template <catalog::SqlType S>
-MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program)
-    : program_(program),
-      value_(program.Global(
-          program.PointerType(program.GetOpaqueType(TypeName<S>())),
-          program.NullPtr(
-              program.PointerType(program.GetOpaqueType(TypeName<S>()))))),
-      get_value_(program.Global(
-          program.GetStructType(ColumnIndexBucket::StructName),
-          program.ConstantStruct(
-              program.GetStructType(ColumnIndexBucket::StructName),
-              {program.NullPtr(program.PointerType(program.I32Type())),
-               program.ConstI32(0)}))) {
-  program_.StorePtr(value_,
-                    program_.Call(program_.GetFunction(CreateFnName<S>()), {}));
+void MemoryColumnIndexEntry::Set(Int16 salt, Int16 offset, Int32 idx) {
+  auto salt_zext = program_.I64ZextI16(salt.Get());
+  auto salt_pos = program_.LShiftI64(salt_zext, 48);
+
+  auto offset_zext = program_.I64ZextI16(offset.Get());
+  auto offset_pos = program_.LShiftI64(offset_zext, 32);
+
+  auto salt_offset = program_.OrI64(salt_pos, offset_pos);
+  auto idx_pos = program_.I64ZextI32(idx.Get());
+  auto i64 = program_.OrI64(salt_offset, idx_pos);
+
+  program_.StoreI64(value_, i64);
 }
 
-template <catalog::SqlType S>
-MemoryColumnIndex<S>::MemoryColumnIndex(khir::ProgramBuilder& program,
-                                        khir::Value v)
-    : program_(program),
-      value_(program.Global(
-          program.PointerType(program.GetOpaqueType(TypeName<S>())), v)),
-      get_value_(program.Global(
-          program.GetStructType(ColumnIndexBucket::StructName),
-          program.ConstantStruct(
-              program.GetStructType(ColumnIndexBucket::StructName),
-              {program.NullPtr(program.PointerType(program.I32Type())),
-               program.ConstI32(0)}))) {}
+khir::Type MemoryColumnIndexPayload::ConstructPayloadFormat(
+    khir::ProgramBuilder& program, catalog::SqlType type) {
+  std::vector<khir::Type> fields;
 
-template <catalog::SqlType S>
-void MemoryColumnIndex<S>::Insert(const IRValue& v, const Int32& tuple_idx) {
-  program_.Call(program_.GetFunction(InsertFnName<S>()),
-                {program_.LoadPtr(value_), v.Get(), tuple_idx.Get()});
-}
+  // hash
+  fields.push_back(program.I64Type());
 
-template <catalog::SqlType S>
-ColumnIndexBucket MemoryColumnIndex<S>::GetBucket(const IRValue& v) {
-  program_.Call(program_.GetFunction(GetBucketFnName<S>()),
-                {program_.LoadPtr(value_), v.Get(), get_value_});
-  return ColumnIndexBucket(program_, get_value_);
-}
-
-template <catalog::SqlType S>
-khir::Value MemoryColumnIndex<S>::Serialize() {
-  return program_.PointerCast(program_.LoadPtr(value_),
-                              program_.PointerType(program_.I8Type()));
-}
-
-template <catalog::SqlType S>
-std::unique_ptr<ColumnIndex> MemoryColumnIndex<S>::Regenerate(
-    khir::ProgramBuilder& program, void* value) {
-  return std::make_unique<MemoryColumnIndex<S>>(
-      program, program.PointerCast(
-                   program.ConstPtr(value),
-                   program.PointerType(program.GetOpaqueType(TypeName<S>()))));
-}
-
-template <catalog::SqlType S>
-void MemoryColumnIndex<S>::ForwardDeclare(khir::ProgramBuilder& program) {
-  auto index_type = program.OpaqueType(TypeName<S>());
-  auto index_ptr_type = program.PointerType(index_type);
-
-  std::optional<khir::Type> value_type;
-  if constexpr (catalog::SqlType::SMALLINT == S) {
-    value_type = program.I16Type();
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
-    value_type = program.I32Type();
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
-    value_type = program.I64Type();
-  } else if constexpr (catalog::SqlType::REAL == S) {
-    value_type = program.F64Type();
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
-    value_type = program.I1Type();
-  } else if constexpr (catalog::SqlType::TEXT == S) {
-    value_type =
-        program.PointerType(program.GetStructType(String::StringStructName));
+  // key
+  switch (type) {
+    case catalog::SqlType::SMALLINT:
+      fields.push_back(program.I16Type());
+      break;
+    case catalog::SqlType::INT:
+    case catalog::SqlType::DATE:
+      fields.push_back(program.I32Type());
+      break;
+    case catalog::SqlType::BIGINT:
+      fields.push_back(program.I64Type());
+      break;
+    case catalog::SqlType::REAL:
+      fields.push_back(program.F64Type());
+      break;
+    case catalog::SqlType::TEXT:
+      fields.push_back(program.GetStructType(String::StringStructName));
+      break;
+    case catalog::SqlType::BOOLEAN:
+      fields.push_back(program.I8Type());
+      break;
   }
 
-  program.DeclareExternalFunction(CreateFnName<S>(), index_ptr_type, {},
-                                  CreateFn<S>());
-  program.DeclareExternalFunction(FreeFnName<S>(), program.VoidType(),
-                                  {index_ptr_type}, FreeFn<S>());
-  program.DeclareExternalFunction(
-      InsertFnName<S>(), program.VoidType(),
-      {index_ptr_type, value_type.value(), program.I32Type()}, InsertFn<S>());
-
-  // Bucket related functionality
-  auto bucket_ptr_type =
-      program.PointerType(program.GetStructType(ColumnIndexBucket::StructName));
-  program.DeclareExternalFunction(
-      GetBucketFnName<S>(), program.VoidType(),
-      {index_ptr_type, value_type.value(), bucket_ptr_type}, GetBucketFn<S>());
+  // Column Index Bucket
+  fields.push_back(program.GetStructType(ColumnIndexBucket::StructName));
+  return program.StructType(fields);
 }
 
-template class MemoryColumnIndex<catalog::SqlType::SMALLINT>;
-template class MemoryColumnIndex<catalog::SqlType::INT>;
-template class MemoryColumnIndex<catalog::SqlType::BIGINT>;
-template class MemoryColumnIndex<catalog::SqlType::REAL>;
-template class MemoryColumnIndex<catalog::SqlType::DATE>;
-template class MemoryColumnIndex<catalog::SqlType::BOOLEAN>;
-template class MemoryColumnIndex<catalog::SqlType::TEXT>;
+khir::Value MemoryColumnIndexPayload::GetHashOffset(
+    khir::ProgramBuilder& program, khir::Type type) {
+  return program.PointerCast(
+      program.StaticGEP(type, program.NullPtr(program.PointerType(type)),
+                        {0, 0}),
+      program.I64Type());
+}
+
+MemoryColumnIndexPayload::MemoryColumnIndexPayload(
+    khir::ProgramBuilder& program, khir::Type t, catalog::SqlType kt,
+    khir::Value v)
+    : program_(program), type_(t), key_type_(kt), value_(v) {}
+
+void MemoryColumnIndexPayload::Initialize(Int64 hash, const IRValue& key,
+                                          khir::Value allocator) {
+  program_.StoreI64(program_.StaticGEP(type_, value_, {0, 0}), hash.Get());
+
+  {
+    auto ptr = program_.StaticGEP(type_, value_, {0, 1});
+    switch (key_type_) {
+      case catalog::SqlType::SMALLINT:
+        program_.StoreI16(ptr, key.Get());
+        break;
+      case catalog::SqlType::DATE:
+      case catalog::SqlType::INT:
+        program_.StoreI32(ptr, key.Get());
+        break;
+      case catalog::SqlType::BIGINT:
+        program_.StoreI64(ptr, key.Get());
+        break;
+      case catalog::SqlType::REAL:
+        program_.StoreF64(ptr, key.Get());
+        break;
+      case catalog::SqlType::TEXT:
+        String(program_, ptr).Copy(dynamic_cast<const String&>(key));
+        break;
+      case catalog::SqlType::BOOLEAN:
+        program_.StoreI8(ptr, program_.I8ZextI1(key.Get()));
+        break;
+    }
+  }
+
+  GetBucket().Init(allocator);
+}
+
+SQLValue MemoryColumnIndexPayload::GetKey() {
+  auto ptr = program_.StaticGEP(type_, value_, {0, 1});
+  switch (key_type_) {
+    case catalog::SqlType::SMALLINT:
+      return SQLValue(Int16(program_, program_.LoadI16(ptr)),
+                      Bool(program_, false));
+    case catalog::SqlType::DATE:
+    case catalog::SqlType::INT:
+      return SQLValue(Int32(program_, program_.LoadI32(ptr)),
+                      Bool(program_, false));
+    case catalog::SqlType::BIGINT:
+      return SQLValue(Int64(program_, program_.LoadI64(ptr)),
+                      Bool(program_, false));
+    case catalog::SqlType::REAL:
+      return SQLValue(Float64(program_, program_.LoadF64(ptr)),
+                      Bool(program_, false));
+    case catalog::SqlType::TEXT:
+      return SQLValue(String(program_, ptr), Bool(program_, false));
+    case catalog::SqlType::BOOLEAN:
+      return SQLValue(Bool(program_, program_.LoadI8(ptr)),
+                      Bool(program_, false));
+  }
+}
+
+ColumnIndexBucket MemoryColumnIndexPayload::GetBucket() {
+  return ColumnIndexBucket(program_, program_.StaticGEP(type_, value_, {0, 2}));
+}
 
 }  // namespace kush::compile::proxy

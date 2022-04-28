@@ -80,6 +80,8 @@ void GetImpl(ColumnIndex* col, T key, ColumnIndexBucket* dest) {
     if (entry->key == key) {
       dest->data = entry->values;
       dest->size = entry->size;
+      dest->allocator = nullptr;
+      dest->capacity = 0;
       return;
     }
     pos = entry->next;
@@ -87,6 +89,8 @@ void GetImpl(ColumnIndex* col, T key, ColumnIndexBucket* dest) {
 
   dest->data = nullptr;
   dest->size = 0;
+  dest->allocator = nullptr;
+  dest->capacity = 0;
   return;
 }
 
@@ -125,6 +129,8 @@ void GetText(ColumnIndex* col, String::String* key, ColumnIndexBucket* dest) {
     if (entry_key_as_sv == key_as_sv) {
       dest->data = entry->values;
       dest->size = entry->size;
+      dest->allocator = nullptr;
+      dest->capacity = 0;
       return;
     }
     pos = entry->next;
@@ -132,6 +138,8 @@ void GetText(ColumnIndex* col, String::String* key, ColumnIndexBucket* dest) {
 
   dest->data = nullptr;
   dest->size = 0;
+  dest->allocator = nullptr;
+  dest->capacity = 0;
   return;
 }
 

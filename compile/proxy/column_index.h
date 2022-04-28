@@ -19,6 +19,10 @@ class ColumnIndexBucket {
   void Copy(const ColumnIndexBucket& rhs);
   khir::Value Get() const;
 
+  // Mutable
+  void Init(khir::Value allocator);
+  void PushBack(const Int32& v);
+
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
   static std::string StructName;

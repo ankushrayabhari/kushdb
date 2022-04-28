@@ -32,7 +32,9 @@ cc_library(
     name = "column_index_bucket",
     srcs = ["column_index_bucket.cc"],
     hdrs = ["column_index_bucket.h"],
-    deps = [],
+    deps = [
+        ":allocator",
+    ],
 )
 
 cc_library(

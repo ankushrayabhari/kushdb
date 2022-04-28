@@ -2,12 +2,20 @@
 
 #include <cstdint>
 
+#include "runtime/allocator.h"
+
 namespace kush::runtime {
 
 struct ColumnIndexBucket {
   int32_t* data;
   int32_t size;
+  int32_t capacity;
+  Allocator* allocator;
 };
+
+void BucketInit(ColumnIndexBucket* v, Allocator* allocator);
+
+void BucketPushBack(ColumnIndexBucket* v, int32_t idx);
 
 int32_t FastForwardBucket(ColumnIndexBucket* bucket, int32_t prev_tuple);
 

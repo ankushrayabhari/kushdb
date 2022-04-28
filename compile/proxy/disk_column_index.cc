@@ -80,7 +80,8 @@ DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
           program.ConstantStruct(
               program.GetStructType(ColumnIndexBucket::StructName),
               {program.NullPtr(program.PointerType(program.I32Type())),
-               program.ConstI32(0)}))) {}
+               program.ConstI32(0), program.ConstI32(0),
+               program.NullPtr(program.PointerType(program.I8Type()))}))) {}
 
 template <catalog::SqlType S>
 DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
@@ -94,7 +95,8 @@ DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
           program.ConstantStruct(
               program.GetStructType(ColumnIndexBucket::StructName),
               {program.NullPtr(program.PointerType(program.I32Type())),
-               program.ConstI32(0)}))) {}
+               program.ConstI32(0), program.ConstI32(0),
+               program.NullPtr(program.PointerType(program.I8Type()))}))) {}
 
 template <catalog::SqlType S>
 void DiskColumnIndex<S>::Init() {
