@@ -168,9 +168,35 @@ cc_library(
         "//catalog:sql_type",
         "//compile/proxy/value:ir_value",
         "//khir:program_builder",
-        "//runtime:column_index",
+        "//runtime:column_index_bucket",
+    ],
+)
+
+cc_library(
+    name = "memory_column_index",
+    srcs = ["memory_column_index.cc"],
+    hdrs = ["memory_column_index.h"],
+    deps = [
+        ":column_index",
+        "//catalog:sql_type",
+        "//compile/proxy/value:ir_value",
+        "//khir:program_builder",
         "//runtime:column_index_bucket",
         "//runtime:memory_column_index",
+    ],
+)
+
+cc_library(
+    name = "disk_column_index",
+    srcs = ["disk_column_index.cc"],
+    hdrs = ["disk_column_index.h"],
+    deps = [
+        ":column_index",
+        "//catalog:sql_type",
+        "//compile/proxy/value:ir_value",
+        "//khir:program_builder",
+        "//runtime:column_index",
+        "//runtime:column_index_bucket",
     ],
 )
 

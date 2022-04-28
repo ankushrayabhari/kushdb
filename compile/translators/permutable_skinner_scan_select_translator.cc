@@ -6,6 +6,7 @@
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/control_flow/if.h"
 #include "compile/proxy/control_flow/loop.h"
+#include "compile/proxy/disk_column_index.h"
 #include "compile/proxy/skinner_scan_select_executor.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"

@@ -21,6 +21,8 @@ class ColumnIndexBucket {
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
+  static std::string StructName;
+
  private:
   khir::ProgramBuilder& program_;
   khir::Value value_;
@@ -78,54 +80,6 @@ class ColumnIndexBuilder {
  public:
   virtual ~ColumnIndexBuilder() = default;
   virtual void Insert(const IRValue& v, const Int32& tuple_idx) = 0;
-};
-
-template <catalog::SqlType S>
-class MemoryColumnIndex : public ColumnIndex, public ColumnIndexBuilder {
- public:
-  MemoryColumnIndex(khir::ProgramBuilder& program);
-  MemoryColumnIndex(khir::ProgramBuilder& program, khir::Value v);
-  virtual ~MemoryColumnIndex() = default;
-
-  void Init() override;
-  void Reset() override;
-  void Insert(const IRValue& v, const Int32& tuple_idx) override;
-  ColumnIndexBucket GetBucket(const IRValue& v) override;
-  khir::Value Serialize() override;
-  std::unique_ptr<ColumnIndex> Regenerate(khir::ProgramBuilder& program,
-                                          void* value) override;
-
-  static void ForwardDeclare(khir::ProgramBuilder& program);
-
- private:
-  khir::ProgramBuilder& program_;
-  khir::Value value_;
-  khir::Value get_value_;
-};
-
-template <catalog::SqlType S>
-class DiskColumnIndex : public ColumnIndex {
- public:
-  DiskColumnIndex(khir::ProgramBuilder& program, std::string_view path);
-  DiskColumnIndex(khir::ProgramBuilder& program, std::string_view path,
-                  khir::Value v);
-  virtual ~DiskColumnIndex() = default;
-
-  void Init() override;
-  void Reset() override;
-  ColumnIndexBucket GetBucket(const IRValue& v) override;
-  khir::Value Serialize() override;
-  std::unique_ptr<ColumnIndex> Regenerate(khir::ProgramBuilder& program,
-                                          void* value) override;
-
-  static void ForwardDeclare(khir::ProgramBuilder& program);
-
- private:
-  khir::ProgramBuilder& program_;
-  std::string path_;
-  khir::Value path_value_;
-  khir::Value value_;
-  khir::Value get_value_;
 };
 
 }  // namespace kush::compile::proxy
