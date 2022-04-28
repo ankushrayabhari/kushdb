@@ -15,7 +15,7 @@
 
 namespace kush::runtime::MemoryColumnIndex {
 
-constexpr static int BLOCK_SIZE = 1 << 14;
+constexpr static int BLOCK_SIZE = 1 << 12;
 constexpr static double LOAD_FACTOR = 1.5;
 
 struct MemoryColumnIndex {

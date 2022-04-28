@@ -51,12 +51,7 @@ void ForwardDeclare(khir::ProgramBuilder& program) {
   proxy::DiskColumnIndex<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
   proxy::DiskColumnIndex<catalog::SqlType::REAL>::ForwardDeclare(program);
   proxy::DiskColumnIndex<catalog::SqlType::TEXT>::ForwardDeclare(program);
-  proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>::ForwardDeclare(program);
-  proxy::MemoryColumnIndex<catalog::SqlType::INT>::ForwardDeclare(program);
-  proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>::ForwardDeclare(program);
-  proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
-  proxy::MemoryColumnIndex<catalog::SqlType::REAL>::ForwardDeclare(program);
-  proxy::MemoryColumnIndex<catalog::SqlType::TEXT>::ForwardDeclare(program);
+  proxy::MemoryColumnIndex::ForwardDeclare(program);
 
   proxy::TupleIdxTable::ForwardDeclare(program);
   proxy::SkinnerJoinExecutor::ForwardDeclare(program);

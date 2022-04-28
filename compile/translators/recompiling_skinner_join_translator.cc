@@ -83,29 +83,7 @@ RecompilingSkinnerJoinTranslator::RecompilingSkinnerJoinTranslator(
 
 std::unique_ptr<proxy::ColumnIndex> GenerateMemoryIndex(
     khir::ProgramBuilder& program, catalog::SqlType type) {
-  switch (type) {
-    case catalog::SqlType::SMALLINT:
-      return std::make_unique<
-          proxy::MemoryColumnIndex<catalog::SqlType::SMALLINT>>(program);
-    case catalog::SqlType::INT:
-      return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::INT>>(
-          program);
-    case catalog::SqlType::BIGINT:
-      return std::make_unique<
-          proxy::MemoryColumnIndex<catalog::SqlType::BIGINT>>(program);
-    case catalog::SqlType::REAL:
-      return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::REAL>>(
-          program);
-    case catalog::SqlType::DATE:
-      return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::DATE>>(
-          program);
-    case catalog::SqlType::TEXT:
-      return std::make_unique<proxy::MemoryColumnIndex<catalog::SqlType::TEXT>>(
-          program);
-    case catalog::SqlType::BOOLEAN:
-      return std::make_unique<
-          proxy::MemoryColumnIndex<catalog::SqlType::BOOLEAN>>(program);
-  }
+  return std::make_unique<proxy::MemoryColumnIndex>(program, type);
 }
 
 bool RecompilingSkinnerJoinTranslator::ShouldExecute(

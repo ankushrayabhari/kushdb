@@ -13,6 +13,8 @@ struct ColumnIndexBucket {
   Allocator* allocator;
 };
 
+extern ColumnIndexBucket EMPTY;
+
 void BucketInit(ColumnIndexBucket* v, Allocator* allocator);
 
 void BucketPushBack(ColumnIndexBucket* v, int32_t idx);

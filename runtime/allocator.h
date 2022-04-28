@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <deque>
 #include <memory>
-#include <vector>
 
 namespace kush::runtime {
 
@@ -19,7 +19,7 @@ class Allocator final {
   }
 
  private:
-  std::vector<uint8_t*> pages_;
+  std::deque<uint8_t*> pages_;
   std::size_t data_offset_;
 };
 

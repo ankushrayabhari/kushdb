@@ -10,6 +10,9 @@
 
 namespace kush::runtime {
 
+ColumnIndexBucket EMPTY = {
+    .data = nullptr, .size = 0, .capacity = 0, .allocator = nullptr};
+
 void BucketPushBack(ColumnIndexBucket* v, int32_t idx) {
   if (v->capacity == v->size) {
     v->capacity *= 2;
@@ -24,7 +27,7 @@ void BucketPushBack(ColumnIndexBucket* v, int32_t idx) {
 void BucketInit(ColumnIndexBucket* v, Allocator* allocator) {
   v->capacity = 4;
   v->size = 0;
-  v->data = (int32_t*)v->allocator->Allocate(v->capacity * sizeof(int32_t));
+  v->data = (int32_t*)allocator->Allocate(v->capacity * sizeof(int32_t));
   v->allocator = allocator;
 }
 
