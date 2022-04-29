@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <sstream>
@@ -151,11 +152,17 @@ int8_t ParseBool(const std::string& s) {
 std::string ParseString(const std::string& s) {
   if (s.empty()) return s;
 
+  std::string squote;
   if (s.size() >= 2 && s.front() == '\"' && s.back() == '\"') {
-    return s.substr(1, s.size() - 2);
+    squote = s;
   } else {
-    return s;
+    squote = "\"" + s + "\"";
   }
+
+  std::stringstream parser(squote);
+  std::string output;
+  parser >> std::quoted(output);
+  return output;
 }
 
 std::mutex cout_mutex;
