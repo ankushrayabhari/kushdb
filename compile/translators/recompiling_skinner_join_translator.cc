@@ -82,7 +82,7 @@ RecompilingSkinnerJoinTranslator::RecompilingSkinnerJoinTranslator(
       cache_(join_.Children().size()) {}
 
 std::unique_ptr<proxy::ColumnIndex> GenerateMemoryIndex(
-    khir::ProgramBuilder& program, catalog::SqlType type) {
+    khir::ProgramBuilder& program, const catalog::Type& type) {
   return std::make_unique<proxy::MemoryColumnIndex>(program, type);
 }
 
@@ -144,7 +144,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
 
     child_translator.SchemaValues().ResetValues();
     for (int i = 0; i < schema.size(); i++) {
-      switch (schema[i].Expr().Type()) {
+      switch (schema[i].Expr().Type().type_id) {
         case catalog::SqlType::SMALLINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int16(program, 0), proxy::Bool(program, false)));
@@ -1030,7 +1030,7 @@ void RecompilingSkinnerJoinTranslator::Produce() {
     const auto& schema = child_operators[i].get().Schema().Columns();
     child_translator.SchemaValues().ResetValues();
     for (int i = 0; i < schema.size(); i++) {
-      switch (schema[i].Expr().Type()) {
+      switch (schema[i].Expr().Type().type_id) {
         case catalog::SqlType::SMALLINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int16(program_, 0), proxy::Bool(program_, false)));

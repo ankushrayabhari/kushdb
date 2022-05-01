@@ -31,7 +31,7 @@ class MemoryColumnIndexEntry {
 class MemoryColumnIndexPayload {
  public:
   MemoryColumnIndexPayload(khir::ProgramBuilder& program, khir::Type t,
-                           catalog::SqlType kt, khir::Value v);
+                           const catalog::Type& kt, khir::Value v);
 
   void Initialize(Int64 hash, const IRValue& key, khir::Value allocator);
 
@@ -39,22 +39,23 @@ class MemoryColumnIndexPayload {
   std::unique_ptr<IRValue> GetKey();
 
   static khir::Type ConstructPayloadFormat(khir::ProgramBuilder& program,
-                                           catalog::SqlType t);
+                                           const catalog::Type& t);
 
   static khir::Value GetHashOffset(khir::ProgramBuilder& program, khir::Type t);
 
  private:
   khir::ProgramBuilder& program_;
   khir::Type type_;
-  catalog::SqlType key_type_;
+  catalog::Type key_type_;
   khir::Value value_;
 };
 
 class MemoryColumnIndex : public ColumnIndex, public ColumnIndexBuilder {
  public:
-  MemoryColumnIndex(khir::ProgramBuilder& program, catalog::SqlType key_type);
-  MemoryColumnIndex(khir::ProgramBuilder& program, catalog::SqlType key_type,
-                    khir::Value value);
+  MemoryColumnIndex(khir::ProgramBuilder& program,
+                    const catalog::Type& key_type);
+  MemoryColumnIndex(khir::ProgramBuilder& program,
+                    const catalog::Type& key_type, khir::Value value);
 
   void Init() override;
   void Insert(const IRValue& v, const Int32& tuple_idx) override;
@@ -89,7 +90,7 @@ class MemoryColumnIndex : public ColumnIndex, public ColumnIndexBuilder {
   khir::Value Allocator();
 
   khir::ProgramBuilder& program_;
-  catalog::SqlType key_type_;
+  catalog::Type key_type_;
   khir::Type payload_format_;
   khir::Value value_;
   khir::Value get_value_;

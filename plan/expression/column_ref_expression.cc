@@ -11,8 +11,9 @@
 
 namespace kush::plan {
 
-ColumnRefExpression::ColumnRefExpression(catalog::SqlType type, bool nullable,
-                                         int child_idx, int column_idx)
+ColumnRefExpression::ColumnRefExpression(const catalog::Type& type,
+                                         bool nullable, int child_idx,
+                                         int column_idx)
     : Expression(type, nullable, {}),
       child_idx_(child_idx),
       column_idx_(column_idx) {}
@@ -23,7 +24,7 @@ int ColumnRefExpression::GetColumnIdx() const { return column_idx_; }
 
 nlohmann::json ColumnRefExpression::ToJson() const {
   nlohmann::json j;
-  j["type"] = magic_enum::enum_name(this->Type());
+  j["type"] = this->Type().ToString();
   j["child_idx"] = child_idx_;
   j["column_idx"] = column_idx_;
   return j;

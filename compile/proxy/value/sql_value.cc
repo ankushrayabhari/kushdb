@@ -11,53 +11,53 @@ SQLValue::SQLValue(const Bool& value, const Bool& null)
     : program_(value.ProgramBuilder()),
       value_(value.ToPointer()),
       null_(null),
-      type_(catalog::SqlType::BOOLEAN) {}
+      type_(catalog::Type::Boolean()) {}
 
 SQLValue::SQLValue(const Int16& value, const Bool& null)
     : program_(value.ProgramBuilder()),
       value_(value.ToPointer()),
       null_(null),
-      type_(catalog::SqlType::SMALLINT) {}
+      type_(catalog::Type::SmallInt()) {}
 
 SQLValue::SQLValue(const Int32& value, const Bool& null)
     : program_(value.ProgramBuilder()),
       value_(value.ToPointer()),
       null_(null),
-      type_(catalog::SqlType::INT) {}
+      type_(catalog::Type::Int()) {}
 
 SQLValue::SQLValue(const Int64& value, const Bool& null)
     : program_(value.ProgramBuilder()),
       value_(value.ToPointer()),
       null_(null),
-      type_(catalog::SqlType::BIGINT) {}
+      type_(catalog::Type::BigInt()) {}
 
 SQLValue::SQLValue(const Date& value, const Bool& null)
     : program_(value.ProgramBuilder()),
       value_(value.ToPointer()),
       null_(null),
-      type_(catalog::SqlType::DATE) {}
+      type_(catalog::Type::Date()) {}
 
 SQLValue::SQLValue(const Float64& value, const Bool& null)
     : program_(value.ProgramBuilder()),
       value_(value.ToPointer()),
       null_(null),
-      type_(catalog::SqlType::REAL) {}
+      type_(catalog::Type::Real()) {}
 
 SQLValue::SQLValue(const String& value, const Bool& null)
     : program_(value.ProgramBuilder()),
       value_(value.ToPointer()),
       null_(null),
-      type_(catalog::SqlType::TEXT) {}
+      type_(catalog::Type::Text()) {}
 
-SQLValue::SQLValue(std::unique_ptr<IRValue> value, catalog::SqlType type,
+SQLValue::SQLValue(std::unique_ptr<IRValue> value, const catalog::Type& type,
                    const Bool& null)
     : program_(value->ProgramBuilder()),
       value_(std::move(value)),
       null_(null),
       type_(type) {}
 
-std::unique_ptr<IRValue> CopyIRValue(catalog::SqlType t, IRValue& v) {
-  switch (t) {
+std::unique_ptr<IRValue> CopyIRValue(const catalog::Type& t, IRValue& v) {
+  switch (t.type_id) {
     case catalog::SqlType::BOOLEAN:
       return dynamic_cast<Bool&>(v).ToPointer();
     case catalog::SqlType::SMALLINT:
@@ -109,7 +109,7 @@ Bool SQLValue::IsNull() const { return null_; }
 
 IRValue& SQLValue::Get() const { return *value_; }
 
-catalog::SqlType SQLValue::Type() const { return type_; }
+const catalog::Type& SQLValue::Type() const { return type_; }
 
 khir::ProgramBuilder& SQLValue::ProgramBuilder() const { return program_; }
 

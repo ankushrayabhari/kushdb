@@ -28,8 +28,9 @@ constexpr std::string_view GetEntryFnName(
     "kush::runtime::MemoryColumnIndex::GetEntry");
 }  // namespace
 
-Bool CheckEq(catalog::SqlType type, const IRValue& lhs, const IRValue& rhs) {
-  switch (type) {
+Bool CheckEq(const catalog::Type& type, const IRValue& lhs,
+             const IRValue& rhs) {
+  switch (type.type_id) {
     case catalog::SqlType::BOOLEAN: {
       auto& lhs_v = static_cast<const Bool&>(lhs);
       auto& rhs_v = static_cast<const Bool&>(rhs);
@@ -109,14 +110,14 @@ void MemoryColumnIndexEntry::Set(Int16 salt, Int16 offset, Int32 idx) {
 }
 
 khir::Type MemoryColumnIndexPayload::ConstructPayloadFormat(
-    khir::ProgramBuilder& program, catalog::SqlType type) {
+    khir::ProgramBuilder& program, const catalog::Type& type) {
   std::vector<khir::Type> fields;
 
   // hash
   fields.push_back(program.I64Type());
 
   // key
-  switch (type) {
+  switch (type.type_id) {
     case catalog::SqlType::SMALLINT:
       fields.push_back(program.I16Type());
       break;
@@ -152,7 +153,7 @@ khir::Value MemoryColumnIndexPayload::GetHashOffset(
 }
 
 MemoryColumnIndexPayload::MemoryColumnIndexPayload(
-    khir::ProgramBuilder& program, khir::Type t, catalog::SqlType kt,
+    khir::ProgramBuilder& program, khir::Type t, const catalog::Type& kt,
     khir::Value v)
     : program_(program), type_(t), key_type_(kt), value_(v) {}
 
@@ -162,7 +163,7 @@ void MemoryColumnIndexPayload::Initialize(Int64 hash, const IRValue& key,
 
   {
     auto ptr = program_.StaticGEP(type_, value_, {0, 1});
-    switch (key_type_) {
+    switch (key_type_.type_id) {
       case catalog::SqlType::SMALLINT:
         program_.StoreI16(ptr, key.Get());
         break;
@@ -190,7 +191,7 @@ void MemoryColumnIndexPayload::Initialize(Int64 hash, const IRValue& key,
 
 std::unique_ptr<IRValue> MemoryColumnIndexPayload::GetKey() {
   auto ptr = program_.StaticGEP(type_, value_, {0, 1});
-  switch (key_type_) {
+  switch (key_type_.type_id) {
     case catalog::SqlType::SMALLINT:
       return Int16(program_, program_.LoadI16(ptr)).ToPointer();
     case catalog::SqlType::DATE:
@@ -212,7 +213,7 @@ ColumnIndexBucket MemoryColumnIndexPayload::GetBucket() {
 }
 
 MemoryColumnIndex::MemoryColumnIndex(khir::ProgramBuilder& program,
-                                     catalog::SqlType key_type)
+                                     const catalog::Type& key_type)
     : program_(program),
       key_type_(key_type),
       payload_format_(
@@ -244,7 +245,7 @@ MemoryColumnIndex::MemoryColumnIndex(khir::ProgramBuilder& program,
                program.NullPtr(program.PointerType(program.I8Type()))}))) {}
 
 MemoryColumnIndex::MemoryColumnIndex(khir::ProgramBuilder& program,
-                                     catalog::SqlType key_type,
+                                     const catalog::Type& key_type,
                                      khir::Value value)
     : program_(program),
       key_type_(key_type),

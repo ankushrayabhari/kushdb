@@ -15,7 +15,7 @@ class Iterable {
   virtual void Reset() = 0;
   virtual Int32 Size() = 0;
   virtual std::unique_ptr<IRValue> operator[](Int32& idx) = 0;
-  virtual catalog::SqlType Type() = 0;
+  virtual const catalog::Type& Type() = 0;
   virtual khir::Value Get() = 0;
   virtual std::unique_ptr<Iterable> Regenerate(khir::ProgramBuilder& program,
                                                khir::Value value) = 0;
@@ -24,16 +24,17 @@ class Iterable {
 template <catalog::SqlType S>
 class ColumnData : public Iterable {
  public:
-  ColumnData(khir::ProgramBuilder& program, std::string_view path);
   ColumnData(khir::ProgramBuilder& program, std::string_view path,
-             khir::Value value);
+             const catalog::Type& t);
+  ColumnData(khir::ProgramBuilder& program, std::string_view path,
+             const catalog::Type& t, khir::Value value);
   virtual ~ColumnData() = default;
 
   void Init() override;
   void Reset() override;
   Int32 Size() override;
   std::unique_ptr<IRValue> operator[](Int32& idx) override;
-  catalog::SqlType Type() override;
+  const catalog::Type& Type() override;
   khir::Value Get() override;
   std::unique_ptr<Iterable> Regenerate(khir::ProgramBuilder& program,
                                        khir::Value value) override;
@@ -42,6 +43,7 @@ class ColumnData : public Iterable {
 
  private:
   khir::ProgramBuilder& program_;
+  catalog::Type type_;
   std::string path_;
   khir::Value path_value_;
   khir::Value value_;

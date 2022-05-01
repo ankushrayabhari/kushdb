@@ -16,14 +16,14 @@ namespace kush::compile::proxy {
 StructBuilder::StructBuilder(khir::ProgramBuilder& program)
     : program_(program) {}
 
-int StructBuilder::Add(catalog::SqlType type, bool nullable) {
+int StructBuilder::Add(const catalog::Type& type, bool nullable) {
   auto field_idx = types_.size();
   field_to_struct_field_nullable_idx[field_idx] = {
       fields_.size(), nullable ? fields_.size() + 1 : -1};
 
   types_.push_back(type);
   nullable_.push_back(nullable);
-  switch (type) {
+  switch (type.type_id) {
     case catalog::SqlType::SMALLINT:
       fields_.push_back(program_.I16Type());
       values_.push_back(program_.ConstI16(0));
@@ -67,9 +67,7 @@ void StructBuilder::Build() { struct_type_ = program_.StructType(fields_); }
 
 khir::Type StructBuilder::Type() const { return struct_type_.value(); }
 
-absl::Span<const catalog::SqlType> StructBuilder::Types() const {
-  return types_;
-}
+absl::Span<const catalog::Type> StructBuilder::Types() const { return types_; }
 
 const std::vector<bool>& StructBuilder::Nullable() const { return nullable_; }
 
@@ -109,7 +107,7 @@ std::vector<SQLValue> Struct::Unpack() {
             : Bool(program_, false);
 
     std::unique_ptr<IRValue> value;
-    switch (types[i]) {
+    switch (types[i].type_id) {
       case catalog::SqlType::SMALLINT:
         result.emplace_back(Int16(program_, program_.LoadI16(ptr)), null);
         break;
@@ -148,7 +146,7 @@ SQLValue Struct::Get(int i) {
                              fields_.Type(), value_, {0, null_field_idx}))) != 0
                   : Bool(program_, false);
 
-  switch (types[i]) {
+  switch (types[i].type_id) {
     case catalog::SqlType::SMALLINT:
       return SQLValue(Int16(program_, program_.LoadI16(ptr)), null);
     case catalog::SqlType::INT:
@@ -166,9 +164,9 @@ SQLValue Struct::Get(int i) {
   }
 }
 
-void Struct::Store(catalog::SqlType t, khir::Value ptr, const IRValue& v) {
+void Struct::Store(const catalog::Type& t, khir::Value ptr, const IRValue& v) {
   auto value = v.Get();
-  switch (t) {
+  switch (t.type_id) {
     case catalog::SqlType::SMALLINT:
       program_.StoreI16(ptr, value);
       break;

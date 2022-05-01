@@ -14,34 +14,34 @@ namespace kush::plan {
 
 using SqlType = catalog::SqlType;
 
-SqlType CalculateAggSqlType(AggregateType type, const Expression& expr) {
+catalog::Type CalculateAggSqlType(AggregateType type, const Expression& expr) {
   auto child_type = expr.Type();
+  auto child_type_id = child_type.type_id;
   switch (type) {
     case AggregateType::SUM:
-      if (child_type == SqlType::INT || child_type == SqlType::SMALLINT ||
-          child_type == SqlType::BIGINT || child_type == SqlType::REAL) {
+      if (child_type_id == SqlType::INT || child_type_id == SqlType::SMALLINT ||
+          child_type_id == SqlType::BIGINT || child_type_id == SqlType::REAL) {
         return child_type;
       } else {
         throw std::runtime_error("Invalid input type for sum aggregate");
       }
 
     case AggregateType::AVG:
-      if (child_type == SqlType::INT || child_type == SqlType::SMALLINT ||
-          child_type == SqlType::BIGINT || child_type == SqlType::REAL) {
-        return SqlType::REAL;
+      if (child_type_id == SqlType::INT || child_type_id == SqlType::SMALLINT ||
+          child_type_id == SqlType::BIGINT || child_type_id == SqlType::REAL) {
+        return catalog::Type::Real();
       } else {
-        std::cout << magic_enum::enum_name(child_type) << std::endl;
         throw std::runtime_error("Invalid input type for avg aggregate");
       }
 
     case AggregateType::COUNT:
-      return SqlType::BIGINT;
+      return catalog::Type::BigInt();
 
     case AggregateType::MIN:
     case AggregateType::MAX:
-      if (child_type == SqlType::INT || child_type == SqlType::SMALLINT ||
-          child_type == SqlType::BIGINT || child_type == SqlType::REAL ||
-          child_type == SqlType::DATE || child_type == SqlType::TEXT) {
+      if (child_type_id == SqlType::INT || child_type_id == SqlType::SMALLINT ||
+          child_type_id == SqlType::BIGINT || child_type_id == SqlType::REAL ||
+          child_type_id == SqlType::DATE || child_type_id == SqlType::TEXT) {
         return child_type;
       } else {
         throw std::runtime_error("Invalid input type for max/min aggregate");
@@ -57,7 +57,7 @@ AggregateExpression::AggregateExpression(AggregateType type,
 
 nlohmann::json AggregateExpression::ToJson() const {
   nlohmann::json j;
-  j["type"] = magic_enum::enum_name(this->Type());
+  j["type"] = this->Type().ToString();
   j["agg_type"] = magic_enum::enum_name(type_);
   j["child"] = Child().ToJson();
   return j;

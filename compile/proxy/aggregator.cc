@@ -42,7 +42,7 @@ void SumAggregator::Update(Struct& entry) {
         program_, current_value.IsNull(),
         [&]() { entry.Update(field_, not_null_next); },
         [&]() {
-          switch (current_value.Type()) {
+          switch (current_value.Type().type_id) {
             case catalog::SqlType::SMALLINT: {
               auto& v1 = static_cast<Int16&>(current_value.Get());
               auto& v2 = static_cast<Int16&>(next.Get());
@@ -110,7 +110,7 @@ void MinMaxAggregator::Update(Struct& entry) {
         program_, current_value.IsNull(),
         [&]() { entry.Update(field_, not_null_next); },
         [&]() {
-          switch (current_value.Type()) {
+          switch (current_value.Type().type_id) {
             case catalog::SqlType::SMALLINT: {
               auto& v1 = static_cast<Int16&>(not_null_next.Get());
               auto& v2 = static_cast<Int16&>(current_value.Get());
@@ -177,9 +177,9 @@ AverageAggregator::AverageAggregator(
 
 void AverageAggregator::AddFields(StructBuilder& fields) {
   // value field
-  value_field_ = fields.Add(catalog::SqlType::REAL, agg_.Nullable());
+  value_field_ = fields.Add(catalog::Type::Real(), agg_.Nullable());
   // count field
-  count_field_ = fields.Add(catalog::SqlType::REAL, false);
+  count_field_ = fields.Add(catalog::Type::Real(), false);
 }
 
 void AverageAggregator::Initialize(Struct& entry) {
@@ -268,7 +268,7 @@ CountAggregator::CountAggregator(
     : program_(program), expr_translator_(expr_translator), agg_(agg) {}
 
 void CountAggregator::AddFields(StructBuilder& fields) {
-  field_ = fields.Add(catalog::SqlType::BIGINT, false);
+  field_ = fields.Add(catalog::Type::BigInt(), false);
 }
 
 void CountAggregator::Initialize(Struct& entry) {

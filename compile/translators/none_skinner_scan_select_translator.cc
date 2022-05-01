@@ -37,43 +37,46 @@ NoneSkinnerScanSelectTranslator::GenerateBuffer() {
     using catalog::SqlType;
     auto type = column.Expr().Type();
     auto path = table[column.Name()].Path();
-    switch (type) {
+    switch (type.type_id) {
       case SqlType::SMALLINT:
         column_data.push_back(
             std::make_unique<proxy::ColumnData<SqlType::SMALLINT>>(program_,
-                                                                   path));
+                                                                   path, type));
         break;
       case SqlType::INT:
-        column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::INT>>(program_, path));
+        column_data.push_back(std::make_unique<proxy::ColumnData<SqlType::INT>>(
+            program_, path, type));
         break;
       case SqlType::BIGINT:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::BIGINT>>(program_,
-                                                                 path));
+            std::make_unique<proxy::ColumnData<SqlType::BIGINT>>(program_, path,
+                                                                 type));
         break;
       case SqlType::REAL:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::REAL>>(program_, path));
+            std::make_unique<proxy::ColumnData<SqlType::REAL>>(program_, path,
+                                                               type));
         break;
       case SqlType::DATE:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::DATE>>(program_, path));
+            std::make_unique<proxy::ColumnData<SqlType::DATE>>(program_, path,
+                                                               type));
         break;
       case SqlType::TEXT:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::TEXT>>(program_, path));
+            std::make_unique<proxy::ColumnData<SqlType::TEXT>>(program_, path,
+                                                               type));
         break;
       case SqlType::BOOLEAN:
         column_data.push_back(
             std::make_unique<proxy::ColumnData<SqlType::BOOLEAN>>(program_,
-                                                                  path));
+                                                                  path, type));
         break;
     }
 
     if (table[column.Name()].Nullable()) {
       null_data.push_back(std::make_unique<proxy::ColumnData<SqlType::BOOLEAN>>(
-          program_, table[column.Name()].NullPath()));
+          program_, table[column.Name()].NullPath(), catalog::Type::Boolean()));
     } else {
       null_data.push_back(nullptr);
     }

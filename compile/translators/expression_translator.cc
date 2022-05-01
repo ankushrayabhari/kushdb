@@ -176,7 +176,7 @@ proxy::SQLValue ExpressionTranslator::Ternary(
 }
 
 void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {
-  switch (case_expr.Type()) {
+  switch (case_expr.Type().type_id) {
     case catalog::SqlType::SMALLINT: {
       Return(Ternary<proxy::Int16>(case_expr));
       return;

@@ -111,12 +111,12 @@ std::vector<SQLValue> AggregateHashTablePayload::GetPayload(
 
 StructBuilder AggregateHashTablePayload::ConstructPayloadFormat(
     khir::ProgramBuilder& program,
-    const std::vector<std::pair<catalog::SqlType, bool>>& key_types,
+    const std::vector<std::pair<catalog::Type, bool>>& key_types,
     const std::vector<std::unique_ptr<Aggregator>>& aggregators) {
   StructBuilder format(program);
 
   // hash
-  format.Add(catalog::SqlType::BIGINT, false);
+  format.Add(catalog::Type::BigInt(), false);
 
   // keys
   for (auto [type, nullable] : key_types) {
@@ -143,7 +143,7 @@ khir::Value AggregateHashTablePayload::GetHashOffset(
 
 AggregateHashTable::AggregateHashTable(
     khir::ProgramBuilder& program,
-    std::vector<std::pair<catalog::SqlType, bool>> key_types,
+    std::vector<std::pair<catalog::Type, bool>> key_types,
     std::vector<std::unique_ptr<Aggregator>> aggregators)
     : program_(program),
       aggregators_(std::move(aggregators)),

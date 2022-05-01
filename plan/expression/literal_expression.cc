@@ -19,43 +19,43 @@ template <class>
 inline constexpr bool always_false_v = false;
 
 LiteralExpression::LiteralExpression(int16_t value)
-    : Expression(catalog::SqlType::SMALLINT, false, {}),
+    : Expression(catalog::Type::SmallInt(), false, {}),
       value_(value),
       null_(false) {}
 
 LiteralExpression::LiteralExpression(int32_t value)
-    : Expression(catalog::SqlType::INT, false, {}),
+    : Expression(catalog::Type::Int(), false, {}),
       value_(value),
       null_(false) {}
 
 LiteralExpression::LiteralExpression(int64_t value)
-    : Expression(catalog::SqlType::BIGINT, false, {}),
+    : Expression(catalog::Type::BigInt(), false, {}),
       value_(value),
       null_(false) {}
 
 LiteralExpression::LiteralExpression(double value)
-    : Expression(catalog::SqlType::REAL, false, {}),
+    : Expression(catalog::Type::Real(), false, {}),
       value_(value),
       null_(false) {}
 
 LiteralExpression::LiteralExpression(runtime::Date::DateBuilder value)
-    : Expression(catalog::SqlType::DATE, false, {}),
+    : Expression(catalog::Type::Date(), false, {}),
       value_(value),
       null_(false) {}
 
 LiteralExpression::LiteralExpression(std::string_view value)
-    : Expression(catalog::SqlType::TEXT, false, {}),
+    : Expression(catalog::Type::Text(), false, {}),
       value_(std::string(value)),
       null_(false) {}
 
 LiteralExpression::LiteralExpression(bool value)
-    : Expression(catalog::SqlType::BOOLEAN, false, {}),
+    : Expression(catalog::Type::Boolean(), false, {}),
       value_(value),
       null_(false) {}
 
-LiteralExpression::LiteralExpression(catalog::SqlType type)
+LiteralExpression::LiteralExpression(const catalog::Type& type)
     : Expression(type, true, {}), null_(true) {
-  switch (type) {
+  switch (type.type_id) {
     case catalog::SqlType::BOOLEAN:
       value_ = false;
       break;
@@ -120,7 +120,7 @@ void LiteralExpression::Visit(
 
 nlohmann::json LiteralExpression::ToJson() const {
   nlohmann::json j;
-  j["type"] = magic_enum::enum_name(this->Type());
+  j["type"] = this->Type().ToString();
   Visit(
       [&](int16_t v, bool null) {
         j["value"] = v;

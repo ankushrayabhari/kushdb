@@ -12,14 +12,13 @@
 
 namespace kush::plan {
 
-using SqlType = catalog::SqlType;
-
-SqlType CalculateConvSqlType(catalog::SqlType child_type) {
-  if (child_type != SqlType::BIGINT && child_type != SqlType::INT &&
-      child_type != SqlType::SMALLINT) {
+catalog::Type CalculateConvSqlType(const catalog::Type& child_type) {
+  auto id = child_type.type_id;
+  if (id != catalog::SqlType::BIGINT && id != catalog::SqlType::INT &&
+      id != catalog::SqlType::SMALLINT) {
     throw std::runtime_error("Non-integral child type for conversion.");
   }
-  return SqlType::REAL;
+  return catalog::Type::Real();
 }
 
 IntToFloatConversionExpression::IntToFloatConversionExpression(
@@ -29,7 +28,7 @@ IntToFloatConversionExpression::IntToFloatConversionExpression(
 
 nlohmann::json IntToFloatConversionExpression::ToJson() const {
   nlohmann::json j;
-  j["type"] = magic_enum::enum_name(this->Type());
+  j["type"] = this->Type().ToString();
   j["child"] = Child().ToJson();
   return j;
 }

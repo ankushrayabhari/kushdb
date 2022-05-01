@@ -11,7 +11,7 @@ namespace kush::plan {
 
 class ColumnRefExpression : public Expression {
  public:
-  ColumnRefExpression(catalog::SqlType type, bool nullable, int child_idx,
+  ColumnRefExpression(const catalog::Type& type, bool nullable, int child_idx,
                       int column_idx);
 
   int GetChildIdx() const;

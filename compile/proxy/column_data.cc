@@ -201,8 +201,10 @@ khir::Value GetStructInit(khir::ProgramBuilder& program) {
 }
 
 template <catalog::SqlType S>
-ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
+ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path,
+                          const catalog::Type& type)
     : program_(program),
+      type_(type),
       path_(path),
       path_value_(program_.GlobalConstCharArray(path)),
       value_(program_.Global(program.GetStructType(StructName<S>()),
@@ -214,8 +216,9 @@ ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path)
 
 template <catalog::SqlType S>
 ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path,
-                          khir::Value value)
+                          const catalog::Type& type, khir::Value value)
     : program_(program),
+      type_(type),
       path_(path),
       path_value_(program_.GlobalConstCharArray(path)),
       value_(value) {
@@ -249,7 +252,7 @@ template <catalog::SqlType S>
 std::unique_ptr<Iterable> ColumnData<S>::Regenerate(
     khir::ProgramBuilder& program, khir::Value value) {
   return std::make_unique<ColumnData<S>>(
-      program, path_,
+      program, path_, type_,
       program.PointerCast(
           value, program.PointerType(program.GetStructType(StructName<S>()))));
 }
@@ -281,8 +284,8 @@ std::unique_ptr<IRValue> ColumnData<S>::operator[](Int32& idx) {
 }
 
 template <catalog::SqlType S>
-catalog::SqlType ColumnData<S>::Type() {
-  return S;
+const catalog::Type& ColumnData<S>::Type() {
+  return type_;
 }
 
 template <catalog::SqlType S>

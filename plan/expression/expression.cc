@@ -9,7 +9,7 @@
 
 namespace kush::plan {
 
-Expression::Expression(catalog::SqlType type, bool nullable,
+Expression::Expression(const catalog::Type& type, bool nullable,
                        std::vector<std::unique_ptr<Expression>> children)
     : type_(type), nullable_(nullable), children_(std::move(children)) {}
 
@@ -33,9 +33,9 @@ void Expression::SetChildren(
 
 bool Expression::Nullable() const { return nullable_; }
 
-catalog::SqlType Expression::Type() const { return type_; }
+const catalog::Type& Expression::Type() const { return type_; }
 
-UnaryExpression::UnaryExpression(catalog::SqlType type, bool nullable,
+UnaryExpression::UnaryExpression(const catalog::Type& type, bool nullable,
                                  std::unique_ptr<Expression> child)
     : Expression(type, nullable, util::MakeVector(std::move(child))) {}
 
@@ -43,7 +43,7 @@ Expression& UnaryExpression::Child() { return *children_[0]; }
 
 const Expression& UnaryExpression::Child() const { return *children_[0]; }
 
-BinaryExpression::BinaryExpression(catalog::SqlType type, bool nullable,
+BinaryExpression::BinaryExpression(const catalog::Type& type, bool nullable,
                                    std::unique_ptr<Expression> left_child,
                                    std::unique_ptr<Expression> right_child)
     : Expression(

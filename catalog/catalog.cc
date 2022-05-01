@@ -7,13 +7,13 @@
 
 namespace kush::catalog {
 
-Column::Column(std::string_view n, SqlType t, std::string_view p,
+Column::Column(std::string_view n, const Type& t, std::string_view p,
                std::string_view np, std::string_view ip)
     : name_(n), type_(t), path_(p), null_path_(np), index_path_(ip) {}
 
 std::string_view Column::Name() const { return name_; }
 
-SqlType Column::Type() const { return type_; }
+const Type& Column::GetType() const { return type_; }
 
 std::string_view Column::Path() const { return path_; }
 
@@ -27,7 +27,7 @@ bool Column::HasIndex() const { return !index_path_.empty(); }
 
 Table::Table(std::string_view name) : name_(name) {}
 
-Column& Table::Insert(std::string_view attr, SqlType type,
+Column& Table::Insert(std::string_view attr, const Type& type,
                       std::string_view path, std::string_view null_path,
                       std::string_view index_path) {
   name_to_col_.insert(

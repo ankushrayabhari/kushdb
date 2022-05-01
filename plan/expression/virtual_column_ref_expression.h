@@ -11,7 +11,7 @@ namespace kush::plan {
 
 class VirtualColumnRefExpression : public Expression {
  public:
-  VirtualColumnRefExpression(catalog::SqlType type, bool nullable,
+  VirtualColumnRefExpression(const catalog::Type& type, bool nullable,
                              int column_idx);
 
   int GetColumnIdx() const;

@@ -12,13 +12,11 @@
 
 namespace kush::plan {
 
-using SqlType = catalog::SqlType;
-
-SqlType CalculateExtractSqlType(catalog::SqlType child_type) {
-  if (child_type != SqlType::DATE) {
+catalog::Type CalculateExtractSqlType(const catalog::Type& child_type) {
+  if (child_type.type_id != catalog::SqlType::DATE) {
     throw std::runtime_error("Non-date child type for extract.");
   }
-  return SqlType::INT;
+  return catalog::Type::Int();
 }
 
 ExtractExpression::ExtractExpression(std::unique_ptr<Expression> child,
@@ -33,7 +31,7 @@ ExtractValue ExtractExpression::ValueToExtract() const {
 
 nlohmann::json ExtractExpression::ToJson() const {
   nlohmann::json j;
-  j["type"] = magic_enum::enum_name(this->Type());
+  j["type"] = this->Type().ToString();
   j["extract"] = magic_enum::enum_name(value_to_extract_);
   j["child"] = Child().ToJson();
   return j;

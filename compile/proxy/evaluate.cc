@@ -226,7 +226,7 @@ SQLValue EvaluateBinaryString(plan::BinaryArithmeticExpressionType op_type,
 
 SQLValue EvaluateBinary(plan::BinaryArithmeticExpressionType op,
                         const SQLValue& lhs, const SQLValue& rhs) {
-  switch (lhs.Type()) {
+  switch (lhs.Type().type_id) {
     case catalog::SqlType::BOOLEAN:
       return EvaluateBinaryBool(op, lhs, rhs);
     case catalog::SqlType::SMALLINT:
@@ -258,7 +258,7 @@ Bool LessThan(const SQLValue& lhs, const SQLValue& rhs) {
               return Ternary(
                   program, rhs_null, [&]() { return Bool(program, true); },
                   [&]() {
-                    switch (lhs.Type()) {
+                    switch (lhs.Type().type_id) {
                       case catalog::SqlType::SMALLINT: {
                         auto& lhs_v = static_cast<Int16&>(lhs.Get());
                         auto& rhs_v = static_cast<Int16&>(rhs.Get());
@@ -315,7 +315,7 @@ Bool Equal(const SQLValue& lhs, const SQLValue& rhs) {
             program, lhs_null || rhs_null,
             [&]() { return Bool(program, false); },
             [&]() {
-              switch (lhs.Type()) {
+              switch (lhs.Type().type_id) {
                 case catalog::SqlType::BOOLEAN: {
                   auto& lhs_v = static_cast<Bool&>(lhs.Get());
                   auto& rhs_v = static_cast<Bool&>(rhs.Get());

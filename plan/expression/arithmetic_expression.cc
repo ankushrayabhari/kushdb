@@ -12,9 +12,9 @@
 
 namespace kush::plan {
 
-catalog::SqlType CalculateBinaryType(BinaryArithmeticExpressionType type,
-                                     catalog::SqlType left,
-                                     catalog::SqlType right) {
+catalog::Type CalculateBinaryType(BinaryArithmeticExpressionType type,
+                                  const catalog::Type& left,
+                                  const catalog::Type& right) {
   if (left != right) {
     std::runtime_error("Require same type arguments");
   }
@@ -31,7 +31,7 @@ catalog::SqlType CalculateBinaryType(BinaryArithmeticExpressionType type,
     case BinaryArithmeticExpressionType::STARTS_WITH:
     case BinaryArithmeticExpressionType::ENDS_WITH:
     case BinaryArithmeticExpressionType::CONTAINS:
-      return catalog::SqlType::BOOLEAN;
+      return catalog::Type::Boolean();
 
     default:
       return left;
@@ -48,7 +48,7 @@ BinaryArithmeticExpression::BinaryArithmeticExpression(
 
 nlohmann::json BinaryArithmeticExpression::ToJson() const {
   nlohmann::json j;
-  j["type"] = magic_enum::enum_name(this->Type());
+  j["type"] = this->Type().ToString();
   j["op"] = magic_enum::enum_name(OpType());
   j["left"] = LeftChild().ToJson();
   j["right"] = RightChild().ToJson();
@@ -68,18 +68,18 @@ BinaryArithmeticExpressionType BinaryArithmeticExpression::OpType() const {
   return type_;
 }
 
-catalog::SqlType CalculateUnaryType(UnaryArithmeticExpressionType type,
-                                    catalog::SqlType child_type) {
+catalog::Type CalculateUnaryType(UnaryArithmeticExpressionType type,
+                                 const catalog::Type& child_type) {
   switch (type) {
     case UnaryArithmeticExpressionType::NOT: {
-      if (child_type != catalog::SqlType::BOOLEAN) {
+      if (child_type.type_id != catalog::SqlType::BOOLEAN) {
         throw std::runtime_error("Not boolean child");
       }
-      return catalog::SqlType::BOOLEAN;
+      return catalog::Type::Boolean();
     }
 
     case UnaryArithmeticExpressionType::IS_NULL:
-      return catalog::SqlType::BOOLEAN;
+      return catalog::Type::Boolean();
   }
 }
 
@@ -121,11 +121,11 @@ nlohmann::json UnaryArithmeticExpression::ToJson() const {
   return j;
 }
 
-catalog::SqlType CalculateRegexpType(catalog::SqlType child_type) {
-  if (child_type != catalog::SqlType::TEXT) {
+catalog::Type CalculateRegexpType(const catalog::Type& child_type) {
+  if (child_type.type_id != catalog::SqlType::TEXT) {
     throw std::runtime_error("Invalid child type for LIKE. Expected text.");
   }
-  return catalog::SqlType::BOOLEAN;
+  return catalog::Type::Boolean();
 }
 
 RegexpMatchingExpression::RegexpMatchingExpression(

@@ -25,7 +25,7 @@ class Planner {
 
   struct ColumnInfo {
     int child_idx, col_idx;
-    catalog::SqlType type;
+    catalog::Type type;
     bool nullable;
   };
   absl::flat_hash_map<std::pair<std::string, std::string>, ColumnInfo>

@@ -11,16 +11,15 @@
 
 namespace kush::plan {
 
-VirtualColumnRefExpression::VirtualColumnRefExpression(catalog::SqlType type,
-                                                       bool nullable,
-                                                       int column_idx)
+VirtualColumnRefExpression::VirtualColumnRefExpression(
+    const catalog::Type& type, bool nullable, int column_idx)
     : Expression(type, nullable, {}), column_idx_(column_idx) {}
 
 int VirtualColumnRefExpression::GetColumnIdx() const { return column_idx_; }
 
 nlohmann::json VirtualColumnRefExpression::ToJson() const {
   nlohmann::json j;
-  j["type"] = magic_enum::enum_name(this->Type());
+  j["type"] = this->Type().ToString();
   j["virt_column_idx"] = column_idx_;
   return j;
 }

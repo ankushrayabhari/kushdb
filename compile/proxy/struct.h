@@ -15,11 +15,11 @@ namespace kush::compile::proxy {
 class StructBuilder {
  public:
   StructBuilder(khir::ProgramBuilder& program);
-  int Add(catalog::SqlType type, bool nullable);
+  int Add(const catalog::Type& type, bool nullable);
   void Build();
 
   khir::Type Type() const;
-  absl::Span<const catalog::SqlType> Types() const;
+  absl::Span<const catalog::Type> Types() const;
   const std::vector<bool>& Nullable() const;
   absl::Span<const khir::Value> DefaultValues() const;
   std::pair<int, int> GetFieldNullableIdx(int field) const;
@@ -27,7 +27,7 @@ class StructBuilder {
  private:
   khir::ProgramBuilder& program_;
   std::vector<khir::Type> fields_;
-  std::vector<catalog::SqlType> types_;
+  std::vector<catalog::Type> types_;
   std::vector<bool> nullable_;
   std::vector<khir::Value> values_;
   std::optional<khir::Type> struct_type_;
@@ -46,7 +46,7 @@ class Struct {
   SQLValue Get(int field);
 
  private:
-  void Store(catalog::SqlType t, khir::Value ptr, const IRValue& v);
+  void Store(const catalog::Type& t, khir::Value ptr, const IRValue& v);
   khir::ProgramBuilder& program_;
   const StructBuilder& fields_;
   khir::Value value_;

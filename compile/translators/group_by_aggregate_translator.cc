@@ -38,7 +38,7 @@ void GroupByAggregateTranslator::Produce() {
   auto group_by_exprs = group_by_agg_.GroupByExprs();
   auto agg_exprs = group_by_agg_.AggExprs();
 
-  std::vector<std::pair<catalog::SqlType, bool>> key_types;
+  std::vector<std::pair<catalog::Type, bool>> key_types;
   for (const auto& group_by : group_by_exprs) {
     key_types.emplace_back(group_by.get().Type(), group_by.get().Nullable());
   }

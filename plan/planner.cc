@@ -90,7 +90,7 @@ std::vector<std::unique_ptr<Operator>> Planner::Plan(const parse::Table& table,
       auto& v = table_col_to_info_[key];
       v.child_idx = child_idx;
       v.col_idx = col_idx++;
-      v.type = col.get().Type();
+      v.type = col.get().GetType();
       v.nullable = col.get().Nullable();
     }
 

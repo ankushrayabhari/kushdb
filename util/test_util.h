@@ -111,7 +111,7 @@ bool CHECK_EQ_TBL(
       const auto& e_value = split_e[j];
       const auto& o_value = split_o[j];
 
-      switch (columns[j].Expr().Type()) {
+      switch (columns[j].Expr().Type().type_id) {
         case catalog::SqlType::REAL: {
           double e_value_as_d = std::stod(e_value);
           double o_value_as_d = std::stod(o_value);

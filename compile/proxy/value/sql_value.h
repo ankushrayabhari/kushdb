@@ -16,7 +16,7 @@ class SQLValue {
   SQLValue(const Date& value, const Bool& null);
   SQLValue(const Float64& value, const Bool& null);
   SQLValue(const String& value, const Bool& null);
-  SQLValue(std::unique_ptr<IRValue> value, catalog::SqlType type,
+  SQLValue(std::unique_ptr<IRValue> value, const catalog::Type& type,
            const Bool& null);
   SQLValue(const SQLValue&);
   SQLValue(SQLValue&&);
@@ -25,7 +25,7 @@ class SQLValue {
 
   Bool IsNull() const;
   IRValue& Get() const;
-  catalog::SqlType Type() const;
+  const catalog::Type& Type() const;
   khir::ProgramBuilder& ProgramBuilder() const;
 
   SQLValue GetNotNullable() const;
@@ -34,7 +34,7 @@ class SQLValue {
   khir::ProgramBuilder& program_;
   std::unique_ptr<IRValue> value_;
   Bool null_;
-  catalog::SqlType type_;
+  catalog::Type type_;
 };
 
 }  // namespace kush::compile::proxy

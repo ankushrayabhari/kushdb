@@ -13,9 +13,10 @@
 
 namespace kush::plan {
 
-catalog::SqlType CalculateType(catalog::SqlType cond, catalog::SqlType left,
-                               catalog::SqlType right) {
-  if (cond != catalog::SqlType::BOOLEAN) {
+catalog::Type CalculateType(const catalog::Type& cond,
+                            const catalog::Type& left,
+                            const catalog::Type& right) {
+  if (cond.type_id != catalog::SqlType::BOOLEAN) {
     throw std::runtime_error("Non-boolean condition");
   }
   if (left != right) {
@@ -34,7 +35,7 @@ CaseExpression::CaseExpression(std::unique_ptr<Expression> cond,
 
 nlohmann::json CaseExpression::ToJson() const {
   nlohmann::json j;
-  j["type"] = magic_enum::enum_name(this->Type());
+  j["type"] = this->Type().ToString();
   j["cond"] = Cond().ToJson();
   j["then"] = Then().ToJson();
   j["else"] = Else().ToJson();

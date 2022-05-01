@@ -21,7 +21,7 @@ class LiteralExpression : public Expression {
   explicit LiteralExpression(runtime::Date::DateBuilder d);
   explicit LiteralExpression(std::string_view value);
   explicit LiteralExpression(bool value);
-  explicit LiteralExpression(catalog::SqlType type);
+  explicit LiteralExpression(const catalog::Type& type);
   ~LiteralExpression() = default;
 
   void Visit(std::function<void(int16_t, bool)>,

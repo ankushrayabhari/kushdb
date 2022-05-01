@@ -24,5 +24,7 @@ cc_library(
 cc_library(
     name = "sql_type",
     hdrs = ["sql_type.h"],
-    deps = [],
+    deps = [
+        "@magic_enum",
+    ],
 )
