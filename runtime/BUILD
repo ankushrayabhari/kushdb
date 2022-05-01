@@ -159,9 +159,17 @@ cc_library(
     srcs = ["enum.cc"],
     hdrs = ["enum.h"],
     deps = [
-        ":column_data",
-        ":column_index",
+        ":file_manager",
         ":string",
-        "@absl//absl/container:flat_hash_map",
+    ],
+)
+
+cc_test(
+    name = "enum_test",
+    size = "small",
+    srcs = ["enum_test.cc"],
+    deps = [
+        ":enum",
+        "@com_google_googletest//:gtest_main",
     ],
 )

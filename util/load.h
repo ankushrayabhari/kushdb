@@ -13,6 +13,7 @@
 #include "runtime/column_data.h"
 #include "runtime/column_index.h"
 #include "runtime/date.h"
+#include "runtime/enum.h"
 
 #define DECLARE_NULL_COL(T, x)  \
   std::vector<T> x;             \
@@ -25,16 +26,14 @@
 
 #define DECLARE_NULL_ENUM_COL(x)                               \
   std::vector<int> x;                                          \
-  std::vector<std::string> x##_orig;                           \
   std::vector<int8_t> x##_null;                                \
   std::unordered_map<int32_t, std::vector<int32_t>> x##_index; \
-  std::unordered_map<std::string, std::vector<int32_t>> x##_dictionary;
+  std::unordered_map<std::string, int32_t> x##_dictionary;
 
 #define DECLARE_NOT_NULL_ENUM_COL(x)                           \
   std::vector<int> x;                                          \
-  std::vector<std::string> x##_orig;                           \
   std::unordered_map<int32_t, std::vector<int32_t>> x##_index; \
-  std::unordered_map<std::string, std::vector<int32_t>> x##_dictionary;
+  std::unordered_map<std::string, int32_t> x##_dictionary;
 
 #define APPEND_NULL_ENUM(x, data, tuple_idx)                       \
   auto x##_parsed = ParseString(data);                             \
@@ -43,20 +42,20 @@
     x.push_back(-1);                                               \
   } else {                                                         \
     if (x##_dictionary.find(x##_parsed) == x##_dictionary.end()) { \
-      x##_dictionary[x##_parsed].push_back(x##_dictionary.size()); \
-      x##_orig.push_back(x##_parsed);                              \
+      auto id = x##_dictionary.size();                             \
+      x##_dictionary[x##_parsed] = id;                             \
     }                                                              \
-    x.push_back(x##_dictionary.at(x##_parsed)[0]);                 \
+    x.push_back(x##_dictionary.at(x##_parsed));                    \
     x##_index[x.back()].push_back(tuple_idx);                      \
   }
 
 #define APPEND_NOT_NULL_ENUM(x, data, tuple_idx)                 \
   auto x##_parsed = ParseString(data);                           \
   if (x##_dictionary.find(x##_parsed) == x##_dictionary.end()) { \
-    x##_dictionary[x##_parsed].push_back(x##_dictionary.size()); \
-    x##_orig.push_back(x##_parsed);                              \
+    auto id = x##_dictionary.size();                             \
+    x##_dictionary[x##_parsed] = id;                             \
   }                                                              \
-  x.push_back(x##_dictionary.at(x##_parsed)[0]);                 \
+  x.push_back(x##_dictionary.at(x##_parsed));                    \
   x##_index[x.back()].push_back(tuple_idx);
 
 #define APPEND_NULL(x, parse, data, tuple_idx) \
@@ -89,22 +88,16 @@
       std::string(dest) + std::string(file) + "_null.kdb", id##_null);  \
   kush::runtime::ColumnIndex::Serialize<int32_t>(                       \
       std::string(dest) + std::string(file) + ".kdbindex", id##_index); \
-  kush::runtime::ColumnData::Serialize<std::string>(                    \
-      std::string(dest) + std::string(file) + "_keys.kdb", id##_orig);  \
-  kush::runtime::ColumnIndex::Serialize<std::string>(                   \
-      std::string(dest) + std::string(file) + "_map.kdbindex",          \
-      id##_dictionary);
+  kush::runtime::Enum::Serialize(                                       \
+      std::string(dest) + std::string(file) + ".kdbenum", id##_dictionary);
 
 #define SERIALIZE_NOT_NULL_ENUM(id, dest, file)                         \
   kush::runtime::ColumnData::Serialize<int32_t>(                        \
       std::string(dest) + std::string(file) + ".kdb", id);              \
   kush::runtime::ColumnIndex::Serialize<int32_t>(                       \
       std::string(dest) + std::string(file) + ".kdbindex", id##_index); \
-  kush::runtime::ColumnData::Serialize<std::string>(                    \
-      std::string(dest) + std::string(file) + "_keys.kdb", id##_orig);  \
-  kush::runtime::ColumnIndex::Serialize<std::string>(                   \
-      std::string(dest) + std::string(file) + "_map.kdbindex",          \
-      id##_dictionary);
+  kush::runtime::Enum::Serialize(                                       \
+      std::string(dest) + std::string(file) + ".kdbenum", id##_dictionary);
 
 namespace kush::util {
 

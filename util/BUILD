@@ -13,6 +13,7 @@ cc_library(
         "//runtime:column_data",
         "//runtime:column_index",
         "//runtime:date",
+        "//runtime:enum",
     ],
 )
 
