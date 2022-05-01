@@ -32,7 +32,7 @@ class EnumManager {
   EnumManager(EnumManager const&) = delete;
   void operator=(EnumManager const&) = delete;
 
-  void Register(int32_t id, std::string key_path, std::string map_path);
+  int32_t Register(std::string key_path, std::string map_path);
   void GetKey(int32_t id, int32_t value, String::String* dest);
   int32_t GetValue(int32_t id, std::string_view value);
 

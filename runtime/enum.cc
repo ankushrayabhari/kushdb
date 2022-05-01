@@ -11,11 +11,12 @@
 
 namespace kush::runtime {
 
-void EnumManager::Register(int32_t id, std::string key_path,
-                           std::string map_path) {
+int32_t EnumManager::Register(std::string key_path, std::string map_path) {
+  int32_t id = info_.size();
   auto& data = info_[id];
   ColumnData::OpenText(&data.keys, key_path.c_str());
   ColumnIndex::Open(&data.map, map_path.c_str());
+  return id;
 }
 
 void EnumManager::GetKey(int32_t id, int32_t value, String::String* dest) {
