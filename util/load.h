@@ -36,8 +36,8 @@
   std::unordered_map<int32_t, std::vector<int32_t>> x##_index; \
   std::unordered_map<std::string, std::vector<int32_t>> x##_dictionary;
 
-#define APPEND_NULL_ENUM(x, parse, data, tuple_idx)                \
-  auto x##_parsed = parse(data);                                   \
+#define APPEND_NULL_ENUM(x, data, tuple_idx)                       \
+  auto x##_parsed = ParseString(data);                             \
   x##_null.push_back(x##_parsed.empty());                          \
   if (x##_parsed.empty()) {                                        \
     x.push_back(-1);                                               \
@@ -50,8 +50,8 @@
     x##_index[x.back()].push_back(tuple_idx);                      \
   }
 
-#define APPEND_NOT_NULL_ENUM(x, parse, data, tuple_idx)          \
-  auto x##_parsed = parse(data);                                 \
+#define APPEND_NOT_NULL_ENUM(x, data, tuple_idx)                 \
+  auto x##_parsed = ParseString(data);                           \
   if (x##_dictionary.find(x##_parsed) == x##_dictionary.end()) { \
     x##_dictionary[x##_parsed].push_back(x##_dictionary.size()); \
     x##_orig.push_back(x##_parsed);                              \
@@ -82,28 +82,28 @@
   kush::runtime::ColumnIndex::Serialize<T>(                \
       std::string(dest) + std::string(file) + ".kdbindex", id##_index);
 
-#define SERIALIZE_ENUM_NULL(id, dest, file)                            \
-  kush::runtime::ColumnData::Serialize<int32_t>(                       \
-      std::string(dest) + std::string(file) + ".kdb", id);             \
-  kush::runtime::ColumnData::Serialize<std::string>(                   \
-      std::string(dest) + std::string(file) + "_dict.kdb", id##_orig); \
-  kush::runtime::ColumnData::Serialize<int8_t>(                        \
-      std::string(dest) + std::string(file) + "_null.kdb", id##_null); \
-  kush::runtime::ColumnIndex::Serialize<std::string>(                  \
-      std::string(dest) + std::string(file) + "_dict.kdbindex",        \
-      id##_dictionary);                                                \
-  kush::runtime::ColumnIndex::Serialize<int32_t>(                      \
-      std::string(dest) + std::string(file) + ".kdbindex", id##_index);
-
-#define SERIALIZE_ENUM_NOT_NULL(id, dest, file)                         \
+#define SERIALIZE_NULL_ENUM(id, dest, file)                             \
   kush::runtime::ColumnData::Serialize<int32_t>(                        \
       std::string(dest) + std::string(file) + ".kdb", id);              \
-  kush::runtime::ColumnData::Serialize<std::string>(                    \
-      std::string(dest) + std::string(file) + "_dict.kdb", id##_orig);  \
+  kush::runtime::ColumnData::Serialize<int8_t>(                         \
+      std::string(dest) + std::string(file) + "_null.kdb", id##_null);  \
   kush::runtime::ColumnIndex::Serialize<int32_t>(                       \
       std::string(dest) + std::string(file) + ".kdbindex", id##_index); \
+  kush::runtime::ColumnData::Serialize<std::string>(                    \
+      std::string(dest) + std::string(file) + "_keys.kdb", id##_orig);  \
   kush::runtime::ColumnIndex::Serialize<std::string>(                   \
-      std::string(dest) + std::string(file) + "_dict.kdbindex",         \
+      std::string(dest) + std::string(file) + "_map.kdbindex",          \
+      id##_dictionary);
+
+#define SERIALIZE_NOT_NULL_ENUM(id, dest, file)                         \
+  kush::runtime::ColumnData::Serialize<int32_t>(                        \
+      std::string(dest) + std::string(file) + ".kdb", id);              \
+  kush::runtime::ColumnIndex::Serialize<int32_t>(                       \
+      std::string(dest) + std::string(file) + ".kdbindex", id##_index); \
+  kush::runtime::ColumnData::Serialize<std::string>(                    \
+      std::string(dest) + std::string(file) + "_keys.kdb", id##_orig);  \
+  kush::runtime::ColumnIndex::Serialize<std::string>(                   \
+      std::string(dest) + std::string(file) + "_map.kdbindex",          \
       id##_dictionary);
 
 namespace kush::util {
