@@ -153,3 +153,15 @@ cc_library(
         ":string",
     ],
 )
+
+cc_library(
+    name = "enum",
+    srcs = ["enum.cc"],
+    hdrs = ["enum.h"],
+    deps = [
+        ":column_data",
+        ":column_index",
+        ":string",
+        "@absl//absl/container:flat_hash_map",
+    ],
+)
