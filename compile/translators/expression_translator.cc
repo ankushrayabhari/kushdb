@@ -177,31 +177,31 @@ proxy::SQLValue ExpressionTranslator::Ternary(
 
 void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {
   switch (case_expr.Type().type_id) {
-    case catalog::SqlType::SMALLINT: {
+    case catalog::TypeId::SMALLINT: {
       Return(Ternary<proxy::Int16>(case_expr));
       return;
     }
-    case catalog::SqlType::INT: {
+    case catalog::TypeId::INT: {
       Return(Ternary<proxy::Int32>(case_expr));
       return;
     }
-    case catalog::SqlType::BIGINT: {
+    case catalog::TypeId::BIGINT: {
       Return(Ternary<proxy::Int64>(case_expr));
       return;
     }
-    case catalog::SqlType::DATE: {
+    case catalog::TypeId::DATE: {
       Return(Ternary<proxy::Date>(case_expr));
       return;
     }
-    case catalog::SqlType::REAL: {
+    case catalog::TypeId::REAL: {
       Return(Ternary<proxy::Float64>(case_expr));
       return;
     }
-    case catalog::SqlType::TEXT: {
+    case catalog::TypeId::TEXT: {
       Return(Ternary<proxy::String>(case_expr));
       return;
     }
-    case catalog::SqlType::BOOLEAN: {
+    case catalog::TypeId::BOOLEAN: {
       Return(Ternary<proxy::Bool>(case_expr));
       return;
     }

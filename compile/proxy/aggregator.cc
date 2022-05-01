@@ -43,37 +43,37 @@ void SumAggregator::Update(Struct& entry) {
         [&]() { entry.Update(field_, not_null_next); },
         [&]() {
           switch (current_value.Type().type_id) {
-            case catalog::SqlType::SMALLINT: {
+            case catalog::TypeId::SMALLINT: {
               auto& v1 = static_cast<Int16&>(current_value.Get());
               auto& v2 = static_cast<Int16&>(next.Get());
               entry.Update(field_, SQLValue(v1 + v2, Bool(program_, false)));
               break;
             }
 
-            case catalog::SqlType::INT: {
+            case catalog::TypeId::INT: {
               auto& v1 = static_cast<Int32&>(current_value.Get());
               auto& v2 = static_cast<Int32&>(next.Get());
               entry.Update(field_, SQLValue(v1 + v2, Bool(program_, false)));
               break;
             }
 
-            case catalog::SqlType::BIGINT: {
+            case catalog::TypeId::BIGINT: {
               auto& v1 = static_cast<Int64&>(current_value.Get());
               auto& v2 = static_cast<Int64&>(next.Get());
               entry.Update(field_, SQLValue(v1 + v2, Bool(program_, false)));
               break;
             }
 
-            case catalog::SqlType::REAL: {
+            case catalog::TypeId::REAL: {
               auto& v1 = static_cast<Float64&>(current_value.Get());
               auto& v2 = static_cast<Float64&>(next.Get());
               entry.Update(field_, SQLValue(v1 + v2, Bool(program_, false)));
               break;
             }
 
-            case catalog::SqlType::BOOLEAN:
-            case catalog::SqlType::DATE:
-            case catalog::SqlType::TEXT:
+            case catalog::TypeId::BOOLEAN:
+            case catalog::TypeId::DATE:
+            case catalog::TypeId::TEXT:
               throw std::runtime_error("cannot compute sum of non-numeric col");
           }
         });
@@ -111,7 +111,7 @@ void MinMaxAggregator::Update(Struct& entry) {
         [&]() { entry.Update(field_, not_null_next); },
         [&]() {
           switch (current_value.Type().type_id) {
-            case catalog::SqlType::SMALLINT: {
+            case catalog::TypeId::SMALLINT: {
               auto& v1 = static_cast<Int16&>(not_null_next.Get());
               auto& v2 = static_cast<Int16&>(current_value.Get());
               If(program_, min_ ? v1 < v2 : v2 < v1,
@@ -119,7 +119,7 @@ void MinMaxAggregator::Update(Struct& entry) {
               break;
             }
 
-            case catalog::SqlType::DATE: {
+            case catalog::TypeId::DATE: {
               auto& v1 = static_cast<Date&>(next.Get());
               auto& v2 = static_cast<Date&>(current_value.Get());
               If(program_, min_ ? v1 < v2 : v2 < v1,
@@ -127,7 +127,7 @@ void MinMaxAggregator::Update(Struct& entry) {
               break;
             }
 
-            case catalog::SqlType::INT: {
+            case catalog::TypeId::INT: {
               auto& v1 = static_cast<Int32&>(next.Get());
               auto& v2 = static_cast<Int32&>(current_value.Get());
               If(program_, min_ ? v1 < v2 : v2 < v1,
@@ -135,7 +135,7 @@ void MinMaxAggregator::Update(Struct& entry) {
               break;
             }
 
-            case catalog::SqlType::BIGINT: {
+            case catalog::TypeId::BIGINT: {
               auto& v1 = static_cast<Int64&>(next.Get());
               auto& v2 = static_cast<Int64&>(current_value.Get());
               If(program_, min_ ? v1 < v2 : v2 < v1,
@@ -143,7 +143,7 @@ void MinMaxAggregator::Update(Struct& entry) {
               break;
             }
 
-            case catalog::SqlType::REAL: {
+            case catalog::TypeId::REAL: {
               auto& v1 = static_cast<Float64&>(next.Get());
               auto& v2 = static_cast<Float64&>(current_value.Get());
               If(program_, min_ ? v1 < v2 : v2 < v1,
@@ -151,7 +151,7 @@ void MinMaxAggregator::Update(Struct& entry) {
               break;
             }
 
-            case catalog::SqlType::TEXT: {
+            case catalog::TypeId::TEXT: {
               auto& v1 = static_cast<String&>(next.Get());
               auto& v2 = static_cast<String&>(current_value.Get());
               If(program_, min_ ? v1 < v2 : v2 < v1,
@@ -159,7 +159,7 @@ void MinMaxAggregator::Update(Struct& entry) {
               break;
             }
 
-            case catalog::SqlType::BOOLEAN:
+            case catalog::TypeId::BOOLEAN:
               throw std::runtime_error("cannot compute min of non-numeric col");
           }
         });

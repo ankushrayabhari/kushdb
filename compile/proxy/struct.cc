@@ -24,28 +24,28 @@ int StructBuilder::Add(const catalog::Type& type, bool nullable) {
   types_.push_back(type);
   nullable_.push_back(nullable);
   switch (type.type_id) {
-    case catalog::SqlType::SMALLINT:
+    case catalog::TypeId::SMALLINT:
       fields_.push_back(program_.I16Type());
       values_.push_back(program_.ConstI16(0));
       break;
-    case catalog::SqlType::INT:
-    case catalog::SqlType::DATE:
+    case catalog::TypeId::INT:
+    case catalog::TypeId::DATE:
       fields_.push_back(program_.I32Type());
       values_.push_back(program_.ConstI32(0));
       break;
-    case catalog::SqlType::BIGINT:
+    case catalog::TypeId::BIGINT:
       fields_.push_back(program_.I64Type());
       values_.push_back(program_.ConstI64(0));
       break;
-    case catalog::SqlType::REAL:
+    case catalog::TypeId::REAL:
       fields_.push_back(program_.F64Type());
       values_.push_back(program_.ConstF64(0));
       break;
-    case catalog::SqlType::TEXT:
+    case catalog::TypeId::TEXT:
       fields_.push_back(program_.GetStructType(String::StringStructName));
       values_.push_back(String::Constant(program_, ""));
       break;
-    case catalog::SqlType::BOOLEAN:
+    case catalog::TypeId::BOOLEAN:
       fields_.push_back(program_.I8Type());
       values_.push_back(program_.ConstI8(0));
       break;
@@ -108,25 +108,25 @@ std::vector<SQLValue> Struct::Unpack() {
 
     std::unique_ptr<IRValue> value;
     switch (types[i].type_id) {
-      case catalog::SqlType::SMALLINT:
+      case catalog::TypeId::SMALLINT:
         result.emplace_back(Int16(program_, program_.LoadI16(ptr)), null);
         break;
-      case catalog::SqlType::INT:
+      case catalog::TypeId::INT:
         result.emplace_back(Int32(program_, program_.LoadI32(ptr)), null);
         break;
-      case catalog::SqlType::BIGINT:
+      case catalog::TypeId::BIGINT:
         result.emplace_back(Int64(program_, program_.LoadI64(ptr)), null);
         break;
-      case catalog::SqlType::DATE:
+      case catalog::TypeId::DATE:
         result.emplace_back(Date(program_, program_.LoadI32(ptr)), null);
         break;
-      case catalog::SqlType::REAL:
+      case catalog::TypeId::REAL:
         result.emplace_back(Float64(program_, program_.LoadF64(ptr)), null);
         break;
-      case catalog::SqlType::TEXT:
+      case catalog::TypeId::TEXT:
         result.emplace_back(String(program_, ptr), null);
         break;
-      case catalog::SqlType::BOOLEAN:
+      case catalog::TypeId::BOOLEAN:
         result.emplace_back(Int8(program_, program_.LoadI8(ptr)) != 0, null);
         break;
     }
@@ -147,19 +147,19 @@ SQLValue Struct::Get(int i) {
                   : Bool(program_, false);
 
   switch (types[i].type_id) {
-    case catalog::SqlType::SMALLINT:
+    case catalog::TypeId::SMALLINT:
       return SQLValue(Int16(program_, program_.LoadI16(ptr)), null);
-    case catalog::SqlType::INT:
+    case catalog::TypeId::INT:
       return SQLValue(Int32(program_, program_.LoadI32(ptr)), null);
-    case catalog::SqlType::BIGINT:
+    case catalog::TypeId::BIGINT:
       return SQLValue(Int64(program_, program_.LoadI64(ptr)), null);
-    case catalog::SqlType::DATE:
+    case catalog::TypeId::DATE:
       return SQLValue(Date(program_, program_.LoadI32(ptr)), null);
-    case catalog::SqlType::REAL:
+    case catalog::TypeId::REAL:
       return SQLValue(Float64(program_, program_.LoadF64(ptr)), null);
-    case catalog::SqlType::TEXT:
+    case catalog::TypeId::TEXT:
       return SQLValue(String(program_, ptr), null);
-    case catalog::SqlType::BOOLEAN:
+    case catalog::TypeId::BOOLEAN:
       return SQLValue(Int8(program_, program_.LoadI8(ptr)) != 0, null);
   }
 }
@@ -167,23 +167,23 @@ SQLValue Struct::Get(int i) {
 void Struct::Store(const catalog::Type& t, khir::Value ptr, const IRValue& v) {
   auto value = v.Get();
   switch (t.type_id) {
-    case catalog::SqlType::SMALLINT:
+    case catalog::TypeId::SMALLINT:
       program_.StoreI16(ptr, value);
       break;
-    case catalog::SqlType::DATE:
-    case catalog::SqlType::INT:
+    case catalog::TypeId::DATE:
+    case catalog::TypeId::INT:
       program_.StoreI32(ptr, value);
       break;
-    case catalog::SqlType::BIGINT:
+    case catalog::TypeId::BIGINT:
       program_.StoreI64(ptr, value);
       break;
-    case catalog::SqlType::REAL:
+    case catalog::TypeId::REAL:
       program_.StoreF64(ptr, value);
       break;
-    case catalog::SqlType::TEXT:
+    case catalog::TypeId::TEXT:
       String(program_, ptr).Copy(dynamic_cast<const String&>(v));
       break;
-    case catalog::SqlType::BOOLEAN:
+    case catalog::TypeId::BOOLEAN:
       program_.StoreI8(ptr, program_.I8ZextI1(value));
       break;
   }

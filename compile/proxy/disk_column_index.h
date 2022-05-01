@@ -9,7 +9,7 @@
 
 namespace kush::compile::proxy {
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 class DiskColumnIndex : public ColumnIndex {
  public:
   DiskColumnIndex(khir::ProgramBuilder& program, std::string_view path);

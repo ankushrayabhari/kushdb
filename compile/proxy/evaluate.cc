@@ -227,19 +227,19 @@ SQLValue EvaluateBinaryString(plan::BinaryArithmeticExpressionType op_type,
 SQLValue EvaluateBinary(plan::BinaryArithmeticExpressionType op,
                         const SQLValue& lhs, const SQLValue& rhs) {
   switch (lhs.Type().type_id) {
-    case catalog::SqlType::BOOLEAN:
+    case catalog::TypeId::BOOLEAN:
       return EvaluateBinaryBool(op, lhs, rhs);
-    case catalog::SqlType::SMALLINT:
+    case catalog::TypeId::SMALLINT:
       return EvaluateBinaryNumeric<Int16>(op, lhs, rhs);
-    case catalog::SqlType::INT:
+    case catalog::TypeId::INT:
       return EvaluateBinaryNumeric<Int32>(op, lhs, rhs);
-    case catalog::SqlType::DATE:
+    case catalog::TypeId::DATE:
       return EvaluateBinaryDate(op, lhs, rhs);
-    case catalog::SqlType::BIGINT:
+    case catalog::TypeId::BIGINT:
       return EvaluateBinaryNumeric<Int64>(op, lhs, rhs);
-    case catalog::SqlType::REAL:
+    case catalog::TypeId::REAL:
       return EvaluateBinaryNumeric<Float64>(op, lhs, rhs);
-    case catalog::SqlType::TEXT:
+    case catalog::TypeId::TEXT:
       return EvaluateBinaryString(op, lhs, rhs);
   }
 }
@@ -259,43 +259,43 @@ Bool LessThan(const SQLValue& lhs, const SQLValue& rhs) {
                   program, rhs_null, [&]() { return Bool(program, true); },
                   [&]() {
                     switch (lhs.Type().type_id) {
-                      case catalog::SqlType::SMALLINT: {
+                      case catalog::TypeId::SMALLINT: {
                         auto& lhs_v = static_cast<Int16&>(lhs.Get());
                         auto& rhs_v = static_cast<Int16&>(rhs.Get());
                         return lhs_v < rhs_v;
                       }
 
-                      case catalog::SqlType::INT: {
+                      case catalog::TypeId::INT: {
                         auto& lhs_v = static_cast<Int32&>(lhs.Get());
                         auto& rhs_v = static_cast<Int32&>(rhs.Get());
                         return lhs_v < rhs_v;
                       }
 
-                      case catalog::SqlType::DATE: {
+                      case catalog::TypeId::DATE: {
                         auto& lhs_v = static_cast<Date&>(lhs.Get());
                         auto& rhs_v = static_cast<Date&>(rhs.Get());
                         return lhs_v < rhs_v;
                       }
 
-                      case catalog::SqlType::BIGINT: {
+                      case catalog::TypeId::BIGINT: {
                         auto& lhs_v = static_cast<Int64&>(lhs.Get());
                         auto& rhs_v = static_cast<Int64&>(rhs.Get());
                         return lhs_v < rhs_v;
                       }
 
-                      case catalog::SqlType::REAL: {
+                      case catalog::TypeId::REAL: {
                         auto& lhs_v = static_cast<Float64&>(lhs.Get());
                         auto& rhs_v = static_cast<Float64&>(rhs.Get());
                         return lhs_v < rhs_v;
                       }
 
-                      case catalog::SqlType::TEXT: {
+                      case catalog::TypeId::TEXT: {
                         auto& lhs_v = static_cast<String&>(lhs.Get());
                         auto& rhs_v = static_cast<String&>(rhs.Get());
                         return lhs_v < rhs_v;
                       }
 
-                      case catalog::SqlType::BOOLEAN:
+                      case catalog::TypeId::BOOLEAN:
                         throw std::runtime_error("Can't be less than.");
                     }
                   });
@@ -316,43 +316,43 @@ Bool Equal(const SQLValue& lhs, const SQLValue& rhs) {
             [&]() { return Bool(program, false); },
             [&]() {
               switch (lhs.Type().type_id) {
-                case catalog::SqlType::BOOLEAN: {
+                case catalog::TypeId::BOOLEAN: {
                   auto& lhs_v = static_cast<Bool&>(lhs.Get());
                   auto& rhs_v = static_cast<Bool&>(rhs.Get());
                   return lhs_v == rhs_v;
                 }
 
-                case catalog::SqlType::SMALLINT: {
+                case catalog::TypeId::SMALLINT: {
                   auto& lhs_v = static_cast<Int16&>(lhs.Get());
                   auto& rhs_v = static_cast<Int16&>(rhs.Get());
                   return lhs_v == rhs_v;
                 }
 
-                case catalog::SqlType::INT: {
+                case catalog::TypeId::INT: {
                   auto& lhs_v = static_cast<Int32&>(lhs.Get());
                   auto& rhs_v = static_cast<Int32&>(rhs.Get());
                   return lhs_v == rhs_v;
                 }
 
-                case catalog::SqlType::DATE: {
+                case catalog::TypeId::DATE: {
                   auto& lhs_v = static_cast<Date&>(lhs.Get());
                   auto& rhs_v = static_cast<Date&>(rhs.Get());
                   return lhs_v == rhs_v;
                 }
 
-                case catalog::SqlType::BIGINT: {
+                case catalog::TypeId::BIGINT: {
                   auto& lhs_v = static_cast<Int64&>(lhs.Get());
                   auto& rhs_v = static_cast<Int64&>(rhs.Get());
                   return lhs_v == rhs_v;
                 }
 
-                case catalog::SqlType::REAL: {
+                case catalog::TypeId::REAL: {
                   auto& lhs_v = static_cast<Float64&>(lhs.Get());
                   auto& rhs_v = static_cast<Float64&>(rhs.Get());
                   return lhs_v == rhs_v;
                 }
 
-                case catalog::SqlType::TEXT: {
+                case catalog::TypeId::TEXT: {
                   auto& lhs_v = static_cast<String&>(lhs.Get());
                   auto& rhs_v = static_cast<String&>(rhs.Get());
                   return lhs_v == rhs_v;

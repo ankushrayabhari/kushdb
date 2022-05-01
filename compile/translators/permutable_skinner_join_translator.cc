@@ -327,32 +327,32 @@ void PermutableSkinnerJoinTranslator::Produce() {
     child_translator.SchemaValues().ResetValues();
     for (int i = 0; i < schema.size(); i++) {
       switch (schema[i].Expr().Type().type_id) {
-        case catalog::SqlType::SMALLINT:
+        case catalog::TypeId::SMALLINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int16(program_, 0), proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::INT:
+        case catalog::TypeId::INT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int32(program_, 0), proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::DATE:
+        case catalog::TypeId::DATE:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Date(program_, runtime::Date::DateBuilder(2000, 1, 1)),
               proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::BIGINT:
+        case catalog::TypeId::BIGINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int64(program_, 0), proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::BOOLEAN:
+        case catalog::TypeId::BOOLEAN:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Bool(program_, false), proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::REAL:
+        case catalog::TypeId::REAL:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Float64(program_, 0), proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::TEXT:
+        case catalog::TypeId::TEXT:
           child_translator.SchemaValues().AddVariable(
               proxy::SQLValue(proxy::String::Global(program_, ""),
                               proxy::Bool(program_, false)));
@@ -964,32 +964,32 @@ void PermutableSkinnerJoinTranslator::Produce() {
     child_translator.SchemaValues().ResetValues();
     for (int i = 0; i < schema.size(); i++) {
       switch (schema[i].Expr().Type().type_id) {
-        case catalog::SqlType::SMALLINT:
+        case catalog::TypeId::SMALLINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int16(program_, 0), proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::INT:
+        case catalog::TypeId::INT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int32(program_, 0), proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::DATE:
+        case catalog::TypeId::DATE:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Date(program_, runtime::Date::DateBuilder(2000, 1, 1)),
               proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::BIGINT:
+        case catalog::TypeId::BIGINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int64(program_, 0), proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::BOOLEAN:
+        case catalog::TypeId::BOOLEAN:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Bool(program_, false), proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::REAL:
+        case catalog::TypeId::REAL:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Float64(program_, 0), proxy::Bool(program_, false)));
           break;
-        case catalog::SqlType::TEXT:
+        case catalog::TypeId::TEXT:
           child_translator.SchemaValues().AddVariable(
               proxy::SQLValue(proxy::String::Global(program_, ""),
                               proxy::Bool(program_, false)));

@@ -4,10 +4,10 @@
 
 namespace kush::catalog {
 
-enum class SqlType { SMALLINT, INT, BIGINT, REAL, DATE, TEXT, BOOLEAN };
+enum class TypeId { SMALLINT, INT, BIGINT, REAL, DATE, TEXT, BOOLEAN };
 
 struct Type {
-  SqlType type_id;
+  TypeId type_id;
   int32_t enum_id;
 
   std::string_view ToString() const { return magic_enum::enum_name(type_id); }
@@ -20,49 +20,49 @@ struct Type {
 
   static Type SmallInt() {
     return Type{
-        .type_id = SqlType::SMALLINT,
+        .type_id = TypeId::SMALLINT,
         .enum_id = 0,
     };
   }
 
   static Type Int() {
     return Type{
-        .type_id = SqlType::INT,
+        .type_id = TypeId::INT,
         .enum_id = 0,
     };
   }
 
   static Type BigInt() {
     return Type{
-        .type_id = SqlType::BIGINT,
+        .type_id = TypeId::BIGINT,
         .enum_id = 0,
     };
   }
 
   static Type Real() {
     return Type{
-        .type_id = SqlType::REAL,
+        .type_id = TypeId::REAL,
         .enum_id = 0,
     };
   }
 
   static Type Date() {
     return Type{
-        .type_id = SqlType::DATE,
+        .type_id = TypeId::DATE,
         .enum_id = 0,
     };
   }
 
   static Type Text() {
     return Type{
-        .type_id = SqlType::TEXT,
+        .type_id = TypeId::TEXT,
         .enum_id = 0,
     };
   }
 
   static Type Boolean() {
     return Type{
-        .type_id = SqlType::BOOLEAN,
+        .type_id = TypeId::BOOLEAN,
         .enum_id = 0,
     };
   }

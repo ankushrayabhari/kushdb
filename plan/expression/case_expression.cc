@@ -16,7 +16,7 @@ namespace kush::plan {
 catalog::Type CalculateType(const catalog::Type& cond,
                             const catalog::Type& left,
                             const catalog::Type& right) {
-  if (cond.type_id != catalog::SqlType::BOOLEAN) {
+  if (cond.type_id != catalog::TypeId::BOOLEAN) {
     throw std::runtime_error("Non-boolean condition");
   }
   if (left != right) {

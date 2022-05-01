@@ -25,44 +25,44 @@ constexpr std::string_view DiskColumnIndexOpenFnName(
 constexpr std::string_view DiskColumnIndexCloseFnName(
     "kush::runtime::ColumnIndex::Close");
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 std::string_view DiskColumnIndexGetBucketFnName() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
+  if constexpr (catalog::TypeId::SMALLINT == S) {
     return "kush::runtime::ColumnIndex::GetInt16";
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
+  } else if constexpr (catalog::TypeId::INT == S ||
+                       catalog::TypeId::DATE == S) {
     return "kush::runtime::ColumnIndex::GetInt32";
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
+  } else if constexpr (catalog::TypeId::BIGINT == S) {
     return "kush::runtime::ColumnIndex::GetInt64";
-  } else if constexpr (catalog::SqlType::REAL == S) {
+  } else if constexpr (catalog::TypeId::REAL == S) {
     return "kush::runtime::ColumnIndex::GetFloat64";
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+  } else if constexpr (catalog::TypeId::BOOLEAN == S) {
     return "kush::runtime::ColumnIndex::GetInt8";
-  } else if constexpr (catalog::SqlType::TEXT == S) {
+  } else if constexpr (catalog::TypeId::TEXT == S) {
     return "kush::runtime::ColumnIndex::GetText";
   }
 }
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 void* DiskColumnIndexGetBucketFn() {
-  if constexpr (catalog::SqlType::SMALLINT == S) {
+  if constexpr (catalog::TypeId::SMALLINT == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt16);
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
+  } else if constexpr (catalog::TypeId::INT == S ||
+                       catalog::TypeId::DATE == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt32);
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
+  } else if constexpr (catalog::TypeId::BIGINT == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt64);
-  } else if constexpr (catalog::SqlType::REAL == S) {
+  } else if constexpr (catalog::TypeId::REAL == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetFloat64);
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+  } else if constexpr (catalog::TypeId::BOOLEAN == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt8);
-  } else if constexpr (catalog::SqlType::TEXT == S) {
+  } else if constexpr (catalog::TypeId::TEXT == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetText);
   }
 }
 }  // namespace
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
                                     std::string_view path)
     : program_(program),
@@ -83,7 +83,7 @@ DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
                program.ConstI32(0), program.ConstI32(0),
                program.NullPtr(program.PointerType(program.I8Type()))}))) {}
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
                                     std::string_view path, khir::Value v)
     : program_(program),
@@ -98,30 +98,30 @@ DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
                program.ConstI32(0), program.ConstI32(0),
                program.NullPtr(program.PointerType(program.I8Type()))}))) {}
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 void DiskColumnIndex<S>::Init() {
   program_.Call(program_.GetFunction(DiskColumnIndexOpenFnName),
                 {value_, path_value_});
 }
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 void DiskColumnIndex<S>::Reset() {
   program_.Call(program_.GetFunction(DiskColumnIndexCloseFnName), {value_});
 }
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 ColumnIndexBucket DiskColumnIndex<S>::GetBucket(const IRValue& v) {
   program_.Call(program_.GetFunction(DiskColumnIndexGetBucketFnName<S>()),
                 {value_, v.Get(), get_value_});
   return ColumnIndexBucket(program_, get_value_);
 }
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 khir::Value DiskColumnIndex<S>::Serialize() {
   return program_.PointerCast(value_, program_.PointerType(program_.I8Type()));
 }
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 std::unique_ptr<ColumnIndex> DiskColumnIndex<S>::Regenerate(
     khir::ProgramBuilder& program, void* value) {
   return std::make_unique<DiskColumnIndex<S>>(
@@ -131,9 +131,9 @@ std::unique_ptr<ColumnIndex> DiskColumnIndex<S>::Regenerate(
           program.PointerType(program.GetStructType(DiskColumnIndexName))));
 }
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 void DiskColumnIndex<S>::ForwardDeclare(khir::ProgramBuilder& program) {
-  if constexpr (S == catalog::SqlType::SMALLINT) {
+  if constexpr (S == catalog::TypeId::SMALLINT) {
     auto col_idx_data = program.OpaqueType(DiskColumnIndexDataName);
     auto st = program.StructType(
         {program.PointerType(col_idx_data), program.I64Type()},
@@ -153,18 +153,18 @@ void DiskColumnIndex<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   auto struct_ptr = program.PointerType(st);
 
   std::optional<khir::Type> key_type;
-  if constexpr (catalog::SqlType::SMALLINT == S) {
+  if constexpr (catalog::TypeId::SMALLINT == S) {
     key_type = program.I16Type();
-  } else if constexpr (catalog::SqlType::INT == S ||
-                       catalog::SqlType::DATE == S) {
+  } else if constexpr (catalog::TypeId::INT == S ||
+                       catalog::TypeId::DATE == S) {
     key_type = program.I32Type();
-  } else if constexpr (catalog::SqlType::BIGINT == S) {
+  } else if constexpr (catalog::TypeId::BIGINT == S) {
     key_type = program.I64Type();
-  } else if constexpr (catalog::SqlType::REAL == S) {
+  } else if constexpr (catalog::TypeId::REAL == S) {
     key_type = program.F64Type();
-  } else if constexpr (catalog::SqlType::BOOLEAN == S) {
+  } else if constexpr (catalog::TypeId::BOOLEAN == S) {
     key_type = program.I1Type();
-  } else if constexpr (catalog::SqlType::TEXT == S) {
+  } else if constexpr (catalog::TypeId::TEXT == S) {
     key_type =
         program.PointerType(program.GetStructType(String::StringStructName));
   }
@@ -178,12 +178,12 @@ void DiskColumnIndex<S>::ForwardDeclare(khir::ProgramBuilder& program) {
       DiskColumnIndexGetBucketFn<S>());
 }
 
-template class DiskColumnIndex<catalog::SqlType::SMALLINT>;
-template class DiskColumnIndex<catalog::SqlType::INT>;
-template class DiskColumnIndex<catalog::SqlType::BIGINT>;
-template class DiskColumnIndex<catalog::SqlType::REAL>;
-template class DiskColumnIndex<catalog::SqlType::DATE>;
-template class DiskColumnIndex<catalog::SqlType::BOOLEAN>;
-template class DiskColumnIndex<catalog::SqlType::TEXT>;
+template class DiskColumnIndex<catalog::TypeId::SMALLINT>;
+template class DiskColumnIndex<catalog::TypeId::INT>;
+template class DiskColumnIndex<catalog::TypeId::BIGINT>;
+template class DiskColumnIndex<catalog::TypeId::REAL>;
+template class DiskColumnIndex<catalog::TypeId::DATE>;
+template class DiskColumnIndex<catalog::TypeId::BOOLEAN>;
+template class DiskColumnIndex<catalog::TypeId::TEXT>;
 
 }  // namespace kush::compile::proxy

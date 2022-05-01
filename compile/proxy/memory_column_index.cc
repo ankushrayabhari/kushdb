@@ -31,43 +31,43 @@ constexpr std::string_view GetEntryFnName(
 Bool CheckEq(const catalog::Type& type, const IRValue& lhs,
              const IRValue& rhs) {
   switch (type.type_id) {
-    case catalog::SqlType::BOOLEAN: {
+    case catalog::TypeId::BOOLEAN: {
       auto& lhs_v = static_cast<const Bool&>(lhs);
       auto& rhs_v = static_cast<const Bool&>(rhs);
       return lhs_v == rhs_v;
     }
 
-    case catalog::SqlType::SMALLINT: {
+    case catalog::TypeId::SMALLINT: {
       auto& lhs_v = static_cast<const Int16&>(lhs);
       auto& rhs_v = static_cast<const Int16&>(rhs);
       return lhs_v == rhs_v;
     }
 
-    case catalog::SqlType::INT: {
+    case catalog::TypeId::INT: {
       auto& lhs_v = static_cast<const Int32&>(lhs);
       auto& rhs_v = static_cast<const Int32&>(rhs);
       return lhs_v == rhs_v;
     }
 
-    case catalog::SqlType::DATE: {
+    case catalog::TypeId::DATE: {
       auto& lhs_v = static_cast<const Date&>(lhs);
       auto& rhs_v = static_cast<const Date&>(rhs);
       return lhs_v == rhs_v;
     }
 
-    case catalog::SqlType::BIGINT: {
+    case catalog::TypeId::BIGINT: {
       auto& lhs_v = static_cast<const Int64&>(lhs);
       auto& rhs_v = static_cast<const Int64&>(rhs);
       return lhs_v == rhs_v;
     }
 
-    case catalog::SqlType::REAL: {
+    case catalog::TypeId::REAL: {
       auto& lhs_v = static_cast<const Float64&>(lhs);
       auto& rhs_v = static_cast<const Float64&>(rhs);
       return lhs_v == rhs_v;
     }
 
-    case catalog::SqlType::TEXT: {
+    case catalog::TypeId::TEXT: {
       auto& lhs_v = static_cast<const String&>(lhs);
       auto& rhs_v = static_cast<const String&>(rhs);
       return lhs_v == rhs_v;
@@ -118,23 +118,23 @@ khir::Type MemoryColumnIndexPayload::ConstructPayloadFormat(
 
   // key
   switch (type.type_id) {
-    case catalog::SqlType::SMALLINT:
+    case catalog::TypeId::SMALLINT:
       fields.push_back(program.I16Type());
       break;
-    case catalog::SqlType::INT:
-    case catalog::SqlType::DATE:
+    case catalog::TypeId::INT:
+    case catalog::TypeId::DATE:
       fields.push_back(program.I32Type());
       break;
-    case catalog::SqlType::BIGINT:
+    case catalog::TypeId::BIGINT:
       fields.push_back(program.I64Type());
       break;
-    case catalog::SqlType::REAL:
+    case catalog::TypeId::REAL:
       fields.push_back(program.F64Type());
       break;
-    case catalog::SqlType::TEXT:
+    case catalog::TypeId::TEXT:
       fields.push_back(program.GetStructType(String::StringStructName));
       break;
-    case catalog::SqlType::BOOLEAN:
+    case catalog::TypeId::BOOLEAN:
       fields.push_back(program.I8Type());
       break;
   }
@@ -164,23 +164,23 @@ void MemoryColumnIndexPayload::Initialize(Int64 hash, const IRValue& key,
   {
     auto ptr = program_.StaticGEP(type_, value_, {0, 1});
     switch (key_type_.type_id) {
-      case catalog::SqlType::SMALLINT:
+      case catalog::TypeId::SMALLINT:
         program_.StoreI16(ptr, key.Get());
         break;
-      case catalog::SqlType::DATE:
-      case catalog::SqlType::INT:
+      case catalog::TypeId::DATE:
+      case catalog::TypeId::INT:
         program_.StoreI32(ptr, key.Get());
         break;
-      case catalog::SqlType::BIGINT:
+      case catalog::TypeId::BIGINT:
         program_.StoreI64(ptr, key.Get());
         break;
-      case catalog::SqlType::REAL:
+      case catalog::TypeId::REAL:
         program_.StoreF64(ptr, key.Get());
         break;
-      case catalog::SqlType::TEXT:
+      case catalog::TypeId::TEXT:
         String(program_, ptr).Copy(dynamic_cast<const String&>(key));
         break;
-      case catalog::SqlType::BOOLEAN:
+      case catalog::TypeId::BOOLEAN:
         program_.StoreI8(ptr, program_.I8ZextI1(key.Get()));
         break;
     }
@@ -192,18 +192,18 @@ void MemoryColumnIndexPayload::Initialize(Int64 hash, const IRValue& key,
 std::unique_ptr<IRValue> MemoryColumnIndexPayload::GetKey() {
   auto ptr = program_.StaticGEP(type_, value_, {0, 1});
   switch (key_type_.type_id) {
-    case catalog::SqlType::SMALLINT:
+    case catalog::TypeId::SMALLINT:
       return Int16(program_, program_.LoadI16(ptr)).ToPointer();
-    case catalog::SqlType::DATE:
-    case catalog::SqlType::INT:
+    case catalog::TypeId::DATE:
+    case catalog::TypeId::INT:
       return Int32(program_, program_.LoadI32(ptr)).ToPointer();
-    case catalog::SqlType::BIGINT:
+    case catalog::TypeId::BIGINT:
       return Int64(program_, program_.LoadI64(ptr)).ToPointer();
-    case catalog::SqlType::REAL:
+    case catalog::TypeId::REAL:
       return Float64(program_, program_.LoadF64(ptr)).ToPointer();
-    case catalog::SqlType::TEXT:
+    case catalog::TypeId::TEXT:
       return String(program_, ptr).ToPointer();
-    case catalog::SqlType::BOOLEAN:
+    case catalog::TypeId::BOOLEAN:
       return Bool(program_, program_.LoadI8(ptr)).ToPointer();
   }
 }

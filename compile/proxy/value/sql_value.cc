@@ -58,19 +58,19 @@ SQLValue::SQLValue(std::unique_ptr<IRValue> value, const catalog::Type& type,
 
 std::unique_ptr<IRValue> CopyIRValue(const catalog::Type& t, IRValue& v) {
   switch (t.type_id) {
-    case catalog::SqlType::BOOLEAN:
+    case catalog::TypeId::BOOLEAN:
       return dynamic_cast<Bool&>(v).ToPointer();
-    case catalog::SqlType::SMALLINT:
+    case catalog::TypeId::SMALLINT:
       return dynamic_cast<Int16&>(v).ToPointer();
-    case catalog::SqlType::INT:
+    case catalog::TypeId::INT:
       return dynamic_cast<Int32&>(v).ToPointer();
-    case catalog::SqlType::BIGINT:
+    case catalog::TypeId::BIGINT:
       return dynamic_cast<Int64&>(v).ToPointer();
-    case catalog::SqlType::DATE:
+    case catalog::TypeId::DATE:
       return dynamic_cast<Date&>(v).ToPointer();
-    case catalog::SqlType::REAL:
+    case catalog::TypeId::REAL:
       return dynamic_cast<Float64&>(v).ToPointer();
-    case catalog::SqlType::TEXT:
+    case catalog::TypeId::TEXT:
       return dynamic_cast<String&>(v).ToPointer();
   }
 

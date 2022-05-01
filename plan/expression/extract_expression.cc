@@ -12,8 +12,8 @@
 
 namespace kush::plan {
 
-catalog::Type CalculateExtractSqlType(const catalog::Type& child_type) {
-  if (child_type.type_id != catalog::SqlType::DATE) {
+catalog::Type CalculateExtractTypeId(const catalog::Type& child_type) {
+  if (child_type.type_id != catalog::TypeId::DATE) {
     throw std::runtime_error("Non-date child type for extract.");
   }
   return catalog::Type::Int();
@@ -21,7 +21,7 @@ catalog::Type CalculateExtractSqlType(const catalog::Type& child_type) {
 
 ExtractExpression::ExtractExpression(std::unique_ptr<Expression> child,
                                      ExtractValue value)
-    : UnaryExpression(CalculateExtractSqlType(child->Type()), child->Nullable(),
+    : UnaryExpression(CalculateExtractTypeId(child->Type()), child->Nullable(),
                       std::move(child)),
       value_to_extract_(value) {}
 

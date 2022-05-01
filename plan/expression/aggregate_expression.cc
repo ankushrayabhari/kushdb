@@ -12,23 +12,23 @@
 
 namespace kush::plan {
 
-using SqlType = catalog::SqlType;
+using TypeId = catalog::TypeId;
 
-catalog::Type CalculateAggSqlType(AggregateType type, const Expression& expr) {
+catalog::Type CalculateAggTypeId(AggregateType type, const Expression& expr) {
   auto child_type = expr.Type();
   auto child_type_id = child_type.type_id;
   switch (type) {
     case AggregateType::SUM:
-      if (child_type_id == SqlType::INT || child_type_id == SqlType::SMALLINT ||
-          child_type_id == SqlType::BIGINT || child_type_id == SqlType::REAL) {
+      if (child_type_id == TypeId::INT || child_type_id == TypeId::SMALLINT ||
+          child_type_id == TypeId::BIGINT || child_type_id == TypeId::REAL) {
         return child_type;
       } else {
         throw std::runtime_error("Invalid input type for sum aggregate");
       }
 
     case AggregateType::AVG:
-      if (child_type_id == SqlType::INT || child_type_id == SqlType::SMALLINT ||
-          child_type_id == SqlType::BIGINT || child_type_id == SqlType::REAL) {
+      if (child_type_id == TypeId::INT || child_type_id == TypeId::SMALLINT ||
+          child_type_id == TypeId::BIGINT || child_type_id == TypeId::REAL) {
         return catalog::Type::Real();
       } else {
         throw std::runtime_error("Invalid input type for avg aggregate");
@@ -39,9 +39,9 @@ catalog::Type CalculateAggSqlType(AggregateType type, const Expression& expr) {
 
     case AggregateType::MIN:
     case AggregateType::MAX:
-      if (child_type_id == SqlType::INT || child_type_id == SqlType::SMALLINT ||
-          child_type_id == SqlType::BIGINT || child_type_id == SqlType::REAL ||
-          child_type_id == SqlType::DATE || child_type_id == SqlType::TEXT) {
+      if (child_type_id == TypeId::INT || child_type_id == TypeId::SMALLINT ||
+          child_type_id == TypeId::BIGINT || child_type_id == TypeId::REAL ||
+          child_type_id == TypeId::DATE || child_type_id == TypeId::TEXT) {
         return child_type;
       } else {
         throw std::runtime_error("Invalid input type for max/min aggregate");
@@ -51,7 +51,7 @@ catalog::Type CalculateAggSqlType(AggregateType type, const Expression& expr) {
 
 AggregateExpression::AggregateExpression(AggregateType type,
                                          std::unique_ptr<Expression> child)
-    : UnaryExpression(CalculateAggSqlType(type, *child),
+    : UnaryExpression(CalculateAggTypeId(type, *child),
                       type != AggregateType::COUNT, std::move(child)),
       type_(type) {}
 

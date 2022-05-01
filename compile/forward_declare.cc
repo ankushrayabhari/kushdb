@@ -36,21 +36,21 @@ void ForwardDeclare(khir::ProgramBuilder& program) {
   proxy::Printer::ForwardDeclare(program);
 
   // Forward declare the column data implementations.
-  proxy::ColumnData<catalog::SqlType::SMALLINT>::ForwardDeclare(program);
-  proxy::ColumnData<catalog::SqlType::INT>::ForwardDeclare(program);
-  proxy::ColumnData<catalog::SqlType::BIGINT>::ForwardDeclare(program);
-  proxy::ColumnData<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
-  proxy::ColumnData<catalog::SqlType::REAL>::ForwardDeclare(program);
-  proxy::ColumnData<catalog::SqlType::TEXT>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::TypeId::SMALLINT>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::TypeId::INT>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::TypeId::BIGINT>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::TypeId::BOOLEAN>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::TypeId::REAL>::ForwardDeclare(program);
+  proxy::ColumnData<catalog::TypeId::TEXT>::ForwardDeclare(program);
 
   // Forward declare the column index implementations
   proxy::ColumnIndexBucket::ForwardDeclare(program);
-  proxy::DiskColumnIndex<catalog::SqlType::SMALLINT>::ForwardDeclare(program);
-  proxy::DiskColumnIndex<catalog::SqlType::INT>::ForwardDeclare(program);
-  proxy::DiskColumnIndex<catalog::SqlType::BIGINT>::ForwardDeclare(program);
-  proxy::DiskColumnIndex<catalog::SqlType::BOOLEAN>::ForwardDeclare(program);
-  proxy::DiskColumnIndex<catalog::SqlType::REAL>::ForwardDeclare(program);
-  proxy::DiskColumnIndex<catalog::SqlType::TEXT>::ForwardDeclare(program);
+  proxy::DiskColumnIndex<catalog::TypeId::SMALLINT>::ForwardDeclare(program);
+  proxy::DiskColumnIndex<catalog::TypeId::INT>::ForwardDeclare(program);
+  proxy::DiskColumnIndex<catalog::TypeId::BIGINT>::ForwardDeclare(program);
+  proxy::DiskColumnIndex<catalog::TypeId::BOOLEAN>::ForwardDeclare(program);
+  proxy::DiskColumnIndex<catalog::TypeId::REAL>::ForwardDeclare(program);
+  proxy::DiskColumnIndex<catalog::TypeId::TEXT>::ForwardDeclare(program);
   proxy::MemoryColumnIndex::ForwardDeclare(program);
 
   proxy::TupleIdxTable::ForwardDeclare(program);

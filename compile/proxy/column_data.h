@@ -21,7 +21,7 @@ class Iterable {
                                                khir::Value value) = 0;
 };
 
-template <catalog::SqlType S>
+template <catalog::TypeId S>
 class ColumnData : public Iterable {
  public:
   ColumnData(khir::ProgramBuilder& program, std::string_view path,

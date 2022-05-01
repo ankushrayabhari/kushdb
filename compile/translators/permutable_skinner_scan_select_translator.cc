@@ -87,48 +87,45 @@ PermutableSkinnerScanSelectTranslator::GenerateBuffer() {
   column_data.reserve(num_cols);
   null_data.reserve(num_cols);
   for (const auto& column : cols) {
-    using catalog::SqlType;
+    using catalog::TypeId;
     auto type = column.Expr().Type();
     auto path = table[column.Name()].Path();
     switch (type.type_id) {
-      case SqlType::SMALLINT:
+      case TypeId::SMALLINT:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::SMALLINT>>(program_,
-                                                                   path, type));
+            std::make_unique<proxy::ColumnData<TypeId::SMALLINT>>(program_,
+                                                                  path, type));
         break;
-      case SqlType::INT:
-        column_data.push_back(std::make_unique<proxy::ColumnData<SqlType::INT>>(
+      case TypeId::INT:
+        column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::INT>>(
             program_, path, type));
         break;
-      case SqlType::BIGINT:
+      case TypeId::BIGINT:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::BIGINT>>(program_, path,
+            std::make_unique<proxy::ColumnData<TypeId::BIGINT>>(program_, path,
+                                                                type));
+        break;
+      case TypeId::REAL:
+        column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::REAL>>(
+            program_, path, type));
+        break;
+      case TypeId::DATE:
+        column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::DATE>>(
+            program_, path, type));
+        break;
+      case TypeId::TEXT:
+        column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::TEXT>>(
+            program_, path, type));
+        break;
+      case TypeId::BOOLEAN:
+        column_data.push_back(
+            std::make_unique<proxy::ColumnData<TypeId::BOOLEAN>>(program_, path,
                                                                  type));
-        break;
-      case SqlType::REAL:
-        column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::REAL>>(program_, path,
-                                                               type));
-        break;
-      case SqlType::DATE:
-        column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::DATE>>(program_, path,
-                                                               type));
-        break;
-      case SqlType::TEXT:
-        column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::TEXT>>(program_, path,
-                                                               type));
-        break;
-      case SqlType::BOOLEAN:
-        column_data.push_back(
-            std::make_unique<proxy::ColumnData<SqlType::BOOLEAN>>(program_,
-                                                                  path, type));
         break;
     }
 
     if (table[column.Name()].Nullable()) {
-      null_data.push_back(std::make_unique<proxy::ColumnData<SqlType::BOOLEAN>>(
+      null_data.push_back(std::make_unique<proxy::ColumnData<TypeId::BOOLEAN>>(
           program_, table[column.Name()].NullPath(), catalog::Type::Boolean()));
     } else {
       null_data.push_back(nullptr);
@@ -154,29 +151,29 @@ PermutableSkinnerScanSelectTranslator::GenerateIndex(
   const auto& column = cols[col_idx];
   auto type = column.Expr().Type();
   auto path = table[column.Name()].IndexPath();
-  using catalog::SqlType;
+  using catalog::TypeId;
   switch (type.type_id) {
-    case SqlType::SMALLINT:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::SMALLINT>>(
-          program, path);
-    case SqlType::INT:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::INT>>(program,
-                                                                    path);
-    case SqlType::BIGINT:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::BIGINT>>(program,
-                                                                       path);
-    case SqlType::REAL:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::REAL>>(program,
-                                                                     path);
-    case SqlType::DATE:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::DATE>>(program,
-                                                                     path);
-    case SqlType::TEXT:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::TEXT>>(program,
-                                                                     path);
-    case SqlType::BOOLEAN:
-      return std::make_unique<proxy::DiskColumnIndex<SqlType::BOOLEAN>>(program,
+    case TypeId::SMALLINT:
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::SMALLINT>>(program,
                                                                         path);
+    case TypeId::INT:
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::INT>>(program,
+                                                                   path);
+    case TypeId::BIGINT:
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::BIGINT>>(program,
+                                                                      path);
+    case TypeId::REAL:
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::REAL>>(program,
+                                                                    path);
+    case TypeId::DATE:
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::DATE>>(program,
+                                                                    path);
+    case TypeId::TEXT:
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::TEXT>>(program,
+                                                                    path);
+    case TypeId::BOOLEAN:
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::BOOLEAN>>(program,
+                                                                       path);
   }
 }
 
@@ -227,32 +224,32 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
   this->virtual_values_.ResetValues();
   for (int i = 0; i < scan_schema_columns.size(); i++) {
     switch (scan_schema_columns[i].Expr().Type().type_id) {
-      case catalog::SqlType::SMALLINT:
+      case catalog::TypeId::SMALLINT:
         this->virtual_values_.AddVariable(proxy::SQLValue(
             proxy::Int16(program_, 0), proxy::Bool(program_, false)));
         break;
-      case catalog::SqlType::INT:
+      case catalog::TypeId::INT:
         this->virtual_values_.AddVariable(proxy::SQLValue(
             proxy::Int32(program_, 0), proxy::Bool(program_, false)));
         break;
-      case catalog::SqlType::DATE:
+      case catalog::TypeId::DATE:
         this->virtual_values_.AddVariable(proxy::SQLValue(
             proxy::Date(program_, runtime::Date::DateBuilder(2000, 1, 1)),
             proxy::Bool(program_, false)));
         break;
-      case catalog::SqlType::BIGINT:
+      case catalog::TypeId::BIGINT:
         this->virtual_values_.AddVariable(proxy::SQLValue(
             proxy::Int64(program_, 0), proxy::Bool(program_, false)));
         break;
-      case catalog::SqlType::BOOLEAN:
+      case catalog::TypeId::BOOLEAN:
         this->virtual_values_.AddVariable(proxy::SQLValue(
             proxy::Bool(program_, false), proxy::Bool(program_, false)));
         break;
-      case catalog::SqlType::REAL:
+      case catalog::TypeId::REAL:
         this->virtual_values_.AddVariable(proxy::SQLValue(
             proxy::Float64(program_, 0), proxy::Bool(program_, false)));
         break;
-      case catalog::SqlType::TEXT:
+      case catalog::TypeId::TEXT:
         this->virtual_values_.AddVariable(proxy::SQLValue(
             proxy::String::Global(program_, ""), proxy::Bool(program_, false)));
         break;

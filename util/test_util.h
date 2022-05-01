@@ -112,7 +112,7 @@ bool CHECK_EQ_TBL(
       const auto& o_value = split_o[j];
 
       switch (columns[j].Expr().Type().type_id) {
-        case catalog::SqlType::REAL: {
+        case catalog::TypeId::REAL: {
           double e_value_as_d = std::stod(e_value);
           double o_value_as_d = std::stod(o_value);
           if (fabs(e_value_as_d - o_value_as_d) >= threshold) {
@@ -125,7 +125,7 @@ bool CHECK_EQ_TBL(
           break;
         }
 
-        case catalog::SqlType::TEXT: {
+        case catalog::TypeId::TEXT: {
           std::string_view expected_without_quotes = e_value;
           if (expected_without_quotes.size() >= 2 &&
               expected_without_quotes.front() == '\"' &&
@@ -144,11 +144,11 @@ bool CHECK_EQ_TBL(
           break;
         }
 
-        case catalog::SqlType::SMALLINT:
-        case catalog::SqlType::INT:
-        case catalog::SqlType::BIGINT:
-        case catalog::SqlType::DATE:
-        case catalog::SqlType::BOOLEAN:
+        case catalog::TypeId::SMALLINT:
+        case catalog::TypeId::INT:
+        case catalog::TypeId::BIGINT:
+        case catalog::TypeId::DATE:
+        case catalog::TypeId::BOOLEAN:
           if (e_value != o_value) {
             std::cerr << "Expected column equal (" << i << "," << j << ")"
                       << std::endl;

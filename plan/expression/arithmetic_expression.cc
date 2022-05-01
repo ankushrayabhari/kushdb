@@ -72,7 +72,7 @@ catalog::Type CalculateUnaryType(UnaryArithmeticExpressionType type,
                                  const catalog::Type& child_type) {
   switch (type) {
     case UnaryArithmeticExpressionType::NOT: {
-      if (child_type.type_id != catalog::SqlType::BOOLEAN) {
+      if (child_type.type_id != catalog::TypeId::BOOLEAN) {
         throw std::runtime_error("Not boolean child");
       }
       return catalog::Type::Boolean();
@@ -122,7 +122,7 @@ nlohmann::json UnaryArithmeticExpression::ToJson() const {
 }
 
 catalog::Type CalculateRegexpType(const catalog::Type& child_type) {
-  if (child_type.type_id != catalog::SqlType::TEXT) {
+  if (child_type.type_id != catalog::TypeId::TEXT) {
     throw std::runtime_error("Invalid child type for LIKE. Expected text.");
   }
   return catalog::Type::Boolean();

@@ -56,31 +56,31 @@ LiteralExpression::LiteralExpression(bool value)
 LiteralExpression::LiteralExpression(const catalog::Type& type)
     : Expression(type, true, {}), null_(true) {
   switch (type.type_id) {
-    case catalog::SqlType::BOOLEAN:
+    case catalog::TypeId::BOOLEAN:
       value_ = false;
       break;
 
-    case catalog::SqlType::SMALLINT:
+    case catalog::TypeId::SMALLINT:
       value_ = (int16_t)0;
       break;
 
-    case catalog::SqlType::INT:
+    case catalog::TypeId::INT:
       value_ = (int32_t)0;
       break;
 
-    case catalog::SqlType::BIGINT:
+    case catalog::TypeId::BIGINT:
       value_ = (int64_t)0;
       break;
 
-    case catalog::SqlType::REAL:
+    case catalog::TypeId::REAL:
       value_ = 0.0;
       break;
 
-    case catalog::SqlType::TEXT:
+    case catalog::TypeId::TEXT:
       value_ = std::string();
       break;
 
-    case catalog::SqlType::DATE:
+    case catalog::TypeId::DATE:
       value_ = runtime::Date::DateBuilder(2000, 1, 1);
       break;
   }

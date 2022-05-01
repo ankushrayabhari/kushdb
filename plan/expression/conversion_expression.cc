@@ -12,10 +12,10 @@
 
 namespace kush::plan {
 
-catalog::Type CalculateConvSqlType(const catalog::Type& child_type) {
+catalog::Type CalculateConvTypeId(const catalog::Type& child_type) {
   auto id = child_type.type_id;
-  if (id != catalog::SqlType::BIGINT && id != catalog::SqlType::INT &&
-      id != catalog::SqlType::SMALLINT) {
+  if (id != catalog::TypeId::BIGINT && id != catalog::TypeId::INT &&
+      id != catalog::TypeId::SMALLINT) {
     throw std::runtime_error("Non-integral child type for conversion.");
   }
   return catalog::Type::Real();
@@ -23,7 +23,7 @@ catalog::Type CalculateConvSqlType(const catalog::Type& child_type) {
 
 IntToFloatConversionExpression::IntToFloatConversionExpression(
     std::unique_ptr<Expression> child)
-    : UnaryExpression(CalculateConvSqlType(child->Type()), child->Nullable(),
+    : UnaryExpression(CalculateConvTypeId(child->Type()), child->Nullable(),
                       std::move(child)) {}
 
 nlohmann::json IntToFloatConversionExpression::ToJson() const {
