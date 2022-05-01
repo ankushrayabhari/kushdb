@@ -7,7 +7,6 @@ namespace kush::compile::proxy {
 
 namespace {
 constexpr std::string_view CopyFnName("kush::runtime::String::Copy");
-constexpr std::string_view FreeFnName("kush::runtime::String::Free");
 constexpr std::string_view ContainsFnName("kush::runtime::String::Contains");
 constexpr std::string_view LikeFnName("kush::runtime::String::Like");
 constexpr std::string_view EndsWithFnName("kush::runtime::String::EndsWith");
@@ -28,12 +27,20 @@ constexpr std::string_view HashFnName("kush::runtime::String::Hash");
 String::String(khir::ProgramBuilder& program, const khir::Value& value)
     : program_(program), value_(value) {}
 
-void String::Copy(const String& rhs) const {
-  program_.Call(program_.GetFunction(CopyFnName), {value_, rhs.Get()});
+String& String::operator=(const String& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
 }
 
-void String::Reset() const {
-  program_.Call(program_.GetFunction(FreeFnName), {value_});
+String& String::operator=(String&& rhs) {
+  value_ = rhs.value_;
+  assert(&program_ == &rhs.program_);
+  return *this;
+}
+
+void String::Copy(const String& rhs) const {
+  program_.Call(program_.GetFunction(CopyFnName), {value_, rhs.Get()});
 }
 
 Bool String::Contains(const String& rhs) const {
@@ -133,9 +140,6 @@ void String::ForwardDeclare(khir::ProgramBuilder& program) {
   program.DeclareExternalFunction(
       CopyFnName, program.VoidType(), {struct_ptr, struct_ptr},
       reinterpret_cast<void*>(runtime::String::Copy));
-  program.DeclareExternalFunction(
-      FreeFnName, program.VoidType(), {struct_ptr},
-      reinterpret_cast<void*>(runtime::String::Free));
   program.DeclareExternalFunction(
       ContainsFnName, program.I1Type(), {struct_ptr, struct_ptr},
       reinterpret_cast<void*>(runtime::String::Contains));
