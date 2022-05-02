@@ -76,6 +76,11 @@ std::unique_ptr<kush::plan::LiteralExpression> Literal(T t) {
   return std::make_unique<kush::plan::LiteralExpression>(t);
 }
 
+std::unique_ptr<kush::plan::LiteralExpression> Literal(int32_t t,
+                                                       std::string_view s) {
+  return std::make_unique<kush::plan::LiteralExpression>(t, s);
+}
+
 std::unique_ptr<kush::plan::LiteralExpression> Literal(int32_t y, int32_t m,
                                                        int32_t d) {
   return std::make_unique<kush::plan::LiteralExpression>(

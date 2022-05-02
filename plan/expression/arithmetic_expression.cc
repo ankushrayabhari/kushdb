@@ -18,31 +18,39 @@ catalog::Type CalculateBinaryType(BinaryArithmeticExpressionType type,
   if (left.type_id == catalog::TypeId::ENUM) {
     switch (type) {
       case BinaryArithmeticExpressionType::EQ:
-      case BinaryArithmeticExpressionType::NEQ:
+      case BinaryArithmeticExpressionType::NEQ: {
         if (left != right) {
           throw std::runtime_error("Require same type arguments");
         }
+        return catalog::Type::Boolean();
+      }
 
       case BinaryArithmeticExpressionType::LT:
       case BinaryArithmeticExpressionType::LEQ:
       case BinaryArithmeticExpressionType::GT:
-      case BinaryArithmeticExpressionType::GEQ:
-        if (right.type_id != catalog::TypeId::TEXT || left != right) {
+      case BinaryArithmeticExpressionType::GEQ: {
+        if (right.type_id != catalog::TypeId::TEXT && left != right) {
           throw std::runtime_error("Require same type arguments");
         }
         return catalog::Type::Boolean();
+      }
 
       case BinaryArithmeticExpressionType::STARTS_WITH:
       case BinaryArithmeticExpressionType::ENDS_WITH:
-      case BinaryArithmeticExpressionType::CONTAINS:
-        if (right.type_id != catalog::TypeId::TEXT || left != right) {
+      case BinaryArithmeticExpressionType::CONTAINS: {
+        if (right.type_id != catalog::TypeId::TEXT && left != right) {
           throw std::runtime_error("Require same type arguments");
         }
         return catalog::Type::Boolean();
+      }
 
       default:
         throw std::runtime_error("Invalid expr type");
     }
+  }
+
+  if (right.type_id == catalog::TypeId::ENUM) {
+    throw std::runtime_error("not supported yet");
   }
 
   if (left != right) {
