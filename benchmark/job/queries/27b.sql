@@ -16,7 +16,7 @@ FROM complete_cast AS cc,
 WHERE cct1.kind IN ('cast',
                     'crew')
   AND cct2.kind = 'complete'
-  AND cn.country_code !='[pl]'
+  AND cn.country_code <> '[pl]'
   AND (cn.name LIKE '%Film%'
        OR cn.name LIKE '%Warner%')
   AND ct.kind ='production companies'
@@ -49,4 +49,3 @@ WHERE cct1.kind IN ('cast',
   AND mk.movie_id = cc.movie_id
   AND mc.movie_id = cc.movie_id
   AND mi.movie_id = cc.movie_id;
-
