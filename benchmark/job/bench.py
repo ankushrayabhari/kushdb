@@ -34,11 +34,11 @@ def bench(database, flags):
 
 
 if __name__ == "__main__":
-    bench('kushdb ASM (Join Permute)', ['--backend=asm', '--skinner_join=permute', '--skinner_scan_select=none'])
-    bench('kushdb ASM (Join Recompile)', ['--backend=asm', '--skinner_join=recompile', '--skinner_scan_select=none'])
-    bench('kushdb LLVM (Join Permute)', ['--backend=llvm', '--skinner_join=permute', '--skinner_scan_select=none'])
-    bench('kushdb LLVM (Join Recompile)', ['--backend=llvm', '--skinner_join=recompile', '--skinner_scan_select=none'])
-    #bench('kushdb ASM (Join Permute|Scan/Select Permute)', ['--backend=asm', '--skinner_join=permute', '--skinner_scan_select=permute'])
-    #bench('kushdb ASM (Join Recompile|Scan/Select Permute)', ['--backend=asm', '--skinner_join=recompile', '--skinner_scan_select=permute'])
-    #bench('kushdb LLVM (Join Permute|Scan/Select Permute)', ['--backend=llvm', '--skinner_join=permute', '--skinner_scan_select=permute'])
-    #bench('kushdb LLVM (Join Recompile|Scan/Select Permute)', ['--backend=llvm', '--skinner_join=recompile', '--skinner_scan_select=permute'])
+    bench('kushdb ASM (Join Permute)', ['--backend=asm', '--skinner_join=permute', '--use_dictionary=false'])
+    bench('kushdb ASM (Join Recompile)', ['--backend=asm', '--skinner_join=recompile', '--use_dictionary=false'])
+    bench('kushdb LLVM (Join Permute)', ['--backend=llvm', '--skinner_join=permute', '--use_dictionary=false'])
+    bench('kushdb LLVM (Join Recompile)', ['--backend=llvm', '--skinner_join=recompile', '--use_dictionary=false'])
+    bench('kushdb DC ASM (Join Permute)', ['--backend=asm', '--skinner_join=permute', '--use_dictionary=true'])
+    bench('kushdb DC ASM (Join Recompile)', ['--backend=asm', '--skinner_join=recompile', '--use_dictionary=true'])
+    bench('kushdb DC LLVM (Join Permute)', ['--backend=llvm', '--skinner_join=permute', '--use_dictionary=true'])
+    bench('kushdb DC LLVM (Join Recompile)', ['--backend=llvm', '--skinner_join=recompile', '--use_dictionary=true'])

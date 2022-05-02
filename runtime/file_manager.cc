@@ -23,6 +23,7 @@ FileInformation FileManager::Open(std::string_view path) {
   if (!info_.contains(path)) {
     int fd = open(std::string(path).c_str(), O_RDONLY);
     if (fd == -1) {
+      std::cerr << path << std::endl;
       throw std::system_error(
           errno, std::generic_category(),
           std::string(__FILE__) + ":" + std::to_string(__LINE__));
@@ -30,6 +31,7 @@ FileInformation FileManager::Open(std::string_view path) {
 
     struct stat sb;
     if (fstat(fd, &sb) == -1) {
+      std::cerr << path << std::endl;
       throw std::system_error(
           errno, std::generic_category(),
           std::string(__FILE__) + ":" + std::to_string(__LINE__));
@@ -38,12 +40,14 @@ FileInformation FileManager::Open(std::string_view path) {
 
     void* data = malloc(file_length);
     if (pread(fd, data, file_length, 0) < 0) {
+      std::cerr << path << std::endl;
       throw std::system_error(
           errno, std::generic_category(),
           std::string(__FILE__) + ":" + std::to_string(__LINE__));
     }
 
     if (close(fd) != 0) {
+      std::cerr << path << std::endl;
       throw std::system_error(
           errno, std::generic_category(),
           std::string(__FILE__) + ":" + std::to_string(__LINE__));

@@ -8,6 +8,7 @@ filegroup(
         [
             "data/*.kdb",
             "data/*.kdbindex",
+            "data/*.kdbenum",
         ],
         allow_empty = True,
     ),

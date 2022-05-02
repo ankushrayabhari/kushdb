@@ -170,15 +170,53 @@ std::unique_ptr<Expression> Planner::Plan(
           BinaryArithmeticExpressionType::OR, Plan(expr.LeftChild()),
           Plan(expr.RightChild()));
 
-    case parse::BinaryArithmeticExpressionType::EQ:
-      return std::make_unique<BinaryArithmeticExpression>(
-          BinaryArithmeticExpressionType::EQ, Plan(expr.LeftChild()),
-          Plan(expr.RightChild()));
+    case parse::BinaryArithmeticExpressionType::EQ: {
+      auto left = Plan(expr.LeftChild());
+      auto right = Plan(expr.RightChild());
 
-    case parse::BinaryArithmeticExpressionType::NEQ:
+      if (left->Type().type_id == catalog::TypeId::ENUM) {
+        if (auto r =
+                dynamic_cast<kush::plan::LiteralExpression*>(right.get())) {
+          std::string literal;
+          r->Visit(
+              nullptr, nullptr, nullptr, nullptr,
+              [&](auto x, bool n) { literal = x; }, nullptr, nullptr, nullptr);
+          auto r_rewrite = std::make_unique<LiteralExpression>(
+              left->Type().enum_id, literal);
+          return std::make_unique<kush::plan::BinaryArithmeticExpression>(
+              kush::plan::BinaryArithmeticExpressionType::EQ, std::move(left),
+              std::move(r_rewrite));
+        }
+      }
+
       return std::make_unique<BinaryArithmeticExpression>(
-          BinaryArithmeticExpressionType::NEQ, Plan(expr.LeftChild()),
-          Plan(expr.RightChild()));
+          BinaryArithmeticExpressionType::EQ, std::move(left),
+          std::move(right));
+    }
+
+    case parse::BinaryArithmeticExpressionType::NEQ: {
+      auto left = Plan(expr.LeftChild());
+      auto right = Plan(expr.RightChild());
+
+      if (left->Type().type_id == catalog::TypeId::ENUM) {
+        if (auto r =
+                dynamic_cast<kush::plan::LiteralExpression*>(right.get())) {
+          std::string literal;
+          r->Visit(
+              nullptr, nullptr, nullptr, nullptr,
+              [&](auto x, bool n) { literal = x; }, nullptr, nullptr, nullptr);
+          auto r_rewrite = std::make_unique<LiteralExpression>(
+              left->Type().enum_id, literal);
+          return std::make_unique<kush::plan::BinaryArithmeticExpression>(
+              kush::plan::BinaryArithmeticExpressionType::NEQ, std::move(left),
+              std::move(r_rewrite));
+        }
+      }
+
+      return std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::NEQ, std::move(left),
+          std::move(right));
+    }
 
     case parse::BinaryArithmeticExpressionType::LT:
       return std::make_unique<BinaryArithmeticExpression>(
@@ -299,8 +337,29 @@ std::unique_ptr<Expression> Planner::Plan(const parse::InExpression& expr) {
   std::unique_ptr<Expression> result;
 
   for (auto x : expr.Cases()) {
-    auto eq = std::make_unique<BinaryArithmeticExpression>(
-        BinaryArithmeticExpressionType::EQ, Plan(expr.Base()), Plan(x.get()));
+    auto left = Plan(expr.Base());
+    auto right = Plan(x.get());
+
+    std::unique_ptr<Expression> eq;
+    if (left->Type().type_id == catalog::TypeId::ENUM) {
+      if (auto r = dynamic_cast<kush::plan::LiteralExpression*>(right.get())) {
+        std::string literal;
+        r->Visit(
+            nullptr, nullptr, nullptr, nullptr,
+            [&](auto x, bool n) { literal = x; }, nullptr, nullptr, nullptr);
+        auto r_rewrite =
+            std::make_unique<LiteralExpression>(left->Type().enum_id, literal);
+        eq = std::make_unique<kush::plan::BinaryArithmeticExpression>(
+            kush::plan::BinaryArithmeticExpressionType::EQ, std::move(left),
+            std::move(r_rewrite));
+      }
+    }
+
+    if (eq == nullptr) {
+      eq = std::make_unique<BinaryArithmeticExpression>(
+          BinaryArithmeticExpressionType::EQ, std::move(left),
+          std::move(right));
+    }
 
     if (result == nullptr) {
       result = std::move(eq);

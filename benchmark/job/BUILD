@@ -34,6 +34,7 @@ filegroup(
         [
             "data/*.kdb",
             "data/*.kdbindex",
+            "data/*.kdbenum",
         ],
         allow_empty = True,
     ),
@@ -64,6 +65,14 @@ cc_library(
 cc_binary(
     name = "load",
     srcs = ["load.cc"],
+    deps = [
+        "//util:load",
+    ],
+)
+
+cc_binary(
+    name = "generate_enum",
+    srcs = ["generate_enum.cc"],
     deps = [
         "//util:load",
     ],
