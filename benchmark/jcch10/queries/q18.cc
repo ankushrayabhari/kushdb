@@ -34,7 +34,7 @@ using namespace kush::plan;
 using namespace kush::compile;
 using namespace kush::catalog;
 
-const Database db = Schema();
+Database db;
 
 // Scan(lineitem)
 std::unique_ptr<Operator> SubqueryScanLineitem() {
@@ -187,6 +187,7 @@ std::unique_ptr<Operator> OrderBy() {
 int main(int argc, char** argv) {
   absl::SetProgramUsageMessage("Executes query.");
   absl::ParseCommandLine(argc, argv);
+  db = Schema();
   auto query = std::make_unique<OutputOperator>(OrderBy());
 
   TimeExecute(*query);

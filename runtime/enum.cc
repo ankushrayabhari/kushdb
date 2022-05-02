@@ -131,7 +131,10 @@ void Serialize(std::string_view path,
 }
 
 void EnumManager::GetKey(int32_t id, int32_t value, String::String* dest) {
-  auto data = reinterpret_cast<uint8_t*>(info_.at(id));
+  if (!file_.contains(id)) {
+    file_[id] = FileManager::Get().Open(info_.at(id)).data;
+  }
+  auto data = reinterpret_cast<uint8_t*>(file_.at(id));
   auto enum_data = reinterpret_cast<EnumData*>(data);
   auto enum_array_ptr =
       reinterpret_cast<EnumEntry*>(data + enum_data->entry_offset);
@@ -140,7 +143,10 @@ void EnumManager::GetKey(int32_t id, int32_t value, String::String* dest) {
 }
 
 int32_t EnumManager::GetValue(int32_t id, std::string value) {
-  auto data = reinterpret_cast<uint8_t*>(info_.at(id));
+  if (!file_.contains(id)) {
+    file_[id] = FileManager::Get().Open(info_.at(id)).data;
+  }
+  auto data = reinterpret_cast<uint8_t*>(file_.at(id));
   auto enum_data = reinterpret_cast<EnumData*>(data);
 
   std::hash<std::string> hasher;
@@ -163,7 +169,7 @@ int32_t EnumManager::GetValue(int32_t id, std::string value) {
 
 int32_t EnumManager::Register(std::string_view enum_path) {
   int32_t id = info_.size();
-  info_[id] = FileManager::Get().Open(enum_path).data;
+  info_[id] = enum_path;
   return id;
 }
 

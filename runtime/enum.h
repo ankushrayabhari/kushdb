@@ -35,7 +35,8 @@ class EnumManager {
   int32_t GetValue(int32_t id, std::string value);
 
  private:
-  absl::flat_hash_map<int32_t, void*> info_;
+  absl::flat_hash_map<int32_t, std::string> info_;
+  absl::flat_hash_map<int32_t, void*> file_;
 };
 
 void GetKey(int32_t id, int32_t value, String::String* dest);

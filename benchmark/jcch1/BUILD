@@ -31,6 +31,14 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "generate_enum",
+    srcs = ["generate_enum.cc"],
+    deps = [
+        "//util:load",
+    ],
+)
+
 cc_library(
     name = "schema",
     hdrs = ["schema.h"],

@@ -8,6 +8,7 @@ filegroup(
         [
             "data/*.kdb",
             "data/*.kdbindex",
+            "data/*.kdbenum",
         ],
         allow_empty = True,
     ),
@@ -21,6 +22,14 @@ filegroup(
         ],
         allow_empty = True,
     ),
+)
+
+cc_binary(
+    name = "generate_enum",
+    srcs = ["generate_enum.cc"],
+    deps = [
+        "//util:load",
+    ],
 )
 
 cc_binary(
@@ -40,5 +49,7 @@ cc_library(
     deps = [
         "//catalog",
         "//catalog:sql_type",
+        "//runtime:enum",
+        "@absl//absl/flags:flag",
     ],
 )

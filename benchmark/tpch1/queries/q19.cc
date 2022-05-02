@@ -38,7 +38,7 @@ using namespace kush::compile;
 using namespace kush::catalog;
 using namespace std::literals;
 
-const Database db = Schema();
+Database db;
 
 // Scan(part)
 std::unique_ptr<Operator> ScanPart() {
@@ -306,6 +306,7 @@ std::unique_ptr<Operator> Agg() {
 int main(int argc, char** argv) {
   absl::SetProgramUsageMessage("Executes query.");
   absl::ParseCommandLine(argc, argv);
+  db = Schema();
   auto query = std::make_unique<OutputOperator>(Agg());
 
   TimeExecute(*query);

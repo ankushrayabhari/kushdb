@@ -24,6 +24,14 @@ filegroup(
 )
 
 cc_binary(
+    name = "generate_enum",
+    srcs = ["generate_enum.cc"],
+    deps = [
+        "//util:load",
+    ],
+)
+
+cc_binary(
     name = "load",
     srcs = ["load.cc"],
     deps = [
@@ -40,5 +48,7 @@ cc_library(
     deps = [
         "//catalog",
         "//catalog:sql_type",
+        "//runtime:enum",
+        "@absl//absl/flags:flag",
     ],
 )

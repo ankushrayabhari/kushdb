@@ -36,7 +36,7 @@ using namespace kush::plan;
 using namespace kush::compile;
 using namespace kush::catalog;
 
-const Database db = Schema();
+Database db;
 // Select(l_shipdate >= '1993-01-01' AND l_shipdate < '1994-01-01' AND
 // l_discount  >= 0.02 AND l_discount <= 0.04 AND l_quantity < 25)
 std::unique_ptr<Operator> SelectLineitem() {
@@ -80,6 +80,7 @@ std::unique_ptr<Operator> Agg() {
 int main(int argc, char** argv) {
   absl::SetProgramUsageMessage("Executes query.");
   absl::ParseCommandLine(argc, argv);
+  db = Schema();
   auto query = std::make_unique<OutputOperator>(Agg());
 
   TimeExecute(*query);

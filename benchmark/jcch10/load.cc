@@ -101,125 +101,64 @@ void Lineitem() {
     );
   */
 
-  {
-    DECLARE_NOT_NULL_COL(int32_t, l_orderkey);
-    DECLARE_NOT_NULL_COL(int32_t, l_partkey);
-    DECLARE_NOT_NULL_COL(int32_t, l_suppkey);
-    DECLARE_NOT_NULL_COL(int32_t, l_linenumber);
-    DECLARE_NOT_NULL_COL(double, l_quantity);
-    DECLARE_NOT_NULL_COL(double, l_extendedprice);
-    DECLARE_NOT_NULL_COL(double, l_discount);
-    DECLARE_NOT_NULL_COL(double, l_tax);
-    DECLARE_NOT_NULL_COL(int32_t, l_shipdate);
-    DECLARE_NOT_NULL_COL(int32_t, l_commitdate);
-    DECLARE_NOT_NULL_COL(int32_t, l_receiptdate);
+  DECLARE_NOT_NULL_COL(int32_t, l_orderkey);
+  DECLARE_NOT_NULL_COL(int32_t, l_partkey);
+  DECLARE_NOT_NULL_COL(int32_t, l_suppkey);
+  DECLARE_NOT_NULL_COL(int32_t, l_linenumber);
+  DECLARE_NOT_NULL_COL(double, l_quantity);
+  DECLARE_NOT_NULL_COL(double, l_extendedprice);
+  DECLARE_NOT_NULL_COL(double, l_discount);
+  DECLARE_NOT_NULL_COL(double, l_tax);
+  DECLARE_NOT_NULL_COL(std::string, l_returnflag);
+  DECLARE_NOT_NULL_COL(std::string, l_linestatus);
+  DECLARE_NOT_NULL_COL(int32_t, l_shipdate);
+  DECLARE_NOT_NULL_COL(int32_t, l_commitdate);
+  DECLARE_NOT_NULL_COL(int32_t, l_receiptdate);
+  DECLARE_NOT_NULL_COL(std::string, l_shipinstruct);
+  DECLARE_NOT_NULL_COL(std::string, l_shipmode);
+  DECLARE_NOT_NULL_COL(std::string, l_comment);
 
-    std::ifstream fin(raw + "lineitem.tbl");
-    int32_t tuple_idx = 0;
-    for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|', 16);
+  std::ifstream fin(raw + "lineitem.tbl");
+  int32_t tuple_idx = 0;
+  for (std::string line; std::getline(fin, line);) {
+    auto data = Split(line, '|', 16);
 
-      APPEND_NOT_NULL(l_orderkey, ParseInt32, data[0], tuple_idx);
-      APPEND_NOT_NULL(l_partkey, ParseInt32, data[1], tuple_idx);
-      APPEND_NOT_NULL(l_suppkey, ParseInt32, data[2], tuple_idx);
-      APPEND_NOT_NULL(l_linenumber, ParseInt32, data[3], tuple_idx);
-      APPEND_NOT_NULL(l_quantity, ParseDouble, data[4], tuple_idx);
-      APPEND_NOT_NULL(l_extendedprice, ParseDouble, data[5], tuple_idx);
-      APPEND_NOT_NULL(l_discount, ParseDouble, data[6], tuple_idx);
-      APPEND_NOT_NULL(l_tax, ParseDouble, data[7], tuple_idx);
-      APPEND_NOT_NULL(l_shipdate, ParseDate, data[10], tuple_idx);
-      APPEND_NOT_NULL(l_commitdate, ParseDate, data[11], tuple_idx);
-      APPEND_NOT_NULL(l_receiptdate, ParseDate, data[12], tuple_idx);
+    APPEND_NOT_NULL(l_orderkey, ParseInt32, data[0], tuple_idx);
+    APPEND_NOT_NULL(l_partkey, ParseInt32, data[1], tuple_idx);
+    APPEND_NOT_NULL(l_suppkey, ParseInt32, data[2], tuple_idx);
+    APPEND_NOT_NULL(l_linenumber, ParseInt32, data[3], tuple_idx);
+    APPEND_NOT_NULL(l_quantity, ParseDouble, data[4], tuple_idx);
+    APPEND_NOT_NULL(l_extendedprice, ParseDouble, data[5], tuple_idx);
+    APPEND_NOT_NULL(l_discount, ParseDouble, data[6], tuple_idx);
+    APPEND_NOT_NULL(l_tax, ParseDouble, data[7], tuple_idx);
+    APPEND_NOT_NULL(l_returnflag, ParseString, data[8], tuple_idx);
+    APPEND_NOT_NULL(l_linestatus, ParseString, data[9], tuple_idx);
+    APPEND_NOT_NULL(l_shipdate, ParseDate, data[10], tuple_idx);
+    APPEND_NOT_NULL(l_commitdate, ParseDate, data[11], tuple_idx);
+    APPEND_NOT_NULL(l_receiptdate, ParseDate, data[12], tuple_idx);
+    APPEND_NOT_NULL(l_shipinstruct, ParseString, data[13], tuple_idx);
+    APPEND_NOT_NULL(l_shipmode, ParseString, data[14], tuple_idx);
+    APPEND_NOT_NULL(l_comment, ParseString, data[15], tuple_idx);
 
-      tuple_idx++;
-    }
-
-    SERIALIZE_NOT_NULL(int32_t, l_orderkey, dest, "l_orderkey");
-    SERIALIZE_NOT_NULL(int32_t, l_partkey, dest, "l_partkey");
-    SERIALIZE_NOT_NULL(int32_t, l_suppkey, dest, "l_suppkey");
-    SERIALIZE_NOT_NULL(int32_t, l_linenumber, dest, "l_linenumber");
-    SERIALIZE_NOT_NULL(double, l_quantity, dest, "l_quantity");
-    SERIALIZE_NOT_NULL(double, l_extendedprice, dest, "l_extendedprice");
-    SERIALIZE_NOT_NULL(double, l_discount, dest, "l_discount");
-    SERIALIZE_NOT_NULL(double, l_tax, dest, "l_tax");
-    SERIALIZE_NOT_NULL(int32_t, l_shipdate, dest, "l_shipdate");
-    SERIALIZE_NOT_NULL(int32_t, l_commitdate, dest, "l_commitdate");
-    SERIALIZE_NOT_NULL(int32_t, l_receiptdate, dest, "l_receiptdate");
+    tuple_idx++;
   }
 
-  {
-    DECLARE_NOT_NULL_COL(std::string, l_returnflag);
-
-    std::ifstream fin(raw + "lineitem.tbl");
-    int32_t tuple_idx = 0;
-    for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|', 16);
-
-      APPEND_NOT_NULL(l_returnflag, ParseString, data[8], tuple_idx);
-
-      tuple_idx++;
-    }
-
-    SERIALIZE_NOT_NULL(std::string, l_returnflag, dest, "l_returnflag");
-  }
-
-  {
-    DECLARE_NOT_NULL_COL(std::string, l_linestatus);
-
-    std::ifstream fin(raw + "lineitem.tbl");
-    int32_t tuple_idx = 0;
-    for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|', 16);
-      APPEND_NOT_NULL(l_linestatus, ParseString, data[9], tuple_idx);
-      tuple_idx++;
-    }
-
-    SERIALIZE_NOT_NULL(std::string, l_linestatus, dest, "l_linestatus");
-  }
-
-  {
-    DECLARE_NOT_NULL_COL(std::string, l_shipinstruct);
-
-    std::ifstream fin(raw + "lineitem.tbl");
-    int32_t tuple_idx = 0;
-    for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|', 16);
-      APPEND_NOT_NULL(l_shipinstruct, ParseString, data[13], tuple_idx);
-      tuple_idx++;
-    }
-
-    SERIALIZE_NOT_NULL(std::string, l_shipinstruct, dest, "l_shipinstruct");
-  }
-
-  {
-    DECLARE_NOT_NULL_COL(std::string, l_shipmode);
-
-    std::ifstream fin(raw + "lineitem.tbl");
-    int32_t tuple_idx = 0;
-    for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|', 16);
-      APPEND_NOT_NULL(l_shipmode, ParseString, data[14], tuple_idx);
-
-      tuple_idx++;
-    }
-
-    SERIALIZE_NOT_NULL(std::string, l_shipmode, dest, "l_shipmode");
-  }
-
-  {
-    DECLARE_NOT_NULL_COL(std::string, l_comment);
-
-    std::ifstream fin(raw + "lineitem.tbl");
-    int32_t tuple_idx = 0;
-    for (std::string line; std::getline(fin, line);) {
-      auto data = Split(line, '|', 16);
-      APPEND_NOT_NULL(l_comment, ParseString, data[15], tuple_idx);
-      tuple_idx++;
-    }
-
-    SERIALIZE_NOT_NULL(std::string, l_comment, dest, "l_comment");
-  }
-
+  SERIALIZE_NOT_NULL(int32_t, l_orderkey, dest, "l_orderkey");
+  SERIALIZE_NOT_NULL(int32_t, l_partkey, dest, "l_partkey");
+  SERIALIZE_NOT_NULL(int32_t, l_suppkey, dest, "l_suppkey");
+  SERIALIZE_NOT_NULL(int32_t, l_linenumber, dest, "l_linenumber");
+  SERIALIZE_NOT_NULL(double, l_quantity, dest, "l_quantity");
+  SERIALIZE_NOT_NULL(double, l_extendedprice, dest, "l_extendedprice");
+  SERIALIZE_NOT_NULL(double, l_discount, dest, "l_discount");
+  SERIALIZE_NOT_NULL(double, l_tax, dest, "l_tax");
+  SERIALIZE_NOT_NULL(std::string, l_returnflag, dest, "l_returnflag");
+  SERIALIZE_NOT_NULL(std::string, l_linestatus, dest, "l_linestatus");
+  SERIALIZE_NOT_NULL(int32_t, l_shipdate, dest, "l_shipdate");
+  SERIALIZE_NOT_NULL(int32_t, l_commitdate, dest, "l_commitdate");
+  SERIALIZE_NOT_NULL(int32_t, l_receiptdate, dest, "l_receiptdate");
+  SERIALIZE_NOT_NULL(std::string, l_shipinstruct, dest, "l_shipinstruct");
+  SERIALIZE_NOT_NULL(std::string, l_shipmode, dest, "l_shipmode");
+  SERIALIZE_NOT_NULL(std::string, l_comment, dest, "l_comment");
   Print("lineitem complete");
 }
 
@@ -470,13 +409,9 @@ void Supplier() {
   Print("supplier complete");
 }
 
-void Load() {
-  std::vector<std::add_pointer<void()>::type> loads{
-      Supplier, Part, Partsupp, Customer, Orders, Nation, Region};
-  std::for_each(std::execution::par_unseq, loads.begin(), loads.end(),
-                [](auto&& item) { item(); });
-
-  Lineitem();
+int main() {
+  for (auto f :
+       {Supplier, Part, Partsupp, Customer, Orders, Nation, Region, Lineitem}) {
+    f();
+  }
 }
-
-int main() { Load(); }

@@ -36,7 +36,7 @@ using namespace kush::compile;
 using namespace kush::catalog;
 using namespace std::literals;
 
-const Database db = Schema();
+Database db;
 
 // Select(o_orderdate >= '1995-01-01' and o_orderdate < '1995-04-01')
 std::unique_ptr<Operator> SelectOrders() {
@@ -175,6 +175,7 @@ std::unique_ptr<Operator> OrderBy() {
 int main(int argc, char** argv) {
   absl::SetProgramUsageMessage("Executes query.");
   absl::ParseCommandLine(argc, argv);
+  db = Schema();
   auto query = std::make_unique<OutputOperator>(OrderBy());
 
   TimeExecute(*query);
