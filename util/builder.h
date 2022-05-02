@@ -90,6 +90,19 @@ std::unique_ptr<kush::plan::LiteralExpression> Literal(int32_t y, int32_t m,
 std::unique_ptr<kush::plan::BinaryArithmeticExpression> Eq(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
+  if (e1->Type().type_id == catalog::TypeId::ENUM) {
+    if (auto l = dynamic_cast<kush::plan::LiteralExpression*>(e2.get())) {
+      std::string literal;
+      l->Visit(
+          nullptr, nullptr, nullptr, nullptr,
+          [&](auto x, bool n) { literal = x; }, nullptr, nullptr, nullptr);
+      auto l_rewrite = Literal(e1->Type().enum_id, literal);
+      return std::make_unique<kush::plan::BinaryArithmeticExpression>(
+          kush::plan::BinaryArithmeticExpressionType::EQ, std::move(e1),
+          std::move(l_rewrite));
+    }
+  }
+
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
       kush::plan::BinaryArithmeticExpressionType::EQ, std::move(e1),
       std::move(e2));
@@ -98,6 +111,19 @@ std::unique_ptr<kush::plan::BinaryArithmeticExpression> Eq(
 std::unique_ptr<kush::plan::BinaryArithmeticExpression> Neq(
     std::unique_ptr<kush::plan::Expression> e1,
     std::unique_ptr<kush::plan::Expression> e2) {
+  if (e1->Type().type_id == catalog::TypeId::ENUM) {
+    if (auto l = dynamic_cast<kush::plan::LiteralExpression*>(e2.get())) {
+      std::string literal;
+      l->Visit(
+          nullptr, nullptr, nullptr, nullptr,
+          [&](auto x, bool n) { literal = x; }, nullptr, nullptr, nullptr);
+      auto l_rewrite = Literal(e1->Type().enum_id, literal);
+      return std::make_unique<kush::plan::BinaryArithmeticExpression>(
+          kush::plan::BinaryArithmeticExpressionType::NEQ, std::move(e1),
+          std::move(l_rewrite));
+    }
+  }
+
   return std::make_unique<kush::plan::BinaryArithmeticExpression>(
       kush::plan::BinaryArithmeticExpressionType::NEQ, std::move(e1),
       std::move(e2));
