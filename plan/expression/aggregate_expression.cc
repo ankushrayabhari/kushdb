@@ -41,7 +41,8 @@ catalog::Type CalculateAggTypeId(AggregateType type, const Expression& expr) {
     case AggregateType::MAX:
       if (child_type_id == TypeId::INT || child_type_id == TypeId::SMALLINT ||
           child_type_id == TypeId::BIGINT || child_type_id == TypeId::REAL ||
-          child_type_id == TypeId::DATE || child_type_id == TypeId::TEXT) {
+          child_type_id == TypeId::DATE || child_type_id == TypeId::TEXT ||
+          child_type_id == TypeId::ENUM) {
         return child_type;
       } else {
         throw std::runtime_error("Invalid input type for max/min aggregate");

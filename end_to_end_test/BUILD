@@ -18,6 +18,7 @@ filegroup(
         [
             "data/*.kdb",
             "data/*.kdbindex",
+            "data/*.kdbenum",
         ],
         allow_empty = True,
     ),
@@ -53,5 +54,6 @@ cc_library(
     deps = [
         "//catalog",
         "//catalog:sql_type",
+        "//runtime:enum",
     ],
 )

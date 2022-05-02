@@ -23,6 +23,9 @@ void ForwardDeclare(khir::ProgramBuilder& program) {
   // Forward declare string functions
   proxy::String::ForwardDeclare(program);
 
+  // Forward declare enum functions
+  proxy::Enum::ForwardDeclare(program);
+
   // Forward declare vector functions
   proxy::Vector::ForwardDeclare(program);
 
