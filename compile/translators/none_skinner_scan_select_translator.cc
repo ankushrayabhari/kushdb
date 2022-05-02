@@ -47,6 +47,10 @@ NoneSkinnerScanSelectTranslator::GenerateBuffer() {
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::INT>>(
             program_, path, type));
         break;
+      case TypeId::ENUM:
+        column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::ENUM>>(
+            program_, path, type));
+        break;
       case TypeId::BIGINT:
         column_data.push_back(
             std::make_unique<proxy::ColumnData<TypeId::BIGINT>>(program_, path,

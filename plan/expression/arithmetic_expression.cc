@@ -15,8 +15,38 @@ namespace kush::plan {
 catalog::Type CalculateBinaryType(BinaryArithmeticExpressionType type,
                                   const catalog::Type& left,
                                   const catalog::Type& right) {
+  if (left.type_id == catalog::TypeId::ENUM) {
+    switch (type) {
+      case BinaryArithmeticExpressionType::EQ:
+      case BinaryArithmeticExpressionType::NEQ:
+        if (left != right) {
+          throw std::runtime_error("Require same type arguments");
+        }
+
+      case BinaryArithmeticExpressionType::LT:
+      case BinaryArithmeticExpressionType::LEQ:
+      case BinaryArithmeticExpressionType::GT:
+      case BinaryArithmeticExpressionType::GEQ:
+        if (right.type_id != catalog::TypeId::TEXT || left != right) {
+          throw std::runtime_error("Require same type arguments");
+        }
+        return catalog::Type::Boolean();
+
+      case BinaryArithmeticExpressionType::STARTS_WITH:
+      case BinaryArithmeticExpressionType::ENDS_WITH:
+      case BinaryArithmeticExpressionType::CONTAINS:
+        if (right.type_id != catalog::TypeId::TEXT || left != right) {
+          throw std::runtime_error("Require same type arguments");
+        }
+        return catalog::Type::Boolean();
+
+      default:
+        throw std::runtime_error("Invalid expr type");
+    }
+  }
+
   if (left != right) {
-    std::runtime_error("Require same type arguments");
+    throw std::runtime_error("Require same type arguments");
   }
 
   switch (type) {
@@ -122,8 +152,10 @@ nlohmann::json UnaryArithmeticExpression::ToJson() const {
 }
 
 catalog::Type CalculateRegexpType(const catalog::Type& child_type) {
-  if (child_type.type_id != catalog::TypeId::TEXT) {
-    throw std::runtime_error("Invalid child type for LIKE. Expected text.");
+  if (child_type.type_id != catalog::TypeId::TEXT &&
+      child_type.type_id != catalog::TypeId::ENUM) {
+    throw std::runtime_error(
+        "Invalid child type for LIKE. Expected text/enum.");
   }
   return catalog::Type::Boolean();
 }

@@ -30,7 +30,8 @@ std::string_view DiskColumnIndexGetBucketFnName() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return "kush::runtime::ColumnIndex::GetInt16";
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return "kush::runtime::ColumnIndex::GetInt32";
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return "kush::runtime::ColumnIndex::GetInt64";
@@ -48,7 +49,8 @@ void* DiskColumnIndexGetBucketFn() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt16);
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt32);
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return reinterpret_cast<void*>(runtime::ColumnIndex::GetInt64);
@@ -156,7 +158,8 @@ void DiskColumnIndex<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     key_type = program.I16Type();
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     key_type = program.I32Type();
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     key_type = program.I64Type();
@@ -185,5 +188,6 @@ template class DiskColumnIndex<catalog::TypeId::REAL>;
 template class DiskColumnIndex<catalog::TypeId::DATE>;
 template class DiskColumnIndex<catalog::TypeId::BOOLEAN>;
 template class DiskColumnIndex<catalog::TypeId::TEXT>;
+template class DiskColumnIndex<catalog::TypeId::ENUM>;
 
 }  // namespace kush::compile::proxy

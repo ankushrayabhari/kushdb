@@ -47,6 +47,10 @@ ScanTranslator::GenerateBuffer() {
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::INT>>(
             program_, path, type));
         break;
+      case TypeId::ENUM:
+        column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::ENUM>>(
+            program_, path, type));
+        break;
       case TypeId::BIGINT:
         column_data.push_back(
             std::make_unique<proxy::ColumnData<TypeId::BIGINT>>(program_, path,
@@ -104,6 +108,9 @@ std::unique_ptr<proxy::ColumnIndex> ScanTranslator::GenerateIndex(int col_idx) {
     case TypeId::INT:
       return std::make_unique<proxy::DiskColumnIndex<TypeId::INT>>(program_,
                                                                    path);
+    case TypeId::ENUM:
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::ENUM>>(program_,
+                                                                    path);
     case TypeId::BIGINT:
       return std::make_unique<proxy::DiskColumnIndex<TypeId::BIGINT>>(program_,
                                                                       path);

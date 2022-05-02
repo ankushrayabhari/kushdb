@@ -7,6 +7,7 @@ cc_library(
     srcs = [
         "bool.cc",
         "date.cc",
+        "enum.cc",
         "float.cc",
         "int.cc",
         "printer.cc",
@@ -17,6 +18,7 @@ cc_library(
     ],
     deps = [
         "//khir:program_builder",
+        "//runtime:enum",
         "//runtime:printer",
         "//runtime:string",
     ],

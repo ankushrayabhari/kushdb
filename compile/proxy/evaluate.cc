@@ -179,6 +179,96 @@ SQLValue EvaluateBinaryNumeric(plan::BinaryArithmeticExpressionType op_type,
   }
 }
 
+SQLValue EvaluateBinaryEnum(plan::BinaryArithmeticExpressionType op_type,
+                            const SQLValue& lhs, const SQLValue& rhs) {
+  auto& program = lhs.ProgramBuilder();
+  return NullableTernary<Bool>(
+      program, lhs.IsNull() || rhs.IsNull(),
+      [&]() { return SQLValue(Bool(program, false), Bool(program, true)); },
+      [&]() {
+        const Enum& lhs_v = dynamic_cast<const Enum&>(lhs.Get());
+        Bool null(program, false);
+
+        switch (op_type) {
+          case plan::BinaryArithmeticExpressionType::EQ: {
+            const Enum& rhs_v = dynamic_cast<const Enum&>(rhs.Get());
+            return SQLValue(lhs_v == rhs_v, null);
+          }
+
+          case plan::BinaryArithmeticExpressionType::NEQ: {
+            const Enum& rhs_v = dynamic_cast<const Enum&>(rhs.Get());
+            return SQLValue(lhs_v != rhs_v, null);
+          }
+
+          case plan::BinaryArithmeticExpressionType::LT: {
+            if (auto* rhs_v = dynamic_cast<const Enum*>(&rhs.Get())) {
+              return SQLValue(lhs_v.ToString() < rhs_v->ToString(), null);
+            }
+
+            if (auto* rhs_v = dynamic_cast<const String*>(&rhs.Get())) {
+              return SQLValue(lhs_v.ToString() < *rhs_v, null);
+            }
+
+            throw std::runtime_error("Invalid types for enum LT");
+          }
+
+          case plan::BinaryArithmeticExpressionType::LEQ: {
+            if (auto* rhs_v = dynamic_cast<const Enum*>(&rhs.Get())) {
+              return SQLValue(lhs_v.ToString() <= rhs_v->ToString(), null);
+            }
+
+            if (auto* rhs_v = dynamic_cast<const String*>(&rhs.Get())) {
+              return SQLValue(lhs_v.ToString() <= *rhs_v, null);
+            }
+
+            throw std::runtime_error("Invalid types for enum LEQ");
+          }
+
+          case plan::BinaryArithmeticExpressionType::GT: {
+            if (auto* rhs_v = dynamic_cast<const Enum*>(&rhs.Get())) {
+              return SQLValue(lhs_v.ToString() > rhs_v->ToString(), null);
+            }
+
+            if (auto* rhs_v = dynamic_cast<const String*>(&rhs.Get())) {
+              return SQLValue(lhs_v.ToString() > *rhs_v, null);
+            }
+
+            throw std::runtime_error("Invalid types for enum GT");
+          }
+
+          case plan::BinaryArithmeticExpressionType::GEQ: {
+            if (auto* rhs_v = dynamic_cast<const Enum*>(&rhs.Get())) {
+              return SQLValue(lhs_v.ToString() >= rhs_v->ToString(), null);
+            }
+
+            if (auto* rhs_v = dynamic_cast<const String*>(&rhs.Get())) {
+              return SQLValue(lhs_v.ToString() >= *rhs_v, null);
+            }
+
+            throw std::runtime_error("Invalid types for enum GEQ");
+          }
+
+          case plan::BinaryArithmeticExpressionType::STARTS_WITH: {
+            const String& rhs_v = dynamic_cast<const String&>(rhs.Get());
+            return SQLValue(lhs_v.ToString().StartsWith(rhs_v), null);
+          }
+
+          case plan::BinaryArithmeticExpressionType::ENDS_WITH: {
+            const String& rhs_v = dynamic_cast<const String&>(rhs.Get());
+            return SQLValue(lhs_v.ToString().EndsWith(rhs_v), null);
+          }
+
+          case plan::BinaryArithmeticExpressionType::CONTAINS: {
+            const String& rhs_v = dynamic_cast<const String&>(rhs.Get());
+            return SQLValue(lhs_v.ToString().Contains(rhs_v), null);
+          }
+
+          default:
+            throw std::runtime_error("Invalid operator on enum");
+        }
+      });
+}
+
 SQLValue EvaluateBinaryString(plan::BinaryArithmeticExpressionType op_type,
                               const SQLValue& lhs, const SQLValue& rhs) {
   auto& program = lhs.ProgramBuilder();
@@ -241,6 +331,8 @@ SQLValue EvaluateBinary(plan::BinaryArithmeticExpressionType op,
       return EvaluateBinaryNumeric<Float64>(op, lhs, rhs);
     case catalog::TypeId::TEXT:
       return EvaluateBinaryString(op, lhs, rhs);
+    case catalog::TypeId::ENUM:
+      return EvaluateBinaryEnum(op, lhs, rhs);
   }
 }
 
@@ -293,6 +385,12 @@ Bool LessThan(const SQLValue& lhs, const SQLValue& rhs) {
                         auto& lhs_v = static_cast<String&>(lhs.Get());
                         auto& rhs_v = static_cast<String&>(rhs.Get());
                         return lhs_v < rhs_v;
+                      }
+
+                      case catalog::TypeId::ENUM: {
+                        auto& lhs_v = static_cast<Enum&>(lhs.Get());
+                        auto& rhs_v = static_cast<Enum&>(rhs.Get());
+                        return lhs_v.ToString() < rhs_v.ToString();
                       }
 
                       case catalog::TypeId::BOOLEAN:
@@ -355,6 +453,12 @@ Bool Equal(const SQLValue& lhs, const SQLValue& rhs) {
                 case catalog::TypeId::TEXT: {
                   auto& lhs_v = static_cast<String&>(lhs.Get());
                   auto& rhs_v = static_cast<String&>(rhs.Get());
+                  return lhs_v == rhs_v;
+                }
+
+                case catalog::TypeId::ENUM: {
+                  auto& lhs_v = static_cast<Enum&>(lhs.Get());
+                  auto& rhs_v = static_cast<Enum&>(rhs.Get());
                   return lhs_v == rhs_v;
                 }
               }

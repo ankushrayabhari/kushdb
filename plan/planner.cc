@@ -337,10 +337,7 @@ std::unique_ptr<Expression> Planner::Plan(
       [&](std::string arg) {
         result = std::make_unique<LiteralExpression>(arg);
       },
-      [&](bool arg) { result = std::make_unique<LiteralExpression>(arg); },
-      [&](runtime::Date::DateBuilder arg) {
-        result = std::make_unique<LiteralExpression>(arg);
-      });
+      [&](bool arg) { result = std::make_unique<LiteralExpression>(arg); });
   return result;
 }
 

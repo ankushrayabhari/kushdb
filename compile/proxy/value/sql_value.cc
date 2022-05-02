@@ -49,6 +49,12 @@ SQLValue::SQLValue(const String& value, const Bool& null)
       null_(null),
       type_(catalog::Type::Text()) {}
 
+SQLValue::SQLValue(const Enum& value, const Bool& null)
+    : program_(value.ProgramBuilder()),
+      value_(value.ToPointer()),
+      null_(null),
+      type_(catalog::Type::Enum(value.EnumId())) {}
+
 SQLValue::SQLValue(std::unique_ptr<IRValue> value, const catalog::Type& type,
                    const Bool& null)
     : program_(value->ProgramBuilder()),
@@ -72,6 +78,8 @@ std::unique_ptr<IRValue> CopyIRValue(const catalog::Type& t, IRValue& v) {
       return dynamic_cast<Float64&>(v).ToPointer();
     case catalog::TypeId::TEXT:
       return dynamic_cast<String&>(v).ToPointer();
+    case catalog::TypeId::ENUM:
+      return dynamic_cast<Enum&>(v).ToPointer();
   }
 
   throw std::runtime_error("Unknown type");

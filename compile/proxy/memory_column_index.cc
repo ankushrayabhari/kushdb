@@ -72,6 +72,12 @@ Bool CheckEq(const catalog::Type& type, const IRValue& lhs,
       auto& rhs_v = static_cast<const String&>(rhs);
       return lhs_v == rhs_v;
     }
+
+    case catalog::TypeId::ENUM: {
+      auto& lhs_v = static_cast<const Enum&>(lhs);
+      auto& rhs_v = static_cast<const Enum&>(rhs);
+      return lhs_v == rhs_v;
+    }
   }
 }
 
@@ -123,6 +129,7 @@ khir::Type MemoryColumnIndexPayload::ConstructPayloadFormat(
       break;
     case catalog::TypeId::INT:
     case catalog::TypeId::DATE:
+    case catalog::TypeId::ENUM:
       fields.push_back(program.I32Type());
       break;
     case catalog::TypeId::BIGINT:
@@ -169,6 +176,7 @@ void MemoryColumnIndexPayload::Initialize(Int64 hash, const IRValue& key,
         break;
       case catalog::TypeId::DATE:
       case catalog::TypeId::INT:
+      case catalog::TypeId::ENUM:
         program_.StoreI32(ptr, key.Get());
         break;
       case catalog::TypeId::BIGINT:
@@ -197,6 +205,9 @@ std::unique_ptr<IRValue> MemoryColumnIndexPayload::GetKey() {
     case catalog::TypeId::DATE:
     case catalog::TypeId::INT:
       return Int32(program_, program_.LoadI32(ptr)).ToPointer();
+    case catalog::TypeId::ENUM:
+      return Enum(program_, key_type_.enum_id, program_.LoadI32(ptr))
+          .ToPointer();
     case catalog::TypeId::BIGINT:
       return Int64(program_, program_.LoadI64(ptr)).ToPointer();
     case catalog::TypeId::REAL:

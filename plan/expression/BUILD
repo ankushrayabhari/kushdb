@@ -29,6 +29,7 @@ cc_library(
         ":expression",
         ":expression_visitor",
         "//runtime:date",
+        "//runtime:enum",
         "@json",
         "@magic_enum",
     ],

@@ -15,7 +15,8 @@ std::string_view OpenFnName() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return "kush::runtime::ColumnData::OpenInt16";
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return "kush::runtime::ColumnData::OpenInt32";
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return "kush::runtime::ColumnData::OpenInt64";
@@ -33,7 +34,8 @@ void* OpenFn() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::OpenInt16);
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::OpenInt32);
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::OpenInt64);
@@ -51,7 +53,8 @@ std::string_view CloseFnName() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return "kush::runtime::ColumnData::CloseInt16";
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return "kush::runtime::ColumnData::CloseInt32";
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return "kush::runtime::ColumnData::CloseInt64";
@@ -69,7 +72,8 @@ void* CloseFn() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::CloseInt16);
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::CloseInt32);
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::CloseInt64);
@@ -87,7 +91,8 @@ std::string_view GetFnName() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return "kush::runtime::ColumnData::GetInt16";
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return "kush::runtime::ColumnData::GetInt32";
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return "kush::runtime::ColumnData::GetInt64";
@@ -105,7 +110,8 @@ void* GetFn() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::GetInt16);
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::GetInt32);
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::GetInt64);
@@ -123,7 +129,8 @@ std::string_view SizeFnName() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return "kush::runtime::ColumnData::SizeInt16";
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return "kush::runtime::ColumnData::SizeInt32";
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return "kush::runtime::ColumnData::SizeInt64";
@@ -141,7 +148,8 @@ void* SizeFn() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::SizeInt16);
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::SizeInt32);
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return reinterpret_cast<void*>(&runtime::ColumnData::SizeInt64);
@@ -159,7 +167,8 @@ std::string_view StructName() {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     return "kush::runtime::ColumnData::Int16ColumnData";
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     return "kush::runtime::ColumnData::Int32ColumnData";
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     return "kush::runtime::ColumnData::Int64ColumnData";
@@ -182,7 +191,8 @@ khir::Value GetStructInit(khir::ProgramBuilder& program) {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     elem_type = program.I16Type();
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     elem_type = program.I32Type();
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     elem_type = program.I64Type();
@@ -280,6 +290,8 @@ std::unique_ptr<IRValue> ColumnData<S>::operator[](Int32& idx) {
     return std::make_unique<Date>(program_, elem);
   } else if constexpr (catalog::TypeId::BOOLEAN == S) {
     return std::make_unique<Bool>(program_, elem);
+  } else if constexpr (catalog::TypeId::ENUM == S) {
+    return std::make_unique<Enum>(program_, type_.enum_id, elem);
   }
 }
 
@@ -296,7 +308,8 @@ void ColumnData<S>::ForwardDeclare(khir::ProgramBuilder& program) {
   if constexpr (catalog::TypeId::SMALLINT == S) {
     elem_type = program.I16Type();
   } else if constexpr (catalog::TypeId::INT == S ||
-                       catalog::TypeId::DATE == S) {
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
     elem_type = program.I32Type();
   } else if constexpr (catalog::TypeId::BIGINT == S) {
     elem_type = program.I64Type();
@@ -343,5 +356,6 @@ template class ColumnData<catalog::TypeId::REAL>;
 template class ColumnData<catalog::TypeId::DATE>;
 template class ColumnData<catalog::TypeId::BOOLEAN>;
 template class ColumnData<catalog::TypeId::TEXT>;
+template class ColumnData<catalog::TypeId::ENUM>;
 
 }  // namespace kush::compile::proxy

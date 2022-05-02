@@ -21,9 +21,6 @@ LiteralExpression::LiteralExpression(int64_t value) : value_(value) {}
 
 LiteralExpression::LiteralExpression(double value) : value_(value) {}
 
-LiteralExpression::LiteralExpression(runtime::Date::DateBuilder value)
-    : value_(value) {}
-
 LiteralExpression::LiteralExpression(std::string_view value)
     : value_(std::string(value)) {}
 
@@ -37,11 +34,12 @@ std::string LiteralExpression::GetValue() const {
   return std::get<std::string>(value_);
 }
 
-void LiteralExpression::Visit(
-    std::function<void(int16_t)> f1, std::function<void(int32_t)> f2,
-    std::function<void(int64_t)> f3, std::function<void(double)> f4,
-    std::function<void(std::string)> f5, std::function<void(bool)> f6,
-    std::function<void(runtime::Date::DateBuilder)> f7) const {
+void LiteralExpression::Visit(std::function<void(int16_t)> f1,
+                              std::function<void(int32_t)> f2,
+                              std::function<void(int64_t)> f3,
+                              std::function<void(double)> f4,
+                              std::function<void(std::string)> f5,
+                              std::function<void(bool)> f6) const {
   std::visit(
       [&](auto&& arg) {
         using T = std::decay_t<decltype(arg)>;
@@ -58,8 +56,6 @@ void LiteralExpression::Visit(
           f5(arg);
         } else if constexpr (std::is_same_v<T, bool>) {
           f6(arg);
-        } else if constexpr (std::is_same_v<T, runtime::Date::DateBuilder>) {
-          f7(arg);
         } else {
           static_assert(always_false_v<T>, "unreachable");
         }

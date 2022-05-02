@@ -144,7 +144,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
 
     child_translator.SchemaValues().ResetValues();
     for (int i = 0; i < schema.size(); i++) {
-      switch (schema[i].Expr().Type().type_id) {
+      const auto& type = schema[i].Expr().Type();
+      switch (type.type_id) {
         case catalog::TypeId::SMALLINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int16(program, 0), proxy::Bool(program, false)));
@@ -173,6 +174,11 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         case catalog::TypeId::TEXT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::String::Global(program, ""), proxy::Bool(program, false)));
+          break;
+        case catalog::TypeId::ENUM:
+          child_translator.SchemaValues().AddVariable(
+              proxy::SQLValue(proxy::Enum(program, type.enum_id, -1),
+                              proxy::Bool(program, false)));
           break;
       }
     }
@@ -1030,7 +1036,8 @@ void RecompilingSkinnerJoinTranslator::Produce() {
     const auto& schema = child_operators[i].get().Schema().Columns();
     child_translator.SchemaValues().ResetValues();
     for (int i = 0; i < schema.size(); i++) {
-      switch (schema[i].Expr().Type().type_id) {
+      const auto& type = schema[i].Expr().Type();
+      switch (type.type_id) {
         case catalog::TypeId::SMALLINT:
           child_translator.SchemaValues().AddVariable(proxy::SQLValue(
               proxy::Int16(program_, 0), proxy::Bool(program_, false)));
@@ -1059,6 +1066,11 @@ void RecompilingSkinnerJoinTranslator::Produce() {
         case catalog::TypeId::TEXT:
           child_translator.SchemaValues().AddVariable(
               proxy::SQLValue(proxy::String::Global(program_, ""),
+                              proxy::Bool(program_, false)));
+          break;
+        case catalog::TypeId::ENUM:
+          child_translator.SchemaValues().AddVariable(
+              proxy::SQLValue(proxy::Enum(program_, type.enum_id, -1),
                               proxy::Bool(program_, false)));
           break;
       }

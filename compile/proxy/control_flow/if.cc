@@ -166,9 +166,12 @@ SQLValue NullableTernary(khir::ProgramBuilder& program, const Bool& cond,
   program.UpdatePhiMember(null_phi_value, then_branch_null_phi_member);
   program.UpdatePhiMember(null_phi_value, else_branch_null_phi_member);
 
-  auto ret = SQLValue(S(program, phi_value), Bool(program, null_phi_value));
-  assert(ret.Type() == then_branch_value.Type());
-  return ret;
+  if constexpr (std::is_same_v<S, Enum>) {
+    return SQLValue(Enum(program, then_branch_value.Type().enum_id, phi_value),
+                    Bool(program, null_phi_value));
+  } else {
+    return SQLValue(S(program, phi_value), Bool(program, null_phi_value));
+  }
 }
 
 template SQLValue NullableTernary<Bool>(khir::ProgramBuilder& program,
@@ -205,5 +208,10 @@ template SQLValue NullableTernary<String>(khir::ProgramBuilder& program,
                                           const Bool& cond,
                                           std::function<SQLValue()> then_fn,
                                           std::function<SQLValue()> else_fn);
+
+template SQLValue NullableTernary<Enum>(khir::ProgramBuilder& program,
+                                        const Bool& cond,
+                                        std::function<SQLValue()> then_fn,
+                                        std::function<SQLValue()> else_fn);
 
 }  // namespace kush::compile::proxy

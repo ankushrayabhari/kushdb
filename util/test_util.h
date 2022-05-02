@@ -125,6 +125,7 @@ bool CHECK_EQ_TBL(
           break;
         }
 
+        case catalog::TypeId::ENUM:
         case catalog::TypeId::TEXT: {
           std::string_view expected_without_quotes = e_value;
           if (expected_without_quotes.size() >= 2 &&

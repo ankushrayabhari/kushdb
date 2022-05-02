@@ -147,6 +147,10 @@ void ExpressionTranslator::Visit(const plan::LiteralExpression& literal) {
       [&](runtime::Date::DateBuilder v, bool null) {
         Return(proxy::SQLValue(proxy::Date(program_, v),
                                proxy::Bool(program_, null)));
+      },
+      [&](int32_t v, int32_t id, bool null) {
+        Return(proxy::SQLValue(proxy::Enum(program_, id, v),
+                               proxy::Bool(program_, null)));
       });
 }
 
@@ -203,6 +207,10 @@ void ExpressionTranslator::Visit(const plan::CaseExpression& case_expr) {
     }
     case catalog::TypeId::BOOLEAN: {
       Return(Ternary<proxy::Bool>(case_expr));
+      return;
+    }
+    case catalog::TypeId::ENUM: {
+      Return(Ternary<proxy::Enum>(case_expr));
       return;
     }
   }
@@ -275,6 +283,11 @@ void ExpressionTranslator::Visit(
                                proxy::Bool(program_, false));
       },
       [&]() {
+        if (auto lhs_v = dynamic_cast<proxy::Enum*>(&lhs.Get())) {
+          return proxy::SQLValue(lhs_v->ToString().Like(match_expr.Regex()),
+                                 proxy::Bool(program_, false));
+        }
+
         const proxy::String& lhs_v =
             dynamic_cast<const proxy::String&>(lhs.Get());
         return proxy::SQLValue(lhs_v.Like(match_expr.Regex()),

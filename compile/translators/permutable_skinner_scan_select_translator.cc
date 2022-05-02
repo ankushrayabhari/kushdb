@@ -100,6 +100,10 @@ PermutableSkinnerScanSelectTranslator::GenerateBuffer() {
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::INT>>(
             program_, path, type));
         break;
+      case TypeId::ENUM:
+        column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::ENUM>>(
+            program_, path, type));
+        break;
       case TypeId::BIGINT:
         column_data.push_back(
             std::make_unique<proxy::ColumnData<TypeId::BIGINT>>(program_, path,
@@ -159,6 +163,9 @@ PermutableSkinnerScanSelectTranslator::GenerateIndex(
     case TypeId::INT:
       return std::make_unique<proxy::DiskColumnIndex<TypeId::INT>>(program,
                                                                    path);
+    case TypeId::ENUM:
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::ENUM>>(program,
+                                                                    path);
     case TypeId::BIGINT:
       return std::make_unique<proxy::DiskColumnIndex<TypeId::BIGINT>>(program,
                                                                       path);
@@ -223,7 +230,8 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
 
   this->virtual_values_.ResetValues();
   for (int i = 0; i < scan_schema_columns.size(); i++) {
-    switch (scan_schema_columns[i].Expr().Type().type_id) {
+    const auto& type = scan_schema_columns[i].Expr().Type();
+    switch (type.type_id) {
       case catalog::TypeId::SMALLINT:
         this->virtual_values_.AddVariable(proxy::SQLValue(
             proxy::Int16(program_, 0), proxy::Bool(program_, false)));
@@ -252,6 +260,11 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
       case catalog::TypeId::TEXT:
         this->virtual_values_.AddVariable(proxy::SQLValue(
             proxy::String::Global(program_, ""), proxy::Bool(program_, false)));
+        break;
+      case catalog::TypeId::ENUM:
+        this->virtual_values_.AddVariable(
+            proxy::SQLValue(proxy::Enum(program_, type.enum_id, -1),
+                            proxy::Bool(program_, false)));
         break;
     }
   }

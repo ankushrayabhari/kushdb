@@ -74,6 +74,7 @@ void SumAggregator::Update(Struct& entry) {
             case catalog::TypeId::BOOLEAN:
             case catalog::TypeId::DATE:
             case catalog::TypeId::TEXT:
+            case catalog::TypeId::ENUM:
               throw std::runtime_error("cannot compute sum of non-numeric col");
           }
         });
@@ -155,6 +156,16 @@ void MinMaxAggregator::Update(Struct& entry) {
               auto& v1 = static_cast<String&>(next.Get());
               auto& v2 = static_cast<String&>(current_value.Get());
               If(program_, min_ ? v1 < v2 : v2 < v1,
+                 [&]() { entry.Update(field_, not_null_next); });
+              break;
+            }
+
+            case catalog::TypeId::ENUM: {
+              auto& v1 = static_cast<Enum&>(next.Get());
+              auto& v2 = static_cast<Enum&>(current_value.Get());
+              auto str1 = v1.ToString();
+              auto str2 = v2.ToString();
+              If(program_, min_ ? str1 < str2 : str2 < str1,
                  [&]() { entry.Update(field_, not_null_next); });
               break;
             }

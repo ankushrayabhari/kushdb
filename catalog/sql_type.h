@@ -4,7 +4,16 @@
 
 namespace kush::catalog {
 
-enum class TypeId { SMALLINT, INT, BIGINT, REAL, DATE, TEXT, BOOLEAN };
+enum class TypeId {
+  SMALLINT,
+  INT,
+  BIGINT,
+  REAL,
+  DATE,
+  TEXT,
+  BOOLEAN,
+  ENUM,
+};
 
 struct Type {
   TypeId type_id;
@@ -64,6 +73,13 @@ struct Type {
     return Type{
         .type_id = TypeId::BOOLEAN,
         .enum_id = 0,
+    };
+  }
+
+  static Type Enum(int32_t id) {
+    return Type{
+        .type_id = TypeId::ENUM,
+        .enum_id = id,
     };
   }
 };

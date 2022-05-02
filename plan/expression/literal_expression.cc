@@ -12,6 +12,7 @@
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "runtime/date.h"
+#include "runtime/enum.h"
 
 namespace kush::plan {
 
@@ -53,6 +54,12 @@ LiteralExpression::LiteralExpression(bool value)
       value_(value),
       null_(false) {}
 
+LiteralExpression::LiteralExpression(int32_t enum_id, std::string_view value)
+    : Expression(catalog::Type::Enum(enum_id), false, {}),
+      value_(EnumValue{.value = runtime::Enum::EnumManager::Get().GetValue(
+                           enum_id, std::string(value))}),
+      null_(false) {}
+
 LiteralExpression::LiteralExpression(const catalog::Type& type)
     : Expression(type, true, {}), null_(true) {
   switch (type.type_id) {
@@ -83,6 +90,10 @@ LiteralExpression::LiteralExpression(const catalog::Type& type)
     case catalog::TypeId::DATE:
       value_ = runtime::Date::DateBuilder(2000, 1, 1);
       break;
+
+    case catalog::TypeId::ENUM:
+      value_ = EnumValue{.value = -1};
+      break;
   }
 }
 
@@ -92,7 +103,8 @@ void LiteralExpression::Visit(
     std::function<void(int64_t, bool)> f3, std::function<void(double, bool)> f4,
     std::function<void(std::string, bool)> f5,
     std::function<void(bool, bool)> f6,
-    std::function<void(runtime::Date::DateBuilder, bool)> f7) const {
+    std::function<void(runtime::Date::DateBuilder, bool)> f7,
+    std::function<void(int32_t, int32_t, bool)> f8) const {
   std::visit(
       [&](auto&& arg) {
         using T = std::decay_t<decltype(arg)>;
@@ -111,6 +123,9 @@ void LiteralExpression::Visit(
           f6(arg, null_);
         } else if constexpr (std::is_same_v<T, runtime::Date::DateBuilder>) {
           f7(arg, null_);
+        } else if constexpr (std::is_same_v<T, EnumValue>) {
+          EnumValue v = arg;
+          f8(v.value, this->Type().enum_id, null_);
         } else {
           static_assert(always_false_v<T>, "unreachable");
         }
@@ -149,6 +164,11 @@ nlohmann::json LiteralExpression::ToJson() const {
       [&](runtime::Date::DateBuilder v, bool null) {
         j["value"] = std::to_string(v.year) + "-" + std::to_string(v.month) +
                      "-" + std::to_string(v.day);
+        j["null"] = null;
+      },
+      [&](auto idx, auto enum_id, bool null) {
+        j["value"] = idx;
+        j["enum_id"] = enum_id;
         j["null"] = null;
       });
   return j;

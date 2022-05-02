@@ -16,6 +16,7 @@ class SQLValue {
   SQLValue(const Date& value, const Bool& null);
   SQLValue(const Float64& value, const Bool& null);
   SQLValue(const String& value, const Bool& null);
+  SQLValue(const Enum& value, const Bool& null);
   SQLValue(std::unique_ptr<IRValue> value, const catalog::Type& type,
            const Bool& null);
   SQLValue(const SQLValue&);

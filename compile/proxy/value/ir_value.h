@@ -274,7 +274,6 @@ class String : public IRValue {
                               std::string_view value);
 
   void Copy(const String& rhs) const;
-  void Reset() const;
   Bool Contains(const String& rhs) const;
   Bool StartsWith(const String& rhs) const;
   Bool EndsWith(const String& rhs) const;
@@ -325,6 +324,38 @@ class Date : public IRValue {
 
  private:
   khir::ProgramBuilder& program_;
+  khir::Value value_;
+};
+
+class Enum : public IRValue {
+ public:
+  Enum(khir::ProgramBuilder& program, int32_t enum_id, int32_t value);
+  Enum(khir::ProgramBuilder& program, int32_t enum_id,
+       const khir::Value& value);
+
+  Enum(const Enum& rhs) = default;
+  Enum(Enum&& rhs) = default;
+  Enum& operator=(const Enum& rhs);
+  Enum& operator=(Enum&& rhs);
+
+  Bool operator==(const Enum& rhs) const;
+  Bool operator!=(const Enum& rhs) const;
+
+  String ToString() const;
+
+  Int64 Hash() const override;
+  khir::Value Get() const override;
+  void Print(Printer& printer) const override;
+  std::unique_ptr<Enum> ToPointer() const;
+  khir::ProgramBuilder& ProgramBuilder() const override;
+
+  int32_t EnumId() const;
+
+  static void ForwardDeclare(khir::ProgramBuilder& program);
+
+ private:
+  khir::ProgramBuilder& program_;
+  int32_t enum_id_;
   khir::Value value_;
 };
 

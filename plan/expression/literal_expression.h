@@ -21,6 +21,7 @@ class LiteralExpression : public Expression {
   explicit LiteralExpression(runtime::Date::DateBuilder d);
   explicit LiteralExpression(std::string_view value);
   explicit LiteralExpression(bool value);
+  explicit LiteralExpression(int32_t enum_id, std::string_view value);
   explicit LiteralExpression(const catalog::Type& type);
   ~LiteralExpression() = default;
 
@@ -30,15 +31,19 @@ class LiteralExpression : public Expression {
              std::function<void(double, bool)>,
              std::function<void(std::string, bool)>,
              std::function<void(bool, bool)>,
-             std::function<void(runtime::Date::DateBuilder, bool)>) const;
+             std::function<void(runtime::Date::DateBuilder, bool)>,
+             std::function<void(int32_t, int32_t, bool)>) const;
   void Accept(ExpressionVisitor& visitor) override;
   void Accept(ImmutableExpressionVisitor& visitor) const override;
 
   nlohmann::json ToJson() const override;
 
  private:
+  struct EnumValue {
+    int32_t value;
+  };
   std::variant<int16_t, int32_t, int64_t, double, std::string, bool,
-               runtime::Date::DateBuilder>
+               runtime::Date::DateBuilder, EnumValue>
       value_;
   bool null_;
 };

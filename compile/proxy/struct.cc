@@ -30,6 +30,7 @@ int StructBuilder::Add(const catalog::Type& type, bool nullable) {
       break;
     case catalog::TypeId::INT:
     case catalog::TypeId::DATE:
+    case catalog::TypeId::ENUM:
       fields_.push_back(program_.I32Type());
       values_.push_back(program_.ConstI32(0));
       break;
@@ -126,6 +127,10 @@ std::vector<SQLValue> Struct::Unpack() {
       case catalog::TypeId::TEXT:
         result.emplace_back(String(program_, ptr), null);
         break;
+      case catalog::TypeId::ENUM:
+        result.emplace_back(
+            Enum(program_, types[i].enum_id, program_.LoadI32(ptr)), null);
+        break;
       case catalog::TypeId::BOOLEAN:
         result.emplace_back(Int8(program_, program_.LoadI8(ptr)) != 0, null);
         break;
@@ -151,6 +156,10 @@ SQLValue Struct::Get(int i) {
       return SQLValue(Int16(program_, program_.LoadI16(ptr)), null);
     case catalog::TypeId::INT:
       return SQLValue(Int32(program_, program_.LoadI32(ptr)), null);
+    case catalog::TypeId::ENUM:
+      return SQLValue(Enum(program_, types[i].enum_id, program_.LoadI32(ptr)),
+                      null);
+      break;
     case catalog::TypeId::BIGINT:
       return SQLValue(Int64(program_, program_.LoadI64(ptr)), null);
     case catalog::TypeId::DATE:
@@ -172,6 +181,7 @@ void Struct::Store(const catalog::Type& t, khir::Value ptr, const IRValue& v) {
       break;
     case catalog::TypeId::DATE:
     case catalog::TypeId::INT:
+    case catalog::TypeId::ENUM:
       program_.StoreI32(ptr, value);
       break;
     case catalog::TypeId::BIGINT:
