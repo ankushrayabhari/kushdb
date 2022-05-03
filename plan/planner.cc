@@ -280,32 +280,25 @@ std::unique_ptr<Expression> Planner::Plan(
         }
 
         // convert each paren into escape
-        std::string regex;
+        std::string regex = "^";
         for (auto c : match) {
           switch (c) {
-            case '(':
-              regex.push_back('\\');
-              regex.push_back('(');
-              break;
-            case ')':
-              regex.push_back('\\');
-              regex.push_back(')');
-              break;
+            case '.':
             case '+':
-              regex.push_back('\\');
-              regex.push_back('+');
-              break;
             case '*':
-              regex.push_back('\\');
-              regex.push_back('*');
-              break;
             case '?':
-              regex.push_back('\\');
-              regex.push_back('?');
-              break;
+            case '^':
+            case '$':
+            case '(':
+            case ')':
+            case '[':
+            case ']':
+            case '{':
+            case '}':
             case '|':
+            case '\\':
               regex.push_back('\\');
-              regex.push_back('|');
+              regex.push_back(c);
               break;
 
             case '_':
@@ -322,6 +315,7 @@ std::unique_ptr<Expression> Planner::Plan(
               break;
           }
         }
+        regex.push_back('$');
 
         return std::make_unique<RegexpMatchingExpression>(
             Plan(expr.LeftChild()), std::make_unique<re2::RE2>(regex));
