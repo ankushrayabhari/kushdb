@@ -66,6 +66,14 @@ cc_library(
 )
 
 cc_library(
+    name = "profiler",
+    hdrs = ["profiler.h"],
+    deps = [
+        ":profile_map_generator",
+    ],
+)
+
+cc_library(
     name = "nn",
     hdrs = ["nn.h"],
     deps = [
@@ -77,6 +85,7 @@ cc_library(
     name = "time_execute",
     hdrs = ["time_execute.h"],
     deps = [
+        ":profiler",
         ":test_util",
         "//compile:query_translator",
         "//execution:executable_query",

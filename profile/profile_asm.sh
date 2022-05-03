@@ -3,7 +3,8 @@
 QUERY=$1
 shift
 bazel build -c opt --config=profile //...
-sudo perf record -F 5000 -k 1 -g --call-graph fp -o /tmp/perf.data $QUERY --backend=asm $@ >/dev/null
-sudo cp /tmp/perf.data perf-asm.data
+FILENAME=`date '+%Y-%m-%d-%H-%M'`-`uuidgen -t`
+sudo $QUERY --perfpath="/tmp/${FILENAME}.data" --backend=asm $@ >/dev/null
+sudo cp "/tmp/${FILENAME}.data" perf-asm.data
 sudo perf script -i perf-asm.data | ./profile//stackcollapse-perf.pl > /tmp/out.perf-folded
 cat /tmp/out.perf-folded | ./profile/flamegraph.pl > perf-asm.svg
