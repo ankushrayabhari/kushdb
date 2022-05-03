@@ -738,34 +738,22 @@ void AdaptiveScanSelect(std::unique_ptr<Operator>& op) {
       // scan / select
       auto exprs = Decompose(select->DestroyExpr());
 
-      if ((exprs.size() == 1 && IsIndexFilter(*exprs[0])) || exprs.size() > 1) {
-        for (auto& expr : exprs) {
-          RewriteColRefToVirtColRef(expr);
-        }
-        const auto& relation = scan->Relation();
-        auto scan_schema = std::move(scan->MutableSchema());
-        auto select_schema = std::move(select->MutableSchema());
-
-        for (auto& col : select_schema.MutableColumns()) {
-          auto e = col.DestroyExpr();
-          RewriteColRefToVirtColRef(e);
-          col.SetExpr(std::move(e));
-        }
-
-        op = std::make_unique<SkinnerScanSelectOperator>(
-            std::move(select_schema), std::move(scan_schema), relation,
-            std::move(exprs));
-      } else {
-        std::unique_ptr<Expression> filter = std::move(exprs.back());
-
-        for (int i = exprs.size() - 2; i >= 0; i--) {
-          filter = std::make_unique<BinaryArithmeticExpression>(
-              BinaryArithmeticExpressionType::AND, std::move(exprs[i]),
-              std::move(filter));
-        }
-
-        select->SetExpr(std::move(filter));
+      for (auto& expr : exprs) {
+        RewriteColRefToVirtColRef(expr);
       }
+      const auto& relation = scan->Relation();
+      auto scan_schema = std::move(scan->MutableSchema());
+      auto select_schema = std::move(select->MutableSchema());
+
+      for (auto& col : select_schema.MutableColumns()) {
+        auto e = col.DestroyExpr();
+        RewriteColRefToVirtColRef(e);
+        col.SetExpr(std::move(e));
+      }
+
+      op = std::make_unique<SkinnerScanSelectOperator>(
+          std::move(select_schema), std::move(scan_schema), relation,
+          std::move(exprs));
 
       return;
     }
