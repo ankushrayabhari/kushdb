@@ -33,6 +33,8 @@ void Expression::SetChildren(
 
 bool Expression::Nullable() const { return nullable_; }
 
+void Expression::SetNullable() { nullable_ = true; }
+
 const catalog::Type& Expression::Type() const { return type_; }
 
 UnaryExpression::UnaryExpression(const catalog::Type& type, bool nullable,

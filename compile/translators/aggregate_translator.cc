@@ -84,23 +84,73 @@ void AggregateTranslator::Produce() {
 
   // Loop over elements of HT and output row
   proxy::Int64 empty(program_, program_.LoadI64(empty_value_));
-  proxy::If(program_, empty != 0, [&]() {
-    this->virtual_values_.ResetValues();
-    for (const auto& agg : aggregators_) {
-      this->virtual_values_.AddVariable(agg->Get(*value_));
-    }
+  proxy::If(
+      program_, empty == 0,
+      [&]() {
+        // generate null
+        this->values_.ResetValues();
+        for (const auto& column : agg_.Schema().Columns()) {
+          const auto& type = column.Expr().Type();
+          switch (type.type_id) {
+            case catalog::TypeId::SMALLINT:
+              this->values_.AddVariable(proxy::SQLValue(
+                  proxy::Int16(program_, 0), proxy::Bool(program_, true)));
+              break;
+            case catalog::TypeId::INT:
+              this->values_.AddVariable(proxy::SQLValue(
+                  proxy::Int32(program_, 0), proxy::Bool(program_, true)));
+              break;
+            case catalog::TypeId::DATE:
+              this->values_.AddVariable(proxy::SQLValue(
+                  proxy::Date(program_, runtime::Date::DateBuilder(2000, 1, 1)),
+                  proxy::Bool(program_, true)));
+              break;
+            case catalog::TypeId::BIGINT:
+              this->values_.AddVariable(proxy::SQLValue(
+                  proxy::Int64(program_, 0), proxy::Bool(program_, true)));
+              break;
+            case catalog::TypeId::BOOLEAN:
+              this->values_.AddVariable(proxy::SQLValue(
+                  proxy::Bool(program_, false), proxy::Bool(program_, true)));
+              break;
+            case catalog::TypeId::REAL:
+              this->values_.AddVariable(proxy::SQLValue(
+                  proxy::Float64(program_, 0), proxy::Bool(program_, true)));
+              break;
+            case catalog::TypeId::TEXT:
+              this->values_.AddVariable(
+                  proxy::SQLValue(proxy::String::Global(program_, ""),
+                                  proxy::Bool(program_, true)));
+              break;
+            case catalog::TypeId::ENUM:
+              this->values_.AddVariable(
+                  proxy::SQLValue(proxy::Enum(program_, type.enum_id, -1),
+                                  proxy::Bool(program_, true)));
+              break;
+          }
+        }
 
-    // generate output variables
-    this->values_.ResetValues();
-    for (const auto& column : agg_.Schema().Columns()) {
-      auto val = expr_translator_.Compute(column.Expr());
-      this->values_.AddVariable(val);
-    }
+        if (auto parent = this->Parent()) {
+          parent->get().Consume(*this);
+        }
+      },
+      [&]() {
+        this->virtual_values_.ResetValues();
+        for (const auto& agg : aggregators_) {
+          this->virtual_values_.AddVariable(agg->Get(*value_));
+        }
 
-    if (auto parent = this->Parent()) {
-      parent->get().Consume(*this);
-    }
-  });
+        // generate output variables
+        this->values_.ResetValues();
+        for (const auto& column : agg_.Schema().Columns()) {
+          auto val = expr_translator_.Compute(column.Expr());
+          this->values_.AddVariable(val);
+        }
+
+        if (auto parent = this->Parent()) {
+          parent->get().Consume(*this);
+        }
+      });
 }
 
 void AggregateTranslator::Consume(OperatorTranslator& src) {

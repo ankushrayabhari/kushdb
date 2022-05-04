@@ -16,7 +16,11 @@ AggregateOperator::AggregateOperator(
     OperatorSchema schema, std::unique_ptr<Operator> child,
     std::vector<std::unique_ptr<AggregateExpression>> aggregate_exprs)
     : UnaryOperator(std::move(schema), std::move(child)),
-      aggregate_exprs_(std::move(aggregate_exprs)) {}
+      aggregate_exprs_(std::move(aggregate_exprs)) {
+  for (auto& expr : aggregate_exprs_) {
+    expr->SetNullable();
+  }
+}
 
 nlohmann::json AggregateOperator::ToJson() const {
   nlohmann::json j;

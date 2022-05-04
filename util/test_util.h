@@ -111,6 +111,17 @@ bool CHECK_EQ_TBL(
       const auto& e_value = split_e[j];
       const auto& o_value = split_o[j];
 
+      if (e_value.empty()) {
+        if (!o_value.empty()) {
+          std::cerr << "Expected column equal (" << i << "," << j << ")"
+                    << std::endl;
+          std::cerr << e_value << std::endl;
+          std::cerr << o_value << std::endl;
+          return false;
+        }
+        continue;
+      }
+
       switch (columns[j].Expr().Type().type_id) {
         case catalog::TypeId::REAL: {
           double e_value_as_d = std::stod(e_value);

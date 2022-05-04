@@ -20,6 +20,7 @@ class Expression {
   std::vector<std::reference_wrapper<Expression>> MutableChildren();
   const catalog::Type& Type() const;
   bool Nullable() const;
+  void SetNullable();
 
   virtual void Accept(ExpressionVisitor& visitor) = 0;
   virtual void Accept(ImmutableExpressionVisitor& visitor) const = 0;
@@ -48,7 +49,7 @@ class UnaryExpression : public Expression {
 
 class BinaryExpression : public Expression {
  public:
-  BinaryExpression(const catalog::Type&type, bool nullable,
+  BinaryExpression(const catalog::Type& type, bool nullable,
                    std::unique_ptr<Expression> left_child,
                    std::unique_ptr<Expression> right_child);
   virtual ~BinaryExpression() = default;
