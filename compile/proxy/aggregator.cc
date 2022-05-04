@@ -33,7 +33,7 @@ void SumAggregator::Update(Struct& entry) {
   auto current_value = entry.Get(field_);
   auto next = expr_translator_.Compute(agg_.Child());
 
-  If(program_, !next.IsNull(), [&] {
+  If(program_, NOT, next.IsNull(), [&] {
     // checked that it's not null so this is safe
     auto not_null_next = next.GetNotNullable();
 
@@ -104,7 +104,7 @@ void MinMaxAggregator::Initialize(Struct& entry) {
 void MinMaxAggregator::Update(Struct& entry) {
   auto current_value = entry.Get(field_);
   auto next = expr_translator_.Compute(agg_.Child());
-  If(program_, !next.IsNull(), [&] {
+  If(program_, NOT, next.IsNull(), [&] {
     // checked that it's not null so this is safe
     auto not_null_next = next.GetNotNullable();
     If(
@@ -238,7 +238,7 @@ Float64 AverageAggregator::ToFloat(IRValue& v) {
 
 void AverageAggregator::Update(Struct& entry) {
   auto next = expr_translator_.Compute(agg_.Child());
-  If(program_, !next.IsNull(), [&] {
+  If(program_, NOT, next.IsNull(), [&] {
     // checked that it's not null so this is safe
     auto next_value = ToFloat(next.Get());
 
@@ -288,7 +288,7 @@ void CountAggregator::Initialize(Struct& entry) {
 
 void CountAggregator::Update(Struct& entry) {
   auto next = expr_translator_.Compute(agg_.Child());
-  If(program_, !next.IsNull(), [&] {
+  If(program_, NOT, next.IsNull(), [&] {
     auto record_count_field = entry.Get(field_);
     auto record_count = static_cast<Int64&>(record_count_field.Get());
     entry.Update(field_, SQLValue(record_count + 1, Bool(program_, false)));

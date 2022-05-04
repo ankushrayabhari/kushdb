@@ -160,7 +160,7 @@ void NoneSkinnerScanSelectTranslator::Produce() {
 
           auto value = expr_translator_.Compute(condition.get());
           proxy::If(program_, value.IsNull(), [&]() { loop.Continue(i + 1); });
-          proxy::If(program_, !static_cast<proxy::Bool&>(value.Get()),
+          proxy::If(program_, NOT, static_cast<proxy::Bool&>(value.Get()),
                     [&]() { loop.Continue(i + 1); });
         }
 

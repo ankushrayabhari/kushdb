@@ -7,12 +7,24 @@
 #include "compile/proxy/value/sql_value.h"
 #include "khir/program_builder.h"
 
+namespace kush::compile {
+
+enum Modifier { NOT };
+
+}  // namespace kush::compile
+
 namespace kush::compile::proxy {
 
 void If(khir::ProgramBuilder& program, const Bool& cond,
         std::function<void()> then_fn);
 
 void If(khir::ProgramBuilder& program, const Bool& cond,
+        std::function<void()> then_fn, std::function<void()> else_fn);
+
+void If(khir::ProgramBuilder& program, Modifier m, const Bool& cond,
+        std::function<void()> then_fn);
+
+void If(khir::ProgramBuilder& program, Modifier m, const Bool& cond,
         std::function<void()> then_fn, std::function<void()> else_fn);
 
 Bool Ternary(khir::ProgramBuilder& program, const Bool& cond,

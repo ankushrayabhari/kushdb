@@ -10,6 +10,15 @@ namespace kush::compile::proxy {
 
 void If(khir::ProgramBuilder& program, const Bool& cond,
         std::function<void()> then_fn) {
+  if (cond.Get() == program.ConstI1(true)) {
+    then_fn();
+    return;
+  }
+
+  if (cond.Get() == program.ConstI1(false)) {
+    return;
+  }
+
   auto first_block = program.GenerateBlock();
   auto dest_block = program.GenerateBlock();
   program.Branch(cond.Get(), first_block, dest_block);
@@ -25,6 +34,16 @@ void If(khir::ProgramBuilder& program, const Bool& cond,
 
 void If(khir::ProgramBuilder& program, const Bool& cond,
         std::function<void()> then_fn, std::function<void()> else_fn) {
+  if (cond.Get() == program.ConstI1(true)) {
+    then_fn();
+    return;
+  }
+
+  if (cond.Get() == program.ConstI1(false)) {
+    else_fn();
+    return;
+  }
+
   auto dest_block = program.GenerateBlock();
 
   auto first_block = program.GenerateBlock();
@@ -50,6 +69,14 @@ void If(khir::ProgramBuilder& program, const Bool& cond,
 template <typename T>
 T TernaryImpl(khir::ProgramBuilder& program, const Bool& cond,
               std::function<T()> then_fn, std::function<T()> else_fn) {
+  if (cond.Get() == program.ConstI1(true)) {
+    return then_fn();
+  }
+
+  if (cond.Get() == program.ConstI1(false)) {
+    return else_fn();
+  }
+
   auto dest_block = program.GenerateBlock();
 
   auto first_block = program.GenerateBlock();
@@ -79,6 +106,35 @@ T TernaryImpl(khir::ProgramBuilder& program, const Bool& cond,
   program.UpdatePhiMember(phi_value, then_branch_phi_member);
   program.UpdatePhiMember(phi_value, else_branch_phi_member);
   return T(program, phi_value);
+}
+
+void If(khir::ProgramBuilder& program, Modifier m, const Bool& cond,
+        std::function<void()> then_fn) {
+  if (cond.Get() == program.ConstI1(false)) {
+    then_fn();
+    return;
+  }
+
+  if (cond.Get() == program.ConstI1(true)) {
+    return;
+  }
+
+  auto first_block = program.GenerateBlock();
+  auto dest_block = program.GenerateBlock();
+  program.Branch(cond.Get(), dest_block, first_block);
+
+  program.SetCurrentBlock(first_block);
+  then_fn();
+  if (!program.IsTerminated(program.CurrentBlock())) {
+    program.Branch(dest_block);
+  }
+
+  program.SetCurrentBlock(dest_block);
+}
+
+void If(khir::ProgramBuilder& program, Modifier m, const Bool& cond,
+        std::function<void()> then_fn, std::function<void()> else_fn) {
+  If(program, cond, else_fn, then_fn);
 }
 
 Bool Ternary(khir::ProgramBuilder& program, const Bool& cond,
@@ -122,6 +178,14 @@ template <typename S>
 SQLValue NullableTernary(khir::ProgramBuilder& program, const Bool& cond,
                          std::function<SQLValue()> then_fn,
                          std::function<SQLValue()> else_fn) {
+  if (cond.Get() == program.ConstI1(true)) {
+    return then_fn();
+  }
+
+  if (cond.Get() == program.ConstI1(false)) {
+    return else_fn();
+  }
+
   auto dest_block = program.GenerateBlock();
 
   auto first_block = program.GenerateBlock();

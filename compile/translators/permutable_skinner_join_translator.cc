@@ -149,7 +149,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
           disk_materialized_buffer->Scan(
               col_idx, [&](auto tuple_idx, auto value) {
                 // only index not null values
-                proxy::If(program_, !value.IsNull(), [&]() {
+                proxy::If(program_, NOT, value.IsNull(), [&]() {
                   dynamic_cast<proxy::ColumnIndexBuilder*>(
                       indexes_[index_idx].get())
                       ->Insert(value.Get(), tuple_idx);
@@ -637,8 +637,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
                                 },
                                 [&]() {
                                   proxy::If(
-                                      program_,
-                                      !static_cast<proxy::Bool&>(cond.Get()),
+                                      program_, NOT,
+                                      static_cast<proxy::Bool&>(cond.Get()),
                                       [&]() {
                                         // If budget, depleted return -1 and
                                         // set table ctr
@@ -820,9 +820,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
                           },
                           [&]() {
                             proxy::If(
-                                program_,
-                                !static_cast<proxy::Bool&>(cond.Get() /*cond*/),
-                                [&]() {
+                                program_, NOT,
+                                static_cast<proxy::Bool&>(cond.Get()), [&]() {
                                   // If budget, depleted return -1 and set
                                   // table ctr
                                   proxy::If(
@@ -1071,7 +1070,7 @@ void PermutableSkinnerJoinTranslator::Consume(OperatorTranslator& src) {
       const auto& value = values[col_idx];
 
       // only index not null values
-      proxy::If(program_, !value.IsNull(), [&]() {
+      proxy::If(program_, NOT, value.IsNull(), [&]() {
         dynamic_cast<proxy::ColumnIndexBuilder*>(indexes_[index_idx].get())
             ->Insert(value.Get(), tuple_idx);
       });

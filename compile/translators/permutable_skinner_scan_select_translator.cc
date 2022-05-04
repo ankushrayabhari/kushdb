@@ -488,7 +488,7 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
 
                             proxy::Bool value(program_,
                                               program_.Call(predicate, {}));
-                            proxy::If(program_, !value, [&]() {
+                            proxy::If(program_, NOT, value, [&]() {
                               result_loop.Continue(bucket_idx + 1, budget);
                             });
 
@@ -584,7 +584,7 @@ void PermutableSkinnerScanSelectTranslator::Produce() {
 
                       proxy::Bool value(program_, program_.Call(predicate, {}));
 
-                      proxy::If(program_, !value, [&]() {
+                      proxy::If(program_, NOT, value, [&]() {
                         loop.Continue(next_tuple + 1, budget);
                       });
 

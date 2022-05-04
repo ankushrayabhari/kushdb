@@ -20,7 +20,7 @@ void SelectTranslator::Produce() { this->Child().Produce(); }
 
 void SelectTranslator::Consume(OperatorTranslator& src) {
   auto value = expr_translator_.Compute(select_.Expr());
-  proxy::If(program_, !value.IsNull(), [&]() {
+  proxy::If(program_, NOT, value.IsNull(), [&]() {
     proxy::If(program_, static_cast<proxy::Bool&>(value.Get()), [&]() {
       this->values_.ResetValues();
       for (const auto& column : select_.Schema().Columns()) {
