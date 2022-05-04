@@ -10,11 +10,14 @@ queries = ['q01', 'q02', 'q03', 'q05', 'q06', 'q07', 'q08', 'q09', 'q10', 'q11',
 def bench():
     execute('monetdb set nthreads=1 jcch')
     execute('monetdb start jcch >/dev/null')
+    # execute once to warm up
+    for query in queries:
+        cmd = 'mclient --timer=performance -d jcch benchmark/jcch1/queries/' + query + '.sql > /dev/null 2> /dev/null'
+        execute(cmd)
+    # execute 5 times
     for query in queries:
         query_num = int(query[1:])
         cmd = 'mclient --timer=performance -d jcch benchmark/jcch1/queries/' + query + '.sql > /dev/null 2> /tmp/bench_time.txt'
-        # execute once to warm up, 5 times
-        execute(cmd)
         for _ in range(5):
             execute(cmd)
             with open('/tmp/bench_time.txt', 'r') as file:

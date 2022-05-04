@@ -13,11 +13,14 @@ if __name__ == "__main__":
     execute('monetdb start job >/dev/null')
 
     queries = glob.glob('benchmark/job/queries/*.sql')
+    # execute once to warm up
+    for query in queries:
+        cmd = 'mclient --timer=performance -d job ' + query + ' > /dev/null 2> /dev/null'
+        execute(cmd)
+    # execute 5 times
     for query in queries:
         query = query.replace('benchmark/job/queries/', '').replace('.sql', '')
         cmd = 'mclient --timer=performance -d job benchmark/job/queries/' + query + '.sql > /dev/null 2> /tmp/bench_time.txt'
-        # execute once to warm up, 5 times
-        execute(cmd)
         for _ in range(5):
             execute(cmd)
             with open('/tmp/bench_time.txt', 'r') as file:

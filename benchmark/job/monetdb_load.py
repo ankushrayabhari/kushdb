@@ -14,7 +14,7 @@ def execute(cmd):
     os.system(cmd)
 
 def copy(raw, table):
-    return 'COPY INTO ' + table + ' FROM \'' +  os.path.abspath(raw + table + ".csv") + "\' USING DELIMITERS ',', '\\n', '\\\"' NULL AS '';"
+    return 'COPY INTO ' + table + ' FROM \'' +  os.path.abspath(raw + table + ".csv") + "\' USING DELIMITERS ',', E'\\n', '\"' NULL AS '';"
 
 if __name__ == "__main__":
     execute('monetdbd create benchmark/job/monetdb')
@@ -24,8 +24,11 @@ if __name__ == "__main__":
     execute('monetdb set nthreads=1 job')
     execute('monetdb release job')
     execute("mclient -d job benchmark/job/schema.sql")
+    text_file = open("/tmp/load.sql", "w")
     for table in tables:
-        execute("mclient -d job -s \"" + copy('benchmark/job/raw/', table) + "\"")
+        text_file.write(copy('benchmark/job/raw/', table))
+    text_file.close()
+    execute("mclient -d job /tmp/load.sql")
     execute('monetdb stop job')
 
     execute('monetdbd stop benchmark/job/monetdb')
