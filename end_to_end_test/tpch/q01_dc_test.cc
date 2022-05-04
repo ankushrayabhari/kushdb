@@ -37,30 +37,23 @@ using namespace kush::catalog;
 
 const Database db = EnumSchema();
 
-// Scan(lineitem)
-std::unique_ptr<Operator> ScanLineitem() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(
-      db["lineitem"], {"l_returnflag", "l_linestatus", "l_quantity",
-                       "l_extendedprice", "l_discount", "l_tax", "l_shipdate"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
-}
-
 // Select (l_shipdate <= 1998-09-13)
 std::unique_ptr<Operator> SelectLineitem() {
-  auto scan_lineitem = ScanLineitem();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(
+      db["lineitem"], {"l_returnflag", "l_linestatus", "l_quantity",
+                       "l_extendedprice", "l_discount", "l_tax", "l_shipdate"});
 
-  auto leq = std::make_unique<BinaryArithmeticExpression>(
-      BinaryArithmeticExpressionType::LEQ, ColRef(scan_lineitem, "l_shipdate"),
-      Literal(1998, 9, 13));
+  auto leq =
+      Exp(Leq(VirtColRef(scan_schema, "l_shipdate"), Literal(1998, 9, 13)));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*scan_lineitem,
-                               {"l_returnflag", "l_linestatus", "l_quantity",
-                                "l_extendedprice", "l_discount", "l_tax"});
-
-  return std::make_unique<SelectOperator>(
-      std::move(schema), std::move(scan_lineitem), std::move(leq));
+  schema.AddVirtualPassthroughColumns(
+      scan_schema, {"l_returnflag", "l_linestatus", "l_quantity",
+                    "l_extendedprice", "l_discount", "l_tax"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["lineitem"],
+      util::MakeVector(std::move(leq)));
 }
 
 // Group By l_returnflag, l_linestatus -> Aggregate

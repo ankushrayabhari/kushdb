@@ -24,6 +24,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -44,24 +45,19 @@ std::unique_ptr<Operator> ScanNation() {
   return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
 }
 
-// Scan(part)
-std::unique_ptr<Operator> ScanPart() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["part"], {"p_partkey", "p_name"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
-}
-
 // Select(p_name LIKE '%mined gold%')
 std::unique_ptr<Operator> SelectPart() {
-  auto part = ScanPart();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(db["part"], {"p_partkey", "p_name"});
 
-  std::unique_ptr<Expression> contains =
-      Contains(ColRef(part, "p_name"), Literal("mined gold"sv));
+  auto cond =
+      Exp(Contains(VirtColRef(scan_schema, "p_name"), Literal("mined gold"sv)));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*part, {"p_partkey"});
-  return std::make_unique<SelectOperator>(std::move(schema), std::move(part),
-                                          std::move(contains));
+  schema.AddVirtualPassthroughColumns(scan_schema, {"p_partkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["part"],
+      util::MakeVector(std::move(cond)));
 }
 
 // Scan(lineitem)

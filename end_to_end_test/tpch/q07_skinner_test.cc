@@ -38,28 +38,20 @@ using namespace std::literals;
 
 const Database db = Schema();
 
-// Scan(nation)
-std::unique_ptr<Operator> ScanNation() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["nation"], {"n_nationkey", "n_name"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["nation"]);
-}
-
 // Select(n_name in 'EGYPT' or n_name in 'KENYA')
 std::unique_ptr<Operator> SelectNation() {
-  auto nation = ScanNation();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(db["nation"], {"n_nationkey", "n_name"});
 
-  std::unique_ptr<Expression> eq1 =
-      Eq(ColRef(nation, "n_name"), Literal("EGYPT"sv));
-  std::unique_ptr<Expression> eq2 =
-      Eq(ColRef(nation, "n_name"), Literal("KENYA"sv));
-  std::unique_ptr<Expression> cond =
-      Or(util::MakeVector(std::move(eq1), std::move(eq2)));
+  auto cond = Exp(Or(util::MakeVector(
+      Exp(Eq(VirtColRef(scan_schema, "n_name"), Literal("EGYPT"sv))),
+      Exp(Eq(VirtColRef(scan_schema, "n_name"), Literal("KENYA"sv))))));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(*nation, {"n_nationkey", "n_name"});
-  return std::make_unique<SelectOperator>(std::move(schema), std::move(nation),
-                                          std::move(cond));
+  schema.AddVirtualPassthroughColumns(scan_schema, {"n_nationkey", "n_name"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["nation"],
+      util::MakeVector(std::move(cond)));
 }
 
 // Scan(supplier)

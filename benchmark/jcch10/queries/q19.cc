@@ -26,6 +26,7 @@
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -39,32 +40,28 @@ using namespace std::literals;
 
 Database db;
 
-// Scan(part)
-std::unique_ptr<Operator> ScanPart() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["part"],
-                             {"p_partkey", "p_brand", "p_container", "p_size"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["part"]);
-}
-
 // Select(part)
 std::unique_ptr<Operator> SelectPart() {
-  auto part = ScanPart();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(
+      db["part"], {"p_partkey", "p_brand", "p_container", "p_size"});
 
   std::unique_ptr<Expression> or1;
   {
-    std::unique_ptr<Expression> p1 = Geq(ColRef(part, "p_size"), Literal(1));
-    std::unique_ptr<Expression> p2 = Leq(ColRef(part, "p_size"), Literal(5));
+    std::unique_ptr<Expression> p1 =
+        Geq(VirtColRef(scan_schema, "p_size"), Literal(1));
+    std::unique_ptr<Expression> p2 =
+        Leq(VirtColRef(scan_schema, "p_size"), Literal(5));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(part, "p_brand"), Literal("Brand#00"sv));
+        Eq(VirtColRef(scan_schema, "p_brand"), Literal("Brand#00"sv));
     std::unique_ptr<Expression> p4 =
-        Eq(ColRef(part, "p_container"), Literal("SM CASE"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("SM CASE"sv));
     std::unique_ptr<Expression> p5 =
-        Eq(ColRef(part, "p_container"), Literal("SM BOX"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("SM BOX"sv));
     std::unique_ptr<Expression> p6 =
-        Eq(ColRef(part, "p_container"), Literal("SM PACK"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("SM PACK"sv));
     std::unique_ptr<Expression> p7 =
-        Eq(ColRef(part, "p_container"), Literal("SM PKG"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("SM PKG"sv));
     or1 = And(
         util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                          Or(util::MakeVector(std::move(p4), std::move(p5),
@@ -73,18 +70,20 @@ std::unique_ptr<Operator> SelectPart() {
 
   std::unique_ptr<Expression> or2;
   {
-    std::unique_ptr<Expression> p1 = Geq(ColRef(part, "p_size"), Literal(1));
-    std::unique_ptr<Expression> p2 = Leq(ColRef(part, "p_size"), Literal(10));
+    std::unique_ptr<Expression> p1 =
+        Geq(VirtColRef(scan_schema, "p_size"), Literal(1));
+    std::unique_ptr<Expression> p2 =
+        Leq(VirtColRef(scan_schema, "p_size"), Literal(10));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(part, "p_brand"), Literal("Brand#00"sv));
+        Eq(VirtColRef(scan_schema, "p_brand"), Literal("Brand#00"sv));
     std::unique_ptr<Expression> p4 =
-        Eq(ColRef(part, "p_container"), Literal("MED BAG"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("MED BAG"sv));
     std::unique_ptr<Expression> p5 =
-        Eq(ColRef(part, "p_container"), Literal("MED BOX"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("MED BOX"sv));
     std::unique_ptr<Expression> p6 =
-        Eq(ColRef(part, "p_container"), Literal("MED PKG"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("MED PKG"sv));
     std::unique_ptr<Expression> p7 =
-        Eq(ColRef(part, "p_container"), Literal("MED PACK"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("MED PACK"sv));
     or2 = And(
         util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                          Or(util::MakeVector(std::move(p4), std::move(p5),
@@ -93,18 +92,20 @@ std::unique_ptr<Operator> SelectPart() {
 
   std::unique_ptr<Expression> or3;
   {
-    std::unique_ptr<Expression> p1 = Geq(ColRef(part, "p_size"), Literal(1));
-    std::unique_ptr<Expression> p2 = Leq(ColRef(part, "p_size"), Literal(15));
+    std::unique_ptr<Expression> p1 =
+        Geq(VirtColRef(scan_schema, "p_size"), Literal(1));
+    std::unique_ptr<Expression> p2 =
+        Leq(VirtColRef(scan_schema, "p_size"), Literal(15));
     std::unique_ptr<Expression> p3 =
-        Eq(ColRef(part, "p_brand"), Literal("Brand#55"sv));
+        Eq(VirtColRef(scan_schema, "p_brand"), Literal("Brand#55"sv));
     std::unique_ptr<Expression> p4 =
-        Eq(ColRef(part, "p_container"), Literal("LG CASE"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("LG CASE"sv));
     std::unique_ptr<Expression> p5 =
-        Eq(ColRef(part, "p_container"), Literal("LG BOX"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("LG BOX"sv));
     std::unique_ptr<Expression> p6 =
-        Eq(ColRef(part, "p_container"), Literal("LG PACK"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("LG PACK"sv));
     std::unique_ptr<Expression> p7 =
-        Eq(ColRef(part, "p_container"), Literal("LG PKG"sv));
+        Eq(VirtColRef(scan_schema, "p_container"), Literal("LG PKG"sv));
     or3 = And(
         util::MakeVector(std::move(p1), std::move(p2), std::move(p3),
                          Or(util::MakeVector(std::move(p4), std::move(p5),
@@ -112,54 +113,50 @@ std::unique_ptr<Operator> SelectPart() {
   }
 
   auto cond =
-      Or(util::MakeVector(std::move(or1), std::move(or2), std::move(or3)));
+      Exp(Or(util::MakeVector(std::move(or1), std::move(or2), std::move(or3))));
 
   OperatorSchema schema;
-  schema.AddPassthroughColumns(
-      *part, {"p_partkey", "p_brand", "p_container", "p_size"});
-  return std::make_unique<SelectOperator>(std::move(schema), std::move(part),
-                                          std::move(cond));
-}
-
-// Scan(lineitem)
-std::unique_ptr<Operator> ScanLinetem() {
-  OperatorSchema schema;
-  schema.AddGeneratedColumns(db["lineitem"],
-                             {"l_extendedprice", "l_discount", "l_quantity",
-                              "l_shipmode", "l_shipinstruct", "l_partkey"});
-  return std::make_unique<ScanOperator>(std::move(schema), db["lineitem"]);
+  schema.AddVirtualPassthroughColumns(
+      scan_schema, {"p_partkey", "p_brand", "p_container", "p_size"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["part"],
+      util::MakeVector(std::move(cond)));
 }
 
 // Select(lineitem)
 std::unique_ptr<Operator> SelectLineitem() {
-  auto lineitem = ScanLinetem();
+  OperatorSchema scan_schema;
+  scan_schema.AddGeneratedColumns(
+      db["lineitem"], {"l_extendedprice", "l_discount", "l_quantity",
+                       "l_shipmode", "l_shipinstruct", "l_partkey"});
 
   std::unique_ptr<Expression> and1 =
-      Eq(ColRef(lineitem, "l_shipinstruct"), Literal("DELIVER IN PERSON"sv));
+      Eq(VirtColRef(scan_schema, "l_shipinstruct"),
+         Literal("DELIVER IN PERSON"sv));
 
   std::unique_ptr<Expression> and2;
   {
     std::unique_ptr<Expression> p1 =
-        Eq(ColRef(lineitem, "l_shipmode"), Literal("AIR"sv));
+        Eq(VirtColRef(scan_schema, "l_shipmode"), Literal("AIR"sv));
     std::unique_ptr<Expression> p2 =
-        Eq(ColRef(lineitem, "l_shipmode"), Literal("AIR REG"sv));
+        Eq(VirtColRef(scan_schema, "l_shipmode"), Literal("AIR REG"sv));
     and2 = Or(util::MakeVector(std::move(p1), std::move(p2)));
   }
 
   std::unique_ptr<Expression> and3;
   {
     std::unique_ptr<Expression> p1 =
-        Geq(ColRef(lineitem, "l_quantity"), Literal(10.0));
+        Geq(VirtColRef(scan_schema, "l_quantity"), Literal(10.0));
     std::unique_ptr<Expression> p2 =
-        Leq(ColRef(lineitem, "l_quantity"), Literal(20.0));
+        Leq(VirtColRef(scan_schema, "l_quantity"), Literal(20.0));
     std::unique_ptr<Expression> p3 =
-        Geq(ColRef(lineitem, "l_quantity"), Literal(11.0));
+        Geq(VirtColRef(scan_schema, "l_quantity"), Literal(11.0));
     std::unique_ptr<Expression> p4 =
-        Leq(ColRef(lineitem, "l_quantity"), Literal(21.0));
+        Leq(VirtColRef(scan_schema, "l_quantity"), Literal(21.0));
     std::unique_ptr<Expression> p5 =
-        Geq(ColRef(lineitem, "l_quantity"), Literal(48.0));
+        Geq(VirtColRef(scan_schema, "l_quantity"), Literal(48.0));
     std::unique_ptr<Expression> p6 =
-        Leq(ColRef(lineitem, "l_quantity"), Literal(58.0));
+        Leq(VirtColRef(scan_schema, "l_quantity"), Literal(58.0));
 
     std::unique_ptr<Expression> or1 =
         And(util::MakeVector(std::move(p1), std::move(p2)));
@@ -171,14 +168,13 @@ std::unique_ptr<Operator> SelectLineitem() {
     and3 = Or(util::MakeVector(std::move(or1), std::move(or2), std::move(or3)));
   }
 
-  auto cond =
-      And(util::MakeVector(std::move(and1), std::move(and2), std::move(and3)));
-
   OperatorSchema schema;
-  schema.AddPassthroughColumns(
-      *lineitem, {"l_quantity", "l_extendedprice", "l_discount", "l_partkey"});
-  return std::make_unique<SelectOperator>(std::move(schema),
-                                          std::move(lineitem), std::move(cond));
+  schema.AddVirtualPassthroughColumns(
+      scan_schema,
+      {"l_quantity", "l_extendedprice", "l_discount", "l_partkey"});
+  return std::make_unique<SkinnerScanSelectOperator>(
+      std::move(schema), std::move(scan_schema), db["lineitem"],
+      util::MakeVector(std::move(and1), std::move(and2), std::move(and3)));
 }
 
 // lineitem JOIN part ON l_partkey = p_partkey
