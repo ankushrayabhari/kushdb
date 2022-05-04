@@ -635,9 +635,6 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::BR:
       return type_manager_.VoidType();
 
-    case Opcode::GEP_DYNAMIC_IDX:
-      return type_manager_.I64Type();
-
     case Opcode::ALLOCA:
     case Opcode::PHI:
     case Opcode::CALL:
@@ -2177,23 +2174,35 @@ Value ProgramBuilder::StaticGEP(Type t, Value v,
 
 Value ProgramBuilder::DynamicGEP(Type t, Value v, Value dynamic_idx,
                                  absl::Span<const int32_t> idx) {
+  if (dynamic_idx.IsConstantGlobal()) {
+    std::vector<int> idxs;
+    idxs.push_back(
+        Type1InstructionReader(constant_instrs_[dynamic_idx.GetIdx()])
+            .Constant());
+    idxs.insert(idxs.end(), idx.begin(), idx.end());
+    return StaticGEP(t, v, idxs);
+  }
+
   auto [offset, result_type] = type_manager_.GetPointerOffset(t, idx, true);
   auto offset_v = ConstI32(offset);
 
   auto type_size = type_manager_.GetTypeSize(t);
-  auto type_size_v = ConstI64(type_size);
+  switch (type_size) {
+    case 1:
+    case 2:
+    case 4:
+    case 8:
+      break;
 
-  auto index = GetCurrentFunction().Append(
-      Type2InstructionBuilder()
-          .SetOpcode(OpcodeTo(Opcode::GEP_DYNAMIC_IDX))
-          .SetArg0(dynamic_idx.Serialize())
-          .SetArg1(type_size_v.Serialize())
-          .Build());
+    default:
+      throw std::runtime_error("Invalid type size. Needs to be 1/2/4/8");
+      break;
+  }
 
   GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::GEP_DYNAMIC_OFFSET))
-          .SetArg0(index.Serialize())
+          .SetArg0(dynamic_idx.Serialize())
           .SetArg1(offset_v.Serialize())
           .Build());
 
@@ -2201,6 +2210,7 @@ Value ProgramBuilder::DynamicGEP(Type t, Value v, Value dynamic_idx,
       Type3InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::GEP_DYNAMIC))
           .SetArg(v.Serialize())
+          .SetSarg(type_size)
           .SetTypeID(result_type.GetID())
           .Build());
 }

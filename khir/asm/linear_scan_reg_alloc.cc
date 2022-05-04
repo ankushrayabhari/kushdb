@@ -325,7 +325,6 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
           break;
         }
 
-        case Opcode::GEP_DYNAMIC_IDX:
         case Opcode::I8_STORE:
         case Opcode::I16_STORE:
         case Opcode::I32_STORE:

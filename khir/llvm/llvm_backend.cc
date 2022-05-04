@@ -666,15 +666,6 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::GEP_DYNAMIC_IDX: {
-      Type2InstructionReader reader(instr);
-      auto idx = GetValue(Value(reader.Arg0()), constant_values, values);
-      auto type_size = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateMul(
-          builder_->CreateZExt(idx, builder_->getInt64Ty()), type_size);
-      return;
-    }
-
     case Opcode::GEP_DYNAMIC_OFFSET: {
       return;
     }
@@ -682,18 +673,22 @@ void LLVMBackend::TranslateInstr(
     case Opcode::GEP_DYNAMIC: {
       Type3InstructionReader reader(instr);
       auto t = types_[reader.TypeID()];
+      auto type_size = reader.Sarg();
       auto ptr = GetValue(Value(reader.Arg()), constant_values, values);
       llvm::Value* base;
 
       {
         Type2InstructionReader reader(instructions[instr_idx - 1]);
-        auto offset1 = GetValue(Value(reader.Arg0()), constant_values, values);
-        auto offset2 = GetValue(Value(reader.Arg1()), constant_values, values);
+        auto idx = GetValue(Value(reader.Arg0()), constant_values, values);
+        auto offset = GetValue(Value(reader.Arg1()), constant_values, values);
 
         auto ptr_as_int = builder_->CreatePtrToInt(ptr, builder_->getInt64Ty());
-        auto ptr_offset1 = builder_->CreateAdd(ptr_as_int, offset1);
+        auto ptr_offset1 = builder_->CreateAdd(
+            ptr_as_int, builder_->CreateMul(
+                            builder_->CreateZExt(idx, builder_->getInt64Ty()),
+                            builder_->getInt64(type_size)));
         auto ptr_offset1_offset2 = builder_->CreateAdd(
-            ptr_offset1, builder_->CreateZExt(offset2, builder_->getInt64Ty()));
+            ptr_offset1, builder_->CreateZExt(offset, builder_->getInt64Ty()));
         base = builder_->CreateIntToPtr(ptr_offset1_offset2,
                                         builder_->getInt8PtrTy());
       }

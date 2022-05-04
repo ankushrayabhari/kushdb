@@ -122,7 +122,6 @@ enum class Opcode : uint8_t {
   GEP_STATIC_OFFSET,
   GEP_DYNAMIC,
   GEP_DYNAMIC_OFFSET,
-  GEP_DYNAMIC_IDX,
 };
 
 Opcode OpcodeFrom(uint8_t t);

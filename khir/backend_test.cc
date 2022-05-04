@@ -468,19 +468,18 @@ TEST_P(BackendTest, PTR_STOREGep) {
 
 TEST_P(BackendTest, PTR_STOREDynamicGep) {
   struct Test {
-    int32_t a;
     int64_t b;
   };
 
   ProgramBuilder program;
-  auto st = program.StructType({program.I32Type(), program.I64Type()});
+  auto st = program.StructType({program.I64Type()});
   auto func = program.CreatePublicFunction(
       program.VoidType(),
       {program.PointerType(program.PointerType(program.I64Type())),
        program.PointerType(st), program.I32Type()},
       "compute");
   auto args = program.GetFunctionArguments(func);
-  program.StorePtr(args[0], program.DynamicGEP(st, args[1], args[2], {1}));
+  program.StorePtr(args[0], program.DynamicGEP(st, args[1], args[2], {0}));
   program.Return();
 
   auto backend = Compile(GetParam(), program);
@@ -489,9 +488,7 @@ TEST_P(BackendTest, PTR_STOREDynamicGep) {
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   Test x[2];
-  x[0].a = 100;
   x[0].b = -1000;
-  x[1].a = 787;
   x[1].b = -777;
   int64_t* loc = nullptr;
   compute(&loc, x, 0);

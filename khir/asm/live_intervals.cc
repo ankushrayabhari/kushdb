@@ -258,7 +258,6 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::I32_ZEXT_I64:
     case Opcode::F64_CONV_I64:
     case Opcode::I64_LOAD:
-    case Opcode::GEP_DYNAMIC_IDX:
       return manager.I64Type();
 
     case Opcode::F64_ADD:
@@ -389,8 +388,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::PTR_LOAD:
     case Opcode::CALL_ARG:
     case Opcode::ALLOCA:
-    case Opcode::PTR_CMP_NULLPTR:
-    case Opcode::GEP_DYNAMIC_IDX: {
+    case Opcode::PTR_CMP_NULLPTR: {
       return Value(instr_idx);
     }
 
@@ -497,8 +495,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::F64_CMP_LT:
     case Opcode::F64_CMP_LE:
     case Opcode::F64_CMP_GT:
-    case Opcode::F64_CMP_GE:
-    case Opcode::GEP_DYNAMIC_IDX: {
+    case Opcode::F64_CMP_GE: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());

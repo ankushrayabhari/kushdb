@@ -30,6 +30,18 @@ class StackSlotAllocator {
   int32_t size_;
 };
 
+struct GEPDynamicInfo {
+  khir::Value ptr;
+  khir::Value index;
+  int32_t offset;
+  int32_t type_size;
+};
+
+struct GEPStaticInfo {
+  khir::Value ptr;
+  int32_t offset;
+};
+
 class ASMBackend : public Backend {
  public:
   ASMBackend(RegAllocImpl impl);
@@ -68,6 +80,19 @@ class ASMBackend : public Backend {
   asmjit::Label EmbedI8(int8_t d);
   asmjit::Label EmbedF64(double d);
   asmjit::Label EmbedI64(int64_t d);
+
+  asmjit::x86::Mem GetDynamicGEPPtrValue(
+      GEPDynamicInfo info, int32_t size, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& instrs,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<void*>& ptr_constants,
+      const std::vector<RegisterAssignment>& register_assign);
+  asmjit::x86::Mem GetStaticGEPPtrValue(
+      GEPStaticInfo info, int32_t size, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& instrs,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<void*>& ptr_constants,
+      const std::vector<RegisterAssignment>& register_assign);
 
   template <typename T>
   void MoveByteValue(T dest, Value v, std::vector<int32_t>& offsets,
@@ -322,6 +347,7 @@ class ASMBackend : public Backend {
 
   RegAllocImpl reg_alloc_impl_;
   asmjit::JitRuntime rt_;
+  asmjit::FileLogger logger_;
   asmjit::CodeHolder code_;
   asmjit::Section* text_section_;
   asmjit::Section* data_section_;
