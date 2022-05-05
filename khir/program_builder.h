@@ -157,6 +157,7 @@ class ProgramBuilder {
 
   // I1
   Value ConstI1(bool v);
+  Value LoadI1(Value ptr);
   Value LNotI1(Value v);
   Value AndI1(Value v1, Value v2);
   Value OrI1(Value v1, Value v2);

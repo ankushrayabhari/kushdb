@@ -612,6 +612,7 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I1_LOAD:
     case Opcode::I8_LOAD:
     case Opcode::I16_LOAD:
     case Opcode::I32_LOAD:

@@ -275,23 +275,37 @@ std::unique_ptr<IRValue> ColumnData<S>::operator[](Int32& idx) {
     return std::make_unique<String>(program_, result_.value());
   }
 
-  auto elem =
-      program_.Call(program_.GetFunction(GetFnName<S>()), {value_, idx.Get()});
+  auto data = program_.LoadPtr(program_.StaticGEP(
+      program_.GetStructType(StructName<S>()), value_, {0, 0}));
 
   if constexpr (catalog::TypeId::SMALLINT == S) {
-    return std::make_unique<Int16>(program_, elem);
+    auto elem_ptr =
+        program_.DynamicGEP(program_.I16Type(), data, idx.Get(), {});
+    return std::make_unique<Int16>(program_, program_.LoadI16(elem_ptr));
   } else if constexpr (catalog::TypeId::INT == S) {
-    return std::make_unique<Int32>(program_, elem);
+    auto elem_ptr =
+        program_.DynamicGEP(program_.I32Type(), data, idx.Get(), {});
+    return std::make_unique<Int32>(program_, program_.LoadI32(elem_ptr));
   } else if constexpr (catalog::TypeId::BIGINT == S) {
-    return std::make_unique<Int64>(program_, elem);
+    auto elem_ptr =
+        program_.DynamicGEP(program_.I64Type(), data, idx.Get(), {});
+    return std::make_unique<Int64>(program_, program_.LoadI64(elem_ptr));
   } else if constexpr (catalog::TypeId::REAL == S) {
-    return std::make_unique<Float64>(program_, elem);
+    auto elem_ptr =
+        program_.DynamicGEP(program_.F64Type(), data, idx.Get(), {});
+    return std::make_unique<Float64>(program_, program_.LoadF64(elem_ptr));
   } else if constexpr (catalog::TypeId::DATE == S) {
-    return std::make_unique<Date>(program_, elem);
+    auto elem_ptr =
+        program_.DynamicGEP(program_.I32Type(), data, idx.Get(), {});
+    return std::make_unique<Date>(program_, program_.LoadI32(elem_ptr));
   } else if constexpr (catalog::TypeId::BOOLEAN == S) {
-    return std::make_unique<Bool>(program_, elem);
+    auto elem_ptr = program_.DynamicGEP(program_.I1Type(), data, idx.Get(), {});
+    return std::make_unique<Bool>(program_, program_.LoadI1(elem_ptr));
   } else if constexpr (catalog::TypeId::ENUM == S) {
-    return std::make_unique<Enum>(program_, type_.enum_id, elem);
+    auto elem_ptr =
+        program_.DynamicGEP(program_.I32Type(), data, idx.Get(), {});
+    return std::make_unique<Enum>(program_, type_.enum_id,
+                                  program_.LoadI32(elem_ptr));
   }
 }
 

@@ -188,6 +188,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::I64_TRUNC_I16:
     case Opcode::F64_CONV_I64:
     case Opcode::PTR_CMP_NULLPTR:
+    case Opcode::I1_LOAD:
     case Opcode::I8_LOAD:
     case Opcode::I16_LOAD:
     case Opcode::I32_LOAD:

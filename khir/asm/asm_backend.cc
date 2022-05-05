@@ -875,8 +875,8 @@ x86::Mem ASMBackend::GetDynamicGEPPtrValue(
               .GetQ();
     } else {
       index_reg = Register::RAX.GetQ();
-      asm_->movzx(
-          index_reg,
+      asm_->mov(
+          Register::RAX.GetD(),
           x86::dword_ptr(x86::rbp, GetOffset(offsets, info.index.GetIdx())));
     }
 
@@ -914,8 +914,8 @@ x86::Mem ASMBackend::GetDynamicGEPPtrValue(
               .GetQ();
     } else {
       index_reg = Register::RAX.GetQ();
-      asm_->movzx(
-          index_reg,
+      asm_->mov(
+          Register::RAX.GetD(),
           x86::dword_ptr(x86::rbp, GetOffset(offsets, info.index.GetIdx())));
     }
 
@@ -940,15 +940,15 @@ x86::Mem ASMBackend::GetDynamicGEPPtrValue(
   // index is not a register
 
   // load index
-  auto reg = Register::RAX.GetQ();
-  asm_->movzx(
-      reg, x86::dword_ptr(x86::rbp, GetOffset(offsets, info.index.GetIdx())));
+  auto reg = Register::RAX;
+  asm_->mov(reg.GetD(),
+            x86::dword_ptr(x86::rbp, GetOffset(offsets, info.index.GetIdx())));
   // shift by type_size, add offset
-  asm_->lea(reg, x86::qword_ptr(0, reg, GetShift(info.type_size)));
+  asm_->shl(reg.GetQ(), GetShift(info.type_size));
   // add to ptr
-  asm_->add(reg,
+  asm_->add(reg.GetQ(),
             x86::qword_ptr(x86::rbp, GetOffset(offsets, info.ptr.GetIdx())));
-  return x86::ptr(reg, info.offset, size);
+  return x86::ptr(reg.GetQ(), info.offset, size);
 }
 
 x86::Mem ASMBackend::GetStaticGEPPtrValue(
@@ -2414,6 +2414,28 @@ void ASMBackend::TranslateInstr(
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
         asm_->movsd(x86::qword_ptr(x86::rbp, offset), dest);
+      }
+      return;
+    }
+
+    case Opcode::I1_LOAD: {
+      Type2InstructionReader reader(instr);
+      Value v(reader.Arg0());
+
+      auto loc = GetBytePtrValue(v, offsets, instructions, constant_instrs,
+                                 ptr_constants, register_assign);
+
+      if (dest_assign.IsRegister()) {
+        if (IsFlagReg(dest_assign)) {
+          throw std::runtime_error("Cannot allocate the flag reg to I1 LOAD");
+        }
+
+        asm_->mov(NormalRegister(dest_assign.Register()).GetB(), loc);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->movzx(Register::RAX.GetQ(), loc);
+        asm_->mov(x86::byte_ptr(x86::rbp, offset), Register::RAX.GetB());
       }
       return;
     }

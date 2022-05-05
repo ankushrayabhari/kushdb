@@ -1787,6 +1787,114 @@ TEST_P(BackendTest, I8_LOADStructDynamic) {
   }
 }
 
+TEST_P(BackendTest, I1_LOAD) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(0, 1);
+  for (int i = 0; i < 10; i++) {
+    int8_t loc = distrib(gen);
+
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I1Type(), {program.PointerType(program.I1Type())}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.LoadI1(args[0]));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int8_t(int8_t*)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    EXPECT_EQ(loc, compute(&loc));
+  }
+}
+
+TEST_P(BackendTest, I1_LOADGlobal) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(0, 1);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
+
+    ProgramBuilder program;
+    auto global = program.Global(program.I1Type(), program.ConstI1(c));
+    program.CreatePublicFunction(program.I1Type(), {}, "compute");
+    program.Return(program.LoadI1(global));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int8_t()>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    EXPECT_EQ(c, compute());
+  }
+}
+
+TEST_P(BackendTest, I1_LOADStruct) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(0, 1);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
+
+    struct Test {
+      int8_t x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.I1Type()});
+    auto func = program.CreatePublicFunction(
+        program.I1Type(), {program.PointerType(st)}, "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(program.LoadI1(program.StaticGEP(st, args[0], {0, 0})));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int8_t(Test*)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t{.x = c};
+    EXPECT_EQ(c, compute(&t));
+  }
+}
+
+TEST_P(BackendTest, I1_LOADStructDynamic) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int8_t> distrib(0, 1);
+  for (int i = 0; i < 10; i++) {
+    int8_t c = distrib(gen);
+
+    struct Test {
+      int8_t x;
+    };
+
+    ProgramBuilder program;
+    auto st = program.StructType({program.I1Type()});
+    auto func = program.CreatePublicFunction(
+        program.I1Type(), {program.PointerType(st), program.I32Type()},
+        "compute");
+    auto args = program.GetFunctionArguments(func);
+    program.Return(
+        program.LoadI1(program.DynamicGEP(st, args[0], args[1], {0})));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int8_t(Test*, int32_t)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+    Test t[2];
+    t[0].x = c;
+    t[1].x = 0;
+    EXPECT_EQ(c, compute(t, 0));
+    EXPECT_EQ(0, compute(t, 1));
+  }
+}
+
 TEST_P(BackendTest, I8_STORE) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -6270,6 +6378,36 @@ TEST_P(BackendTest, LoopVariableAccess) {
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
 
   EXPECT_EQ(10, compute());
+}
+
+TEST_P(BackendTest, DynamicGEPColumnData) {
+  struct ColumnData {
+    int32_t* data;
+    int64_t len;
+  };
+
+  ProgramBuilder program;
+  auto st = program.StructType(
+      {program.PointerType(program.I32Type()), program.I64Type()});
+  auto func = program.CreatePublicFunction(
+      program.PointerType(program.I32Type()),
+      {program.PointerType(st), program.I32Type()}, "compute");
+
+  auto args = program.GetFunctionArguments(func);
+  auto ptr = program.LoadPtr(program.StaticGEP(st, args[0], {0, 0}));
+  program.Return(program.DynamicGEP(program.I32Type(), ptr, args[1], {}));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int32_t*(ColumnData*, int32_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  int32_t* array = reinterpret_cast<int32_t*>(0x7fffffffca00);
+  ColumnData col;
+  col.data = array;
+  col.len = 31;
+
+  EXPECT_EQ(compute(&col, 1 << 16), &array[1 << 16]);
 }
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, BackendTest,

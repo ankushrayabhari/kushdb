@@ -5,11 +5,15 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "absl/flags/flag.h"
+
 #include "compile/query_translator.h"
 #include "execution/executable_query.h"
 #include "plan/operator/output_operator.h"
 #include "util/profiler.h"
 #include "util/test_util.h"
+
+ABSL_FLAG(int, num_trials, 5, "Number of benchmark trials");
 
 namespace kush::util {
 
@@ -33,7 +37,7 @@ void TimeExecute(kush::plan::Operator& query) {
     std::cerr << duration.count() << std::endl;
   });
 #else
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < FLAGS_num_trials.Get(); i++) {
     auto start = std::chrono::system_clock::now();
     kush::compile::QueryTranslator translator(query);
     auto executable_query = translator.Translate();

@@ -101,6 +101,7 @@ enum class Opcode : uint8_t {
   F64_STORE,
   PTR_STORE,
   CONDBR,
+  I1_LOAD,
   I8_LOAD,
   I16_LOAD,
   I32_LOAD,

@@ -391,6 +391,13 @@ void ProgramBuilder::StorePtr(Value ptr, Value v) {
                                   .Build());
 }
 
+Value ProgramBuilder::LoadI1(Value ptr) {
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(OpcodeTo(Opcode::I1_LOAD))
+                                         .SetArg0(ptr.Serialize())
+                                         .Build());
+}
+
 Value ProgramBuilder::LoadI8(Value ptr) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I8_LOAD))
@@ -573,6 +580,7 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::F64_CMP_GT:
     case Opcode::F64_CMP_GE:
     case Opcode::PTR_CMP_NULLPTR:
+    case Opcode::I1_LOAD:
       return type_manager_.I1Type();
 
     case Opcode::I8_ADD:
