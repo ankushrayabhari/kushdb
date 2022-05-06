@@ -537,6 +537,10 @@ Type ProgramBuilder::TypeOf(Value value) const {
       case ConstantOpcode::GLOBAL_REF:
         return globals_[Type1InstructionReader(instr).Constant()]
             .PointerToType();
+
+      case ConstantOpcode::I32_CONST_VEC4:
+      case ConstantOpcode::I32_CONST_VEC8:
+        throw std::runtime_error("Cannot call type of on vec4/vec8");
     }
   }
 
@@ -581,6 +585,8 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::F64_CMP_GE:
     case Opcode::PTR_CMP_NULLPTR:
     case Opcode::I1_LOAD:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
       return type_manager_.I1Type();
 
     case Opcode::I8_ADD:
@@ -1402,6 +1408,42 @@ Value ProgramBuilder::SubI32(Value v1, Value v2) {
                                          .SetArg0(v1.Serialize())
                                          .SetArg1(v2.Serialize())
                                          .Build());
+}
+
+Value ProgramBuilder::CmpEqConstI32(Value v1, std::array<int32_t, 4> v2) {
+  uint32_t idx = vec4_constants_.size();
+  vec4_constants_.emplace_back(v2);
+
+  auto v2_value = AppendConstantGlobal(
+      Type1InstructionBuilder()
+          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I32_CONST_VEC4))
+          .SetConstant(idx)
+          .Build());
+
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I32_CMP_EQ_ANY_CONST_VEC4))
+          .SetArg0(v1.Serialize())
+          .SetArg1(v2_value.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::CmpEqConstI32(Value v1, std::array<int32_t, 8> v2) {
+  uint32_t idx = vec8_constants_.size();
+  vec8_constants_.emplace_back(v2);
+
+  auto v2_value = AppendConstantGlobal(
+      Type1InstructionBuilder()
+          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I32_CONST_VEC8))
+          .SetConstant(idx)
+          .Build());
+
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I32_CMP_EQ_ANY_CONST_VEC8))
+          .SetArg0(v1.Serialize())
+          .SetArg1(v2_value.Serialize())
+          .Build());
 }
 
 Value ProgramBuilder::CmpI32(CompType cmp, Value v1, Value v2) {
@@ -2251,7 +2293,8 @@ Program ProgramBuilder::Build() {
                  std::move(constant_instrs_), std::move(ptr_constants_),
                  std::move(i64_constants_), std::move(f64_constants_),
                  std::move(char_array_constants_), std::move(struct_constants_),
-                 std::move(array_constants_), std::move(globals_));
+                 std::move(array_constants_), std::move(globals_),
+                 std::move(vec4_constants_), std::move(vec8_constants_));
 }
 
 }  // namespace kush::khir

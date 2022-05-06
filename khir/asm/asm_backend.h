@@ -61,7 +61,7 @@ class ASMBackend : public Backend {
                      const std::vector<uint64_t>& constant_instrs);
   bool IsConstantCastedPtr(khir::Value v,
                            const std::vector<uint64_t>& constant_instrs);
-  void TranslateInstr(const Function& current_function,
+  void TranslateInstr(const Program& program,const Function& current_function,
                       const TypeManager& type_manager,
                       const std::vector<void*>& ptr_constants,
                       const std::vector<uint64_t>& i64_constants,

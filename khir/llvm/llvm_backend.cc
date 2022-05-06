@@ -202,6 +202,10 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
     case ConstantOpcode::FUNC_PTR: {
       return functions_[Type3InstructionReader(instr).Arg()];
     }
+
+    case ConstantOpcode::I32_CONST_VEC4:
+    case ConstantOpcode::I32_CONST_VEC8:
+      return nullptr;
   }
 }
 
@@ -263,9 +267,9 @@ void LLVMBackend::Translate(const Program& program) {
       builder_->SetInsertPoint(basic_blocks_impl[i]);
       for (const auto& [b_start, b_end] : basic_blocks[i].Segments()) {
         for (int instr_idx = b_start; instr_idx <= b_end; instr_idx++) {
-          TranslateInstr(program.TypeManager(), args, basic_blocks_impl, values,
-                         constant_values, phi_member_list, instructions,
-                         instr_idx);
+          TranslateInstr(program, program.TypeManager(), args,
+                         basic_blocks_impl, values, constant_values,
+                         phi_member_list, instructions, instr_idx);
         }
       }
     }
@@ -348,7 +352,8 @@ llvm::Value* GetValue(khir::Value v,
 }
 
 void LLVMBackend::TranslateInstr(
-    const TypeManager& manager, const std::vector<llvm::Value*>& func_args,
+    const Program& program, const TypeManager& manager,
+    const std::vector<llvm::Value*>& func_args,
     const std::vector<llvm::BasicBlock*>& basic_blocks,
     std::vector<llvm::Value*>& values,
     const std::vector<llvm::Constant*>& constant_values,
@@ -423,6 +428,44 @@ void LLVMBackend::TranslateInstr(
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       auto comp_type = GetLLVMCompType(opcode);
       values[instr_idx] = builder_->CreateCmp(comp_type, v0, v1);
+      return;
+    }
+
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC4: {
+      Type2InstructionReader reader(instr);
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto vec4_idx =
+          Type1InstructionReader(
+              program.ConstantInstrs()[Value(reader.Arg1()).GetIdx()])
+              .Constant();
+      const auto& vec4 = program.I32Vec4Constants()[vec4_idx];
+
+      auto comp_type = GetLLVMCompType(Opcode::I32_CMP_EQ);
+      std::vector<llvm::Value*> comps;
+      for (auto constant : vec4) {
+        comps.push_back(
+            builder_->CreateCmp(comp_type, v0, builder_->getInt32(constant)));
+      }
+      values[instr_idx] = builder_->CreateOr(comps);
+      return;
+    }
+
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC8: {
+      Type2InstructionReader reader(instr);
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto vec8_idx =
+          Type1InstructionReader(
+              program.ConstantInstrs()[Value(reader.Arg1()).GetIdx()])
+              .Constant();
+      const auto& vec8 = program.I32Vec8Constants()[vec8_idx];
+
+      auto comp_type = GetLLVMCompType(Opcode::I32_CMP_EQ);
+      std::vector<llvm::Value*> comps;
+      for (auto constant : vec8) {
+        comps.push_back(
+            builder_->CreateCmp(comp_type, v0, builder_->getInt32(constant)));
+      }
+      values[instr_idx] = builder_->CreateOr(comps);
       return;
     }
 

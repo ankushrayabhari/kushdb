@@ -222,6 +222,8 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::F64_CMP_GE:
     case Opcode::PTR_CMP_NULLPTR:
     case Opcode::I1_LOAD:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
       return manager.I1Type();
 
     case Opcode::I8_ADD:
@@ -342,6 +344,8 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I32_CMP_LE:
     case Opcode::I32_CMP_GT:
     case Opcode::I32_CMP_GE:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
     case Opcode::I64_ADD:
     case Opcode::I64_MUL:
     case Opcode::I64_SUB:
@@ -497,7 +501,9 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::F64_CMP_LT:
     case Opcode::F64_CMP_LE:
     case Opcode::F64_CMP_GT:
-    case Opcode::F64_CMP_GE: {
+    case Opcode::F64_CMP_GE:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC8: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());

@@ -40,6 +40,26 @@ void OutputValue(khir::Value v, const Program& program) {
         return;
       }
 
+      case ConstantOpcode::I32_CONST_VEC4: {
+        int v = Type1InstructionReader(instr).Constant();
+        std::cerr << "i32:{";
+        for (int x : program.I32Vec4Constants()[v]) {
+          std::cerr << " " << x;
+        }
+        std::cerr << " }";
+        return;
+      }
+
+      case ConstantOpcode::I32_CONST_VEC8: {
+        int v = Type1InstructionReader(instr).Constant();
+        std::cerr << "i32:{";
+        for (int x : program.I32Vec8Constants()[v]) {
+          std::cerr << " " << x;
+        }
+        std::cerr << " }";
+        return;
+      }
+
       case ConstantOpcode::I64_CONST: {
         int v = Type1InstructionReader(instr).Constant();
         std::cerr << "i64:" << program.I64Constants()[v];
@@ -159,7 +179,9 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::F64_CMP_LE:
     case Opcode::F64_CMP_GT:
     case Opcode::F64_CMP_GE:
-    case Opcode::PHI_MEMBER: {
+    case Opcode::PHI_MEMBER:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC8: {
       Type2InstructionReader reader(instrs[idx]);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());

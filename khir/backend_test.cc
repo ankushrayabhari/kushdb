@@ -3445,6 +3445,142 @@ TEST_P(BackendTest, I32_CONV_F64Const) {
   }
 }
 
+TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC4Return) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+
+  std::array<int32_t, 4> vec{-1, 1, 0, INT32_MAX};
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(program.I1Type(),
+                                           {program.I32Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpEqConstI32(args[0], vec));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  EXPECT_NE(0, compute(-1));
+  EXPECT_NE(0, compute(1));
+  EXPECT_NE(0, compute(0));
+  EXPECT_NE(0, compute(INT32_MAX));
+
+  std::uniform_int_distribution<int32_t> distrib(2, INT32_MAX - 1);
+  for (int i = 0; i < 10; i++) {
+    int32_t value = distrib(gen);
+    EXPECT_EQ(0, compute(value));
+  }
+}
+
+TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC4Branch) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+
+  std::array<int32_t, 4> vec{-1, 1, 0, INT32_MAX};
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(program.I1Type(),
+                                           {program.I32Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto bb1 = program.GenerateBlock();
+  auto bb2 = program.GenerateBlock();
+  program.Branch(program.CmpEqConstI32(args[0], vec), bb1, bb2);
+  program.SetCurrentBlock(bb1);
+  program.Return(program.ConstI1(true));
+  program.SetCurrentBlock(bb2);
+  program.Return(program.ConstI1(false));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  EXPECT_NE(0, compute(-1));
+  EXPECT_NE(0, compute(1));
+  EXPECT_NE(0, compute(0));
+  EXPECT_NE(0, compute(INT32_MAX));
+
+  std::uniform_int_distribution<int32_t> distrib(2, INT32_MAX - 1);
+  for (int i = 0; i < 10; i++) {
+    int32_t value = distrib(gen);
+    EXPECT_EQ(0, compute(value));
+  }
+}
+
+TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC8Return) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+
+  std::array<int32_t, 8> vec{-1, 1, 0, INT32_MAX, INT32_MIN, 2, 20, -1000};
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(program.I1Type(),
+                                           {program.I32Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.CmpEqConstI32(args[0], vec));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  EXPECT_NE(0, compute(-1));
+  EXPECT_NE(0, compute(1));
+  EXPECT_NE(0, compute(0));
+  EXPECT_NE(0, compute(INT32_MAX));
+  EXPECT_NE(0, compute(INT32_MIN));
+  EXPECT_NE(0, compute(2));
+  EXPECT_NE(0, compute(20));
+  EXPECT_NE(0, compute(-1000));
+
+  std::uniform_int_distribution<int32_t> distrib(10000, INT32_MAX - 1);
+  for (int i = 0; i < 10; i++) {
+    int32_t value = distrib(gen);
+    EXPECT_EQ(0, compute(value));
+  }
+}
+
+TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC8Branch) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+
+  std::array<int32_t, 8> vec{-1, 1, 0, INT32_MAX, INT32_MIN, 2, 20, -1000};
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(program.I1Type(),
+                                           {program.I32Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  auto bb1 = program.GenerateBlock();
+  auto bb2 = program.GenerateBlock();
+  program.Branch(program.CmpEqConstI32(args[0], vec), bb1, bb2);
+  program.SetCurrentBlock(bb1);
+  program.Return(program.ConstI1(true));
+  program.SetCurrentBlock(bb2);
+  program.Return(program.ConstI1(false));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  EXPECT_NE(0, compute(-1));
+  EXPECT_NE(0, compute(1));
+  EXPECT_NE(0, compute(0));
+  EXPECT_NE(0, compute(INT32_MAX));
+  EXPECT_NE(0, compute(INT32_MIN));
+  EXPECT_NE(0, compute(2));
+  EXPECT_NE(0, compute(20));
+  EXPECT_NE(0, compute(-1000));
+
+  std::uniform_int_distribution<int32_t> distrib(10000, INT32_MAX - 1);
+  for (int i = 0; i < 10; i++) {
+    int32_t value = distrib(gen);
+    EXPECT_EQ(0, compute(value));
+  }
+}
+
 TEST_P(BackendTest, I32_CMP_XXReturn) {
   std::random_device rd;
   std::mt19937 gen(rd());

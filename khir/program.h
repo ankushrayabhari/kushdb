@@ -100,13 +100,17 @@ class Program {
           std::vector<std::string> char_array_constants,
           std::vector<StructConstant> struct_constants,
           std::vector<ArrayConstant> array_constants,
-          std::vector<Global> globals);
+          std::vector<Global> globals,
+          std::vector<std::array<int32_t, 4>> vec4_constants,
+          std::vector<std::array<int32_t, 8>> vec8_constants);
 
   const khir::TypeManager& TypeManager() const;
   const std::vector<Function>& Functions() const;
   const std::vector<uint64_t>& ConstantInstrs() const;
   const std::vector<void*>& PtrConstants() const;
   const std::vector<uint64_t>& I64Constants() const;
+  const std::vector<std::array<int32_t, 4>>& I32Vec4Constants() const;
+  const std::vector<std::array<int32_t, 8>>& I32Vec8Constants() const;
   const std::vector<double>& F64Constants() const;
   const std::vector<std::string>& CharArrayConstants() const;
   const std::vector<StructConstant>& StructConstants() const;
@@ -124,6 +128,8 @@ class Program {
   std::vector<StructConstant> struct_constants_;
   std::vector<ArrayConstant> array_constants_;
   std::vector<Global> globals_;
+  std::vector<std::array<int32_t, 4>> vec4_constants_;
+  std::vector<std::array<int32_t, 8>> vec8_constants_;
 };
 
 class ProgramTranslator {

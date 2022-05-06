@@ -300,7 +300,9 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
         case Opcode::I64_CMP_LT:
         case Opcode::I64_CMP_LE:
         case Opcode::I64_CMP_GT:
-        case Opcode::I64_CMP_GE: {
+        case Opcode::I64_CMP_GE:
+        case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
+        case Opcode::I32_CMP_EQ_ANY_CONST_VEC8: {
           if (i.Start() + 1 == i.End() &&
               OpcodeFrom(
                   GenericInstructionReader(instrs[i.Value().GetIdx() + 1])

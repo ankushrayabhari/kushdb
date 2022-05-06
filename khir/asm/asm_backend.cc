@@ -156,6 +156,10 @@ uint64_t ASMBackend::OutputConstant(uint64_t instr, const Program& program) {
       }
       return bytes_written;
     }
+
+    case ConstantOpcode::I32_CONST_VEC4:
+    case ConstantOpcode::I32_CONST_VEC8:
+      return 0;
   }
 }
 
@@ -276,12 +280,12 @@ void ASMBackend::Translate(const Program& program) {
 
       for (const auto& [seg_start, seg_end] : basic_blocks[bb].Segments()) {
         for (int instr_idx = seg_start; instr_idx <= seg_end; instr_idx++) {
-          TranslateInstr(func, program.TypeManager(), program.PtrConstants(),
-                         program.I64Constants(), program.F64Constants(),
-                         basic_blocks_impl, program.Functions(), epilogue,
-                         value_offsets, instructions, program.ConstantInstrs(),
-                         instr_idx, static_stack_allocator, register_assign,
-                         gep_materialize, next_bb);
+          TranslateInstr(
+              program, func, program.TypeManager(), program.PtrConstants(),
+              program.I64Constants(), program.F64Constants(), basic_blocks_impl,
+              program.Functions(), epilogue, value_offsets, instructions,
+              program.ConstantInstrs(), instr_idx, static_stack_allocator,
+              register_assign, gep_materialize, next_bb);
         }
       }
     }
@@ -594,7 +598,9 @@ void ASMBackend::StoreCmpFlags(Opcode opcode, Dest d) {
     case Opcode::I8_CMP_NE:
     case Opcode::I16_CMP_NE:
     case Opcode::I32_CMP_NE:
-    case Opcode::I64_CMP_NE: {
+    case Opcode::I64_CMP_NE:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC8: {
       asm_->setne(d);
       return;
     }
@@ -2036,7 +2042,9 @@ void ASMBackend::CondBrFlag(
     case Opcode::I8_CMP_NE:
     case Opcode::I16_CMP_NE:
     case Opcode::I32_CMP_NE:
-    case Opcode::I64_CMP_NE: {
+    case Opcode::I64_CMP_NE:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC8: {
       if (true_bb == next_bb) {
         asm_->je(fl);
         // fall through to the true_bb
@@ -2170,8 +2178,8 @@ void ASMBackend::CondBrF64Flag(
 }
 
 void ASMBackend::TranslateInstr(
-    const Function& current_function, const TypeManager& type_manager,
-    const std::vector<void*>& ptr_constants,
+    const Program& program, const Function& current_function,
+    const TypeManager& type_manager, const std::vector<void*>& ptr_constants,
     const std::vector<uint64_t>& i64_constants,
     const std::vector<double>& f64_constants,
     const std::vector<Label>& basic_blocks,
@@ -2334,6 +2342,109 @@ void ASMBackend::TranslateInstr(
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
         asm_->mov(x86::byte_ptr(x86::rbp, offset), Register::RAX.GetB());
+      }
+      return;
+    }
+
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC4: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      // embed the constant array
+      auto vec4_idx =
+          Type1InstructionReader(program.ConstantInstrs()[v1.GetIdx()])
+              .Constant();
+      const auto& vec4 = program.I32Vec4Constants()[vec4_idx];
+      auto label = asm_->newLabel();
+      asm_->section(data_section_);
+      asm_->align(AlignMode::kAlignZero, 16);
+      asm_->bind(label);
+      for (int32_t v : vec4) {
+        asm_->embedInt32(v);
+      }
+      asm_->section(text_section_);
+
+      // load the value into xmm7
+      if (register_assign[v0.GetIdx()].IsRegister()) {
+        asm_->vmovd(
+            x86::xmm7,
+            NormalRegister(register_assign[v0.GetIdx()].Register()).GetD());
+      } else {
+        asm_->vmovd(x86::xmm7,
+                    x86::dword_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
+      }
+      // compare to each value
+      asm_->vpbroadcastd(x86::xmm7, x86::xmm7);
+      asm_->vpcmpeqd(x86::xmm7, x86::xmm7, x86::xmmword_ptr(label));
+      asm_->vmovmskps(x86::eax, x86::xmm7);
+      asm_->test(x86::eax, x86::eax);
+
+      if (IsFlagReg(dest_assign)) {
+        return;
+      }
+
+      if (dest_assign.IsRegister()) {
+        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        StoreCmpFlags(opcode, loc);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        auto loc = x86::byte_ptr(x86::rbp, offset);
+        StoreCmpFlags(opcode, loc);
+      }
+      return;
+    }
+
+    case Opcode::I32_CMP_EQ_ANY_CONST_VEC8: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      // embed the constant array
+      auto vec8_idx =
+          Type1InstructionReader(program.ConstantInstrs()[v1.GetIdx()])
+              .Constant();
+      const auto& vec8 = program.I32Vec8Constants()[vec8_idx];
+      auto label = asm_->newLabel();
+      asm_->section(data_section_);
+      asm_->align(AlignMode::kAlignZero, 32);
+      asm_->bind(label);
+      for (int32_t v : vec8) {
+        asm_->embedInt32(v);
+      }
+      asm_->section(text_section_);
+
+      // load the value into xmm7
+      if (register_assign[v0.GetIdx()].IsRegister()) {
+        asm_->vmovd(
+            x86::xmm7,
+            NormalRegister(register_assign[v0.GetIdx()].Register()).GetD());
+      } else {
+        asm_->vmovd(x86::xmm7,
+                    x86::dword_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
+      }
+      // duplicate
+      asm_->vpbroadcastd(x86::ymm7, x86::xmm7);
+
+      // compare to each value
+      asm_->vpcmpeqd(x86::ymm7, x86::ymm7, x86::ymmword_ptr(label));
+      asm_->vmovmskps(x86::eax, x86::ymm7);
+      asm_->vzeroupper();
+      asm_->test(x86::eax, x86::eax);
+
+      if (IsFlagReg(dest_assign)) {
+        return;
+      }
+
+      if (dest_assign.IsRegister()) {
+        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        StoreCmpFlags(opcode, loc);
+      } else {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        auto loc = x86::byte_ptr(x86::rbp, offset);
+        StoreCmpFlags(opcode, loc);
       }
       return;
     }

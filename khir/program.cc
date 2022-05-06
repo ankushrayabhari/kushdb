@@ -94,7 +94,9 @@ Program::Program(
     std::vector<uint64_t> i64_constants, std::vector<double> f64_constants,
     std::vector<std::string> char_array_constants,
     std::vector<StructConstant> struct_constants,
-    std::vector<ArrayConstant> array_constants, std::vector<Global> globals)
+    std::vector<ArrayConstant> array_constants, std::vector<Global> globals,
+    std::vector<std::array<int32_t, 4>> vec4_constants,
+    std::vector<std::array<int32_t, 8>> vec8_constants)
     : type_manager_(std::move(type_manager)),
       functions_(std::move(functions)),
       constant_instrs_(std::move(constant_instrs)),
@@ -104,7 +106,9 @@ Program::Program(
       char_array_constants_(std::move(char_array_constants)),
       struct_constants_(std::move(struct_constants)),
       array_constants_(std::move(array_constants)),
-      globals_(std::move(globals)) {}
+      globals_(std::move(globals)),
+      vec4_constants_(std::move(vec4_constants)),
+      vec8_constants_(std::move(vec8_constants)) {}
 
 const khir::TypeManager& Program::TypeManager() const { return type_manager_; }
 
@@ -120,6 +124,14 @@ const std::vector<void*>& Program::PtrConstants() const {
 
 const std::vector<uint64_t>& Program::I64Constants() const {
   return i64_constants_;
+}
+
+const std::vector<std::array<int32_t, 4>>& Program::I32Vec4Constants() const {
+  return vec4_constants_;
+}
+
+const std::vector<std::array<int32_t, 8>>& Program::I32Vec8Constants() const {
+  return vec8_constants_;
 }
 
 const std::vector<double>& Program::F64Constants() const {

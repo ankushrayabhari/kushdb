@@ -193,6 +193,8 @@ class ProgramBuilder {
   Value MulI32(Value v1, Value v2);
   Value SubI32(Value v1, Value v2);
   Value CmpI32(CompType cmp, Value v1, Value v2);
+  Value CmpEqConstI32(Value v1, std::array<int32_t, 4> v2);
+  Value CmpEqConstI32(Value v1, std::array<int32_t, 8> v2);
   Value I64ZextI32(Value v);
   Value F64ConvI32(Value v);
   Value LoadI32(Value ptr);
@@ -255,6 +257,8 @@ class ProgramBuilder {
   std::vector<std::string> char_array_constants_;
   std::vector<StructConstant> struct_constants_;
   std::vector<ArrayConstant> array_constants_;
+  std::vector<std::array<int32_t, 4>> vec4_constants_;
+  std::vector<std::array<int32_t, 8>> vec8_constants_;
 
   std::vector<khir::Global> globals_;
 

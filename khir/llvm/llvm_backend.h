@@ -43,7 +43,7 @@ class LLVMBackend : public Backend, public TypeTranslator {
       uint64_t instr, std::vector<llvm::Constant*>& constant_values,
       const Program& program);
 
-  void TranslateInstr(
+  void TranslateInstr(const Program& program,
       const TypeManager& manager, const std::vector<llvm::Value*>& func_args,
       const std::vector<llvm::BasicBlock*>& basic_blocks,
       std::vector<llvm::Value*>& values,
