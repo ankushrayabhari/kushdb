@@ -13,6 +13,7 @@
 #include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/conversion_expression.h"
+#include "plan/expression/enum_in_expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "plan/expression/extract_expression.h"
 #include "plan/expression/literal_expression.h"
@@ -291,6 +292,68 @@ void ExpressionTranslator::Visit(
         const proxy::String& lhs_v =
             dynamic_cast<const proxy::String&>(lhs.Get());
         return proxy::SQLValue(lhs_v.Like(match_expr.Regex()),
+                               proxy::Bool(program_, false));
+      }));
+}
+
+proxy::Bool GenerateValues(khir::ProgramBuilder& program,
+                           const proxy::Enum& lhs_v,
+                           const std::vector<int>& values, int curr) {
+  auto num_remaining = values.size() - curr;
+  if (num_remaining > 8) {
+    std::array<int, 8> constants;
+    for (int i = 0; i < 8; i++) {
+      constants[i] = values[curr + i];
+    }
+    proxy::Bool eq(program, program.CmpEqConstI32(lhs_v.Get(), constants));
+
+    return proxy::Ternary(
+        program, eq, [&]() { return proxy::Bool(program, true); },
+        [&]() { return GenerateValues(program, lhs_v, values, curr + 8); });
+  }
+
+  // for anything 5 and above
+  if (num_remaining >= 5) {
+    std::array<int, 8> constants;
+    for (int i = 0; i < num_remaining; i++) {
+      constants[i] = values[curr + i];
+    }
+    for (int i = num_remaining; i < 8; i++) {
+      constants[i] = -1;
+    }
+    return proxy::Bool(program, program.CmpEqConstI32(lhs_v.Get(), constants));
+  }
+
+  // for anything 2-4
+  if (num_remaining >= 2) {
+    std::array<int, 4> constants;
+    for (int i = 0; i < num_remaining; i++) {
+      constants[i] = values[curr + i];
+    }
+    for (int i = num_remaining; i < 4; i++) {
+      constants[i] = -1;
+    }
+    return proxy::Bool(program, program.CmpEqConstI32(lhs_v.Get(), constants));
+  }
+
+  return proxy::Bool(program, program.CmpI32(khir::CompType::EQ, lhs_v.Get(),
+                                             program.ConstI32(values[curr])));
+}
+
+void ExpressionTranslator::Visit(const plan::EnumInExpression& expr) {
+  auto lhs = Compute(expr.Child());
+  Return(proxy::NullableTernary<proxy::Bool>(
+      program_, lhs.IsNull(),
+      [&]() {
+        return proxy::SQLValue(proxy::Bool(program_, false),
+                               proxy::Bool(program_, false));
+      },
+      [&]() {
+        const proxy::Enum& lhs_v = dynamic_cast<const proxy::Enum&>(lhs.Get());
+
+        const auto& v = expr.Values();
+
+        return proxy::SQLValue(GenerateValues(program_, lhs_v, v, 0),
                                proxy::Bool(program_, false));
       }));
 }

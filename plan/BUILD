@@ -20,6 +20,7 @@ cc_library(
         "//plan/expression:aggregate_expression",
         "//plan/expression:arithmetic_expression",
         "//plan/expression:column_ref_expression",
+        "//plan/expression:enum_in_expression",
         "//plan/expression:literal_expression",
         "//plan/expression:virtual_column_ref_expression",
         "//plan/operator",

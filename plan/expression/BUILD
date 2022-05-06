@@ -22,6 +22,18 @@ cc_library(
 )
 
 cc_library(
+    name = "enum_in_expression",
+    srcs = ["enum_in_expression.cc"],
+    hdrs = ["enum_in_expression.h"],
+    deps = [
+        ":expression",
+        ":expression_visitor",
+        "@json",
+        "@magic_enum",
+    ],
+)
+
+cc_library(
     name = "literal_expression",
     srcs = ["literal_expression.cc"],
     hdrs = ["literal_expression.h"],

@@ -19,6 +19,7 @@
 #include "parse/table/table.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
+#include "plan/expression/enum_in_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
 #include "plan/operator/aggregate_operator.h"
@@ -28,6 +29,7 @@
 #include "plan/operator/select_operator.h"
 #include "plan/operator/skinner_join_operator.h"
 #include "plan/operator/skinner_scan_select_operator.h"
+#include "runtime/enum.h"
 #include "util/vector_util.h"
 
 namespace kush::plan {
@@ -330,6 +332,41 @@ std::unique_ptr<Expression> Planner::Plan(
 std::unique_ptr<Expression> Planner::Plan(const parse::InExpression& expr) {
   std::unique_ptr<Expression> result;
 
+  bool can_execute = true;
+  {
+    auto base = Plan(expr.Base());
+    if (base->Type().type_id == catalog::TypeId::ENUM) {
+      std::vector<int> values;
+      for (auto x : expr.Cases()) {
+        auto right = Plan(x.get());
+        if (auto r =
+                dynamic_cast<kush::plan::LiteralExpression*>(right.get())) {
+          std::string literal;
+          r->Visit(
+              nullptr, nullptr, nullptr, nullptr,
+              [&](auto x, bool n) { literal = x; }, nullptr, nullptr, nullptr);
+          auto id = runtime::Enum::EnumManager::Get().GetValue(
+              base->Type().enum_id, literal);
+          if (id != -1) {
+            values.push_back(id);
+          }
+        } else {
+          can_execute = false;
+          break;
+        }
+      }
+
+      if (can_execute) {
+        if (values.empty()) {
+          return std::make_unique<LiteralExpression>(false);
+        } else {
+          return std::make_unique<EnumInExpression>(std::move(base),
+                                                    std::move(values));
+        }
+      }
+    }
+  }
+
   for (auto x : expr.Cases()) {
     auto left = Plan(expr.Base());
     auto right = Plan(x.get());
@@ -566,8 +603,8 @@ std::unique_ptr<Operator> Planner::Plan(const parse::SelectStatement& stmt) {
 
 void EarlyProjection(Operator& op) {
   if (auto group_by = dynamic_cast<AggregateOperator*>(&op)) {
-    // see which columns the group by references. delete the ones that we don't
-    // and then rewrite.
+    // see which columns the group by references. delete the ones that we
+    // don't and then rewrite.
     absl::flat_hash_set<std::pair<int, int>> refs;
     for (auto x : group_by->AggExprs()) {
       GetReferencedChildren(x.get(), refs);
@@ -649,8 +686,8 @@ void EarlyProjection(Operator& op) {
   }
 
   if (auto select = dynamic_cast<SelectOperator*>(&op)) {
-    // see which columns the group by references. delete the ones that we don't
-    // and then rewrite.
+    // see which columns the group by references. delete the ones that we
+    // don't and then rewrite.
     absl::flat_hash_set<std::pair<int, int>> refs;
     for (auto& x : select->Schema().Columns()) {
       GetReferencedChildren(x.Expr(), refs);

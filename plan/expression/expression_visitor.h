@@ -14,6 +14,7 @@ class CaseExpression;
 class IntToFloatConversionExpression;
 class ExtractExpression;
 class RegexpMatchingExpression;
+class EnumInExpression;
 
 class ExpressionVisitor {
  public:
@@ -28,6 +29,7 @@ class ExpressionVisitor {
   virtual void Visit(IntToFloatConversionExpression& conv) = 0;
   virtual void Visit(ExtractExpression& extract) = 0;
   virtual void Visit(RegexpMatchingExpression& match) = 0;
+  virtual void Visit(EnumInExpression& in_expr) = 0;
 };
 
 class ImmutableExpressionVisitor {
@@ -43,6 +45,7 @@ class ImmutableExpressionVisitor {
   virtual void Visit(const IntToFloatConversionExpression& conv) = 0;
   virtual void Visit(const ExtractExpression& extract) = 0;
   virtual void Visit(const RegexpMatchingExpression& match) = 0;
+  virtual void Visit(const EnumInExpression& in_expr) = 0;
 };
 
 }  // namespace kush::plan

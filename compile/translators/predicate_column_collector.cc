@@ -10,6 +10,7 @@
 #include "plan/expression/case_expression.h"
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/conversion_expression.h"
+#include "plan/expression/enum_in_expression.h"
 #include "plan/expression/expression.h"
 #include "plan/expression/expression_visitor.h"
 #include "plan/expression/extract_expression.h"
@@ -72,6 +73,10 @@ void PredicateColumnCollector::Visit(
 
 void PredicateColumnCollector::Visit(
     const plan::RegexpMatchingExpression& match) {
+  VisitChildren(match);
+}
+
+void PredicateColumnCollector::Visit(const plan::EnumInExpression& match) {
   VisitChildren(match);
 }
 
@@ -160,6 +165,11 @@ void ScanSelectPredicateColumnCollector::Visit(
 void ScanSelectPredicateColumnCollector::Visit(
     const plan::VirtualColumnRefExpression& virtual_col_ref) {
   predicate_columns_.push_back(virtual_col_ref);
+}
+
+void ScanSelectPredicateColumnCollector::Visit(
+    const plan::EnumInExpression& match) {
+  VisitChildren(match);
 }
 
 }  // namespace kush::compile
