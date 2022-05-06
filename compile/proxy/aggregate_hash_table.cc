@@ -402,9 +402,11 @@ Int16 AggregateHashTable::PayloadSize() {
 }
 
 AggregateHashTableEntry AggregateHashTable::GetEntry(Int32 entry_idx) {
+  auto entry_base = program_.LoadPtr(
+      program_.StaticGEP(program_.GetStructType(StructName), value_, {0, 4}));
   return AggregateHashTableEntry(
-      program_, program_.Call(program_.GetFunction(GetEntryFnName),
-                              {value_, entry_idx.Get()}));
+      program_,
+      program_.DynamicGEP(program_.I64Type(), entry_base, entry_idx.Get(), {}));
 }
 
 AggregateHashTablePayload AggregateHashTable::GetPayload(Int32 block_idx,
