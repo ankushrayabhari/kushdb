@@ -26,9 +26,9 @@
 #include "plan/operator/operator.h"
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
+#include "plan/operator/scan_select_operator.h"
 #include "plan/operator/select_operator.h"
 #include "plan/operator/skinner_join_operator.h"
-#include "plan/operator/skinner_scan_select_operator.h"
 #include "runtime/enum.h"
 #include "util/vector_util.h"
 
@@ -788,9 +788,9 @@ void AdaptiveScanSelect(std::unique_ptr<Operator>& op) {
         col.SetExpr(std::move(e));
       }
 
-      op = std::make_unique<SkinnerScanSelectOperator>(
-          std::move(select_schema), std::move(scan_schema), relation,
-          std::move(exprs));
+      op = std::make_unique<ScanSelectOperator>(std::move(select_schema),
+                                                std::move(scan_schema),
+                                                relation, std::move(exprs));
 
       return;
     }

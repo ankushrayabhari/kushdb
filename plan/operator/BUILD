@@ -63,9 +63,9 @@ cc_library(
 )
 
 cc_library(
-    name = "skinner_scan_select_operator",
-    srcs = ["skinner_scan_select_operator.cc"],
-    hdrs = ["skinner_scan_select_operator.h"],
+    name = "scan_select_operator",
+    srcs = ["scan_select_operator.cc"],
+    hdrs = ["scan_select_operator.h"],
     deps = [
         ":operator",
         ":operator_schema",

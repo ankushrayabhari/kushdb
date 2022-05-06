@@ -124,17 +124,6 @@ cc_library(
 )
 
 cc_library(
-    name = "skinner_scan_select_executor",
-    srcs = ["skinner_scan_select_executor.cc"],
-    hdrs = ["skinner_scan_select_executor.h"],
-    deps = [
-        "//compile/proxy/value:ir_value",
-        "//khir:program_builder",
-        "//runtime:skinner_scan_select_executor",
-    ],
-)
-
-cc_library(
     name = "skinner_join_executor",
     srcs = ["skinner_join_executor.cc"],
     hdrs = ["skinner_join_executor.h"],

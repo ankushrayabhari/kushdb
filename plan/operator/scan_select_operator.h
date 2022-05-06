@@ -11,9 +11,9 @@
 
 namespace kush::plan {
 
-class SkinnerScanSelectOperator final : public Operator {
+class ScanSelectOperator final : public Operator {
  public:
-  SkinnerScanSelectOperator(OperatorSchema select_schema,
+  ScanSelectOperator(OperatorSchema select_schema,
                             OperatorSchema scan_schema,
                             const catalog::Table& relation,
                             std::vector<std::unique_ptr<Expression>> filters);

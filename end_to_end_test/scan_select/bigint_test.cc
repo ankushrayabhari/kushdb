@@ -23,6 +23,7 @@
 #include "plan/operator/order_by_operator.h"
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
+#include "plan/operator/scan_select_operator.h"
 #include "plan/operator/select_operator.h"
 #include "util/builder.h"
 #include "util/test_util.h"
@@ -43,20 +44,17 @@ TEST_P(SelectTest, BigIntCol) {
 
   std::unique_ptr<Operator> query;
   {
-    std::unique_ptr<Operator> base;
-    {
-      OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"num2"});
-      base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
-    }
+    OperatorSchema scan_schema;
+    scan_schema.AddGeneratedColumns(db["info"], {"num2"});
 
-    auto filter = Gt(ColRef(base, "num2"), Literal(INT64_C(0)));
+    auto filter = Exp(Gt(VirtColRef(scan_schema, "num2"), Literal(INT64_C(0))));
 
-    // output
     OperatorSchema schema;
-    schema.AddPassthroughColumns(*base);
-    query = std::make_unique<OutputOperator>(std::make_unique<SelectOperator>(
-        std::move(schema), std::move(base), std::move(filter)));
+    schema.AddVirtualPassthroughColumns(scan_schema, {"num2"});
+    query =
+        std::make_unique<OutputOperator>(std::make_unique<ScanSelectOperator>(
+            std::move(schema), std::move(scan_schema), db["info"],
+            util::MakeVector(std::move(filter))));
   }
 
   auto expected_file = "end_to_end_test/scan_select/bigint_expected.tbl";

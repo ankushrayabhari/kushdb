@@ -23,8 +23,8 @@
 #include "plan/operator/order_by_operator.h"
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
+#include "plan/operator/scan_select_operator.h"
 #include "plan/operator/select_operator.h"
-#include "plan/operator/skinner_scan_select_operator.h"
 #include "util/builder.h"
 #include "util/time_execute.h"
 #include "util/vector_util.h"
@@ -55,7 +55,7 @@ std::unique_ptr<Operator> SelectPart() {
 
   OperatorSchema schema;
   schema.AddVirtualPassthroughColumns(scan_schema, {"p_partkey"});
-  return std::make_unique<SkinnerScanSelectOperator>(
+  return std::make_unique<ScanSelectOperator>(
       std::move(schema), std::move(scan_schema), db["part"],
       util::MakeVector(std::move(cond)));
 }

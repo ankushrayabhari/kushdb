@@ -1,4 +1,4 @@
-#include "plan/operator/skinner_scan_select_operator.h"
+#include "plan/operator/scan_select_operator.h"
 
 #include <memory>
 #include <string>
@@ -12,7 +12,7 @@
 
 namespace kush::plan {
 
-SkinnerScanSelectOperator::SkinnerScanSelectOperator(
+ScanSelectOperator::ScanSelectOperator(
     OperatorSchema select_schema, OperatorSchema scan_schema,
     const catalog::Table& relation,
     std::vector<std::unique_ptr<Expression>> filters)
@@ -22,36 +22,31 @@ SkinnerScanSelectOperator::SkinnerScanSelectOperator(
       filters_(std::move(filters)) {}
 
 std::vector<std::reference_wrapper<const Expression>>
-SkinnerScanSelectOperator::Filters() const {
+ScanSelectOperator::Filters() const {
   return util::ImmutableReferenceVector(filters_);
 }
 
 std::vector<std::reference_wrapper<Expression>>
-SkinnerScanSelectOperator::MutableFilters() {
+ScanSelectOperator::MutableFilters() {
   return util::ReferenceVector(filters_);
 }
 
-const catalog::Table& SkinnerScanSelectOperator::Relation() const {
-  return relation_;
-}
+const catalog::Table& ScanSelectOperator::Relation() const { return relation_; }
 
-const OperatorSchema& SkinnerScanSelectOperator::ScanSchema() const {
+const OperatorSchema& ScanSelectOperator::ScanSchema() const {
   return scan_schema_;
 }
 
-OperatorSchema& SkinnerScanSelectOperator::MutableScanSchema() {
-  return scan_schema_;
-}
+OperatorSchema& ScanSelectOperator::MutableScanSchema() { return scan_schema_; }
 
-void SkinnerScanSelectOperator::Accept(OperatorVisitor& visitor) {
+void ScanSelectOperator::Accept(OperatorVisitor& visitor) {
   return visitor.Visit(*this);
 }
-void SkinnerScanSelectOperator::Accept(
-    ImmutableOperatorVisitor& visitor) const {
+void ScanSelectOperator::Accept(ImmutableOperatorVisitor& visitor) const {
   return visitor.Visit(*this);
 }
 
-nlohmann::json SkinnerScanSelectOperator::ToJson() const {
+nlohmann::json ScanSelectOperator::ToJson() const {
   nlohmann::json j;
   j["op"] = "SKINER_SCAN_SELECT";
   j["relation"] = relation_.Name();

@@ -1,4 +1,4 @@
-#include "compile/translators/none_skinner_scan_select_translator.h"
+#include "compile/translators/scan_select_translator.h"
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
@@ -6,25 +6,23 @@
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/control_flow/if.h"
 #include "compile/proxy/control_flow/loop.h"
-#include "compile/proxy/skinner_scan_select_executor.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/predicate_column_collector.h"
 #include "khir/program_builder.h"
-#include "plan/operator/skinner_scan_select_operator.h"
+#include "plan/operator/scan_select_operator.h"
 
 namespace kush::compile {
 
-NoneSkinnerScanSelectTranslator::NoneSkinnerScanSelectTranslator(
-    const plan::SkinnerScanSelectOperator& scan_select,
-    khir::ProgramBuilder& program)
+ScanSelectTranslator::ScanSelectTranslator(
+    const plan::ScanSelectOperator& scan_select, khir::ProgramBuilder& program)
     : OperatorTranslator(scan_select, {}),
       scan_select_(scan_select),
       program_(program),
       expr_translator_(program, *this) {}
 
 std::unique_ptr<proxy::DiskMaterializedBuffer>
-NoneSkinnerScanSelectTranslator::GenerateBuffer() {
+ScanSelectTranslator::GenerateBuffer() {
   const auto& table = scan_select_.Relation();
   const auto& cols = scan_select_.ScanSchema().Columns();
   auto num_cols = cols.size();
@@ -87,7 +85,7 @@ NoneSkinnerScanSelectTranslator::GenerateBuffer() {
       program_, std::move(column_data), std::move(null_data));
 }
 
-void NoneSkinnerScanSelectTranslator::Produce() {
+void ScanSelectTranslator::Produce() {
   auto materialized_buffer = GenerateBuffer();
   materialized_buffer->Init();
 
@@ -187,7 +185,7 @@ void NoneSkinnerScanSelectTranslator::Produce() {
   materialized_buffer->Reset();
 }
 
-void NoneSkinnerScanSelectTranslator::Consume(OperatorTranslator& src) {
+void ScanSelectTranslator::Consume(OperatorTranslator& src) {
   throw std::runtime_error("Scan cannot consume tuples - leaf operator");
 }
 

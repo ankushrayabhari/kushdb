@@ -8,13 +8,12 @@
 #include "compile/translators/cross_product_translator.h"
 #include "compile/translators/group_by_aggregate_translator.h"
 #include "compile/translators/hash_join_translator.h"
-#include "compile/translators/none_skinner_scan_select_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/order_by_translator.h"
 #include "compile/translators/output_translator.h"
 #include "compile/translators/permutable_skinner_join_translator.h"
-#include "compile/translators/permutable_skinner_scan_select_translator.h"
 #include "compile/translators/recompiling_skinner_join_translator.h"
+#include "compile/translators/scan_select_translator.h"
 #include "compile/translators/scan_translator.h"
 #include "compile/translators/select_translator.h"
 #include "khir/program_builder.h"
@@ -23,15 +22,12 @@
 #include "plan/operator/operator_visitor.h"
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
+#include "plan/operator/scan_select_operator.h"
 #include "plan/operator/select_operator.h"
 #include "plan/operator/skinner_join_operator.h"
-#include "plan/operator/skinner_scan_select_operator.h"
 
 ABSL_FLAG(std::string, skinner_join, "permute",
           "Skinner Join Implementation: permute or recompile");
-
-ABSL_FLAG(std::string, skinner_scan_select, "none",
-          "Skinner Scan/Select Implementation: none, permute or recompile");
 
 namespace kush::compile {
 
@@ -57,21 +53,8 @@ void TranslatorFactory::Visit(const plan::SelectOperator& select) {
                                                   GetChildTranslators(select)));
 }
 
-void TranslatorFactory::Visit(
-    const plan::SkinnerScanSelectOperator& scan_select) {
-  if (FLAGS_skinner_scan_select.CurrentValue() == "none") {
-    this->Return(std::make_unique<NoneSkinnerScanSelectTranslator>(scan_select,
-                                                                   program_));
-    return;
-  }
-
-  if (FLAGS_skinner_scan_select.CurrentValue() == "permute") {
-    this->Return(std::make_unique<PermutableSkinnerScanSelectTranslator>(
-        scan_select, program_));
-    return;
-  }
-
-  throw std::runtime_error("Unknown skinner scan/select implementation.");
+void TranslatorFactory::Visit(const plan::ScanSelectOperator& scan_select) {
+  this->Return(std::make_unique<ScanSelectTranslator>(scan_select, program_));
 }
 
 void TranslatorFactory::Visit(const plan::OutputOperator& output) {

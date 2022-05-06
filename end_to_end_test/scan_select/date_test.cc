@@ -23,6 +23,7 @@
 #include "plan/operator/order_by_operator.h"
 #include "plan/operator/output_operator.h"
 #include "plan/operator/scan_operator.h"
+#include "plan/operator/scan_select_operator.h"
 #include "plan/operator/select_operator.h"
 #include "util/builder.h"
 #include "util/test_util.h"
@@ -43,20 +44,18 @@ TEST_P(SelectTest, DateCol) {
 
   std::unique_ptr<Operator> query;
   {
-    std::unique_ptr<Operator> base;
-    {
-      OperatorSchema schema;
-      schema.AddGeneratedColumns(db["info"], {"date"});
-      base = std::make_unique<ScanOperator>(std::move(schema), db["info"]);
-    }
+    OperatorSchema scan_schema;
+    scan_schema.AddGeneratedColumns(db["info"], {"date"});
 
-    auto filter = Geq(ColRef(base, "date"), Literal(2021, 1, 1));
+    auto filter =
+        Exp(Geq(VirtColRef(scan_schema, "date"), Literal(2021, 1, 1)));
 
-    // output
     OperatorSchema schema;
-    schema.AddPassthroughColumns(*base);
-    query = std::make_unique<OutputOperator>(std::make_unique<SelectOperator>(
-        std::move(schema), std::move(base), std::move(filter)));
+    schema.AddDerivedColumn("date", VirtColRef(scan_schema, "date"));
+    query =
+        std::make_unique<OutputOperator>(std::make_unique<ScanSelectOperator>(
+            std::move(schema), std::move(scan_schema), db["info"],
+            util::MakeVector(std::move(filter))));
   }
 
   auto expected_file = "end_to_end_test/scan_select/date_expected.tbl";
