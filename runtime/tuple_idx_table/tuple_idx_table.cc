@@ -16,12 +16,12 @@
 
 namespace kush::runtime::TupleIdxTable {
 
-void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
+bool InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
   Key& key = *value;
   if (!node) {
     // node is currently empty, create a leaf here with the key
     node = allocator.Allocate<Leaf>(allocator, value);
-    return;
+    return true;
   }
 
   if (node->type == NodeType::NLeaf) {
@@ -33,7 +33,7 @@ void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
     // Leaf node is already there
     if (depth + new_prefix_length == existing_key.Length() &&
         existing_key.Length() == key.Length()) {
-      return;
+      return false;
     }
 
     while (existing_key[depth + new_prefix_length] ==
@@ -42,7 +42,7 @@ void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
       // Leaf node is already there
       if (depth + new_prefix_length == existing_key.Length() &&
           existing_key.Length() == key.Length()) {
-        return;
+        return false;
       }
     }
 
@@ -54,7 +54,7 @@ void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
     Node* leaf_node = allocator.Allocate<Leaf>(allocator, std::move(value));
     Node4::Insert(new_node, key[depth + new_prefix_length], leaf_node);
     node = std::move(new_node);
-    return;
+    return true;
   }
 
   // Handle prefix of inner node
@@ -76,7 +76,7 @@ void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
       Node* leaf_node = allocator.Allocate<Leaf>(allocator, std::move(value));
       Node4::Insert(new_node, key[depth + mismatch_pos], leaf_node);
       node = std::move(new_node);
-      return;
+      return true;
     }
 
     depth += node->prefix_length;
@@ -90,11 +90,12 @@ void InsertImpl(Allocator& allocator, Node*& node, Key* value, uint32_t depth) {
   }
   Node* new_node = allocator.Allocate<Leaf>(allocator, std::move(value));
   Node::InsertLeaf(node, key[depth], new_node);
+  return true;
 }
 
-void Insert(TupleIdxTable* t, const int32_t* tuple_idx, int32_t len) {
-  InsertImpl(t->allocator, t->tree,
-             Key::CreateKey(t->allocator, tuple_idx, len), 0);
+bool Insert(TupleIdxTable* t, const int32_t* tuple_idx, int32_t len) {
+  return InsertImpl(t->allocator, t->tree,
+                    Key::CreateKey(t->allocator, tuple_idx, len), 0);
 }
 
 IteratorEntry::IteratorEntry() : node(nullptr), pos(0) {}

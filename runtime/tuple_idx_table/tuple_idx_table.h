@@ -36,7 +36,7 @@ struct TupleIdxTable {
   Node* tree = nullptr;
 };
 
-void Insert(TupleIdxTable* t, const int32_t* tuple_idx, int32_t len);
+bool Insert(TupleIdxTable* t, const int32_t* tuple_idx, int32_t len);
 
 bool Begin(TupleIdxTable* t, Iterator* it);
 

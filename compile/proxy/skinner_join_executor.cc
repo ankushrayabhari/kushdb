@@ -42,12 +42,14 @@ void SkinnerJoinExecutor::ExecuteRecompilingJoin(
     absl::flat_hash_set<std::pair<int, int>>* table_connections,
     const std::vector<int>* prefix_order, RecompilingJoinTranslator* obj,
     khir::Value materialized_buffers, khir::Value materialized_indexes,
-    khir::Value tuple_idx_table) {
+    khir::Value tuple_idx_table, khir::Value idx_array,
+    khir::Value num_result_tuples, khir::Value valid_tuple_handler) {
   program.Call(program.GetFunction(recompiling_fn),
                {program.ConstI32(num_tables), cardinality_arr,
                 program.ConstPtr(table_connections),
                 program.ConstPtr((void*)prefix_order), program.ConstPtr(obj),
-                materialized_buffers, materialized_indexes, tuple_idx_table});
+                materialized_buffers, materialized_indexes, tuple_idx_table,
+                idx_array, num_result_tuples, valid_tuple_handler});
 }
 
 void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
@@ -86,6 +88,9 @@ void SkinnerJoinExecutor::ForwardDeclare(khir::ProgramBuilder& program) {
           program.PointerType(program.PointerType(program.I8Type())),
           program.PointerType(program.PointerType(program.I8Type())),
           program.PointerType(program.GetOpaqueType(TupleIdxTable::TypeName)),
+          program.PointerType(program.I32Type()),
+          program.PointerType(program.I32Type()),
+          handler_pointer_type,
       },
       reinterpret_cast<void*>(&runtime::ExecuteRecompilingSkinnerJoin));
 }

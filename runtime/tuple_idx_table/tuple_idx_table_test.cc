@@ -17,7 +17,7 @@ TEST(TupleIdxTableTest, SingleEntryScan) {
   int tuple_idx[len]{0, 1, 2};
 
   TupleIdxTable::TupleIdxTable table;
-  Insert(&table, tuple_idx, len);
+  EXPECT_EQ(Insert(&table, tuple_idx, len), true);
 
   TupleIdxTable::Iterator it;
   EXPECT_TRUE(Begin(&table, &it));
@@ -32,9 +32,9 @@ TEST(TupleIdxTableTest, MultipleValuesSortedOrder) {
   int tuple_idx3[len]{1, 2, 0};
 
   TupleIdxTable::TupleIdxTable table;
-  Insert(&table, tuple_idx1, len);
-  Insert(&table, tuple_idx2, len);
-  Insert(&table, tuple_idx3, len);
+  EXPECT_EQ(Insert(&table, tuple_idx1, len), true);
+  EXPECT_EQ(Insert(&table, tuple_idx2, len), true);
+  EXPECT_EQ(Insert(&table, tuple_idx3, len), true);
 
   TupleIdxTable::Iterator it;
   EXPECT_TRUE(Begin(&table, &it));
@@ -53,12 +53,12 @@ TEST(TupleIdxTableTest, MultipleValuesSortedOrderWithDuplicates) {
   int tuple_idx3[len]{1, 2, 0};
 
   TupleIdxTable::TupleIdxTable table;
-  Insert(&table, tuple_idx1, len);
-  Insert(&table, tuple_idx2, len);
-  Insert(&table, tuple_idx3, len);
-  Insert(&table, tuple_idx3, len);
-  Insert(&table, tuple_idx2, len);
-  Insert(&table, tuple_idx1, len);
+  EXPECT_EQ(Insert(&table, tuple_idx1, len), true);
+  EXPECT_EQ(Insert(&table, tuple_idx2, len), true);
+  EXPECT_EQ(Insert(&table, tuple_idx3, len), true);
+  EXPECT_EQ(Insert(&table, tuple_idx3, len), false);
+  EXPECT_EQ(Insert(&table, tuple_idx2, len), false);
+  EXPECT_EQ(Insert(&table, tuple_idx1, len), false);
 
   TupleIdxTable::Iterator it;
   EXPECT_TRUE(Begin(&table, &it));

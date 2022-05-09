@@ -15,7 +15,7 @@ class TupleIdxTable {
   void Reset();
   khir::Value Get();
 
-  void Insert(const khir::Value& idx_arr, const Int32& num_tables);
+  Bool Insert(const khir::Value& idx_arr, const Int32& num_tables);
   void ForEach(std::function<void(const khir::Value&)> handler);
   static void ForwardDeclare(khir::ProgramBuilder& program);
 

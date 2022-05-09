@@ -4087,7 +4087,22 @@ void ASMBackend::TranslateInstr(
         Type3InstructionReader reader(instr);
         khir::Value v(reader.Arg());
         if (v.IsConstantGlobal()) {
-          throw std::runtime_error("Not possible.");
+          while (IsConstantCastedPtr(v, constant_instrs)) {
+            v = GetConstantCastedPtr(v, constant_instrs);
+          }
+
+          if (IsConstantPtr(v, constant_instrs)) {
+            uint64_t c64 = reinterpret_cast<uint64_t>(
+                ptr_constants[Type1InstructionReader(
+                                  constant_instrs[v.GetIdx()])
+                                  .Constant()]);
+
+            auto ptr_reg = Register::RAX.GetQ();
+            asm_->mov(ptr_reg, c64);
+            asm_->call(ptr_reg);
+          } else {
+            throw std::runtime_error("Not possible");
+          }
         } else if (register_assign[v.GetIdx()].IsRegister()) {
           auto reg = NormalRegister(register_assign[v.GetIdx()].Register());
           asm_->call(reg.GetQ());

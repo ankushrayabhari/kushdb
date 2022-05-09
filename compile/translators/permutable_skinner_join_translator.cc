@@ -198,10 +198,10 @@ void PermutableSkinnerJoinTranslator::Produce() {
     child_pipelines.push_back(pipeline_builder_.FinishPipeline());
   }
 
-  auto& join_pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {}, join_pipeline.Name());
+  program_.SetCurrentBlock(output_pipeline_func);
+  auto& output_pipeline = pipeline_builder_.GetCurrentPipeline();
   for (auto& pipeline : child_pipelines) {
-    join_pipeline.AddPredecessor(std::move(pipeline));
+    output_pipeline.AddPredecessor(std::move(pipeline));
   }
 
   // 2. Setup join evaluation
@@ -887,7 +887,103 @@ void PermutableSkinnerJoinTranslator::Produce() {
     auto tuple_idx_arr = program_.StaticGEP(idx_array_type, idx_array, {0, 0});
 
     proxy::Int32 num_tables(program_, child_translators.size());
-    tuple_idx_table.Insert(tuple_idx_arr, num_tables);
+
+    proxy::If(program_, tuple_idx_table.Insert(tuple_idx_arr, num_tables), [&] {
+      std::vector<absl::flat_hash_set<int>> output_columns(
+          child_translators.size());
+      for (const auto& column : join_.Schema().Columns()) {
+        PredicateColumnCollector collector;
+        column.Expr().Accept(collector);
+        for (auto col : collector.PredicateColumns()) {
+          auto child_idx = col.get().GetChildIdx();
+          auto col_idx = col.get().GetColumnIdx();
+          output_columns[child_idx].insert(col_idx);
+        }
+      }
+
+      for (int i = 0; i < child_translators.size(); i++) {
+        auto& child_translator = child_translators[i].get();
+        const auto& schema = child_operators[i].get().Schema().Columns();
+        child_translator.SchemaValues().ResetValues();
+        for (int i = 0; i < schema.size(); i++) {
+          const auto& type = schema[i].Expr().Type();
+          switch (type.type_id) {
+            case catalog::TypeId::SMALLINT:
+              child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+                  proxy::Int16(program_, 0), proxy::Bool(program_, false)));
+              break;
+            case catalog::TypeId::INT:
+              child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+                  proxy::Int32(program_, 0), proxy::Bool(program_, false)));
+              break;
+            case catalog::TypeId::DATE:
+              child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+                  proxy::Date(program_, runtime::Date::DateBuilder(2000, 1, 1)),
+                  proxy::Bool(program_, false)));
+              break;
+            case catalog::TypeId::BIGINT:
+              child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+                  proxy::Int64(program_, 0), proxy::Bool(program_, false)));
+              break;
+            case catalog::TypeId::BOOLEAN:
+              child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+                  proxy::Bool(program_, false), proxy::Bool(program_, false)));
+              break;
+            case catalog::TypeId::REAL:
+              child_translator.SchemaValues().AddVariable(proxy::SQLValue(
+                  proxy::Float64(program_, 0), proxy::Bool(program_, false)));
+              break;
+            case catalog::TypeId::TEXT:
+              child_translator.SchemaValues().AddVariable(
+                  proxy::SQLValue(proxy::String::Global(program_, ""),
+                                  proxy::Bool(program_, false)));
+              break;
+            case catalog::TypeId::ENUM:
+              child_translator.SchemaValues().AddVariable(
+                  proxy::SQLValue(proxy::Enum(program_, type.enum_id, -1),
+                                  proxy::Bool(program_, false)));
+              break;
+          }
+        }
+      }
+
+      int current_buffer = 0;
+      for (int i = 0; i < child_translators.size(); i++) {
+        auto& child_translator = child_translators[i].get();
+
+        auto tuple_idx_ptr =
+            program_.StaticGEP(program_.I32Type(), tuple_idx_arr, {i});
+        auto tuple_idx =
+            proxy::Int32(program_, program_.LoadI32(tuple_idx_ptr));
+
+        auto& buffer = *materialized_buffers_[current_buffer++];
+
+        if (output_columns[i].empty()) continue;
+
+        // set the schema values of child to be the tuple_idx'th tuple of
+        // current table.
+        if (auto buf =
+                dynamic_cast<proxy::MemoryMaterializedBuffer*>(&buffer)) {
+          child_translator.SchemaValues().SetValues(buffer[tuple_idx]);
+        } else {
+          for (int col : output_columns[i]) {
+            child_translator.SchemaValues().SetValue(
+                col, buffer.Get(tuple_idx, col));
+          }
+        }
+      }
+
+      // Compute the output schema
+      this->values_.ResetValues();
+      for (const auto& column : join_.Schema().Columns()) {
+        this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+      }
+
+      // Push tuples to next operator
+      if (auto parent = this->Parent()) {
+        parent->get().Consume(*this);
+      }
+    });
 
     auto result_ptr = program_.StaticGEP(num_result_tuples_type,
                                          num_result_tuples_ptr, {0, 0});
@@ -944,108 +1040,6 @@ void PermutableSkinnerJoinTranslator::Produce() {
       program_.StaticGEP(idx_array_type, idx_array, {0, 0}),
       program_.StaticGEP(num_result_tuples_type, num_result_tuples_ptr, {0, 0}),
       program_.StaticGEP(offset_array_type, offset_array, {0, 0}));
-  program_.Return();
-  auto join_pipeline_obj = pipeline_builder_.FinishPipeline();
-
-  program_.SetCurrentBlock(output_pipeline_func);
-  auto& output_pipeline = pipeline_builder_.GetCurrentPipeline();
-  output_pipeline.AddPredecessor(std::move(join_pipeline_obj));
-
-  std::vector<absl::flat_hash_set<int>> output_columns(
-      child_translators.size());
-  for (const auto& column : join_.Schema().Columns()) {
-    PredicateColumnCollector collector;
-    column.Expr().Accept(collector);
-    for (auto col : collector.PredicateColumns()) {
-      auto child_idx = col.get().GetChildIdx();
-      auto col_idx = col.get().GetColumnIdx();
-      output_columns[child_idx].insert(col_idx);
-    }
-  }
-
-  for (int i = 0; i < child_translators.size(); i++) {
-    auto& child_translator = child_translators[i].get();
-    const auto& schema = child_operators[i].get().Schema().Columns();
-    child_translator.SchemaValues().ResetValues();
-    for (int i = 0; i < schema.size(); i++) {
-      const auto& type = schema[i].Expr().Type();
-      switch (type.type_id) {
-        case catalog::TypeId::SMALLINT:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Int16(program_, 0), proxy::Bool(program_, false)));
-          break;
-        case catalog::TypeId::INT:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Int32(program_, 0), proxy::Bool(program_, false)));
-          break;
-        case catalog::TypeId::DATE:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Date(program_, runtime::Date::DateBuilder(2000, 1, 1)),
-              proxy::Bool(program_, false)));
-          break;
-        case catalog::TypeId::BIGINT:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Int64(program_, 0), proxy::Bool(program_, false)));
-          break;
-        case catalog::TypeId::BOOLEAN:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Bool(program_, false), proxy::Bool(program_, false)));
-          break;
-        case catalog::TypeId::REAL:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Float64(program_, 0), proxy::Bool(program_, false)));
-          break;
-        case catalog::TypeId::TEXT:
-          child_translator.SchemaValues().AddVariable(
-              proxy::SQLValue(proxy::String::Global(program_, ""),
-                              proxy::Bool(program_, false)));
-          break;
-        case catalog::TypeId::ENUM:
-          child_translator.SchemaValues().AddVariable(
-              proxy::SQLValue(proxy::Enum(program_, type.enum_id, -1),
-                              proxy::Bool(program_, false)));
-          break;
-      }
-    }
-  }
-
-  // Loop over tuple idx table and then output tuples from each table.
-  tuple_idx_table.ForEach([&](const auto& tuple_idx_arr) {
-    int current_buffer = 0;
-    for (int i = 0; i < child_translators.size(); i++) {
-      auto& child_translator = child_translators[i].get();
-
-      auto tuple_idx_ptr =
-          program_.StaticGEP(program_.I32Type(), tuple_idx_arr, {i});
-      auto tuple_idx = proxy::Int32(program_, program_.LoadI32(tuple_idx_ptr));
-
-      auto& buffer = *materialized_buffers_[current_buffer++];
-
-      if (output_columns[i].empty()) continue;
-
-      // set the schema values of child to be the tuple_idx'th tuple of
-      // current table.
-      if (auto buf = dynamic_cast<proxy::MemoryMaterializedBuffer*>(&buffer)) {
-        child_translator.SchemaValues().SetValues(buffer[tuple_idx]);
-      } else {
-        for (int col : output_columns[i]) {
-          child_translator.SchemaValues().SetValue(col,
-                                                   buffer.Get(tuple_idx, col));
-        }
-      }
-    }
-
-    // Compute the output schema
-    this->values_.ResetValues();
-    for (const auto& column : join_.Schema().Columns()) {
-      this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
-    }
-
-    // Push tuples to next operator
-    if (auto parent = this->Parent()) {
-      parent->get().Consume(*this);
-    }
-  });
 
   for (auto& buffer : materialized_buffers_) {
     buffer->Reset();

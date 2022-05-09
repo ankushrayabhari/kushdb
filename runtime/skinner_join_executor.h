@@ -29,6 +29,8 @@ void ExecuteRecompilingSkinnerJoin(
     const absl::flat_hash_set<std::pair<int, int>>* table_connections,
     const std::vector<int>* prefix_order,
     compile::RecompilingJoinTranslator* codegen, void** materialized_buffers,
-    void** materialized_indexes, void* tuple_idx_table);
+    void** materialized_indexes, void* tuple_idx_table, int32_t* idx_array,
+    int32_t* num_result_tuples,
+    std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler);
 
 }  // namespace kush::runtime

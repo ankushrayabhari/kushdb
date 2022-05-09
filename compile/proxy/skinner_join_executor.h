@@ -30,7 +30,8 @@ class SkinnerJoinExecutor {
       absl::flat_hash_set<std::pair<int, int>>* table_connections,
       const std::vector<int>* prefix_order, RecompilingJoinTranslator* obj,
       khir::Value materialized_buffers, khir::Value materialized_indexes,
-      khir::Value tuple_idx_table);
+      khir::Value tuple_idx_table, khir::Value idx_arr,
+      khir::Value num_result_tuples, khir::Value valid_tuple_handler);
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 };

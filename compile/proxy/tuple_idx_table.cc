@@ -50,11 +50,12 @@ void TupleIdxTable::Reset() {
   program_.Call(program_.GetFunction(free_fn_name), {tuple_idx_table});
 }
 
-void TupleIdxTable::Insert(const khir::Value& idx_arr,
+Bool TupleIdxTable::Insert(const khir::Value& idx_arr,
                            const Int32& num_tables) {
   auto tuple_idx_table = program_.LoadPtr(value_);
-  program_.Call(program_.GetFunction(insert_fn_name),
-                {tuple_idx_table, idx_arr, num_tables.Get()});
+  return Bool(program_,
+              program_.Call(program_.GetFunction(insert_fn_name),
+                            {tuple_idx_table, idx_arr, num_tables.Get()}));
 }
 
 khir::Value TupleIdxTable::Get() { return program_.LoadPtr(value_); }
@@ -94,7 +95,7 @@ void TupleIdxTable::ForwardDeclare(khir::ProgramBuilder& program) {
       free_fn_name, program.VoidType(), {tuple_idx_table_ptr_type},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Free));
   program.DeclareExternalFunction(
-      insert_fn_name, program.VoidType(),
+      insert_fn_name, program.I1Type(),
       {tuple_idx_table_ptr_type, program.PointerType(program.I32Type()),
        program.I32Type()},
       reinterpret_cast<void*>(&runtime::TupleIdxTable::Insert));

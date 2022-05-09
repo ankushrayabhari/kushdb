@@ -441,7 +441,8 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
       void** materialized_indexes, void* tuple_idx_table,
       const absl::flat_hash_set<std::pair<int, int>>* table_connections,
       const std::vector<int32_t>& cardinalities,
-      RecompilationExecutionEngineFlags execution_engine)
+      RecompilationExecutionEngineFlags execution_engine,
+      std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler)
       : codegen_(codegen),
         materialized_buffers_(materialized_buffers),
         materialized_indexes_(materialized_indexes),
@@ -450,7 +451,8 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
         table_connections_(table_connections),
         cardinalities_(cardinalities),
         state_(cardinalities_),
-        execution_engine_(execution_engine) {}
+        execution_engine_(execution_engine),
+        valid_tuple_handler_(valid_tuple_handler) {}
 
   bool IsConnected(const absl::btree_set<int>& joined_tables,
                    int table) override {
@@ -494,7 +496,7 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
         order, materialized_buffers_, materialized_indexes_, tuple_idx_table_,
         execution_engine_.progress_arr, execution_engine_.table_ctr,
         execution_engine_.idx_arr, execution_engine_.offset_arr,
-        execution_engine_.num_result_tuples);
+        valid_tuple_handler_);
 
     auto status = execute_fn(budget_per_episode_,
                              initial_last_completed_tuple.has_value());
@@ -551,6 +553,7 @@ class RecompilationJoinEnvironment : public JoinEnvironment {
   const std::vector<int32_t> cardinalities_;
   JoinState state_;
   RecompilationExecutionEngineFlags execution_engine_;
+  std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler_;
 };
 
 class UctNode {
@@ -880,7 +883,9 @@ void ExecuteRecompilingSkinnerJoin(
     const absl::flat_hash_set<std::pair<int, int>>* table_connections,
     const std::vector<int>* prefix_order,
     compile::RecompilingJoinTranslator* codegen, void** materialized_buffers,
-    void** materialized_indexes, void* tuple_idx_table) {
+    void** materialized_indexes, void* tuple_idx_table, int32_t* idx_arr,
+    int32_t* num_result_tuples,
+    std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler) {
   auto cardinalities = ReconstructCardinalities(num_tables, cardinality_arr);
   for (int x : cardinalities) {
     // one of the inputs is empty
@@ -892,13 +897,7 @@ void ExecuteRecompilingSkinnerJoin(
   auto progress_arr = new int32_t[num_tables];
   int32_t table_ctr = 0;
 
-  // TODO: as a hack, the idx array is set to be 2x the length with the
-  // offset_array being the other half to avoid passing in > 6 arguments to
-  // the function
-  // once the asm backend supports this, we can clean this up
-  auto idx_arr = new int32_t[2 * num_tables];
-  auto offset_arr = &idx_arr[num_tables];
-  int32_t num_result_tuples = 0;
+  auto offset_arr = new int32_t[num_tables];
   for (int i = 0; i < num_tables; i++) {
     idx_arr[i] = 0;
     progress_arr[i] = -1;
@@ -910,12 +909,12 @@ void ExecuteRecompilingSkinnerJoin(
       .table_ctr = &table_ctr,
       .idx_arr = idx_arr,
       .offset_arr = offset_arr,
-      .num_result_tuples = &num_result_tuples,
+      .num_result_tuples = num_result_tuples,
   };
 
   RecompilationJoinEnvironment environment(
       codegen, materialized_buffers, materialized_indexes, tuple_idx_table,
-      table_connections, cardinalities, execution_engine);
+      table_connections, cardinalities, execution_engine, valid_tuple_handler);
 
   UctJoinAgent agent(num_tables, environment, prefix_order);
 
@@ -924,7 +923,7 @@ void ExecuteRecompilingSkinnerJoin(
   }
 
   delete[] progress_arr;
-  delete[] idx_arr;
+  delete[] offset_arr;
 }
 
 }  // namespace kush::runtime
