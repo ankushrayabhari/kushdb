@@ -38,7 +38,7 @@ FileInformation FileManager::Open(std::string_view path) {
     }
     uint64_t file_length = sb.st_size;
 
-    void* data = malloc(file_length);
+    void* data = aligned_alloc(64, file_length);
     if (pread(fd, data, file_length, 0) < 0) {
       std::cerr << path << std::endl;
       throw std::system_error(

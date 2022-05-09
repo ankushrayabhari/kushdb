@@ -10,6 +10,8 @@ user.bazelrc
 
 # Profiling
 /perf-*
+*.svg
+*.csv
 
 # TPC-H SF1 Data
 /benchmark/tpch1/raw/*
