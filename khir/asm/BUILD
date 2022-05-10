@@ -96,6 +96,7 @@ cc_library(
     srcs = ["stack_spill_reg_alloc.cc"],
     hdrs = ["stack_spill_reg_alloc.h"],
     deps = [
+        ":register",
         ":register_assignment",
         "//khir:instruction",
         "//khir:opcode",
@@ -124,6 +125,7 @@ cc_library(
     deps = [
         ":dfs_label",
         ":loops",
+        ":register",
         "//khir:instruction",
         "//khir:program_builder",
         "//util:union_find",
@@ -162,6 +164,7 @@ cc_library(
         ":live_intervals",
         ":materialize_gep",
         ":reg_alloc_impl",
+        ":register",
         ":register_assignment",
         ":stack_spill_reg_alloc",
         "//khir:backend",

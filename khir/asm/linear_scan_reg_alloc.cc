@@ -6,6 +6,7 @@
 
 #include "khir/asm/dfs_label.h"
 #include "khir/asm/live_intervals.h"
+#include "khir/asm/register.h"
 #include "khir/asm/register_assignment.h"
 #include "khir/instruction.h"
 #include "khir/opcode.h"
@@ -131,7 +132,8 @@ void AddPrecoloredInterval(LiveInterval& to_add,
       return;
     }
 
-    throw std::runtime_error("Register should have been in free.");
+    throw std::runtime_error("Register should have been in free: " +
+                             std::to_string(reg));
   }
 
   // No constraint on the register, pick any register
@@ -212,17 +214,6 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
   auto instrs = func.Instrs();
   auto live_intervals = ComputeLiveIntervals(func, materialize_gep, manager);
 
-  /*
-  for (auto& x : live_intervals) {
-    if (x.IsPrecolored()) {
-      std::cerr << "Precolored: " << x.PrecoloredRegister() << std::endl;
-    } else {
-      std::cerr << "Value: " << x.Value().GetIdx() << std::endl;
-    }
-    std::cerr << ' ' << x.Start() << ' ' << x.End() << std::endl;
-  }
-  */
-
   // Handle intervals by increasing start point order
   std::sort(live_intervals.begin(), live_intervals.end(),
             [](const LiveInterval& a, const LiveInterval& b) -> bool {
@@ -239,20 +230,56 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
   auto active_floating_point =
       std::multiset<LiveInterval, decltype(comp)>(comp);
 
+  /*
+  Available for allocation:
+    RBX, RCX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
+    XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11,
+    XMM12, XMM13, XMM14
+
+  Reserved/Scratch
+    RSP, RBP, RAX, xmm15
+  */
+
   std::unordered_set<int> free_floating_point_regs;
-  for (int i = 50; i < 50 + 7; i++) {
-    free_floating_point_regs.insert(i);
-  }
+  free_floating_point_regs.insert(VRegister::M0.Id());
+  free_floating_point_regs.insert(VRegister::M1.Id());
+  free_floating_point_regs.insert(VRegister::M2.Id());
+  free_floating_point_regs.insert(VRegister::M3.Id());
+  free_floating_point_regs.insert(VRegister::M4.Id());
+  free_floating_point_regs.insert(VRegister::M5.Id());
+  free_floating_point_regs.insert(VRegister::M6.Id());
+  free_floating_point_regs.insert(VRegister::M7.Id());
+  free_floating_point_regs.insert(VRegister::M8.Id());
+  free_floating_point_regs.insert(VRegister::M9.Id());
+  free_floating_point_regs.insert(VRegister::M10.Id());
+  free_floating_point_regs.insert(VRegister::M11.Id());
+  free_floating_point_regs.insert(VRegister::M12.Id());
+  free_floating_point_regs.insert(VRegister::M13.Id());
+  free_floating_point_regs.insert(VRegister::M14.Id());
 
   std::unordered_set<int> free_normal_regs;
-  for (int i = 0; i < 13; i++) {
-    free_normal_regs.insert(i);
-  }
+  free_normal_regs.insert(GPRegister::RBX.Id());
+  free_normal_regs.insert(GPRegister::RCX.Id());
+  free_normal_regs.insert(GPRegister::RDX.Id());
+  free_normal_regs.insert(GPRegister::RSI.Id());
+  free_normal_regs.insert(GPRegister::RDI.Id());
+  free_normal_regs.insert(GPRegister::R8.Id());
+  free_normal_regs.insert(GPRegister::R9.Id());
+  free_normal_regs.insert(GPRegister::R10.Id());
+  free_normal_regs.insert(GPRegister::R11.Id());
+  free_normal_regs.insert(GPRegister::R12.Id());
+  free_normal_regs.insert(GPRegister::R13.Id());
+  free_normal_regs.insert(GPRegister::R14.Id());
+  free_normal_regs.insert(GPRegister::R15.Id());
+
+  const int TOTAL_GP_FREE = free_normal_regs.size();
+  const int TOTAL_FP_FREE = free_floating_point_regs.size();
 
   for (int a = 0; a < live_intervals.size(); a++) {
-    assert(Union(active_normal, free_normal_regs, assignments).size() == 13);
+    assert(Union(active_normal, free_normal_regs, assignments).size() ==
+           TOTAL_GP_FREE);
     assert(Union(active_floating_point, free_floating_point_regs, assignments)
-               .size() == 7);
+               .size() == TOTAL_FP_FREE);
 
     LiveInterval& i = live_intervals[a];
     assert(!i.Undef());
@@ -263,101 +290,94 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
                        active_floating_point);
 
     if (i.IsPrecolored()) {
-      if (i.PrecoloredRegister() >= 50) {
+      if (VRegister::IsVRegister(i.PrecoloredRegister())) {
         AddPrecoloredInterval(i, assignments, free_floating_point_regs,
                               active_floating_point);
-      } else {
+      } else if (GPRegister::IsGPRegister(i.PrecoloredRegister())) {
         AddPrecoloredInterval(i, assignments, free_normal_regs, active_normal);
+      } else {
+        throw std::runtime_error("Invalid precolored register");
       }
-    } else {
-      auto i_instr = i.Value().GetIdx();
-      auto i_opcode =
-          OpcodeFrom(GenericInstructionReader(instrs[i_instr]).Opcode());
+      continue;
+    }
 
-      switch (i_opcode) {
-        case Opcode::I1_CMP_EQ:
-        case Opcode::I1_CMP_NE:
-        case Opcode::I8_CMP_EQ:
-        case Opcode::I8_CMP_NE:
-        case Opcode::I8_CMP_LT:
-        case Opcode::I8_CMP_LE:
-        case Opcode::I8_CMP_GT:
-        case Opcode::I8_CMP_GE:
-        case Opcode::I16_CMP_EQ:
-        case Opcode::I16_CMP_NE:
-        case Opcode::I16_CMP_LT:
-        case Opcode::I16_CMP_LE:
-        case Opcode::I16_CMP_GT:
-        case Opcode::I16_CMP_GE:
-        case Opcode::I32_CMP_EQ:
-        case Opcode::I32_CMP_NE:
-        case Opcode::I32_CMP_LT:
-        case Opcode::I32_CMP_LE:
-        case Opcode::I32_CMP_GT:
-        case Opcode::I32_CMP_GE:
-        case Opcode::I64_CMP_EQ:
-        case Opcode::I64_CMP_NE:
-        case Opcode::I64_CMP_LT:
-        case Opcode::I64_CMP_LE:
-        case Opcode::I64_CMP_GT:
-        case Opcode::I64_CMP_GE:
-        case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
-        case Opcode::I32_CMP_EQ_ANY_CONST_VEC8: {
-          if (i.Start() + 1 == i.End() &&
-              OpcodeFrom(
-                  GenericInstructionReader(instrs[i.Value().GetIdx() + 1])
-                      .Opcode()) == Opcode::CONDBR) {
-            assignments[i_instr].SetRegister(100);
-          }
-          break;
-        }
+    auto i_instr = i.Value().GetIdx();
+    auto i_opcode =
+        OpcodeFrom(GenericInstructionReader(instrs[i_instr]).Opcode());
 
-        case Opcode::F64_CMP_EQ:
-        case Opcode::F64_CMP_NE:
-        case Opcode::F64_CMP_LT:
-        case Opcode::F64_CMP_LE:
-        case Opcode::F64_CMP_GT:
-        case Opcode::F64_CMP_GE: {
-          if (i.Start() + 1 == i.End() &&
-              OpcodeFrom(
-                  GenericInstructionReader(instrs[i.Value().GetIdx() + 1])
-                      .Opcode()) == Opcode::CONDBR) {
-            assignments[i_instr].SetRegister(101);
-          }
-          break;
+    switch (i_opcode) {
+      case Opcode::I1_CMP_EQ:
+      case Opcode::I1_CMP_NE:
+      case Opcode::I8_CMP_EQ:
+      case Opcode::I8_CMP_NE:
+      case Opcode::I8_CMP_LT:
+      case Opcode::I8_CMP_LE:
+      case Opcode::I8_CMP_GT:
+      case Opcode::I8_CMP_GE:
+      case Opcode::I16_CMP_EQ:
+      case Opcode::I16_CMP_NE:
+      case Opcode::I16_CMP_LT:
+      case Opcode::I16_CMP_LE:
+      case Opcode::I16_CMP_GT:
+      case Opcode::I16_CMP_GE:
+      case Opcode::I32_CMP_EQ:
+      case Opcode::I32_CMP_NE:
+      case Opcode::I32_CMP_LT:
+      case Opcode::I32_CMP_LE:
+      case Opcode::I32_CMP_GT:
+      case Opcode::I32_CMP_GE:
+      case Opcode::I64_CMP_EQ:
+      case Opcode::I64_CMP_NE:
+      case Opcode::I64_CMP_LT:
+      case Opcode::I64_CMP_LE:
+      case Opcode::I64_CMP_GT:
+      case Opcode::I64_CMP_GE:
+      case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
+      case Opcode::I32_CMP_EQ_ANY_CONST_VEC8: {
+        if (i.Start() + 1 == i.End() &&
+            OpcodeFrom(GenericInstructionReader(instrs[i.Value().GetIdx() + 1])
+                           .Opcode()) == Opcode::CONDBR) {
+          assignments[i_instr].SetRegister(FRegister::IFlag.Id());
         }
+        break;
+      }
 
-        case Opcode::I8_STORE:
-        case Opcode::I16_STORE:
-        case Opcode::I32_STORE:
-        case Opcode::I64_STORE:
-        case Opcode::PTR_STORE: {
-          AddPrecoloredInterval(i, assignments, free_normal_regs,
-                                active_normal);
-          assert(i.IsPrecolored());
-          assignments[i_instr].SetRegister(i.PrecoloredRegister());
-          break;
+      case Opcode::F64_CMP_EQ:
+      case Opcode::F64_CMP_NE:
+      case Opcode::F64_CMP_LT:
+      case Opcode::F64_CMP_LE:
+      case Opcode::F64_CMP_GT:
+      case Opcode::F64_CMP_GE: {
+        if (i.Start() + 1 == i.End() &&
+            OpcodeFrom(GenericInstructionReader(instrs[i.Value().GetIdx() + 1])
+                           .Opcode()) == Opcode::CONDBR) {
+          assignments[i_instr].SetRegister(FRegister::FFlag.Id());
         }
+        break;
+      }
 
-        default: {
-          if (manager.IsF64Type(i.Type())) {
-            SpillAtInterval(i, assignments, free_floating_point_regs,
-                            active_floating_point);
-          } else {
-            SpillAtInterval(i, assignments, free_normal_regs, active_normal);
-          }
-          break;
+      case Opcode::I8_STORE:
+      case Opcode::I16_STORE:
+      case Opcode::I32_STORE:
+      case Opcode::I64_STORE:
+      case Opcode::PTR_STORE: {
+        AddPrecoloredInterval(i, assignments, free_normal_regs, active_normal);
+        assert(i.IsPrecolored());
+        assignments[i_instr].SetRegister(i.PrecoloredRegister());
+        break;
+      }
+
+      default: {
+        if (manager.IsF64Type(i.Type())) {
+          SpillAtInterval(i, assignments, free_floating_point_regs,
+                          active_floating_point);
+        } else {
+          SpillAtInterval(i, assignments, free_normal_regs, active_normal);
         }
+        break;
       }
     }
   }
-
-  /*
-  for (int i = 0; i < assignments.size(); i++) {
-    std::cerr << "Assign: " << i << ' ' << assignments[i].Register()
-              << std::endl;
-  }
-  */
 
   return assignments;
 }

@@ -75,8 +75,7 @@ class ASMBackend : public Backend {
                       int instr_idx, StackSlotAllocator& stack_allocator,
                       const std::vector<RegisterAssignment>& register_assign,
                       const std::vector<bool>& gep_materialize, int next_bb);
-  GPRegister NormalRegister(int id);
-  asmjit::x86::Xmm FPRegister(int id);
+
   asmjit::Label EmbedI8(int8_t d);
   asmjit::Label EmbedF64(double d);
   asmjit::Label EmbedI64(int64_t d);

@@ -7,6 +7,7 @@
 #include "absl/container/flat_hash_set.h"
 
 #include "khir/asm/loops.h"
+#include "khir/asm/register.h"
 #include "khir/instruction.h"
 #include "khir/program.h"
 #include "util/union_find.h"
@@ -888,38 +889,28 @@ std::vector<LiveInterval> ComputeLiveIntervals(
     }
   }
 
-  /*
-    Available for allocation:
-      RBX  = 0
-      RCX  = 1
-      RDX  = 2
-      RSI  = 3
-      RDI  = 4
-      R8   = 5
-      R9   = 6
-      R10  = 7
-      R11  = 8
-      R12  = 9
-      R13  = 10
-      R14  = 11
-      R15  = 12
-
-      XMM0 = 50
-      XMM1 = 51
-      XMM2 = 52
-      XMM3 = 53
-      XMM4 = 54
-      XMM5 = 55
-      XMM6 = 56
-
-      FLAG = 100
-
-    Reserved/Scratch
-      RSP, RBP, RAX, XMM7
-  */
   // Create a precolored interval for each function argument
-  std::vector<int> normal_arg_reg{4, 3, 2, 1, 5, 6};
-  std::vector<int> fp_arg_reg{50, 51, 52, 53, 54, 55, 56};
+  std::vector<int> normal_arg_reg{
+      GPRegister::RDI.Id(), GPRegister::RSI.Id(), GPRegister::RDX.Id(),
+      GPRegister::RCX.Id(), GPRegister::R8.Id(),  GPRegister::R9.Id(),
+  };
+  std::vector<int> fp_arg_reg{
+      VRegister::M0.Id(), VRegister::M1.Id(), VRegister::M2.Id(),
+      VRegister::M3.Id(), VRegister::M4.Id(), VRegister::M5.Id(),
+      VRegister::M6.Id(), VRegister::M7.Id(),
+  };
+
+  // Caller save in addition to above arg regs
+  std::vector<int> normal_caller_save{
+      GPRegister::R10.Id(),
+      GPRegister::R11.Id(),
+  };
+  std::vector<int> fp_caller_save{
+      VRegister::M8.Id(),  VRegister::M9.Id(),  VRegister::M10.Id(),
+      VRegister::M11.Id(), VRegister::M12.Id(), VRegister::M13.Id(),
+      VRegister::M14.Id(),
+  };
+
   for (int i = 0, normal_arg_ctr = 0, fp_arg_ctr = 0; i < instrs.size(); i++) {
     auto opcode = OpcodeFrom(GenericInstructionReader(instrs[i]).Opcode());
     if (opcode != Opcode::FUNC_ARG) {
@@ -993,9 +984,13 @@ std::vector<LiveInterval> ComputeLiveIntervals(
             }
 
             // clobber remaining caller saved registers
-            // FP registers have already been clobbered.
-            const std::vector<int> caller_saved_normal_registers = {7, 8};
-            for (int reg : caller_saved_normal_registers) {
+            for (int reg : normal_caller_save) {
+              LiveInterval interval(reg);
+              interval.Extend(instr_map.at({bb_idx, i}));
+              live_intervals.push_back(interval);
+            }
+
+            for (int reg : fp_caller_save) {
               LiveInterval interval(reg);
               interval.Extend(instr_map.at({bb_idx, i}));
               live_intervals.push_back(interval);

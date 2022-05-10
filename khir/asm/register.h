@@ -15,6 +15,7 @@ class GPRegister {
   int Id() const;
 
   static GPRegister FromId(int id);
+  static bool IsGPRegister(int id);
 
   static GPRegister RAX;
   static GPRegister RBX;
@@ -49,6 +50,7 @@ class VRegister {
   int Id() const;
 
   static VRegister FromId(int id);
+  static bool IsVRegister(int id);
 
   static VRegister M0;
   static VRegister M1;
@@ -73,16 +75,16 @@ class VRegister {
   int id_;
 };
 
-class FReg {
+class FRegister {
  public:
-  FReg(int id);
+  FRegister(int id);
   int Id();
 
   static bool IsIFlag(int id);
   static bool IsFFlag(int id);
 
-  static FReg IFlag;
-  static FReg FFLag;
+  static FRegister IFlag;
+  static FRegister FFlag;
 
  private:
   int id_;

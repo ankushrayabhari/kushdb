@@ -59,6 +59,8 @@ GPRegister GPRegister::FromId(int id) {
   }
 }
 
+bool GPRegister::IsGPRegister(int id) { return id >= 0 && id <= 15; }
+
 GPRegister GPRegister::RAX(x86::rax, x86::eax, x86::ax, x86::al, 0);
 GPRegister GPRegister::RBX(x86::rbx, x86::ebx, x86::bx, x86::bl, 1);
 GPRegister GPRegister::RCX(x86::rcx, x86::ecx, x86::cx, x86::cl, 2);
@@ -122,6 +124,8 @@ VRegister VRegister::FromId(int id) {
   }
 }
 
+bool VRegister::IsVRegister(int id) { return id >= 50 && id <= 65; }
+
 int VRegister::Id() const { return id_; }
 
 VRegister VRegister::M0(x86::ymm0, x86::xmm0, 50);
@@ -141,15 +145,15 @@ VRegister VRegister::M13(x86::ymm13, x86::xmm13, 63);
 VRegister VRegister::M14(x86::ymm14, x86::xmm14, 64);
 VRegister VRegister::M15(x86::ymm15, x86::xmm15, 65);
 
-FReg::FReg(int id) : id_(id) {}
+FRegister::FRegister(int id) : id_(id) {}
 
-int FReg::Id() { return id_; }
+int FRegister::Id() { return id_; }
 
-bool FReg::IsIFlag(int id) { return id == 100; }
+bool FRegister::IsIFlag(int id) { return id == 100; }
 
-bool FReg::IsFFlag(int id) { return id == 101; }
+bool FRegister::IsFFlag(int id) { return id == 101; }
 
-FReg FReg::IFlag(100);
-FReg FReg::FFLag(101);
+FRegister FRegister::IFlag(100);
+FRegister FRegister::FFlag(101);
 
 }  // namespace kush::khir

@@ -479,73 +479,6 @@ int32_t GetOffset(const std::vector<int32_t>& offsets, int i) {
   return offset;
 }
 
-x86::Xmm ASMBackend::FPRegister(int id) {
-  switch (id) {
-    case 50:
-      return x86::xmm0;
-    case 51:
-      return x86::xmm1;
-    case 52:
-      return x86::xmm2;
-    case 53:
-      return x86::xmm3;
-    case 54:
-      return x86::xmm4;
-    case 55:
-      return x86::xmm5;
-    case 56:
-      return x86::xmm6;
-    default:
-      throw std::runtime_error("Unreachable.");
-  }
-}
-
-GPRegister ASMBackend::NormalRegister(int id) {
-  /* RBX  = 0
-    RCX  = 1
-    RDX  = 2
-    RSI  = 3
-    RDI  = 4
-    R8   = 5
-    R9   = 6
-    R10  = 7
-    R11  = 8
-    R12  = 9
-    R13  = 10
-    R14  = 11
-    R15  = 12 */
-  switch (id) {
-    case 0:
-      return GPRegister::RBX;
-    case 1:
-      return GPRegister::RCX;
-    case 2:
-      return GPRegister::RDX;
-    case 3:
-      return GPRegister::RSI;
-    case 4:
-      return GPRegister::RDI;
-    case 5:
-      return GPRegister::R8;
-    case 6:
-      return GPRegister::R9;
-    case 7:
-      return GPRegister::R10;
-    case 8:
-      return GPRegister::R11;
-    case 9:
-      return GPRegister::R12;
-    case 10:
-      return GPRegister::R13;
-    case 11:
-      return GPRegister::R14;
-    case 12:
-      return GPRegister::R15;
-    default:
-      throw std::runtime_error("Unreachable.");
-  }
-}
-
 asmjit::Label ASMBackend::EmbedF64(double c) {
   auto label = asm_->newLabel();
   asm_->section(data_section_);
@@ -573,12 +506,12 @@ asmjit::Label ASMBackend::EmbedI64(int64_t c) {
   return label;
 }
 
-bool IsFlagReg(const RegisterAssignment& reg) {
-  return reg.IsRegister() && reg.Register() == 100;
+bool IsIFlag(const RegisterAssignment& reg) {
+  return reg.IsRegister() && FRegister::IsIFlag(reg.Register());
 }
 
-bool IsF64FlagReg(const RegisterAssignment& reg) {
-  return reg.IsRegister() && reg.Register() == 101;
+bool IsFFlag(const RegisterAssignment& reg) {
+  return reg.IsRegister() && FRegister::IsFFlag(reg.Register());
 }
 
 template <typename Dest>
@@ -651,7 +584,7 @@ void ASMBackend::MoveByteValue(
     int8_t c8 = Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->mov(dest, c8);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
 
     // Coalesce
     if (dest != v_reg.GetB()) {
@@ -677,7 +610,7 @@ void ASMBackend::AndByteValue(
     int8_t c8 = Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->and_(dest, c8);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->and_(dest, v_reg.GetB());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -699,7 +632,7 @@ void ASMBackend::OrByteValue(
     int8_t c8 = Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->or_(dest, c8);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->or_(dest, v_reg.GetB());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -721,7 +654,7 @@ void ASMBackend::AddByteValue(
     int8_t c8 = Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->add(dest, c8);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->add(dest, v_reg.GetB());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -743,7 +676,7 @@ void ASMBackend::SubByteValue(
     int8_t c8 = Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->sub(dest, c8);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->sub(dest, v_reg.GetB());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -765,7 +698,7 @@ void ASMBackend::MulByteValue(
     auto label = EmbedI8(c8);
     asm_->imul(x86::byte_ptr(label));
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->imul(v_reg.GetB());
   } else {
     asm_->imul(x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -782,7 +715,7 @@ x86::GpbLo ASMBackend::GetByteValue(
     asm_->mov(GPRegister::RAX.GetD(), c32);
     return GPRegister::RAX.GetB();
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    return NormalRegister(register_assign[v.GetIdx()].Register()).GetB();
+    return GPRegister::FromId(register_assign[v.GetIdx()].Register()).GetB();
   } else {
     asm_->movsx(GPRegister::RAX.GetD(),
                 x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -798,7 +731,7 @@ void ASMBackend::CmpByteValue(
     int8_t c8 = Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->cmp(src, c8);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->cmp(src, v_reg.GetB());
   } else {
     asm_->cmp(src, x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -814,7 +747,7 @@ void ASMBackend::ZextByteValue(
     uint64_t c64 = c8;
     asm_->mov(dest, c64);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->movzx(dest, v_reg.GetB());
   } else {
     asm_->movzx(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -830,7 +763,7 @@ void ASMBackend::SextByteValue(
     int64_t c64 = c8;
     asm_->mov(dest, c64);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->movsx(dest, v_reg.GetB());
   } else {
     asm_->movsx(dest, x86::byte_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -877,7 +810,7 @@ x86::Mem ASMBackend::GetDynamicGEPPtrValue(
     x86::Gpq index_reg;
     if (index_is_reg) {
       index_reg =
-          NormalRegister(register_assign[info.index.GetIdx()].Register())
+          GPRegister::FromId(register_assign[info.index.GetIdx()].Register())
               .GetQ();
     } else {
       index_reg = GPRegister::RAX.GetQ();
@@ -911,12 +844,13 @@ x86::Mem ASMBackend::GetDynamicGEPPtrValue(
 
   if (ptr_is_reg) {
     x86::Gpq ptr_reg =
-        NormalRegister(register_assign[info.ptr.GetIdx()].Register()).GetQ();
+        GPRegister::FromId(register_assign[info.ptr.GetIdx()].Register())
+            .GetQ();
 
     x86::Gpq index_reg;
     if (index_is_reg) {
       index_reg =
-          NormalRegister(register_assign[info.index.GetIdx()].Register())
+          GPRegister::FromId(register_assign[info.index.GetIdx()].Register())
               .GetQ();
     } else {
       index_reg = GPRegister::RAX.GetQ();
@@ -936,7 +870,8 @@ x86::Mem ASMBackend::GetDynamicGEPPtrValue(
               x86::qword_ptr(x86::rbp, GetOffset(offsets, info.ptr.GetIdx())));
 
     x86::Gpq index_reg =
-        NormalRegister(register_assign[info.index.GetIdx()].Register()).GetQ();
+        GPRegister::FromId(register_assign[info.index.GetIdx()].Register())
+            .GetQ();
 
     return x86::ptr(ptr_reg, index_reg, GetShift(info.type_size), info.offset,
                     size);
@@ -988,7 +923,8 @@ x86::Mem ASMBackend::GetStaticGEPPtrValue(
 
   if (register_assign[info.ptr.GetIdx()].IsRegister()) {
     auto ptr_reg =
-        NormalRegister(register_assign[info.ptr.GetIdx()].Register()).GetQ();
+        GPRegister::FromId(register_assign[info.ptr.GetIdx()].Register())
+            .GetQ();
     return x86::ptr(ptr_reg, info.offset, size);
   }
 
@@ -1031,7 +967,7 @@ void ASMBackend::MoveWordValue(
         Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->mov(dest, c16);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
 
     // Coalesce
     if (dest != v_reg.GetW()) {
@@ -1059,7 +995,7 @@ void ASMBackend::AddWordValue(
         Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->add(dest, c16);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->add(dest, v_reg.GetW());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -1082,7 +1018,7 @@ void ASMBackend::SubWordValue(
         Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->sub(dest, c16);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->sub(dest, v_reg.GetW());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -1104,7 +1040,7 @@ void ASMBackend::MulWordValue(
         Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->imul(dest, dest, c16);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->imul(dest, v_reg.GetW());
   } else {
     asm_->imul(dest, x86::word_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1122,7 +1058,7 @@ x86::Gpw ASMBackend::GetWordValue(
     asm_->mov(GPRegister::RAX.GetD(), c32);
     return GPRegister::RAX.GetW();
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    return NormalRegister(register_assign[v.GetIdx()].Register()).GetW();
+    return GPRegister::FromId(register_assign[v.GetIdx()].Register()).GetW();
   } else {
     asm_->movsx(GPRegister::RAX.GetD(),
                 x86::word_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1139,7 +1075,7 @@ void ASMBackend::CmpWordValue(
         Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->cmp(src, c16);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->cmp(src, v_reg.GetW());
   } else {
     asm_->cmp(src, x86::word_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1156,7 +1092,7 @@ void ASMBackend::ZextWordValue(
     uint64_t c64 = c16;
     asm_->mov(dest, c64);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->movzx(dest, v_reg.GetW());
   } else {
     asm_->movzx(dest, x86::word_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1173,7 +1109,7 @@ void ASMBackend::SextWordValue(
     int64_t c64 = c16;
     asm_->mov(dest, c64);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->movsx(dest, v_reg.GetW());
   } else {
     asm_->movsx(dest, x86::word_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1213,7 +1149,7 @@ void ASMBackend::MoveDWordValue(
         Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->mov(dest, c32);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
 
     // Coalesce
     if (dest != v_reg.GetD()) {
@@ -1240,7 +1176,7 @@ void ASMBackend::AddDWordValue(
         Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->add(dest, c32);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->add(dest, v_reg.GetD());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -1263,7 +1199,7 @@ void ASMBackend::SubDWordValue(
         Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->sub(dest, c32);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->sub(dest, v_reg.GetD());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -1285,7 +1221,7 @@ void ASMBackend::MulDWordValue(
         Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->imul(dest, dest, c32);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->imul(dest, v_reg.GetD());
   } else {
     asm_->imul(dest, x86::dword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1302,7 +1238,7 @@ x86::Gpd ASMBackend::GetDWordValue(
     asm_->mov(GPRegister::RAX.GetD(), c32);
     return GPRegister::RAX.GetD();
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    return NormalRegister(register_assign[v.GetIdx()].Register()).GetD();
+    return GPRegister::FromId(register_assign[v.GetIdx()].Register()).GetD();
   } else {
     asm_->mov(GPRegister::RAX.GetD(),
               x86::dword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1319,7 +1255,7 @@ void ASMBackend::CmpDWordValue(
         Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
     asm_->cmp(src, c32);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->cmp(src, v_reg.GetD());
   } else {
     asm_->cmp(src, x86::dword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1336,7 +1272,7 @@ void ASMBackend::ZextDWordValue(
     uint64_t c64 = c32;
     asm_->mov(dest.GetQ(), c64);
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->mov(dest.GetD(), v_reg.GetD());
   } else {
     asm_->mov(dest.GetD(),
@@ -1398,7 +1334,7 @@ void ASMBackend::MovePtrValue(
     asm_->lea(GPRegister::RAX.GetQ(), x86::ptr(label));
     asm_->mov(dest, GPRegister::RAX.GetQ());
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
 
     // Coalesce
     if (dest != v_reg.GetQ()) {
@@ -1432,7 +1368,7 @@ void ASMBackend::MoveQWordValue(
       asm_->mov(dest, c64);
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
 
     // Coalesce
     if (dest != v_reg.GetQ()) {
@@ -1472,7 +1408,7 @@ void ASMBackend::AddQWordValue(
       }
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->add(dest, v_reg.GetQ());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -1508,7 +1444,7 @@ void ASMBackend::SubQWordValue(
       }
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->sub(dest, v_reg.GetQ());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -1539,7 +1475,7 @@ void ASMBackend::AndQWordValue(
       asm_->and_(dest, x86::qword_ptr(EmbedI64(c64)));
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->and_(dest, v_reg.GetQ());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -1571,7 +1507,7 @@ void ASMBackend::XorQWordValue(
       asm_->xor_(dest, x86::qword_ptr(EmbedI64(c64)));
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->xor_(dest, v_reg.GetQ());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -1603,7 +1539,7 @@ void ASMBackend::OrQWordValue(
       asm_->or_(dest, x86::qword_ptr(EmbedI64(c64)));
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->or_(dest, v_reg.GetQ());
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
@@ -1687,7 +1623,7 @@ void ASMBackend::MulQWordValue(
       asm_->imul(dest, x86::qword_ptr(EmbedI64(c64)));
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->imul(dest, v_reg.GetQ());
   } else {
     asm_->imul(dest, x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1706,7 +1642,7 @@ x86::Gpq ASMBackend::GetQWordValue(
     asm_->mov(GPRegister::RAX.GetQ(), c64);
     return GPRegister::RAX.GetQ();
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    return NormalRegister(register_assign[v.GetIdx()].Register()).GetQ();
+    return GPRegister::FromId(register_assign[v.GetIdx()].Register()).GetQ();
   } else {
     asm_->mov(GPRegister::RAX.GetQ(),
               x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1730,7 +1666,7 @@ void ASMBackend::CmpQWordValue(
       asm_->cmp(src, x86::qword_ptr(EmbedI64(c64)));
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+    auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
     asm_->cmp(src, v_reg.GetQ());
   } else {
     asm_->cmp(src, x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1794,19 +1730,19 @@ void ASMBackend::MoveF64Value(
                           .Constant()];
     auto label = EmbedF64(cf64);
     if constexpr (std::is_same_v<T, x86::Mem>) {
-      asm_->movsd(x86::xmm7, x86::qword_ptr(label));
-      asm_->movsd(dest, x86::xmm7);
+      asm_->movsd(x86::xmm15, x86::qword_ptr(label));
+      asm_->movsd(dest, x86::xmm15);
     } else {
       asm_->movsd(dest, x86::qword_ptr(label));
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto reg = FPRegister(register_assign[v.GetIdx()].Register());
+    auto reg = VRegister::FromId(register_assign[v.GetIdx()].Register()).GetX();
     asm_->movsd(dest, reg);
   } else {
     if constexpr (std::is_same_v<T, x86::Mem>) {
-      asm_->movsd(x86::xmm7,
+      asm_->movsd(x86::xmm15,
                   x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
-      asm_->movsd(dest, x86::xmm7);
+      asm_->movsd(dest, x86::xmm15);
     } else {
       asm_->movsd(dest,
                   x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1826,7 +1762,7 @@ void ASMBackend::AddF64Value(
     auto label = EmbedF64(cf64);
     asm_->addsd(dest, x86::qword_ptr(label));
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto reg = FPRegister(register_assign[v.GetIdx()].Register());
+    auto reg = VRegister::FromId(register_assign[v.GetIdx()].Register()).GetX();
     asm_->addsd(dest, reg);
   } else {
     asm_->addsd(dest, x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1845,7 +1781,7 @@ void ASMBackend::SubF64Value(
     auto label = EmbedF64(cf64);
     asm_->subsd(dest, x86::qword_ptr(label));
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto reg = FPRegister(register_assign[v.GetIdx()].Register());
+    auto reg = VRegister::FromId(register_assign[v.GetIdx()].Register()).GetX();
     asm_->subsd(dest, reg);
   } else {
     asm_->subsd(dest, x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1864,7 +1800,7 @@ void ASMBackend::MulF64Value(
     auto label = EmbedF64(cf64);
     asm_->mulsd(dest, x86::qword_ptr(label));
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto reg = FPRegister(register_assign[v.GetIdx()].Register());
+    auto reg = VRegister::FromId(register_assign[v.GetIdx()].Register()).GetX();
     asm_->mulsd(dest, reg);
   } else {
     asm_->mulsd(dest, x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1883,7 +1819,7 @@ void ASMBackend::DivF64Value(
     auto label = EmbedF64(cf64);
     asm_->divsd(dest, x86::qword_ptr(label));
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    auto reg = FPRegister(register_assign[v.GetIdx()].Register());
+    auto reg = VRegister::FromId(register_assign[v.GetIdx()].Register()).GetX();
     asm_->divsd(dest, reg);
   } else {
     asm_->divsd(dest, x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1934,14 +1870,14 @@ x86::Xmm ASMBackend::GetF64Value(
         f64_constants[Type1InstructionReader(constant_instrs[v.GetIdx()])
                           .Constant()];
     auto label = EmbedF64(cf64);
-    asm_->movsd(x86::xmm7, x86::qword_ptr(label));
-    return x86::xmm7;
+    asm_->movsd(x86::xmm15, x86::qword_ptr(label));
+    return x86::xmm15;
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    return FPRegister(register_assign[v.GetIdx()].Register());
+    return VRegister::FromId(register_assign[v.GetIdx()].Register()).GetX();
   } else {
-    asm_->movsd(x86::xmm7,
+    asm_->movsd(x86::xmm15,
                 x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
-    return x86::xmm7;
+    return x86::xmm15;
   }
 }
 
@@ -1957,7 +1893,8 @@ void ASMBackend::CmpF64Value(
     auto label = EmbedF64(cf64);
     asm_->ucomisd(src, x86::qword_ptr(label));
   } else if (register_assign[v.GetIdx()].IsRegister()) {
-    asm_->ucomisd(src, FPRegister(register_assign[v.GetIdx()].Register()));
+    asm_->ucomisd(
+        src, VRegister::FromId(register_assign[v.GetIdx()].Register()).GetX());
   } else {
     asm_->ucomisd(src,
                   x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -1989,11 +1926,14 @@ void ASMBackend::F64ConvI64Value(
     }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     if constexpr (std::is_same_v<x86::Mem, T>) {
-      asm_->cvttsd2si(GPRegister::RAX.GetQ(),
-                      FPRegister(register_assign[v.GetIdx()].Register()));
+      asm_->cvttsd2si(
+          GPRegister::RAX.GetQ(),
+          VRegister::FromId(register_assign[v.GetIdx()].Register()).GetX());
       asm_->mov(dest, GPRegister::RAX.GetQ());
     } else {
-      asm_->cvttsd2si(dest, FPRegister(register_assign[v.GetIdx()].Register()));
+      asm_->cvttsd2si(
+          dest,
+          VRegister::FromId(register_assign[v.GetIdx()].Register()).GetX());
     }
   } else {
     if constexpr (std::is_same_v<x86::Mem, T>) {
@@ -2191,24 +2131,6 @@ void ASMBackend::TranslateInstr(
     const std::vector<bool>& gep_materialize, int next_bb) {
   auto instr = instructions[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
-
-  /*
-  Available for allocation:
-    RBX, RCX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
-    XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6
-
-  Reserved/Scratch
-    RSP, RBP, RAX, R10, XMM7
-  */
-  const std::vector<GPRegister> normal_registers{
-      GPRegister::RBX, GPRegister::RCX, GPRegister::RDX, GPRegister::RSI,
-      GPRegister::RDI, GPRegister::R8,  GPRegister::R9,  GPRegister::R11,
-      GPRegister::R12, GPRegister::R13, GPRegister::R14, GPRegister::R15};
-  const std::vector<x86::Xmm> fp_registers{
-      x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3,
-      x86::xmm4, x86::xmm5, x86::xmm6,
-  };
-
   const auto& dest_assign = register_assign[instr_idx];
 
   switch (opcode) {
@@ -2219,7 +2141,7 @@ void ASMBackend::TranslateInstr(
       Value v(reader.Arg0());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetB();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetB();
         MoveByteValue(dest, v, offsets, constant_instrs, register_assign);
       } else {
         auto offset = stack_allocator.AllocateSlot();
@@ -2236,7 +2158,7 @@ void ASMBackend::TranslateInstr(
       Value v(reader.Arg0());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetB();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetB();
         MoveByteValue(dest, v, offsets, constant_instrs, register_assign);
         asm_->xor_(dest, 1);
       } else {
@@ -2255,7 +2177,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetB();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetB();
         MoveByteValue(dest, v0, offsets, constant_instrs, register_assign);
         AndByteValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2274,7 +2196,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetB();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetB();
         MoveByteValue(dest, v0, offsets, constant_instrs, register_assign);
         OrByteValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2294,7 +2216,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetB();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetB();
         MoveByteValue(dest, v0, offsets, constant_instrs, register_assign);
         AddByteValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2313,7 +2235,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetB();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetB();
         MoveByteValue(dest, v0, offsets, constant_instrs, register_assign);
         SubByteValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2336,7 +2258,7 @@ void ASMBackend::TranslateInstr(
       MulByteValue(v1, offsets, constant_instrs, register_assign);
 
       if (dest_assign.IsRegister()) {
-        asm_->movsx(NormalRegister(dest_assign.Register()).GetD(),
+        asm_->movsx(GPRegister::FromId(dest_assign.Register()).GetD(),
                     GPRegister::RAX.GetB());
       } else {
         auto offset = stack_allocator.AllocateSlot();
@@ -2365,27 +2287,27 @@ void ASMBackend::TranslateInstr(
       }
       asm_->section(text_section_);
 
-      // load the value into xmm7
+      // load the value into xmm15
       if (register_assign[v0.GetIdx()].IsRegister()) {
         asm_->vmovd(
-            x86::xmm7,
-            NormalRegister(register_assign[v0.GetIdx()].Register()).GetD());
+            x86::xmm15,
+            GPRegister::FromId(register_assign[v0.GetIdx()].Register()).GetD());
       } else {
-        asm_->vmovd(x86::xmm7,
+        asm_->vmovd(x86::xmm15,
                     x86::dword_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
       }
       // compare to each value
-      asm_->vpbroadcastd(x86::xmm7, x86::xmm7);
-      asm_->vpcmpeqd(x86::xmm7, x86::xmm7, x86::xmmword_ptr(label));
-      asm_->vmovmskps(x86::eax, x86::xmm7);
+      asm_->vpbroadcastd(x86::xmm15, x86::xmm15);
+      asm_->vpcmpeqd(x86::xmm15, x86::xmm15, x86::xmmword_ptr(label));
+      asm_->vmovmskps(x86::eax, x86::xmm15);
       asm_->test(x86::eax, x86::eax);
 
-      if (IsFlagReg(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
       if (dest_assign.IsRegister()) {
-        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        auto loc = GPRegister::FromId(dest_assign.Register()).GetB();
         StoreCmpFlags(opcode, loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
@@ -2415,17 +2337,17 @@ void ASMBackend::TranslateInstr(
       }
       asm_->section(text_section_);
 
-      // load the value into xmm7
+      // load the value into xmm15
       if (register_assign[v0.GetIdx()].IsRegister()) {
         asm_->vmovd(
-            x86::xmm7,
-            NormalRegister(register_assign[v0.GetIdx()].Register()).GetD());
+            x86::xmm15,
+            GPRegister::FromId(register_assign[v0.GetIdx()].Register()).GetD());
       } else {
-        asm_->vmovd(x86::xmm7,
+        asm_->vmovd(x86::xmm15,
                     x86::dword_ptr(x86::rbp, GetOffset(offsets, v0.GetIdx())));
       }
       // duplicate
-      asm_->vpbroadcastd(x86::ymm7, x86::xmm7);
+      asm_->vpbroadcastd(x86::ymm7, x86::xmm15);
 
       // compare to each value
       asm_->vpcmpeqd(x86::ymm7, x86::ymm7, x86::ymmword_ptr(label));
@@ -2433,12 +2355,12 @@ void ASMBackend::TranslateInstr(
       asm_->vzeroupper();
       asm_->test(x86::eax, x86::eax);
 
-      if (IsFlagReg(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
       if (dest_assign.IsRegister()) {
-        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        auto loc = GPRegister::FromId(dest_assign.Register()).GetB();
         StoreCmpFlags(opcode, loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
@@ -2464,12 +2386,12 @@ void ASMBackend::TranslateInstr(
       auto v0_reg = GetByteValue(v0, offsets, constant_instrs, register_assign);
       CmpByteValue(v0_reg, v1, offsets, constant_instrs, register_assign);
 
-      if (IsFlagReg(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
       if (dest_assign.IsRegister()) {
-        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        auto loc = GPRegister::FromId(dest_assign.Register()).GetB();
         StoreCmpFlags(opcode, loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
@@ -2486,7 +2408,7 @@ void ASMBackend::TranslateInstr(
       Value v(reader.Arg0());
 
       auto dest = dest_assign.IsRegister()
-                      ? NormalRegister(dest_assign.Register())
+                      ? GPRegister::FromId(dest_assign.Register())
                       : GPRegister::RAX;
       ZextByteValue(dest.GetQ(), v, offsets, constant_instrs, register_assign);
 
@@ -2502,8 +2424,9 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
 
-      auto dest = dest_assign.IsRegister() ? FPRegister(dest_assign.Register())
-                                           : x86::xmm7;
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetX()
+                      : x86::xmm15;
 
       if (v.IsConstantGlobal()) {
         int8_t c8 =
@@ -2512,7 +2435,7 @@ void ASMBackend::TranslateInstr(
         auto label = EmbedF64(c64);
         asm_->movsd(dest, x86::qword_ptr(label));
       } else if (register_assign[v.GetIdx()].IsRegister()) {
-        auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+        auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
         asm_->movsx(x86::eax, v_reg.GetB());
         asm_->cvtsi2sd(dest, x86::eax);
       } else {
@@ -2537,11 +2460,11 @@ void ASMBackend::TranslateInstr(
                                  ptr_constants, register_assign);
 
       if (dest_assign.IsRegister()) {
-        if (IsFlagReg(dest_assign)) {
+        if (IsIFlag(dest_assign)) {
           throw std::runtime_error("Cannot allocate the flag reg to I1 LOAD");
         }
 
-        asm_->mov(NormalRegister(dest_assign.Register()).GetB(), loc);
+        asm_->mov(GPRegister::FromId(dest_assign.Register()).GetB(), loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2559,7 +2482,7 @@ void ASMBackend::TranslateInstr(
                                  ptr_constants, register_assign);
 
       if (dest_assign.IsRegister()) {
-        asm_->mov(NormalRegister(dest_assign.Register()).GetB(), loc);
+        asm_->mov(GPRegister::FromId(dest_assign.Register()).GetB(), loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2583,12 +2506,12 @@ void ASMBackend::TranslateInstr(
         asm_->mov(loc, c8);
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg = register_assign[v1.GetIdx()].Register();
-        asm_->mov(loc, NormalRegister(v1_reg).GetB());
+        asm_->mov(loc, GPRegister::FromId(v1_reg).GetB());
       } else {
         // STORE operations from spilled operands mem need an extra scratch
         // register
         assert(dest_assign.IsRegister());
-        auto dest = NormalRegister(dest_assign.Register());
+        auto dest = GPRegister::FromId(dest_assign.Register());
         asm_->movzx(dest.GetD(),
                     x86::byte_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
         asm_->mov(loc, dest.GetB());
@@ -2603,7 +2526,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetW();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetW();
         MoveWordValue(dest, v0, offsets, constant_instrs, register_assign);
         AddWordValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2622,7 +2545,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetW();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetW();
         MoveWordValue(dest, v0, offsets, constant_instrs, register_assign);
         SubWordValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2641,7 +2564,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetW();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetW();
         MoveWordValue(dest, v0, offsets, constant_instrs, register_assign);
         MulWordValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2668,12 +2591,12 @@ void ASMBackend::TranslateInstr(
       auto v0_reg = GetWordValue(v0, offsets, constant_instrs, register_assign);
       CmpWordValue(v0_reg, v1, offsets, constant_instrs, register_assign);
 
-      if (IsFlagReg(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
       if (dest_assign.IsRegister()) {
-        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        auto loc = GPRegister::FromId(dest_assign.Register()).GetB();
         StoreCmpFlags(opcode, loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
@@ -2689,7 +2612,7 @@ void ASMBackend::TranslateInstr(
       Value v(reader.Arg0());
 
       auto dest = dest_assign.IsRegister()
-                      ? NormalRegister(dest_assign.Register())
+                      ? GPRegister::FromId(dest_assign.Register())
                       : GPRegister::RAX;
       ZextWordValue(dest.GetQ(), v, offsets, constant_instrs, register_assign);
 
@@ -2705,8 +2628,9 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
 
-      auto dest = dest_assign.IsRegister() ? FPRegister(dest_assign.Register())
-                                           : x86::xmm7;
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetX()
+                      : x86::xmm15;
 
       if (v.IsConstantGlobal()) {
         int16_t c16 =
@@ -2715,7 +2639,7 @@ void ASMBackend::TranslateInstr(
         auto label = EmbedF64(c64);
         asm_->movsd(dest, x86::qword_ptr(label));
       } else if (register_assign[v.GetIdx()].IsRegister()) {
-        auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+        auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
         asm_->movsx(x86::eax, v_reg.GetW());
         asm_->cvtsi2sd(dest, x86::eax);
       } else {
@@ -2740,7 +2664,7 @@ void ASMBackend::TranslateInstr(
                                  ptr_constants, register_assign);
 
       if (dest_assign.IsRegister()) {
-        asm_->mov(NormalRegister(dest_assign.Register()).GetW(), loc);
+        asm_->mov(GPRegister::FromId(dest_assign.Register()).GetW(), loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2764,12 +2688,12 @@ void ASMBackend::TranslateInstr(
         asm_->mov(loc, c16);
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg = register_assign[v1.GetIdx()].Register();
-        asm_->mov(loc, NormalRegister(v1_reg).GetW());
+        asm_->mov(loc, GPRegister::FromId(v1_reg).GetW());
       } else {
         // STORE operations from spilled operands mem need an extra scratch
         // register
         assert(dest_assign.IsRegister());
-        auto dest = NormalRegister(dest_assign.Register());
+        auto dest = GPRegister::FromId(dest_assign.Register());
         asm_->movzx(dest.GetD(),
                     x86::word_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
         asm_->mov(loc, dest.GetW());
@@ -2784,7 +2708,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetD();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetD();
         MoveDWordValue(dest, v0, offsets, constant_instrs, register_assign);
         AddDWordValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2803,7 +2727,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetD();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetD();
         MoveDWordValue(dest, v0, offsets, constant_instrs, register_assign);
         SubDWordValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2822,7 +2746,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetD();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetD();
         MoveDWordValue(dest, v0, offsets, constant_instrs, register_assign);
         MulDWordValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2850,12 +2774,12 @@ void ASMBackend::TranslateInstr(
           GetDWordValue(v0, offsets, constant_instrs, register_assign);
       CmpDWordValue(v0_reg, v1, offsets, constant_instrs, register_assign);
 
-      if (IsFlagReg(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
       if (dest_assign.IsRegister()) {
-        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        auto loc = GPRegister::FromId(dest_assign.Register()).GetB();
         StoreCmpFlags(opcode, loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
@@ -2871,7 +2795,7 @@ void ASMBackend::TranslateInstr(
       Value v(reader.Arg0());
 
       auto dest = dest_assign.IsRegister()
-                      ? NormalRegister(dest_assign.Register())
+                      ? GPRegister::FromId(dest_assign.Register())
                       : GPRegister::RAX;
       ZextDWordValue(dest, v, offsets, constant_instrs, register_assign);
 
@@ -2887,8 +2811,9 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
 
-      auto dest = dest_assign.IsRegister() ? FPRegister(dest_assign.Register())
-                                           : x86::xmm7;
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetX()
+                      : x86::xmm15;
 
       if (v.IsConstantGlobal()) {
         int32_t c32 =
@@ -2897,7 +2822,7 @@ void ASMBackend::TranslateInstr(
         auto label = EmbedF64(c64);
         asm_->movsd(dest, x86::qword_ptr(label));
       } else if (register_assign[v.GetIdx()].IsRegister()) {
-        auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+        auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
         asm_->cvtsi2sd(dest, v_reg.GetD());
       } else {
         asm_->cvtsi2sd(
@@ -2920,7 +2845,7 @@ void ASMBackend::TranslateInstr(
                                   ptr_constants, register_assign);
 
       if (dest_assign.IsRegister()) {
-        asm_->mov(NormalRegister(dest_assign.Register()).GetD(), loc);
+        asm_->mov(GPRegister::FromId(dest_assign.Register()).GetD(), loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -2944,12 +2869,12 @@ void ASMBackend::TranslateInstr(
         asm_->mov(loc, c32);
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg = register_assign[v1.GetIdx()].Register();
-        asm_->mov(loc, NormalRegister(v1_reg).GetD());
+        asm_->mov(loc, GPRegister::FromId(v1_reg).GetD());
       } else {
         // STORE operations from spilled operands mem need an extra scratch
         // register
         assert(dest_assign.IsRegister());
-        auto dest = NormalRegister(dest_assign.Register());
+        auto dest = GPRegister::FromId(dest_assign.Register());
         asm_->mov(dest.GetD(),
                   x86::dword_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
         asm_->mov(loc, dest.GetD());
@@ -2964,7 +2889,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetQ();
         MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
                        register_assign);
         AddQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
@@ -2987,7 +2912,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetQ();
         MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
                        register_assign);
         SubQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
@@ -3010,7 +2935,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetQ();
         MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
                        register_assign);
         AndQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
@@ -3033,7 +2958,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetQ();
         MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
                        register_assign);
         XorQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
@@ -3056,7 +2981,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetQ();
         MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
                        register_assign);
         OrQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
@@ -3079,7 +3004,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetQ();
         MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
                        register_assign);
         LShiftQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
@@ -3102,7 +3027,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetQ();
         MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
                        register_assign);
         RShiftQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
@@ -3125,7 +3050,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = NormalRegister(dest_assign.Register()).GetQ();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetQ();
         MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
                        register_assign);
         MulQWordValue(dest, v1, offsets, constant_instrs, i64_constants,
@@ -3151,12 +3076,12 @@ void ASMBackend::TranslateInstr(
                    ptr_constants, register_assign);
       asm_->cmp(GPRegister::RAX.GetQ(), 0);
 
-      if (IsFlagReg(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
       if (dest_assign.IsRegister()) {
-        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        auto loc = GPRegister::FromId(dest_assign.Register()).GetB();
         StoreCmpFlags(opcode, loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
@@ -3182,12 +3107,12 @@ void ASMBackend::TranslateInstr(
       CmpQWordValue(v0_reg, v1, offsets, constant_instrs, i64_constants,
                     register_assign);
 
-      if (IsFlagReg(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
       if (dest_assign.IsRegister()) {
-        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        auto loc = GPRegister::FromId(dest_assign.Register()).GetB();
         StoreCmpFlags(opcode, loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
@@ -3203,7 +3128,7 @@ void ASMBackend::TranslateInstr(
       Value v(reader.Arg0());
 
       auto dest = dest_assign.IsRegister()
-                      ? NormalRegister(dest_assign.Register())
+                      ? GPRegister::FromId(dest_assign.Register())
                       : GPRegister::RAX;
       MoveQWordValue(dest.GetQ(), v, offsets, constant_instrs, i64_constants,
                      register_assign);
@@ -3221,7 +3146,7 @@ void ASMBackend::TranslateInstr(
       Value v(reader.Arg0());
 
       auto dest = dest_assign.IsRegister()
-                      ? NormalRegister(dest_assign.Register())
+                      ? GPRegister::FromId(dest_assign.Register())
                       : GPRegister::RAX;
       MoveQWordValue(dest.GetQ(), v, offsets, constant_instrs, i64_constants,
                      register_assign);
@@ -3238,8 +3163,9 @@ void ASMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
 
-      auto dest = dest_assign.IsRegister() ? FPRegister(dest_assign.Register())
-                                           : x86::xmm7;
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetX()
+                      : x86::xmm15;
 
       if (v.IsConstantGlobal()) {
         int64_t ci64 =
@@ -3249,7 +3175,7 @@ void ASMBackend::TranslateInstr(
         auto label = EmbedF64(cf64);
         asm_->movsd(dest, x86::qword_ptr(label));
       } else if (register_assign[v.GetIdx()].IsRegister()) {
-        auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+        auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
         asm_->cvtsi2sd(dest, v_reg.GetQ());
       } else {
         asm_->cvtsi2sd(
@@ -3277,7 +3203,7 @@ void ASMBackend::TranslateInstr(
         int64_t ci64 =
             i64_constants[Type1InstructionReader(constant_instrs[v1.GetIdx()])
                               .Constant()];
-        auto dest = NormalRegister(dest_assign.Register());
+        auto dest = GPRegister::FromId(dest_assign.Register());
 
         if (ci64 >= INT32_MIN && ci64 <= INT32_MAX) {
           int32_t ci32 = ci64;
@@ -3288,12 +3214,12 @@ void ASMBackend::TranslateInstr(
         }
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg = register_assign[v1.GetIdx()].Register();
-        asm_->mov(loc, NormalRegister(v1_reg).GetQ());
+        asm_->mov(loc, GPRegister::FromId(v1_reg).GetQ());
       } else {
         // STORE operations from spilled operands mem need an extra scratch
         // register
         assert(dest_assign.IsRegister());
-        auto dest = NormalRegister(dest_assign.Register());
+        auto dest = GPRegister::FromId(dest_assign.Register());
         asm_->mov(dest.GetQ(),
                   x86::qword_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
         asm_->mov(loc, dest.GetQ());
@@ -3309,7 +3235,7 @@ void ASMBackend::TranslateInstr(
                                   ptr_constants, register_assign);
 
       if (dest_assign.IsRegister()) {
-        asm_->mov(NormalRegister(dest_assign.Register()).GetQ(), loc);
+        asm_->mov(GPRegister::FromId(dest_assign.Register()).GetQ(), loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -3333,7 +3259,7 @@ void ASMBackend::TranslateInstr(
       asm_->sub(x86::rsp, size);
 
       if (dest_assign.IsRegister()) {
-        asm_->mov(NormalRegister(dest_assign.Register()).GetQ(), x86::rsp);
+        asm_->mov(GPRegister::FromId(dest_assign.Register()).GetQ(), x86::rsp);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -3358,7 +3284,7 @@ void ASMBackend::TranslateInstr(
       Value v(instr_idx);
 
       if (dest_assign.IsRegister()) {
-        auto dest_reg = NormalRegister(dest_assign.Register()).GetQ();
+        auto dest_reg = GPRegister::FromId(dest_assign.Register()).GetQ();
         MaterializeGep(dest_reg, v, offsets, instructions, constant_instrs,
                        ptr_constants, register_assign);
       } else {
@@ -3376,13 +3302,13 @@ void ASMBackend::TranslateInstr(
       Value v(reader.Arg());
 
       if (dest_assign.IsRegister()) {
-        auto dest_reg = NormalRegister(dest_assign.Register()).GetQ();
+        auto dest_reg = GPRegister::FromId(dest_assign.Register()).GetQ();
 
         if (v.IsConstantGlobal()) {
           throw std::runtime_error("Expected non-const PTR");
         } else if (register_assign[v.GetIdx()].IsRegister()) {
           auto v_reg =
-              NormalRegister(register_assign[v.GetIdx()].Register()).GetQ();
+              GPRegister::FromId(register_assign[v.GetIdx()].Register()).GetQ();
           if (dest_reg != v_reg) {
             asm_->mov(dest_reg, v_reg);
           }
@@ -3398,7 +3324,7 @@ void ASMBackend::TranslateInstr(
       if (v.IsConstantGlobal()) {
         throw std::runtime_error("Expected non-const PTR");
       } else if (register_assign[v.GetIdx()].IsRegister()) {
-        auto v_reg = NormalRegister(register_assign[v.GetIdx()].Register());
+        auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
         asm_->mov(x86::qword_ptr(x86::rbp, offset), v_reg.GetQ());
       } else {
         asm_->mov(GPRegister::RAX.GetQ(),
@@ -3416,7 +3342,7 @@ void ASMBackend::TranslateInstr(
                                   ptr_constants, register_assign);
 
       if (dest_assign.IsRegister()) {
-        asm_->mov(NormalRegister(dest_assign.Register()).GetQ(), loc);
+        asm_->mov(GPRegister::FromId(dest_assign.Register()).GetQ(), loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
@@ -3445,7 +3371,7 @@ void ASMBackend::TranslateInstr(
           asm_->mov(loc, 0);
           return;
         } else if (IsConstantPtr(v1, constant_instrs)) {
-          auto dest = NormalRegister(dest_assign.Register());
+          auto dest = GPRegister::FromId(dest_assign.Register());
           uint64_t c64 = reinterpret_cast<uint64_t>(
               ptr_constants[Type1InstructionReader(constant_instrs[v1.GetIdx()])
                                 .Constant()]);
@@ -3455,17 +3381,17 @@ void ASMBackend::TranslateInstr(
         }
 
         auto label = GetGlobalPointer(constant_instrs[v1.GetIdx()]);
-        auto dest = NormalRegister(dest_assign.Register());
+        auto dest = GPRegister::FromId(dest_assign.Register());
         asm_->lea(dest.GetQ(), x86::ptr(label));
         asm_->mov(loc, dest.GetQ());
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg = register_assign[v1.GetIdx()].Register();
-        asm_->mov(loc, NormalRegister(v1_reg).GetQ());
+        asm_->mov(loc, GPRegister::FromId(v1_reg).GetQ());
       } else {
         // STORE operations from spilled operands mem need an extra scratch
         // register
         assert(dest_assign.IsRegister());
-        auto dest = NormalRegister(dest_assign.Register());
+        auto dest = GPRegister::FromId(dest_assign.Register());
         asm_->mov(dest.GetQ(),
                   x86::qword_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
         asm_->mov(loc, dest.GetQ());
@@ -3480,7 +3406,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = FPRegister(dest_assign.Register());
+        auto dest = VRegister::FromId(dest_assign.Register()).GetX();
         MoveF64Value(dest, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
         AddF64Value(dest, v1, offsets, constant_instrs, f64_constants,
@@ -3488,11 +3414,11 @@ void ASMBackend::TranslateInstr(
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
-        MoveF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
+        MoveF64Value(x86::xmm15, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        AddF64Value(x86::xmm7, v1, offsets, constant_instrs, f64_constants,
+        AddF64Value(x86::xmm15, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm15);
       }
       return;
     }
@@ -3503,7 +3429,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = FPRegister(dest_assign.Register());
+        auto dest = VRegister::FromId(dest_assign.Register()).GetX();
         MoveF64Value(dest, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
         SubF64Value(dest, v1, offsets, constant_instrs, f64_constants,
@@ -3511,11 +3437,11 @@ void ASMBackend::TranslateInstr(
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
-        MoveF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
+        MoveF64Value(x86::xmm15, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        SubF64Value(x86::xmm7, v1, offsets, constant_instrs, f64_constants,
+        SubF64Value(x86::xmm15, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm15);
       }
       return;
     }
@@ -3526,7 +3452,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = FPRegister(dest_assign.Register());
+        auto dest = VRegister::FromId(dest_assign.Register()).GetX();
         MoveF64Value(dest, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
         MulF64Value(dest, v1, offsets, constant_instrs, f64_constants,
@@ -3534,11 +3460,11 @@ void ASMBackend::TranslateInstr(
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
-        MoveF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
+        MoveF64Value(x86::xmm15, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        MulF64Value(x86::xmm7, v1, offsets, constant_instrs, f64_constants,
+        MulF64Value(x86::xmm15, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm15);
       }
       return;
     }
@@ -3549,7 +3475,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = FPRegister(dest_assign.Register());
+        auto dest = VRegister::FromId(dest_assign.Register()).GetX();
         MoveF64Value(dest, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
         DivF64Value(dest, v1, offsets, constant_instrs, f64_constants,
@@ -3557,11 +3483,11 @@ void ASMBackend::TranslateInstr(
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
-        MoveF64Value(x86::xmm7, v0, offsets, constant_instrs, f64_constants,
+        MoveF64Value(x86::xmm15, v0, offsets, constant_instrs, f64_constants,
                      register_assign);
-        DivF64Value(x86::xmm7, v1, offsets, constant_instrs, f64_constants,
+        DivF64Value(x86::xmm15, v1, offsets, constant_instrs, f64_constants,
                     register_assign);
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm15);
       }
       return;
     }
@@ -3585,12 +3511,12 @@ void ASMBackend::TranslateInstr(
       CmpF64Value(reg, v1, offsets, constant_instrs, f64_constants,
                   register_assign);
 
-      if (IsF64FlagReg(dest_assign)) {
+      if (IsFFlag(dest_assign)) {
         return;
       }
 
       if (dest_assign.IsRegister()) {
-        auto loc = NormalRegister(dest_assign.Register()).GetB();
+        auto loc = GPRegister::FromId(dest_assign.Register()).GetB();
         StoreF64CmpFlags(opcode, loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
@@ -3606,7 +3532,7 @@ void ASMBackend::TranslateInstr(
       Value v(reader.Arg0());
 
       if (dest_assign.IsRegister()) {
-        auto loc = NormalRegister(dest_assign.Register()).GetQ();
+        auto loc = GPRegister::FromId(dest_assign.Register()).GetQ();
         F64ConvI64Value(loc, v, offsets, constant_instrs, f64_constants,
                         register_assign);
       } else {
@@ -3631,15 +3557,16 @@ void ASMBackend::TranslateInstr(
         double cf64 =
             f64_constants[Type1InstructionReader(constant_instrs[v1.GetIdx()])
                               .Constant()];
-        asm_->movsd(x86::xmm7, x86::qword_ptr(EmbedF64(cf64)));
-        asm_->movsd(loc, x86::xmm7);
+        asm_->movsd(x86::xmm15, x86::qword_ptr(EmbedF64(cf64)));
+        asm_->movsd(loc, x86::xmm15);
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
-        auto v1_reg = FPRegister(register_assign[v1.GetIdx()].Register());
+        auto v1_reg =
+            VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetX();
         asm_->movsd(loc, v1_reg);
       } else {
-        asm_->movsd(x86::xmm7,
+        asm_->movsd(x86::xmm15,
                     x86::qword_ptr(x86::rbp, GetOffset(offsets, v1.GetIdx())));
-        asm_->movsd(loc, x86::xmm7);
+        asm_->movsd(loc, x86::xmm15);
       }
       return;
     }
@@ -3652,12 +3579,12 @@ void ASMBackend::TranslateInstr(
                                   ptr_constants, register_assign);
 
       if (dest_assign.IsRegister()) {
-        asm_->movsd(FPRegister(dest_assign.Register()), loc);
+        asm_->movsd(VRegister::FromId(dest_assign.Register()).GetX(), loc);
       } else {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
-        asm_->movsd(x86::xmm7, loc);
-        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm7);
+        asm_->movsd(x86::xmm15, loc);
+        asm_->movsd(x86::qword_ptr(x86::rbp, offset), x86::xmm15);
       }
       return;
     }
@@ -3699,15 +3626,16 @@ void ASMBackend::TranslateInstr(
       int true_bb = reader.Marg0();
       int false_bb = reader.Marg1();
 
-      if (IsFlagReg(register_assign[v.GetIdx()])) {
+      if (IsIFlag(register_assign[v.GetIdx()])) {
         CondBrFlag(v, true_bb, false_bb, instructions, register_assign,
                    basic_blocks, next_bb);
-      } else if (IsF64FlagReg(register_assign[v.GetIdx()])) {
+      } else if (IsFFlag(register_assign[v.GetIdx()])) {
         CondBrF64Flag(v, true_bb, false_bb, instructions, register_assign,
                       basic_blocks, next_bb);
       } else if (register_assign[v.GetIdx()].IsRegister()) {
-        asm_->cmp(NormalRegister(register_assign[v.GetIdx()].Register()).GetB(),
-                  0);
+        asm_->cmp(
+            GPRegister::FromId(register_assign[v.GetIdx()].Register()).GetB(),
+            0);
 
         if (next_bb == true_bb) {
           asm_->je(basic_blocks[false_bb]);
@@ -3749,7 +3677,7 @@ void ASMBackend::TranslateInstr(
 
       if (type_manager.IsF64Type(type)) {
         if (dest_assign.IsRegister()) {
-          auto dst = FPRegister(dest_assign.Register());
+          auto dst = VRegister::FromId(dest_assign.Register()).GetX();
           MoveF64Value(dst, v, offsets, constant_instrs, f64_constants,
                        register_assign);
         } else {
@@ -3762,7 +3690,7 @@ void ASMBackend::TranslateInstr(
 
       if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
         if (dest_assign.IsRegister()) {
-          auto dst = NormalRegister(dest_assign.Register()).GetB();
+          auto dst = GPRegister::FromId(dest_assign.Register()).GetB();
           MoveByteValue(dst, v, offsets, constant_instrs, register_assign);
         } else {
           auto dst = x86::byte_ptr(x86::rbp, offsets[phi.GetIdx()]);
@@ -3773,7 +3701,7 @@ void ASMBackend::TranslateInstr(
 
       if (type_manager.IsI16Type(type)) {
         if (dest_assign.IsRegister()) {
-          auto dst = NormalRegister(dest_assign.Register()).GetW();
+          auto dst = GPRegister::FromId(dest_assign.Register()).GetW();
           MoveWordValue(dst, v, offsets, constant_instrs, register_assign);
         } else {
           auto dst = x86::word_ptr(x86::rbp, offsets[phi.GetIdx()]);
@@ -3784,7 +3712,7 @@ void ASMBackend::TranslateInstr(
 
       if (type_manager.IsI32Type(type)) {
         if (dest_assign.IsRegister()) {
-          auto dst = NormalRegister(dest_assign.Register()).GetD();
+          auto dst = GPRegister::FromId(dest_assign.Register()).GetD();
           MoveDWordValue(dst, v, offsets, constant_instrs, register_assign);
         } else {
           auto dst = x86::dword_ptr(x86::rbp, offsets[phi.GetIdx()]);
@@ -3795,7 +3723,7 @@ void ASMBackend::TranslateInstr(
 
       if (type_manager.IsI64Type(type)) {
         if (dest_assign.IsRegister()) {
-          auto dst = NormalRegister(dest_assign.Register()).GetQ();
+          auto dst = GPRegister::FromId(dest_assign.Register()).GetQ();
           MoveQWordValue(dst, v, offsets, constant_instrs, i64_constants,
                          register_assign);
         } else {
@@ -3808,7 +3736,7 @@ void ASMBackend::TranslateInstr(
 
       if (type_manager.IsPtrType(type)) {
         if (dest_assign.IsRegister()) {
-          auto dst = NormalRegister(dest_assign.Register()).GetQ();
+          auto dst = GPRegister::FromId(dest_assign.Register()).GetQ();
           MovePtrValue(dst, v, offsets, constant_instrs, ptr_constants,
                        register_assign);
         } else {
@@ -3872,7 +3800,8 @@ void ASMBackend::TranslateInstr(
           GPRegister::RDI, GPRegister::RSI, GPRegister::RDX,
           GPRegister::RCX, GPRegister::R8,  GPRegister::R9};
       const std::vector<x86::Xmm> fp_arg_regs = {
-          x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3, x86::xmm4, x86::xmm5};
+          x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3,
+          x86::xmm4, x86::xmm5, x86::xmm6, x86::xmm7};
 
       if (num_floating_point_args_ >= fp_arg_regs.size()) {
         throw std::runtime_error("Unsupported. Too many floating point args.");
@@ -3886,7 +3815,7 @@ void ASMBackend::TranslateInstr(
         auto src = fp_arg_regs[num_floating_point_args_++];
 
         if (dest_assign.IsRegister()) {
-          auto dst = FPRegister(dest_assign.Register());
+          auto dst = VRegister::FromId(dest_assign.Register()).GetX();
           if (dst != src) {
             asm_->movsd(dst, src);
           }
@@ -3902,7 +3831,7 @@ void ASMBackend::TranslateInstr(
       auto src = normal_arg_regs[num_regular_args_++];
       if (type_manager.IsI1Type(type) || type_manager.IsI8Type(type)) {
         if (dest_assign.IsRegister()) {
-          auto dst = NormalRegister(dest_assign.Register());
+          auto dst = GPRegister::FromId(dest_assign.Register());
           if (dst.GetB() != src.GetB()) {
             asm_->mov(dst.GetB(), src.GetB());
           }
@@ -3917,7 +3846,7 @@ void ASMBackend::TranslateInstr(
 
       if (type_manager.IsI16Type(type)) {
         if (dest_assign.IsRegister()) {
-          auto dst = NormalRegister(dest_assign.Register());
+          auto dst = GPRegister::FromId(dest_assign.Register());
           if (dst.GetW() != src.GetW()) {
             asm_->mov(dst.GetW(), src.GetW());
           }
@@ -3932,7 +3861,7 @@ void ASMBackend::TranslateInstr(
 
       if (type_manager.IsI32Type(type)) {
         if (dest_assign.IsRegister()) {
-          auto dst = NormalRegister(dest_assign.Register());
+          auto dst = GPRegister::FromId(dest_assign.Register());
           if (dst.GetD() != src.GetD()) {
             asm_->mov(dst.GetD(), src.GetD());
           }
@@ -3947,7 +3876,7 @@ void ASMBackend::TranslateInstr(
 
       if (type_manager.IsI64Type(type) || type_manager.IsPtrType(type)) {
         if (dest_assign.IsRegister()) {
-          auto dst = NormalRegister(dest_assign.Register());
+          auto dst = GPRegister::FromId(dest_assign.Register());
           if (dst.GetQ() != src.GetQ()) {
             asm_->mov(dst.GetQ(), src.GetQ());
           }
@@ -3982,7 +3911,8 @@ void ASMBackend::TranslateInstr(
           GPRegister::RDI, GPRegister::RSI, GPRegister::RDX,
           GPRegister::RCX, GPRegister::R8,  GPRegister::R9};
       const std::vector<x86::Xmm> float_arg_regs = {
-          x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3, x86::xmm4, x86::xmm5};
+          x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3,
+          x86::xmm4, x86::xmm5, x86::xmm6, x86::xmm7};
 
       // pass f64 args
       int float_arg_idx = 0;
@@ -4104,7 +4034,7 @@ void ASMBackend::TranslateInstr(
             throw std::runtime_error("Not possible");
           }
         } else if (register_assign[v.GetIdx()].IsRegister()) {
-          auto reg = NormalRegister(register_assign[v.GetIdx()].Register());
+          auto reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
           asm_->call(reg.GetQ());
         } else {
           asm_->call(x86::qword_ptr(x86::rbp, GetOffset(offsets, v.GetIdx())));
@@ -4120,7 +4050,7 @@ void ASMBackend::TranslateInstr(
       if (!type_manager.IsVoid(return_type)) {
         if (type_manager.IsF64Type(return_type)) {
           if (dest_assign.IsRegister()) {
-            auto reg = FPRegister(dest_assign.Register());
+            auto reg = VRegister::FromId(dest_assign.Register()).GetX();
             if (reg != x86::xmm0) {
               asm_->movsd(reg, x86::xmm0);
             }
@@ -4133,7 +4063,7 @@ void ASMBackend::TranslateInstr(
         }
 
         if (dest_assign.IsRegister()) {
-          auto reg = NormalRegister(dest_assign.Register());
+          auto reg = GPRegister::FromId(dest_assign.Register());
           if (reg.GetQ() != GPRegister::RAX.GetQ()) {
             asm_->mov(reg.GetQ(), GPRegister::RAX.GetQ());
           }
