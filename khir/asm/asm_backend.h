@@ -61,7 +61,7 @@ class ASMBackend : public Backend {
                      const std::vector<uint64_t>& constant_instrs);
   bool IsConstantCastedPtr(khir::Value v,
                            const std::vector<uint64_t>& constant_instrs);
-  void TranslateInstr(const Program& program,const Function& current_function,
+  void TranslateInstr(const Program& program, const Function& current_function,
                       const TypeManager& type_manager,
                       const std::vector<void*>& ptr_constants,
                       const std::vector<uint64_t>& i64_constants,
@@ -75,7 +75,7 @@ class ASMBackend : public Backend {
                       int instr_idx, StackSlotAllocator& stack_allocator,
                       const std::vector<RegisterAssignment>& register_assign,
                       const std::vector<bool>& gep_materialize, int next_bb);
-  Register NormalRegister(int id);
+  GPRegister NormalRegister(int id);
   asmjit::x86::Xmm FPRegister(int id);
   asmjit::Label EmbedI8(int8_t d);
   asmjit::Label EmbedF64(double d);
@@ -203,7 +203,7 @@ class ASMBackend : public Backend {
                      std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
-  void ZextDWordValue(Register dest, Value v, std::vector<int32_t>& offsets,
+  void ZextDWordValue(GPRegister dest, Value v, std::vector<int32_t>& offsets,
                       const std::vector<uint64_t>& constant_instrs,
                       const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetDWordPtrValue(

@@ -4,31 +4,31 @@
 
 namespace kush::khir {
 
-class Register {
+class GPRegister {
  public:
-  Register(asmjit::x86::Gpq, asmjit::x86::Gpd, asmjit::x86::Gpw,
-           asmjit::x86::GpbLo);
+  GPRegister(asmjit::x86::Gpq, asmjit::x86::Gpd, asmjit::x86::Gpw,
+             asmjit::x86::GpbLo);
   asmjit::x86::Gpq GetQ() const;
   asmjit::x86::Gpd GetD() const;
   asmjit::x86::Gpw GetW() const;
   asmjit::x86::GpbLo GetB() const;
 
-  static Register RAX;
-  static Register RBX;
-  static Register RCX;
-  static Register RDX;
-  static Register RSI;
-  static Register RDI;
-  static Register RSP;
-  static Register RBP;
-  static Register R8;
-  static Register R9;
-  static Register R10;
-  static Register R11;
-  static Register R12;
-  static Register R13;
-  static Register R14;
-  static Register R15;
+  static GPRegister RAX;
+  static GPRegister RBX;
+  static GPRegister RCX;
+  static GPRegister RDX;
+  static GPRegister RSI;
+  static GPRegister RDI;
+  static GPRegister RSP;
+  static GPRegister RBP;
+  static GPRegister R8;
+  static GPRegister R9;
+  static GPRegister R10;
+  static GPRegister R11;
+  static GPRegister R12;
+  static GPRegister R13;
+  static GPRegister R14;
+  static GPRegister R15;
 
  private:
   asmjit::x86::Gpq qword_;
