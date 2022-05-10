@@ -7,11 +7,14 @@ namespace kush::khir {
 class GPRegister {
  public:
   GPRegister(asmjit::x86::Gpq, asmjit::x86::Gpd, asmjit::x86::Gpw,
-             asmjit::x86::GpbLo);
+             asmjit::x86::GpbLo, int id);
   asmjit::x86::Gpq GetQ() const;
   asmjit::x86::Gpd GetD() const;
   asmjit::x86::Gpw GetW() const;
   asmjit::x86::GpbLo GetB() const;
+  int Id() const;
+
+  static GPRegister FromId(int id);
 
   static GPRegister RAX;
   static GPRegister RBX;
@@ -35,13 +38,17 @@ class GPRegister {
   asmjit::x86::Gpd dword_;
   asmjit::x86::Gpw word_;
   asmjit::x86::GpbLo byte_;
+  int id_;
 };
 
 class VRegister {
  public:
-  VRegister(asmjit::x86::Ymm, asmjit::x86::Xmm);
+  VRegister(asmjit::x86::Ymm, asmjit::x86::Xmm, int id);
   asmjit::x86::Xmm GetX() const;
   asmjit::x86::Ymm GetY() const;
+  int Id() const;
+
+  static VRegister FromId(int id);
 
   static VRegister M0;
   static VRegister M1;
@@ -63,6 +70,22 @@ class VRegister {
  private:
   asmjit::x86::Ymm ymm_;
   asmjit::x86::Xmm xmm_;
+  int id_;
+};
+
+class FReg {
+ public:
+  FReg(int id);
+  int Id();
+
+  static bool IsIFlag(int id);
+  static bool IsFFlag(int id);
+
+  static FReg IFlag;
+  static FReg FFLag;
+
+ private:
+  int id_;
 };
 
 }  // namespace kush::khir
