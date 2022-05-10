@@ -25,6 +25,7 @@ class LLVMBackend : public Backend, public TypeTranslator {
   void TranslateI32Type() override;
   void TranslateI64Type() override;
   void TranslateF64Type() override;
+  void TranslateI32Vec8Type() override;
   void TranslatePointerType(Type elem) override;
   void TranslateArrayType(Type elem, int len) override;
   void TranslateFunctionType(Type result,
@@ -43,8 +44,9 @@ class LLVMBackend : public Backend, public TypeTranslator {
       uint64_t instr, std::vector<llvm::Constant*>& constant_values,
       const Program& program);
 
-  void TranslateInstr(const Program& program,
-      const TypeManager& manager, const std::vector<llvm::Value*>& func_args,
+  void TranslateInstr(
+      const Program& program, const TypeManager& manager,
+      const std::vector<llvm::Value*>& func_args,
       const std::vector<llvm::BasicBlock*>& basic_blocks,
       std::vector<llvm::Value*>& values,
       const std::vector<llvm::Constant*>& constant_values,

@@ -65,6 +65,10 @@ void LLVMBackend::TranslateI32Type() {
   types_.push_back(builder_->getInt32Ty());
 }
 
+void LLVMBackend::TranslateI32Vec8Type() {
+  types_.push_back(llvm::VectorType::get(builder_->getInt32Ty(), 8, false));
+}
+
 void LLVMBackend::TranslateI64Type() {
   types_.push_back(builder_->getInt64Ty());
 }

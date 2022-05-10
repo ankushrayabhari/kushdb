@@ -462,6 +462,8 @@ Type ProgramBuilder::I64Type() { return type_manager_.I64Type(); }
 
 Type ProgramBuilder::F64Type() { return type_manager_.F64Type(); }
 
+Type ProgramBuilder::I32Vec8Type() { return type_manager_.I32Vec8Type(); }
+
 Type ProgramBuilder::StructType(absl::Span<const Type> types,
                                 std::string_view name) {
   if (name.empty()) {

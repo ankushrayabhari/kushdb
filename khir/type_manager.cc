@@ -153,6 +153,9 @@ TypeManager::TypeManager()
                                          builder_->getInt64Ty()));
   AddType(std::make_unique<BaseTypeImpl>(BaseTypeId::F64, F64Type(),
                                          builder_->getDoubleTy()));
+  AddType(std::make_unique<BaseTypeImpl>(
+      BaseTypeId::I32_VEC_8, I32Vec8Type(),
+      llvm::VectorType::get(builder_->getInt32Ty(), 8, false)));
   AddType(std::make_unique<PointerTypeImpl>(I8Type(), I8PtrType(),
                                             builder_->getInt8PtrTy()));
 }
@@ -187,7 +190,9 @@ Type TypeManager::I64Type() const { return static_cast<Type>(5); }
 
 Type TypeManager::F64Type() const { return static_cast<Type>(6); }
 
-Type TypeManager::I8PtrType() const { return static_cast<Type>(7); }
+Type TypeManager::I32Vec8Type() const { return static_cast<Type>(7); }
+
+Type TypeManager::I8PtrType() const { return static_cast<Type>(8); }
 
 Type TypeManager::OpaqueType(std::string_view name) {
   if (opaque_name_to_type_id_.contains(name)) {
@@ -362,6 +367,9 @@ void TypeManager::Translate(TypeTranslator& translator) const {
           break;
         case F64:
           translator.TranslateF64Type();
+          break;
+        case I32_VEC_8:
+          translator.TranslateI32Vec8Type();
           break;
       }
     } else if (auto opaque_type = dynamic_cast<OpaqueTypeImpl*>(type_impl)) {

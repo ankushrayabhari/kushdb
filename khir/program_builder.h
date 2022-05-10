@@ -106,6 +106,7 @@ class ProgramBuilder {
   Type I32Type();
   Type I64Type();
   Type F64Type();
+  Type I32Vec8Type();
   Type StructType(absl::Span<const Type> types, std::string_view name = "");
   Type GetStructType(std::string_view name);
   Type GetOpaqueType(std::string_view name);

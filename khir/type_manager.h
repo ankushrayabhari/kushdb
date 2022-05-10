@@ -34,6 +34,7 @@ class TypeTranslator {
   virtual void TranslateI32Type() = 0;
   virtual void TranslateI64Type() = 0;
   virtual void TranslateF64Type() = 0;
+  virtual void TranslateI32Vec8Type() = 0;
   virtual void TranslatePointerType(Type elem) = 0;
   virtual void TranslateArrayType(Type elem, int len) = 0;
   virtual void TranslateFunctionType(Type result,
@@ -53,6 +54,7 @@ class TypeManager {
   Type I64Type() const;
   Type F64Type() const;
   Type I8PtrType() const;
+  Type I32Vec8Type() const;
   Type OpaqueType(std::string_view name);
   Type NamedStructType(absl::Span<const Type> field_type_id,
                        std::string_view name);
@@ -96,7 +98,7 @@ class TypeManager {
     virtual Type Get() = 0;
   };
 
-  enum BaseTypeId { VOID, I1, I8, I16, I32, I64, F64 };
+  enum BaseTypeId { VOID, I1, I8, I16, I32, I64, F64, I32_VEC_8 };
 
   class BaseTypeImpl : public TypeImpl {
    public:
