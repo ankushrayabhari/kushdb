@@ -37,4 +37,32 @@ class GPRegister {
   asmjit::x86::GpbLo byte_;
 };
 
+class VRegister {
+ public:
+  VRegister(asmjit::x86::Ymm, asmjit::x86::Xmm);
+  asmjit::x86::Xmm GetX() const;
+  asmjit::x86::Ymm GetY() const;
+
+  static VRegister M0;
+  static VRegister M1;
+  static VRegister M2;
+  static VRegister M3;
+  static VRegister M4;
+  static VRegister M5;
+  static VRegister M6;
+  static VRegister M7;
+  static VRegister M8;
+  static VRegister M9;
+  static VRegister M10;
+  static VRegister M11;
+  static VRegister M12;
+  static VRegister M13;
+  static VRegister M14;
+  static VRegister M15;
+
+ private:
+  asmjit::x86::Ymm ymm_;
+  asmjit::x86::Xmm xmm_;
+};
+
 }  // namespace kush::khir

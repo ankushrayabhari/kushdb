@@ -35,4 +35,28 @@ GPRegister GPRegister::R13(x86::r13, x86::r13d, x86::r13w, x86::r13b);
 GPRegister GPRegister::R14(x86::r14, x86::r14d, x86::r14w, x86::r14b);
 GPRegister GPRegister::R15(x86::r15, x86::r15d, x86::r15w, x86::r15b);
 
+VRegister::VRegister(asmjit::x86::Ymm ymm, asmjit::x86::Xmm xmm)
+    : ymm_(ymm), xmm_(xmm) {}
+
+asmjit::x86::Xmm VRegister::GetX() const { return xmm_; }
+
+asmjit::x86::Ymm VRegister::GetY() const { return ymm_; }
+
+VRegister VRegister::M0(x86::ymm0, x86::xmm0);
+VRegister VRegister::M1(x86::ymm1, x86::xmm1);
+VRegister VRegister::M2(x86::ymm2, x86::xmm2);
+VRegister VRegister::M3(x86::ymm3, x86::xmm3);
+VRegister VRegister::M4(x86::ymm4, x86::xmm4);
+VRegister VRegister::M5(x86::ymm5, x86::xmm5);
+VRegister VRegister::M6(x86::ymm6, x86::xmm6);
+VRegister VRegister::M7(x86::ymm7, x86::xmm7);
+VRegister VRegister::M8(x86::ymm8, x86::xmm8);
+VRegister VRegister::M9(x86::ymm9, x86::xmm9);
+VRegister VRegister::M10(x86::ymm10, x86::xmm10);
+VRegister VRegister::M11(x86::ymm11, x86::xmm11);
+VRegister VRegister::M12(x86::ymm12, x86::xmm12);
+VRegister VRegister::M13(x86::ymm13, x86::xmm13);
+VRegister VRegister::M14(x86::ymm14, x86::xmm14);
+VRegister VRegister::M15(x86::ymm15, x86::xmm15);
+
 }  // namespace kush::khir
