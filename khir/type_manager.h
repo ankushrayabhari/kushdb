@@ -55,6 +55,7 @@ class TypeManager {
   Type I64Type() const;
   Type F64Type() const;
   Type I8PtrType() const;
+  Type I32Vec8PtrType() const;
   Type I32Vec8Type() const;
   Type I1Vec8Type() const;
   Type OpaqueType(std::string_view name);

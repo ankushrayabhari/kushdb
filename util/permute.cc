@@ -23,6 +23,8 @@ constexpr PermutationTable::PermutationTable() {
   }
 }
 
+uint32_t* PermutationTable::GetEntry(uint32_t i) { return &values[i][0]; }
+
 uint32_t* PermutationTable::Addr() { return &values[0][0]; }
 
 }  // namespace kush::util

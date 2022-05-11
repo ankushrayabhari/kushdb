@@ -28,6 +28,7 @@ cc_library(
         "//khir:backend",
         "//khir:instruction",
         "//khir:program",
+        "//util:permute",
         "@absl//absl/flags:flag",
         "@absl//absl/types:span",
         "@llvm-project//llvm:BitWriter",

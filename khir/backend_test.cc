@@ -8,6 +8,7 @@
 #include "khir/llvm/llvm_backend.h"
 #include "khir/program_builder.h"
 #include "khir/program_printer.h"
+#include "util/permute.h"
 
 using namespace kush;
 using namespace kush::khir;
@@ -6564,6 +6565,28 @@ TEST_P(BackendTest, I32Vec8And) {
   using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
   EXPECT_EQ(compute(values), 0b00001000);
+}
+
+TEST_P(BackendTest, MaskToPermute) {
+  alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.PointerType(program.I32Vec8Type()),
+      {program.PointerType(program.I32Vec8Type())}, "compute");
+
+  auto args = program.GetFunctionArguments(func);
+  auto v1 = program.LoadI32Vec8(args[0]);
+  auto mask = program.ExtractMaskI1Vec8(
+      program.CmpI32Vec8(CompType::EQ, v1, program.ConstI32Vec8(4)));
+  program.Return(program.MaskToPermutePtr(mask));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<uint32_t*(int32_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+  EXPECT_EQ(compute(values),
+            util::PermutationTable::Get().GetEntry(0b00001000));
 }
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, BackendTest,

@@ -592,6 +592,9 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
       return type_manager_.I1Type();
 
+    case Opcode::MASK_TO_PERMUTE:
+      return type_manager_.I32Vec8PtrType();
+
     case Opcode::I1_VEC8_MASK_EXTRACT:
       return type_manager_.I64Type();
 
@@ -1604,6 +1607,14 @@ Value ProgramBuilder::NotI1Vec8(Value v) {
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I1_VEC8_NOT))
+          .SetArg0(v.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::MaskToPermutePtr(Value v) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::MASK_TO_PERMUTE))
           .SetArg0(v.Serialize())
           .Build());
 }

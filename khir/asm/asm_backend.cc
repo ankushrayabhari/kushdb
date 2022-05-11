@@ -16,6 +16,7 @@
 #include "khir/instruction.h"
 #include "khir/opcode.h"
 #include "khir/type_manager.h"
+#include "util/permute.h"
 #include "util/profile_map_generator.h"
 
 namespace kush::khir {
@@ -174,7 +175,7 @@ uint64_t ASMBackend::OutputConstant(uint64_t instr, const Program& program) {
 
 void ASMBackend::Translate(const Program& program) {
   code_.init(rt_.environment());
-  code_.setLogger(&logger_);
+  // code_.setLogger(&logger_);
   asm_ = std::make_unique<x86::Assembler>(&code_);
 
   text_section_ = code_.textSection();
@@ -202,6 +203,11 @@ void ASMBackend::Translate(const Program& program) {
   ones_ = asm_->newLabel();
   asm_->bind(ones_);
   asm_->embedUInt32(-1, 8);
+
+  permute_ = asm_->newLabel();
+  asm_->bind(permute_);
+  asm_->embedUInt64(
+      reinterpret_cast<uint64_t>(util::PermutationTable::Get().Addr()));
 
   // Write out all global variables
   for (const auto& global : program.Globals()) {
@@ -3043,6 +3049,26 @@ void ASMBackend::TranslateInstr(
         auto offset = stack_allocator.AllocateSlot(32, 32);
         offsets[instr_idx] = offset;
         asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
+    case Opcode::MASK_TO_PERMUTE: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+
+      auto dest = dest_assign.IsRegister()
+                      ? GPRegister::FromId(dest_assign.Register()).GetQ()
+                      : GPRegister::RAX.GetQ();
+      MoveQWordValue(dest, v0, offsets, constant_instrs, i64_constants,
+                     register_assign);
+      asm_->shl(dest, 5);
+      asm_->add(dest, x86::qword_ptr(permute_));
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->mov(x86::qword_ptr(x86::rsp, offset), dest);
       }
       return;
     }

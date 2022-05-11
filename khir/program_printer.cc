@@ -213,6 +213,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
 
     case Opcode::I1_LNOT:
     case Opcode::I1_VEC8_MASK_EXTRACT:
+    case Opcode::MASK_TO_PERMUTE:
     case Opcode::I1_VEC8_NOT:
     case Opcode::I1_ZEXT_I8:
     case Opcode::I1_ZEXT_I64:

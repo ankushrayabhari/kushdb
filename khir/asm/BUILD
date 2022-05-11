@@ -172,6 +172,7 @@ cc_library(
         "//khir:program",
         "//khir:program_printer",
         "//khir:type_manager",
+        "//util:permute",
         "//util:profile_map_generator",
         "@absl//absl/types:span",
         "@asmjit",

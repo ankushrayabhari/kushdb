@@ -378,6 +378,7 @@ class ASMBackend : public Backend {
   std::vector<void*> external_func_addr_;
   std::vector<asmjit::Label> internal_func_labels_;
   asmjit::Label ones_;
+  asmjit::Label permute_;
   int num_floating_point_args_;
   int num_regular_args_;
   int num_stack_args_;

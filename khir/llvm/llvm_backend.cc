@@ -35,6 +35,7 @@
 #include "khir/instruction.h"
 #include "khir/llvm/perf_jit_event_listener.h"
 #include "khir/type_manager.h"
+#include "util/permute.h"
 
 namespace kush::khir {
 
@@ -580,6 +581,18 @@ void LLVMBackend::TranslateInstr(
       values[instr_idx] = builder_->CreateXor(
           v, llvm::ConstantVector::get(
                  std::vector<llvm::Constant*>(8, builder_->getInt1(true))));
+      return;
+    }
+
+    case Opcode::MASK_TO_PERMUTE: {
+      Type2InstructionReader reader(instr);
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
+      values[instr_idx] = builder_->CreateIntToPtr(
+          builder_->CreateAdd(builder_->CreateShl(v, builder_->getInt64(5)),
+                              builder_->getInt64(reinterpret_cast<uint64_t>(
+                                  util::PermutationTable::Get().Addr()))),
+          llvm::PointerType::get(
+              llvm::FixedVectorType::get(builder_->getInt32Ty(), 8), 0));
       return;
     }
 

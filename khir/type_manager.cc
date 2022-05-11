@@ -161,6 +161,10 @@ TypeManager::TypeManager()
       llvm::FixedVectorType::get(builder_->getInt1Ty(), 8)));
   AddType(std::make_unique<PointerTypeImpl>(I8Type(), I8PtrType(),
                                             builder_->getInt8PtrTy()));
+  AddType(std::make_unique<PointerTypeImpl>(
+      I32Vec8Type(), I32Vec8PtrType(),
+      llvm::PointerType::get(
+          llvm::FixedVectorType::get(builder_->getInt1Ty(), 8), 0)));
 }
 
 Type TypeManager::GetOutputType() {
@@ -207,6 +211,8 @@ Type TypeManager::I1Vec8Type() const { return static_cast<Type>(8); }
 bool TypeManager::IsI1Vec8Type(Type t) const { return t.GetID() == 8; }
 
 Type TypeManager::I8PtrType() const { return static_cast<Type>(9); }
+
+Type TypeManager::I32Vec8PtrType() const { return static_cast<Type>(10); }
 
 Type TypeManager::OpaqueType(std::string_view name) {
   if (opaque_name_to_type_id_.contains(name)) {
