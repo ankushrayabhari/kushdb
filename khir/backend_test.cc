@@ -6390,7 +6390,6 @@ TEST_P(BackendTest, DynamicGEPColumnData) {
   EXPECT_EQ(compute(&col, 1 << 16), &array[1 << 16]);
 }
 
-/*
 TEST_P(BackendTest, I32Vec8Load) {
   alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
 
@@ -6408,7 +6407,6 @@ TEST_P(BackendTest, I32Vec8Load) {
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
   compute(values);
 }
-*/
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, BackendTest,
                          testing::Values(std::make_pair(
