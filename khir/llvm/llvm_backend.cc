@@ -55,6 +55,10 @@ void LLVMBackend::TranslateVoidType() {
 
 void LLVMBackend::TranslateI1Type() { types_.push_back(builder_->getInt1Ty()); }
 
+void LLVMBackend::TranslateI1Vec8Type() {
+  types_.push_back(llvm::VectorType::get(builder_->getInt1Ty(), 8, false));
+}
+
 void LLVMBackend::TranslateI8Type() { types_.push_back(builder_->getInt8Ty()); }
 
 void LLVMBackend::TranslateI16Type() {
@@ -66,7 +70,7 @@ void LLVMBackend::TranslateI32Type() {
 }
 
 void LLVMBackend::TranslateI32Vec8Type() {
-  types_.push_back(llvm::VectorType::get(builder_->getInt32Ty(), 8, false));
+  types_.push_back(llvm::FixedVectorType::get(builder_->getInt32Ty(), 8));
 }
 
 void LLVMBackend::TranslateI64Type() {
@@ -289,6 +293,7 @@ LLVMCmp GetLLVMCompType(Opcode opcode) {
     case Opcode::I16_CMP_EQ:
     case Opcode::I32_CMP_EQ:
     case Opcode::I64_CMP_EQ:
+    case Opcode::I32_VEC8_CMP_EQ:
       return LLVMCmp::ICMP_EQ;
 
     case Opcode::I1_CMP_NE:
@@ -296,30 +301,35 @@ LLVMCmp GetLLVMCompType(Opcode opcode) {
     case Opcode::I16_CMP_NE:
     case Opcode::I32_CMP_NE:
     case Opcode::I64_CMP_NE:
+    case Opcode::I32_VEC8_CMP_NE:
       return LLVMCmp::ICMP_NE;
 
     case Opcode::I8_CMP_LT:
     case Opcode::I16_CMP_LT:
     case Opcode::I32_CMP_LT:
     case Opcode::I64_CMP_LT:
+    case Opcode::I32_VEC8_CMP_LT:
       return LLVMCmp::ICMP_SLT;
 
     case Opcode::I8_CMP_LE:
     case Opcode::I16_CMP_LE:
     case Opcode::I32_CMP_LE:
     case Opcode::I64_CMP_LE:
+    case Opcode::I32_VEC8_CMP_LE:
       return LLVMCmp::ICMP_SLE;
 
     case Opcode::I8_CMP_GT:
     case Opcode::I16_CMP_GT:
     case Opcode::I32_CMP_GT:
     case Opcode::I64_CMP_GT:
+    case Opcode::I32_VEC8_CMP_GT:
       return LLVMCmp::ICMP_SGT;
 
     case Opcode::I8_CMP_GE:
     case Opcode::I16_CMP_GE:
     case Opcode::I32_CMP_GE:
     case Opcode::I64_CMP_GE:
+    case Opcode::I32_VEC8_CMP_GE:
       return LLVMCmp::ICMP_SGE;
 
     case Opcode::F64_CMP_EQ:
@@ -369,6 +379,7 @@ void LLVMBackend::TranslateInstr(
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
+    case Opcode::I1_VEC8_AND:
     case Opcode::I1_AND:
     case Opcode::I64_AND: {
       Type2InstructionReader reader(instr);
@@ -378,6 +389,7 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I1_VEC8_OR:
     case Opcode::I1_OR:
     case Opcode::I64_OR: {
       Type2InstructionReader reader(instr);
@@ -415,6 +427,12 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I32_CMP_LE:
     case Opcode::I32_CMP_GT:
     case Opcode::I32_CMP_GE:
+    case Opcode::I32_VEC8_CMP_EQ:
+    case Opcode::I32_VEC8_CMP_NE:
+    case Opcode::I32_VEC8_CMP_LT:
+    case Opcode::I32_VEC8_CMP_LE:
+    case Opcode::I32_VEC8_CMP_GT:
+    case Opcode::I32_VEC8_CMP_GE:
     case Opcode::I64_CMP_EQ:
     case Opcode::I64_CMP_NE:
     case Opcode::I64_CMP_LT:
@@ -545,6 +563,15 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
       values[instr_idx] = builder_->CreateZExt(v, builder_->getInt64Ty());
+      return;
+    }
+
+    case Opcode::I1_VEC8_NOT: {
+      Type2InstructionReader reader(instr);
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
+      values[instr_idx] = builder_->CreateXor(
+          v, llvm::ConstantVector::get(
+                 std::vector<llvm::Constant*>(8, builder_->getInt1(true))));
       return;
     }
 

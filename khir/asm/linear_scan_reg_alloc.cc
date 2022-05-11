@@ -14,7 +14,8 @@
 namespace kush::khir {
 
 bool IsVector(const TypeManager& manager, khir::Type t) {
-  return manager.IsF64Type(t) || manager.IsI32Vec8Type(t);
+  return manager.IsF64Type(t) || manager.IsI32Vec8Type(t) ||
+         manager.IsI1Vec8Type(t);
 }
 
 template <typename ActiveSet>

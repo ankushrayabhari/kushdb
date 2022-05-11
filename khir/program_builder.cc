@@ -463,6 +463,8 @@ Type ProgramBuilder::F64Type() { return type_manager_.F64Type(); }
 
 Type ProgramBuilder::I32Vec8Type() { return type_manager_.I32Vec8Type(); }
 
+Type ProgramBuilder::I1Vec8Type() { return type_manager_.I1Vec8Type(); }
+
 Type ProgramBuilder::StructType(absl::Span<const Type> types,
                                 std::string_view name) {
   if (name.empty()) {
@@ -589,6 +591,17 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
       return type_manager_.I1Type();
+
+    case Opcode::I1_VEC8_NOT:
+    case Opcode::I1_VEC8_AND:
+    case Opcode::I1_VEC8_OR:
+    case Opcode::I32_VEC8_CMP_EQ:
+    case Opcode::I32_VEC8_CMP_NE:
+    case Opcode::I32_VEC8_CMP_LT:
+    case Opcode::I32_VEC8_CMP_LE:
+    case Opcode::I32_VEC8_CMP_GT:
+    case Opcode::I32_VEC8_CMP_GE:
+      return type_manager_.I1Vec8Type();
 
     case Opcode::I8_ADD:
     case Opcode::I8_MUL:
@@ -1538,6 +1551,67 @@ Value ProgramBuilder::CmpI32(CompType cmp, Value v1, Value v2) {
                                          .SetArg0(v1.Serialize())
                                          .SetArg1(v2.Serialize())
                                          .Build());
+}
+
+Value ProgramBuilder::CmpI32Vec8(CompType cmp, Value v1, Value v2) {
+  Opcode opcode;
+  switch (cmp) {
+    case CompType::EQ:
+      opcode = Opcode::I32_VEC8_CMP_EQ;
+      break;
+
+    case CompType::NE:
+      opcode = Opcode::I32_VEC8_CMP_NE;
+      break;
+
+    case CompType::LT:
+      opcode = Opcode::I32_VEC8_CMP_LT;
+      break;
+
+    case CompType::LE:
+      opcode = Opcode::I32_VEC8_CMP_LE;
+      break;
+
+    case CompType::GT:
+      opcode = Opcode::I32_VEC8_CMP_GT;
+      break;
+
+    case CompType::GE:
+      opcode = Opcode::I32_VEC8_CMP_GE;
+      break;
+  }
+
+  return GetCurrentFunction().Append(Type2InstructionBuilder()
+                                         .SetOpcode(OpcodeTo(opcode))
+                                         .SetArg0(v1.Serialize())
+                                         .SetArg1(v2.Serialize())
+                                         .Build());
+}
+
+Value ProgramBuilder::NotI1Vec8(Value v) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I1_VEC8_NOT))
+          .SetArg0(v.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::OrI1Vec8(Value v1, Value v2) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I1_VEC8_OR))
+          .SetArg0(v1.Serialize())
+          .SetArg1(v2.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::AndI1Vec8(Value v1, Value v2) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I1_VEC8_AND))
+          .SetArg0(v1.Serialize())
+          .SetArg1(v2.Serialize())
+          .Build());
 }
 
 Value ProgramBuilder::ConstI32(uint32_t v) {

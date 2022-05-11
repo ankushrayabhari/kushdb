@@ -155,7 +155,10 @@ TypeManager::TypeManager()
                                          builder_->getDoubleTy()));
   AddType(std::make_unique<BaseTypeImpl>(
       BaseTypeId::I32_VEC_8, I32Vec8Type(),
-      llvm::VectorType::get(builder_->getInt32Ty(), 8, false)));
+      llvm::FixedVectorType::get(builder_->getInt32Ty(), 8)));
+  AddType(std::make_unique<BaseTypeImpl>(
+      BaseTypeId::I1_VEC_8, I1Vec8Type(),
+      llvm::FixedVectorType::get(builder_->getInt1Ty(), 8)));
   AddType(std::make_unique<PointerTypeImpl>(I8Type(), I8PtrType(),
                                             builder_->getInt8PtrTy()));
 }
@@ -200,7 +203,10 @@ bool TypeManager::IsF64Type(Type t) const { return t.GetID() == 6; }
 Type TypeManager::I32Vec8Type() const { return static_cast<Type>(7); }
 bool TypeManager::IsI32Vec8Type(Type t) const { return t.GetID() == 7; }
 
-Type TypeManager::I8PtrType() const { return static_cast<Type>(8); }
+Type TypeManager::I1Vec8Type() const { return static_cast<Type>(8); }
+bool TypeManager::IsI1Vec8Type(Type t) const { return t.GetID() == 8; }
+
+Type TypeManager::I8PtrType() const { return static_cast<Type>(9); }
 
 Type TypeManager::OpaqueType(std::string_view name) {
   if (opaque_name_to_type_id_.contains(name)) {
@@ -378,6 +384,9 @@ void TypeManager::Translate(TypeTranslator& translator) const {
           break;
         case I32_VEC_8:
           translator.TranslateI32Vec8Type();
+          break;
+        case I1_VEC_8:
+          translator.TranslateI1Vec8Type();
           break;
       }
     } else if (auto opaque_type = dynamic_cast<OpaqueTypeImpl*>(type_impl)) {

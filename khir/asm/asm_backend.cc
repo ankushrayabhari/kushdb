@@ -198,6 +198,10 @@ void ASMBackend::Translate(const Program& program) {
     asm_->embedUInt8(0);
   }
 
+  asm_->align(kAlignZero, 32);
+  asm_->bind(ones_);
+  asm_->embedUInt32(-1, 8);
+
   // Write out all global variables
   for (const auto& global : program.Globals()) {
     globals_.push_back(asm_->newLabel());
@@ -1997,6 +2001,21 @@ void ASMBackend::F64ConvI64Value(
   }
 }
 
+x86::Ymm ASMBackend::GetYMMWordValue(
+    Value v, std::vector<int32_t>& offsets,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (v.IsConstantGlobal()) {
+    throw std::runtime_error("TODO");
+  } else if (register_assign[v.GetIdx()].IsRegister()) {
+    return VRegister::FromId(register_assign[v.GetIdx()].Register()).GetY();
+  } else {
+    asm_->vmovaps(VRegister::M15.GetY(),
+                  x86::ymmword_ptr(x86::rsp, GetOffset(offsets, v.GetIdx())));
+    return VRegister::M15.GetY();
+  }
+}
+
 void ASMBackend::CondBrFlag(
     Value v, int true_bb, int false_bb,
     const std::vector<uint64_t>& instructions,
@@ -2840,6 +2859,189 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I32_VEC8_LOAD: {
+      Type2InstructionReader reader(instr);
+      Value v(reader.Arg0());
+
+      auto loc = GetYMMWordPtrValue(v, offsets, instructions, constant_instrs,
+                                    ptr_constants, register_assign);
+
+      if (dest_assign.IsRegister()) {
+        asm_->vmovaps(VRegister::FromId(dest_assign.Register()).GetY(), loc);
+      } else {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovaps(x86::ymm15, loc);
+        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), x86::ymm15);
+      }
+      return;
+    }
+
+    case Opcode::I32_VEC8_CMP_EQ:
+    case Opcode::I32_VEC8_CMP_NE: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      auto v0_reg =
+          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetY()
+                      : VRegister::M15.GetY();
+
+      if (v1.IsConstantGlobal()) {
+        throw std::runtime_error("TODO");
+      } else if (register_assign[v1.GetIdx()].IsRegister()) {
+        auto v1_reg =
+            VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
+        asm_->vpcmpeqd(dest, v0_reg, v1_reg);
+      } else {
+        asm_->vpcmpeqd(
+            dest, v0_reg,
+            x86::ymmword_ptr(x86::rsp, GetOffset(offsets, v1.GetIdx())));
+      }
+
+      if (opcode == Opcode::I32_VEC8_CMP_NE) {
+        asm_->vpxord(dest, dest, x86::ymmword_ptr(ones_));
+      }
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
+    case Opcode::I32_VEC8_CMP_LT:
+    case Opcode::I32_VEC8_CMP_GT:
+    case Opcode::I32_VEC8_CMP_LE:
+    case Opcode::I32_VEC8_CMP_GE: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      // LT(v0, v1) -> GT(v1, v0)
+      // LE(v0, v1) -> not GT(v0, v1)
+      // GT(v0, v1)
+      // GE(v0, v1) -> not GT(v1, v0)
+      if (opcode == Opcode::I32_VEC8_CMP_LT ||
+          opcode == Opcode::I32_VEC8_CMP_GE) {
+        std::swap(v0, v1);
+      }
+
+      auto v0_reg =
+          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetY()
+                      : VRegister::M15.GetY();
+
+      if (v1.IsConstantGlobal()) {
+        throw std::runtime_error("TODO");
+      } else if (register_assign[v1.GetIdx()].IsRegister()) {
+        auto v1_reg =
+            VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
+        asm_->vpcmpgtd(dest, v0_reg, v1_reg);
+      } else {
+        asm_->vpcmpgtd(
+            dest, v0_reg,
+            x86::ymmword_ptr(x86::rsp, GetOffset(offsets, v1.GetIdx())));
+      }
+
+      if (opcode == Opcode::I32_VEC8_CMP_LE ||
+          opcode == Opcode::I32_VEC8_CMP_GE) {
+        asm_->vpxord(dest, dest, x86::ymmword_ptr(ones_));
+      }
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
+    case Opcode::I1_VEC8_AND: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      auto v0_reg =
+          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetY()
+                      : VRegister::M15.GetY();
+
+      if (v1.IsConstantGlobal()) {
+        throw std::runtime_error("TODO");
+      } else if (register_assign[v1.GetIdx()].IsRegister()) {
+        auto v1_reg =
+            VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
+        asm_->vpand(dest, v0_reg, v1_reg);
+      } else {
+        asm_->vpand(
+            dest, v0_reg,
+            x86::ymmword_ptr(x86::rsp, GetOffset(offsets, v1.GetIdx())));
+      }
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
+    case Opcode::I1_VEC8_OR: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      auto v0_reg =
+          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetY()
+                      : VRegister::M15.GetY();
+
+      if (v1.IsConstantGlobal()) {
+        throw std::runtime_error("TODO");
+      } else if (register_assign[v1.GetIdx()].IsRegister()) {
+        auto v1_reg =
+            VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
+        asm_->vpor(dest, v0_reg, v1_reg);
+      } else {
+        asm_->vpor(dest, v0_reg,
+                   x86::ymmword_ptr(x86::rsp, GetOffset(offsets, v1.GetIdx())));
+      }
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
+    case Opcode::I1_VEC8_NOT: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+
+      auto v0_reg =
+          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetY()
+                      : VRegister::M15.GetY();
+
+      asm_->vpxord(dest, v0_reg, x86::ymmword_ptr(ones_));
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
     case Opcode::I32_ZEXT_I64: {
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
@@ -2901,24 +3103,6 @@ void ASMBackend::TranslateInstr(
         offsets[instr_idx] = offset;
         asm_->mov(GPRegister::RAX.GetD(), loc);
         asm_->mov(x86::dword_ptr(x86::rsp, offset), GPRegister::RAX.GetD());
-      }
-      return;
-    }
-
-    case Opcode::I32_VEC8_LOAD: {
-      Type2InstructionReader reader(instr);
-      Value v(reader.Arg0());
-
-      auto loc = GetYMMWordPtrValue(v, offsets, instructions, constant_instrs,
-                                    ptr_constants, register_assign);
-
-      if (dest_assign.IsRegister()) {
-        asm_->vmovaps(VRegister::FromId(dest_assign.Register()).GetY(), loc);
-      } else {
-        auto offset = stack_allocator.AllocateSlot(32, 32);
-        offsets[instr_idx] = offset;
-        asm_->vmovaps(x86::ymm15, loc);
-        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), x86::ymm15);
       }
       return;
     }

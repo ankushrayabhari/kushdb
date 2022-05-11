@@ -155,6 +155,14 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::I32_CMP_LE:
     case Opcode::I32_CMP_GT:
     case Opcode::I32_CMP_GE:
+    case Opcode::I32_VEC8_CMP_EQ:
+    case Opcode::I32_VEC8_CMP_NE:
+    case Opcode::I32_VEC8_CMP_LT:
+    case Opcode::I32_VEC8_CMP_LE:
+    case Opcode::I32_VEC8_CMP_GT:
+    case Opcode::I32_VEC8_CMP_GE:
+    case Opcode::I1_VEC8_AND:
+    case Opcode::I1_VEC8_OR:
     case Opcode::I64_ADD:
     case Opcode::I64_LSHIFT:
     case Opcode::I64_RSHIFT:
@@ -197,6 +205,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     }
 
     case Opcode::I1_LNOT:
+    case Opcode::I1_VEC8_NOT:
     case Opcode::I1_ZEXT_I8:
     case Opcode::I1_ZEXT_I64:
     case Opcode::I8_ZEXT_I64:

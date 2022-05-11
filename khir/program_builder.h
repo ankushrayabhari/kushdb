@@ -106,6 +106,7 @@ class ProgramBuilder {
   Type I32Type();
   Type I64Type();
   Type F64Type();
+  Type I1Vec8Type();
   Type I32Vec8Type();
   Type StructType(absl::Span<const Type> types, std::string_view name = "");
   Type GetStructType(std::string_view name);
@@ -202,6 +203,12 @@ class ProgramBuilder {
 
   // I32Vec8
   Value LoadI32Vec8(Value ptr);
+  Value CmpI32Vec8(CompType cmp, Value v1, Value v2);
+
+  // I1Vec8
+  Value NotI1Vec8(Value v);
+  Value OrI1Vec8(Value v1, Value v2);
+  Value AndI1Vec8(Value v1, Value v2);
 
   // I64
   Value ConstI64(uint64_t v);

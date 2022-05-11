@@ -356,6 +356,11 @@ class ASMBackend : public Backend {
   template <typename Dest>
   void StoreF64CmpFlags(Opcode opcode, Dest d);
 
+  asmjit::x86::Ymm GetYMMWordValue(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<RegisterAssignment>& register_assign);
+
   RegAllocImpl reg_alloc_impl_;
   asmjit::JitRuntime rt_;
   asmjit::FileLogger logger_;
@@ -372,6 +377,7 @@ class ASMBackend : public Backend {
 
   std::vector<void*> external_func_addr_;
   std::vector<asmjit::Label> internal_func_labels_;
+  asmjit::Label ones_;
   int num_floating_point_args_;
   int num_regular_args_;
   int num_stack_args_;

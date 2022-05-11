@@ -25,6 +25,7 @@ class LLVMBackend : public Backend, public TypeTranslator {
   void TranslateI32Type() override;
   void TranslateI64Type() override;
   void TranslateF64Type() override;
+  void TranslateI1Vec8Type() override;
   void TranslateI32Vec8Type() override;
   void TranslatePointerType(Type elem) override;
   void TranslateArrayType(Type elem, int len) override;
