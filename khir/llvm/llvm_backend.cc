@@ -588,7 +588,7 @@ void LLVMBackend::TranslateInstr(
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
       values[instr_idx] = builder_->CreateZExt(
           builder_->CreateBitCast(v, builder_->getInt8Ty()),
-          builder_->getInt32Ty());
+          builder_->getInt64Ty());
       return;
     }
 

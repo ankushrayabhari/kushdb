@@ -593,7 +593,7 @@ Type ProgramBuilder::TypeOf(Value value) const {
       return type_manager_.I1Type();
 
     case Opcode::I1_VEC8_MASK_EXTRACT:
-      return type_manager_.I32Type();
+      return type_manager_.I64Type();
 
     case Opcode::I1_VEC8_NOT:
     case Opcode::I1_VEC8_AND:

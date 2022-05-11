@@ -228,7 +228,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
       return manager.I1Type();
 
     case Opcode::I1_VEC8_MASK_EXTRACT:
-      return manager.I32Type();
+      return manager.I64Type();
 
     case Opcode::I32_VEC8_CMP_EQ:
     case Opcode::I32_VEC8_CMP_NE:

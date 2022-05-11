@@ -6396,7 +6396,7 @@ TEST_P(BackendTest, I32Vec8CmpEQ) {
   for (int i = 0; i < 8; i++) {
     ProgramBuilder program;
     auto func = program.CreatePublicFunction(
-        program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+        program.I64Type(), {program.PointerType(program.I32Vec8Type())},
         "compute");
 
     auto args = program.GetFunctionArguments(func);
@@ -6407,7 +6407,7 @@ TEST_P(BackendTest, I32Vec8CmpEQ) {
 
     auto backend = Compile(GetParam(), program);
 
-    using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+    using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
     auto compute =
         reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
     EXPECT_EQ(compute(values), 1 << i);
@@ -6420,7 +6420,7 @@ TEST_P(BackendTest, I32Vec8CmpNE) {
   for (int i = 0; i < 8; i++) {
     ProgramBuilder program;
     auto func = program.CreatePublicFunction(
-        program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+        program.I64Type(), {program.PointerType(program.I32Vec8Type())},
         "compute");
 
     auto args = program.GetFunctionArguments(func);
@@ -6431,7 +6431,7 @@ TEST_P(BackendTest, I32Vec8CmpNE) {
 
     auto backend = Compile(GetParam(), program);
 
-    using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+    using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
     auto compute =
         reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
     EXPECT_EQ(compute(values), (0b11111111) & ~(1 << i));
@@ -6443,7 +6443,7 @@ TEST_P(BackendTest, I32Vec8CmpLT) {
 
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
-      program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+      program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
   auto args = program.GetFunctionArguments(func);
@@ -6454,7 +6454,7 @@ TEST_P(BackendTest, I32Vec8CmpLT) {
 
   auto backend = Compile(GetParam(), program);
 
-  using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+  using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
   EXPECT_EQ(compute(values), 0b00000111);
 }
@@ -6464,7 +6464,7 @@ TEST_P(BackendTest, I32Vec8CmpLE) {
 
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
-      program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+      program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
   auto args = program.GetFunctionArguments(func);
@@ -6475,7 +6475,7 @@ TEST_P(BackendTest, I32Vec8CmpLE) {
 
   auto backend = Compile(GetParam(), program);
 
-  using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+  using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
   EXPECT_EQ(compute(values), 0b00011111);
 }
@@ -6485,7 +6485,7 @@ TEST_P(BackendTest, I32Vec8CmpGT) {
 
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
-      program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+      program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
   auto args = program.GetFunctionArguments(func);
@@ -6496,7 +6496,7 @@ TEST_P(BackendTest, I32Vec8CmpGT) {
 
   auto backend = Compile(GetParam(), program);
 
-  using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+  using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
   EXPECT_EQ(compute(values), 0b11111000);
 }
@@ -6506,7 +6506,7 @@ TEST_P(BackendTest, I32Vec8CmpGE) {
 
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
-      program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+      program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
   auto args = program.GetFunctionArguments(func);
@@ -6517,7 +6517,7 @@ TEST_P(BackendTest, I32Vec8CmpGE) {
 
   auto backend = Compile(GetParam(), program);
 
-  using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+  using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
   EXPECT_EQ(compute(values), 0b11111100);
 }
@@ -6527,7 +6527,7 @@ TEST_P(BackendTest, I32Vec8OR) {
 
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
-      program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+      program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
   auto args = program.GetFunctionArguments(func);
@@ -6539,7 +6539,7 @@ TEST_P(BackendTest, I32Vec8OR) {
 
   auto backend = Compile(GetParam(), program);
 
-  using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+  using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
   EXPECT_EQ(compute(values), 0b00001100);
 }
@@ -6549,7 +6549,7 @@ TEST_P(BackendTest, I32Vec8And) {
 
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
-      program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+      program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
   auto args = program.GetFunctionArguments(func);
@@ -6561,7 +6561,7 @@ TEST_P(BackendTest, I32Vec8And) {
 
   auto backend = Compile(GetParam(), program);
 
-  using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+  using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
   EXPECT_EQ(compute(values), 0b00001000);
 }

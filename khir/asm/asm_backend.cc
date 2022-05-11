@@ -3052,8 +3052,8 @@ void ASMBackend::TranslateInstr(
       Value v0(reader.Arg0());
 
       auto dest = dest_assign.IsRegister()
-                      ? GPRegister::FromId(dest_assign.Register()).GetD()
-                      : GPRegister::RAX.GetD();
+                      ? GPRegister::FromId(dest_assign.Register()).GetQ()
+                      : GPRegister::RAX.GetQ();
       auto v0_reg =
           GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
       asm_->vmovmskps(dest, v0_reg);
@@ -3061,7 +3061,7 @@ void ASMBackend::TranslateInstr(
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
-        asm_->mov(x86::dword_ptr(x86::rsp, offset), dest);
+        asm_->mov(x86::qword_ptr(x86::rsp, offset), dest);
       }
       return;
     }
