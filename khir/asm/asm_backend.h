@@ -22,7 +22,7 @@ class ExceptionErrorHandler : public asmjit::ErrorHandler {
 
 class StackSlotAllocator {
  public:
-  StackSlotAllocator(int32_t initial_size);
+  StackSlotAllocator();
   int32_t AllocateSlot(int32_t bytes = 8);
   int32_t AllocateSlot(int32_t bytes, int32_t align);
   int32_t GetSize();
@@ -97,7 +97,8 @@ class ASMBackend : public Backend {
   template <typename T>
   void MoveByteValue(T dest, Value v, std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
-                     const std::vector<RegisterAssignment>& register_assign);
+                     const std::vector<RegisterAssignment>& register_assign,
+                     int32_t dynamic_stack_alloc = 0);
   template <typename T>
   void AndByteValue(T dest, Value v, std::vector<int32_t>& offsets,
                     const std::vector<uint64_t>& constant_instrs,
@@ -143,7 +144,8 @@ class ASMBackend : public Backend {
   template <typename T>
   void MoveWordValue(T dest, Value v, std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
-                     const std::vector<RegisterAssignment>& register_assign);
+                     const std::vector<RegisterAssignment>& register_assign,
+                     int32_t dynamic_stack_alloc = 0);
   template <typename T>
   void AddWordValue(T dest, Value v, std::vector<int32_t>& offsets,
                     const std::vector<uint64_t>& constant_instrs,
@@ -182,7 +184,8 @@ class ASMBackend : public Backend {
   template <typename T>
   void MoveDWordValue(T dest, Value v, std::vector<int32_t>& offsets,
                       const std::vector<uint64_t>& constant_instrs,
-                      const std::vector<RegisterAssignment>& register_assign);
+                      const std::vector<RegisterAssignment>& register_assign,
+                      int32_t dynamic_stack_alloc = 0);
   template <typename T>
   void AddDWordValue(T dest, Value v, std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
@@ -223,7 +226,8 @@ class ASMBackend : public Backend {
   void MoveQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
                       const std::vector<uint64_t>& constant_instrs,
                       const std::vector<uint64_t>& i64_constants,
-                      const std::vector<RegisterAssignment>& register_assign);
+                      const std::vector<RegisterAssignment>& register_assign,
+                      int32_t dynamic_stack_alloc = 0);
   template <typename T>
   void AddQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
                      const std::vector<uint64_t>& constant_instrs,
@@ -278,7 +282,8 @@ class ASMBackend : public Backend {
   void MovePtrValue(T dest, Value v, std::vector<int32_t>& offsets,
                     const std::vector<uint64_t>& constant_instrs,
                     const std::vector<void*>& ptr_constants,
-                    const std::vector<RegisterAssignment>& register_assign);
+                    const std::vector<RegisterAssignment>& register_assign,
+                    int32_t dynamic_stack_alloc = 0);
   asmjit::x86::Mem GetQWordPtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
