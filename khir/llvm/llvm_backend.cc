@@ -746,17 +746,6 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::ALLOCA: {
-      Type3InstructionReader reader(instr);
-      auto ptr_type = static_cast<Type>(reader.TypeID());
-      auto elem_type = manager.GetPointerElementType(ptr_type);
-      auto t = types_[elem_type.GetID()];
-      int num_values = reader.Arg();
-      values[instr_idx] =
-          builder_->CreateAlloca(t, builder_->getInt32(num_values));
-      return;
-    }
-
     case Opcode::CALL_ARG: {
       Type3InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg()), constant_values, values);

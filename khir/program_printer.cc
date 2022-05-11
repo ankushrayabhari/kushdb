@@ -345,8 +345,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
       return;
     }
 
-    case Opcode::PHI:
-    case Opcode::ALLOCA: {
+    case Opcode::PHI: {
       Type3InstructionReader reader(instrs[idx]);
       Value v0(reader.Arg());
 

@@ -291,7 +291,6 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
       return manager.VoidType();
 
     case Opcode::CALL_INDIRECT:
-    case Opcode::ALLOCA:
     case Opcode::PHI:
     case Opcode::CALL:
     case Opcode::PTR_LOAD:
@@ -398,7 +397,6 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::PTR_CAST:
     case Opcode::PTR_LOAD:
     case Opcode::CALL_ARG:
-    case Opcode::ALLOCA:
     case Opcode::PTR_CMP_NULLPTR: {
       return Value(instr_idx);
     }
@@ -731,7 +729,6 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::GEP_STATIC_OFFSET:
     case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::PHI:
-    case Opcode::ALLOCA:
       return {};
   }
 }

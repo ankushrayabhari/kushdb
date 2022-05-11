@@ -148,7 +148,6 @@ class ProgramBuilder {
   Value ConstPtr(void* t);
   Value NullPtr(Type t);
   Value PointerCast(Value v, Type t);
-  Value Alloca(Type t, int num_values = 1);
   Value StaticGEP(Type t, Value ptr, absl::Span<const int32_t> idx);
   Value DynamicGEP(Type t, Value ptr, Value dynamic_idx,
                    absl::Span<const int32_t> idx);

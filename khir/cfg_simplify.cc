@@ -190,7 +190,6 @@ void RewriteInstr(uint64_t& instr,
     case Opcode::FUNC_ARG:
     case Opcode::GEP_STATIC:
     case Opcode::PHI:
-    case Opcode::ALLOCA:
       return;
   }
 }

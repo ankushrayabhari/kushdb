@@ -189,7 +189,6 @@ class Type2InstructionReader {
 // [MD] [ID] [0]          NULLPTR
 // [MD] [ID] [SARG] [0]   FUNC_ARG
 // [MD] [ID] [0]    [ARG] PTR_LOAD
-// [MD] [ID] [0]          ALLOCA
 // [MD] [ID] [0]          PHI
 // [MD] [ID] [0]    [ARG] RETURN_VALUE
 

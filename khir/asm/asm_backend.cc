@@ -3297,28 +3297,6 @@ void ASMBackend::TranslateInstr(
     }
 
     // PTR =====================================================================
-    case Opcode::ALLOCA: {
-      Type3InstructionReader reader(instr);
-
-      auto ptr_type = static_cast<khir::Type>(reader.TypeID());
-      auto type = type_manager.GetPointerElementType(ptr_type);
-      int num_values = reader.Arg();
-      auto size = type_manager.GetTypeSize(type) * num_values;
-      size += (16 - (size % 16)) % 16;
-      assert(size % 16 == 0);
-
-      asm_->sub(x86::rsp, size);
-
-      if (dest_assign.IsRegister()) {
-        asm_->mov(GPRegister::FromId(dest_assign.Register()).GetQ(), x86::rsp);
-      } else {
-        auto offset = stack_allocator.AllocateSlot();
-        offsets[instr_idx] = offset;
-        asm_->mov(x86::qword_ptr(x86::rbp, offset), x86::rsp);
-      }
-      return;
-    }
-
     case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::GEP_STATIC_OFFSET: {
       // do nothing since it is an auxiliary instruction

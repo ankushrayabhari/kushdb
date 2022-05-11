@@ -120,7 +120,6 @@ enum class Opcode : uint8_t {
   PHI,
   PTR_CAST,
   FUNC_ARG,
-  ALLOCA,
   CALL_ARG,
   CALL_INDIRECT,
   PTR_CMP_NULLPTR,
