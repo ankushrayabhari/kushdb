@@ -202,6 +202,7 @@ class ProgramBuilder {
   void StoreI32(Value ptr, Value v);
 
   // I32Vec8
+  Value ConstI32Vec8(uint32_t v);
   Value LoadI32Vec8(Value ptr);
   Value CmpI32Vec8(CompType cmp, Value v1, Value v2);
 

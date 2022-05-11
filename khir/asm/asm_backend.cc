@@ -2361,12 +2361,13 @@ void ASMBackend::TranslateInstr(
         asm_->vmovd(
             x86::xmm15,
             GPRegister::FromId(register_assign[v0.GetIdx()].Register()).GetD());
+        asm_->vpbroadcastd(x86::xmm15, x86::xmm15);
       } else {
-        asm_->vmovd(x86::xmm15,
-                    x86::dword_ptr(x86::rsp, GetOffset(offsets, v0.GetIdx())));
+        asm_->vpbroadcastd(
+            x86::xmm15,
+            x86::dword_ptr(x86::rsp, GetOffset(offsets, v0.GetIdx())));
       }
       // compare to each value
-      asm_->vpbroadcastd(x86::xmm15, x86::xmm15);
       asm_->vpcmpeqd(x86::xmm15, x86::xmm15, x86::xmmword_ptr(label));
       asm_->vmovmskps(x86::eax, x86::xmm15);
       asm_->test(x86::eax, x86::eax);
@@ -2406,21 +2407,20 @@ void ASMBackend::TranslateInstr(
       }
       asm_->section(text_section_);
 
-      // load the value into xmm15
+      // load the value into ymm15
       if (register_assign[v0.GetIdx()].IsRegister()) {
         asm_->vmovd(
             x86::xmm15,
             GPRegister::FromId(register_assign[v0.GetIdx()].Register()).GetD());
+        asm_->vpbroadcastd(x86::ymm15, x86::xmm15);
       } else {
-        asm_->vmovd(x86::xmm15,
-                    x86::dword_ptr(x86::rsp, GetOffset(offsets, v0.GetIdx())));
+        asm_->vpbroadcastd(
+            x86::ymm15,
+            x86::dword_ptr(x86::rsp, GetOffset(offsets, v0.GetIdx())));
       }
-      // duplicate
-      asm_->vpbroadcastd(x86::ymm7, x86::xmm15);
-
       // compare to each value
-      asm_->vpcmpeqd(x86::ymm7, x86::ymm7, x86::ymmword_ptr(label));
-      asm_->vmovmskps(x86::eax, x86::ymm7);
+      asm_->vpcmpeqd(x86::ymm15, x86::ymm15, x86::ymmword_ptr(label));
+      asm_->vmovmskps(x86::eax, x86::ymm15);
       asm_->vzeroupper();
       asm_->test(x86::eax, x86::eax);
 
@@ -2855,6 +2855,30 @@ void ASMBackend::TranslateInstr(
         offsets[instr_idx] = offset;
         auto loc = x86::byte_ptr(x86::rsp, offset);
         StoreCmpFlags(opcode, loc);
+      }
+      return;
+    }
+
+    case Opcode::I32_VEC8_INIT_1: {
+      Type1InstructionReader reader(instr);
+      auto value = reader.Constant();
+
+      auto label = asm_->newLabel();
+      asm_->section(data_section_);
+      asm_->bind(label);
+      asm_->embedInt32(value);
+      asm_->section(text_section_);
+
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetY()
+                      : VRegister::M15.GetY();
+
+      asm_->vpbroadcastd(dest, x86::dword_ptr(label));
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
       }
       return;
     }

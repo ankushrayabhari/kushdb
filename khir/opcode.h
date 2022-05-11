@@ -68,6 +68,7 @@ enum class Opcode : uint8_t {
   I32_CMP_LE,
   I32_CMP_GT,
   I32_CMP_GE,
+  I32_VEC8_INIT_1,
   I32_VEC8_CMP_EQ,
   I32_VEC8_CMP_NE,
   I32_VEC8_CMP_LT,

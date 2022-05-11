@@ -627,6 +627,7 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::I64_TRUNC_I32:
       return type_manager_.I32Type();
 
+    case Opcode::I32_VEC8_INIT_1:
     case Opcode::I32_VEC8_LOAD:
       return type_manager_.I32Vec8Type();
 
@@ -1589,6 +1590,14 @@ Value ProgramBuilder::CmpI32Vec8(CompType cmp, Value v1, Value v2) {
                                          .SetArg0(v1.Serialize())
                                          .SetArg1(v2.Serialize())
                                          .Build());
+}
+
+Value ProgramBuilder::ConstI32Vec8(uint32_t v) {
+  return GetCurrentFunction().Append(
+      Type1InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I32_VEC8_INIT_1))
+          .SetConstant(v)
+          .Build());
 }
 
 Value ProgramBuilder::NotI1Vec8(Value v) {

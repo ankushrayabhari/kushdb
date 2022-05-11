@@ -204,6 +204,13 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
       return;
     }
 
+    case Opcode::I32_VEC8_INIT_1: {
+      Type1InstructionReader reader(instrs[idx]);
+      std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
+                << " " << reader.Constant() << "\n";
+      return;
+    }
+
     case Opcode::I1_LNOT:
     case Opcode::I1_VEC8_MASK_EXTRACT:
     case Opcode::I1_VEC8_NOT:

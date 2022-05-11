@@ -262,6 +262,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::I64_TRUNC_I32:
       return manager.I32Type();
 
+    case Opcode::I32_VEC8_INIT_1:
     case Opcode::I32_VEC8_LOAD:
       return manager.I32Vec8Type();
 
@@ -370,6 +371,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I1_VEC8_AND:
     case Opcode::I1_VEC8_OR:
     case Opcode::I1_VEC8_NOT:
+    case Opcode::I32_VEC8_INIT_1:
     case Opcode::I1_VEC8_MASK_EXTRACT:
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
@@ -763,6 +765,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::GEP_STATIC_OFFSET:
     case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::PHI:
+    case Opcode::I32_VEC8_INIT_1:
       return {};
   }
 }

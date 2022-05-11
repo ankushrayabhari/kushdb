@@ -193,6 +193,7 @@ void RewriteInstr(uint64_t& instr,
       return;
     }
 
+    case Opcode::I32_VEC8_INIT_1:
     case Opcode::CALL_INDIRECT:
     case Opcode::CALL:
     case Opcode::RETURN:

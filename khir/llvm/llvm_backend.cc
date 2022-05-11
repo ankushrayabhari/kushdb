@@ -566,6 +566,14 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I32_VEC8_INIT_1: {
+      Type1InstructionReader reader(instr);
+      auto v = reader.Constant();
+      values[instr_idx] = llvm::ConstantVector::get(
+          std::vector<llvm::Constant*>(8, builder_->getInt32(v)));
+      return;
+    }
+
     case Opcode::I1_VEC8_NOT: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
