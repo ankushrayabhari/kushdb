@@ -419,6 +419,14 @@ Value ProgramBuilder::LoadI32(Value ptr) {
                                          .Build());
 }
 
+Value ProgramBuilder::LoadI32Vec8(Value ptr) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I32_VEC8_LOAD))
+          .SetArg0(ptr.Serialize())
+          .Build());
+}
+
 Value ProgramBuilder::LoadI64(Value ptr) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I64_LOAD))
@@ -611,6 +619,9 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::I32_LOAD:
     case Opcode::I64_TRUNC_I32:
       return type_manager_.I32Type();
+
+    case Opcode::I32_VEC8_LOAD:
+      return type_manager_.I32Vec8Type();
 
     case Opcode::I64_ADD:
     case Opcode::I64_MUL:

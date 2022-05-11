@@ -177,20 +177,28 @@ Type TypeManager::AddType(std::unique_ptr<TypeImpl> mp) {
 }
 
 Type TypeManager::VoidType() const { return static_cast<Type>(0); }
+bool TypeManager::IsVoid(Type t) const { return t.GetID() == 0; }
 
 Type TypeManager::I1Type() const { return static_cast<Type>(1); }
+bool TypeManager::IsI1Type(Type t) const { return t.GetID() == 1; }
 
 Type TypeManager::I8Type() const { return static_cast<Type>(2); }
+bool TypeManager::IsI8Type(Type t) const { return t.GetID() == 2; }
 
 Type TypeManager::I16Type() const { return static_cast<Type>(3); }
+bool TypeManager::IsI16Type(Type t) const { return t.GetID() == 3; }
 
 Type TypeManager::I32Type() const { return static_cast<Type>(4); }
+bool TypeManager::IsI32Type(Type t) const { return t.GetID() == 4; }
 
 Type TypeManager::I64Type() const { return static_cast<Type>(5); }
+bool TypeManager::IsI64Type(Type t) const { return t.GetID() == 5; }
 
 Type TypeManager::F64Type() const { return static_cast<Type>(6); }
+bool TypeManager::IsF64Type(Type t) const { return t.GetID() == 6; }
 
 Type TypeManager::I32Vec8Type() const { return static_cast<Type>(7); }
+bool TypeManager::IsI32Vec8Type(Type t) const { return t.GetID() == 7; }
 
 Type TypeManager::I8PtrType() const { return static_cast<Type>(8); }
 
@@ -390,20 +398,6 @@ void TypeManager::Translate(TypeTranslator& translator) const {
     }
   }
 }
-
-bool TypeManager::IsVoid(Type t) const { return t.GetID() == 0; }
-
-bool TypeManager::IsF64Type(Type t) const { return t.GetID() == 6; }
-
-bool TypeManager::IsI1Type(Type t) const { return t.GetID() == 1; }
-
-bool TypeManager::IsI8Type(Type t) const { return t.GetID() == 2; }
-
-bool TypeManager::IsI16Type(Type t) const { return t.GetID() == 3; }
-
-bool TypeManager::IsI32Type(Type t) const { return t.GetID() == 4; }
-
-bool TypeManager::IsI64Type(Type t) const { return t.GetID() == 5; }
 
 bool TypeManager::IsPtrType(Type t) const {
   return dynamic_cast<PointerTypeImpl*>(type_id_to_impl_[t.GetID()].get()) !=

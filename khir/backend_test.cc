@@ -6546,6 +6546,26 @@ TEST_P(BackendTest, DynamicGEPColumnData) {
   EXPECT_EQ(compute(&col, 1 << 16), &array[1 << 16]);
 }
 
+/*
+TEST_P(BackendTest, I32Vec8Load) {
+  alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.VoidType(), {program.PointerType(program.I32Type())}, "compute");
+
+  auto args = program.GetFunctionArguments(func);
+  program.LoadI32Vec8(args[0]);
+  program.Return();
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<void(int32_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+  compute(values);
+}
+*/
+
 INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, BackendTest,
                          testing::Values(std::make_pair(
                              BackendType::LLVM, RegAllocImpl::STACK_SPILL)));

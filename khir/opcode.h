@@ -70,6 +70,7 @@ enum class Opcode : uint8_t {
   I32_CMP_GE,
   I32_ZEXT_I64,
   I32_CONV_F64,
+  I32_VEC8_LOAD,
   I64_ADD,
   I64_MUL,
   I64_SUB,

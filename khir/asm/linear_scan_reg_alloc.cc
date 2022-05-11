@@ -13,6 +13,10 @@
 
 namespace kush::khir {
 
+bool IsVector(const TypeManager& manager, khir::Type t) {
+  return manager.IsF64Type(t) || manager.IsI32Vec8Type(t);
+}
+
 template <typename ActiveSet>
 std::unordered_set<int> Union(ActiveSet& active, std::unordered_set<int>& free,
                               std::vector<RegisterAssignment>& assignments) {
@@ -227,8 +231,7 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
     return a.End() < b.End();
   };
   auto active_normal = std::multiset<LiveInterval, decltype(comp)>(comp);
-  auto active_floating_point =
-      std::multiset<LiveInterval, decltype(comp)>(comp);
+  auto active_vector = std::multiset<LiveInterval, decltype(comp)>(comp);
 
   /*
   Available for allocation:
@@ -240,61 +243,59 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
     RSP, RBP, RAX, xmm15
   */
 
-  std::unordered_set<int> free_floating_point_regs;
-  free_floating_point_regs.insert(VRegister::M0.Id());
-  free_floating_point_regs.insert(VRegister::M1.Id());
-  free_floating_point_regs.insert(VRegister::M2.Id());
-  free_floating_point_regs.insert(VRegister::M3.Id());
-  free_floating_point_regs.insert(VRegister::M4.Id());
-  free_floating_point_regs.insert(VRegister::M5.Id());
-  free_floating_point_regs.insert(VRegister::M6.Id());
-  free_floating_point_regs.insert(VRegister::M7.Id());
-  free_floating_point_regs.insert(VRegister::M8.Id());
-  free_floating_point_regs.insert(VRegister::M9.Id());
-  free_floating_point_regs.insert(VRegister::M10.Id());
-  free_floating_point_regs.insert(VRegister::M11.Id());
-  free_floating_point_regs.insert(VRegister::M12.Id());
-  free_floating_point_regs.insert(VRegister::M13.Id());
-  free_floating_point_regs.insert(VRegister::M14.Id());
+  std::unordered_set<int> free_vector;
+  free_vector.insert(VRegister::M0.Id());
+  free_vector.insert(VRegister::M1.Id());
+  free_vector.insert(VRegister::M2.Id());
+  free_vector.insert(VRegister::M3.Id());
+  free_vector.insert(VRegister::M4.Id());
+  free_vector.insert(VRegister::M5.Id());
+  free_vector.insert(VRegister::M6.Id());
+  free_vector.insert(VRegister::M7.Id());
+  free_vector.insert(VRegister::M8.Id());
+  free_vector.insert(VRegister::M9.Id());
+  free_vector.insert(VRegister::M10.Id());
+  free_vector.insert(VRegister::M11.Id());
+  free_vector.insert(VRegister::M12.Id());
+  free_vector.insert(VRegister::M13.Id());
+  free_vector.insert(VRegister::M14.Id());
 
-  std::unordered_set<int> free_normal_regs;
-  free_normal_regs.insert(GPRegister::RBX.Id());
-  free_normal_regs.insert(GPRegister::RCX.Id());
-  free_normal_regs.insert(GPRegister::RDX.Id());
-  free_normal_regs.insert(GPRegister::RSI.Id());
-  free_normal_regs.insert(GPRegister::RDI.Id());
-  free_normal_regs.insert(GPRegister::R8.Id());
-  free_normal_regs.insert(GPRegister::R9.Id());
-  free_normal_regs.insert(GPRegister::R10.Id());
-  free_normal_regs.insert(GPRegister::R11.Id());
-  free_normal_regs.insert(GPRegister::R12.Id());
-  free_normal_regs.insert(GPRegister::R13.Id());
-  free_normal_regs.insert(GPRegister::R14.Id());
-  free_normal_regs.insert(GPRegister::R15.Id());
+  std::unordered_set<int> free_normal;
+  free_normal.insert(GPRegister::RBX.Id());
+  free_normal.insert(GPRegister::RCX.Id());
+  free_normal.insert(GPRegister::RDX.Id());
+  free_normal.insert(GPRegister::RSI.Id());
+  free_normal.insert(GPRegister::RDI.Id());
+  free_normal.insert(GPRegister::R8.Id());
+  free_normal.insert(GPRegister::R9.Id());
+  free_normal.insert(GPRegister::R10.Id());
+  free_normal.insert(GPRegister::R11.Id());
+  free_normal.insert(GPRegister::R12.Id());
+  free_normal.insert(GPRegister::R13.Id());
+  free_normal.insert(GPRegister::R14.Id());
+  free_normal.insert(GPRegister::R15.Id());
 
-  const int TOTAL_GP_FREE = free_normal_regs.size();
-  const int TOTAL_FP_FREE = free_floating_point_regs.size();
+  const int TOTAL_GP_FREE = free_normal.size();
+  const int TOTAL_V_FREE = free_vector.size();
 
   for (int a = 0; a < live_intervals.size(); a++) {
-    assert(Union(active_normal, free_normal_regs, assignments).size() ==
+    assert(Union(active_normal, free_normal, assignments).size() ==
            TOTAL_GP_FREE);
-    assert(Union(active_floating_point, free_floating_point_regs, assignments)
-               .size() == TOTAL_FP_FREE);
+    assert(Union(active_vector, free_vector, assignments).size() ==
+           TOTAL_V_FREE);
 
     LiveInterval& i = live_intervals[a];
     assert(!i.Undef());
 
     // Expire old intervals
-    ExpireOldIntervals(i, assignments, free_normal_regs, active_normal);
-    ExpireOldIntervals(i, assignments, free_floating_point_regs,
-                       active_floating_point);
+    ExpireOldIntervals(i, assignments, free_normal, active_normal);
+    ExpireOldIntervals(i, assignments, free_vector, active_vector);
 
     if (i.IsPrecolored()) {
       if (VRegister::IsVRegister(i.PrecoloredRegister())) {
-        AddPrecoloredInterval(i, assignments, free_floating_point_regs,
-                              active_floating_point);
+        AddPrecoloredInterval(i, assignments, free_vector, active_vector);
       } else if (GPRegister::IsGPRegister(i.PrecoloredRegister())) {
-        AddPrecoloredInterval(i, assignments, free_normal_regs, active_normal);
+        AddPrecoloredInterval(i, assignments, free_normal, active_normal);
       } else {
         throw std::runtime_error("Invalid precolored register");
       }
@@ -361,18 +362,17 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
       case Opcode::I32_STORE:
       case Opcode::I64_STORE:
       case Opcode::PTR_STORE: {
-        AddPrecoloredInterval(i, assignments, free_normal_regs, active_normal);
+        AddPrecoloredInterval(i, assignments, free_normal, active_normal);
         assert(i.IsPrecolored());
         assignments[i_instr].SetRegister(i.PrecoloredRegister());
         break;
       }
 
       default: {
-        if (manager.IsF64Type(i.Type())) {
-          SpillAtInterval(i, assignments, free_floating_point_regs,
-                          active_floating_point);
+        if (IsVector(manager, i.Type())) {
+          SpillAtInterval(i, assignments, free_vector, active_vector);
         } else {
-          SpillAtInterval(i, assignments, free_normal_regs, active_normal);
+          SpillAtInterval(i, assignments, free_normal, active_normal);
         }
         break;
       }

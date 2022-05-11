@@ -664,7 +664,8 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I16_LOAD:
     case Opcode::I32_LOAD:
     case Opcode::I64_LOAD:
-    case Opcode::F64_LOAD: {
+    case Opcode::F64_LOAD:
+    case Opcode::I32_VEC8_LOAD: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
       values[instr_idx] =
@@ -853,7 +854,7 @@ void LLVMBackend::Compile() {
 #endif
 
   auto cpu = "x86-64";
-  auto features = "";
+  auto features = "+avx2";
 
   llvm::TargetOptions opt;
   auto reloc_model =

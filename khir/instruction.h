@@ -140,6 +140,7 @@ class Type1InstructionReader {
 // [MD] [ARG0] [0]    I8_LOAD
 // [MD] [ARG0] [0]    I16_LOAD
 // [MD] [ARG0] [0]    I32_LOAD
+// [MD] [ARG0] [0]    I32_VEC8_LOAD
 // [MD] [ARG0] [0]    I64_LOAD
 // [MD] [ARG0] [0]    F64_LOAD
 // [MD] [ARG0] [ARG1] PHI_MEMBER

@@ -23,8 +23,16 @@ namespace kush::khir {
 StackSlotAllocator::StackSlotAllocator(int32_t initial_size)
     : size_(initial_size) {}
 
-int32_t StackSlotAllocator::AllocateSlot() {
-  size_ += 8;
+int32_t StackSlotAllocator::AllocateSlot(int32_t bytes) {
+  size_ += bytes;
+  return -size_;
+}
+
+int32_t StackSlotAllocator::AllocateSlot(int32_t bytes, int32_t align) {
+  if (size_ % align != 0) {
+    size_ += align - (size_ % align);
+  }
+  size_ += bytes;
   return -size_;
 }
 
@@ -774,6 +782,8 @@ constexpr int BYTE_PTR_SIZE = 1;
 constexpr int WORD_PTR_SIZE = 2;
 constexpr int DWORD_PTR_SIZE = 4;
 constexpr int QWORD_PTR_SIZE = 8;
+// constexpr int XMMWORD_PTR_SIZE = 16;
+constexpr int YMMWORD_PTR_SIZE = 32;
 
 uint8_t GetShift(int32_t type_size) {
   switch (type_size) {
@@ -1300,6 +1310,29 @@ x86::Mem ASMBackend::GetDWordPtrValue(
     info.offset = 0;
   }
   return GetStaticGEPPtrValue(info, DWORD_PTR_SIZE, offsets, instrs,
+                              constant_instrs, ptr_constants, register_assign);
+}
+
+x86::Mem ASMBackend::GetYMMWordPtrValue(
+    Value v, std::vector<int32_t>& offsets, const std::vector<uint64_t>& instrs,
+    const std::vector<uint64_t>& constant_instrs,
+    const std::vector<void*>& ptr_constants,
+    const std::vector<RegisterAssignment>& register_assign) {
+  if (IsDynamicGEP(v, instrs)) {
+    auto info = DynamicGEP(v, instrs, constant_instrs);
+    return GetDynamicGEPPtrValue(info, YMMWORD_PTR_SIZE, offsets, instrs,
+                                 constant_instrs, ptr_constants,
+                                 register_assign);
+  }
+
+  GEPStaticInfo info;
+  if (IsStaticGEP(v, instrs)) {
+    info = StaticGEP(v, instrs, constant_instrs);
+  } else {
+    info.ptr = v;
+    info.offset = 0;
+  }
+  return GetStaticGEPPtrValue(info, YMMWORD_PTR_SIZE, offsets, instrs,
                               constant_instrs, ptr_constants, register_assign);
 }
 
@@ -2851,6 +2884,24 @@ void ASMBackend::TranslateInstr(
         offsets[instr_idx] = offset;
         asm_->mov(GPRegister::RAX.GetD(), loc);
         asm_->mov(x86::dword_ptr(x86::rbp, offset), GPRegister::RAX.GetD());
+      }
+      return;
+    }
+
+    case Opcode::I32_VEC8_LOAD: {
+      Type2InstructionReader reader(instr);
+      Value v(reader.Arg0());
+
+      auto loc = GetYMMWordPtrValue(v, offsets, instructions, constant_instrs,
+                                    ptr_constants, register_assign);
+
+      if (dest_assign.IsRegister()) {
+        asm_->vmovaps(VRegister::FromId(dest_assign.Register()).GetY(), loc);
+      } else {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovaps(x86::ymm15, loc);
+        asm_->vmovaps(x86::ymmword_ptr(x86::rbp, offset), x86::ymm15);
       }
       return;
     }

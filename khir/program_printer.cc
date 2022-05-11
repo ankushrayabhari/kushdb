@@ -214,6 +214,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::I8_LOAD:
     case Opcode::I16_LOAD:
     case Opcode::I32_LOAD:
+    case Opcode::I32_VEC8_LOAD:
     case Opcode::I64_LOAD:
     case Opcode::F64_LOAD: {
       Type2InstructionReader reader(instrs[idx]);

@@ -23,7 +23,8 @@ class ExceptionErrorHandler : public asmjit::ErrorHandler {
 class StackSlotAllocator {
  public:
   StackSlotAllocator(int32_t initial_size);
-  int32_t AllocateSlot();
+  int32_t AllocateSlot(int32_t bytes = 8);
+  int32_t AllocateSlot(int32_t bytes, int32_t align);
   int32_t GetSize();
 
  private:
@@ -206,6 +207,12 @@ class ASMBackend : public Backend {
                       const std::vector<uint64_t>& constant_instrs,
                       const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetDWordPtrValue(
+      Value v, std::vector<int32_t>& offsets,
+      const std::vector<uint64_t>& instrs,
+      const std::vector<uint64_t>& constant_instrs,
+      const std::vector<void*>& ptr_constants,
+      const std::vector<RegisterAssignment>& register_assign);
+  asmjit::x86::Mem GetYMMWordPtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
       const std::vector<uint64_t>& constant_instrs,

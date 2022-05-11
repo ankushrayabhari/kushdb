@@ -85,6 +85,7 @@ class TypeManager {
   bool IsI16Type(Type t) const;
   bool IsI32Type(Type t) const;
   bool IsI64Type(Type t) const;
+  bool IsI32Vec8Type(Type t) const;
   bool IsPtrType(Type t) const;
   bool IsArrayType(Type t) const;
   bool IsStructType(Type t) const;

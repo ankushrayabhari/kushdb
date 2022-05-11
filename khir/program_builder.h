@@ -201,6 +201,9 @@ class ProgramBuilder {
   Value LoadI32(Value ptr);
   void StoreI32(Value ptr, Value v);
 
+  // I32Vec8
+  Value LoadI32Vec8(Value ptr);
+
   // I64
   Value ConstI64(uint64_t v);
   Value AddI64(Value v1, Value v2);

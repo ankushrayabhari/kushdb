@@ -248,6 +248,9 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::I64_TRUNC_I32:
       return manager.I32Type();
 
+    case Opcode::I32_VEC8_LOAD:
+      return manager.I32Vec8Type();
+
     case Opcode::I64_LSHIFT:
     case Opcode::I64_RSHIFT:
     case Opcode::I64_AND:
@@ -388,6 +391,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I8_LOAD:
     case Opcode::I16_LOAD:
     case Opcode::I32_LOAD:
+    case Opcode::I32_VEC8_LOAD:
     case Opcode::I64_LOAD:
     case Opcode::F64_LOAD:
     case Opcode::FUNC_ARG:
@@ -583,6 +587,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::I8_LOAD:
     case Opcode::I16_LOAD:
     case Opcode::I32_LOAD:
+    case Opcode::I32_VEC8_LOAD:
     case Opcode::I64_LOAD:
     case Opcode::F64_LOAD: {
       Type2InstructionReader reader(instr);
