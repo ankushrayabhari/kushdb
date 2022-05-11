@@ -6390,22 +6390,136 @@ TEST_P(BackendTest, DynamicGEPColumnData) {
   EXPECT_EQ(compute(&col, 1 << 16), &array[1 << 16]);
 }
 
-TEST_P(BackendTest, I32Vec8Load) {
+TEST_P(BackendTest, I32Vec8CmpEQ) {
+  alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
+
+  for (int i = 0; i < 8; i++) {
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+        "compute");
+
+    auto args = program.GetFunctionArguments(func);
+    auto v1 = program.LoadI32Vec8(args[0]);
+    auto v2 = program.ConstI32Vec8(values[i]);
+    auto mask = program.CmpI32Vec8(CompType::EQ, v1, v2);
+    program.Return(program.ExtractMaskI1Vec8(mask));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+    EXPECT_EQ(compute(values), 1 << i);
+  }
+}
+
+TEST_P(BackendTest, I32Vec8CmpNE) {
+  alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
+
+  for (int i = 0; i < 8; i++) {
+    ProgramBuilder program;
+    auto func = program.CreatePublicFunction(
+        program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+        "compute");
+
+    auto args = program.GetFunctionArguments(func);
+    auto v1 = program.LoadI32Vec8(args[0]);
+    auto v2 = program.ConstI32Vec8(values[i]);
+    auto mask = program.CmpI32Vec8(CompType::NE, v1, v2);
+    program.Return(program.ExtractMaskI1Vec8(mask));
+
+    auto backend = Compile(GetParam(), program);
+
+    using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+    auto compute =
+        reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+    EXPECT_EQ(compute(values), (0b11111111) & ~(1 << i));
+  }
+}
+
+TEST_P(BackendTest, I32Vec8CmpLT) {
   alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
 
   ProgramBuilder program;
   auto func = program.CreatePublicFunction(
-      program.VoidType(), {program.PointerType(program.I32Type())}, "compute");
+      program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+      "compute");
 
   auto args = program.GetFunctionArguments(func);
-  program.LoadI32Vec8(args[0]);
-  program.Return();
+  auto v1 = program.LoadI32Vec8(args[0]);
+  auto v2 = program.ConstI32Vec8(4);
+  auto mask = program.CmpI32Vec8(CompType::LT, v1, v2);
+  program.Return(program.ExtractMaskI1Vec8(mask));
 
   auto backend = Compile(GetParam(), program);
 
-  using compute_fn = std::add_pointer<void(int32_t*)>::type;
+  using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
-  compute(values);
+  EXPECT_EQ(compute(values), 0b00000111);
+}
+
+TEST_P(BackendTest, I32Vec8CmpLE) {
+  alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+      "compute");
+
+  auto args = program.GetFunctionArguments(func);
+  auto v1 = program.LoadI32Vec8(args[0]);
+  auto v2 = program.ConstI32Vec8(5);
+  auto mask = program.CmpI32Vec8(CompType::LE, v1, v2);
+  program.Return(program.ExtractMaskI1Vec8(mask));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+  EXPECT_EQ(compute(values), 0b00011111);
+}
+
+TEST_P(BackendTest, I32Vec8CmpGT) {
+  alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+      "compute");
+
+  auto args = program.GetFunctionArguments(func);
+  auto v1 = program.LoadI32Vec8(args[0]);
+  auto v2 = program.ConstI32Vec8(3);
+  auto mask = program.CmpI32Vec8(CompType::GT, v1, v2);
+  program.Return(program.ExtractMaskI1Vec8(mask));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+  EXPECT_EQ(compute(values), 0b11111000);
+}
+
+TEST_P(BackendTest, I32Vec8CmpGE) {
+  alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I32Type(), {program.PointerType(program.I32Vec8Type())},
+      "compute");
+
+  auto args = program.GetFunctionArguments(func);
+  auto v1 = program.LoadI32Vec8(args[0]);
+  auto v2 = program.ConstI32Vec8(3);
+  auto mask = program.CmpI32Vec8(CompType::GE, v1, v2);
+  program.Return(program.ExtractMaskI1Vec8(mask));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+  EXPECT_EQ(compute(values), 0b11111100);
 }
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, BackendTest,

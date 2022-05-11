@@ -174,7 +174,7 @@ uint64_t ASMBackend::OutputConstant(uint64_t instr, const Program& program) {
 
 void ASMBackend::Translate(const Program& program) {
   code_.init(rt_.environment());
-  // code_.setLogger(&logger_);
+  code_.setLogger(&logger_);
   asm_ = std::make_unique<x86::Assembler>(&code_);
 
   text_section_ = code_.textSection();
@@ -199,6 +199,7 @@ void ASMBackend::Translate(const Program& program) {
   }
 
   asm_->align(kAlignZero, 32);
+  ones_ = asm_->newLabel();
   asm_->bind(ones_);
   asm_->embedUInt32(-1, 8);
 
@@ -2006,7 +2007,7 @@ x86::Ymm ASMBackend::GetYMMWordValue(
     const std::vector<uint64_t>& constant_instrs,
     const std::vector<RegisterAssignment>& register_assign) {
   if (v.IsConstantGlobal()) {
-    throw std::runtime_error("TODO");
+    throw std::runtime_error("Invalid");
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     return VRegister::FromId(register_assign[v.GetIdx()].Register()).GetY();
   } else {
@@ -2914,7 +2915,7 @@ void ASMBackend::TranslateInstr(
                       : VRegister::M15.GetY();
 
       if (v1.IsConstantGlobal()) {
-        throw std::runtime_error("TODO");
+        throw std::runtime_error("Invalid");
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg =
             VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
@@ -2926,7 +2927,7 @@ void ASMBackend::TranslateInstr(
       }
 
       if (opcode == Opcode::I32_VEC8_CMP_NE) {
-        asm_->vpxord(dest, dest, x86::ymmword_ptr(ones_));
+        asm_->vpxor(dest, dest, x86::ymmword_ptr(ones_));
       }
 
       if (!dest_assign.IsRegister()) {
@@ -2961,7 +2962,7 @@ void ASMBackend::TranslateInstr(
                       : VRegister::M15.GetY();
 
       if (v1.IsConstantGlobal()) {
-        throw std::runtime_error("TODO");
+        throw std::runtime_error("Invalid");
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg =
             VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
@@ -2974,7 +2975,7 @@ void ASMBackend::TranslateInstr(
 
       if (opcode == Opcode::I32_VEC8_CMP_LE ||
           opcode == Opcode::I32_VEC8_CMP_GE) {
-        asm_->vpxord(dest, dest, x86::ymmword_ptr(ones_));
+        asm_->vpxor(dest, dest, x86::ymmword_ptr(ones_));
       }
 
       if (!dest_assign.IsRegister()) {
@@ -2997,7 +2998,7 @@ void ASMBackend::TranslateInstr(
                       : VRegister::M15.GetY();
 
       if (v1.IsConstantGlobal()) {
-        throw std::runtime_error("TODO");
+        throw std::runtime_error("Invalid");
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg =
             VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
@@ -3028,7 +3029,7 @@ void ASMBackend::TranslateInstr(
                       : VRegister::M15.GetY();
 
       if (v1.IsConstantGlobal()) {
-        throw std::runtime_error("TODO");
+        throw std::runtime_error("Invalid");
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg =
             VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
@@ -3075,7 +3076,7 @@ void ASMBackend::TranslateInstr(
                       ? VRegister::FromId(dest_assign.Register()).GetY()
                       : VRegister::M15.GetY();
 
-      asm_->vpxord(dest, v0_reg, x86::ymmword_ptr(ones_));
+      asm_->vpxor(dest, v0_reg, x86::ymmword_ptr(ones_));
 
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot(32, 32);
