@@ -209,6 +209,7 @@ class ProgramBuilder {
   Value NotI1Vec8(Value v);
   Value OrI1Vec8(Value v1, Value v2);
   Value AndI1Vec8(Value v1, Value v2);
+  Value ExtractMaskI1Vec8(Value v);
 
   // I64
   Value ConstI64(uint64_t v);

@@ -575,6 +575,15 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I1_VEC8_MASK_EXTRACT: {
+      Type2InstructionReader reader(instr);
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
+      values[instr_idx] = builder_->CreateZExt(
+          builder_->CreateBitCast(v, builder_->getInt8Ty()),
+          builder_->getInt32Ty());
+      return;
+    }
+
     case Opcode::I1_LNOT: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);

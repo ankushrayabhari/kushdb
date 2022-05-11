@@ -3022,6 +3022,25 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I1_VEC8_MASK_EXTRACT: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+
+      auto dest = dest_assign.IsRegister()
+                      ? GPRegister::FromId(dest_assign.Register()).GetD()
+                      : GPRegister::RAX.GetD();
+      auto v0_reg =
+          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+      asm_->vmovmskps(dest, v0_reg);
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->mov(x86::dword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
     case Opcode::I1_VEC8_NOT: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());

@@ -227,6 +227,9 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
       return manager.I1Type();
 
+    case Opcode::I1_VEC8_MASK_EXTRACT:
+      return manager.I32Type();
+
     case Opcode::I32_VEC8_CMP_EQ:
     case Opcode::I32_VEC8_CMP_NE:
     case Opcode::I32_VEC8_CMP_LT:
@@ -367,6 +370,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I1_VEC8_AND:
     case Opcode::I1_VEC8_OR:
     case Opcode::I1_VEC8_NOT:
+    case Opcode::I1_VEC8_MASK_EXTRACT:
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
     case Opcode::I64_ADD:
@@ -569,6 +573,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     }
 
     case Opcode::I1_LNOT:
+    case Opcode::I1_VEC8_MASK_EXTRACT:
     case Opcode::I1_VEC8_NOT:
     case Opcode::I1_ZEXT_I8:
     case Opcode::I1_ZEXT_I64:

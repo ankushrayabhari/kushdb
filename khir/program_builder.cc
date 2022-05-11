@@ -592,6 +592,9 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
       return type_manager_.I1Type();
 
+    case Opcode::I1_VEC8_MASK_EXTRACT:
+      return type_manager_.I32Type();
+
     case Opcode::I1_VEC8_NOT:
     case Opcode::I1_VEC8_AND:
     case Opcode::I1_VEC8_OR:
@@ -1592,6 +1595,14 @@ Value ProgramBuilder::NotI1Vec8(Value v) {
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I1_VEC8_NOT))
+          .SetArg0(v.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::ExtractMaskI1Vec8(Value v) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I1_VEC8_MASK_EXTRACT))
           .SetArg0(v.Serialize())
           .Build());
 }

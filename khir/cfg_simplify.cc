@@ -91,6 +91,7 @@ void RewriteInstr(uint64_t& instr,
     case Opcode::I32_VEC8_CMP_LE:
     case Opcode::I1_VEC8_AND:
     case Opcode::I1_VEC8_NOT:
+    case Opcode::I1_VEC8_MASK_EXTRACT:
     case Opcode::I1_VEC8_OR:
     case Opcode::I64_ADD:
     case Opcode::I64_MUL:

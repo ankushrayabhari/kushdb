@@ -77,6 +77,7 @@ enum class Opcode : uint8_t {
   I1_VEC8_NOT,
   I1_VEC8_AND,
   I1_VEC8_OR,
+  I1_VEC8_MASK_EXTRACT,
   I32_ZEXT_I64,
   I32_CONV_F64,
   I32_VEC8_LOAD,
