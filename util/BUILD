@@ -56,6 +56,12 @@ cc_library(
 )
 
 cc_library(
+    name = "permute",
+    srcs = ["permute.cc"],
+    hdrs = ["permute.h"],
+)
+
+cc_library(
     name = "vector_util",
     hdrs = ["vector_util.h"],
 )
