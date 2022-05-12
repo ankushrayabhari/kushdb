@@ -2997,10 +2997,8 @@ void ASMBackend::TranslateInstr(
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
 
-      auto v1_reg = x86::ymm15;
-      auto loc = GetYMMWordPtrValue(v1, offsets, instructions, constant_instrs,
-                                    ptr_constants, register_assign);
-      asm_->vmovaps(v1_reg, loc);
+      auto v1_reg =
+          GetYMMWordValue(v1, offsets, constant_instrs, register_assign);
 
       auto dest = dest_assign.IsRegister()
                       ? VRegister::FromId(dest_assign.Register()).GetY()

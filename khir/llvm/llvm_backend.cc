@@ -580,11 +580,9 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      auto v1_load =
-          builder_->CreateLoad(v1->getType()->getPointerElementType(), v1);
       auto perm = llvm::Intrinsic::getDeclaration(
           module_.get(), llvm::Intrinsic::x86_avx2_permd);
-      values[instr_idx] = builder_->CreateCall(perm, {v0, v1_load});
+      values[instr_idx] = builder_->CreateCall(perm, {v0, v1});
       return;
     }
 

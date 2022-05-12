@@ -6601,9 +6601,9 @@ TEST_P(BackendTest, I32Vec8Permute) {
   auto v1 = program.LoadI32Vec8(args[0]);
   auto comparison =
       program.CmpI32Vec8(CompType::EQ, v1, program.ConstI32Vec8(4));
-  auto permute_ptr =
-      program.MaskToPermutePtr(program.ExtractMaskI1Vec8(comparison));
-  auto permuted = program.PermuteI32Vec8(v1, permute_ptr);
+  auto permute_idx = program.LoadI32Vec8(
+      program.MaskToPermutePtr(program.ExtractMaskI1Vec8(comparison)));
+  auto permuted = program.PermuteI32Vec8(v1, permute_idx);
   program.Return(program.ExtractMaskI1Vec8(
       program.CmpI32Vec8(CompType::EQ, permuted, program.ConstI32Vec8(4))));
 
