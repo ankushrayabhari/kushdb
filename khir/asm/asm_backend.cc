@@ -2018,7 +2018,7 @@ x86::Ymm ASMBackend::GetYMMWordValue(
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     return VRegister::FromId(register_assign[v.GetIdx()].Register()).GetY();
   } else {
-    asm_->vmovaps(VRegister::M15.GetY(),
+    asm_->vmovdqa(VRegister::M15.GetY(),
                   x86::ymmword_ptr(x86::rsp, GetOffset(offsets, v.GetIdx())));
     return VRegister::M15.GetY();
   }
@@ -2886,7 +2886,7 @@ void ASMBackend::TranslateInstr(
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot(32, 32);
         offsets[instr_idx] = offset;
-        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), dest);
       }
       return;
     }
@@ -2899,12 +2899,12 @@ void ASMBackend::TranslateInstr(
                                     ptr_constants, register_assign);
 
       if (dest_assign.IsRegister()) {
-        asm_->vmovaps(VRegister::FromId(dest_assign.Register()).GetY(), loc);
+        asm_->vmovdqa(VRegister::FromId(dest_assign.Register()).GetY(), loc);
       } else {
         auto offset = stack_allocator.AllocateSlot(32, 32);
         offsets[instr_idx] = offset;
-        asm_->vmovaps(x86::ymm15, loc);
-        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), x86::ymm15);
+        asm_->vmovdqa(x86::ymm15, loc);
+        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), x86::ymm15);
       }
       return;
     }
@@ -2940,7 +2940,7 @@ void ASMBackend::TranslateInstr(
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot(32, 32);
         offsets[instr_idx] = offset;
-        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), dest);
       }
       return;
     }
@@ -2988,7 +2988,7 @@ void ASMBackend::TranslateInstr(
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot(32, 32);
         offsets[instr_idx] = offset;
-        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), dest);
       }
       return;
     }
@@ -3020,7 +3020,7 @@ void ASMBackend::TranslateInstr(
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot(32, 32);
         offsets[instr_idx] = offset;
-        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), dest);
       }
       return;
     }
@@ -3051,7 +3051,7 @@ void ASMBackend::TranslateInstr(
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot(32, 32);
         offsets[instr_idx] = offset;
-        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), dest);
       }
       return;
     }
@@ -3081,7 +3081,7 @@ void ASMBackend::TranslateInstr(
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot(32, 32);
         offsets[instr_idx] = offset;
-        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), dest);
       }
       return;
     }
@@ -3171,7 +3171,7 @@ void ASMBackend::TranslateInstr(
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot(32, 32);
         offsets[instr_idx] = offset;
-        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), dest);
       }
       return;
     }
