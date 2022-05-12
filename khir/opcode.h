@@ -85,6 +85,8 @@ enum class Opcode : uint8_t {
   I32_ZEXT_I64,
   I32_CONV_F64,
   I32_VEC8_LOAD,
+  I32_VEC8_MASK_STORE_INFO,
+  I32_VEC8_MASK_STORE,
   I64_ADD,
   I64_MUL,
   I64_SUB,

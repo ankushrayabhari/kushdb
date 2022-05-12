@@ -736,6 +736,52 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I32_VEC8_MASK_STORE_INFO: {
+      return;
+    }
+
+    case Opcode::I32_VEC8_MASK_STORE: {
+      Type2InstructionReader reader(instr);
+      Type2InstructionReader reader_info(instructions[instr_idx - 1]);
+
+      auto ptr = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto val = GetValue(Value(reader.Arg1()), constant_values, values);
+      auto popcount =
+          GetValue(Value(reader_info.Arg0()), constant_values, values);
+
+      std::vector<llvm::Constant*> init;
+      auto i32_arr8_ty = llvm::ArrayType::get(builder_->getInt32Ty(), 8);
+      for (int i = 0; i < 9; i++) {
+        std::vector<llvm::Constant*> values;
+        for (int j = 0; j < i; j++) {
+          values.push_back(builder_->getInt32(-1));
+        }
+        for (int j = i; j < 8; j++) {
+          values.push_back(builder_->getInt32(0));
+        }
+        init.push_back(llvm::ConstantArray::get(i32_arr8_ty, values));
+      }
+      auto* at = llvm::ArrayType::get(i32_arr8_ty, 9);
+      auto constant_arr = llvm::ConstantArray::get(at, init);
+      auto global = new llvm::GlobalVariable(
+          *module_, at, true, llvm::GlobalValue::LinkageTypes::InternalLinkage,
+          constant_arr);
+      global->setAlignment(llvm::MaybeAlign(32));
+      auto mask_ptr = builder_->CreateGEP(
+          at, global, {builder_->getInt32(0), popcount, builder_->getInt32(0)});
+
+      auto i32_vec8_ty = llvm::FixedVectorType::get(builder_->getInt32Ty(), 8);
+      auto mask = builder_->CreateLoad(
+          i32_vec8_ty, builder_->CreatePointerCast(
+                           mask_ptr, llvm::PointerType::get(i32_vec8_ty, 0)));
+
+      auto perm = llvm::Intrinsic::getDeclaration(
+          module_.get(), llvm::Intrinsic::x86_avx2_maskstore_d_256);
+      builder_->CreateCall(
+          perm, {builder_->CreatePointerCast(ptr, builder_->getInt8PtrTy()),
+                 mask, val});
+    }
+
     case Opcode::I1_LOAD:
     case Opcode::I8_LOAD:
     case Opcode::I16_LOAD:

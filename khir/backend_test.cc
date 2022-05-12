@@ -6638,6 +6638,42 @@ TEST_P(BackendTest, I64_POPCOUNT) {
   }
 }
 
+TEST_P(BackendTest, I32Vec8MaskedStore) {
+  alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
+
+  ProgramBuilder program;
+  auto func =
+      program.CreatePublicFunction(program.I64Type(),
+                                   {program.PointerType(program.I32Type()),
+                                    program.PointerType(program.I32Vec8Type())},
+                                   "compute");
+
+  auto args = program.GetFunctionArguments(func);
+  auto v1 = program.LoadI32Vec8(args[1]);
+  auto v2 = program.ConstI32Vec8(3);
+  auto cmp = program.CmpI32Vec8(CompType::GE, v1, v2);
+  auto mask = program.ExtractMaskI1Vec8(cmp);
+  auto popcount = program.PopcountI64(mask);
+  auto permute_idx = program.LoadI32Vec8(program.MaskToPermutePtr(mask));
+  auto permuted = program.PermuteI32Vec8(v1, permute_idx);
+  program.MaskStoreI32Vec8(args[0], permuted, popcount);
+  program.Return(popcount);
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int64_t(int32_t*, int32_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  alignas(32) int32_t dest[8] = {};
+  EXPECT_EQ(compute(&dest[1], values), 6);
+  EXPECT_EQ(dest[1], 3);
+  EXPECT_EQ(dest[2], 4);
+  EXPECT_EQ(dest[3], 5);
+  EXPECT_EQ(dest[4], 6);
+  EXPECT_EQ(dest[5], 7);
+  EXPECT_EQ(dest[6], 8);
+}
+
 INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, BackendTest,
                          testing::Values(std::make_pair(
                              BackendType::LLVM, RegAllocImpl::STACK_SPILL)));

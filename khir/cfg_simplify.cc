@@ -148,6 +148,8 @@ void RewriteInstr(uint64_t& instr,
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
     case Opcode::PTR_STORE:
+    case Opcode::I32_VEC8_MASK_STORE:
+    case Opcode::I32_VEC8_MASK_STORE_INFO:
     case Opcode::GEP_STATIC_OFFSET:
     case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:

@@ -48,6 +48,14 @@ void ExceptionErrorHandler::handleError(Error err, const char* message,
   throw std::runtime_error(message);
 }
 
+class ErrorPrinter : public ErrorHandler {
+ public:
+  void handleError(Error err, const char* message,
+                   BaseEmitter* origin) override {
+    std::cerr << "AsmJit error: " << message << "\n";
+  }
+};
+
 ASMBackend::ASMBackend(RegAllocImpl impl)
     : reg_alloc_impl_(impl), logger_(stderr) {}
 
@@ -176,11 +184,13 @@ uint64_t ASMBackend::OutputConstant(uint64_t instr, const Program& program) {
 
 void ASMBackend::Translate(const Program& program) {
   code_.init(rt_.environment());
+  // ErrorPrinter handler;
+  // code_.setErrorHandler(&handler);
   // code_.setLogger(&logger_);
   asm_ = std::make_unique<x86::Assembler>(&code_);
 
   text_section_ = code_.textSection();
-  code_.newSection(&data_section_, ".data", SIZE_MAX, 0, 8, 0);
+  code_.newSection(&data_section_, ".data", SIZE_MAX, 0, 32, 0);
 
   asm_->section(data_section_);
 
@@ -205,10 +215,26 @@ void ASMBackend::Translate(const Program& program) {
   asm_->bind(ones_);
   asm_->embedUInt32(-1, 8);
 
+  auto masks = asm_->newLabel();
+  asm_->align(kAlignZero, 32);
+  asm_->bind(masks);
+  for (int i = 0; i < 9; i++) {
+    for (int j = 0; j < i; j++) {
+      asm_->embedUInt32(-1);
+    }
+    for (int j = i; j < 8; j++) {
+      asm_->embedUInt32(0);
+    }
+  }
+
   permute_ = asm_->newLabel();
   asm_->bind(permute_);
   asm_->embedUInt64(
       reinterpret_cast<uint64_t>(util::PermutationTable::Get().Addr()));
+
+  masks_ = asm_->newLabel();
+  asm_->bind(masks_);
+  asm_->embedLabel(masks);
 
   // Write out all global variables
   for (const auto& global : program.Globals()) {
@@ -3713,6 +3739,38 @@ void ASMBackend::TranslateInstr(
         asm_->mov(GPRegister::RAX.GetQ(), loc);
         asm_->mov(x86::qword_ptr(x86::rsp, offset), GPRegister::RAX.GetQ());
       }
+      return;
+    }
+
+    case Opcode::I32_VEC8_MASK_STORE_INFO: {
+      return;
+    }
+
+    case Opcode::I32_VEC8_MASK_STORE: {
+      Type2InstructionReader reader(instr);
+      Type2InstructionReader reader_info(instructions[instr_idx - 1]);
+      auto ptr = Value(reader.Arg0());
+      auto val = Value(reader.Arg1());
+      auto popcount = Value(reader_info.Arg0());
+
+      assert(dest_assign.IsRegister());
+      auto temp_reg = VRegister::FromId(dest_assign.Register()).GetY();
+
+      // load the mask into temp
+      MoveQWordValue(x86::rax, popcount, offsets, constant_instrs,
+                     i64_constants, register_assign);
+      asm_->shl(x86::rax, 5);
+      asm_->add(x86::rax, x86::qword_ptr(masks_));
+      asm_->vmovdqa(temp_reg, x86::ymmword_ptr(x86::rax));
+
+      // load the value into ymm15
+      auto value_reg =
+          GetYMMWordValue(val, offsets, constant_instrs, register_assign);
+
+      auto dest =
+          GetYMMWordPtrValue(ptr, offsets, instructions, constant_instrs,
+                             ptr_constants, register_assign);
+      asm_->vpmaskmovd(dest, temp_reg, value_reg);
       return;
     }
 

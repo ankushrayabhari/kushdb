@@ -205,6 +205,7 @@ class ProgramBuilder {
   Value ConstI32Vec8(uint32_t v);
   Value LoadI32Vec8(Value ptr);
   Value CmpI32Vec8(CompType cmp, Value v1, Value v2);
+  void MaskStoreI32Vec8(Value ptr, Value v, Value popcount);
 
   // I1Vec8
   Value NotI1Vec8(Value v);

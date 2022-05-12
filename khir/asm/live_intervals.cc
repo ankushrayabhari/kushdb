@@ -305,6 +305,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
     case Opcode::PTR_STORE:
+    case Opcode::I32_VEC8_MASK_STORE:
     case Opcode::RETURN_VALUE:
     case Opcode::CONDBR:
     case Opcode::BR:
@@ -324,6 +325,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::PHI_MEMBER:
     case Opcode::CALL_ARG:
+    case Opcode::I32_VEC8_MASK_STORE_INFO:
       return manager.VoidType();
   }
 }
@@ -465,6 +467,8 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
     case Opcode::PTR_STORE:
+    case Opcode::I32_VEC8_MASK_STORE:
+    case Opcode::I32_VEC8_MASK_STORE_INFO:
     case Opcode::GEP_STATIC_OFFSET:
     case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::BR:
@@ -770,6 +774,34 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
       return {};
     }
 
+    case Opcode::I32_VEC8_MASK_STORE: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      std::vector<Value> result;
+      if (IsGep(v0, instrs) && !materialize_gep[v0.GetIdx()]) {
+        result = GetReadValuesGEP(v0.GetIdx(), instrs);
+      } else if (!v0.IsConstantGlobal()) {
+        result.push_back(v0);
+      }
+
+      if (IsGep(v1, instrs) && !materialize_gep[v1.GetIdx()]) {
+        throw std::runtime_error("Required materialized GEP into XXX_STORE.");
+      }
+      if (!v1.IsConstantGlobal()) {
+        result.push_back(v1);
+      }
+
+      Type2InstructionReader reader_info(instrs[instr_idx - 1]);
+      Value v2(reader_info.Arg0());
+      if (!v2.IsConstantGlobal()) {
+        result.push_back(v2);
+      }
+
+      return result;
+    }
+
     case Opcode::RETURN:
     case Opcode::BR:
     case Opcode::FUNC_ARG:
@@ -777,6 +809,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::PHI:
     case Opcode::I32_VEC8_INIT_1:
+    case Opcode::I32_VEC8_MASK_STORE_INFO:
       return {};
   }
 }
@@ -927,7 +960,8 @@ std::vector<LiveInterval> ComputeLiveIntervals(
           case Opcode::I32_STORE:
           case Opcode::I64_STORE:
           case Opcode::F64_STORE:
-          case Opcode::PTR_STORE: {
+          case Opcode::PTR_STORE:
+          case Opcode::I32_VEC8_MASK_STORE: {
             live_intervals[i].Extend(instr_map.at({bb_idx, i}));
             break;
           }

@@ -150,6 +150,8 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I64_STORE
 // [MD] [ARG0] [ARG1] F64_STORE
 // [MD] [ARG0] [ARG1] PTR_STORE
+// [MD] [ARG0] [ARG1] I32_VEC8_MASK_STORE
+// [MD] [ARG0] [0]    I32_VEC8_MASK_STORE_INFO
 // [MD] [ARG0] [0]    I1_LOAD
 // [MD] [ARG0] [0]    I8_LOAD
 // [MD] [ARG0] [0]    I16_LOAD

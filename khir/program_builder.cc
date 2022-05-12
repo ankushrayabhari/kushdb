@@ -382,6 +382,21 @@ void ProgramBuilder::StorePtr(Value ptr, Value v) {
                                   .Build());
 }
 
+void ProgramBuilder::MaskStoreI32Vec8(Value ptr, Value v, Value popcount) {
+  GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I32_VEC8_MASK_STORE_INFO))
+          .SetArg0(popcount.Serialize())
+          .Build());
+
+  GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I32_VEC8_MASK_STORE))
+          .SetArg0(ptr.Serialize())
+          .SetArg1(v.Serialize())
+          .Build());
+}
+
 Value ProgramBuilder::LoadI1(Value ptr) {
   return GetCurrentFunction().Append(Type2InstructionBuilder()
                                          .SetOpcode(OpcodeTo(Opcode::I1_LOAD))
@@ -670,6 +685,7 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
     case Opcode::PTR_STORE:
+    case Opcode::I32_VEC8_MASK_STORE:
     case Opcode::RETURN_VALUE:
     case Opcode::CONDBR:
     case Opcode::BR:
@@ -690,6 +706,7 @@ Type ProgramBuilder::TypeOf(Value value) const {
       throw std::runtime_error("GEP offsets needs to be under a GEP.");
       break;
 
+    case Opcode::I32_VEC8_MASK_STORE_INFO:
     case Opcode::PHI_MEMBER:
     case Opcode::CALL_ARG:
       throw std::runtime_error("Cannot call type of on an extension.");

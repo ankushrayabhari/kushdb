@@ -358,6 +358,13 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
         break;
       }
 
+      case Opcode::I32_VEC8_MASK_STORE: {
+        AddPrecoloredInterval(i, assignments, free_vector, active_vector);
+        assert(i.IsPrecolored());
+        assignments[i_instr].SetRegister(i.PrecoloredRegister());
+        break;
+      }
+
       case Opcode::I8_STORE:
       case Opcode::I16_STORE:
       case Opcode::I32_STORE:

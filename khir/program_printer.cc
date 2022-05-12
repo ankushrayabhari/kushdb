@@ -236,7 +236,8 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::I32_LOAD:
     case Opcode::I32_VEC8_LOAD:
     case Opcode::I64_LOAD:
-    case Opcode::F64_LOAD: {
+    case Opcode::F64_LOAD:
+    case Opcode::I32_VEC8_MASK_STORE_INFO: {
       Type2InstructionReader reader(instrs[idx]);
       Value v0(reader.Arg0());
 
@@ -253,7 +254,8 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::I32_STORE:
     case Opcode::I64_STORE:
     case Opcode::F64_STORE:
-    case Opcode::PTR_STORE: {
+    case Opcode::PTR_STORE:
+    case Opcode::I32_VEC8_MASK_STORE: {
       Type2InstructionReader reader(instrs[idx]);
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());

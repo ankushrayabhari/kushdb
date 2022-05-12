@@ -24,6 +24,10 @@ std::vector<RegisterAssignment> StackSpillingRegisterAlloc(
         assignments[i].SetRegister(GPRegister::R15.Id());
         break;
 
+      case Opcode::I32_VEC8_MASK_STORE:
+        assignments[i].SetRegister(VRegister::M14.Id());
+        break;
+
       default:
         break;
     }
