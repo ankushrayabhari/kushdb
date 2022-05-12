@@ -596,6 +596,7 @@ Type ProgramBuilder::TypeOf(Value value) const {
       return type_manager_.I32Vec8PtrType();
 
     case Opcode::I1_VEC8_MASK_EXTRACT:
+    case Opcode::I64_POPCOUNT:
       return type_manager_.I64Type();
 
     case Opcode::I1_VEC8_NOT:
@@ -1624,6 +1625,14 @@ Value ProgramBuilder::ExtractMaskI1Vec8(Value v) {
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I1_VEC8_MASK_EXTRACT))
+          .SetArg0(v.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::PopcountI64(Value v) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I64_POPCOUNT))
           .SetArg0(v.Serialize())
           .Build());
 }

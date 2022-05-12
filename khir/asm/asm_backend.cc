@@ -1,5 +1,6 @@
 #include "khir/asm/asm_backend.h"
 
+#include <bitset>
 #include <iostream>
 #include <stdexcept>
 
@@ -3115,6 +3116,37 @@ void ASMBackend::TranslateInstr(
       auto v0_reg =
           GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
       asm_->vmovmskps(dest, v0_reg);
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot();
+        offsets[instr_idx] = offset;
+        asm_->mov(x86::qword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
+    case Opcode::I64_POPCOUNT: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+
+      auto dest = dest_assign.IsRegister()
+                      ? GPRegister::FromId(dest_assign.Register()).GetQ()
+                      : GPRegister::RAX.GetQ();
+
+      if (v0.IsConstantGlobal()) {
+        int64_t c64 =
+            i64_constants[Type1InstructionReader(constant_instrs[v0.GetIdx()])
+                              .Constant()];
+        std::bitset<64> b(c64);
+        asm_->mov(dest, b.count());
+      } else if (register_assign[v0.GetIdx()].IsRegister()) {
+        auto v0_reg =
+            GPRegister::FromId(register_assign[v0.GetIdx()].Register()).GetQ();
+        asm_->popcnt(dest, v0_reg);
+      } else {
+        asm_->popcnt(dest,
+                     x86::qword_ptr(x86::rsp, GetOffset(offsets, v0.GetIdx())));
+      }
 
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot();

@@ -229,6 +229,7 @@ class ProgramBuilder {
   Value I16TruncI64(Value v);
   Value I32TruncI64(Value v);
   Value LoadI64(Value ptr);
+  Value PopcountI64(Value v);
   void StoreI64(Value ptr, Value v);
 
   // F64

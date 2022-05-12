@@ -230,6 +230,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::MASK_TO_PERMUTE:
       return manager.I32Vec8PtrType();
 
+    case Opcode::I64_POPCOUNT:
     case Opcode::I1_VEC8_MASK_EXTRACT:
       return manager.I64Type();
 
@@ -378,6 +379,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I1_VEC8_NOT:
     case Opcode::I32_VEC8_INIT_1:
     case Opcode::MASK_TO_PERMUTE:
+    case Opcode::I64_POPCOUNT:
     case Opcode::I1_VEC8_MASK_EXTRACT:
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
     case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
@@ -583,6 +585,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
 
     case Opcode::I1_LNOT:
     case Opcode::MASK_TO_PERMUTE:
+    case Opcode::I64_POPCOUNT:
     case Opcode::I1_VEC8_MASK_EXTRACT:
     case Opcode::I1_VEC8_NOT:
     case Opcode::I1_ZEXT_I8:

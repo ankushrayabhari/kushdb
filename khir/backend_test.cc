@@ -6614,6 +6614,30 @@ TEST_P(BackendTest, I32Vec8Permute) {
   EXPECT_EQ(compute(values), 0b00000001);
 }
 
+TEST_P(BackendTest, I64_POPCOUNT) {
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(program.I64Type(),
+                                           {program.I64Type()}, "compute");
+  auto args = program.GetFunctionArguments(func);
+  program.Return(program.PopcountI64(args[0]));
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
+
+  for (int i = 0; i < 10; i++) {
+    int64_t c = distrib(gen);
+
+    auto count = std::bitset<64>(c).count();
+
+    EXPECT_EQ(count, compute(c));
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, BackendTest,
                          testing::Values(std::make_pair(
                              BackendType::LLVM, RegAllocImpl::STACK_SPILL)));

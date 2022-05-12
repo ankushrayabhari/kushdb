@@ -607,6 +607,15 @@ void LLVMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I64_POPCOUNT: {
+      Type2InstructionReader reader(instr);
+      auto v = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto perm = llvm::Intrinsic::getDeclaration(
+          module_.get(), llvm::Intrinsic::ctpop, {builder_->getInt64Ty()});
+      values[instr_idx] = builder_->CreateCall(perm, {v});
+      return;
+    }
+
     case Opcode::I1_VEC8_MASK_EXTRACT: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
