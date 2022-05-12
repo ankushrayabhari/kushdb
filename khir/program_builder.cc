@@ -632,6 +632,7 @@ Type ProgramBuilder::TypeOf(Value value) const {
 
     case Opcode::I32_VEC8_INIT_1:
     case Opcode::I32_VEC8_LOAD:
+    case Opcode::I32_VEC8_PERMUTE:
       return type_manager_.I32Vec8Type();
 
     case Opcode::I64_ADD:
@@ -1640,6 +1641,15 @@ Value ProgramBuilder::AndI1Vec8(Value v1, Value v2) {
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I1_VEC8_AND))
+          .SetArg0(v1.Serialize())
+          .SetArg1(v2.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::PermuteI32Vec8(Value v1, Value v2) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I32_VEC8_PERMUTE))
           .SetArg0(v1.Serialize())
           .SetArg1(v2.Serialize())
           .Build());

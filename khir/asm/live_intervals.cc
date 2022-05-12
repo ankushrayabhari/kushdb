@@ -267,6 +267,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
 
     case Opcode::I32_VEC8_INIT_1:
     case Opcode::I32_VEC8_LOAD:
+    case Opcode::I32_VEC8_PERMUTE:
       return manager.I32Vec8Type();
 
     case Opcode::I64_LSHIFT:
@@ -371,6 +372,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I32_VEC8_CMP_LE:
     case Opcode::I32_VEC8_CMP_GT:
     case Opcode::I32_VEC8_CMP_GE:
+    case Opcode::I32_VEC8_PERMUTE:
     case Opcode::I1_VEC8_AND:
     case Opcode::I1_VEC8_OR:
     case Opcode::I1_VEC8_NOT:
@@ -518,6 +520,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::I32_VEC8_CMP_GT:
     case Opcode::I32_VEC8_CMP_GE:
     case Opcode::I1_VEC8_AND:
+    case Opcode::I32_VEC8_PERMUTE:
     case Opcode::I1_VEC8_OR:
     case Opcode::I64_ADD:
     case Opcode::I64_MUL:

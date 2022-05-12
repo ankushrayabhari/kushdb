@@ -155,6 +155,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::I32_CMP_LE:
     case Opcode::I32_CMP_GT:
     case Opcode::I32_CMP_GE:
+    case Opcode::I32_VEC8_PERMUTE:
     case Opcode::I32_VEC8_CMP_EQ:
     case Opcode::I32_VEC8_CMP_NE:
     case Opcode::I32_VEC8_CMP_LT:

@@ -212,6 +212,7 @@ class ProgramBuilder {
   Value AndI1Vec8(Value v1, Value v2);
   Value ExtractMaskI1Vec8(Value v);
   Value MaskToPermutePtr(Value v);
+  Value PermuteI32Vec8(Value v1, Value v2);
 
   // I64
   Value ConstI64(uint64_t v);

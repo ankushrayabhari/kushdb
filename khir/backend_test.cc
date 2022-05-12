@@ -6589,6 +6589,31 @@ TEST_P(BackendTest, MaskToPermute) {
             util::PermutationTable::Get().GetEntry(0b00001000));
 }
 
+TEST_P(BackendTest, I32Vec8Permute) {
+  alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
+
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.I64Type(), {program.PointerType(program.I32Vec8Type())},
+      "compute");
+
+  auto args = program.GetFunctionArguments(func);
+  auto v1 = program.LoadI32Vec8(args[0]);
+  auto comparison =
+      program.CmpI32Vec8(CompType::EQ, v1, program.ConstI32Vec8(4));
+  auto permute_ptr =
+      program.MaskToPermutePtr(program.ExtractMaskI1Vec8(comparison));
+  auto permuted = program.PermuteI32Vec8(v1, permute_ptr);
+  program.Return(program.ExtractMaskI1Vec8(
+      program.CmpI32Vec8(CompType::EQ, permuted, program.ConstI32Vec8(4))));
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+  EXPECT_EQ(compute(values), 0b00000001);
+}
+
 INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, BackendTest,
                          testing::Values(std::make_pair(
                              BackendType::LLVM, RegAllocImpl::STACK_SPILL)));

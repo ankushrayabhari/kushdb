@@ -17,6 +17,7 @@
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/IntrinsicsX86.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
@@ -572,6 +573,18 @@ void LLVMBackend::TranslateInstr(
       auto v = reader.Constant();
       values[instr_idx] = llvm::ConstantVector::get(
           std::vector<llvm::Constant*>(8, builder_->getInt32(v)));
+      return;
+    }
+
+    case Opcode::I32_VEC8_PERMUTE: {
+      Type2InstructionReader reader(instr);
+      auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
+      auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
+      auto v1_load =
+          builder_->CreateLoad(v1->getType()->getPointerElementType(), v1);
+      auto perm = llvm::Intrinsic::getDeclaration(
+          module_.get(), llvm::Intrinsic::x86_avx2_permd);
+      values[instr_idx] = builder_->CreateCall(perm, {v0, v1_load});
       return;
     }
 

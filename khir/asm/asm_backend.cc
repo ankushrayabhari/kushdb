@@ -2992,6 +2992,40 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I32_VEC8_PERMUTE: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      auto v1_reg = x86::ymm15;
+      auto loc = GetYMMWordPtrValue(v1, offsets, instructions, constant_instrs,
+                                    ptr_constants, register_assign);
+      asm_->vmovaps(v1_reg, loc);
+
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetY()
+                      : x86::ymm15;
+
+      if (v0.IsConstantGlobal()) {
+        throw std::runtime_error("Invalid");
+      } else if (register_assign[v0.GetIdx()].IsRegister()) {
+        auto v0_reg =
+            VRegister::FromId(register_assign[v0.GetIdx()].Register()).GetY();
+        asm_->vpermps(dest, v1_reg, v0_reg);
+      } else {
+        asm_->vpermps(
+            dest, v1_reg,
+            x86::ymmword_ptr(x86::rsp, GetOffset(offsets, v0.GetIdx())));
+      }
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovaps(x86::ymmword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
     case Opcode::I1_VEC8_AND: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());
