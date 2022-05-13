@@ -48,7 +48,7 @@ void ScanSelectOperator::Accept(ImmutableOperatorVisitor& visitor) const {
 
 nlohmann::json ScanSelectOperator::ToJson() const {
   nlohmann::json j;
-  j["op"] = "SKINER_SCAN_SELECT";
+  j["op"] = "SCAN_SELECT";
   j["relation"] = relation_.Name();
   j["scan_output"] = scan_schema_.ToJson();
   j["output"] = Schema().ToJson();
