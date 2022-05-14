@@ -276,14 +276,9 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
   free_normal.insert(GPRegister::R14.Id());
   free_normal.insert(GPRegister::R15.Id());
 
-  const int TOTAL_GP_FREE = free_normal.size();
-  const int TOTAL_V_FREE = free_vector.size();
-
   for (int a = 0; a < live_intervals.size(); a++) {
-    assert(Union(active_normal, free_normal, assignments).size() ==
-           TOTAL_GP_FREE);
-    assert(Union(active_vector, free_vector, assignments).size() ==
-           TOTAL_V_FREE);
+    assert(Union(active_normal, free_normal, assignments).size() == 13);
+    assert(Union(active_vector, free_vector, assignments).size() == 15);
 
     LiveInterval& i = live_intervals[a];
     assert(!i.Undef());
