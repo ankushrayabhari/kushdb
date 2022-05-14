@@ -359,7 +359,12 @@ class ASMBackend : public Backend {
   asmjit::x86::Ymm GetYMMWordValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& constant_instrs,
+      const std::vector<std::array<int32_t, 8>>& vec8_constants,
       const std::vector<RegisterAssignment>& register_assign);
+
+  asmjit::Label EmbedI32(int32_t c);
+  asmjit::Label EmbedI32Vec8(int32_t c);
+  asmjit::Label EmbedI32Vec8(std::array<int32_t, 8> c);
 
   RegAllocImpl reg_alloc_impl_;
   asmjit::JitRuntime rt_;

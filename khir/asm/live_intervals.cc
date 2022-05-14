@@ -266,7 +266,7 @@ Type TypeOf(uint64_t instr, const std::vector<uint64_t>& instrs,
     case Opcode::I64_TRUNC_I32:
       return manager.I32Type();
 
-    case Opcode::I32_VEC8_INIT_1:
+    case Opcode::I32_CONV_I32_VEC8:
     case Opcode::I32_VEC8_LOAD:
     case Opcode::I32_VEC8_PERMUTE:
       return manager.I32Vec8Type();
@@ -379,7 +379,6 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I1_VEC8_AND:
     case Opcode::I1_VEC8_OR:
     case Opcode::I1_VEC8_NOT:
-    case Opcode::I32_VEC8_INIT_1:
     case Opcode::MASK_TO_PERMUTE:
     case Opcode::I64_POPCOUNT:
     case Opcode::I1_VEC8_MASK_EXTRACT:
@@ -418,6 +417,7 @@ std::optional<Value> GetWrittenValue(int instr_idx,
     case Opcode::I16_CONV_F64:
     case Opcode::I32_ZEXT_I64:
     case Opcode::I32_CONV_F64:
+    case Opcode::I32_CONV_I32_VEC8:
     case Opcode::I64_CONV_F64:
     case Opcode::I64_TRUNC_I16:
     case Opcode::I64_TRUNC_I32:
@@ -600,6 +600,7 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::I16_CONV_F64:
     case Opcode::I32_ZEXT_I64:
     case Opcode::I32_CONV_F64:
+    case Opcode::I32_CONV_I32_VEC8:
     case Opcode::I64_CONV_F64:
     case Opcode::I64_TRUNC_I16:
     case Opcode::I64_TRUNC_I32:
@@ -808,7 +809,6 @@ std::vector<Value> GetReadValues(int instr_idx, int seg_start, int seg_end,
     case Opcode::GEP_STATIC_OFFSET:
     case Opcode::GEP_DYNAMIC_OFFSET:
     case Opcode::PHI:
-    case Opcode::I32_VEC8_INIT_1:
     case Opcode::I32_VEC8_MASK_STORE_INFO:
       return {};
   }

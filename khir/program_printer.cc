@@ -40,7 +40,7 @@ void OutputValue(khir::Value v, const Program& program) {
         return;
       }
 
-      case ConstantOpcode::I32_CONST_VEC4: {
+      case ConstantOpcode::I32_VEC4_CONST_4: {
         int v = Type1InstructionReader(instr).Constant();
         std::cerr << "i32:{";
         for (int x : program.I32Vec4Constants()[v]) {
@@ -50,7 +50,17 @@ void OutputValue(khir::Value v, const Program& program) {
         return;
       }
 
-      case ConstantOpcode::I32_CONST_VEC8: {
+      case ConstantOpcode::I32_VEC8_CONST_1: {
+        int v = Type1InstructionReader(instr).Constant();
+        std::cerr << "i32:{";
+        for (int i = 0; i < 8; i++) {
+          std::cerr << " " << v;
+        }
+        std::cerr << " }";
+        return;
+      }
+
+      case ConstantOpcode::I32_VEC8_CONST_8: {
         int v = Type1InstructionReader(instr).Constant();
         std::cerr << "i32:{";
         for (int x : program.I32Vec8Constants()[v]) {
@@ -205,13 +215,6 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
       return;
     }
 
-    case Opcode::I32_VEC8_INIT_1: {
-      Type1InstructionReader reader(instrs[idx]);
-      std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
-                << " " << reader.Constant() << "\n";
-      return;
-    }
-
     case Opcode::I1_LNOT:
     case Opcode::I1_VEC8_MASK_EXTRACT:
     case Opcode::I64_POPCOUNT:
@@ -224,6 +227,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
     case Opcode::I16_ZEXT_I64:
     case Opcode::I16_CONV_F64:
     case Opcode::I32_ZEXT_I64:
+    case Opcode::I32_CONV_I32_VEC8:
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
     case Opcode::I64_TRUNC_I32:

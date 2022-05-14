@@ -527,6 +527,10 @@ Type ProgramBuilder::TypeOf(Value value) const {
       case ConstantOpcode::I32_CONST:
         return type_manager_.I32Type();
 
+      case ConstantOpcode::I32_VEC8_CONST_1:
+      case ConstantOpcode::I32_VEC8_CONST_8:
+        return type_manager_.I32Vec8Type();
+
       case ConstantOpcode::I64_CONST:
         return type_manager_.I64Type();
 
@@ -556,9 +560,8 @@ Type ProgramBuilder::TypeOf(Value value) const {
         return globals_[Type1InstructionReader(instr).Constant()]
             .PointerToType();
 
-      case ConstantOpcode::I32_CONST_VEC4:
-      case ConstantOpcode::I32_CONST_VEC8:
-        throw std::runtime_error("Cannot call type of on vec4/vec8");
+      case ConstantOpcode::I32_VEC4_CONST_4:
+        throw std::runtime_error("Cannot call type of on vec4");
     }
   }
 
@@ -646,7 +649,7 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::I64_TRUNC_I32:
       return type_manager_.I32Type();
 
-    case Opcode::I32_VEC8_INIT_1:
+    case Opcode::I32_CONV_I32_VEC8:
     case Opcode::I32_VEC8_LOAD:
     case Opcode::I32_VEC8_PERMUTE:
       return type_manager_.I32Vec8Type();
@@ -1458,7 +1461,7 @@ Value ProgramBuilder::CmpEqConstI32(Value v1, std::array<int32_t, 4> v2) {
 
   auto v2_value = AppendConstantGlobal(
       Type1InstructionBuilder()
-          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I32_CONST_VEC4))
+          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I32_VEC4_CONST_4))
           .SetConstant(idx)
           .Build());
 
@@ -1471,15 +1474,7 @@ Value ProgramBuilder::CmpEqConstI32(Value v1, std::array<int32_t, 4> v2) {
 }
 
 Value ProgramBuilder::CmpEqConstI32(Value v1, std::array<int32_t, 8> v2) {
-  uint32_t idx = vec8_constants_.size();
-  vec8_constants_.emplace_back(v2);
-
-  auto v2_value = AppendConstantGlobal(
-      Type1InstructionBuilder()
-          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I32_CONST_VEC8))
-          .SetConstant(idx)
-          .Build());
-
+  auto v2_value = ConstI32Vec8(v2);
   return GetCurrentFunction().Append(
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I32_CMP_EQ_ANY_CONST_VEC8))
@@ -1615,10 +1610,28 @@ Value ProgramBuilder::CmpI32Vec8(CompType cmp, Value v1, Value v2) {
 }
 
 Value ProgramBuilder::ConstI32Vec8(uint32_t v) {
-  return GetCurrentFunction().Append(
+  return AppendConstantGlobal(
       Type1InstructionBuilder()
-          .SetOpcode(OpcodeTo(Opcode::I32_VEC8_INIT_1))
+          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I32_VEC8_CONST_1))
           .SetConstant(v)
+          .Build());
+}
+
+Value ProgramBuilder::ConstI32Vec8(std::array<int32_t, 8> v) {
+  uint32_t idx = vec8_constants_.size();
+  vec8_constants_.emplace_back(v);
+  return AppendConstantGlobal(
+      Type1InstructionBuilder()
+          .SetOpcode(ConstantOpcodeTo(ConstantOpcode::I32_VEC8_CONST_8))
+          .SetConstant(idx)
+          .Build());
+}
+
+Value ProgramBuilder::I32Vec8ConvI32(Value v) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I32_CONV_I32_VEC8))
+          .SetArg0(v.Serialize())
           .Build());
 }
 

@@ -176,9 +176,10 @@ uint64_t ASMBackend::OutputConstant(uint64_t instr, const Program& program) {
       return bytes_written;
     }
 
-    case ConstantOpcode::I32_CONST_VEC4:
-    case ConstantOpcode::I32_CONST_VEC8:
-      return 0;
+    case ConstantOpcode::I32_VEC4_CONST_4:
+    case ConstantOpcode::I32_VEC8_CONST_1:
+    case ConstantOpcode::I32_VEC8_CONST_8:
+      throw std::runtime_error("Cannot output vector constant.");
   }
 }
 
@@ -551,6 +552,39 @@ asmjit::Label ASMBackend::EmbedI64(int64_t c) {
   asm_->section(data_section_);
   asm_->bind(label);
   asm_->embedInt64(c);
+  asm_->section(text_section_);
+  return label;
+}
+
+asmjit::Label ASMBackend::EmbedI32(int32_t c) {
+  auto label = asm_->newLabel();
+  asm_->section(data_section_);
+  asm_->bind(label);
+  asm_->embedInt32(c);
+  asm_->section(text_section_);
+  return label;
+}
+
+asmjit::Label ASMBackend::EmbedI32Vec8(int32_t v) {
+  auto label = asm_->newLabel();
+  asm_->section(data_section_);
+  asm_->align(AlignMode::kAlignZero, 32);
+  asm_->bind(label);
+  for (int i = 0; i < 8; i++) {
+    asm_->embedInt32(v);
+  }
+  asm_->section(text_section_);
+  return label;
+}
+
+asmjit::Label ASMBackend::EmbedI32Vec8(std::array<int32_t, 8> vec8) {
+  auto label = asm_->newLabel();
+  asm_->section(data_section_);
+  asm_->align(AlignMode::kAlignZero, 32);
+  asm_->bind(label);
+  for (int32_t v : vec8) {
+    asm_->embedInt32(v);
+  }
   asm_->section(text_section_);
   return label;
 }
@@ -2038,9 +2072,29 @@ void ASMBackend::F64ConvI64Value(
 x86::Ymm ASMBackend::GetYMMWordValue(
     Value v, std::vector<int32_t>& offsets,
     const std::vector<uint64_t>& constant_instrs,
+    const std::vector<std::array<int32_t, 8>>& vec8_constants,
     const std::vector<RegisterAssignment>& register_assign) {
   if (v.IsConstantGlobal()) {
-    throw std::runtime_error("Invalid");
+    Type1InstructionReader constant_reader(constant_instrs[v.GetIdx()]);
+    switch (ConstantOpcodeFrom(constant_reader.Opcode())) {
+      case ConstantOpcode::I32_VEC8_CONST_8: {
+        auto vec8_idx = constant_reader.Constant();
+        const auto& vec8 = vec8_constants[vec8_idx];
+        auto label = EmbedI32Vec8(vec8);
+        asm_->vmovdqa(VRegister::M15.GetY(), x86::ymmword_ptr(label));
+        return VRegister::M15.GetY();
+      }
+
+      case ConstantOpcode::I32_VEC8_CONST_1: {
+        auto v = constant_reader.Constant();
+        auto label = EmbedI32(v);
+        asm_->vpbroadcastd(VRegister::M15.GetY(), x86::dword_ptr(label));
+        return VRegister::M15.GetY();
+      }
+
+      default:
+        throw std::runtime_error("needs to be vec8 constant");
+    }
   } else if (register_assign[v.GetIdx()].IsRegister()) {
     return VRegister::FromId(register_assign[v.GetIdx()].Register()).GetY();
   } else {
@@ -2427,19 +2481,31 @@ void ASMBackend::TranslateInstr(
       Value v0(reader.Arg0());
       Value v1(reader.Arg1());
 
-      // embed the constant array
-      auto vec8_idx =
-          Type1InstructionReader(program.ConstantInstrs()[v1.GetIdx()])
-              .Constant();
-      const auto& vec8 = program.I32Vec8Constants()[vec8_idx];
-      auto label = asm_->newLabel();
-      asm_->section(data_section_);
-      asm_->align(AlignMode::kAlignZero, 32);
-      asm_->bind(label);
-      for (int32_t v : vec8) {
-        asm_->embedInt32(v);
+      if (!v1.IsConstantGlobal()) {
+        throw std::runtime_error("needs to be vec8 constant");
       }
-      asm_->section(text_section_);
+
+      // embed the constant array
+      asmjit::Label label;
+      Type1InstructionReader constant_reader(
+          program.ConstantInstrs()[v1.GetIdx()]);
+      switch (ConstantOpcodeFrom(constant_reader.Opcode())) {
+        case ConstantOpcode::I32_VEC8_CONST_8: {
+          auto vec8_idx = constant_reader.Constant();
+          const auto& vec8 = program.I32Vec8Constants()[vec8_idx];
+          label = EmbedI32Vec8(vec8);
+          break;
+        }
+
+        case ConstantOpcode::I32_VEC8_CONST_1: {
+          auto v = constant_reader.Constant();
+          label = EmbedI32Vec8(v);
+          break;
+        }
+
+        default:
+          throw std::runtime_error("needs to be vec8 constant");
+      }
 
       // load the value into ymm15
       if (register_assign[v0.GetIdx()].IsRegister()) {
@@ -2455,7 +2521,6 @@ void ASMBackend::TranslateInstr(
       // compare to each value
       asm_->vpcmpeqd(x86::ymm15, x86::ymm15, x86::ymmword_ptr(label));
       asm_->vmovmskps(x86::eax, x86::ymm15);
-      asm_->vzeroupper();
       asm_->test(x86::eax, x86::eax);
 
       if (IsIFlag(dest_assign)) {
@@ -2893,30 +2958,6 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
-    case Opcode::I32_VEC8_INIT_1: {
-      Type1InstructionReader reader(instr);
-      auto value = reader.Constant();
-
-      auto label = asm_->newLabel();
-      asm_->section(data_section_);
-      asm_->bind(label);
-      asm_->embedInt32(value);
-      asm_->section(text_section_);
-
-      auto dest = dest_assign.IsRegister()
-                      ? VRegister::FromId(dest_assign.Register()).GetY()
-                      : VRegister::M15.GetY();
-
-      asm_->vpbroadcastd(dest, x86::dword_ptr(label));
-
-      if (!dest_assign.IsRegister()) {
-        auto offset = stack_allocator.AllocateSlot(32, 32);
-        offsets[instr_idx] = offset;
-        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), dest);
-      }
-      return;
-    }
-
     case Opcode::I32_VEC8_LOAD: {
       Type2InstructionReader reader(instr);
       Value v(reader.Arg0());
@@ -2942,13 +2983,33 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       auto v0_reg =
-          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+          GetYMMWordValue(v0, offsets, constant_instrs,
+                          program.I32Vec8Constants(), register_assign);
       auto dest = dest_assign.IsRegister()
                       ? VRegister::FromId(dest_assign.Register()).GetY()
                       : VRegister::M15.GetY();
 
       if (v1.IsConstantGlobal()) {
-        throw std::runtime_error("Invalid");
+        Type1InstructionReader constant_reader(constant_instrs[v1.GetIdx()]);
+        switch (ConstantOpcodeFrom(constant_reader.Opcode())) {
+          case ConstantOpcode::I32_VEC8_CONST_8: {
+            auto vec8_idx = constant_reader.Constant();
+            const auto& vec8 = program.I32Vec8Constants()[vec8_idx];
+            auto label = EmbedI32Vec8(vec8);
+            asm_->vpcmpeqd(dest, v0_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          case ConstantOpcode::I32_VEC8_CONST_1: {
+            auto v = constant_reader.Constant();
+            auto label = EmbedI32Vec8(v);
+            asm_->vpcmpeqd(dest, v0_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          default:
+            throw std::runtime_error("needs to be vec8 constant");
+        }
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg =
             VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
@@ -2989,13 +3050,33 @@ void ASMBackend::TranslateInstr(
       }
 
       auto v0_reg =
-          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+          GetYMMWordValue(v0, offsets, constant_instrs,
+                          program.I32Vec8Constants(), register_assign);
       auto dest = dest_assign.IsRegister()
                       ? VRegister::FromId(dest_assign.Register()).GetY()
                       : VRegister::M15.GetY();
 
       if (v1.IsConstantGlobal()) {
-        throw std::runtime_error("Invalid");
+        Type1InstructionReader constant_reader(constant_instrs[v1.GetIdx()]);
+        switch (ConstantOpcodeFrom(constant_reader.Opcode())) {
+          case ConstantOpcode::I32_VEC8_CONST_8: {
+            auto vec8_idx = constant_reader.Constant();
+            const auto& vec8 = program.I32Vec8Constants()[vec8_idx];
+            auto label = EmbedI32Vec8(vec8);
+            asm_->vpcmpgtd(dest, v0_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          case ConstantOpcode::I32_VEC8_CONST_1: {
+            auto v = constant_reader.Constant();
+            auto label = EmbedI32Vec8(v);
+            asm_->vpcmpgtd(dest, v0_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          default:
+            throw std::runtime_error("needs to be vec8 constant");
+        }
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg =
             VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
@@ -3025,14 +3106,34 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       auto v1_reg =
-          GetYMMWordValue(v1, offsets, constant_instrs, register_assign);
+          GetYMMWordValue(v1, offsets, constant_instrs,
+                          program.I32Vec8Constants(), register_assign);
 
       auto dest = dest_assign.IsRegister()
                       ? VRegister::FromId(dest_assign.Register()).GetY()
                       : x86::ymm15;
 
       if (v0.IsConstantGlobal()) {
-        throw std::runtime_error("Invalid");
+        Type1InstructionReader constant_reader(constant_instrs[v0.GetIdx()]);
+        switch (ConstantOpcodeFrom(constant_reader.Opcode())) {
+          case ConstantOpcode::I32_VEC8_CONST_8: {
+            auto vec8_idx = constant_reader.Constant();
+            const auto& vec8 = program.I32Vec8Constants()[vec8_idx];
+            auto label = EmbedI32Vec8(vec8);
+            asm_->vpermps(dest, v1_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          case ConstantOpcode::I32_VEC8_CONST_1: {
+            auto v = constant_reader.Constant();
+            auto label = EmbedI32Vec8(v);
+            asm_->vpermps(dest, v1_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          default:
+            throw std::runtime_error("needs to be vec8 constant");
+        }
       } else if (register_assign[v0.GetIdx()].IsRegister()) {
         auto v0_reg =
             VRegister::FromId(register_assign[v0.GetIdx()].Register()).GetY();
@@ -3057,13 +3158,33 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       auto v0_reg =
-          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+          GetYMMWordValue(v0, offsets, constant_instrs,
+                          program.I32Vec8Constants(), register_assign);
       auto dest = dest_assign.IsRegister()
                       ? VRegister::FromId(dest_assign.Register()).GetY()
                       : VRegister::M15.GetY();
 
       if (v1.IsConstantGlobal()) {
-        throw std::runtime_error("Invalid");
+        Type1InstructionReader constant_reader(constant_instrs[v1.GetIdx()]);
+        switch (ConstantOpcodeFrom(constant_reader.Opcode())) {
+          case ConstantOpcode::I32_VEC8_CONST_8: {
+            auto vec8_idx = constant_reader.Constant();
+            const auto& vec8 = program.I32Vec8Constants()[vec8_idx];
+            auto label = EmbedI32Vec8(vec8);
+            asm_->vpand(dest, v0_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          case ConstantOpcode::I32_VEC8_CONST_1: {
+            auto v = constant_reader.Constant();
+            auto label = EmbedI32Vec8(v);
+            asm_->vpand(dest, v0_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          default:
+            throw std::runtime_error("needs to be vec8 constant");
+        }
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg =
             VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
@@ -3088,13 +3209,33 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       auto v0_reg =
-          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+          GetYMMWordValue(v0, offsets, constant_instrs,
+                          program.I32Vec8Constants(), register_assign);
       auto dest = dest_assign.IsRegister()
                       ? VRegister::FromId(dest_assign.Register()).GetY()
                       : VRegister::M15.GetY();
 
       if (v1.IsConstantGlobal()) {
-        throw std::runtime_error("Invalid");
+        Type1InstructionReader constant_reader(constant_instrs[v1.GetIdx()]);
+        switch (ConstantOpcodeFrom(constant_reader.Opcode())) {
+          case ConstantOpcode::I32_VEC8_CONST_8: {
+            auto vec8_idx = constant_reader.Constant();
+            const auto& vec8 = program.I32Vec8Constants()[vec8_idx];
+            auto label = EmbedI32Vec8(vec8);
+            asm_->vpor(dest, v0_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          case ConstantOpcode::I32_VEC8_CONST_1: {
+            auto v = constant_reader.Constant();
+            auto label = EmbedI32Vec8(v);
+            asm_->vpor(dest, v0_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          default:
+            throw std::runtime_error("needs to be vec8 constant");
+        }
       } else if (register_assign[v1.GetIdx()].IsRegister()) {
         auto v1_reg =
             VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
@@ -3140,13 +3281,45 @@ void ASMBackend::TranslateInstr(
                       ? GPRegister::FromId(dest_assign.Register()).GetQ()
                       : GPRegister::RAX.GetQ();
       auto v0_reg =
-          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+          GetYMMWordValue(v0, offsets, constant_instrs,
+                          program.I32Vec8Constants(), register_assign);
       asm_->vmovmskps(dest, v0_reg);
 
       if (!dest_assign.IsRegister()) {
         auto offset = stack_allocator.AllocateSlot();
         offsets[instr_idx] = offset;
         asm_->mov(x86::qword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
+    case Opcode::I32_CONV_I32_VEC8: {
+      Type2InstructionReader reader(instr);
+      Value v(reader.Arg0());
+
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register())
+                      : VRegister::M15;
+
+      if (v.IsConstantGlobal()) {
+        int32_t c32 =
+            Type1InstructionReader(constant_instrs[v.GetIdx()]).Constant();
+        auto label = EmbedI32(c32);
+        asm_->vpbroadcastd(dest.GetY(), x86::dword_ptr(label));
+      } else if (register_assign[v.GetIdx()].IsRegister()) {
+        auto v_reg = GPRegister::FromId(register_assign[v.GetIdx()].Register());
+        asm_->vmovd(dest.GetX(), v_reg.GetD());
+        asm_->vpbroadcastd(dest.GetY(), dest.GetX());
+      } else {
+        asm_->vpbroadcastd(
+            dest.GetY(),
+            x86::dword_ptr(x86::rsp, GetOffset(offsets, v.GetIdx())));
+      }
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), dest.GetY());
       }
       return;
     }
@@ -3187,7 +3360,8 @@ void ASMBackend::TranslateInstr(
       Value v0(reader.Arg0());
 
       auto v0_reg =
-          GetYMMWordValue(v0, offsets, constant_instrs, register_assign);
+          GetYMMWordValue(v0, offsets, constant_instrs,
+                          program.I32Vec8Constants(), register_assign);
       auto dest = dest_assign.IsRegister()
                       ? VRegister::FromId(dest_assign.Register()).GetY()
                       : VRegister::M15.GetY();
@@ -3765,7 +3939,8 @@ void ASMBackend::TranslateInstr(
 
       // load the value into ymm15
       auto value_reg =
-          GetYMMWordValue(val, offsets, constant_instrs, register_assign);
+          GetYMMWordValue(val, offsets, constant_instrs,
+                          program.I32Vec8Constants(), register_assign);
 
       auto dest =
           GetYMMWordPtrValue(ptr, offsets, instructions, constant_instrs,

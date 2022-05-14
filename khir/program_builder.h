@@ -198,14 +198,17 @@ class ProgramBuilder {
   Value CmpEqConstI32(Value v1, std::array<int32_t, 8> v2);
   Value I64ZextI32(Value v);
   Value F64ConvI32(Value v);
+  Value I32Vec8ConvI32(Value v);
   Value LoadI32(Value ptr);
   void StoreI32(Value ptr, Value v);
 
   // I32Vec8
   Value ConstI32Vec8(uint32_t v);
+  Value ConstI32Vec8(std::array<int32_t, 8> v2);
   Value LoadI32Vec8(Value ptr);
   Value CmpI32Vec8(CompType cmp, Value v1, Value v2);
   void MaskStoreI32Vec8(Value ptr, Value v, Value popcount);
+  Value AddI32Vec8(Value v1, Value v2);
 
   // I1Vec8
   Value NotI1Vec8(Value v);

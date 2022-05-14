@@ -129,6 +129,7 @@ void RewriteInstr(uint64_t& instr,
     case Opcode::I16_ZEXT_I64:
     case Opcode::I16_CONV_F64:
     case Opcode::I32_ZEXT_I64:
+    case Opcode::I32_CONV_I32_VEC8:
     case Opcode::I32_CONV_F64:
     case Opcode::I64_CONV_F64:
     case Opcode::I64_TRUNC_I16:
@@ -198,7 +199,6 @@ void RewriteInstr(uint64_t& instr,
       return;
     }
 
-    case Opcode::I32_VEC8_INIT_1:
     case Opcode::CALL_INDIRECT:
     case Opcode::CALL:
     case Opcode::RETURN:

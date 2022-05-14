@@ -26,9 +26,9 @@ class GenericInstructionReader {
 // [MD] [32-bit constant] I32_CONST
 // [MD] [32-bit ID]       I64_CONST
 // [MD] [32-bit ID]       F64_CONST
-// [MD] [32-bit ID]       I32_CONST_VEC4
-// [MD] [32-bit ID]       I32_CONST_VEC8
-// [MD] [32-bit ID]       I32_VEC8_INIT_1
+// [MD] [32-bit ID]       I32_VEC4_CONST_4
+// [MD] [32-bit ID]       I32_VEC8_CONST_1
+// [MD] [32-bit ID]       I32_VEC8_CONST_8
 // [MD] [32-bit ID]       GLOBAL_CHAR_ARRAY_CONST
 // [MD] [32-bit ID]       STRUCT_CONST
 // [MD] [32-bit ID]       ARRAY_CONST
@@ -116,6 +116,7 @@ class Type1InstructionReader {
 // [MD] [ARG0] [ARG1] I32_CMP_EQ_ANY_CONST_VEC8
 // [MD] [ARG0] [0]    I32_ZEXT_I64
 // [MD] [ARG0] [0]    I32_CONV_F64
+// [MD] [ARG0] [0]    I32_CONV_I32_VEC8
 // [MD] [ARG0] [ARG1] I64_ADD
 // [MD] [ARG0] [ARG1] I64_MUL
 // [MD] [ARG0] [ARG1] I64_SUB
