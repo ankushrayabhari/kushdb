@@ -652,6 +652,7 @@ Type ProgramBuilder::TypeOf(Value value) const {
     case Opcode::I32_CONV_I32_VEC8:
     case Opcode::I32_VEC8_LOAD:
     case Opcode::I32_VEC8_PERMUTE:
+    case Opcode::I32_VEC8_ADD:
       return type_manager_.I32Vec8Type();
 
     case Opcode::I64_ADD:
@@ -1664,6 +1665,15 @@ Value ProgramBuilder::PopcountI64(Value v) {
       Type2InstructionBuilder()
           .SetOpcode(OpcodeTo(Opcode::I64_POPCOUNT))
           .SetArg0(v.Serialize())
+          .Build());
+}
+
+Value ProgramBuilder::AddI32Vec8(Value v1, Value v2) {
+  return GetCurrentFunction().Append(
+      Type2InstructionBuilder()
+          .SetOpcode(OpcodeTo(Opcode::I32_VEC8_ADD))
+          .SetArg0(v1.Serialize())
+          .SetArg1(v2.Serialize())
           .Build());
 }
 

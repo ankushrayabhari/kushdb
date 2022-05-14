@@ -6674,6 +6674,58 @@ TEST_P(BackendTest, I32Vec8MaskedStore) {
   EXPECT_EQ(dest[6], 8);
 }
 
+TEST_P(BackendTest, I32Vec8Add) {
+  alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
+
+  ProgramBuilder program;
+  auto func =
+      program.CreatePublicFunction(program.VoidType(),
+                                   {program.PointerType(program.I32Type()),
+                                    program.PointerType(program.I32Vec8Type())},
+                                   "compute");
+
+  auto args = program.GetFunctionArguments(func);
+  auto v1 = program.LoadI32Vec8(args[1]);
+  auto v2 = program.ConstI32Vec8(3);
+  auto sum = program.AddI32Vec8(v1, v2);
+  program.MaskStoreI32Vec8(args[0], sum, program.ConstI64(8));
+  program.Return();
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<void(int32_t*, int32_t*)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  alignas(32) int32_t dest[8] = {};
+  compute(&dest[0], values);
+  for (int i = 0; i < 8; i++) {
+    EXPECT_EQ(dest[i], values[i] + 3);
+  }
+}
+
+TEST_P(BackendTest, I32ConvI32Vec8) {
+  ProgramBuilder program;
+  auto func = program.CreatePublicFunction(
+      program.VoidType(),
+      {program.PointerType(program.I32Type()), program.I32Type()}, "compute");
+
+  auto args = program.GetFunctionArguments(func);
+  auto conv = program.I32Vec8ConvI32(args[1]);
+  program.MaskStoreI32Vec8(args[0], conv, program.ConstI64(8));
+  program.Return();
+
+  auto backend = Compile(GetParam(), program);
+
+  using compute_fn = std::add_pointer<void(int32_t*, int32_t)>::type;
+  auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
+
+  alignas(32) int32_t dest[8] = {};
+  compute(&dest[0], 1337);
+  for (int i = 0; i < 8; i++) {
+    EXPECT_EQ(dest[i], 1337);
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(LLVMBackendTest, BackendTest,
                          testing::Values(std::make_pair(
                              BackendType::LLVM, RegAllocImpl::STACK_SPILL)));

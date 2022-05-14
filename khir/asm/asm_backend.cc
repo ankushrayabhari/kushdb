@@ -3100,6 +3100,57 @@ void ASMBackend::TranslateInstr(
       return;
     }
 
+    case Opcode::I32_VEC8_ADD: {
+      Type2InstructionReader reader(instr);
+      Value v0(reader.Arg0());
+      Value v1(reader.Arg1());
+
+      auto v0_reg =
+          GetYMMWordValue(v0, offsets, constant_instrs,
+                          program.I32Vec8Constants(), register_assign);
+      auto dest = dest_assign.IsRegister()
+                      ? VRegister::FromId(dest_assign.Register()).GetY()
+                      : VRegister::M15.GetY();
+
+      if (v1.IsConstantGlobal()) {
+        Type1InstructionReader constant_reader(constant_instrs[v1.GetIdx()]);
+        switch (ConstantOpcodeFrom(constant_reader.Opcode())) {
+          case ConstantOpcode::I32_VEC8_CONST_8: {
+            auto vec8_idx = constant_reader.Constant();
+            const auto& vec8 = program.I32Vec8Constants()[vec8_idx];
+            auto label = EmbedI32Vec8(vec8);
+            asm_->vaddps(dest, v0_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          case ConstantOpcode::I32_VEC8_CONST_1: {
+            auto v = constant_reader.Constant();
+            auto label = EmbedI32Vec8(v);
+            asm_->vaddps(dest, v0_reg, x86::ymmword_ptr(label));
+            break;
+          }
+
+          default:
+            throw std::runtime_error("needs to be vec8 constant");
+        }
+      } else if (register_assign[v1.GetIdx()].IsRegister()) {
+        auto v1_reg =
+            VRegister::FromId(register_assign[v1.GetIdx()].Register()).GetY();
+        asm_->vaddps(dest, v0_reg, v1_reg);
+      } else {
+        asm_->vaddps(
+            dest, v0_reg,
+            x86::ymmword_ptr(x86::rsp, GetOffset(offsets, v1.GetIdx())));
+      }
+
+      if (!dest_assign.IsRegister()) {
+        auto offset = stack_allocator.AllocateSlot(32, 32);
+        offsets[instr_idx] = offset;
+        asm_->vmovdqa(x86::ymmword_ptr(x86::rsp, offset), dest);
+      }
+      return;
+    }
+
     case Opcode::I32_VEC8_PERMUTE: {
       Type2InstructionReader reader(instr);
       Value v0(reader.Arg0());

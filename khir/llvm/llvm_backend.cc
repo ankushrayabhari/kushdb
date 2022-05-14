@@ -524,7 +524,8 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I8_ADD:
     case Opcode::I16_ADD:
     case Opcode::I32_ADD:
-    case Opcode::I64_ADD: {
+    case Opcode::I64_ADD:
+    case Opcode::I32_VEC8_ADD: {
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
