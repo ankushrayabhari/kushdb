@@ -116,9 +116,11 @@ void SimdScanSelectTranslator::Produce() {
     }
 
     if (table[column.Name()].Nullable() && type.type_id != TypeId::ENUM) {
-      throw std::runtime_error("Invalid column type for SIMD Scan");
+      throw std::runtime_error("Invalid null column type for SIMD Scan");
     }
+    column_data.back()->Init();
   }
+
   const auto& filters = scan_select_.Filters();
 
   auto cardinality = column_data[0]->Size();
@@ -441,7 +443,9 @@ void SimdScanSelectTranslator::Produce() {
                         // processed 8 tuples
                         tuple_idx + 8,
                         // only added popcount to the buffer
-                        buffer_size + proxy::Int32(program_, popcount));
+                        buffer_size +
+                            proxy::Int32(program_,
+                                         program_.I32TruncI64(popcount)));
                   });
 
               auto tuple_idx =
@@ -472,7 +476,14 @@ void SimdScanSelectTranslator::Produce() {
               auto ptr = program_.DynamicGEP(program_.I32Type(), buffer,
                                              buffer_idx.Get(), {});
               proxy::Int32 tuple_idx(program_, program_.LoadI32(ptr));
-              this->values_.SetValues((*materialized_buffer)[tuple_idx]);
+              this->virtual_values_.SetValues(
+                  (*materialized_buffer)[tuple_idx]);
+
+              this->values_.ResetValues();
+              for (const auto& column : scan_select_.Schema().Columns()) {
+                this->values_.AddVariable(
+                    expr_translator_.Compute(column.Expr()));
+              }
 
               if (auto parent = this->Parent()) {
                 parent->get().Consume(*this);
