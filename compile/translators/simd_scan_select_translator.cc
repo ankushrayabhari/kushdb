@@ -243,7 +243,7 @@ void SimdScanSelectTranslator::Produce() {
 
                           case plan::BinaryArithmeticExpressionType::LT:
                             filter_mask =
-                                program_.CmpI32(khir::CompType::GT, data,
+                                program_.CmpI32(khir::CompType::LT, data,
                                                 program_.ConstI32(value));
                             break;
 
@@ -387,7 +387,7 @@ void SimdScanSelectTranslator::Produce() {
 
                           case plan::BinaryArithmeticExpressionType::LT:
                             filter_mask = program_.CmpI32Vec8(
-                                khir::CompType::GT, data,
+                                khir::CompType::LT, data,
                                 program_.ConstI32Vec8(value));
                             break;
 
