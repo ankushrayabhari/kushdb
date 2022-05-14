@@ -74,31 +74,9 @@ constexpr void constexpr_for(F&& f) {
   }
 }
 
-template <std::size_t... Is>
-struct indices {};
-template <std::size_t N, std::size_t... Is>
-struct build_indices : build_indices<N - 1, N - 1, Is...> {};
-template <std::size_t... Is>
-struct build_indices<0, Is...> : indices<Is...> {};
-
-template <typename T, std::size_t N, std::size_t... Is>
-constexpr auto array_gen_helper(khir::ProgramBuilder& program,
-                                std::array<khir::Value, N>& a, indices<Is...>)
-    -> std::array<T, N> {
-  return {{T(program, std::get<Is>(a))...}};
-}
-
-template <typename T, std::size_t N>
-constexpr auto array_gen(khir::ProgramBuilder& program,
-                         const std::array<khir::Value, N>& a)
-    -> std::array<T, N> {
-  return array_gen_helper<T>(a, build_indices<N>());
-}
-
-template <typename T, std::size_t N>
-std::array<T, N> Ternary(khir::ProgramBuilder& program, const Bool& cond,
-                         std::function<std::array<T, N>()> then_fn,
-                         std::function<std::array<T, N>()> else_fn) {
+std::array<Int32, 2> Ternary(khir::ProgramBuilder& program, const Bool& cond,
+                             std::function<std::array<Int32, 2>()> then_fn,
+                             std::function<std::array<Int32, 2>()> else_fn) {
   if (cond.Get() == program.ConstI1(true)) {
     return then_fn();
   }
@@ -120,13 +98,14 @@ std::array<T, N> Ternary(khir::ProgramBuilder& program, const Bool& cond,
     throw std::runtime_error("Current block cannot be terminated.");
   }
 
-  std::array<khir::Type, N> types;
-  std::array<khir::Value, N> then_branch_phi_members;
-  constexpr_for<0, N, 1>([&](auto i) {
-    auto v = std::get<i>(then_branch_value);
+  std::array<khir::Type, 2> types;
+  std::array<khir::Value, 2> then_branch_phi_members;
+  for (int i = 0; i < 2; i++) {
+    auto v = then_branch_value[i];
     then_branch_phi_members[i] = program.PhiMember(v.Get());
     types[i] = program.TypeOf(v.Get());
-  });
+  }
+
   program.Branch(dest_block);
 
   program.SetCurrentBlock(second_block);
@@ -134,23 +113,24 @@ std::array<T, N> Ternary(khir::ProgramBuilder& program, const Bool& cond,
   if (program.IsTerminated(program.CurrentBlock())) {
     throw std::runtime_error("Current block cannot be terminated.");
   }
-  std::array<khir::Value, N> else_branch_phi_members;
-  constexpr_for<0, N, 1>([&](auto i) {
-    auto v = std::get<i>(else_branch_value);
+  std::array<khir::Value, 2> else_branch_phi_members;
+  for (int i = 0; i < 2; i++) {
+    auto v = else_branch_value[i];
     else_branch_phi_members[i] = program.PhiMember(v.Get());
-  });
+  }
   program.Branch(dest_block);
 
   program.SetCurrentBlock(dest_block);
-  constexpr std::array<khir::Value, N> values;
-  constexpr_for<0, N, 1>([&](auto i) {
-    auto then_branch_phi_member = std::get<i>(then_branch_phi_members);
-    auto else_branch_phi_member = std::get<i>(else_branch_phi_members);
+  std::array<khir::Value, 2> values;
+  for (int i = 0; i < 2; i++) {
+    auto then_branch_phi_member = then_branch_phi_members[i];
+    auto else_branch_phi_member = else_branch_phi_members[i];
     values[i] = program.Phi(types[i]);
     program.UpdatePhiMember(values[i], then_branch_phi_member);
     program.UpdatePhiMember(values[i], else_branch_phi_member);
-  });
-  return array_gen(program, values);
+  }
+  return std::array<Int32, 2>{Int32(program, values[0]),
+                              Int32(program, values[1])};
 }
 
 template <typename T>

@@ -50,10 +50,9 @@ String Ternary(khir::ProgramBuilder& program, const Bool& cond,
                std::function<String()> then_fn,
                std::function<String()> else_fn);
 
-template <typename T, std::size_t N>
-std::array<T, N> Ternary(khir::ProgramBuilder& program, const Bool& cond,
-                         std::function<std::array<T, N>()> then_fn,
-                         std::function<std::array<T, N>()> else_fn);
+std::array<Int32, 2> Ternary(khir::ProgramBuilder& program, const Bool& cond,
+                             std::function<std::array<Int32, 2>()> then_fn,
+                             std::function<std::array<Int32, 2>()> else_fn);
 
 template <typename S>
 SQLValue NullableTernary(khir::ProgramBuilder& program, const Bool& cond,

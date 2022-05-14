@@ -310,6 +310,22 @@ std::unique_ptr<IRValue> ColumnData<S>::operator[](Int32& idx) {
 }
 
 template <catalog::TypeId S>
+khir::Value ColumnData<S>::SimdLoad(Int32& idx) {
+  if constexpr (catalog::TypeId::TEXT == S || catalog::TypeId::SMALLINT == S ||
+                catalog::TypeId::BIGINT == S || catalog::TypeId::REAL == S ||
+                catalog::TypeId::BOOLEAN == S) {
+    throw std::runtime_error("Unsupported");
+  }
+
+  auto data = program_.LoadPtr(program_.StaticGEP(
+      program_.GetStructType(StructName<S>()), value_, {0, 0}));
+  auto elem_ptr = program_.DynamicGEP(program_.I32Type(), data, idx.Get(), {});
+  auto casted = program_.PointerCast(
+      elem_ptr, program_.PointerType(program_.I32Vec8Type()));
+  return program_.LoadI32Vec8(casted);
+}
+
+template <catalog::TypeId S>
 const catalog::Type& ColumnData<S>::Type() {
   return type_;
 }

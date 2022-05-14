@@ -5,6 +5,7 @@ namespace kush::plan {
 class ScanOperator;
 class SelectOperator;
 class ScanSelectOperator;
+class SimdScanSelectOperator;
 class OutputOperator;
 class HashJoinOperator;
 class SkinnerJoinOperator;
@@ -19,6 +20,7 @@ class OperatorVisitor {
   virtual void Visit(ScanOperator& scan) = 0;
   virtual void Visit(SelectOperator& select) = 0;
   virtual void Visit(ScanSelectOperator& scan_select) = 0;
+  virtual void Visit(SimdScanSelectOperator& scan_select) = 0;
   virtual void Visit(OutputOperator& output) = 0;
   virtual void Visit(HashJoinOperator& hash_join) = 0;
   virtual void Visit(SkinnerJoinOperator& skinner_join) = 0;
@@ -34,6 +36,7 @@ class ImmutableOperatorVisitor {
   virtual void Visit(const ScanOperator& scan) = 0;
   virtual void Visit(const SelectOperator& select) = 0;
   virtual void Visit(const ScanSelectOperator& scan_select) = 0;
+  virtual void Visit(const SimdScanSelectOperator& scan_select) = 0;
   virtual void Visit(const OutputOperator& output) = 0;
   virtual void Visit(const HashJoinOperator& hash_join) = 0;
   virtual void Visit(const SkinnerJoinOperator& skinner_join) = 0;

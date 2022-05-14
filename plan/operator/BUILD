@@ -75,6 +75,19 @@ cc_library(
 )
 
 cc_library(
+    name = "simd_scan_select_operator",
+    srcs = ["simd_scan_select_operator.cc"],
+    hdrs = ["simd_scan_select_operator.h"],
+    deps = [
+        ":operator",
+        ":operator_schema",
+        ":operator_visitor",
+        "//plan/expression:arithmetic_expression",
+        "@json",
+    ],
+)
+
+cc_library(
     name = "output_operator",
     srcs = ["output_operator.cc"],
     hdrs = ["output_operator.h"],

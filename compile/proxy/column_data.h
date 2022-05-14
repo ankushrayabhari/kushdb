@@ -15,6 +15,7 @@ class Iterable {
   virtual void Reset() = 0;
   virtual Int32 Size() = 0;
   virtual std::unique_ptr<IRValue> operator[](Int32& idx) = 0;
+  virtual khir::Value SimdLoad(Int32& idx) = 0;
   virtual const catalog::Type& Type() = 0;
   virtual khir::Value Get() = 0;
   virtual std::unique_ptr<Iterable> Regenerate(khir::ProgramBuilder& program,
@@ -34,6 +35,7 @@ class ColumnData : public Iterable {
   void Reset() override;
   Int32 Size() override;
   std::unique_ptr<IRValue> operator[](Int32& idx) override;
+  khir::Value SimdLoad(Int32& idx) override;
   const catalog::Type& Type() override;
   khir::Value Get() override;
   std::unique_ptr<Iterable> Regenerate(khir::ProgramBuilder& program,

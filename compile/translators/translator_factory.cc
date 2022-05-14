@@ -16,6 +16,7 @@
 #include "compile/translators/scan_select_translator.h"
 #include "compile/translators/scan_translator.h"
 #include "compile/translators/select_translator.h"
+#include "compile/translators/simd_scan_select_translator.h"
 #include "khir/program_builder.h"
 #include "plan/operator/hash_join_operator.h"
 #include "plan/operator/operator.h"
@@ -24,6 +25,7 @@
 #include "plan/operator/scan_operator.h"
 #include "plan/operator/scan_select_operator.h"
 #include "plan/operator/select_operator.h"
+#include "plan/operator/simd_scan_select_operator.h"
 #include "plan/operator/skinner_join_operator.h"
 
 ABSL_FLAG(std::string, skinner_join, "permute",
@@ -55,6 +57,11 @@ void TranslatorFactory::Visit(const plan::SelectOperator& select) {
 
 void TranslatorFactory::Visit(const plan::ScanSelectOperator& scan_select) {
   this->Return(std::make_unique<ScanSelectTranslator>(scan_select, program_));
+}
+
+void TranslatorFactory::Visit(const plan::SimdScanSelectOperator& scan_select) {
+  this->Return(
+      std::make_unique<SimdScanSelectTranslator>(scan_select, program_));
 }
 
 void TranslatorFactory::Visit(const plan::OutputOperator& output) {

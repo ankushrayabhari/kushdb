@@ -9,6 +9,7 @@
 #include "compile/proxy/hash_table.h"
 #include "compile/proxy/value/ir_value.h"
 #include "compile/proxy/vector.h"
+#include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
 #include "khir/program_builder.h"
@@ -30,6 +31,7 @@ class TranslatorFactory
   void Visit(const plan::ScanOperator& scan) override;
   void Visit(const plan::SelectOperator& select) override;
   void Visit(const plan::ScanSelectOperator& scan_select) override;
+  void Visit(const plan::SimdScanSelectOperator& scan_select) override;
   void Visit(const plan::OutputOperator& output) override;
   void Visit(const plan::SkinnerJoinOperator& skinner_join) override;
   void Visit(const plan::HashJoinOperator& hash_join) override;

@@ -80,6 +80,29 @@ cc_library(
 )
 
 cc_library(
+    name = "simd_scan_select_translator",
+    srcs = ["simd_scan_select_translator.cc"],
+    hdrs = ["simd_scan_select_translator.h"],
+    deps = [
+        ":expression_translator",
+        ":operator_translator",
+        ":predicate_column_collector",
+        "//catalog:sql_type",
+        "//compile/proxy:column_data",
+        "//compile/proxy:column_index",
+        "//compile/proxy:disk_column_index",
+        "//compile/proxy:materialized_buffer",
+        "//compile/proxy/control_flow:if",
+        "//compile/proxy/control_flow:loop",
+        "//khir:program_builder",
+        "//plan/expression:literal_expression",
+        "//plan/operator:simd_scan_select_operator",
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/container:flat_hash_set",
+    ],
+)
+
+cc_library(
     name = "scan_select_translator",
     srcs = ["scan_select_translator.cc"],
     hdrs = ["scan_select_translator.h"],
@@ -307,6 +330,7 @@ cc_library(
         ":scan_select_translator",
         ":scan_translator",
         ":select_translator",
+        ":simd_scan_select_translator",
         "//compile/proxy:hash_table",
         "//compile/proxy:vector",
         "//execution:pipeline",
@@ -317,6 +341,7 @@ cc_library(
         "//plan/operator:scan_operator",
         "//plan/operator:scan_select_operator",
         "//plan/operator:select_operator",
+        "//plan/operator:simd_scan_select_operator",
         "//plan/operator:skinner_join_operator",
         "@absl//absl/flags:flag",
     ],
