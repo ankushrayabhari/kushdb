@@ -308,8 +308,6 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
         OpcodeFrom(GenericInstructionReader(instrs[i_instr]).Opcode());
 
     switch (i_opcode) {
-      case Opcode::I1_OR:
-      case Opcode::I1_AND:
       case Opcode::I1_CMP_EQ:
       case Opcode::I1_CMP_NE:
       case Opcode::I8_CMP_EQ:
@@ -337,7 +335,15 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
       case Opcode::I64_CMP_GT:
       case Opcode::I64_CMP_GE:
       case Opcode::I32_CMP_EQ_ANY_CONST_VEC4:
-      case Opcode::I32_CMP_EQ_ANY_CONST_VEC8:
+      case Opcode::I32_CMP_EQ_ANY_CONST_VEC8: {
+        if (i.Start() + 1 == i.End() &&
+            OpcodeFrom(GenericInstructionReader(instrs[i.Value().GetIdx() + 1])
+                           .Opcode()) == Opcode::CONDBR) {
+          assignments[i_instr].SetRegister(FRegister::IFlag.Id());
+        }
+        break;
+      }
+
       case Opcode::F64_CMP_EQ:
       case Opcode::F64_CMP_NE:
       case Opcode::F64_CMP_LT:
@@ -347,7 +353,7 @@ std::vector<RegisterAssignment> LinearScanRegisterAlloc(
         if (i.Start() + 1 == i.End() &&
             OpcodeFrom(GenericInstructionReader(instrs[i.Value().GetIdx() + 1])
                            .Opcode()) == Opcode::CONDBR) {
-          assignments[i_instr].SetRegister(FRegister::Flag.Id());
+          assignments[i_instr].SetRegister(FRegister::FFlag.Id());
         }
         break;
       }

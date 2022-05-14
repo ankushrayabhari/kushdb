@@ -346,6 +346,11 @@ class ASMBackend : public Backend {
                   const std::vector<uint64_t>& instructions,
                   const std::vector<RegisterAssignment>& register_assign,
                   const std::vector<asmjit::Label>& basic_blocks, int next_bb);
+  void CondBrF64Flag(Value v, int true_bb, int false_bb,
+                     const std::vector<uint64_t>& instructions,
+                     const std::vector<RegisterAssignment>& register_assign,
+                     const std::vector<asmjit::Label>& basic_blocks,
+                     int next_bb);
   template <typename Dest>
   void StoreCmpFlags(Opcode opcode, Dest d);
   template <typename Dest>

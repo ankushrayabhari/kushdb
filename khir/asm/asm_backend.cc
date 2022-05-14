@@ -589,8 +589,12 @@ asmjit::Label ASMBackend::EmbedI32Vec8(std::array<int32_t, 8> vec8) {
   return label;
 }
 
-bool IsFlag(const RegisterAssignment& reg) {
-  return reg.IsRegister() && FRegister::IsFlag(reg.Register());
+bool IsIFlag(const RegisterAssignment& reg) {
+  return reg.IsRegister() && FRegister::IsIFlag(reg.Register());
+}
+
+bool IsFFlag(const RegisterAssignment& reg) {
+  return reg.IsRegister() && FRegister::IsFFlag(reg.Register());
 }
 
 template <typename Dest>
@@ -2219,23 +2223,24 @@ void ASMBackend::CondBrFlag(
       return;
     }
 
-    case Opcode::I1_OR:
-    case Opcode::I1_AND: {
-      // z flag set then branch false
-      // z flag not set then branch true
-      if (true_bb == next_bb) {
-        asm_->jz(fl);
-        // fall through to the true_bb
-      } else if (false_bb == next_bb) {
-        asm_->jnz(tr);
-        // fall through to the false_bb
-      } else {
-        asm_->jnz(tr);
-        asm_->jmp(fl);
-      }
-      return;
-    }
+    default:
+      throw std::runtime_error("Not possible");
+  }
+}
 
+void ASMBackend::CondBrF64Flag(
+    Value v, int true_bb, int false_bb,
+    const std::vector<uint64_t>& instructions,
+    const std::vector<RegisterAssignment>& register_assign,
+    const std::vector<Label>& basic_blocks, int next_bb) {
+  assert(!v.IsConstantGlobal());
+  GenericInstructionReader reader(instructions[v.GetIdx()]);
+  auto opcode = OpcodeFrom(reader.Opcode());
+
+  auto tr = basic_blocks[true_bb];
+  auto fl = basic_blocks[false_bb];
+
+  switch (opcode) {
     case Opcode::F64_CMP_EQ: {
       asm_->jne(fl);
       asm_->jp(fl);
@@ -2329,9 +2334,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = IsFlag(dest_assign.Register())
-                        ? GPRegister::RAX.GetB()
-                        : GPRegister::FromId(dest_assign.Register()).GetB();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetB();
         MoveByteValue(dest, v0, offsets, constant_instrs, register_assign);
         AndByteValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2350,9 +2353,7 @@ void ASMBackend::TranslateInstr(
       Value v1(reader.Arg1());
 
       if (dest_assign.IsRegister()) {
-        auto dest = IsFlag(dest_assign.Register())
-                        ? GPRegister::RAX.GetB()
-                        : GPRegister::FromId(dest_assign.Register()).GetB();
+        auto dest = GPRegister::FromId(dest_assign.Register()).GetB();
         MoveByteValue(dest, v0, offsets, constant_instrs, register_assign);
         OrByteValue(dest, v1, offsets, constant_instrs, register_assign);
       } else {
@@ -2459,7 +2460,7 @@ void ASMBackend::TranslateInstr(
       asm_->vmovmskps(x86::eax, x86::xmm15);
       asm_->test(x86::eax, x86::eax);
 
-      if (IsFlag(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
@@ -2522,7 +2523,7 @@ void ASMBackend::TranslateInstr(
       asm_->vmovmskps(x86::eax, x86::ymm15);
       asm_->test(x86::eax, x86::eax);
 
-      if (IsFlag(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
@@ -2553,7 +2554,7 @@ void ASMBackend::TranslateInstr(
       auto v0_reg = GetByteValue(v0, offsets, constant_instrs, register_assign);
       CmpByteValue(v0_reg, v1, offsets, constant_instrs, register_assign);
 
-      if (IsFlag(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
@@ -2627,7 +2628,7 @@ void ASMBackend::TranslateInstr(
                                  ptr_constants, register_assign);
 
       if (dest_assign.IsRegister()) {
-        if (IsFlag(dest_assign)) {
+        if (IsIFlag(dest_assign)) {
           throw std::runtime_error("Cannot allocate the flag reg to I1 LOAD");
         }
 
@@ -2758,7 +2759,7 @@ void ASMBackend::TranslateInstr(
       auto v0_reg = GetWordValue(v0, offsets, constant_instrs, register_assign);
       CmpWordValue(v0_reg, v1, offsets, constant_instrs, register_assign);
 
-      if (IsFlag(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
@@ -2941,7 +2942,7 @@ void ASMBackend::TranslateInstr(
           GetDWordValue(v0, offsets, constant_instrs, register_assign);
       CmpDWordValue(v0_reg, v1, offsets, constant_instrs, register_assign);
 
-      if (IsFlag(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
@@ -3712,7 +3713,7 @@ void ASMBackend::TranslateInstr(
                    ptr_constants, register_assign);
       asm_->cmp(GPRegister::RAX.GetQ(), 0);
 
-      if (IsFlag(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
@@ -3743,7 +3744,7 @@ void ASMBackend::TranslateInstr(
       CmpQWordValue(v0_reg, v1, offsets, constant_instrs, i64_constants,
                     register_assign);
 
-      if (IsFlag(dest_assign)) {
+      if (IsIFlag(dest_assign)) {
         return;
       }
 
@@ -4158,7 +4159,7 @@ void ASMBackend::TranslateInstr(
       CmpF64Value(reg, v1, offsets, constant_instrs, f64_constants,
                   register_assign);
 
-      if (IsFlag(dest_assign)) {
+      if (IsFFlag(dest_assign)) {
         return;
       }
 
@@ -4273,9 +4274,12 @@ void ASMBackend::TranslateInstr(
       int true_bb = reader.Marg0();
       int false_bb = reader.Marg1();
 
-      if (IsFlag(register_assign[v.GetIdx()])) {
+      if (IsIFlag(register_assign[v.GetIdx()])) {
         CondBrFlag(v, true_bb, false_bb, instructions, register_assign,
                    basic_blocks, next_bb);
+      } else if (IsFFlag(register_assign[v.GetIdx()])) {
+        CondBrF64Flag(v, true_bb, false_bb, instructions, register_assign,
+                      basic_blocks, next_bb);
       } else if (register_assign[v.GetIdx()].IsRegister()) {
         asm_->cmp(
             GPRegister::FromId(register_assign[v.GetIdx()].Register()).GetB(),

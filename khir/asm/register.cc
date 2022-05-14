@@ -149,8 +149,11 @@ FRegister::FRegister(int id) : id_(id) {}
 
 int FRegister::Id() { return id_; }
 
-bool FRegister::IsFlag(int id) { return id == 100; }
+bool FRegister::IsIFlag(int id) { return id == 100; }
 
-FRegister FRegister::Flag(100);
+bool FRegister::IsFFlag(int id) { return id == 101; }
+
+FRegister FRegister::IFlag(100);
+FRegister FRegister::FFlag(101);
 
 }  // namespace kush::khir

@@ -124,7 +124,6 @@ void SimdScanSelectTranslator::Produce() {
   const auto& filters = scan_select_.Filters();
 
   auto cardinality = column_data[0]->Size();
-  auto cardinality_sub8 = cardinality - 8;
   proxy::Loop loop(
       program_,
       [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
@@ -151,7 +150,7 @@ void SimdScanSelectTranslator::Produce() {
         // if we are within 8 of the ending, just manually loop.
         // otherwise use SIMD
         auto tuple_idx_buffer_size = proxy::Ternary(
-            program_, i > cardinality_sub8,
+            program_, i > cardinality - 8,
             [&]() {
               proxy::Loop manual_loop(
                   program_,
@@ -304,7 +303,7 @@ void SimdScanSelectTranslator::Produce() {
                         simd_loop.template GetLoopVariable<proxy::Int32>(1);
                     // keep adding while 8 more entries exist with the
                     // base_table
-                    auto cond2 = tuple_idx <= cardinality_sub8;
+                    auto cond2 = tuple_idx <= cardinality - 8;
                     // AND we have space to add 8 more entries
                     auto cond1 = buffer_size <= BUFFER_SIZE - 8;
                     return cond1 && cond2;

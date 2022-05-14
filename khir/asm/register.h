@@ -80,9 +80,11 @@ class FRegister {
   FRegister(int id);
   int Id();
 
-  static bool IsFlag(int id);
+  static bool IsIFlag(int id);
+  static bool IsFFlag(int id);
 
-  static FRegister Flag;
+  static FRegister IFlag;
+  static FRegister FFlag;
 
  private:
   int id_;
