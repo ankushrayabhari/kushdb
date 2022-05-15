@@ -17,9 +17,12 @@ class SimdScanSelectOperator final : public Operator {
       OperatorSchema select_schema, OperatorSchema scan_schema,
       const catalog::Table& relation,
       std::vector<std::vector<std::unique_ptr<BinaryArithmeticExpression>>>
-          filters);
+          filters,
+      bool conjunction = true);
 
   const catalog::Table& Relation() const;
+
+  bool Conjunction() const;
 
   const OperatorSchema& ScanSchema() const;
   OperatorSchema& MutableScanSchema();
@@ -37,6 +40,7 @@ class SimdScanSelectOperator final : public Operator {
   const catalog::Table& relation_;
   std::vector<std::vector<std::unique_ptr<BinaryArithmeticExpression>>>
       filters_;
+  bool conjunction_;
 };
 
 }  // namespace kush::plan

@@ -16,16 +16,20 @@ SimdScanSelectOperator::SimdScanSelectOperator(
     OperatorSchema select_schema, OperatorSchema scan_schema,
     const catalog::Table& relation,
     std::vector<std::vector<std::unique_ptr<BinaryArithmeticExpression>>>
-        filters)
+        filters,
+    bool conjunction)
     : Operator(std::move(select_schema), {}),
       scan_schema_(std::move(scan_schema)),
       relation_(relation),
-      filters_(std::move(filters)) {}
+      filters_(std::move(filters)),
+      conjunction_(conjunction) {}
 
 const std::vector<std::vector<std::unique_ptr<BinaryArithmeticExpression>>>&
 SimdScanSelectOperator::Filters() const {
   return filters_;
 }
+
+bool SimdScanSelectOperator::Conjunction() const { return conjunction_; }
 
 const catalog::Table& SimdScanSelectOperator::Relation() const {
   return relation_;

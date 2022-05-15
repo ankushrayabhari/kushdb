@@ -92,24 +92,27 @@ void SimdScanSelectTranslator::Produce() {
 
   const auto& table = scan_select_.Relation();
   const auto& cols = scan_select_.ScanSchema().Columns();
+  const auto& filters = scan_select_.Filters();
 
-  std::vector<std::unique_ptr<proxy::Iterable>> column_data;
-  for (const auto& column : cols) {
+  std::vector<std::unique_ptr<proxy::Iterable>> column_data(cols.size());
+  for (int i = 0; i < cols.size(); i++) {
+    if (filters[i].empty()) continue;
+    const auto& column = cols[i];
     using catalog::TypeId;
     auto type = column.Expr().Type();
     auto path = table[column.Name()].Path();
     switch (type.type_id) {
       case TypeId::INT:
-        column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::INT>>(
-            program_, path, type));
+        column_data[i] = std::make_unique<proxy::ColumnData<TypeId::INT>>(
+            program_, path, type);
         break;
       case TypeId::ENUM:
-        column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::ENUM>>(
-            program_, path, type));
+        column_data[i] = std::make_unique<proxy::ColumnData<TypeId::ENUM>>(
+            program_, path, type);
         break;
       case TypeId::DATE:
-        column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::DATE>>(
-            program_, path, type));
+        column_data[i] = std::make_unique<proxy::ColumnData<TypeId::DATE>>(
+            program_, path, type);
         break;
       default:
         throw std::runtime_error("Invalid column type for SIMD Scan");
@@ -118,12 +121,10 @@ void SimdScanSelectTranslator::Produce() {
     if (table[column.Name()].Nullable() && type.type_id != TypeId::ENUM) {
       throw std::runtime_error("Invalid null column type for SIMD Scan");
     }
-    column_data.back()->Init();
+    column_data[i]->Init();
   }
 
-  const auto& filters = scan_select_.Filters();
-
-  auto cardinality = column_data[0]->Size();
+  auto cardinality = materialized_buffer->Size();
   proxy::Loop loop(
       program_,
       [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
@@ -173,6 +174,8 @@ void SimdScanSelectTranslator::Produce() {
 
                     for (int col_idx = 0; col_idx < column_data.size();
                          col_idx++) {
+                      if (filters[col_idx].empty()) continue;
+
                       // load col_idx at tuple_idx
                       khir::Value data =
                           column_data[col_idx]->operator[](tuple_idx)->Get();
@@ -317,6 +320,8 @@ void SimdScanSelectTranslator::Produce() {
 
                     for (int col_idx = 0; col_idx < column_data.size();
                          col_idx++) {
+                      if (filters[col_idx].empty()) continue;
+
                       // simd load col_idx at tuple_idx
                       khir::Value data =
                           column_data[col_idx]->SimdLoad(tuple_idx);
@@ -414,7 +419,12 @@ void SimdScanSelectTranslator::Produce() {
                         }
 
                         if (mask.has_value()) {
-                          mask = program_.AndI1Vec8(mask.value(), filter_mask);
+                          if (scan_select_.Conjunction()) {
+                            mask =
+                                program_.AndI1Vec8(mask.value(), filter_mask);
+                          } else {
+                            mask = program_.OrI1Vec8(mask.value(), filter_mask);
+                          }
                         } else {
                           mask = filter_mask;
                         }
