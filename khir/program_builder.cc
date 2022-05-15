@@ -1587,11 +1587,53 @@ Value ProgramBuilder::CmpI32Vec8(CompType cmp, Value v1, Value v2) {
       break;
 
     case CompType::LT:
-      opcode = Opcode::I32_VEC8_CMP_LT;
+      opcode = Opcode::I32_VEC8_CMP_GT;
+      std::swap(v1, v2);
       break;
 
     case CompType::LE:
       opcode = Opcode::I32_VEC8_CMP_LE;
+      // convert to gt
+      // a <= b
+      // a < b + 1
+      if (v2.IsConstantGlobal()) {
+        Type1InstructionReader reader(constant_instrs_[v2.GetIdx()]);
+        switch (ConstantOpcodeFrom(reader.Opcode())) {
+          case ConstantOpcode::I32_VEC8_CONST_1: {
+            auto c2 = reader.Constant();
+            if (c2 != INT32_MAX) {
+              v2 = ConstI32Vec8(c2 + 1);
+              opcode = Opcode::I32_VEC8_CMP_GT;
+              std::swap(v1, v2);
+            }
+            break;
+          }
+
+          case ConstantOpcode::I32_VEC8_CONST_8: {
+            auto c2 = vec8_constants_[reader.Constant()];
+            bool okay = true;
+            for (int i = 0; i < 8; i++) {
+              if (c2[i] == INT32_MAX) {
+                okay = false;
+              }
+            }
+            if (okay) {
+              for (int i = 0; i < 8; i++) {
+                c2[i]++;
+              }
+
+              v2 = ConstI32Vec8(c2);
+              opcode = Opcode::I32_VEC8_CMP_GT;
+              std::swap(v1, v2);
+            }
+
+            break;
+          }
+
+          default:
+            break;
+        }
+      }
       break;
 
     case CompType::GT:
