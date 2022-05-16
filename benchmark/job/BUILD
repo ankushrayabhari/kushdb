@@ -23,6 +23,7 @@ filegroup(
     srcs = glob(
         [
             "queries/*.sql",
+            "queries_robust/*/*.sql",
         ],
         allow_empty = True,
     ),
