@@ -9,9 +9,9 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "plan/operator/group_by_aggregate_operator.h"
-#include "execution/query_state.h"
 
 namespace kush::compile {
 
@@ -25,7 +25,7 @@ class GroupByAggregateTranslator : public OperatorTranslator {
       std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~GroupByAggregateTranslator() = default;
 
-  void Produce() override;
+  void Produce(proxy::Pipeline& output) override;
   void Consume(OperatorTranslator& src) override;
 
  private:

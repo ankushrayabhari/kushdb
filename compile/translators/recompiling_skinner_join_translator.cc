@@ -813,9 +813,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   return reinterpret_cast<ExecuteJoinFn>(entry.Func(func_names[order[0]]));
 }
 
-void RecompilingSkinnerJoinTranslator::Produce() {
-  auto output_pipeline_func = program_.CurrentBlock();
-
+void RecompilingSkinnerJoinTranslator::Produce(proxy::Pipeline& output) {
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
   auto conditions = join_.Conditions();
@@ -842,48 +840,50 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   }
   indexes_ = std::vector<std::unique_ptr<proxy::ColumnIndex>>(index_idx);
 
-  std::vector<std::unique_ptr<execution::Pipeline>> child_pipelines;
   // 1. Materialize each child.
   for (int i = 0; i < child_translators.size(); i++) {
-    auto& pipeline = pipeline_builder_.CreatePipeline();
-    program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
     auto& child_translator = child_translators[i].get();
     auto& child_operator = child_operators[i].get();
 
     if (auto scan = dynamic_cast<ScanTranslator*>(&child_translator)) {
       auto disk_materialized_buffer = scan->GenerateBuffer();
-      disk_materialized_buffer->Init();
-
-      // for each indexed column on this table, scan and append to index
+      std::vector<int> indexes;
       for (const auto& [key, value] : column_to_index_idx_) {
         auto [child_idx, col_idx] = key;
         auto index_idx = value;
         if (i != child_idx) {
           continue;
         }
+        indexes.push_back(index_idx);
 
         if (scan->HasIndex(col_idx)) {
           indexes_[index_idx] = scan->GenerateIndex(col_idx);
-          indexes_[index_idx]->Init();
         } else {
-          auto type = child_operator.Schema().Columns()[col_idx].Expr().Type();
-          indexes_[index_idx] = std::make_unique<proxy::MemoryColumnIndex>(
-              program_, state_, type);
-          indexes_[index_idx]->Init();
-          disk_materialized_buffer->Scan(
-              col_idx, [&](auto tuple_idx, auto value) {
-                // only index not null values
-                proxy::If(program_, NOT, value.IsNull(), [&]() {
-                  dynamic_cast<proxy::ColumnIndexBuilder*>(
-                      indexes_[index_idx].get())
-                      ->Insert(value.Get(), tuple_idx);
-                });
-              });
+          throw std::runtime_error("TODO add scan + memory index");
         }
       }
 
+      proxy::Pipeline input(program_, pipeline_builder_);
+      input.Init([&]() {
+        disk_materialized_buffer->Init();
+        for (int index_idx : indexes) {
+          indexes_[index_idx]->Init();
+        }
+      });
+      input.Reset([&]() {
+        disk_materialized_buffer->Reset();
+        for (int index_idx : indexes) {
+          indexes_[index_idx]->Reset();
+        }
+      });
+      input.Build();
+      output.Get().AddPredecessor(input.Get());
       materialized_buffers_.push_back(std::move(disk_materialized_buffer));
     } else {
+      proxy::Pipeline input(program_, pipeline_builder_);
+
+      // For each predicate column on this table, declare a memory index.
+      std::vector<int> indexes;
       for (const auto& [key, value] : column_to_index_idx_) {
         auto [child_idx, col_idx] = key;
         auto index_idx = value;
@@ -894,7 +894,7 @@ void RecompilingSkinnerJoinTranslator::Produce() {
         auto type = child_operator.Schema().Columns()[col_idx].Expr().Type();
         indexes_[index_idx] =
             std::make_unique<proxy::MemoryColumnIndex>(program_, state_, type);
-        indexes_[index_idx]->Init();
+        indexes.push_back(index_idx);
       }
 
       // Create struct for materialization
@@ -904,28 +904,35 @@ void RecompilingSkinnerJoinTranslator::Produce() {
         struct_builder->Add(col.Expr().Type(), col.Expr().Nullable());
       }
       struct_builder->Build();
-
       proxy::Vector buffer(program_, state_, *struct_builder);
+
+      input.Init([&]() {
+        buffer.Init();
+        for (int index_idx : indexes) {
+          indexes_[index_idx]->Init();
+        }
+      });
+
+      input.Reset([&]() {
+        buffer.Reset();
+        for (int index_idx : indexes) {
+          indexes_[index_idx]->Reset();
+        }
+      });
 
       // Fill buffer/indexes
       child_idx_ = i;
       buffer_ = &buffer;
-      child_translator.Produce();
+      child_translator.Produce(input);
       buffer_ = nullptr;
+
+      input.Build();
+      output.Get().AddPredecessor(input.Get());
 
       materialized_buffers_.push_back(
           std::make_unique<proxy::MemoryMaterializedBuffer>(
               program_, std::move(struct_builder), std::move(buffer)));
     }
-
-    program_.Return();
-    child_pipelines.push_back(pipeline_builder_.FinishPipeline());
-  }
-
-  program_.SetCurrentBlock(output_pipeline_func);
-  auto& output_pipeline = pipeline_builder_.GetCurrentPipeline();
-  for (auto& pipeline : child_pipelines) {
-    output_pipeline.AddPredecessor(std::move(pipeline));
   }
 
   // 2. Setup join evaluation
@@ -948,7 +955,6 @@ void RecompilingSkinnerJoinTranslator::Produce() {
       program_.ConstantArray(idx_array_type, initial_idx_values));
 
   // Setup function for each valid tuple
-  auto curr_bb = program_.CurrentBlock();
   static int valid_id = 0;
   RecompilingTableFunction valid_tuple_handler(
       "recompile_valid_tuple_handler" + std::to_string(valid_id++), program_,
@@ -1074,7 +1080,6 @@ void RecompilingSkinnerJoinTranslator::Produce() {
 
         return budget;
       });
-  program_.SetCurrentBlock(curr_bb);
 
   // pass all materialized buffers to the executor
   auto materialized_buffer_array_type = program_.ArrayType(
@@ -1086,11 +1091,6 @@ void RecompilingSkinnerJoinTranslator::Produce() {
           program_.NullPtr(program_.PointerType(program_.I8Type()))));
   auto materialized_buffer_array = program_.Global(
       materialized_buffer_array_type, materialized_buffer_array_init);
-  for (int i = 0; i < materialized_buffers_.size(); i++) {
-    program_.StorePtr(program_.StaticGEP(materialized_buffer_array_type,
-                                         materialized_buffer_array, {0, i}),
-                      materialized_buffers_[i]->Serialize());
-  }
 
   // pass all materialized indexes to the executor
   auto materialized_index_array_type = program_.ArrayType(
@@ -1102,11 +1102,6 @@ void RecompilingSkinnerJoinTranslator::Produce() {
           program_.NullPtr(program_.PointerType(program_.I8Type()))));
   auto materialized_index_array = program_.Global(
       materialized_index_array_type, materialized_index_array_init);
-  for (int i = 0; i < indexes_.size(); i++) {
-    program_.StorePtr(program_.StaticGEP(materialized_index_array_type,
-                                         materialized_index_array, {0, i}),
-                      indexes_[i]->Serialize());
-  }
 
   // pass all cardinalities to the executor
   auto cardinalities_array_type =
@@ -1117,62 +1112,76 @@ void RecompilingSkinnerJoinTranslator::Produce() {
   auto cardinalities_array =
       program_.Global(cardinalities_array_type, cardinalities_array_init);
 
-  for (int i = 0; i < materialized_buffers_.size(); i++) {
-    program_.StoreI32(program_.StaticGEP(cardinalities_array_type,
-                                         cardinalities_array, {0, i}),
-                      materialized_buffers_[i]->Size().Get());
-  }
+  output.Body([&]() {
+    // 3. Execute join
+    // Initialize tuple idx table
+    tuple_idx_table.Init();
 
-  // Generate the table connections.
-  conditions_per_table_ =
-      std::vector<absl::btree_set<int>>(child_operators.size());
-  tables_per_condition_ =
-      std::vector<absl::flat_hash_set<int>>(conditions.size());
-  for (int pred_idx = 0; pred_idx < conditions.size(); pred_idx++) {
-    PredicateColumnCollector collector;
-    conditions[pred_idx].get().Accept(collector);
-    auto cond = collector.PredicateColumns();
-
-    for (auto& c : cond) {
-      conditions_per_table_[c.get().GetChildIdx()].insert(pred_idx);
-      tables_per_condition_[pred_idx].insert(c.get().GetChildIdx());
+    for (int i = 0; i < materialized_buffers_.size(); i++) {
+      program_.StorePtr(program_.StaticGEP(materialized_buffer_array_type,
+                                           materialized_buffer_array, {0, i}),
+                        materialized_buffers_[i]->Serialize());
     }
 
-    for (int i = 0; i < cond.size(); i++) {
-      for (int j = i + 1; j < cond.size(); j++) {
-        auto left_table = cond[i].get().GetChildIdx();
-        auto right_table = cond[j].get().GetChildIdx();
+    for (int i = 0; i < indexes_.size(); i++) {
+      program_.StorePtr(program_.StaticGEP(materialized_index_array_type,
+                                           materialized_index_array, {0, i}),
+                        indexes_[i]->Serialize());
+    }
 
-        if (left_table != right_table) {
-          table_connections_.insert({left_table, right_table});
-          table_connections_.insert({right_table, left_table});
+    for (int i = 0; i < materialized_buffers_.size(); i++) {
+      program_.StoreI32(program_.StaticGEP(cardinalities_array_type,
+                                           cardinalities_array, {0, i}),
+                        materialized_buffers_[i]->Size().Get());
+    }
+
+    // Generate the table connections.
+    conditions_per_table_ =
+        std::vector<absl::btree_set<int>>(child_operators.size());
+    tables_per_condition_ =
+        std::vector<absl::flat_hash_set<int>>(conditions.size());
+    for (int pred_idx = 0; pred_idx < conditions.size(); pred_idx++) {
+      PredicateColumnCollector collector;
+      conditions[pred_idx].get().Accept(collector);
+      auto cond = collector.PredicateColumns();
+
+      for (auto& c : cond) {
+        conditions_per_table_[c.get().GetChildIdx()].insert(pred_idx);
+        tables_per_condition_[pred_idx].insert(c.get().GetChildIdx());
+      }
+
+      for (int i = 0; i < cond.size(); i++) {
+        for (int j = i + 1; j < cond.size(); j++) {
+          auto left_table = cond[i].get().GetChildIdx();
+          auto right_table = cond[j].get().GetChildIdx();
+
+          if (left_table != right_table) {
+            table_connections_.insert({left_table, right_table});
+            table_connections_.insert({right_table, left_table});
+          }
         }
       }
     }
-  }
 
-  // 3. Execute join
-  auto compile_fn = static_cast<RecompilingJoinTranslator*>(this);
-  proxy::SkinnerJoinExecutor::ExecuteRecompilingJoin(
-      program_, child_translators.size(),
-      program_.StaticGEP(cardinalities_array_type, cardinalities_array, {0, 0}),
-      &table_connections_, &join_.PrefixOrder(), compile_fn,
-      program_.StaticGEP(materialized_buffer_array_type,
-                         materialized_buffer_array, {0, 0}),
-      program_.StaticGEP(materialized_index_array_type,
-                         materialized_index_array, {0, 0}),
-      tuple_idx_table.Get(),
-      program_.StaticGEP(idx_array_type, idx_array, {0, 0}),
-      program_.StaticGEP(num_result_tuples_type, num_result_tuples_ptr, {0, 0}),
-      program_.GetFunctionPointer(valid_tuple_handler.Get()));
+    // 3. Execute join
+    auto compile_fn = static_cast<RecompilingJoinTranslator*>(this);
+    proxy::SkinnerJoinExecutor::ExecuteRecompilingJoin(
+        program_, child_translators.size(),
+        program_.StaticGEP(cardinalities_array_type, cardinalities_array,
+                           {0, 0}),
+        &table_connections_, &join_.PrefixOrder(), compile_fn,
+        program_.StaticGEP(materialized_buffer_array_type,
+                           materialized_buffer_array, {0, 0}),
+        program_.StaticGEP(materialized_index_array_type,
+                           materialized_index_array, {0, 0}),
+        tuple_idx_table.Get(),
+        program_.StaticGEP(idx_array_type, idx_array, {0, 0}),
+        program_.StaticGEP(num_result_tuples_type, num_result_tuples_ptr,
+                           {0, 0}),
+        program_.GetFunctionPointer(valid_tuple_handler.Get()));
 
-  for (auto& buffer : materialized_buffers_) {
-    buffer->Reset();
-  }
-  for (auto& index : indexes_) {
-    index->Reset();
-  }
-  tuple_idx_table.Reset();
+    tuple_idx_table.Reset();
+  });
 }
 
 void RecompilingSkinnerJoinTranslator::Consume(OperatorTranslator& src) {

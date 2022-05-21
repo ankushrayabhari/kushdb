@@ -25,7 +25,9 @@ Vector::Vector(khir::ProgramBuilder& program, execution::QueryState& state,
       value_(program_.PointerCast(
           program.ConstPtr(state.Allocate<runtime::Vector::Vector>()),
           program.PointerType(
-              program_.GetStructType(Vector::VectorStructName)))) {
+              program_.GetStructType(Vector::VectorStructName)))) {}
+
+void Vector::Init() {
   auto element_size = program_.SizeOf(content_type_);
   auto initial_capacity = program_.ConstI32(2);
   program_.Call(program_.GetFunction(CreateFnName),

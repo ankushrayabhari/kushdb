@@ -65,9 +65,13 @@ class AggregateHashTable {
                      execution::QueryState& state,
                      std::vector<std::pair<catalog::Type, bool>> key_types,
                      std::vector<std::unique_ptr<Aggregator>> aggregators);
-  void UpdateOrInsert(const std::vector<SQLValue>& keys);
-  void ForEach(std::function<void(std::vector<SQLValue>)> handler);
+
+  void Init();
   void Reset();
+  void UpdateOrInsert(const std::vector<SQLValue>& keys);
+  void ForEach(Int32 start, Int32 end,
+               std::function<void(std::vector<SQLValue>)> handler);
+  Int32 NumTuples();
 
   static void ForwardDeclare(khir::ProgramBuilder& program);
 
@@ -91,6 +95,9 @@ class AggregateHashTable {
   Int16 PayloadBlocksOffset();
   AggregateHashTablePayload GetPayload(Int32 block_idx, Int16 block_offset);
   AggregateHashTableEntry GetEntry(Int32 entry_idx);
+
+  Int32 ComputeBlockIdx(Int32 t);
+  Int16 ComputeBlockOffset(Int32 t);
 
   khir::ProgramBuilder& program_;
   std::vector<std::unique_ptr<Aggregator>> aggregators_;

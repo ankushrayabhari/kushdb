@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <stack>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -10,25 +10,39 @@ namespace kush::execution {
 class Pipeline {
  public:
   Pipeline(int id);
-  void AddPredecessor(std::unique_ptr<Pipeline> pred);
+  std::string InitName() const;
+  std::string BodyName() const;
+  std::string SizeName() const;
+  std::string ResetName() const;
 
-  std::vector<std::reference_wrapper<const Pipeline>> Predecessors() const;
-  std::string Name() const;
+  void SetDriver(Pipeline& rhs);
+  std::optional<int> Driver() const;
+
+  void AddPredecessor(Pipeline& rhs);
+  const std::vector<int>& Predecessors() const;
+  const std::vector<int>& Successors() const;
+
+  bool Split() const;
+  void SetSplit(bool s);
 
  private:
   int id_;
-  std::vector<std::unique_ptr<Pipeline>> predecessors_;
+  std::optional<int> driver_;
+  std::vector<int> succ_;
+  std::vector<int> pred_;
+  bool split_;
 };
 
 class PipelineBuilder {
  public:
+  PipelineBuilder();
   Pipeline& CreatePipeline();
-  Pipeline& GetCurrentPipeline();
-  std::unique_ptr<Pipeline> FinishPipeline();
+
+  std::vector<std::reference_wrapper<const Pipeline>> Pipelines() const;
 
  private:
-  std::stack<std::unique_ptr<Pipeline>> pipelines_;
-  static int id_;
+  std::vector<std::unique_ptr<Pipeline>> pipelines_;
+  int id_;
 };
 
 }  // namespace kush::execution

@@ -33,11 +33,7 @@ GroupByAggregateTranslator::GroupByAggregateTranslator(
       state_(state),
       expr_translator_(program, *this) {}
 
-void GroupByAggregateTranslator::Produce() {
-  auto output_pipeline_func = program_.CurrentBlock();
-
-  auto& pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
+void GroupByAggregateTranslator::Produce(proxy::Pipeline& output) {
   auto group_by_exprs = group_by_agg_.GroupByExprs();
   auto agg_exprs = group_by_agg_.AggExprs();
 
@@ -76,31 +72,31 @@ void GroupByAggregateTranslator::Produce() {
       program_, state_, std::move(key_types), std::move(aggregators));
 
   // Populate hash table
-  this->Child().Produce();
-
-  // Finish pipeline
-  program_.Return();
-  auto child_pipeline = pipeline_builder_.FinishPipeline();
-  pipeline_builder_.GetCurrentPipeline().AddPredecessor(
-      std::move(child_pipeline));
+  proxy::Pipeline input(program_, pipeline_builder_);
+  input.Init([&]() { hash_table_->Init(); });
+  input.Reset([&]() { hash_table_->Reset(); });
+  input.Size([&]() { return hash_table_->NumTuples(); });
+  this->Child().Produce(input);
+  input.Build();
 
   // Loop over elements of HT and output row
-  program_.SetCurrentBlock(output_pipeline_func);
-  hash_table_->ForEach([&](std::vector<proxy::SQLValue> group_by_agg_values) {
-    this->virtual_values_.SetValues(group_by_agg_values);
+  output.Body(input, [&](proxy::Int32 start, proxy::Int32 end) {
+    hash_table_->ForEach(
+        start, end, [&](std::vector<proxy::SQLValue> group_by_agg_values) {
+          this->virtual_values_.SetValues(group_by_agg_values);
 
-    // generate output variables
-    this->values_.ResetValues();
-    for (const auto& column : group_by_agg_.Schema().Columns()) {
-      auto val = expr_translator_.Compute(column.Expr());
-      this->values_.AddVariable(val);
-    }
+          // generate output variables
+          this->values_.ResetValues();
+          for (const auto& column : group_by_agg_.Schema().Columns()) {
+            auto val = expr_translator_.Compute(column.Expr());
+            this->values_.AddVariable(val);
+          }
 
-    if (auto parent = this->Parent()) {
-      parent->get().Consume(*this);
-    }
+          if (auto parent = this->Parent()) {
+            parent->get().Consume(*this);
+          }
+        });
   });
-  hash_table_->Reset();
 }
 
 void GroupByAggregateTranslator::Consume(OperatorTranslator& src) {

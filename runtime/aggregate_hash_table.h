@@ -42,4 +42,10 @@ void* GetPayload(AggregateHashTable* ht, uint32_t block_idx,
 
 void* GetEntry(AggregateHashTable* ht, uint32_t idx);
 
+int32_t ComputeBlockIdx(AggregateHashTable* ht, uint32_t idx);
+
+int32_t ComputeBlockOffset(AggregateHashTable* ht, uint32_t idx);
+
+int32_t Size(AggregateHashTable* ht);
+
 }  // namespace kush::runtime::AggregateHashTable

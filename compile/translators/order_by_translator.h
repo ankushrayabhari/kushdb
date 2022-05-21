@@ -23,7 +23,7 @@ class OrderByTranslator : public OperatorTranslator {
                     std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~OrderByTranslator() = default;
 
-  void Produce() override;
+  void Produce(proxy::Pipeline& output) override;
   void Consume(OperatorTranslator& src) override;
 
  private:

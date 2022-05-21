@@ -8,32 +8,48 @@
 
 namespace kush::execution {
 
-Pipeline::Pipeline(int id) : id_(id) {}
+Pipeline::Pipeline(int id) : id_(id), split_(false) {}
 
-std::string Pipeline::Name() const { return "pipeline" + std::to_string(id_); }
-
-void Pipeline::AddPredecessor(std::unique_ptr<Pipeline> pred) {
-  predecessors_.push_back(std::move(pred));
+void Pipeline::SetDriver(Pipeline& pred) {
+  driver_ = pred.id_;
+  AddPredecessor(pred);
 }
 
-int PipelineBuilder::id_ = 0;
-
-std::vector<std::reference_wrapper<const Pipeline>> Pipeline::Predecessors()
-    const {
-  return util::ImmutableReferenceVector(predecessors_);
+void Pipeline::AddPredecessor(Pipeline& pred) {
+  pred_.push_back(pred.id_);
+  pred.succ_.push_back(id_);
 }
+
+std::string Pipeline::InitName() const { return "init_" + std::to_string(id_); }
+
+std::string Pipeline::BodyName() const { return "body_" + std::to_string(id_); }
+
+std::string Pipeline::ResetName() const {
+  return "reset_" + std::to_string(id_);
+}
+
+bool Pipeline::Split() const { return split_; }
+
+void Pipeline::SetSplit(bool s) { split_ = s; }
+
+std::string Pipeline::SizeName() const { return "size_" + std::to_string(id_); }
+
+const std::vector<int>& Pipeline::Successors() const { return succ_; }
+
+const std::vector<int>& Pipeline::Predecessors() const { return pred_; }
+
+std::optional<int> Pipeline::Driver() const { return driver_; }
+
+PipelineBuilder::PipelineBuilder() : id_(0) {}
 
 Pipeline& PipelineBuilder::CreatePipeline() {
-  pipelines_.push(std::make_unique<Pipeline>(id_++));
-  return *pipelines_.top();
+  pipelines_.push_back(std::make_unique<Pipeline>(id_++));
+  return *pipelines_.back();
 }
 
-Pipeline& PipelineBuilder::GetCurrentPipeline() { return *pipelines_.top(); }
-
-std::unique_ptr<Pipeline> PipelineBuilder::FinishPipeline() {
-  auto ret = std::move(pipelines_.top());
-  pipelines_.pop();
-  return ret;
+std::vector<std::reference_wrapper<const Pipeline>> PipelineBuilder::Pipelines()
+    const {
+  return util::ImmutableReferenceVector(pipelines_);
 }
 
 }  // namespace kush::execution

@@ -15,6 +15,7 @@ class HashTable {
   HashTable(khir::ProgramBuilder& program, execution::QueryState& state,
             StructBuilder& content);
 
+  void Init();
   void Reset();
   Struct Insert(const std::vector<SQLValue>& keys);
   Vector Get(const std::vector<SQLValue>& keys);

@@ -35,7 +35,9 @@ TupleIdxTable::TupleIdxTable(khir::ProgramBuilder& program)
       value_(program.Global(
           program.PointerType(program.GetOpaqueType(TypeName)),
           program.NullPtr(
-              program.PointerType(program.GetOpaqueType(TypeName))))) {
+              program.PointerType(program.GetOpaqueType(TypeName))))) {}
+
+void TupleIdxTable::Init() {
   auto tuple_idx_table = program_.Call(program_.GetFunction(create_fn_name));
   program_.StorePtr(value_, tuple_idx_table);
 }

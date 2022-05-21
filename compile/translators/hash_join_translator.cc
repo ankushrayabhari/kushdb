@@ -31,11 +31,7 @@ HashJoinTranslator::HashJoinTranslator(
       state_(state),
       expr_translator_(program_, *this) {}
 
-void HashJoinTranslator::Produce() {
-  auto output_pipeline_func = program_.CurrentBlock();
-
-  auto& pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
+void HashJoinTranslator::Produce(proxy::Pipeline& output) {
   // Struct for all columns in the left tuple
   proxy::StructBuilder packed(program_);
   const auto& child_schema = hash_join_.LeftChild().Schema().Columns();
@@ -47,17 +43,15 @@ void HashJoinTranslator::Produce() {
   buffer_ = std::make_unique<proxy::HashTable>(program_, state_, packed);
   all_not_null_ptr_ = program_.Global(program_.I8Type(), program_.ConstI8(0));
 
-  this->LeftChild().Produce();
-
-  program_.Return();
-  auto child_pipeline = pipeline_builder_.FinishPipeline();
-  pipeline_builder_.GetCurrentPipeline().AddPredecessor(
-      std::move(child_pipeline));
+  proxy::Pipeline input(program_, pipeline_builder_);
+  input.Init([&]() { buffer_->Init(); });
+  input.Reset([&]() { buffer_->Reset(); });
+  this->LeftChild().Produce(input);
+  input.Build();
 
   // Loop over elements of HT and output row
-  program_.SetCurrentBlock(output_pipeline_func);
-  this->RightChild().Produce();
-  buffer_->Reset();
+  output.Get().AddPredecessor(input.Get());
+  this->RightChild().Produce(output);
 }
 
 void CheckEquality(khir::ProgramBuilder& program,

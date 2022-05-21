@@ -9,12 +9,14 @@ namespace kush::compile::proxy {
 
 class Vector {
  public:
-  Vector(khir::ProgramBuilder& program, execution::QueryState& state, StructBuilder& content);
+  Vector(khir::ProgramBuilder& program, execution::QueryState& state,
+         StructBuilder& content);
   Vector(khir::ProgramBuilder& program, StructBuilder& content, khir::Value v);
 
   Struct operator[](const Int32& idx);
   Struct PushBack();
   Int32 Size();
+  void Init();
   void Reset();
   void Sort(const khir::FunctionRef& comp);
 

@@ -32,32 +32,25 @@ OrderByTranslator::OrderByTranslator(
       state_(state),
       expr_translator_(program, *this) {}
 
-void OrderByTranslator::Produce() {
-  auto output_pipeline_func = program_.CurrentBlock();
-
-  auto& child_pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {}, child_pipeline.Name());
-  // include every child column inside the struct
+void OrderByTranslator::Produce(proxy::Pipeline& output) {
+  // buffer the input
   proxy::StructBuilder packed(program_);
   const auto& child_schema = order_by_.Child().Schema().Columns();
   for (const auto& col : child_schema) {
     packed.Add(col.Expr().Type(), col.Expr().Nullable());
   }
   packed.Build();
-
-  // init vector
   buffer_ = std::make_unique<proxy::Vector>(program_, state_, packed);
 
-  // populate vector
-  this->Child().Produce();
+  // populate buffer
+  proxy::Pipeline input(program_, pipeline_builder_);
+  input.Init([&]() { buffer_->Init(); });
+  input.Reset([&]() { buffer_->Reset(); });
+  input.Size([&]() { return buffer_->Size(); });
+  this->Child().Produce(input);
+  input.Build();
 
-  program_.Return();
-  auto child_pipeline_finished = pipeline_builder_.FinishPipeline();
-
-  auto& sort_pipeline = pipeline_builder_.CreatePipeline();
-  sort_pipeline.AddPredecessor(std::move(child_pipeline_finished));
-  program_.CreatePublicFunction(program_.VoidType(), {}, sort_pipeline.Name());
-  // sort
+  // sort the buffer
   proxy::ComparisonFunction comp_fn(
       program_, packed,
       [&](proxy::Struct& s1, proxy::Struct& s2,
@@ -80,40 +73,36 @@ void OrderByTranslator::Produce() {
 
         Return(proxy::Bool(program_, false));
       });
+  proxy::Pipeline sort(program_, pipeline_builder_);
+  sort.Body([&]() { buffer_->Sort(comp_fn.Get()); });
+  sort.Build();
+  sort.Get().AddPredecessor(input.Get());
 
-  buffer_->Sort(comp_fn.Get());
-  program_.Return();
+  output.Get().AddPredecessor(sort.Get());
+  output.Body(input, [&](proxy::Int32 start, proxy::Int32 end) {
+    proxy::Loop(
+        program_, [&](auto& loop) { loop.AddLoopVariable(start); },
+        [&](auto& loop) {
+          auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+          return i <= end;
+        },
+        [&](auto& loop) {
+          auto i = loop.template GetLoopVariable<proxy::Int32>(0);
 
-  auto sort_pipeline_finished = pipeline_builder_.FinishPipeline();
-  pipeline_builder_.GetCurrentPipeline().AddPredecessor(
-      std::move(sort_pipeline_finished));
-  program_.SetCurrentBlock(output_pipeline_func);
-  // Loop over elements of HT and output row
-  proxy::Loop(
-      program_,
-      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
-      [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
-        return i < buffer_->Size();
-      },
-      [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+          this->Child().SchemaValues().SetValues((*buffer_)[i].Unpack());
 
-        this->Child().SchemaValues().SetValues((*buffer_)[i].Unpack());
+          this->values_.ResetValues();
+          for (const auto& column : order_by_.Schema().Columns()) {
+            this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
+          }
 
-        this->values_.ResetValues();
-        for (const auto& column : order_by_.Schema().Columns()) {
-          this->values_.AddVariable(expr_translator_.Compute(column.Expr()));
-        }
+          if (auto parent = this->Parent()) {
+            parent->get().Consume(*this);
+          }
 
-        if (auto parent = this->Parent()) {
-          parent->get().Consume(*this);
-        }
-
-        return loop.Continue(i + 1);
-      });
-
-  buffer_->Reset();
+          return loop.Continue(i + 1);
+        });
+  });
 }
 
 void OrderByTranslator::Consume(OperatorTranslator& src) {

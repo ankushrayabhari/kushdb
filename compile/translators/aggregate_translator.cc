@@ -31,16 +31,9 @@ AggregateTranslator::AggregateTranslator(
       state_(state),
       expr_translator_(program, *this) {}
 
-void AggregateTranslator::Produce() {
-  auto output_pipeline_func = program_.CurrentBlock();
-
-  auto& pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
-  auto agg_exprs = agg_.AggExprs();
-
+void AggregateTranslator::Produce(proxy::Pipeline& output) {
   agg_struct_ = std::make_unique<proxy::StructBuilder>(program_);
-
-  for (const auto& agg : agg_exprs) {
+  for (const auto& agg : agg_.AggExprs()) {
     auto agg_type = agg.get().AggType();
     switch (agg_type) {
       case plan::AggregateType::AVG:
@@ -76,87 +69,85 @@ void AggregateTranslator::Produce() {
   empty_value_ = program_.PointerCast(
       program_.ConstPtr(state_.Allocate(program_.GetSize(program_.I64Type()))),
       program_.PointerType(program_.I64Type()));
-  program_.StoreI64(empty_value_, program_.ConstI64(0));
 
   // Fill aggregators
-  this->Child().Produce();
+  proxy::Pipeline input(program_, pipeline_builder_);
+  input.Init([&]() { program_.StoreI64(empty_value_, program_.ConstI64(0)); });
+  this->Child().Produce(input);
+  input.Build();
 
-  // Finish pipeline
-  program_.Return();
-  auto child_pipeline = pipeline_builder_.FinishPipeline();
-  pipeline_builder_.GetCurrentPipeline().AddPredecessor(
-      std::move(child_pipeline));
-  program_.SetCurrentBlock(output_pipeline_func);
-
-  // Loop over elements of HT and output row
-  proxy::Int64 empty(program_, program_.LoadI64(empty_value_));
-  proxy::If(
-      program_, empty == 0,
-      [&]() {
-        // generate null
-        this->values_.ResetValues();
-        for (const auto& column : agg_.Schema().Columns()) {
-          const auto& type = column.Expr().Type();
-          switch (type.type_id) {
-            case catalog::TypeId::SMALLINT:
-              this->values_.AddVariable(proxy::SQLValue(
-                  proxy::Int16(program_, 0), proxy::Bool(program_, true)));
-              break;
-            case catalog::TypeId::INT:
-              this->values_.AddVariable(proxy::SQLValue(
-                  proxy::Int32(program_, 0), proxy::Bool(program_, true)));
-              break;
-            case catalog::TypeId::DATE:
-              this->values_.AddVariable(proxy::SQLValue(
-                  proxy::Date(program_, runtime::Date::DateBuilder(2000, 1, 1)),
-                  proxy::Bool(program_, true)));
-              break;
-            case catalog::TypeId::BIGINT:
-              this->values_.AddVariable(proxy::SQLValue(
-                  proxy::Int64(program_, 0), proxy::Bool(program_, true)));
-              break;
-            case catalog::TypeId::BOOLEAN:
-              this->values_.AddVariable(proxy::SQLValue(
-                  proxy::Bool(program_, false), proxy::Bool(program_, true)));
-              break;
-            case catalog::TypeId::REAL:
-              this->values_.AddVariable(proxy::SQLValue(
-                  proxy::Float64(program_, 0), proxy::Bool(program_, true)));
-              break;
-            case catalog::TypeId::TEXT:
-              this->values_.AddVariable(
-                  proxy::SQLValue(proxy::String::Global(program_, ""),
-                                  proxy::Bool(program_, true)));
-              break;
-            case catalog::TypeId::ENUM:
-              this->values_.AddVariable(
-                  proxy::SQLValue(proxy::Enum(program_, type.enum_id, -1),
-                                  proxy::Bool(program_, true)));
-              break;
+  output.Get().AddPredecessor(input.Get());
+  output.Body([&]() {
+    proxy::Int64 empty(program_, program_.LoadI64(empty_value_));
+    proxy::If(
+        program_, empty == 0,
+        [&]() {
+          // generate null
+          this->values_.ResetValues();
+          for (const auto& column : agg_.Schema().Columns()) {
+            const auto& type = column.Expr().Type();
+            switch (type.type_id) {
+              case catalog::TypeId::SMALLINT:
+                this->values_.AddVariable(proxy::SQLValue(
+                    proxy::Int16(program_, 0), proxy::Bool(program_, true)));
+                break;
+              case catalog::TypeId::INT:
+                this->values_.AddVariable(proxy::SQLValue(
+                    proxy::Int32(program_, 0), proxy::Bool(program_, true)));
+                break;
+              case catalog::TypeId::DATE:
+                this->values_.AddVariable(proxy::SQLValue(
+                    proxy::Date(program_,
+                                runtime::Date::DateBuilder(2000, 1, 1)),
+                    proxy::Bool(program_, true)));
+                break;
+              case catalog::TypeId::BIGINT:
+                this->values_.AddVariable(proxy::SQLValue(
+                    proxy::Int64(program_, 0), proxy::Bool(program_, true)));
+                break;
+              case catalog::TypeId::BOOLEAN:
+                this->values_.AddVariable(proxy::SQLValue(
+                    proxy::Bool(program_, false), proxy::Bool(program_, true)));
+                break;
+              case catalog::TypeId::REAL:
+                this->values_.AddVariable(proxy::SQLValue(
+                    proxy::Float64(program_, 0), proxy::Bool(program_, true)));
+                break;
+              case catalog::TypeId::TEXT:
+                this->values_.AddVariable(
+                    proxy::SQLValue(proxy::String::Global(program_, ""),
+                                    proxy::Bool(program_, true)));
+                break;
+              case catalog::TypeId::ENUM:
+                this->values_.AddVariable(
+                    proxy::SQLValue(proxy::Enum(program_, type.enum_id, -1),
+                                    proxy::Bool(program_, true)));
+                break;
+            }
           }
-        }
 
-        if (auto parent = this->Parent()) {
-          parent->get().Consume(*this);
-        }
-      },
-      [&]() {
-        this->virtual_values_.ResetValues();
-        for (const auto& agg : aggregators_) {
-          this->virtual_values_.AddVariable(agg->Get(*value_));
-        }
+          if (auto parent = this->Parent()) {
+            parent->get().Consume(*this);
+          }
+        },
+        [&]() {
+          this->virtual_values_.ResetValues();
+          for (const auto& agg : aggregators_) {
+            this->virtual_values_.AddVariable(agg->Get(*value_));
+          }
 
-        // generate output variables
-        this->values_.ResetValues();
-        for (const auto& column : agg_.Schema().Columns()) {
-          auto val = expr_translator_.Compute(column.Expr());
-          this->values_.AddVariable(val);
-        }
+          // generate output variables
+          this->values_.ResetValues();
+          for (const auto& column : agg_.Schema().Columns()) {
+            auto val = expr_translator_.Compute(column.Expr());
+            this->values_.AddVariable(val);
+          }
 
-        if (auto parent = this->Parent()) {
-          parent->get().Consume(*this);
-        }
-      });
+          if (auto parent = this->Parent()) {
+            parent->get().Consume(*this);
+          }
+        });
+  });
 }
 
 void AggregateTranslator::Consume(OperatorTranslator& src) {

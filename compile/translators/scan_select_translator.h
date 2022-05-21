@@ -17,10 +17,11 @@ class ScanSelectTranslator : public OperatorTranslator {
  public:
   ScanSelectTranslator(const plan::ScanSelectOperator& scan_select,
                        khir::ProgramBuilder& program,
+                       execution::PipelineBuilder& pipeline_builder,
                        execution::QueryState& state);
   virtual ~ScanSelectTranslator() = default;
 
-  void Produce() override;
+  void Produce(proxy::Pipeline& output) override;
   void Consume(OperatorTranslator& src) override;
 
  private:
@@ -28,6 +29,7 @@ class ScanSelectTranslator : public OperatorTranslator {
 
   const plan::ScanSelectOperator& scan_select_;
   khir::ProgramBuilder& program_;
+  execution::PipelineBuilder& pipeline_builder_;
   execution::QueryState& state_;
   ExpressionTranslator expr_translator_;
 };

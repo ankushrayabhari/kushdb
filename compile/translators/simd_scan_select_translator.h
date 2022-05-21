@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "compile/proxy/materialized_buffer.h"
+#include "compile/proxy/pipeline.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/query_state.h"
@@ -15,16 +16,18 @@ class SimdScanSelectTranslator : public OperatorTranslator {
  public:
   SimdScanSelectTranslator(const plan::SimdScanSelectOperator& scan_select,
                            khir::ProgramBuilder& program,
+                           execution::PipelineBuilder& pipeline_builder,
                            execution::QueryState& state);
   virtual ~SimdScanSelectTranslator() = default;
 
-  void Produce() override;
+  void Produce(proxy::Pipeline& output) override;
   void Consume(OperatorTranslator& src) override;
 
  private:
   std::unique_ptr<proxy::DiskMaterializedBuffer> GenerateBuffer();
   const plan::SimdScanSelectOperator& scan_select_;
   khir::ProgramBuilder& program_;
+  execution::PipelineBuilder& pipeline_builder_;
   execution::QueryState& state_;
   ExpressionTranslator expr_translator_;
 };

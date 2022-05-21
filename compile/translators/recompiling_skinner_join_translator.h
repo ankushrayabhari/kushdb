@@ -32,7 +32,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
       execution::QueryState& state,
       std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~RecompilingSkinnerJoinTranslator() = default;
-  void Produce() override;
+  void Produce(proxy::Pipeline&) override;
   void Consume(OperatorTranslator& src) override;
   ExecuteJoinFn CompileJoinOrder(
       const std::vector<int>& order, void** materialized_buffers,

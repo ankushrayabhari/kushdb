@@ -12,16 +12,14 @@ class OutputTranslator : public OperatorTranslator {
  public:
   OutputTranslator(const plan::OutputOperator& output,
                    khir::ProgramBuilder& program,
-                   execution::PipelineBuilder& pipeline_builder,
                    std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~OutputTranslator() = default;
 
-  void Produce() override;
+  void Produce(proxy::Pipeline& output) override;
   void Consume(OperatorTranslator& src) override;
 
  private:
   khir::ProgramBuilder& program_;
-  execution::PipelineBuilder& pipeline_builder_;
   proxy::String empty_;
 };
 

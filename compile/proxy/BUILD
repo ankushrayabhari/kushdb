@@ -140,6 +140,17 @@ cc_library(
 )
 
 cc_library(
+    name = "pipeline",
+    srcs = ["pipeline.cc"],
+    hdrs = ["pipeline.h"],
+    deps = [
+        "//compile/proxy/value:ir_value",
+        "//execution:pipeline",
+        "//khir:program_builder",
+    ],
+)
+
+cc_library(
     name = "column_data",
     srcs = ["column_data.cc"],
     hdrs = ["column_data.h"],

@@ -108,4 +108,30 @@ void* GetEntry(AggregateHashTable* ht, uint32_t idx) {
   return &ht->entries[idx];
 }
 
+int32_t ComputeBlockIdx(AggregateHashTable* ht, uint32_t idx) {
+  auto tuples_per_block = BLOCK_SIZE / ht->payload_size;
+  return idx / tuples_per_block + 1;
+}
+
+int32_t ComputeBlockOffset(AggregateHashTable* ht, uint32_t idx) {
+  auto tuples_per_block = BLOCK_SIZE / ht->payload_size;
+  return ht->payload_size * (idx % tuples_per_block);
+}
+
+int32_t Size(AggregateHashTable* ht) {
+  auto tuples_per_block = BLOCK_SIZE / ht->payload_size;
+  int32_t output = 0;
+
+  // skip last block and block 0
+  int32_t full_blocks = ht->payload_block_size - 2;
+  if (full_blocks > 0) {
+    output += full_blocks * tuples_per_block;
+  }
+
+  // handle last block
+  output += ht->last_payload_offset / ht->payload_size;
+
+  return output;
+}
+
 }  // namespace kush::runtime::AggregateHashTable

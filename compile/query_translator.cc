@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "compile/forward_declare.h"
+#include "compile/proxy/pipeline.h"
 #include "compile/translators/translator_factory.h"
 #include "execution/pipeline.h"
 #include "execution/query_state.h"
@@ -28,9 +29,11 @@ execution::ExecutableQuery QueryTranslator::Translate() {
   // Generate code for operator
   TranslatorFactory factory(program_builder, pipeline_builder, state);
   auto translator = factory.Compute(op_);
-  translator->Produce();
 
-  auto output_pipeline = pipeline_builder.FinishPipeline();
+  proxy::Pipeline output_pipeline(program_builder, pipeline_builder);
+  translator->Produce(output_pipeline);
+  output_pipeline.Build();
+
   auto program = program_builder.Build();
 
   // khir::ProgramPrinter printer;
@@ -50,7 +53,7 @@ execution::ExecutableQuery QueryTranslator::Translate() {
   }
   backend->Translate(program);
   return execution::ExecutableQuery(std::move(translator), std::move(backend),
-                                    std::move(output_pipeline),
+                                    std::move(pipeline_builder),
                                     std::move(state));
 }
 

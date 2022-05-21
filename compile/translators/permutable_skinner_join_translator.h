@@ -27,7 +27,7 @@ class PermutableSkinnerJoinTranslator : public OperatorTranslator {
       execution::QueryState& state,
       std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~PermutableSkinnerJoinTranslator() = default;
-  void Produce() override;
+  void Produce(proxy::Pipeline&) override;
   void Consume(OperatorTranslator& src) override;
 
  private:

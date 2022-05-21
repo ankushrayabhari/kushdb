@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 
+#include "compile/proxy/pipeline.h"
 #include "compile/translators/schema_values.h"
 #include "plan/operator/operator.h"
 
@@ -15,7 +16,7 @@ class OperatorTranslator {
                      std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~OperatorTranslator() = default;
 
-  virtual void Produce() = 0;
+  virtual void Produce(proxy::Pipeline& output) = 0;
   virtual void Consume(OperatorTranslator& src) = 0;
 
   std::optional<std::reference_wrapper<OperatorTranslator>> Parent();

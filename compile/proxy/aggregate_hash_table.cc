@@ -30,6 +30,12 @@ constexpr std::string_view GetPayloadFnName(
     "kush::runtime::AggregateHashTable::GetPayload");
 constexpr std::string_view GetEntryFnName(
     "kush::runtime::AggregateHashTable::GetEntry");
+constexpr std::string_view ComputeBlockIdxFnName(
+    "kush::runtime::AggregateHashTable::ComputeBlockIdx");
+constexpr std::string_view ComputeBlockOffsetFnName(
+    "kush::runtime::AggregateHashTable::ComputeBlockOffset");
+constexpr std::string_view NumTuplesFnName(
+    "kush::runtime::AggregateHashTable::Size");
 }  // namespace
 
 AggregateHashTableEntry::AggregateHashTableEntry(khir::ProgramBuilder& program,
@@ -155,7 +161,9 @@ AggregateHashTable::AggregateHashTable(
           program_.ConstPtr(
               state
                   .Allocate<runtime::AggregateHashTable::AggregateHashTable>()),
-          program_.PointerType(program_.GetStructType(StructName)))) {
+          program_.PointerType(program_.GetStructType(StructName)))) {}
+
+void AggregateHashTable::Init() {
   auto payload_type = payload_format_.Type();
   program_.Call(
       program_.GetFunction(InitFnName),
@@ -235,22 +243,26 @@ void AggregateHashTable::UpdateOrInsert(const std::vector<SQLValue>& keys) {
 }
 
 void AggregateHashTable::ForEach(
+    Int32 start, Int32 end,
     std::function<void(std::vector<SQLValue>)> handler) {
   auto payload_block_size = PayloadBlocksSize();
   auto payload_size = PayloadSize();
 
+  auto start_block = ComputeBlockIdx(start);
+  auto end_block = ComputeBlockIdx(end);
+  auto end_offset = ComputeBlockOffset(end) + payload_size;
+
   Loop(
-      program_, [&](auto& loop) { loop.AddLoopVariable(Int32(program_, 1)); },
+      program_, [&](auto& loop) { loop.AddLoopVariable(start_block); },
       [&](auto& loop) {
         auto block_idx = loop.template GetLoopVariable<Int32>(0);
-        return block_idx < payload_block_size;
+        return block_idx <= end_block;
       },
       [&](auto& loop) {
         auto block_idx = loop.template GetLoopVariable<Int32>(0);
 
-        auto end = Ternary(
-            program_, block_idx == payload_block_size - 1,
-            [&]() { return PayloadBlocksOffset(); },
+        auto loop_end = Ternary(
+            program_, block_idx == end_block, [&]() { return end_offset; },
             [&]() {
               return Int16(program_, runtime::AggregateHashTable::BLOCK_SIZE);
             });
@@ -262,7 +274,7 @@ void AggregateHashTable::ForEach(
             },
             [&](auto& inner_loop) {
               auto block_offset = inner_loop.template GetLoopVariable<Int16>(0);
-              return block_offset + payload_size <= end;
+              return block_offset + payload_size <= loop_end;
             },
             [&](auto& inner_loop) {
               auto block_offset = inner_loop.template GetLoopVariable<Int16>(0);
@@ -336,6 +348,23 @@ void AggregateHashTable::Resize() {
   program_.Call(program_.GetFunction(ResizeFnName), {value_});
 }
 
+Int32 AggregateHashTable::ComputeBlockIdx(Int32 t) {
+  return Int32(program_,
+               program_.Call(program_.GetFunction(ComputeBlockIdxFnName),
+                             {value_, t.Get()}));
+}
+
+Int32 AggregateHashTable::NumTuples() {
+  return Int32(program_,
+               program_.Call(program_.GetFunction(NumTuplesFnName), {value_}));
+}
+
+Int16 AggregateHashTable::ComputeBlockOffset(Int32 t) {
+  return Int16(program_,
+               program_.Call(program_.GetFunction(ComputeBlockOffsetFnName),
+                             {value_, t.Get()}));
+}
+
 Int64 AggregateHashTable::PayloadHashOffset() {
   return Int64(program_,
                program_.LoadI64(program_.StaticGEP(
@@ -386,7 +415,7 @@ Int16 AggregateHashTable::PayloadBlocksOffset() {
 
 Int16 AggregateHashTable::PayloadSize() {
   return Int16(program_,
-               program_.LoadI64(program_.StaticGEP(
+               program_.LoadI16(program_.StaticGEP(
                    program_.GetStructType(StructName), value_, {0, 9})));
 }
 
@@ -454,6 +483,20 @@ void AggregateHashTable::ForwardDeclare(khir::ProgramBuilder& program) {
       GetPayloadFnName, program.PointerType(program.I8Type()),
       {struct_ptr, program.I32Type(), program.I64Type()},
       reinterpret_cast<void*>(&runtime::AggregateHashTable::GetPayload));
+
+  program.DeclareExternalFunction(
+      ComputeBlockIdxFnName, program.I32Type(), {struct_ptr, program.I32Type()},
+      reinterpret_cast<void*>(&runtime::AggregateHashTable::ComputeBlockIdx));
+
+  program.DeclareExternalFunction(
+      ComputeBlockOffsetFnName, program.I16Type(),
+      {struct_ptr, program.I32Type()},
+      reinterpret_cast<void*>(
+          &runtime::AggregateHashTable::ComputeBlockOffset));
+
+  program.DeclareExternalFunction(
+      NumTuplesFnName, program.I32Type(), {struct_ptr},
+      reinterpret_cast<void*>(&runtime::AggregateHashTable::Size));
 }
 
 }  // namespace kush::compile::proxy

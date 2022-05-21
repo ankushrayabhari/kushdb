@@ -10,6 +10,7 @@
 #include "compile/proxy/column_data.h"
 #include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/disk_column_index.h"
+#include "compile/proxy/pipeline.h"
 #include "compile/proxy/value/ir_value.h"
 #include "compile/proxy/value/sql_value.h"
 #include "compile/translators/operator_translator.h"
@@ -21,10 +22,12 @@ namespace kush::compile {
 
 ScanTranslator::ScanTranslator(const plan::ScanOperator& scan,
                                khir::ProgramBuilder& program,
+                               execution::PipelineBuilder& pipeline_builder,
                                execution::QueryState& state)
     : OperatorTranslator(scan, {}),
       scan_(scan),
       program_(program),
+      pipeline_builder_(pipeline_builder),
       state_(state) {}
 
 std::unique_ptr<proxy::DiskMaterializedBuffer>
@@ -134,31 +137,34 @@ std::unique_ptr<proxy::ColumnIndex> ScanTranslator::GenerateIndex(int col_idx) {
   }
 }
 
-void ScanTranslator::Produce() {
+void ScanTranslator::Produce(proxy::Pipeline& output) {
   auto materialized_buffer = GenerateBuffer();
-  materialized_buffer->Init();
 
-  auto cardinality = materialized_buffer->Size();
-  proxy::Loop loop(
-      program_,
-      [&](auto& loop) { loop.AddLoopVariable(proxy::Int32(program_, 0)); },
-      [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
-        return i < cardinality;
-      },
-      [&](auto& loop) {
-        auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+  // Create a dummy pipeline for the input
+  proxy::Pipeline input(program_, pipeline_builder_);
+  input.Init([&]() { materialized_buffer->Init(); });
+  input.Reset([&]() { materialized_buffer->Reset(); });
+  input.Size([&]() { return materialized_buffer->Size(); });
+  input.Build();
 
-        this->values_.SetValues((*materialized_buffer)[i]);
+  output.Body(input, [&](proxy::Int32 start, proxy::Int32 end) {
+    proxy::Loop loop(
+        program_, [&](auto& loop) { loop.AddLoopVariable(start); },
+        [&](auto& loop) {
+          auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+          return i <= end;
+        },
+        [&](auto& loop) {
+          auto i = loop.template GetLoopVariable<proxy::Int32>(0);
+          this->values_.SetValues((*materialized_buffer)[i]);
 
-        if (auto parent = this->Parent()) {
-          parent->get().Consume(*this);
-        }
+          if (auto parent = this->Parent()) {
+            parent->get().Consume(*this);
+          }
 
-        return loop.Continue(i + 1);
-      });
-
-  materialized_buffer->Reset();
+          return loop.Continue(i + 1);
+        });
+  });
 }
 
 void ScanTranslator::Consume(OperatorTranslator& src) {

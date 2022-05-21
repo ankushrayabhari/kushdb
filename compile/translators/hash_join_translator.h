@@ -22,7 +22,7 @@ class HashJoinTranslator : public OperatorTranslator {
                      execution::QueryState& state,
                      std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~HashJoinTranslator() = default;
-  void Produce() override;
+  void Produce(proxy::Pipeline& output) override;
   void Consume(OperatorTranslator& src) override;
 
  private:

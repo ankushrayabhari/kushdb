@@ -16,7 +16,9 @@ SelectTranslator::SelectTranslator(
       program_(program),
       expr_translator_(program, *this) {}
 
-void SelectTranslator::Produce() { this->Child().Produce(); }
+void SelectTranslator::Produce(proxy::Pipeline& output) {
+  this->Child().Produce(output);
+}
 
 void SelectTranslator::Consume(OperatorTranslator& src) {
   auto value = expr_translator_.Compute(select_.Expr());

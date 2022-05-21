@@ -103,9 +103,11 @@ HashTable::HashTable(khir::ProgramBuilder& program,
                   program.ConstI32(0),
                   program.NullPtr(program.PointerType(
                       program.GetStructType(Vector::VectorStructName))),
-              }))) {
+              }))) {}
+
+void HashTable::Init() {
   auto element_size = program_.SizeOf(content_type_);
-  program_.Call(program.GetFunction(CreateFnName), {value_, element_size});
+  program_.Call(program_.GetFunction(CreateFnName), {value_, element_size});
 }
 
 void HashTable::Reset() {

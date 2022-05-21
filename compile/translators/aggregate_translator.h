@@ -23,7 +23,7 @@ class AggregateTranslator : public OperatorTranslator {
       std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~AggregateTranslator() = default;
 
-  void Produce() override;
+  void Produce(proxy::Pipeline& pipeline) override;
   void Consume(OperatorTranslator& src) override;
 
  private:

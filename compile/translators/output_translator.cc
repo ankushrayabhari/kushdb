@@ -12,18 +12,13 @@ namespace kush::compile {
 
 OutputTranslator::OutputTranslator(
     const plan::OutputOperator& output, khir::ProgramBuilder& program,
-    execution::PipelineBuilder& pipeline_builder,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(output, std::move(children)),
       program_(program),
-      pipeline_builder_(pipeline_builder),
       empty_(proxy::String::Global(program_, "")) {}
 
-void OutputTranslator::Produce() {
-  auto& pipeline = pipeline_builder_.CreatePipeline();
-  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
-  this->Child().Produce();
-  program_.Return();
+void OutputTranslator::Produce(proxy::Pipeline& output) {
+  this->Child().Produce(output);
 }
 
 void OutputTranslator::Consume(OperatorTranslator& src) {

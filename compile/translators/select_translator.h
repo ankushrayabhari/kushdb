@@ -1,5 +1,6 @@
 #pragma once
 
+#include "compile/proxy/pipeline.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "khir/program_builder.h"
@@ -12,7 +13,7 @@ class SelectTranslator : public OperatorTranslator {
   SelectTranslator(const plan::SelectOperator& select,
                    khir::ProgramBuilder& program,
                    std::vector<std::unique_ptr<OperatorTranslator>> children);
-  void Produce() override;
+  void Produce(proxy::Pipeline& output) override;
   void Consume(OperatorTranslator& src) override;
 
  private:

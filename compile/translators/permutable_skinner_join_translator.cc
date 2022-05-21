@@ -31,8 +31,6 @@ class TableFunction {
  public:
   TableFunction(khir::ProgramBuilder& program,
                 std::function<proxy::Int32(proxy::Int32&, proxy::Bool&)> body) {
-    auto current_block = program.CurrentBlock();
-
     func_ = program.CreatePublicFunction(
         program.I32Type(), {program.I32Type(), program.I1Type()},
         "permute_table_" + std::to_string(table_++));
@@ -43,8 +41,6 @@ class TableFunction {
 
     auto x = body(budget, resume_progress);
     program.Return(x.Get());
-
-    program.SetCurrentBlock(current_block);
   }
 
   khir::FunctionRef Get() { return func_.value(); }
@@ -83,9 +79,7 @@ PermutableSkinnerJoinTranslator::PermutableSkinnerJoinTranslator(
       state_(state),
       expr_translator_(program_, *this) {}
 
-void PermutableSkinnerJoinTranslator::Produce() {
-  auto output_pipeline_func = program_.CurrentBlock();
-
+void PermutableSkinnerJoinTranslator::Produce(proxy::Pipeline& output) {
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
   auto conditions = join_.Conditions();
@@ -114,50 +108,50 @@ void PermutableSkinnerJoinTranslator::Produce() {
   }
   indexes_ = std::vector<std::unique_ptr<proxy::ColumnIndex>>(index_idx);
 
-  std::vector<std::unique_ptr<execution::Pipeline>> child_pipelines;
-
   // 1. Materialize each child.
   for (int i = 0; i < child_translators.size(); i++) {
-    auto& pipeline = pipeline_builder_.CreatePipeline();
-    program_.CreatePublicFunction(program_.VoidType(), {}, pipeline.Name());
     auto& child_translator = child_translators[i].get();
     auto& child_operator = child_operators[i].get();
 
     if (auto scan = dynamic_cast<ScanTranslator*>(&child_translator)) {
       auto disk_materialized_buffer = scan->GenerateBuffer();
-      disk_materialized_buffer->Init();
-
-      // for each indexed column on this table, scan and append to index
+      std::vector<int> indexes;
       for (const auto& [key, value] : column_to_index_idx_) {
         auto [child_idx, col_idx] = key;
         auto index_idx = value;
         if (i != child_idx) {
           continue;
         }
+        indexes.push_back(index_idx);
 
         if (scan->HasIndex(col_idx)) {
           indexes_[index_idx] = scan->GenerateIndex(col_idx);
-          indexes_[index_idx]->Init();
         } else {
-          auto type = child_operator.Schema().Columns()[col_idx].Expr().Type();
-          indexes_[index_idx] = std::make_unique<proxy::MemoryColumnIndex>(
-              program_, state_, type);
-          indexes_[index_idx]->Init();
-          disk_materialized_buffer->Scan(
-              col_idx, [&](auto tuple_idx, auto value) {
-                // only index not null values
-                proxy::If(program_, NOT, value.IsNull(), [&]() {
-                  dynamic_cast<proxy::ColumnIndexBuilder*>(
-                      indexes_[index_idx].get())
-                      ->Insert(value.Get(), tuple_idx);
-                });
-              });
+          throw std::runtime_error("TODO add scan + memory index");
         }
       }
 
+      proxy::Pipeline input(program_, pipeline_builder_);
+      input.Init([&]() {
+        disk_materialized_buffer->Init();
+        for (int index_idx : indexes) {
+          indexes_[index_idx]->Init();
+        }
+      });
+      input.Reset([&]() {
+        disk_materialized_buffer->Reset();
+        for (int index_idx : indexes) {
+          indexes_[index_idx]->Reset();
+        }
+      });
+      input.Build();
+      output.Get().AddPredecessor(input.Get());
       materialized_buffers_.push_back(std::move(disk_materialized_buffer));
     } else {
+      proxy::Pipeline input(program_, pipeline_builder_);
+
       // For each predicate column on this table, declare a memory index.
+      std::vector<int> indexes;
       for (const auto& [key, value] : column_to_index_idx_) {
         auto [child_idx, col_idx] = key;
         auto index_idx = value;
@@ -168,7 +162,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
         auto type = child_operator.Schema().Columns()[col_idx].Expr().Type();
         indexes_[index_idx] =
             std::make_unique<proxy::MemoryColumnIndex>(program_, state_, type);
-        indexes_[index_idx]->Init();
+        indexes.push_back(index_idx);
       }
 
       // Create struct for materialization
@@ -178,35 +172,42 @@ void PermutableSkinnerJoinTranslator::Produce() {
         struct_builder->Add(col.Expr().Type(), col.Expr().Nullable());
       }
       struct_builder->Build();
-
       proxy::Vector buffer(program_, state_, *struct_builder);
+
+      input.Init([&]() {
+        buffer.Init();
+        for (int index_idx : indexes) {
+          indexes_[index_idx]->Init();
+        }
+      });
+
+      input.Reset([&]() {
+        buffer.Reset();
+        for (int index_idx : indexes) {
+          indexes_[index_idx]->Reset();
+        }
+      });
 
       // Fill buffer/indexes
       child_idx_ = i;
       buffer_ = &buffer;
-      child_translator.Produce();
+      child_translator.Produce(input);
       buffer_ = nullptr;
+
+      input.Build();
+      output.Get().AddPredecessor(input.Get());
 
       materialized_buffers_.push_back(
           std::make_unique<proxy::MemoryMaterializedBuffer>(
               program_, std::move(struct_builder), std::move(buffer)));
     }
-
-    program_.Return();
-    child_pipelines.push_back(pipeline_builder_.FinishPipeline());
-  }
-
-  program_.SetCurrentBlock(output_pipeline_func);
-  auto& output_pipeline = pipeline_builder_.GetCurrentPipeline();
-  for (auto& pipeline : child_pipelines) {
-    output_pipeline.AddPredecessor(std::move(pipeline));
   }
 
   // 2. Setup join evaluation
   // Setup struct of predicate columns
   // - 1 for the equality columns
   // - add remaining for each general column
-  auto predicate_struct = std::make_unique<proxy::StructBuilder>(program_);
+  proxy::StructBuilder predicate_struct(program_);
   absl::flat_hash_map<std::pair<int, int>, int>
       colref_to_predicate_struct_field_;
   int pred_struct_size = 0;
@@ -217,17 +218,17 @@ void PermutableSkinnerJoinTranslator::Produce() {
         pred_struct_size++;
     const auto& column_schema =
         child_operators[child_idx].get().Schema().Columns()[column_idx];
-    predicate_struct->Add(column_schema.Expr().Type(),
-                          column_schema.Expr().Nullable());
+    predicate_struct.Add(column_schema.Expr().Type(),
+                         column_schema.Expr().Nullable());
   }
-  predicate_struct->Build();
+  predicate_struct.Build();
 
   proxy::Struct global_predicate_struct(
-      program_, *predicate_struct,
+      program_, predicate_struct,
       program_.Global(
-          predicate_struct->Type(),
-          program_.ConstantStruct(predicate_struct->Type(),
-                                  predicate_struct->DefaultValues())));
+          predicate_struct.Type(),
+          program_.ConstantStruct(predicate_struct.Type(),
+                                  predicate_struct.DefaultValues())));
 
   // Setup idx array.
   std::vector<khir::Value> initial_idx_values(child_operators.size(),
@@ -991,62 +992,62 @@ void PermutableSkinnerJoinTranslator::Produce() {
     return budget;
   });
 
-  // 3. Execute join
-  // Initialize handler array with the corresponding functions for each table
-  for (int i = 0; i < child_operators.size(); i++) {
-    auto handler_ptr = program_.StaticGEP(handler_pointer_array_type,
-                                          handler_pointer_array, {0, i});
-    program_.StorePtr(handler_ptr,
-                      {program_.GetFunctionPointer(table_functions[i].Get())});
-  }
+  output.Body([&]() {
+    // 3. Execute join
+    // Initialize tuple idx table
+    tuple_idx_table.Init();
 
-  // Write out cardinalities to idx_array
-  for (int i = 0; i < child_operators.size(); i++) {
-    program_.StoreI32(program_.StaticGEP(idx_array_type, idx_array, {0, i}),
-                      materialized_buffers_[i]->Size().Get());
-  }
+    // Initialize handler array with the corresponding functions for each
+    // table
+    for (int i = 0; i < child_operators.size(); i++) {
+      auto handler_ptr = program_.StaticGEP(handler_pointer_array_type,
+                                            handler_pointer_array, {0, i});
+      program_.StorePtr(
+          handler_ptr, {program_.GetFunctionPointer(table_functions[i].Get())});
+    }
 
-  // Generate the table connections.
-  for (int pred_idx = 0; pred_idx < conditions.size(); pred_idx++) {
-    PredicateColumnCollector collector;
-    conditions[pred_idx].get().Accept(collector);
-    auto cond = collector.PredicateColumns();
+    // Write out cardinalities to idx_array
+    for (int i = 0; i < child_operators.size(); i++) {
+      program_.StoreI32(program_.StaticGEP(idx_array_type, idx_array, {0, i}),
+                        materialized_buffers_[i]->Size().Get());
+    }
 
-    for (int i = 0; i < cond.size(); i++) {
-      for (int j = i + 1; j < cond.size(); j++) {
-        auto left_table = cond[i].get().GetChildIdx();
-        auto right_table = cond[j].get().GetChildIdx();
+    // Generate the table connections.
+    for (int pred_idx = 0; pred_idx < conditions.size(); pred_idx++) {
+      PredicateColumnCollector collector;
+      conditions[pred_idx].get().Accept(collector);
+      auto cond = collector.PredicateColumns();
 
-        if (left_table != right_table) {
-          table_connections_.insert({left_table, right_table});
-          table_connections_.insert({right_table, left_table});
+      for (int i = 0; i < cond.size(); i++) {
+        for (int j = i + 1; j < cond.size(); j++) {
+          auto left_table = cond[i].get().GetChildIdx();
+          auto right_table = cond[j].get().GetChildIdx();
+
+          if (left_table != right_table) {
+            table_connections_.insert({left_table, right_table});
+            table_connections_.insert({right_table, left_table});
+          }
         }
       }
     }
-  }
 
-  // Execute build side of skinner join
-  proxy::SkinnerJoinExecutor::ExecutePermutableJoin(
-      program_, child_operators.size(), conditions.size(), &pred_table_to_flag_,
-      &table_connections_, &join_.PrefixOrder(),
-      program_.StaticGEP(handler_pointer_array_type, handler_pointer_array,
-                         {0, 0}),
-      program_.GetFunctionPointer(valid_tuple_handler.Get()), total_flags,
-      program_.StaticGEP(flag_array_type, flag_array, {0, 0}),
-      program_.StaticGEP(progress_array_type, progress_arr, {0, 0}),
-      program_.StaticGEP(table_ctr_type, table_ctr_ptr, {0, 0}),
-      program_.StaticGEP(idx_array_type, idx_array, {0, 0}),
-      program_.StaticGEP(num_result_tuples_type, num_result_tuples_ptr, {0, 0}),
-      program_.StaticGEP(offset_array_type, offset_array, {0, 0}));
+    // Execute build side of skinner join
+    proxy::SkinnerJoinExecutor::ExecutePermutableJoin(
+        program_, child_operators.size(), conditions.size(),
+        &pred_table_to_flag_, &table_connections_, &join_.PrefixOrder(),
+        program_.StaticGEP(handler_pointer_array_type, handler_pointer_array,
+                           {0, 0}),
+        program_.GetFunctionPointer(valid_tuple_handler.Get()), total_flags,
+        program_.StaticGEP(flag_array_type, flag_array, {0, 0}),
+        program_.StaticGEP(progress_array_type, progress_arr, {0, 0}),
+        program_.StaticGEP(table_ctr_type, table_ctr_ptr, {0, 0}),
+        program_.StaticGEP(idx_array_type, idx_array, {0, 0}),
+        program_.StaticGEP(num_result_tuples_type, num_result_tuples_ptr,
+                           {0, 0}),
+        program_.StaticGEP(offset_array_type, offset_array, {0, 0}));
 
-  for (auto& buffer : materialized_buffers_) {
-    buffer->Reset();
-  }
-  for (auto& index : indexes_) {
-    index->Reset();
-  }
-  tuple_idx_table.Reset();
-  predicate_struct.reset();
+    tuple_idx_table.Reset();
+  });
 }
 
 void PermutableSkinnerJoinTranslator::Consume(OperatorTranslator& src) {

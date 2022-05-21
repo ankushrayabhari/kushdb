@@ -48,7 +48,8 @@ TranslatorFactory::GetChildTranslators(const plan::Operator& current) {
 }
 
 void TranslatorFactory::Visit(const plan::ScanOperator& scan) {
-  this->Return(std::make_unique<ScanTranslator>(scan, program_, state_));
+  this->Return(std::make_unique<ScanTranslator>(scan, program_,
+                                                pipeline_builder_, state_));
 }
 
 void TranslatorFactory::Visit(const plan::SelectOperator& select) {
@@ -57,18 +58,18 @@ void TranslatorFactory::Visit(const plan::SelectOperator& select) {
 }
 
 void TranslatorFactory::Visit(const plan::ScanSelectOperator& scan_select) {
-  this->Return(
-      std::make_unique<ScanSelectTranslator>(scan_select, program_, state_));
+  this->Return(std::make_unique<ScanSelectTranslator>(
+      scan_select, program_, pipeline_builder_, state_));
 }
 
 void TranslatorFactory::Visit(const plan::SimdScanSelectOperator& scan_select) {
-  this->Return(std::make_unique<SimdScanSelectTranslator>(scan_select, program_,
-                                                          state_));
+  this->Return(std::make_unique<SimdScanSelectTranslator>(
+      scan_select, program_, pipeline_builder_, state_));
 }
 
 void TranslatorFactory::Visit(const plan::OutputOperator& output) {
-  this->Return(std::make_unique<OutputTranslator>(
-      output, program_, pipeline_builder_, GetChildTranslators(output)));
+  this->Return(std::make_unique<OutputTranslator>(output, program_,
+                                                  GetChildTranslators(output)));
 }
 
 void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
@@ -115,7 +116,8 @@ void TranslatorFactory::Visit(const plan::OrderByOperator& order_by) {
 
 void TranslatorFactory::Visit(const plan::CrossProductOperator& cross_product) {
   this->Return(std::make_unique<CrossProductTranslator>(
-      cross_product, program_, GetChildTranslators(cross_product)));
+      cross_product, program_, pipeline_builder_, state_,
+      GetChildTranslators(cross_product)));
 }
 
 }  // namespace kush::compile

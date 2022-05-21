@@ -12,6 +12,7 @@ class TupleIdxTable {
   TupleIdxTable(khir::ProgramBuilder& program);
   TupleIdxTable(khir::ProgramBuilder& program, khir::Value value);
 
+  void Init();
   void Reset();
   khir::Value Get();
 
