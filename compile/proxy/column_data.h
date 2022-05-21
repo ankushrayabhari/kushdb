@@ -4,6 +4,7 @@
 
 #include "catalog/sql_type.h"
 #include "compile/proxy/value/ir_value.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
@@ -25,8 +26,8 @@ class Iterable {
 template <catalog::TypeId S>
 class ColumnData : public Iterable {
  public:
-  ColumnData(khir::ProgramBuilder& program, std::string_view path,
-             const catalog::Type& t);
+  ColumnData(khir::ProgramBuilder& program, execution::QueryState& state,
+             std::string_view path, const catalog::Type& t);
   ColumnData(khir::ProgramBuilder& program, std::string_view path,
              const catalog::Type& t, khir::Value value);
   virtual ~ColumnData() = default;

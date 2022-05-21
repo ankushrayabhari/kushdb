@@ -2,13 +2,14 @@
 
 #include "compile/proxy/struct.h"
 #include "compile/proxy/value/ir_value.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
 
 class Vector {
  public:
-  Vector(khir::ProgramBuilder& program, StructBuilder& content);
+  Vector(khir::ProgramBuilder& program, execution::QueryState& state, StructBuilder& content);
   Vector(khir::ProgramBuilder& program, StructBuilder& content, khir::Value v);
 
   Struct operator[](const Int32& idx);

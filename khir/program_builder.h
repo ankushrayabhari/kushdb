@@ -116,6 +116,7 @@ class ProgramBuilder {
   Type FunctionType(Type result, absl::Span<const Type> args);
   Type TypeOf(Value value) const;
   Value SizeOf(Type type);
+  uint64_t GetSize(Type type);
 
   // Function
   FunctionRef CreateFunction(Type result_type,

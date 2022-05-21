@@ -5,13 +5,15 @@
 
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
 
 class HashTable {
  public:
-  HashTable(khir::ProgramBuilder& program, StructBuilder& content);
+  HashTable(khir::ProgramBuilder& program, execution::QueryState& state,
+            StructBuilder& content);
 
   void Reset();
   Struct Insert(const std::vector<SQLValue>& keys);

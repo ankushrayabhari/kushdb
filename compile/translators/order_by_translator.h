@@ -10,6 +10,7 @@
 #include "execution/pipeline.h"
 #include "khir/program_builder.h"
 #include "plan/operator/order_by_operator.h"
+#include "execution/query_state.h"
 
 namespace kush::compile {
 
@@ -18,6 +19,7 @@ class OrderByTranslator : public OperatorTranslator {
   OrderByTranslator(const plan::OrderByOperator& order_by,
                     khir::ProgramBuilder& program,
                     execution::PipelineBuilder& pipeline_builder,
+                    execution::QueryState& state,
                     std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~OrderByTranslator() = default;
 
@@ -28,6 +30,7 @@ class OrderByTranslator : public OperatorTranslator {
   const plan::OrderByOperator& order_by_;
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
+  execution::QueryState& state_;
   ExpressionTranslator expr_translator_;
   std::unique_ptr<proxy::Vector> buffer_;
   std::unique_ptr<execution::Pipeline> child_pipeline_;

@@ -56,11 +56,6 @@ class TableFunction {
 
 int TableFunction::table_ = 0;
 
-std::unique_ptr<proxy::ColumnIndex> GenerateInMemoryIndex(
-    khir::ProgramBuilder& program, const catalog::Type& type) {
-  return std::make_unique<proxy::MemoryColumnIndex>(program, type);
-}
-
 bool IsEqualityPredicate(std::reference_wrapper<const plan::Expression> expr) {
   if (auto eq =
           dynamic_cast<const plan::BinaryArithmeticExpression*>(&expr.get())) {
@@ -79,12 +74,13 @@ bool IsEqualityPredicate(std::reference_wrapper<const plan::Expression> expr) {
 
 PermutableSkinnerJoinTranslator::PermutableSkinnerJoinTranslator(
     const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
-    execution::PipelineBuilder& pipeline_builder,
+    execution::PipelineBuilder& pipeline_builder, execution::QueryState& state,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(join, std::move(children)),
       join_(join),
       program_(program),
       pipeline_builder_(pipeline_builder),
+      state_(state),
       expr_translator_(program_, *this) {}
 
 void PermutableSkinnerJoinTranslator::Produce() {
@@ -144,7 +140,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
           indexes_[index_idx]->Init();
         } else {
           auto type = child_operator.Schema().Columns()[col_idx].Expr().Type();
-          indexes_[index_idx] = GenerateInMemoryIndex(program_, type);
+          indexes_[index_idx] = std::make_unique<proxy::MemoryColumnIndex>(
+              program_, state_, type);
           indexes_[index_idx]->Init();
           disk_materialized_buffer->Scan(
               col_idx, [&](auto tuple_idx, auto value) {
@@ -169,7 +166,8 @@ void PermutableSkinnerJoinTranslator::Produce() {
         }
 
         auto type = child_operator.Schema().Columns()[col_idx].Expr().Type();
-        indexes_[index_idx] = GenerateInMemoryIndex(program_, type);
+        indexes_[index_idx] =
+            std::make_unique<proxy::MemoryColumnIndex>(program_, state_, type);
         indexes_[index_idx]->Init();
       }
 
@@ -181,7 +179,7 @@ void PermutableSkinnerJoinTranslator::Produce() {
       }
       struct_builder->Build();
 
-      proxy::Vector buffer(program_, *struct_builder);
+      proxy::Vector buffer(program_, state_, *struct_builder);
 
       // Fill buffer/indexes
       child_idx_ = i;

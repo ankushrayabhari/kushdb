@@ -8,6 +8,7 @@ cc_library(
     hdrs = ["executable_query.h"],
     deps = [
         ":pipeline",
+        ":query_state",
         "//compile/translators:operator_translator",
         "//khir:backend",
     ],
@@ -20,4 +21,10 @@ cc_library(
     deps = [
         "//util:vector_util",
     ],
+)
+
+cc_library(
+    name = "query_state",
+    hdrs = ["query_state.h"],
+    deps = [],
 )

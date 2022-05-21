@@ -5,6 +5,7 @@
 #include "catalog/sql_type.h"
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/value/ir_value.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
@@ -12,7 +13,8 @@ namespace kush::compile::proxy {
 template <catalog::TypeId S>
 class DiskColumnIndex : public ColumnIndex {
  public:
-  DiskColumnIndex(khir::ProgramBuilder& program, std::string_view path);
+  DiskColumnIndex(khir::ProgramBuilder& program, execution::QueryState& state,
+                  std::string_view path);
   DiskColumnIndex(khir::ProgramBuilder& program, std::string_view path,
                   khir::Value v);
   virtual ~DiskColumnIndex() = default;

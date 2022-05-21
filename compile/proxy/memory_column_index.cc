@@ -8,6 +8,7 @@
 #include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/evaluate.h"
 #include "compile/proxy/value/ir_value.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "runtime/memory_column_index.h"
 
@@ -224,29 +225,16 @@ ColumnIndexBucket MemoryColumnIndexPayload::GetBucket() {
 }
 
 MemoryColumnIndex::MemoryColumnIndex(khir::ProgramBuilder& program,
+                                     execution::QueryState& state,
                                      const catalog::Type& key_type)
     : program_(program),
       key_type_(key_type),
       payload_format_(
           MemoryColumnIndexPayload::ConstructPayloadFormat(program_, key_type)),
-      value_(program_.Global(
-          program_.GetStructType(StructName),
-          program_.ConstantStruct(
-              program_.GetStructType(StructName),
-              {
-                  program.ConstI64(0),
-                  program.ConstI32(0),
-                  program.ConstI32(0),
-                  program.ConstI64(0),
-                  program.NullPtr(program.PointerType(program.I64Type())),
-                  program.NullPtr(program.PointerType(
-                      program.PointerType(program.I8Type()))),
-                  program.ConstI32(0),
-                  program.ConstI32(0),
-                  program.ConstI16(0),
-                  program.ConstI16(0),
-                  program.NullPtr(program.PointerType(program.I8Type())),
-              }))),
+      value_(program_.PointerCast(
+          program.ConstPtr(
+              state.Allocate<runtime::MemoryColumnIndex::MemoryColumnIndex>()),
+          program.PointerType(program.GetStructType(StructName)))),
       get_value_(program.Global(
           program.GetStructType(ColumnIndexBucket::StructName),
           program.ConstantStruct(

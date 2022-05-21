@@ -11,6 +11,7 @@
 #include "execution/pipeline.h"
 #include "khir/program_builder.h"
 #include "plan/operator/group_by_aggregate_operator.h"
+#include "execution/query_state.h"
 
 namespace kush::compile {
 
@@ -20,6 +21,7 @@ class GroupByAggregateTranslator : public OperatorTranslator {
       const plan::GroupByAggregateOperator& group_by_agg,
       khir::ProgramBuilder& program,
       execution::PipelineBuilder& pipeline_builder,
+      execution::QueryState& state,
       std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~GroupByAggregateTranslator() = default;
 
@@ -30,6 +32,7 @@ class GroupByAggregateTranslator : public OperatorTranslator {
   const plan::GroupByAggregateOperator& group_by_agg_;
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
+  execution::QueryState& state_;
   ExpressionTranslator expr_translator_;
   std::unique_ptr<proxy::AggregateHashTable> hash_table_;
 };

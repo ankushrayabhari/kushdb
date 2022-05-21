@@ -12,6 +12,7 @@
 #include "compile/proxy/value/ir_value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/operator/aggregate_operator.h"
@@ -21,12 +22,13 @@ namespace kush::compile {
 
 AggregateTranslator::AggregateTranslator(
     const plan::AggregateOperator& agg, khir::ProgramBuilder& program,
-    execution::PipelineBuilder& pipeline_builder,
+    execution::PipelineBuilder& pipeline_builder, execution::QueryState& state,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(agg, std::move(children)),
       agg_(agg),
       program_(program),
       pipeline_builder_(pipeline_builder),
+      state_(state),
       expr_translator_(program, *this) {}
 
 void AggregateTranslator::Produce() {
@@ -68,9 +70,13 @@ void AggregateTranslator::Produce() {
 
   value_ = std::make_unique<proxy::Struct>(
       program_, *agg_struct_,
-      program_.Global(
-          type, program_.ConstantStruct(type, agg_struct_->DefaultValues())));
-  empty_value_ = program_.Global(program_.I64Type(), program_.ConstI64(0));
+      program_.PointerCast(
+          program_.ConstPtr(state_.Allocate(program_.GetSize(type))),
+          program_.PointerType(type)));
+  empty_value_ = program_.PointerCast(
+      program_.ConstPtr(state_.Allocate(program_.GetSize(program_.I64Type()))),
+      program_.PointerType(program_.I64Type()));
+  program_.StoreI64(empty_value_, program_.ConstI64(0));
 
   // Fill aggregators
   this->Child().Produce();

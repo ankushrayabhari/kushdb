@@ -6,6 +6,7 @@
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/value/ir_value.h"
 #include "compile/proxy/value/sql_value.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
@@ -52,7 +53,7 @@ class MemoryColumnIndexPayload {
 
 class MemoryColumnIndex : public ColumnIndex, public ColumnIndexBuilder {
  public:
-  MemoryColumnIndex(khir::ProgramBuilder& program,
+  MemoryColumnIndex(khir::ProgramBuilder& program, execution::QueryState& state,
                     const catalog::Type& key_type);
   MemoryColumnIndex(khir::ProgramBuilder& program,
                     const catalog::Type& key_type, khir::Value value);

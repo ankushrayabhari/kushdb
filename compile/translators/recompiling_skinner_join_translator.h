@@ -16,6 +16,7 @@
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/recompiling_join_translator.h"
 #include "execution/pipeline.h"
+#include "execution/query_state.h"
 #include "khir/compilation_cache.h"
 #include "khir/program_builder.h"
 #include "plan/operator/skinner_join_operator.h"
@@ -28,6 +29,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   RecompilingSkinnerJoinTranslator(
       const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
       execution::PipelineBuilder& pipeline_builder,
+      execution::QueryState& state,
       std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~RecompilingSkinnerJoinTranslator() = default;
   void Produce() override;
@@ -61,6 +63,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   const plan::SkinnerJoinOperator& join_;
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
+  execution::QueryState& state_;
   ExpressionTranslator expr_translator_;
   proxy::Vector* buffer_;
   std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers_;

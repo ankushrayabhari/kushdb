@@ -12,6 +12,7 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "plan/operator/operator.h"
 #include "plan/operator/operator_visitor.h"
@@ -25,7 +26,8 @@ class TranslatorFactory
                            std::unique_ptr<OperatorTranslator>> {
  public:
   TranslatorFactory(khir::ProgramBuilder& program,
-                    execution::PipelineBuilder& pipeline_builder);
+                    execution::PipelineBuilder& pipeline_builder,
+                    execution::QueryState& state);
   virtual ~TranslatorFactory() = default;
 
   void Visit(const plan::ScanOperator& scan) override;
@@ -45,6 +47,7 @@ class TranslatorFactory
       const plan::Operator& current);
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
+  execution::QueryState& state_;
 };
 
 }  // namespace kush::compile

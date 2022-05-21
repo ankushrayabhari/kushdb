@@ -9,10 +9,11 @@ namespace kush::execution {
 ExecutableQuery::ExecutableQuery(
     std::unique_ptr<compile::OperatorTranslator> translator,
     std::unique_ptr<khir::Backend> program,
-    std::unique_ptr<const Pipeline> output_pipeline)
+    std::unique_ptr<const Pipeline> output_pipeline, QueryState state)
     : translator_(std::move(translator)),
       program_(std::move(program)),
-      output_pipeline_(std::move(output_pipeline)) {}
+      output_pipeline_(std::move(output_pipeline)),
+      state_(std::move(state)) {}
 
 void ExecutableQuery::Compile() { program_->Compile(); }
 

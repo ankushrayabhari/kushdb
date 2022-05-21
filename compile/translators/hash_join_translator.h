@@ -8,6 +8,7 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "plan/operator/hash_join_operator.h"
 
@@ -18,6 +19,7 @@ class HashJoinTranslator : public OperatorTranslator {
   HashJoinTranslator(const plan::HashJoinOperator& hash_join,
                      khir::ProgramBuilder& program,
                      execution::PipelineBuilder& pipeline_builder,
+                     execution::QueryState& state,
                      std::vector<std::unique_ptr<OperatorTranslator>> children);
   virtual ~HashJoinTranslator() = default;
   void Produce() override;
@@ -27,6 +29,7 @@ class HashJoinTranslator : public OperatorTranslator {
   const plan::HashJoinOperator& hash_join_;
   khir::ProgramBuilder& program_;
   execution::PipelineBuilder& pipeline_builder_;
+  execution::QueryState& state_;
   ExpressionTranslator expr_translator_;
   std::unique_ptr<proxy::HashTable> buffer_;
   khir::Value all_not_null_ptr_;

@@ -5,6 +5,7 @@
 #include "compile/forward_declare.h"
 #include "compile/translators/translator_factory.h"
 #include "execution/pipeline.h"
+#include "execution/query_state.h"
 #include "khir/asm/asm_backend.h"
 #include "khir/asm/reg_alloc_impl.h"
 #include "khir/backend.h"
@@ -20,11 +21,12 @@ QueryTranslator::QueryTranslator(const plan::Operator& op) : op_(op) {}
 execution::ExecutableQuery QueryTranslator::Translate() {
   khir::ProgramBuilder program_builder;
   execution::PipelineBuilder pipeline_builder;
+  execution::QueryState state;
 
   ForwardDeclare(program_builder);
 
   // Generate code for operator
-  TranslatorFactory factory(program_builder, pipeline_builder);
+  TranslatorFactory factory(program_builder, pipeline_builder, state);
   auto translator = factory.Compute(op_);
   translator->Produce();
 
@@ -48,7 +50,8 @@ execution::ExecutableQuery QueryTranslator::Translate() {
   }
   backend->Translate(program);
   return execution::ExecutableQuery(std::move(translator), std::move(backend),
-                                    std::move(output_pipeline));
+                                    std::move(output_pipeline),
+                                    std::move(state));
 }
 
 }  // namespace kush::compile

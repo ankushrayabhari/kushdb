@@ -34,8 +34,9 @@ ABSL_FLAG(std::string, skinner_join, "permute",
 namespace kush::compile {
 
 TranslatorFactory::TranslatorFactory(
-    khir::ProgramBuilder& program, execution::PipelineBuilder& pipeline_builder)
-    : program_(program), pipeline_builder_(pipeline_builder) {}
+    khir::ProgramBuilder& program, execution::PipelineBuilder& pipeline_builder,
+    execution::QueryState& state)
+    : program_(program), pipeline_builder_(pipeline_builder), state_(state) {}
 
 std::vector<std::unique_ptr<OperatorTranslator>>
 TranslatorFactory::GetChildTranslators(const plan::Operator& current) {
@@ -47,7 +48,7 @@ TranslatorFactory::GetChildTranslators(const plan::Operator& current) {
 }
 
 void TranslatorFactory::Visit(const plan::ScanOperator& scan) {
-  this->Return(std::make_unique<ScanTranslator>(scan, program_));
+  this->Return(std::make_unique<ScanTranslator>(scan, program_, state_));
 }
 
 void TranslatorFactory::Visit(const plan::SelectOperator& select) {
@@ -56,12 +57,13 @@ void TranslatorFactory::Visit(const plan::SelectOperator& select) {
 }
 
 void TranslatorFactory::Visit(const plan::ScanSelectOperator& scan_select) {
-  this->Return(std::make_unique<ScanSelectTranslator>(scan_select, program_));
+  this->Return(
+      std::make_unique<ScanSelectTranslator>(scan_select, program_, state_));
 }
 
 void TranslatorFactory::Visit(const plan::SimdScanSelectOperator& scan_select) {
-  this->Return(
-      std::make_unique<SimdScanSelectTranslator>(scan_select, program_));
+  this->Return(std::make_unique<SimdScanSelectTranslator>(scan_select, program_,
+                                                          state_));
 }
 
 void TranslatorFactory::Visit(const plan::OutputOperator& output) {
@@ -70,20 +72,16 @@ void TranslatorFactory::Visit(const plan::OutputOperator& output) {
 }
 
 void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
-  this->Return(std::make_unique<RecompilingSkinnerJoinTranslator>(
-      skinner_join, program_, pipeline_builder_,
-      GetChildTranslators(skinner_join)));
-
   if (FLAGS_skinner_join.CurrentValue() == "permute") {
     this->Return(std::make_unique<PermutableSkinnerJoinTranslator>(
-        skinner_join, program_, pipeline_builder_,
+        skinner_join, program_, pipeline_builder_, state_,
         GetChildTranslators(skinner_join)));
     return;
   }
 
   if (FLAGS_skinner_join.CurrentValue() == "recompile") {
     this->Return(std::make_unique<RecompilingSkinnerJoinTranslator>(
-        skinner_join, program_, pipeline_builder_,
+        skinner_join, program_, pipeline_builder_, state_,
         GetChildTranslators(skinner_join)));
     return;
   }
@@ -93,24 +91,26 @@ void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
 
 void TranslatorFactory::Visit(const plan::HashJoinOperator& hash_join) {
   this->Return(std::make_unique<HashJoinTranslator>(
-      hash_join, program_, pipeline_builder_, GetChildTranslators(hash_join)));
+      hash_join, program_, pipeline_builder_, state_,
+      GetChildTranslators(hash_join)));
 }
 
 void TranslatorFactory::Visit(
     const plan::GroupByAggregateOperator& group_by_agg) {
   this->Return(std::make_unique<GroupByAggregateTranslator>(
-      group_by_agg, program_, pipeline_builder_,
+      group_by_agg, program_, pipeline_builder_, state_,
       GetChildTranslators(group_by_agg)));
 }
 
 void TranslatorFactory::Visit(const plan::AggregateOperator& agg) {
   this->Return(std::make_unique<AggregateTranslator>(
-      agg, program_, pipeline_builder_, GetChildTranslators(agg)));
+      agg, program_, pipeline_builder_, state_, GetChildTranslators(agg)));
 }
 
 void TranslatorFactory::Visit(const plan::OrderByOperator& order_by) {
   this->Return(std::make_unique<OrderByTranslator>(
-      order_by, program_, pipeline_builder_, GetChildTranslators(order_by)));
+      order_by, program_, pipeline_builder_, state_,
+      GetChildTranslators(order_by)));
 }
 
 void TranslatorFactory::Visit(const plan::CrossProductOperator& cross_product) {

@@ -14,6 +14,7 @@
 #include "compile/proxy/vector.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "plan/operator/order_by_operator.h"
 #include "util/vector_util.h"
@@ -22,12 +23,13 @@ namespace kush::compile {
 
 OrderByTranslator::OrderByTranslator(
     const plan::OrderByOperator& order_by, khir::ProgramBuilder& program,
-    execution::PipelineBuilder& pipeline_builder,
+    execution::PipelineBuilder& pipeline_builder, execution::QueryState& state,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(order_by, std::move(children)),
       order_by_(order_by),
       program_(program),
       pipeline_builder_(pipeline_builder),
+      state_(state),
       expr_translator_(program, *this) {}
 
 void OrderByTranslator::Produce() {
@@ -44,7 +46,7 @@ void OrderByTranslator::Produce() {
   packed.Build();
 
   // init vector
-  buffer_ = std::make_unique<proxy::Vector>(program_, packed);
+  buffer_ = std::make_unique<proxy::Vector>(program_, state_, packed);
 
   // populate vector
   this->Child().Produce();

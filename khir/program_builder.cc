@@ -2412,6 +2412,11 @@ Value ProgramBuilder::SizeOf(Type type) {
   return ConstI64(offset);
 }
 
+uint64_t ProgramBuilder::GetSize(Type type) {
+  auto [offset, result_type] = type_manager_.GetPointerOffset(type, {1}, false);
+  return offset;
+}
+
 Value ProgramBuilder::StaticGEP(Type t, Value v,
                                 absl::Span<const int32_t> idx) {
   auto [offset, result_type] = type_manager_.GetPointerOffset(t, idx, false);

@@ -9,6 +9,7 @@
 #include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/evaluate.h"
 #include "compile/proxy/value/ir_value.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "runtime/aggregate_hash_table.h"
 
@@ -142,7 +143,7 @@ khir::Value AggregateHashTablePayload::GetHashOffset(
 }
 
 AggregateHashTable::AggregateHashTable(
-    khir::ProgramBuilder& program,
+    khir::ProgramBuilder& program, execution::QueryState& state,
     std::vector<std::pair<catalog::Type, bool>> key_types,
     std::vector<std::unique_ptr<Aggregator>> aggregators)
     : program_(program),
@@ -150,23 +151,11 @@ AggregateHashTable::AggregateHashTable(
       num_keys_(key_types.size()),
       payload_format_(AggregateHashTablePayload::ConstructPayloadFormat(
           program, std::move(key_types), aggregators_)),
-      value_(program_.Global(
-          program_.GetStructType(StructName),
-          program_.ConstantStruct(
-              program_.GetStructType(StructName),
-              {
-                  program.ConstI64(0),
-                  program.ConstI32(0),
-                  program.ConstI32(0),
-                  program.ConstI64(0),
-                  program.NullPtr(program.PointerType(program.I64Type())),
-                  program.NullPtr(program.PointerType(
-                      program.PointerType(program.I8Type()))),
-                  program.ConstI32(0),
-                  program.ConstI32(0),
-                  program.ConstI16(0),
-                  program.ConstI16(0),
-              }))) {
+      value_(program_.PointerCast(
+          program_.ConstPtr(
+              state
+                  .Allocate<runtime::AggregateHashTable::AggregateHashTable>()),
+          program_.PointerType(program_.GetStructType(StructName)))) {
   auto payload_type = payload_format_.Type();
   program_.Call(
       program_.GetFunction(InitFnName),

@@ -13,6 +13,7 @@
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "plan/operator/hash_join_operator.h"
 #include "util/vector_util.h"
@@ -21,12 +22,13 @@ namespace kush::compile {
 
 HashJoinTranslator::HashJoinTranslator(
     const plan::HashJoinOperator& hash_join, khir::ProgramBuilder& program,
-    execution::PipelineBuilder& pipeline_builder,
+    execution::PipelineBuilder& pipeline_builder, execution::QueryState& state,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(hash_join, std::move(children)),
       hash_join_(hash_join),
       program_(program),
       pipeline_builder_(pipeline_builder),
+      state_(state),
       expr_translator_(program_, *this) {}
 
 void HashJoinTranslator::Produce() {
@@ -42,7 +44,7 @@ void HashJoinTranslator::Produce() {
   }
   packed.Build();
 
-  buffer_ = std::make_unique<proxy::HashTable>(program_, packed);
+  buffer_ = std::make_unique<proxy::HashTable>(program_, state_, packed);
   all_not_null_ptr_ = program_.Global(program_.I8Type(), program_.ConstI8(0));
 
   this->LeftChild().Produce();

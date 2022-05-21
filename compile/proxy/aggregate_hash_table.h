@@ -7,6 +7,7 @@
 #include "compile/proxy/aggregator.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/value/ir_value.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 
 namespace kush::compile::proxy {
@@ -61,6 +62,7 @@ class AggregateHashTablePayload {
 class AggregateHashTable {
  public:
   AggregateHashTable(khir::ProgramBuilder& program,
+                     execution::QueryState& state,
                      std::vector<std::pair<catalog::Type, bool>> key_types,
                      std::vector<std::unique_ptr<Aggregator>> aggregators);
   void UpdateOrInsert(const std::vector<SQLValue>& keys);

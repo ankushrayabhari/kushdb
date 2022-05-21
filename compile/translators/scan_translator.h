@@ -6,6 +6,7 @@
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/materialized_buffer.h"
 #include "compile/translators/operator_translator.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "plan/operator/scan_operator.h"
 
@@ -13,7 +14,8 @@ namespace kush::compile {
 
 class ScanTranslator : public OperatorTranslator {
  public:
-  ScanTranslator(const plan::ScanOperator& scan, khir::ProgramBuilder& program);
+  ScanTranslator(const plan::ScanOperator& scan, khir::ProgramBuilder& program,
+                 execution::QueryState& state);
   virtual ~ScanTranslator() = default;
 
   void Produce() override;
@@ -25,6 +27,7 @@ class ScanTranslator : public OperatorTranslator {
  private:
   const plan::ScanOperator& scan_;
   khir::ProgramBuilder& program_;
+  execution::QueryState& state_;
 };
 
 }  // namespace kush::compile

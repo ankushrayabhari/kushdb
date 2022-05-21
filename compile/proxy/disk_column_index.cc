@@ -6,6 +6,7 @@
 #include "catalog/sql_type.h"
 #include "compile/proxy/column_index.h"
 #include "compile/proxy/value/ir_value.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "runtime/column_index.h"
 #include "runtime/column_index_bucket.h"
@@ -66,17 +67,14 @@ void* DiskColumnIndexGetBucketFn() {
 
 template <catalog::TypeId S>
 DiskColumnIndex<S>::DiskColumnIndex(khir::ProgramBuilder& program,
+                                    execution::QueryState& state,
                                     std::string_view path)
     : program_(program),
       path_(path),
       path_value_(program.GlobalConstCharArray(path)),
-      value_(program.Global(
-          program.GetStructType(DiskColumnIndexName),
-          program.ConstantStruct(
-              program.GetStructType(DiskColumnIndexName),
-              {program.NullPtr(program.PointerType(
-                   program.GetOpaqueType(DiskColumnIndexDataName))),
-               program.ConstI64(0)}))),
+      value_(program.PointerCast(
+          program.ConstPtr(state.Allocate<runtime::ColumnIndex::ColumnIndex>()),
+          program.PointerType(program.GetStructType(DiskColumnIndexName)))),
       get_value_(program.Global(
           program.GetStructType(ColumnIndexBucket::StructName),
           program.ConstantStruct(

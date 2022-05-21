@@ -13,6 +13,7 @@
 #include "compile/proxy/value/ir_value.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/operator/group_by_aggregate_operator.h"
@@ -23,11 +24,13 @@ namespace kush::compile {
 GroupByAggregateTranslator::GroupByAggregateTranslator(
     const plan::GroupByAggregateOperator& group_by_agg,
     khir::ProgramBuilder& program, execution::PipelineBuilder& pipeline_builder,
+    execution::QueryState& state,
     std::vector<std::unique_ptr<OperatorTranslator>> children)
     : OperatorTranslator(group_by_agg, std::move(children)),
       group_by_agg_(group_by_agg),
       program_(program),
       pipeline_builder_(pipeline_builder),
+      state_(state),
       expr_translator_(program, *this) {}
 
 void GroupByAggregateTranslator::Produce() {
@@ -70,7 +73,7 @@ void GroupByAggregateTranslator::Produce() {
 
   // Declare the hash table from group by keys -> struct list
   hash_table_ = std::make_unique<proxy::AggregateHashTable>(
-      program_, std::move(key_types), std::move(aggregators));
+      program_, state_, std::move(key_types), std::move(aggregators));
 
   // Populate hash table
   this->Child().Produce();

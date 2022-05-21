@@ -20,8 +20,12 @@
 namespace kush::compile {
 
 ScanTranslator::ScanTranslator(const plan::ScanOperator& scan,
-                               khir::ProgramBuilder& program)
-    : OperatorTranslator(scan, {}), scan_(scan), program_(program) {}
+                               khir::ProgramBuilder& program,
+                               execution::QueryState& state)
+    : OperatorTranslator(scan, {}),
+      scan_(scan),
+      program_(program),
+      state_(state) {}
 
 std::unique_ptr<proxy::DiskMaterializedBuffer>
 ScanTranslator::GenerateBuffer() {
@@ -40,44 +44,45 @@ ScanTranslator::GenerateBuffer() {
     switch (type.type_id) {
       case TypeId::SMALLINT:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<TypeId::SMALLINT>>(program_,
-                                                                  path, type));
+            std::make_unique<proxy::ColumnData<TypeId::SMALLINT>>(
+                program_, state_, path, type));
         break;
       case TypeId::INT:
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::INT>>(
-            program_, path, type));
+            program_, state_, path, type));
         break;
       case TypeId::ENUM:
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::ENUM>>(
-            program_, path, type));
+            program_, state_, path, type));
         break;
       case TypeId::BIGINT:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<TypeId::BIGINT>>(program_, path,
-                                                                type));
+            std::make_unique<proxy::ColumnData<TypeId::BIGINT>>(
+                program_, state_, path, type));
         break;
       case TypeId::REAL:
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::REAL>>(
-            program_, path, type));
+            program_, state_, path, type));
         break;
       case TypeId::DATE:
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::DATE>>(
-            program_, path, type));
+            program_, state_, path, type));
         break;
       case TypeId::TEXT:
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::TEXT>>(
-            program_, path, type));
+            program_, state_, path, type));
         break;
       case TypeId::BOOLEAN:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<TypeId::BOOLEAN>>(program_, path,
-                                                                 type));
+            std::make_unique<proxy::ColumnData<TypeId::BOOLEAN>>(
+                program_, state_, path, type));
         break;
     }
 
     if (table[column.Name()].Nullable()) {
       null_data.push_back(std::make_unique<proxy::ColumnData<TypeId::BOOLEAN>>(
-          program_, table[column.Name()].NullPath(), catalog::Type::Boolean()));
+          program_, state_, table[column.Name()].NullPath(),
+          catalog::Type::Boolean()));
     } else {
       null_data.push_back(nullptr);
     }
@@ -104,28 +109,28 @@ std::unique_ptr<proxy::ColumnIndex> ScanTranslator::GenerateIndex(int col_idx) {
   switch (type.type_id) {
     case TypeId::SMALLINT:
       return std::make_unique<proxy::DiskColumnIndex<TypeId::SMALLINT>>(
-          program_, path);
+          program_, state_, path);
     case TypeId::INT:
-      return std::make_unique<proxy::DiskColumnIndex<TypeId::INT>>(program_,
-                                                                   path);
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::INT>>(
+          program_, state_, path);
     case TypeId::ENUM:
-      return std::make_unique<proxy::DiskColumnIndex<TypeId::ENUM>>(program_,
-                                                                    path);
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::ENUM>>(
+          program_, state_, path);
     case TypeId::BIGINT:
-      return std::make_unique<proxy::DiskColumnIndex<TypeId::BIGINT>>(program_,
-                                                                      path);
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::BIGINT>>(
+          program_, state_, path);
     case TypeId::REAL:
-      return std::make_unique<proxy::DiskColumnIndex<TypeId::REAL>>(program_,
-                                                                    path);
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::REAL>>(
+          program_, state_, path);
     case TypeId::DATE:
-      return std::make_unique<proxy::DiskColumnIndex<TypeId::DATE>>(program_,
-                                                                    path);
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::DATE>>(
+          program_, state_, path);
     case TypeId::TEXT:
-      return std::make_unique<proxy::DiskColumnIndex<TypeId::TEXT>>(program_,
-                                                                    path);
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::TEXT>>(
+          program_, state_, path);
     case TypeId::BOOLEAN:
-      return std::make_unique<proxy::DiskColumnIndex<TypeId::BOOLEAN>>(program_,
-                                                                       path);
+      return std::make_unique<proxy::DiskColumnIndex<TypeId::BOOLEAN>>(
+          program_, state_, path);
   }
 }
 

@@ -15,10 +15,12 @@
 namespace kush::compile {
 
 ScanSelectTranslator::ScanSelectTranslator(
-    const plan::ScanSelectOperator& scan_select, khir::ProgramBuilder& program)
+    const plan::ScanSelectOperator& scan_select, khir::ProgramBuilder& program,
+    execution::QueryState& state)
     : OperatorTranslator(scan_select, {}),
       scan_select_(scan_select),
       program_(program),
+      state_(state),
       expr_translator_(program, *this) {}
 
 std::unique_ptr<proxy::DiskMaterializedBuffer>
@@ -38,44 +40,45 @@ ScanSelectTranslator::GenerateBuffer() {
     switch (type.type_id) {
       case TypeId::SMALLINT:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<TypeId::SMALLINT>>(program_,
-                                                                  path, type));
+            std::make_unique<proxy::ColumnData<TypeId::SMALLINT>>(
+                program_, state_, path, type));
         break;
       case TypeId::INT:
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::INT>>(
-            program_, path, type));
+            program_, state_, path, type));
         break;
       case TypeId::ENUM:
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::ENUM>>(
-            program_, path, type));
+            program_, state_, path, type));
         break;
       case TypeId::BIGINT:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<TypeId::BIGINT>>(program_, path,
-                                                                type));
+            std::make_unique<proxy::ColumnData<TypeId::BIGINT>>(
+                program_, state_, path, type));
         break;
       case TypeId::REAL:
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::REAL>>(
-            program_, path, type));
+            program_, state_, path, type));
         break;
       case TypeId::DATE:
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::DATE>>(
-            program_, path, type));
+            program_, state_, path, type));
         break;
       case TypeId::TEXT:
         column_data.push_back(std::make_unique<proxy::ColumnData<TypeId::TEXT>>(
-            program_, path, type));
+            program_, state_, path, type));
         break;
       case TypeId::BOOLEAN:
         column_data.push_back(
-            std::make_unique<proxy::ColumnData<TypeId::BOOLEAN>>(program_, path,
-                                                                 type));
+            std::make_unique<proxy::ColumnData<TypeId::BOOLEAN>>(
+                program_, state_, path, type));
         break;
     }
 
     if (table[column.Name()].Nullable()) {
       null_data.push_back(std::make_unique<proxy::ColumnData<TypeId::BOOLEAN>>(
-          program_, table[column.Name()].NullPath(), catalog::Type::Boolean()));
+          program_, state_, table[column.Name()].NullPath(),
+          catalog::Type::Boolean()));
     } else {
       null_data.push_back(nullptr);
     }

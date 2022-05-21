@@ -7,6 +7,7 @@
 #include "compile/proxy/control_flow/loop.h"
 #include "compile/proxy/struct.h"
 #include "compile/proxy/vector.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "runtime/hash_table.h"
 #include "util/vector_util.h"
@@ -84,18 +85,15 @@ class BucketList {
   khir::Value& value_;
 };
 
-HashTable::HashTable(khir::ProgramBuilder& program, StructBuilder& content)
+HashTable::HashTable(khir::ProgramBuilder& program,
+                     execution::QueryState& state, StructBuilder& content)
     : program_(program),
       content_(content),
       content_type_(content_.Type()),
-      value_(program_.Global(
-          program.GetStructType(HashTableStructName),
-          program.ConstantStruct(
-              program.GetStructType(HashTableStructName),
-              {
-                  program.ConstI64(0),
-                  program.NullPtr(program.PointerType(program.I8Type())),
-              }))),
+      value_(program_.PointerCast(
+          program.ConstPtr(
+              state.Allocate<kush::runtime::HashTable::HashTable>()),
+          program.PointerType(program.GetStructType(HashTableStructName)))),
       hash_ptr_(program_.Global(program_.I32Type(), program.ConstI32(0))),
       bucket_list_(program_.Global(
           program.GetStructType(BucketListStructName),

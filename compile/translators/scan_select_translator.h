@@ -7,6 +7,7 @@
 #include "compile/proxy/materialized_buffer.h"
 #include "compile/translators/expression_translator.h"
 #include "compile/translators/operator_translator.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "plan/operator/scan_select_operator.h"
 
@@ -15,7 +16,8 @@ namespace kush::compile {
 class ScanSelectTranslator : public OperatorTranslator {
  public:
   ScanSelectTranslator(const plan::ScanSelectOperator& scan_select,
-                       khir::ProgramBuilder& program);
+                       khir::ProgramBuilder& program,
+                       execution::QueryState& state);
   virtual ~ScanSelectTranslator() = default;
 
   void Produce() override;
@@ -26,6 +28,7 @@ class ScanSelectTranslator : public OperatorTranslator {
 
   const plan::ScanSelectOperator& scan_select_;
   khir::ProgramBuilder& program_;
+  execution::QueryState& state_;
   ExpressionTranslator expr_translator_;
 };
 

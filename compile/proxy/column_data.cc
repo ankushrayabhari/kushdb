@@ -5,6 +5,7 @@
 
 #include "catalog/sql_type.h"
 #include "compile/proxy/value/ir_value.h"
+#include "execution/query_state.h"
 #include "khir/program_builder.h"
 #include "runtime/column_data.h"
 
@@ -211,14 +212,35 @@ khir::Value GetStructInit(khir::ProgramBuilder& program) {
 }
 
 template <catalog::TypeId S>
-ColumnData<S>::ColumnData(khir::ProgramBuilder& program, std::string_view path,
+void* Allocate(execution::QueryState& state) {
+  if constexpr (catalog::TypeId::SMALLINT == S) {
+    return state.Allocate<runtime::ColumnData::Int16ColumnData>();
+  } else if constexpr (catalog::TypeId::INT == S ||
+                       catalog::TypeId::DATE == S ||
+                       catalog::TypeId::ENUM == S) {
+    return state.Allocate<runtime::ColumnData::Int32ColumnData>();
+  } else if constexpr (catalog::TypeId::BIGINT == S) {
+    return state.Allocate<runtime::ColumnData::Int64ColumnData>();
+  } else if constexpr (catalog::TypeId::REAL == S) {
+    return state.Allocate<runtime::ColumnData::Float64ColumnData>();
+  } else if constexpr (catalog::TypeId::BOOLEAN == S) {
+    return state.Allocate<runtime::ColumnData::Int8ColumnData>();
+  } else if constexpr (catalog::TypeId::TEXT == S) {
+    return state.Allocate<runtime::ColumnData::TextColumnData>();
+  }
+}
+
+template <catalog::TypeId S>
+ColumnData<S>::ColumnData(khir::ProgramBuilder& program,
+                          execution::QueryState& state, std::string_view path,
                           const catalog::Type& type)
     : program_(program),
       type_(type),
       path_(path),
       path_value_(program_.GlobalConstCharArray(path)),
-      value_(program_.Global(program.GetStructType(StructName<S>()),
-                             GetStructInit<S>(program))) {
+      value_(program_.PointerCast(
+          program_.ConstPtr(Allocate<S>(state)),
+          program_.PointerType(program.GetStructType(StructName<S>())))) {
   if constexpr (S == catalog::TypeId::TEXT) {
     result_ = String::Global(program_, "").Get();
   }
