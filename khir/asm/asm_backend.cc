@@ -4513,6 +4513,7 @@ void ASMBackend::TranslateInstr(
 }
 
 void ASMBackend::Compile() {
+  Translate();
   rt_.add(&buffer_start_, &code_);
 
 #ifdef PROFILE_ENABLED

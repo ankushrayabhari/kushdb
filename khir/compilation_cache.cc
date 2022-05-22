@@ -29,7 +29,6 @@ void CacheEntry::Compile() {
     case BackendType::ASM: {
       auto backend =
           std::make_unique<ASMBackend>(program, RegAllocImpl::LINEAR_SCAN);
-      backend->Translate();
       backend->Compile();
       compiled_program_ = std::move(backend);
       break;

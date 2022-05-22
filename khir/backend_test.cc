@@ -20,7 +20,6 @@ std::unique_ptr<Backend> Compile(
   switch (params.first) {
     case BackendType::ASM: {
       auto backend = std::make_unique<khir::ASMBackend>(program, params.second);
-      backend->Translate();
       backend->Compile();
       return std::move(backend);
     }

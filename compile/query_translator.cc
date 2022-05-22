@@ -44,7 +44,6 @@ execution::ExecutableQuery QueryTranslator::Translate() {
     case khir::BackendType::ASM: {
       auto b =
           std::make_unique<khir::ASMBackend>(program, khir::GetRegAllocImpl());
-      b->Translate();
       b->Compile();
       backend = std::move(b);
       break;

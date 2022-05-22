@@ -49,11 +49,11 @@ class ASMBackend : public Backend {
   virtual ~ASMBackend() = default;
 
   // Backend
-  void Translate();
   void Compile();
   void* GetFunction(std::string_view name) override;
 
  private:
+  void Translate();
   bool IsNullPtr(Value v);
   bool IsConstantPtr(Value v);
   bool IsConstantCastedPtr(Value v);
