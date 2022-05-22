@@ -30,7 +30,6 @@ std::unique_ptr<Backend> Compile(
 
     case BackendType::LLVM: {
       auto b = std::make_unique<khir::LLVMBackend>(program);
-      b->Translate();
       b->Compile();
       backend = std::move(b);
       break;

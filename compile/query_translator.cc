@@ -36,8 +36,8 @@ execution::ExecutableQuery QueryTranslator::Translate() {
 
   auto program = program_builder.Build();
 
-  // khir::ProgramPrinter printer;
-  // printer.Translate(program);
+  // khir::ProgramPrinter printer(program);
+  // printer.Print();
 
   std::unique_ptr<khir::Backend> backend;
   switch (khir::GetBackendType()) {
@@ -51,7 +51,6 @@ execution::ExecutableQuery QueryTranslator::Translate() {
 
     case khir::BackendType::LLVM: {
       auto b = std::make_unique<khir::LLVMBackend>(program);
-      b->Translate();
       b->Compile();
       backend = std::move(b);
       break;

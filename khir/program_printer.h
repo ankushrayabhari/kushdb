@@ -10,6 +10,8 @@ class ProgramPrinter : public TypeTranslator {
   ProgramPrinter(const Program& program);
   virtual ~ProgramPrinter() = default;
 
+  void Print();
+
   // Types
   void TranslateOpaqueType(std::string_view name) override;
   void TranslateVoidType() override;
@@ -25,8 +27,7 @@ class ProgramPrinter : public TypeTranslator {
                              absl::Span<const Type> arg_types) override;
   void TranslateStructType(absl::Span<const Type> elem_types) override;
 
-  void Translate();
-
+ private:
   void OutputValue(khir::Value v);
   void OutputInstr(int idx, const Function& func);
 

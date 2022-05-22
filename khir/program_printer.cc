@@ -460,7 +460,7 @@ void ProgramPrinter::TranslateStructType(absl::Span<const Type> elem_types) {
   type_to_string_.push_back(output);
 }
 
-void ProgramPrinter::Translate() {
+void ProgramPrinter::Print() {
   program_.TypeManager().Translate(*this);
 
   int i = 0;

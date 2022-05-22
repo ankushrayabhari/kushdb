@@ -11,12 +11,9 @@
 
 namespace kush::khir {
 
-class LLVMBackend : public Backend, public TypeTranslator {
+class LLVMTypeManager : public TypeTranslator {
  public:
-  LLVMBackend(const khir::Program& program);
-  virtual ~LLVMBackend();
-
-  // Types
+  LLVMTypeManager(llvm::LLVMContext* c, llvm::IRBuilder<>* b);
   void TranslateOpaqueType(std::string_view name) override;
   void TranslateVoidType() override;
   void TranslateI1Type() override;
@@ -33,41 +30,50 @@ class LLVMBackend : public Backend, public TypeTranslator {
                              absl::Span<const Type> arg_types) override;
   void TranslateStructType(absl::Span<const Type> elem_types) override;
 
+  const std::vector<llvm::Type*>& GetTypes();
+
+ private:
+  std::vector<llvm::Type*> GetTypeArray(
+      absl::Span<const Type> elem_types) const;
+  llvm::LLVMContext* context_;
+  llvm::IRBuilder<>* builder_;
+  std::vector<llvm::Type*> types_;
+};
+
+class LLVMBackend : public Backend {
+ public:
+  LLVMBackend(const khir::Program& program);
+  virtual ~LLVMBackend() = default;
+
   // Backend
   void Compile();
-  void Translate();
   void* GetFunction(std::string_view name) override;
 
  private:
+  struct Fragment {
+    std::unique_ptr<llvm::Module> mod;
+    std::unique_ptr<llvm::LLVMContext> context;
+  };
+  Fragment Translate();
   llvm::Constant* ConvertConstantInstr(
-      uint64_t instr, std::vector<llvm::Constant*>& constant_values);
+      uint64_t instr, llvm::Module* m, llvm::LLVMContext* c,
+      llvm::IRBuilder<>* b, const std::vector<llvm::Type*>& types,
+      std::vector<llvm::Constant*>& constant_values);
 
   void TranslateInstr(
-      int instr_idx, const std::vector<uint64_t>& instructions,
+      int instr_idx, const std::vector<uint64_t>& instructions, llvm::Module* m,
+      llvm::LLVMContext* c, llvm::IRBuilder<>* b,
+      const std::vector<llvm::Type*>& types,
       const std::vector<llvm::Value*>& func_args,
       const std::vector<llvm::BasicBlock*>& basic_blocks,
-      std::vector<llvm::Value*>& values,
+      std::vector<llvm::Value*>& values, std::vector<llvm::Value*>& call_args,
       const std::vector<llvm::Constant*>& constant_values,
       absl::flat_hash_map<
           uint32_t, std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>&
           phi_member_list);
 
   const khir::Program& program_;
-
-  std::unique_ptr<llvm::LLVMContext> context_;
-  std::unique_ptr<llvm::Module> module_;
-  std::unique_ptr<llvm::IRBuilder<>> builder_;
-  std::vector<llvm::Type*> types_;
-  std::vector<llvm::Function*> functions_;
-  std::vector<llvm::Value*> call_args_;
-
-  std::vector<std::tuple<std::string, void*>> external_functions_;
-  std::vector<std::string> public_functions_;
-
   std::unique_ptr<llvm::orc::LLJIT> jit_;
-
-  std::string name_;
-
   absl::flat_hash_map<std::string, void*> compiled_fn_;
 };
 

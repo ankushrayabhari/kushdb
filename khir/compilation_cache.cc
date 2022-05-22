@@ -36,7 +36,6 @@ void CacheEntry::Compile() {
 
     case BackendType::LLVM: {
       auto backend = std::make_unique<LLVMBackend>(program);
-      backend->Translate();
       backend->Compile();
       compiled_program_ = std::move(backend);
       break;

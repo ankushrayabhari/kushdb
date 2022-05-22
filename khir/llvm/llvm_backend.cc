@@ -40,128 +40,183 @@
 
 namespace kush::khir {
 
-LLVMBackend::LLVMBackend(const khir::Program& program)
-    : program_(program),
-      context_(std::make_unique<llvm::LLVMContext>()),
-      module_(std::make_unique<llvm::Module>("query", *context_)),
-      builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {}
+LLVMTypeManager::LLVMTypeManager(llvm::LLVMContext* c, llvm::IRBuilder<>* b)
+    : context_(c), builder_(b) {}
 
-LLVMBackend::~LLVMBackend() {}
-
-void LLVMBackend::TranslateOpaqueType(std::string_view name) {
+void LLVMTypeManager::TranslateOpaqueType(std::string_view name) {
   types_.push_back(llvm::StructType::create(*context_, name));
 }
 
-void LLVMBackend::TranslateVoidType() {
+void LLVMTypeManager::TranslateVoidType() {
   types_.push_back(builder_->getVoidTy());
 }
 
-void LLVMBackend::TranslateI1Type() { types_.push_back(builder_->getInt1Ty()); }
+void LLVMTypeManager::TranslateI1Type() {
+  types_.push_back(builder_->getInt1Ty());
+}
 
-void LLVMBackend::TranslateI1Vec8Type() {
+void LLVMTypeManager::TranslateI1Vec8Type() {
   types_.push_back(llvm::VectorType::get(builder_->getInt1Ty(), 8, false));
 }
 
-void LLVMBackend::TranslateI8Type() { types_.push_back(builder_->getInt8Ty()); }
+void LLVMTypeManager::TranslateI8Type() {
+  types_.push_back(builder_->getInt8Ty());
+}
 
-void LLVMBackend::TranslateI16Type() {
+void LLVMTypeManager::TranslateI16Type() {
   types_.push_back(builder_->getInt16Ty());
 }
 
-void LLVMBackend::TranslateI32Type() {
+void LLVMTypeManager::TranslateI32Type() {
   types_.push_back(builder_->getInt32Ty());
 }
 
-void LLVMBackend::TranslateI32Vec8Type() {
+void LLVMTypeManager::TranslateI32Vec8Type() {
   types_.push_back(llvm::FixedVectorType::get(builder_->getInt32Ty(), 8));
 }
 
-void LLVMBackend::TranslateI64Type() {
+void LLVMTypeManager::TranslateI64Type() {
   types_.push_back(builder_->getInt64Ty());
 }
 
-void LLVMBackend::TranslateF64Type() {
+void LLVMTypeManager::TranslateF64Type() {
   types_.push_back(builder_->getDoubleTy());
 }
 
-void LLVMBackend::TranslatePointerType(Type elem) {
+void LLVMTypeManager::TranslatePointerType(Type elem) {
   types_.push_back(llvm::PointerType::get(types_[elem.GetID()], 0));
 }
 
-void LLVMBackend::TranslateArrayType(Type elem, int len) {
+void LLVMTypeManager::TranslateArrayType(Type elem, int len) {
   types_.push_back(llvm::ArrayType::get(types_[elem.GetID()], len));
 }
 
-std::vector<llvm::Type*> GetTypeArray(const std::vector<llvm::Type*>& types,
-                                      absl::Span<const Type> elem_types) {
+std::vector<llvm::Type*> LLVMTypeManager::GetTypeArray(
+    absl::Span<const Type> elem_types) const {
   std::vector<llvm::Type*> result;
   for (auto x : elem_types) {
-    result.push_back(types[x.GetID()]);
+    result.push_back(types_[x.GetID()]);
   }
   return result;
 }
 
-void LLVMBackend::TranslateFunctionType(Type result,
-                                        absl::Span<const Type> arg_types) {
-  types_.push_back(llvm::FunctionType::get(
-      types_[result.GetID()], GetTypeArray(types_, arg_types), false));
+void LLVMTypeManager::TranslateFunctionType(Type result,
+                                            absl::Span<const Type> arg_types) {
+  types_.push_back(llvm::FunctionType::get(types_[result.GetID()],
+                                           GetTypeArray(arg_types), false));
 }
 
-void LLVMBackend::TranslateStructType(absl::Span<const Type> elem_types) {
+void LLVMTypeManager::TranslateStructType(absl::Span<const Type> elem_types) {
   types_.push_back(
-      llvm::StructType::create(*context_, GetTypeArray(types_, elem_types)));
+      llvm::StructType::create(*context_, GetTypeArray(elem_types)));
+}
+
+const std::vector<llvm::Type*>& LLVMTypeManager::GetTypes() { return types_; }
+
+LLVMBackend::LLVMBackend(const khir::Program& program) : program_(program) {
+  auto target_triple = llvm::sys::getDefaultTargetTriple();
+  std::string error;
+  auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
+  if (!target) {
+    throw std::runtime_error("Target not found: " + error);
+  }
+
+  auto cpu = "x86-64";
+  auto features = "+avx2";
+
+  llvm::TargetOptions opt;
+  auto reloc_model =
+      llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
+  auto target_machine = target->createTargetMachine(target_triple, cpu,
+                                                    features, opt, reloc_model);
+
+  jit_ = cantFail(
+      llvm::orc::LLJITBuilder()
+          .setDataLayout(target_machine->createDataLayout())
+          .setNumCompileThreads(0)
+          .setObjectLinkingLayerCreator([&](llvm::orc::ExecutionSession& es,
+                                            const llvm::Triple& tt) {
+            auto ll =
+                std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(es, []() {
+                  return std::make_unique<llvm::SectionMemoryManager>();
+                });
+            ll->setAutoClaimResponsibilityForObjectSymbols(true);
+#ifdef PROFILE_ENABLED
+            auto perf = createPerfJITEventListener();
+            ll->registerJITEventListener(*perf);
+#endif
+            return ll;
+          })
+          .create());
+
+  llvm::orc::SymbolMap symbol_map;
+  for (const auto& func : program_.Functions()) {
+    if (func.External()) {
+      auto mangled = jit_->mangleAndIntern(func.Name());
+      auto flags =
+          llvm::JITSymbolFlags::Callable | llvm::JITSymbolFlags::Exported;
+      auto symbol = llvm::JITEvaluatedSymbol(
+          llvm::pointerToJITTargetAddress(func.Addr()), flags);
+      symbol_map.try_emplace(mangled, symbol);
+      continue;
+    }
+  }
+  cantFail(
+      jit_->getMainJITDylib().define(llvm::orc::absoluteSymbols(symbol_map)));
 }
 
 llvm::Constant* LLVMBackend::ConvertConstantInstr(
-    uint64_t instr, std::vector<llvm::Constant*>& constant_values) {
+    uint64_t instr, llvm::Module* mod, llvm::LLVMContext* context,
+    llvm::IRBuilder<>* builder, const std::vector<llvm::Type*>& types,
+    std::vector<llvm::Constant*>& constant_values) {
   auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
     case ConstantOpcode::I1_CONST: {
-      return builder_->getInt1(Type1InstructionReader(instr).Constant() == 1);
+      return builder->getInt1(Type1InstructionReader(instr).Constant() == 1);
     }
 
     case ConstantOpcode::I8_CONST: {
-      return builder_->getInt8(Type1InstructionReader(instr).Constant());
+      return builder->getInt8(Type1InstructionReader(instr).Constant());
     }
 
     case ConstantOpcode::I16_CONST: {
-      return builder_->getInt16(Type1InstructionReader(instr).Constant());
+      return builder->getInt16(Type1InstructionReader(instr).Constant());
     }
 
     case ConstantOpcode::I32_CONST: {
-      return builder_->getInt32(Type1InstructionReader(instr).Constant());
+      return builder->getInt32(Type1InstructionReader(instr).Constant());
     }
 
     case ConstantOpcode::I64_CONST: {
-      return builder_->getInt64(
+      return builder->getInt64(
           program_.I64Constants()[Type1InstructionReader(instr).Constant()]);
     }
 
     case ConstantOpcode::F64_CONST: {
       return llvm::ConstantFP::get(
-          builder_->getDoubleTy(),
+          builder->getDoubleTy(),
           program_.F64Constants()[Type1InstructionReader(instr).Constant()]);
     }
 
     case ConstantOpcode::PTR_CONST: {
-      auto i64_v = builder_->getInt64(reinterpret_cast<uint64_t>(
+      auto i64_v = builder->getInt64(reinterpret_cast<uint64_t>(
           program_.PtrConstants()[Type1InstructionReader(instr).Constant()]));
-      return llvm::ConstantExpr::getIntToPtr(i64_v, builder_->getInt8PtrTy());
+      return llvm::ConstantExpr::getIntToPtr(i64_v, builder->getInt8PtrTy());
     }
 
     case ConstantOpcode::PTR_CAST: {
       Type3InstructionReader reader(instr);
-      auto t = types_[reader.TypeID()];
+      auto t = types[reader.TypeID()];
       auto v = constant_values[Value(reader.Arg()).GetIdx()];
       return llvm::ConstantExpr::getBitCast(v, t);
     }
 
     case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST: {
-      return builder_->CreateGlobalStringPtr(
+      return builder->CreateGlobalStringPtr(
           program_
               .CharArrayConstants()[Type1InstructionReader(instr).Constant()],
-          "", 0, module_.get());
+          "", 0, mod);
     }
 
     case ConstantOpcode::STRUCT_CONST: {
@@ -172,7 +227,7 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
         assert(field_init.IsConstantGlobal());
         init.push_back(constant_values[field_init.GetIdx()]);
       }
-      auto* st = llvm::dyn_cast<llvm::StructType>(types_[x.Type().GetID()]);
+      auto* st = llvm::dyn_cast<llvm::StructType>(types[x.Type().GetID()]);
       return llvm::ConstantStruct::get(st, init);
     }
 
@@ -185,12 +240,12 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
         assert(element_init.IsConstantGlobal());
         init.push_back(constant_values[element_init.GetIdx()]);
       }
-      auto* at = llvm::dyn_cast<llvm::ArrayType>(types_[x.Type().GetID()]);
+      auto* at = llvm::dyn_cast<llvm::ArrayType>(types[x.Type().GetID()]);
       return llvm::ConstantArray::get(at, init);
     }
 
     case ConstantOpcode::NULLPTR: {
-      auto t = types_[Type3InstructionReader(instr).TypeID()];
+      auto t = types[Type3InstructionReader(instr).TypeID()];
       return llvm::ConstantPointerNull::get(
           llvm::dyn_cast<llvm::PointerType>(t));
     }
@@ -199,25 +254,27 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
       const auto& x =
           program_.Globals()[Type1InstructionReader(instr).Constant()];
 
-      auto type = types_[x.Type().GetID()];
+      auto type = types[x.Type().GetID()];
 
       assert(x.InitialValue().IsConstantGlobal());
       auto init = constant_values[x.InitialValue().GetIdx()];
 
       return new llvm::GlobalVariable(
-          *module_, type, false,
-          llvm::GlobalValue::LinkageTypes::ExternalLinkage, init);
+          *mod, type, false, llvm::GlobalValue::LinkageTypes::ExternalLinkage,
+          init);
     }
 
     case ConstantOpcode::FUNC_PTR: {
-      return functions_[Type3InstructionReader(instr).Arg()];
+      auto name =
+          program_.Functions()[Type3InstructionReader(instr).Arg()].Name();
+      return mod->getFunction(name);
     }
 
     case ConstantOpcode::I32_VEC4_CONST_4: {
       auto idx = Type1InstructionReader(instr).Constant();
       std::vector<llvm::Constant*> constants;
       for (int x : program_.I32Vec4Constants()[idx]) {
-        constants.push_back(builder_->getInt32(x));
+        constants.push_back(builder->getInt32(x));
       }
       return llvm::ConstantVector::get(constants);
     }
@@ -226,7 +283,7 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
       auto x = Type1InstructionReader(instr).Constant();
       std::vector<llvm::Constant*> constants;
       for (int i = 0; i < 8; i++) {
-        constants.push_back(builder_->getInt32(x));
+        constants.push_back(builder->getInt32(x));
       }
       return llvm::ConstantVector::get(constants);
     }
@@ -235,47 +292,50 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
       auto idx = Type1InstructionReader(instr).Constant();
       std::vector<llvm::Constant*> constants;
       for (int x : program_.I32Vec8Constants()[idx]) {
-        constants.push_back(builder_->getInt32(x));
+        constants.push_back(builder->getInt32(x));
       }
       return llvm::ConstantVector::get(constants);
     }
   }
 }
 
-void LLVMBackend::Translate() {
-  // Populate types_ array
-  program_.TypeManager().Translate(*this);
+LLVMBackend::Fragment LLVMBackend::Translate() {
+  LLVMBackend::Fragment result;
+  result.context = std::make_unique<llvm::LLVMContext>();
+  result.mod = std::make_unique<llvm::Module>("query", *result.context);
+  auto builder = std::make_unique<llvm::IRBuilder<>>(*result.context);
+
+  // Compute types array
+  LLVMTypeManager type_manager(result.context.get(), builder.get());
+  program_.TypeManager().Translate(type_manager);
+  const auto& types = type_manager.GetTypes();
 
   // Translate all func decls
   for (const auto& func : program_.Functions()) {
     std::string fn_name(func.Name());
-    auto type = llvm::dyn_cast<llvm::FunctionType>(types_[func.Type().GetID()]);
+    auto type = llvm::dyn_cast<llvm::FunctionType>(types[func.Type().GetID()]);
     auto linkage = (func.External() || func.Public())
                        ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
                        : llvm::GlobalValue::LinkageTypes::InternalLinkage;
-    functions_.push_back(
-        llvm::Function::Create(type, linkage, fn_name.c_str(), *module_));
+    llvm::Function::Create(type, linkage, fn_name.c_str(), *result.mod);
   }
 
   // Convert all constants
   std::vector<llvm::Constant*> constant_values;
   for (auto instr : program_.ConstantInstrs()) {
-    constant_values.push_back(ConvertConstantInstr(instr, constant_values));
+    constant_values.push_back(
+        ConvertConstantInstr(instr, result.mod.get(), result.context.get(),
+                             builder.get(), types, constant_values));
   }
 
   // Translate all func bodies
   for (int func_idx = 0; func_idx < program_.Functions().size(); func_idx++) {
     const auto& func = program_.Functions()[func_idx];
     if (func.External()) {
-      external_functions_.emplace_back(func.Name(), func.Addr());
       continue;
     }
 
-    if (func.Public()) {
-      public_functions_.emplace_back(func.Name());
-    }
-
-    llvm::Function* function = functions_[func_idx];
+    llvm::Function* function = result.mod->getFunction(func.Name());
     std::vector<llvm::Value*> args;
     for (auto& a : function->args()) {
       args.push_back(&a);
@@ -288,23 +348,27 @@ void LLVMBackend::Translate() {
                         std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>
         phi_member_list;
     std::vector<llvm::Value*> values(instructions.size(), nullptr);
+    std::vector<llvm::Value*> call_args;
 
     std::vector<llvm::BasicBlock*> basic_blocks_impl;
     for (int i = 0; i < basic_blocks.size(); i++) {
       basic_blocks_impl.push_back(
-          llvm::BasicBlock::Create(*context_, "", function));
+          llvm::BasicBlock::Create(*result.context, "", function));
     }
 
     for (int i = 0; i < basic_blocks.size(); i++) {
-      builder_->SetInsertPoint(basic_blocks_impl[i]);
+      builder->SetInsertPoint(basic_blocks_impl[i]);
       for (const auto& [b_start, b_end] : basic_blocks[i].Segments()) {
         for (int instr_idx = b_start; instr_idx <= b_end; instr_idx++) {
-          TranslateInstr(instr_idx, instructions, args, basic_blocks_impl,
-                         values, constant_values, phi_member_list);
+          TranslateInstr(instr_idx, instructions, result.mod.get(),
+                         result.context.get(), builder.get(), types, args,
+                         basic_blocks_impl, values, call_args, constant_values,
+                         phi_member_list);
         }
       }
     }
   }
+  return result;
 }
 
 using LLVMCmp = llvm::CmpInst::Predicate;
@@ -389,10 +453,12 @@ llvm::Value* GetValue(khir::Value v,
 }
 
 void LLVMBackend::TranslateInstr(
-    int instr_idx, const std::vector<uint64_t>& instructions,
+    int instr_idx, const std::vector<uint64_t>& instructions, llvm::Module* mod,
+    llvm::LLVMContext* context, llvm::IRBuilder<>* builder,
+    const std::vector<llvm::Type*>& types,
     const std::vector<llvm::Value*>& func_args,
     const std::vector<llvm::BasicBlock*>& basic_blocks,
-    std::vector<llvm::Value*>& values,
+    std::vector<llvm::Value*>& values, std::vector<llvm::Value*>& call_args,
     const std::vector<llvm::Constant*>& constant_values,
     absl::flat_hash_map<
         uint32_t, std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>&
@@ -407,7 +473,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateAnd(v0, v1);
+      values[instr_idx] = builder->CreateAnd(v0, v1);
       return;
     }
 
@@ -417,7 +483,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateOr(v0, v1);
+      values[instr_idx] = builder->CreateOr(v0, v1);
       return;
     }
 
@@ -425,7 +491,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateXor(v0, v1);
+      values[instr_idx] = builder->CreateXor(v0, v1);
       return;
     }
 
@@ -471,7 +537,7 @@ void LLVMBackend::TranslateInstr(
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
       auto comp_type = GetLLVMCompType(opcode);
-      values[instr_idx] = builder_->CreateCmp(comp_type, v0, v1);
+      values[instr_idx] = builder->CreateCmp(comp_type, v0, v1);
       return;
     }
 
@@ -481,14 +547,14 @@ void LLVMBackend::TranslateInstr(
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
 
       llvm::Value* vec = llvm::ConstantVector::get(
-          std::vector<llvm::Constant*>(4, builder_->getInt32(0)));
+          std::vector<llvm::Constant*>(4, builder->getInt32(0)));
       for (int i = 0; i < 4; i++) {
-        vec = builder_->CreateInsertElement(vec, v0, i);
+        vec = builder->CreateInsertElement(vec, v0, i);
       }
 
       auto comp =
-          builder_->CreateCmp(GetLLVMCompType(Opcode::I32_CMP_EQ), vec, v1);
-      values[instr_idx] = builder_->CreateOrReduce(comp);
+          builder->CreateCmp(GetLLVMCompType(Opcode::I32_CMP_EQ), vec, v1);
+      values[instr_idx] = builder->CreateOrReduce(comp);
       return;
     }
 
@@ -498,14 +564,14 @@ void LLVMBackend::TranslateInstr(
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
 
       llvm::Value* vec = llvm::ConstantVector::get(
-          std::vector<llvm::Constant*>(8, builder_->getInt32(0)));
+          std::vector<llvm::Constant*>(8, builder->getInt32(0)));
       for (int i = 0; i < 8; i++) {
-        vec = builder_->CreateInsertElement(vec, v0, i);
+        vec = builder->CreateInsertElement(vec, v0, i);
       }
 
       auto comp =
-          builder_->CreateCmp(GetLLVMCompType(Opcode::I32_CMP_EQ), vec, v1);
-      values[instr_idx] = builder_->CreateOrReduce(comp);
+          builder->CreateCmp(GetLLVMCompType(Opcode::I32_CMP_EQ), vec, v1);
+      values[instr_idx] = builder->CreateOrReduce(comp);
       return;
     }
 
@@ -514,7 +580,7 @@ void LLVMBackend::TranslateInstr(
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = llvm::ConstantPointerNull::get(
           llvm::dyn_cast<llvm::PointerType>(v0->getType()));
-      values[instr_idx] = builder_->CreateCmp(LLVMCmp::ICMP_EQ, v0, v1);
+      values[instr_idx] = builder->CreateCmp(LLVMCmp::ICMP_EQ, v0, v1);
       return;
     }
 
@@ -526,7 +592,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateAdd(v0, v1);
+      values[instr_idx] = builder->CreateAdd(v0, v1);
       return;
     }
 
@@ -534,7 +600,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateShl(v0, v1);
+      values[instr_idx] = builder->CreateShl(v0, v1);
       return;
     }
 
@@ -542,7 +608,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateLShr(v0, v1);
+      values[instr_idx] = builder->CreateLShr(v0, v1);
       return;
     }
 
@@ -553,7 +619,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateMul(v0, v1);
+      values[instr_idx] = builder->CreateMul(v0, v1);
       return;
     }
 
@@ -564,14 +630,14 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateSub(v0, v1);
+      values[instr_idx] = builder->CreateSub(v0, v1);
       return;
     }
 
     case Opcode::I1_ZEXT_I8: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateZExt(v, builder_->getInt8Ty());
+      values[instr_idx] = builder->CreateZExt(v, builder->getInt8Ty());
       return;
     }
 
@@ -581,7 +647,7 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I32_ZEXT_I64: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateZExt(v, builder_->getInt64Ty());
+      values[instr_idx] = builder->CreateZExt(v, builder->getInt64Ty());
       return;
     }
 
@@ -589,55 +655,55 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      auto perm = llvm::Intrinsic::getDeclaration(
-          module_.get(), llvm::Intrinsic::x86_avx2_permd);
-      values[instr_idx] = builder_->CreateCall(perm, {v0, v1});
+      auto perm =
+          llvm::Intrinsic::getDeclaration(mod, llvm::Intrinsic::x86_avx2_permd);
+      values[instr_idx] = builder->CreateCall(perm, {v0, v1});
       return;
     }
 
     case Opcode::I1_VEC8_NOT: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateXor(
+      values[instr_idx] = builder->CreateXor(
           v, llvm::ConstantVector::get(
-                 std::vector<llvm::Constant*>(8, builder_->getInt1(true))));
+                 std::vector<llvm::Constant*>(8, builder->getInt1(true))));
       return;
     }
 
     case Opcode::MASK_TO_PERMUTE: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateIntToPtr(
-          builder_->CreateAdd(builder_->CreateShl(v, builder_->getInt64(5)),
-                              builder_->getInt64(reinterpret_cast<uint64_t>(
-                                  util::PermutationTable::Get().Addr()))),
+      values[instr_idx] = builder->CreateIntToPtr(
+          builder->CreateAdd(builder->CreateShl(v, builder->getInt64(5)),
+                             builder->getInt64(reinterpret_cast<uint64_t>(
+                                 util::PermutationTable::Get().Addr()))),
           llvm::PointerType::get(
-              llvm::FixedVectorType::get(builder_->getInt32Ty(), 8), 0));
+              llvm::FixedVectorType::get(builder->getInt32Ty(), 8), 0));
       return;
     }
 
     case Opcode::I64_POPCOUNT: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      auto perm = llvm::Intrinsic::getDeclaration(
-          module_.get(), llvm::Intrinsic::ctpop, {builder_->getInt64Ty()});
-      values[instr_idx] = builder_->CreateCall(perm, {v});
+      auto perm = llvm::Intrinsic::getDeclaration(mod, llvm::Intrinsic::ctpop,
+                                                  {builder->getInt64Ty()});
+      values[instr_idx] = builder->CreateCall(perm, {v});
       return;
     }
 
     case Opcode::I1_VEC8_MASK_EXTRACT: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateZExt(
-          builder_->CreateBitCast(v, builder_->getInt8Ty()),
-          builder_->getInt64Ty());
+      values[instr_idx] =
+          builder->CreateZExt(builder->CreateBitCast(v, builder->getInt8Ty()),
+                              builder->getInt64Ty());
       return;
     }
 
     case Opcode::I1_LNOT: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateXor(v, builder_->getInt1(true));
+      values[instr_idx] = builder->CreateXor(v, builder->getInt1(true));
       return;
     }
 
@@ -645,7 +711,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateFAdd(v0, v1);
+      values[instr_idx] = builder->CreateFAdd(v0, v1);
       return;
     }
 
@@ -653,7 +719,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateFMul(v0, v1);
+      values[instr_idx] = builder->CreateFMul(v0, v1);
       return;
     }
 
@@ -661,7 +727,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateFSub(v0, v1);
+      values[instr_idx] = builder->CreateFSub(v0, v1);
       return;
     }
 
@@ -669,28 +735,28 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
       auto v1 = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateFDiv(v0, v1);
+      values[instr_idx] = builder->CreateFDiv(v0, v1);
       return;
     }
 
     case Opcode::F64_CONV_I64: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateFPToSI(v, builder_->getInt64Ty());
+      values[instr_idx] = builder->CreateFPToSI(v, builder->getInt64Ty());
       return;
     }
 
     case Opcode::I64_TRUNC_I16: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateTrunc(v, builder_->getInt16Ty());
+      values[instr_idx] = builder->CreateTrunc(v, builder->getInt16Ty());
       return;
     }
 
     case Opcode::I64_TRUNC_I32: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateTrunc(v, builder_->getInt32Ty());
+      values[instr_idx] = builder->CreateTrunc(v, builder->getInt32Ty());
       return;
     }
 
@@ -699,9 +765,9 @@ void LLVMBackend::TranslateInstr(
       auto v0 = GetValue(Value(reader.Arg0()), constant_values, values);
 
       llvm::Value* vec = llvm::ConstantVector::get(
-          std::vector<llvm::Constant*>(8, builder_->getInt32(0)));
+          std::vector<llvm::Constant*>(8, builder->getInt32(0)));
       for (int i = 0; i < 8; i++) {
-        vec = builder_->CreateInsertElement(vec, v0, i);
+        vec = builder->CreateInsertElement(vec, v0, i);
       }
 
       values[instr_idx] = vec;
@@ -714,14 +780,14 @@ void LLVMBackend::TranslateInstr(
     case Opcode::I64_CONV_F64: {
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
-      values[instr_idx] = builder_->CreateSIToFP(v, builder_->getDoubleTy());
+      values[instr_idx] = builder->CreateSIToFP(v, builder->getDoubleTy());
       return;
     }
 
     case Opcode::BR: {
       Type5InstructionReader reader(instr);
       auto bb = basic_blocks[reader.Marg0()];
-      values[instr_idx] = builder_->CreateBr(bb);
+      values[instr_idx] = builder->CreateBr(bb);
       return;
     }
 
@@ -730,19 +796,19 @@ void LLVMBackend::TranslateInstr(
       auto v = GetValue(Value(reader.Arg()), constant_values, values);
       auto bb0 = basic_blocks[reader.Marg0()];
       auto bb1 = basic_blocks[reader.Marg1()];
-      values[instr_idx] = builder_->CreateCondBr(v, bb0, bb1);
+      values[instr_idx] = builder->CreateCondBr(v, bb0, bb1);
       return;
     }
 
     case Opcode::RETURN: {
-      values[instr_idx] = builder_->CreateRetVoid();
+      values[instr_idx] = builder->CreateRetVoid();
       return;
     }
 
     case Opcode::RETURN_VALUE: {
       Type3InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg()), constant_values, values);
-      values[instr_idx] = builder_->CreateRet(v);
+      values[instr_idx] = builder->CreateRet(v);
       return;
     }
 
@@ -755,7 +821,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto ptr = GetValue(Value(reader.Arg0()), constant_values, values);
       auto val = GetValue(Value(reader.Arg1()), constant_values, values);
-      values[instr_idx] = builder_->CreateStore(val, ptr);
+      values[instr_idx] = builder->CreateStore(val, ptr);
       return;
     }
 
@@ -773,36 +839,36 @@ void LLVMBackend::TranslateInstr(
           GetValue(Value(reader_info.Arg0()), constant_values, values);
 
       std::vector<llvm::Constant*> init;
-      auto i32_arr8_ty = llvm::ArrayType::get(builder_->getInt32Ty(), 8);
+      auto i32_arr8_ty = llvm::ArrayType::get(builder->getInt32Ty(), 8);
       for (int i = 0; i < 9; i++) {
         std::vector<llvm::Constant*> values;
         for (int j = 0; j < i; j++) {
-          values.push_back(builder_->getInt32(-1));
+          values.push_back(builder->getInt32(-1));
         }
         for (int j = i; j < 8; j++) {
-          values.push_back(builder_->getInt32(0));
+          values.push_back(builder->getInt32(0));
         }
         init.push_back(llvm::ConstantArray::get(i32_arr8_ty, values));
       }
       auto* at = llvm::ArrayType::get(i32_arr8_ty, 9);
       auto constant_arr = llvm::ConstantArray::get(at, init);
       auto global = new llvm::GlobalVariable(
-          *module_, at, true, llvm::GlobalValue::LinkageTypes::InternalLinkage,
+          *mod, at, true, llvm::GlobalValue::LinkageTypes::InternalLinkage,
           constant_arr);
       global->setAlignment(llvm::MaybeAlign(32));
-      auto mask_ptr = builder_->CreateGEP(
-          at, global, {builder_->getInt32(0), popcount, builder_->getInt32(0)});
+      auto mask_ptr = builder->CreateGEP(
+          at, global, {builder->getInt32(0), popcount, builder->getInt32(0)});
 
-      auto i32_vec8_ty = llvm::FixedVectorType::get(builder_->getInt32Ty(), 8);
-      auto mask = builder_->CreateLoad(
-          i32_vec8_ty, builder_->CreatePointerCast(
+      auto i32_vec8_ty = llvm::FixedVectorType::get(builder->getInt32Ty(), 8);
+      auto mask = builder->CreateLoad(
+          i32_vec8_ty, builder->CreatePointerCast(
                            mask_ptr, llvm::PointerType::get(i32_vec8_ty, 0)));
 
       auto perm = llvm::Intrinsic::getDeclaration(
-          module_.get(), llvm::Intrinsic::x86_avx2_maskstore_d_256);
-      builder_->CreateCall(
-          perm, {builder_->CreatePointerCast(ptr, builder_->getInt8PtrTy()),
-                 mask, val});
+          mod, llvm::Intrinsic::x86_avx2_maskstore_d_256);
+      builder->CreateCall(
+          perm, {builder->CreatePointerCast(ptr, builder->getInt8PtrTy()), mask,
+                 val});
     }
 
     case Opcode::I1_LOAD:
@@ -815,7 +881,7 @@ void LLVMBackend::TranslateInstr(
       Type2InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg0()), constant_values, values);
       values[instr_idx] =
-          builder_->CreateLoad(v->getType()->getPointerElementType(), v);
+          builder->CreateLoad(v->getType()->getPointerElementType(), v);
       return;
     }
 
@@ -823,15 +889,15 @@ void LLVMBackend::TranslateInstr(
       Type3InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg()), constant_values, values);
       values[instr_idx] =
-          builder_->CreateLoad(v->getType()->getPointerElementType(), v);
+          builder->CreateLoad(v->getType()->getPointerElementType(), v);
       return;
     }
 
     case Opcode::PTR_CAST: {
       Type3InstructionReader reader(instr);
-      auto t = types_[reader.TypeID()];
+      auto t = types[reader.TypeID()];
       auto v = GetValue(Value(reader.Arg()), constant_values, values);
-      values[instr_idx] = builder_->CreatePointerCast(v, t);
+      values[instr_idx] = builder->CreatePointerCast(v, t);
       return;
     }
 
@@ -841,7 +907,7 @@ void LLVMBackend::TranslateInstr(
 
     case Opcode::GEP_STATIC: {
       Type3InstructionReader reader(instr);
-      auto t = types_[reader.TypeID()];
+      auto t = types[reader.TypeID()];
       llvm::Value* base;
 
       {
@@ -849,15 +915,15 @@ void LLVMBackend::TranslateInstr(
         auto ptr = GetValue(Value(reader.Arg0()), constant_values, values);
         auto offset = GetValue(Value(reader.Arg1()), constant_values, values);
 
-        auto ptr_as_int = builder_->CreatePtrToInt(ptr, builder_->getInt64Ty());
-        auto ptr_plus_offset = builder_->CreateAdd(
-            ptr_as_int, builder_->CreateZExt(offset, builder_->getInt64Ty()));
+        auto ptr_as_int = builder->CreatePtrToInt(ptr, builder->getInt64Ty());
+        auto ptr_plus_offset = builder->CreateAdd(
+            ptr_as_int, builder->CreateZExt(offset, builder->getInt64Ty()));
 
         base =
-            builder_->CreateIntToPtr(ptr_plus_offset, builder_->getInt8PtrTy());
+            builder->CreateIntToPtr(ptr_plus_offset, builder->getInt8PtrTy());
       }
 
-      values[instr_idx] = builder_->CreatePointerCast(base, t);
+      values[instr_idx] = builder->CreatePointerCast(base, t);
       return;
     }
 
@@ -867,7 +933,7 @@ void LLVMBackend::TranslateInstr(
 
     case Opcode::GEP_DYNAMIC: {
       Type3InstructionReader reader(instr);
-      auto t = types_[reader.TypeID()];
+      auto t = types[reader.TypeID()];
       auto type_size = reader.Sarg();
       auto ptr = GetValue(Value(reader.Arg()), constant_values, values);
       llvm::Value* base;
@@ -877,33 +943,33 @@ void LLVMBackend::TranslateInstr(
         auto idx = GetValue(Value(reader.Arg0()), constant_values, values);
         auto offset = GetValue(Value(reader.Arg1()), constant_values, values);
 
-        auto ptr_as_int = builder_->CreatePtrToInt(ptr, builder_->getInt64Ty());
-        auto ptr_offset1 = builder_->CreateAdd(
-            ptr_as_int, builder_->CreateMul(
-                            builder_->CreateZExt(idx, builder_->getInt64Ty()),
-                            builder_->getInt64(type_size)));
-        auto ptr_offset1_offset2 = builder_->CreateAdd(
-            ptr_offset1, builder_->CreateZExt(offset, builder_->getInt64Ty()));
-        base = builder_->CreateIntToPtr(ptr_offset1_offset2,
-                                        builder_->getInt8PtrTy());
+        auto ptr_as_int = builder->CreatePtrToInt(ptr, builder->getInt64Ty());
+        auto ptr_offset1 = builder->CreateAdd(
+            ptr_as_int,
+            builder->CreateMul(builder->CreateZExt(idx, builder->getInt64Ty()),
+                               builder->getInt64(type_size)));
+        auto ptr_offset1_offset2 = builder->CreateAdd(
+            ptr_offset1, builder->CreateZExt(offset, builder->getInt64Ty()));
+        base = builder->CreateIntToPtr(ptr_offset1_offset2,
+                                       builder->getInt8PtrTy());
       }
 
-      values[instr_idx] = builder_->CreatePointerCast(base, t);
+      values[instr_idx] = builder->CreatePointerCast(base, t);
       return;
     }
 
     case Opcode::CALL_ARG: {
       Type3InstructionReader reader(instr);
       auto v = GetValue(Value(reader.Arg()), constant_values, values);
-      call_args_.push_back(v);
+      call_args.push_back(v);
       return;
     }
 
     case Opcode::CALL: {
       Type3InstructionReader reader(instr);
-      auto func = functions_[reader.Arg()];
-      values[instr_idx] = builder_->CreateCall(func, call_args_);
-      call_args_.clear();
+      auto func = mod->getFunction(program_.Functions()[reader.Arg()].Name());
+      values[instr_idx] = builder->CreateCall(func, call_args);
+      call_args.clear();
       return;
     }
 
@@ -912,9 +978,9 @@ void LLVMBackend::TranslateInstr(
       auto func = GetValue(Value(reader.Arg()), constant_values, values);
       auto func_type = func->getType()->getPointerElementType();
       values[instr_idx] = llvm::CallInst::Create(
-          llvm::dyn_cast<llvm::FunctionType>(func_type), func, call_args_, "",
-          builder_->GetInsertBlock());
-      call_args_.clear();
+          llvm::dyn_cast<llvm::FunctionType>(func_type), func, call_args, "",
+          builder->GetInsertBlock());
+      call_args.clear();
       return;
     }
 
@@ -932,19 +998,19 @@ void LLVMBackend::TranslateInstr(
 
       if (phi == nullptr) {
         phi_member_list[reader.Arg0()].emplace_back(phi_member,
-                                                    builder_->GetInsertBlock());
+                                                    builder->GetInsertBlock());
       } else {
         llvm::dyn_cast<llvm::PHINode>(phi)->addIncoming(
-            phi_member, builder_->GetInsertBlock());
+            phi_member, builder->GetInsertBlock());
       }
       return;
     }
 
     case Opcode::PHI: {
       Type3InstructionReader reader(instr);
-      auto t = types_[reader.TypeID()];
+      auto t = types[reader.TypeID()];
 
-      auto phi = builder_->CreatePHI(t, 2);
+      auto phi = builder->CreatePHI(t, 2);
       values[instr_idx] = phi;
 
       if (phi_member_list.contains(instr_idx)) {
@@ -962,7 +1028,9 @@ void LLVMBackend::TranslateInstr(
 }
 
 void LLVMBackend::Compile() {
-  llvm::verifyModule(*module_, &llvm::errs());
+  auto fragment = Translate();
+
+  llvm::verifyModule(*fragment.mod, &llvm::errs());
 
   llvm::legacy::PassManager pass;
   pass.add(llvm::createInstructionCombiningPass());
@@ -971,10 +1039,10 @@ void LLVMBackend::Compile() {
   pass.add(llvm::createCFGSimplificationPass());
   pass.add(llvm::createAggressiveDCEPass());
   pass.add(llvm::createCFGSimplificationPass());
-  pass.run(*module_);
+  pass.run(*fragment.mod);
 
   auto target_triple = llvm::sys::getDefaultTargetTriple();
-  module_->setTargetTriple(target_triple);
+  fragment.mod->setTargetTriple(target_triple);
 
   std::string error;
   auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
@@ -983,58 +1051,23 @@ void LLVMBackend::Compile() {
   }
 
 #if PROFILE_ENABLED
-  for (auto& func : *module_) {
+  for (auto& func : *mod) {
     func.addFnAttr("frame-pointer", "all");
   }
 #endif
 
-  auto cpu = "x86-64";
-  auto features = "+avx2";
-
-  llvm::TargetOptions opt;
-  auto reloc_model =
-      llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
-  auto target_machine = target->createTargetMachine(target_triple, cpu,
-                                                    features, opt, reloc_model);
-  module_->setDataLayout(target_machine->createDataLayout());
-
-  jit_ = cantFail(
-      llvm::orc::LLJITBuilder()
-          .setDataLayout(module_->getDataLayout())
-          .setNumCompileThreads(0)
-          .setObjectLinkingLayerCreator([&](llvm::orc::ExecutionSession& es,
-                                            const llvm::Triple& tt) {
-            auto ll =
-                std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(es, []() {
-                  return std::make_unique<llvm::SectionMemoryManager>();
-                });
-            ll->setAutoClaimResponsibilityForObjectSymbols(true);
-#ifdef PROFILE_ENABLED
-            auto perf = createPerfJITEventListener();
-            ll->registerJITEventListener(*perf);
-#endif
-            return ll;
-          })
-          .create());
-
-  cantFail(jit_->addIRModule(
-      llvm::orc::ThreadSafeModule(std::move(module_), std::move(context_))));
-
-  llvm::orc::SymbolMap symbol_map;
-  for (const auto& [name, addr] : external_functions_) {
-    auto mangled = jit_->mangleAndIntern(name);
-    auto flags =
-        llvm::JITSymbolFlags::Callable | llvm::JITSymbolFlags::Exported;
-    auto symbol =
-        llvm::JITEvaluatedSymbol(llvm::pointerToJITTargetAddress(addr), flags);
-    symbol_map.try_emplace(mangled, symbol);
-  }
-  cantFail(
-      jit_->getMainJITDylib().define(llvm::orc::absoluteSymbols(symbol_map)));
+  cantFail(jit_->addIRModule(llvm::orc::ThreadSafeModule(
+      std::move(fragment.mod), std::move(fragment.context))));
 
   // Trigger compilation for all public functions
-  for (const auto& name : public_functions_) {
-    compiled_fn_[name] = (void*)jit_->lookup(name)->getAddress();
+  for (const auto& func : program_.Functions()) {
+    if (func.External()) {
+      continue;
+    }
+    if (func.Public()) {
+      auto name = func.Name();
+      compiled_fn_[name] = (void*)jit_->lookup(name)->getAddress();
+    }
   }
 }
 
