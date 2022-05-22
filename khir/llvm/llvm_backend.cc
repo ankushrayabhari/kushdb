@@ -115,7 +115,16 @@ const std::vector<llvm::Type*>& LLVMTypeManager::GetTypes() { return types_; }
 
 std::string GetGlobalName(int id) { return "_global" + std::to_string(id++); }
 
-LLVMBackend::LLVMBackend(const khir::Program& program) : program_(program) {
+llvm::Function* DeclareFunction(const Function& func, llvm::Module* mod,
+                                const std::vector<llvm::Type*>& types) {
+  std::string fn_name(func.Name());
+  auto type = llvm::dyn_cast<llvm::FunctionType>(types[func.Type().GetID()]);
+  auto linkage = llvm::GlobalValue::LinkageTypes::ExternalLinkage;
+  return llvm::Function::Create(type, linkage, fn_name.c_str(), *mod);
+}
+
+LLVMBackend::LLVMBackend(const khir::Program& program)
+    : program_(program), functions_(program_.Functions().size(), nullptr) {
   auto target_triple = llvm::sys::getDefaultTargetTriple();
   std::string error;
   auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
@@ -179,6 +188,13 @@ LLVMBackend::LLVMBackend(const khir::Program& program) : program_(program) {
     std::vector<llvm::Constant*> constant_values(
         program_.ConstantInstrs().size(), nullptr);
 
+    const auto& funcs = program_.Functions();
+    for (int i = 0; i < funcs.size(); i++) {
+      if (funcs[i].External()) {
+        functions_[i] = DeclareFunction(funcs[i], mod.get(), types);
+      }
+    }
+
     const auto& globals = program_.Globals();
     for (int id = 0; id < globals.size(); id++) {
       const auto& global = globals[id];
@@ -190,8 +206,18 @@ LLVMBackend::LLVMBackend(const khir::Program& program) : program_(program) {
                                init, GetGlobalName(id));
     }
 
-    cantFail(jit_->addIRModule(
-        llvm::orc::ThreadSafeModule(std::move(mod), std::move(context))));
+    std::vector<std::string_view> to_add;
+    while (!to_translate_.empty()) {
+      auto curr = to_translate_.front();
+      to_translate_.pop();
+
+      to_add.push_back(funcs[curr].Name());
+
+      TranslateFunction(funcs[curr], mod.get(), context.get(), builder.get(),
+                        types, constant_values);
+    }
+
+    CompileAndLink(std::move(mod), std::move(context), to_add);
   }
 }
 
@@ -305,6 +331,16 @@ llvm::Constant* LLVMBackend::GetConstant(
     case ConstantOpcode::GLOBAL_REF: {
       auto id = Type1InstructionReader(instr).Constant();
       const auto& global = program_.Globals()[id];
+      auto name = GetGlobalName(id);
+
+      {
+        auto exists = mod->getGlobalVariable(name);
+        if (exists) {
+          dest = exists;
+          break;
+        }
+      }
+
       auto type = types[global.Type().GetID()];
       dest = new llvm::GlobalVariable(
           *mod, type, false, llvm::GlobalValue::LinkageTypes::ExternalLinkage,
@@ -314,8 +350,12 @@ llvm::Constant* LLVMBackend::GetConstant(
     }
 
     case ConstantOpcode::FUNC_PTR: {
-      auto name =
-          program_.Functions()[Type3InstructionReader(instr).Arg()].Name();
+      auto id = Type3InstructionReader(instr).Arg();
+      if (functions_[id] == nullptr) {
+        functions_[id] = DeclareFunction(program_.Functions()[id], mod, types);
+        to_translate_.push(id);
+      }
+      auto name = program_.Functions()[id].Name();
       dest = mod->getFunction(name);
       break;
     }
@@ -354,70 +394,84 @@ llvm::Constant* LLVMBackend::GetConstant(
   return dest;
 }
 
-LLVMBackend::Fragment LLVMBackend::Translate() {
-  LLVMBackend::Fragment result;
-  result.context = std::make_unique<llvm::LLVMContext>();
-  result.mod = std::make_unique<llvm::Module>("query", *result.context);
-  auto builder = std::make_unique<llvm::IRBuilder<>>(*result.context);
-
-  // Compute types array
-  LLVMTypeManager type_manager(result.context.get(), builder.get());
-  program_.TypeManager().Translate(type_manager);
-  const auto& types = type_manager.GetTypes();
-
-  // Translate all func decls
-  for (const auto& func : program_.Functions()) {
-    std::string fn_name(func.Name());
-    auto type = llvm::dyn_cast<llvm::FunctionType>(types[func.Type().GetID()]);
-    auto linkage = llvm::GlobalValue::LinkageTypes::ExternalLinkage;
-    llvm::Function::Create(type, linkage, fn_name.c_str(), *result.mod);
+void LLVMBackend::TranslateFunction(
+    const Function& func, llvm::Module* mod, llvm::LLVMContext* context,
+    llvm::IRBuilder<>* builder, const std::vector<llvm::Type*>& types,
+    std::vector<llvm::Constant*>& constant_values) {
+  llvm::Function* function = mod->getFunction(func.Name());
+  std::vector<llvm::Value*> args;
+  for (auto& a : function->args()) {
+    args.push_back(&a);
   }
 
-  // Convert all constants
-  std::vector<llvm::Constant*> constant_values(program_.ConstantInstrs().size(),
-                                               nullptr);
+  const auto& instructions = func.Instrs();
+  const auto& basic_blocks = func.BasicBlocks();
 
-  // Translate all func bodies
-  for (int func_idx = 0; func_idx < program_.Functions().size(); func_idx++) {
-    const auto& func = program_.Functions()[func_idx];
-    if (func.External()) {
-      continue;
-    }
+  absl::flat_hash_map<uint32_t,
+                      std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>
+      phi_member_list;
+  std::vector<llvm::Value*> values(instructions.size(), nullptr);
+  std::vector<llvm::Value*> call_args;
 
-    llvm::Function* function = result.mod->getFunction(func.Name());
-    std::vector<llvm::Value*> args;
-    for (auto& a : function->args()) {
-      args.push_back(&a);
-    }
+  std::vector<llvm::BasicBlock*> basic_blocks_impl;
+  for (int i = 0; i < basic_blocks.size(); i++) {
+    basic_blocks_impl.push_back(
+        llvm::BasicBlock::Create(*context, "", function));
+  }
 
-    const auto& instructions = func.Instrs();
-    const auto& basic_blocks = func.BasicBlocks();
-
-    absl::flat_hash_map<uint32_t,
-                        std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>
-        phi_member_list;
-    std::vector<llvm::Value*> values(instructions.size(), nullptr);
-    std::vector<llvm::Value*> call_args;
-
-    std::vector<llvm::BasicBlock*> basic_blocks_impl;
-    for (int i = 0; i < basic_blocks.size(); i++) {
-      basic_blocks_impl.push_back(
-          llvm::BasicBlock::Create(*result.context, "", function));
-    }
-
-    for (int i = 0; i < basic_blocks.size(); i++) {
-      builder->SetInsertPoint(basic_blocks_impl[i]);
-      for (const auto& [b_start, b_end] : basic_blocks[i].Segments()) {
-        for (int instr_idx = b_start; instr_idx <= b_end; instr_idx++) {
-          TranslateInstr(instr_idx, instructions, result.mod.get(),
-                         result.context.get(), builder.get(), types, args,
-                         basic_blocks_impl, values, call_args, constant_values,
-                         phi_member_list);
-        }
+  for (int i = 0; i < basic_blocks.size(); i++) {
+    builder->SetInsertPoint(basic_blocks_impl[i]);
+    for (const auto& [b_start, b_end] : basic_blocks[i].Segments()) {
+      for (int instr_idx = b_start; instr_idx <= b_end; instr_idx++) {
+        TranslateInstr(instr_idx, instructions, mod, context, builder, types,
+                       args, basic_blocks_impl, values, call_args,
+                       constant_values, phi_member_list);
       }
     }
   }
-  return result;
+}
+
+void LLVMBackend::Translate(std::string_view name) {
+  auto context = std::make_unique<llvm::LLVMContext>();
+  auto mod = std::make_unique<llvm::Module>("query", *context);
+  auto builder = std::make_unique<llvm::IRBuilder<>>(*context);
+
+  // Compute types array
+  LLVMTypeManager type_manager(context.get(), builder.get());
+  program_.TypeManager().Translate(type_manager);
+  const auto& types = type_manager.GetTypes();
+
+  // Translate all previously created functions
+  const auto& funcs = program_.Functions();
+  int id = -1;
+  functions_ = std::vector<llvm::Function*>(funcs.size(), nullptr);
+  for (int i = 0; i < funcs.size(); i++) {
+    if (funcs[i].External() || compiled_fn_.contains(funcs[i].Name())) {
+      functions_[i] = DeclareFunction(funcs[i], mod.get(), types);
+    }
+
+    if (funcs[i].Name() == name) {
+      id = i;
+    }
+  }
+
+  std::vector<llvm::Constant*> constant_values(program_.ConstantInstrs().size(),
+                                               nullptr);
+
+  functions_[id] = DeclareFunction(funcs[id], mod.get(), types);
+  to_translate_.push(id);
+
+  // Translate all func bodies
+  std::vector<std::string_view> to_add;
+  while (!to_translate_.empty()) {
+    auto curr = to_translate_.front();
+    to_translate_.pop();
+    to_add.push_back(funcs[curr].Name());
+    TranslateFunction(funcs[curr], mod.get(), context.get(), builder.get(),
+                      types, constant_values);
+  }
+
+  CompileAndLink(std::move(mod), std::move(context), to_add);
 }
 
 using LLVMCmp = llvm::CmpInst::Predicate;
@@ -1077,8 +1131,12 @@ void LLVMBackend::TranslateInstr(
     }
 
     case Opcode::CALL: {
-      Type3InstructionReader reader(instr);
-      auto func = mod->getFunction(program_.Functions()[reader.Arg()].Name());
+      auto id = Type3InstructionReader(instr).Arg();
+      if (functions_[id] == nullptr) {
+        functions_[id] = DeclareFunction(program_.Functions()[id], mod, types);
+        to_translate_.push(id);
+      }
+      auto func = mod->getFunction(program_.Functions()[id].Name());
       values[instr_idx] = builder->CreateCall(func, call_args);
       call_args.clear();
       return;
@@ -1141,10 +1199,10 @@ void LLVMBackend::TranslateInstr(
   }
 }
 
-void LLVMBackend::Compile() {
-  auto fragment = Translate();
-
-  llvm::verifyModule(*fragment.mod, &llvm::errs());
+void LLVMBackend::CompileAndLink(std::unique_ptr<llvm::Module> mod,
+                                 std::unique_ptr<llvm::LLVMContext> context,
+                                 const std::vector<std::string_view>& to_add) {
+  llvm::verifyModule(*mod, &llvm::errs());
 
   llvm::legacy::PassManager pass;
   pass.add(llvm::createInstructionCombiningPass());
@@ -1153,16 +1211,7 @@ void LLVMBackend::Compile() {
   pass.add(llvm::createCFGSimplificationPass());
   pass.add(llvm::createAggressiveDCEPass());
   pass.add(llvm::createCFGSimplificationPass());
-  pass.run(*fragment.mod);
-
-  auto target_triple = llvm::sys::getDefaultTargetTriple();
-  fragment.mod->setTargetTriple(target_triple);
-
-  std::string error;
-  auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
-  if (!target) {
-    throw std::runtime_error("Target not found: " + error);
-  }
+  pass.run(*mod);
 
 #if PROFILE_ENABLED
   for (auto& func : *mod) {
@@ -1170,21 +1219,18 @@ void LLVMBackend::Compile() {
   }
 #endif
 
-  cantFail(jit_->addIRModule(llvm::orc::ThreadSafeModule(
-      std::move(fragment.mod), std::move(fragment.context))));
+  cantFail(jit_->addIRModule(
+      llvm::orc::ThreadSafeModule(std::move(mod), std::move(context))));
 
-  // Trigger compilation for all public functions
-  for (const auto& func : program_.Functions()) {
-    if (func.External()) {
-      continue;
-    }
-
-    auto name = func.Name();
+  for (auto name : to_add) {
     compiled_fn_[name] = (void*)jit_->lookup(name)->getAddress();
   }
 }
 
 void* LLVMBackend::GetFunction(std::string_view name) {
+  if (!compiled_fn_.contains(name)) {
+    Translate(name);
+  }
   return compiled_fn_.at(name);
 }
 

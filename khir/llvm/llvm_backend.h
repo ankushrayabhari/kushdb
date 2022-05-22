@@ -45,16 +45,17 @@ class LLVMBackend : public Backend {
   LLVMBackend(const khir::Program& program);
   virtual ~LLVMBackend() = default;
 
-  // Backend
-  void Compile();
   void* GetFunction(std::string_view name) override;
 
  private:
-  struct Fragment {
-    std::unique_ptr<llvm::Module> mod;
-    std::unique_ptr<llvm::LLVMContext> context;
-  };
-  Fragment Translate();
+  void Translate(std::string_view name);
+  void TranslateFunction(const Function& func, llvm::Module* mod,
+                         llvm::LLVMContext* context, llvm::IRBuilder<>* builder,
+                         const std::vector<llvm::Type*>& types,
+                         std::vector<llvm::Constant*>& constant_values);
+  void CompileAndLink(std::unique_ptr<llvm::Module> mod,
+                      std::unique_ptr<llvm::LLVMContext> context,
+                      const std::vector<std::string_view>& to_add);
   llvm::Constant* GetConstant(Value v, llvm::Module* mod,
                               llvm::LLVMContext* context,
                               llvm::IRBuilder<>* builder,
@@ -83,6 +84,7 @@ class LLVMBackend : public Backend {
   std::unique_ptr<llvm::orc::LLJIT> jit_;
   absl::flat_hash_map<std::string, void*> compiled_fn_;
   std::queue<int> to_translate_;
+  std::vector<llvm::Function*> functions_;
 };
 
 }  // namespace kush::khir

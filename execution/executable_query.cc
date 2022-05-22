@@ -98,7 +98,6 @@ void ExecutableQuery::Execute() {
 
     case khir::BackendType::LLVM: {
       auto b = std::make_unique<khir::LLVMBackend>(*program_);
-      b->Compile();
       backend = std::move(b);
       break;
     }
