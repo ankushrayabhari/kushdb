@@ -55,10 +55,17 @@ class LLVMBackend : public Backend {
     std::unique_ptr<llvm::LLVMContext> context;
   };
   Fragment Translate();
-  llvm::Constant* ConvertConstantInstr(
-      uint64_t instr, llvm::Module* m, llvm::LLVMContext* c,
-      llvm::IRBuilder<>* b, const std::vector<llvm::Type*>& types,
-      std::vector<llvm::Constant*>& constant_values);
+  llvm::Constant* GetConstant(Value v, llvm::Module* mod,
+                              llvm::LLVMContext* context,
+                              llvm::IRBuilder<>* builder,
+                              const std::vector<llvm::Type*>& types,
+                              std::vector<llvm::Constant*>& constant_values);
+  llvm::Value* GetValue(khir::Value v,
+                        std::vector<llvm::Constant*>& constant_values,
+                        const std::vector<llvm::Value*>& values,
+                        llvm::Module* mod, llvm::LLVMContext* context,
+                        llvm::IRBuilder<>* builder,
+                        const std::vector<llvm::Type*>& types);
 
   void TranslateInstr(
       int instr_idx, const std::vector<uint64_t>& instructions, llvm::Module* m,
@@ -67,7 +74,7 @@ class LLVMBackend : public Backend {
       const std::vector<llvm::Value*>& func_args,
       const std::vector<llvm::BasicBlock*>& basic_blocks,
       std::vector<llvm::Value*>& values, std::vector<llvm::Value*>& call_args,
-      const std::vector<llvm::Constant*>& constant_values,
+      std::vector<llvm::Constant*>& constant_values,
       absl::flat_hash_map<
           uint32_t, std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>&
           phi_member_list);
