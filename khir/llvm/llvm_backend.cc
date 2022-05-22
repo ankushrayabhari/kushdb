@@ -369,9 +369,7 @@ LLVMBackend::Fragment LLVMBackend::Translate() {
   for (const auto& func : program_.Functions()) {
     std::string fn_name(func.Name());
     auto type = llvm::dyn_cast<llvm::FunctionType>(types[func.Type().GetID()]);
-    auto linkage = (func.External() || func.Public())
-                       ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
-                       : llvm::GlobalValue::LinkageTypes::InternalLinkage;
+    auto linkage = llvm::GlobalValue::LinkageTypes::ExternalLinkage;
     llvm::Function::Create(type, linkage, fn_name.c_str(), *result.mod);
   }
 
@@ -1180,10 +1178,9 @@ void LLVMBackend::Compile() {
     if (func.External()) {
       continue;
     }
-    if (func.Public()) {
-      auto name = func.Name();
-      compiled_fn_[name] = (void*)jit_->lookup(name)->getAddress();
-    }
+
+    auto name = func.Name();
+    compiled_fn_[name] = (void*)jit_->lookup(name)->getAddress();
   }
 }
 

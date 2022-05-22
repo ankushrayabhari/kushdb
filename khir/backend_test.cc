@@ -64,7 +64,7 @@ TEST_P(BackendTest, NULLPTR) {
                          &ProgramBuilder::I64Type, &ProgramBuilder::F64Type}) {
     ProgramBuilder program;
     auto type = program.PointerType(std::invoke(type_func, program));
-    program.CreatePublicFunction(type, {}, "compute");
+    program.CreateNamedFunction(type, {}, "compute");
     program.Return(program.NullPtr(type));
 
     auto backend = Compile(GetParam(), program);
@@ -79,7 +79,7 @@ TEST_P(BackendTest, NULLPTR) {
 TEST_P(BackendTest, PTR_CAST) {
   ProgramBuilder program;
   auto type = program.PointerType(program.I8Type());
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.PointerType(program.F64Type()), {type}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(
@@ -98,8 +98,8 @@ TEST_P(BackendTest, PTR_CAST) {
 TEST_P(BackendTest, PTR_CASTGlobal) {
   ProgramBuilder program;
   auto global = program.Global(program.I64Type(), program.ConstI64(5));
-  program.CreatePublicFunction(program.PointerType(program.F64Type()), {},
-                               "compute");
+  program.CreateNamedFunction(program.PointerType(program.F64Type()), {},
+                              "compute");
   program.Return(
       program.PointerCast(global, program.PointerType(program.F64Type())));
 
@@ -119,8 +119,8 @@ TEST_P(BackendTest, PTR_CASTStruct) {
   ProgramBuilder program;
   auto st = program.StructType({program.I64Type()});
   auto func =
-      program.CreatePublicFunction(program.PointerType(program.F64Type()),
-                                   {program.PointerType(st)}, "compute");
+      program.CreateNamedFunction(program.PointerType(program.F64Type()),
+                                  {program.PointerType(st)}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.PointerCast(program.StaticGEP(st, args[0], {0, 0}),
                                      program.PointerType(program.F64Type())));
@@ -136,7 +136,7 @@ TEST_P(BackendTest, PTR_CASTStruct) {
 
 TEST_P(BackendTest, PTR_LOAD) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.PointerType(program.I64Type()),
       {program.PointerType(program.PointerType(program.I64Type()))}, "compute");
   auto args = program.GetFunctionArguments(func);
@@ -157,8 +157,8 @@ TEST_P(BackendTest, PTR_LOADGlobal) {
   auto global =
       program.Global(program.PointerType(program.I64Type()),
                      program.NullPtr(program.PointerType(program.I64Type())));
-  program.CreatePublicFunction(program.PointerType(program.I64Type()), {},
-                               "compute");
+  program.CreateNamedFunction(program.PointerType(program.I64Type()), {},
+                              "compute");
   program.Return(program.LoadPtr(global));
 
   auto backend = Compile(GetParam(), program);
@@ -177,8 +177,8 @@ TEST_P(BackendTest, PTR_LOADStruct) {
   ProgramBuilder program;
   auto st = program.StructType({program.PointerType(program.I64Type())});
   auto func =
-      program.CreatePublicFunction(program.PointerType(program.I64Type()),
-                                   {program.PointerType(st)}, "compute");
+      program.CreateNamedFunction(program.PointerType(program.I64Type()),
+                                  {program.PointerType(st)}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LoadPtr(program.StaticGEP(st, args[0], {0, 0})));
 
@@ -198,7 +198,7 @@ TEST_P(BackendTest, PTR_LOADStructDynamic) {
 
   ProgramBuilder program;
   auto st = program.StructType({program.PointerType(program.I64Type())});
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.PointerType(program.I64Type()),
       {program.PointerType(st), program.I32Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
@@ -219,7 +219,7 @@ TEST_P(BackendTest, PTR_LOADStructDynamic) {
 
 TEST_P(BackendTest, PTR_STORE) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.VoidType(),
       {program.PointerType(program.PointerType(program.I64Type())),
        program.PointerType(program.I64Type())},
@@ -242,7 +242,7 @@ TEST_P(BackendTest, PTR_STORE) {
 
 TEST_P(BackendTest, PTR_STORENullptr) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.VoidType(),
       {program.PointerType(program.PointerType(program.I64Type()))}, "compute");
   auto args = program.GetFunctionArguments(func);
@@ -263,7 +263,7 @@ TEST_P(BackendTest, PTR_STORENullptr) {
 
 TEST_P(BackendTest, PTR_STOREGlobal) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(),
       {program.PointerType(program.PointerType(program.I64Type()))}, "compute");
   auto args = program.GetFunctionArguments(func);
@@ -289,7 +289,7 @@ TEST_P(BackendTest, PTR_STOREGep) {
 
   ProgramBuilder program;
   auto st = program.StructType({program.I32Type(), program.I64Type()});
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.VoidType(),
       {program.PointerType(program.PointerType(program.I64Type())),
        program.PointerType(st)},
@@ -316,7 +316,7 @@ TEST_P(BackendTest, PTR_STOREDynamicGep) {
 
   ProgramBuilder program;
   auto st = program.StructType({program.I64Type()});
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.VoidType(),
       {program.PointerType(program.PointerType(program.I64Type())),
        program.PointerType(st), program.I32Type()},
@@ -347,8 +347,8 @@ TEST_P(BackendTest, PTR_CMP_NULLPTR_Gep) {
 
   ProgramBuilder program;
   auto st = program.StructType({program.PointerType(program.I64Type())});
-  auto func = program.CreatePublicFunction(
-      program.I1Type(), {program.PointerType(st)}, "compute");
+  auto func = program.CreateNamedFunction(program.I1Type(),
+                                          {program.PointerType(st)}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto v = program.LoadPtr(program.StaticGEP(st, args[0], {0, 0}));
   program.Return(program.IsNullPtr(v));
@@ -364,7 +364,7 @@ TEST_P(BackendTest, PTR_CMP_NULLPTR_Gep) {
 
 TEST_P(BackendTest, PTR_STOREGlobalDest) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.PointerType(program.I64Type()),
       {program.PointerType(program.I64Type())}, "compute");
   auto args = program.GetFunctionArguments(func);
@@ -393,7 +393,7 @@ TEST_P(BackendTest, PTR_STOREGepDest) {
 
   ProgramBuilder program;
   auto st = program.StructType({program.PointerType(program.I64Type())});
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.VoidType(),
       {program.PointerType(st), program.PointerType(program.I64Type())},
       "compute");
@@ -420,7 +420,7 @@ TEST_P(BackendTest, PTR_STOREDynamicGepDest) {
 
   ProgramBuilder program;
   auto st = program.StructType({program.PointerType(program.I64Type())});
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.VoidType(),
       {program.PointerType(st), program.PointerType(program.I64Type()),
        program.I32Type()},
@@ -453,8 +453,8 @@ TEST_P(BackendTest, PHIPTR) {
 
   ProgramBuilder program;
   auto type = program.PointerType(program.I64Type());
-  auto func = program.CreatePublicFunction(type, {program.I1Type(), type, type},
-                                           "compute");
+  auto func = program.CreateNamedFunction(type, {program.I1Type(), type, type},
+                                          "compute");
   auto args = program.GetFunctionArguments(func);
 
   auto bb1 = program.GenerateBlock();
@@ -495,7 +495,7 @@ TEST_P(BackendTest, I1_CONST) {
     bool c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I1Type(), {}, "compute");
+    program.CreateNamedFunction(program.I1Type(), {}, "compute");
     program.Return(program.ConstI1(c));
 
     auto backend = Compile(GetParam(), program);
@@ -510,7 +510,7 @@ TEST_P(BackendTest, I1_CONST) {
 
 TEST_P(BackendTest, I1_AND) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I1Type(), {program.I1Type(), program.I1Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.AndI1(args[0], args[1]));
@@ -529,8 +529,8 @@ TEST_P(BackendTest, I1_AND) {
 TEST_P(BackendTest, I1_ANDConstArg0) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I1Type(),
-                                             {program.I1Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I1Type(),
+                                            {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.AndI1(program.ConstI1(c), args[0]));
 
@@ -548,8 +548,8 @@ TEST_P(BackendTest, I1_ANDConstArg0) {
 TEST_P(BackendTest, I1_ANDConstArg1) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I1Type(),
-                                             {program.I1Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I1Type(),
+                                            {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.AndI1(args[0], program.ConstI1(c)));
 
@@ -566,7 +566,7 @@ TEST_P(BackendTest, I1_ANDConstArg1) {
 
 TEST_P(BackendTest, I1_OR) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I1Type(), {program.I1Type(), program.I1Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.OrI1(args[0], args[1]));
@@ -585,8 +585,8 @@ TEST_P(BackendTest, I1_OR) {
 TEST_P(BackendTest, I1_ORConstArg0) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I1Type(),
-                                             {program.I1Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I1Type(),
+                                            {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.OrI1(program.ConstI1(c), args[0]));
 
@@ -604,8 +604,8 @@ TEST_P(BackendTest, I1_ORConstArg0) {
 TEST_P(BackendTest, I1_ORConstArg1) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I1Type(),
-                                             {program.I1Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I1Type(),
+                                            {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.OrI1(args[0], program.ConstI1(c)));
 
@@ -622,8 +622,8 @@ TEST_P(BackendTest, I1_ORConstArg1) {
 
 TEST_P(BackendTest, I1_LNOT) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(program.I1Type(), {program.I1Type()},
-                                           "compute");
+  auto func = program.CreateNamedFunction(program.I1Type(), {program.I1Type()},
+                                          "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LNotI1(args[0]));
 
@@ -639,7 +639,7 @@ TEST_P(BackendTest, I1_LNOT) {
 TEST_P(BackendTest, I1_LNOTConst) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I1Type(), {}, "compute");
+    program.CreateNamedFunction(program.I1Type(), {}, "compute");
     program.Return(program.LNotI1(program.ConstI1(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -658,7 +658,7 @@ TEST_P(BackendTest, I1_CMP_XXReturn) {
     int8_t c2 = 1;
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I1Type(), {program.I1Type(), program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, args[0], args[1]));
@@ -701,7 +701,7 @@ TEST_P(BackendTest, I1_CMP_XXBranch) {
     int8_t c2 = 1;
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I1Type(), {program.I1Type(), program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto bb1 = program.GenerateBlock();
@@ -750,8 +750,8 @@ TEST_P(BackendTest, I1_CMP_XXReturnConstArg0) {
     int8_t c2 = 1;
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I1Type(),
-                                             {program.I1Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I1Type(),
+                                            {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, program.ConstI1(c1), args[0]));
 
@@ -781,8 +781,8 @@ TEST_P(BackendTest, I1_CMP_XXReturnConstArg1) {
     int8_t c2 = 1;
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I1Type(),
-                                             {program.I1Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I1Type(),
+                                            {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, args[0], program.ConstI1(c2)));
 
@@ -809,8 +809,8 @@ TEST_P(BackendTest, I1_CMP_XXReturnConstArg1) {
 TEST_P(BackendTest, I1_ZEXT_I64) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I1Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI1(args[0]));
 
@@ -828,7 +828,7 @@ TEST_P(BackendTest, I1_ZEXT_I64) {
 TEST_P(BackendTest, I1_ZEXT_I64Const) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {}, "compute");
+    program.CreateNamedFunction(program.I64Type(), {}, "compute");
     program.Return(program.I64ZextI1(program.ConstI1(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -845,8 +845,8 @@ TEST_P(BackendTest, I1_ZEXT_I64Const) {
 TEST_P(BackendTest, I1_ZEXT_I8) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I8Type(),
-                                             {program.I1Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I8Type(),
+                                            {program.I1Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I8ZextI1(args[0]));
 
@@ -863,7 +863,7 @@ TEST_P(BackendTest, I1_ZEXT_I8) {
 TEST_P(BackendTest, I1_ZEXT_I8Const) {
   for (auto c : {true, false}) {
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I8Type(), {}, "compute");
+    program.CreateNamedFunction(program.I8Type(), {}, "compute");
     program.Return(program.I8ZextI1(program.ConstI1(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -882,8 +882,8 @@ TEST_P(BackendTest, PHII1) {
 
   ProgramBuilder program;
   auto type = program.I1Type();
-  auto func = program.CreatePublicFunction(type, {program.I1Type(), type, type},
-                                           "compute");
+  auto func = program.CreateNamedFunction(type, {program.I1Type(), type, type},
+                                          "compute");
   auto args = program.GetFunctionArguments(func);
 
   auto bb1 = program.GenerateBlock();
@@ -922,7 +922,7 @@ TEST_P(BackendTest, PHII1ConstArg0) {
   ProgramBuilder program;
   auto type = program.I1Type();
   auto func =
-      program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+      program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
   auto args = program.GetFunctionArguments(func);
 
   auto bb1 = program.GenerateBlock();
@@ -961,7 +961,7 @@ TEST_P(BackendTest, PHII1ConstArg1) {
   ProgramBuilder program;
   auto type = program.I1Type();
   auto func =
-      program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+      program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
   auto args = program.GetFunctionArguments(func);
 
   auto bb1 = program.GenerateBlock();
@@ -999,7 +999,7 @@ TEST_P(BackendTest, I8_ADD) {
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I8Type(), {program.I8Type(), program.I8Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AddI8(args[0], args[1]);
@@ -1029,8 +1029,8 @@ TEST_P(BackendTest, I8_ADDConstArg0) {
     int8_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I8Type(),
-                                             {program.I8Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I8Type(),
+                                            {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
@@ -1056,8 +1056,8 @@ TEST_P(BackendTest, I8_ADDConstArg1) {
     int8_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I8Type(),
-                                             {program.I8Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I8Type(),
+                                            {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI8(args[0], program.ConstI8(a1));
     program.Return(sum);
@@ -1079,7 +1079,7 @@ TEST_P(BackendTest, I8_SUB) {
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I8Type(), {program.I8Type(), program.I8Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.SubI8(args[0], args[1]);
@@ -1108,8 +1108,8 @@ TEST_P(BackendTest, I8_SubConstArg0) {
     int8_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I8Type(),
-                                             {program.I8Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I8Type(),
+                                            {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
@@ -1135,8 +1135,8 @@ TEST_P(BackendTest, I8_SubConstArg1) {
     int8_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I8Type(),
-                                             {program.I8Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I8Type(),
+                                            {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI8(args[0], program.ConstI8(a1));
     program.Return(sum);
@@ -1158,7 +1158,7 @@ TEST_P(BackendTest, I8_MUL) {
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I8Type(), {program.I8Type(), program.I8Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.MulI8(args[0], args[1]);
@@ -1187,8 +1187,8 @@ TEST_P(BackendTest, I8_MULConstArg0) {
     int8_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I8Type(),
-                                             {program.I8Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I8Type(),
+                                            {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
@@ -1214,8 +1214,8 @@ TEST_P(BackendTest, I8_MULConstArg1) {
     int8_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I8Type(),
-                                             {program.I8Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I8Type(),
+                                            {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI8(args[0], program.ConstI8(a1));
     program.Return(sum);
@@ -1239,7 +1239,7 @@ TEST_P(BackendTest, I8_CONST) {
     int8_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I8Type(), {}, "compute");
+    program.CreateNamedFunction(program.I8Type(), {}, "compute");
     program.Return(program.ConstI8(c));
 
     auto backend = Compile(GetParam(), program);
@@ -1258,8 +1258,8 @@ TEST_P(BackendTest, I8_ZEXT_I64) {
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I8Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI8(args[0]));
 
@@ -1283,8 +1283,8 @@ TEST_P(BackendTest, I8_ZEXT_I64Const) {
     int8_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {program.I8Type()},
-                                 "compute");
+    program.CreateNamedFunction(program.I64Type(), {program.I8Type()},
+                                "compute");
     program.Return(program.I64ZextI8(program.ConstI8(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -1304,8 +1304,8 @@ TEST_P(BackendTest, I8_CONV_F64) {
   std::uniform_int_distribution<int8_t> distrib(INT8_MIN, INT8_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.I8Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI8(args[0]));
 
@@ -1329,8 +1329,8 @@ TEST_P(BackendTest, I8_CONV_F64Const) {
     int8_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.F64Type(), {program.I8Type()},
-                                 "compute");
+    program.CreateNamedFunction(program.F64Type(), {program.I8Type()},
+                                "compute");
     program.Return(program.F64ConvI8(program.ConstI8(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -1355,7 +1355,7 @@ TEST_P(BackendTest, I8_CMP_XXReturn) {
       int8_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(
+      auto func = program.CreateNamedFunction(
           program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, args[0], args[1]));
@@ -1404,7 +1404,7 @@ TEST_P(BackendTest, I8_CMP_XXBranch) {
       int8_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(
+      auto func = program.CreateNamedFunction(
           program.I1Type(), {program.I8Type(), program.I8Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       auto bb1 = program.GenerateBlock();
@@ -1459,8 +1459,8 @@ TEST_P(BackendTest, I8_CMP_XXConstArg0) {
       int8_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(program.I1Type(),
-                                               {program.I8Type()}, "compute");
+      auto func = program.CreateNamedFunction(program.I1Type(),
+                                              {program.I8Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, program.ConstI8(c1), args[0]));
 
@@ -1496,8 +1496,8 @@ TEST_P(BackendTest, I8_CMP_XXConstArg1) {
       int8_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(program.I1Type(),
-                                               {program.I8Type()}, "compute");
+      auto func = program.CreateNamedFunction(program.I1Type(),
+                                              {program.I8Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, args[0], program.ConstI8(c2)));
 
@@ -1530,7 +1530,7 @@ TEST_P(BackendTest, I8_LOAD) {
     int8_t loc = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I8Type(), {program.PointerType(program.I8Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI8(args[0]));
@@ -1554,7 +1554,7 @@ TEST_P(BackendTest, I8_LOADGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.I8Type(), program.ConstI8(c));
-    program.CreatePublicFunction(program.I8Type(), {}, "compute");
+    program.CreateNamedFunction(program.I8Type(), {}, "compute");
     program.Return(program.LoadI8(global));
 
     auto backend = Compile(GetParam(), program);
@@ -1580,7 +1580,7 @@ TEST_P(BackendTest, I8_LOADStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I8Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I8Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI8(program.StaticGEP(st, args[0], {0, 0})));
@@ -1609,7 +1609,7 @@ TEST_P(BackendTest, I8_LOADStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I8Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I8Type(), {program.PointerType(st), program.I32Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -1638,7 +1638,7 @@ TEST_P(BackendTest, I1_LOAD) {
     int8_t loc = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I1Type(), {program.PointerType(program.I1Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI1(args[0]));
@@ -1662,7 +1662,7 @@ TEST_P(BackendTest, I1_LOADGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.I1Type(), program.ConstI1(c));
-    program.CreatePublicFunction(program.I1Type(), {}, "compute");
+    program.CreateNamedFunction(program.I1Type(), {}, "compute");
     program.Return(program.LoadI1(global));
 
     auto backend = Compile(GetParam(), program);
@@ -1688,7 +1688,7 @@ TEST_P(BackendTest, I1_LOADStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I1Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I1Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI1(program.StaticGEP(st, args[0], {0, 0})));
@@ -1717,7 +1717,7 @@ TEST_P(BackendTest, I1_LOADStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I1Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I1Type(), {program.PointerType(st), program.I32Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -1746,7 +1746,7 @@ TEST_P(BackendTest, I8_STORE) {
     int8_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(),
         {program.PointerType(program.I8Type()), program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
@@ -1773,7 +1773,7 @@ TEST_P(BackendTest, I8_STOREConst) {
     int8_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(program.I8Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.StoreI8(args[0], program.ConstI8(c));
@@ -1800,7 +1800,7 @@ TEST_P(BackendTest, I8_STOREGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.I8Type(), program.ConstI8(c));
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.PointerType(program.I8Type()), {program.I8Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.StoreI8(global, args[0]);
@@ -1830,7 +1830,7 @@ TEST_P(BackendTest, I8_STOREStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I8Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(st), program.I8Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -1862,7 +1862,7 @@ TEST_P(BackendTest, I8_STOREStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I8Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(),
         {program.PointerType(st), program.I8Type(), program.I32Type()},
         "compute");
@@ -1894,7 +1894,7 @@ TEST_P(BackendTest, PHII8) {
 
     ProgramBuilder program;
     auto type = program.I8Type();
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         type, {program.I1Type(), type, type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
@@ -1940,7 +1940,7 @@ TEST_P(BackendTest, PHII8ConstArg0) {
     ProgramBuilder program;
     auto type = program.I8Type();
     auto func =
-        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+        program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -1985,7 +1985,7 @@ TEST_P(BackendTest, PHII8ConstArg1) {
     ProgramBuilder program;
     auto type = program.I8Type();
     auto func =
-        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+        program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -2025,7 +2025,7 @@ TEST_P(BackendTest, I16_ADD) {
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I16Type(), {program.I16Type(), program.I16Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AddI16(args[0], args[1]);
@@ -2054,8 +2054,8 @@ TEST_P(BackendTest, I16_ADDConstArg0) {
     int16_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I16Type(),
-                                             {program.I16Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I16Type(),
+                                            {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
@@ -2081,8 +2081,8 @@ TEST_P(BackendTest, I16_ADDConstArg1) {
     int16_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I16Type(),
-                                             {program.I16Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I16Type(),
+                                            {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI16(args[0], program.ConstI16(a1));
     program.Return(sum);
@@ -2104,7 +2104,7 @@ TEST_P(BackendTest, I16_SUB) {
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I16Type(), {program.I16Type(), program.I16Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.SubI16(args[0], args[1]);
@@ -2133,8 +2133,8 @@ TEST_P(BackendTest, I16_SubConstArg0) {
     int16_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I16Type(),
-                                             {program.I16Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I16Type(),
+                                            {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
@@ -2160,8 +2160,8 @@ TEST_P(BackendTest, I16_SubConstArg1) {
     int16_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I16Type(),
-                                             {program.I16Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I16Type(),
+                                            {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI16(args[0], program.ConstI16(a1));
     program.Return(sum);
@@ -2183,7 +2183,7 @@ TEST_P(BackendTest, I16_MUL) {
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I16Type(), {program.I16Type(), program.I16Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.MulI16(args[0], args[1]);
@@ -2212,8 +2212,8 @@ TEST_P(BackendTest, I16_MULConstArg0) {
     int16_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I16Type(),
-                                             {program.I16Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I16Type(),
+                                            {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
@@ -2239,8 +2239,8 @@ TEST_P(BackendTest, I16_MULConstArg1) {
     int16_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I16Type(),
-                                             {program.I16Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I16Type(),
+                                            {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI16(args[0], program.ConstI16(a1));
     program.Return(sum);
@@ -2264,7 +2264,7 @@ TEST_P(BackendTest, I16_CONST) {
     int16_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I16Type(), {}, "compute");
+    program.CreateNamedFunction(program.I16Type(), {}, "compute");
     program.Return(program.ConstI16(c));
 
     auto backend = Compile(GetParam(), program);
@@ -2283,8 +2283,8 @@ TEST_P(BackendTest, I16_ZEXT_I64) {
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I16Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI16(args[0]));
 
@@ -2308,8 +2308,8 @@ TEST_P(BackendTest, I16_ZEXT_I64Const) {
     int16_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {program.I16Type()},
-                                 "compute");
+    program.CreateNamedFunction(program.I64Type(), {program.I16Type()},
+                                "compute");
     program.Return(program.I64ZextI16(program.ConstI16(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -2329,8 +2329,8 @@ TEST_P(BackendTest, I16_CONV_F64) {
   std::uniform_int_distribution<int16_t> distrib(INT16_MIN, INT16_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.I16Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI16(args[0]));
 
@@ -2354,8 +2354,8 @@ TEST_P(BackendTest, I16_CONV_F64Const) {
     int16_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.F64Type(), {program.I16Type()},
-                                 "compute");
+    program.CreateNamedFunction(program.F64Type(), {program.I16Type()},
+                                "compute");
     program.Return(program.F64ConvI16(program.ConstI16(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -2380,7 +2380,7 @@ TEST_P(BackendTest, I16_CMP_XXReturn) {
       int16_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(
+      auto func = program.CreateNamedFunction(
           program.I1Type(), {program.I16Type(), program.I16Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, args[0], args[1]));
@@ -2429,7 +2429,7 @@ TEST_P(BackendTest, I16_CMP_XXBranch) {
       int16_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(
+      auto func = program.CreateNamedFunction(
           program.I1Type(), {program.I16Type(), program.I16Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       auto bb1 = program.GenerateBlock();
@@ -2484,8 +2484,8 @@ TEST_P(BackendTest, I16_CMP_XXConstArg0) {
       int16_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(program.I1Type(),
-                                               {program.I16Type()}, "compute");
+      auto func = program.CreateNamedFunction(program.I1Type(),
+                                              {program.I16Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, program.ConstI16(c1), args[0]));
 
@@ -2521,8 +2521,8 @@ TEST_P(BackendTest, I16_CMP_XXConstArg1) {
       int16_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(program.I1Type(),
-                                               {program.I16Type()}, "compute");
+      auto func = program.CreateNamedFunction(program.I1Type(),
+                                              {program.I16Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, args[0], program.ConstI16(c2)));
 
@@ -2555,7 +2555,7 @@ TEST_P(BackendTest, I16_LOAD) {
     int16_t loc = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I16Type(), {program.PointerType(program.I16Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI16(args[0]));
@@ -2579,7 +2579,7 @@ TEST_P(BackendTest, I16_LOADGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.I16Type(), program.ConstI16(c));
-    program.CreatePublicFunction(program.I16Type(), {}, "compute");
+    program.CreateNamedFunction(program.I16Type(), {}, "compute");
     program.Return(program.LoadI16(global));
 
     auto backend = Compile(GetParam(), program);
@@ -2605,7 +2605,7 @@ TEST_P(BackendTest, I16_LOADStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I16Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I16Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI16(program.StaticGEP(st, args[0], {0, 0})));
@@ -2634,7 +2634,7 @@ TEST_P(BackendTest, I16_LOADStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I16Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I16Type(), {program.PointerType(st), program.I32Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -2663,7 +2663,7 @@ TEST_P(BackendTest, I16_STORE) {
     int16_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(),
         {program.PointerType(program.I16Type()), program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
@@ -2690,7 +2690,7 @@ TEST_P(BackendTest, I16_STOREConst) {
     int16_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(program.I16Type())},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -2718,7 +2718,7 @@ TEST_P(BackendTest, I16_STOREGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.I16Type(), program.ConstI16(c));
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.PointerType(program.I16Type()), {program.I16Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.StoreI16(global, args[0]);
@@ -2748,7 +2748,7 @@ TEST_P(BackendTest, I16_STOREStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I16Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(st), program.I16Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -2780,7 +2780,7 @@ TEST_P(BackendTest, I16_STOREStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I16Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(),
         {program.PointerType(st), program.I16Type(), program.I32Type()},
         "compute");
@@ -2812,7 +2812,7 @@ TEST_P(BackendTest, PHII16) {
 
     ProgramBuilder program;
     auto type = program.I16Type();
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         type, {program.I1Type(), type, type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
@@ -2859,7 +2859,7 @@ TEST_P(BackendTest, PHII16ConstArg0) {
     ProgramBuilder program;
     auto type = program.I16Type();
     auto func =
-        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+        program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -2904,7 +2904,7 @@ TEST_P(BackendTest, PHII16ConstArg1) {
     ProgramBuilder program;
     auto type = program.I16Type();
     auto func =
-        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+        program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -2944,7 +2944,7 @@ TEST_P(BackendTest, I32_ADD) {
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I32Type(), {program.I32Type(), program.I32Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AddI32(args[0], args[1]);
@@ -2973,8 +2973,8 @@ TEST_P(BackendTest, I32_ADDConstArg0) {
     int32_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I32Type(),
-                                             {program.I32Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I32Type(),
+                                            {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
@@ -3000,8 +3000,8 @@ TEST_P(BackendTest, I32_ADDConstArg1) {
     int32_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I32Type(),
-                                             {program.I32Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I32Type(),
+                                            {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI32(args[0], program.ConstI32(a1));
     program.Return(sum);
@@ -3023,7 +3023,7 @@ TEST_P(BackendTest, I32_SUB) {
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I32Type(), {program.I32Type(), program.I32Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.SubI32(args[0], args[1]);
@@ -3052,8 +3052,8 @@ TEST_P(BackendTest, I32_SubConstArg0) {
     int32_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I32Type(),
-                                             {program.I32Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I32Type(),
+                                            {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
@@ -3079,8 +3079,8 @@ TEST_P(BackendTest, I32_SubConstArg1) {
     int32_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I32Type(),
-                                             {program.I32Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I32Type(),
+                                            {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI32(args[0], program.ConstI32(a1));
     program.Return(sum);
@@ -3102,7 +3102,7 @@ TEST_P(BackendTest, I32_MUL) {
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I32Type(), {program.I32Type(), program.I32Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.MulI32(args[0], args[1]);
@@ -3131,8 +3131,8 @@ TEST_P(BackendTest, I32_MULConstArg0) {
     int32_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I32Type(),
-                                             {program.I32Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I32Type(),
+                                            {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
@@ -3158,8 +3158,8 @@ TEST_P(BackendTest, I32_MULConstArg1) {
     int32_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I32Type(),
-                                             {program.I32Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I32Type(),
+                                            {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI32(args[0], program.ConstI32(a1));
     program.Return(sum);
@@ -3183,7 +3183,7 @@ TEST_P(BackendTest, I32_CONST) {
     int32_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I32Type(), {}, "compute");
+    program.CreateNamedFunction(program.I32Type(), {}, "compute");
     program.Return(program.ConstI32(c));
 
     auto backend = Compile(GetParam(), program);
@@ -3202,8 +3202,8 @@ TEST_P(BackendTest, I32_ZEXT_I64) {
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I32Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI32(args[0]));
 
@@ -3227,8 +3227,8 @@ TEST_P(BackendTest, I32_ZEXT_I64Const) {
     int32_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {program.I32Type()},
-                                 "compute");
+    program.CreateNamedFunction(program.I64Type(), {program.I32Type()},
+                                "compute");
     program.Return(program.I64ZextI32(program.ConstI32(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -3248,8 +3248,8 @@ TEST_P(BackendTest, I32_CONV_F64) {
   std::uniform_int_distribution<int32_t> distrib(INT32_MIN, INT32_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.I32Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI32(args[0]));
 
@@ -3273,8 +3273,8 @@ TEST_P(BackendTest, I32_CONV_F64Const) {
     int32_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.F64Type(), {program.I32Type()},
-                                 "compute");
+    program.CreateNamedFunction(program.F64Type(), {program.I32Type()},
+                                "compute");
     program.Return(program.F64ConvI32(program.ConstI32(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -3295,8 +3295,8 @@ TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC4Return) {
   std::array<int32_t, 4> vec{-1, 1, 0, INT32_MAX};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(program.I1Type(),
-                                           {program.I32Type()}, "compute");
+  auto func = program.CreateNamedFunction(program.I1Type(), {program.I32Type()},
+                                          "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.CmpEqConstI32(args[0], vec));
 
@@ -3324,8 +3324,8 @@ TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC4Branch) {
   std::array<int32_t, 4> vec{-1, 1, 0, INT32_MAX};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(program.I1Type(),
-                                           {program.I32Type()}, "compute");
+  auto func = program.CreateNamedFunction(program.I1Type(), {program.I32Type()},
+                                          "compute");
   auto args = program.GetFunctionArguments(func);
   auto bb1 = program.GenerateBlock();
   auto bb2 = program.GenerateBlock();
@@ -3359,8 +3359,8 @@ TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC8Return) {
   std::array<int32_t, 8> vec{-1, 1, 0, INT32_MAX, INT32_MIN, 2, 20, -1000};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(program.I1Type(),
-                                           {program.I32Type()}, "compute");
+  auto func = program.CreateNamedFunction(program.I1Type(), {program.I32Type()},
+                                          "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.CmpEqConstI32(args[0], vec));
 
@@ -3392,8 +3392,8 @@ TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC8Branch) {
   std::array<int32_t, 8> vec{-1, 1, 0, INT32_MAX, INT32_MIN, 2, 20, -1000};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(program.I1Type(),
-                                           {program.I32Type()}, "compute");
+  auto func = program.CreateNamedFunction(program.I1Type(), {program.I32Type()},
+                                          "compute");
   auto args = program.GetFunctionArguments(func);
   auto bb1 = program.GenerateBlock();
   auto bb2 = program.GenerateBlock();
@@ -3435,7 +3435,7 @@ TEST_P(BackendTest, I32_CMP_XXReturn) {
       int32_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(
+      auto func = program.CreateNamedFunction(
           program.I1Type(), {program.I32Type(), program.I32Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, args[0], args[1]));
@@ -3484,7 +3484,7 @@ TEST_P(BackendTest, I32_CMP_XXBranch) {
       int32_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(
+      auto func = program.CreateNamedFunction(
           program.I1Type(), {program.I32Type(), program.I32Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       auto bb1 = program.GenerateBlock();
@@ -3539,8 +3539,8 @@ TEST_P(BackendTest, I32_CMP_XXConstArg0) {
       int32_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(program.I1Type(),
-                                               {program.I32Type()}, "compute");
+      auto func = program.CreateNamedFunction(program.I1Type(),
+                                              {program.I32Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, program.ConstI32(c1), args[0]));
 
@@ -3576,8 +3576,8 @@ TEST_P(BackendTest, I32_CMP_XXConstArg1) {
       int32_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(program.I1Type(),
-                                               {program.I32Type()}, "compute");
+      auto func = program.CreateNamedFunction(program.I1Type(),
+                                              {program.I32Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, args[0], program.ConstI32(c2)));
 
@@ -3610,7 +3610,7 @@ TEST_P(BackendTest, I32_LOAD) {
     int32_t loc = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I32Type(), {program.PointerType(program.I32Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI32(args[0]));
@@ -3634,7 +3634,7 @@ TEST_P(BackendTest, I32_LOADGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.I32Type(), program.ConstI32(c));
-    program.CreatePublicFunction(program.I32Type(), {}, "compute");
+    program.CreateNamedFunction(program.I32Type(), {}, "compute");
     program.Return(program.LoadI32(global));
 
     auto backend = Compile(GetParam(), program);
@@ -3660,7 +3660,7 @@ TEST_P(BackendTest, I32_LOADStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I32Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I32Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI32(program.StaticGEP(st, args[0], {0, 0})));
@@ -3689,7 +3689,7 @@ TEST_P(BackendTest, I32_LOADStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I32Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I32Type(), {program.PointerType(st), program.I32Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -3718,7 +3718,7 @@ TEST_P(BackendTest, I32_STORE) {
     int32_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(),
         {program.PointerType(program.I32Type()), program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
@@ -3745,7 +3745,7 @@ TEST_P(BackendTest, I32_STOREConst) {
     int32_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(program.I32Type())},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -3773,7 +3773,7 @@ TEST_P(BackendTest, I32_STOREGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.I32Type(), program.ConstI32(c));
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.PointerType(program.I32Type()), {program.I32Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.StoreI32(global, args[0]);
@@ -3803,7 +3803,7 @@ TEST_P(BackendTest, I32_STOREStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I32Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(st), program.I32Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -3835,7 +3835,7 @@ TEST_P(BackendTest, I32_STOREStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I32Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(),
         {program.PointerType(st), program.I32Type(), program.I32Type()},
         "compute");
@@ -3867,7 +3867,7 @@ TEST_P(BackendTest, PHII32) {
 
     ProgramBuilder program;
     auto type = program.I32Type();
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         type, {program.I1Type(), type, type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
@@ -3914,7 +3914,7 @@ TEST_P(BackendTest, PHII32ConstArg0) {
     ProgramBuilder program;
     auto type = program.I32Type();
     auto func =
-        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+        program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -3959,7 +3959,7 @@ TEST_P(BackendTest, PHII32ConstArg1) {
     ProgramBuilder program;
     auto type = program.I32Type();
     auto func =
-        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+        program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -3999,7 +3999,7 @@ TEST_P(BackendTest, I64_ADD) {
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AddI64(args[0], args[1]);
@@ -4028,8 +4028,8 @@ TEST_P(BackendTest, I64_ADDConstArg0) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
@@ -4055,8 +4055,8 @@ TEST_P(BackendTest, I64_ADDConstArg1) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddI64(args[0], program.ConstI64(a1));
     program.Return(sum);
@@ -4078,7 +4078,7 @@ TEST_P(BackendTest, I64_AND) {
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AndI64(args[0], args[1]);
@@ -4107,8 +4107,8 @@ TEST_P(BackendTest, I64_ANDConstArg0) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AndI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
@@ -4134,8 +4134,8 @@ TEST_P(BackendTest, I64_ANDConstArg1) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AndI64(args[0], program.ConstI64(a1));
     program.Return(sum);
@@ -4157,7 +4157,7 @@ TEST_P(BackendTest, I64_XOR) {
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.XorI64(args[0], args[1]);
@@ -4186,8 +4186,8 @@ TEST_P(BackendTest, I64_XORConstArg0) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.XorI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
@@ -4213,8 +4213,8 @@ TEST_P(BackendTest, I64_XORConstArg1) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.XorI64(args[0], program.ConstI64(a1));
     program.Return(sum);
@@ -4236,7 +4236,7 @@ TEST_P(BackendTest, I64_OR) {
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.OrI64(args[0], args[1]);
@@ -4265,8 +4265,8 @@ TEST_P(BackendTest, I64_ORConstArg0) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.OrI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
@@ -4292,8 +4292,8 @@ TEST_P(BackendTest, I64_ORConstArg1) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.OrI64(args[0], program.ConstI64(a1));
     program.Return(sum);
@@ -4320,8 +4320,8 @@ TEST_P(BackendTest, I64_LSHIFT) {
     uint8_t a1 = shift_distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.LShiftI64(args[0], a1);
     program.Return(sum);
@@ -4348,7 +4348,7 @@ TEST_P(BackendTest, I64_LSHIFTConstArg0) {
     uint8_t a1 = shift_distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {}, "compute");
+    program.CreateNamedFunction(program.I64Type(), {}, "compute");
     auto sum = program.LShiftI64(program.ConstI64(a0), a1);
     program.Return(sum);
 
@@ -4374,8 +4374,8 @@ TEST_P(BackendTest, I64_RSHIFT) {
     uint8_t a1 = shift_distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.RShiftI64(args[0], a1);
     program.Return(sum);
@@ -4402,7 +4402,7 @@ TEST_P(BackendTest, I64_RSHIFTConstArg0) {
     uint8_t a1 = shift_distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {}, "compute");
+    program.CreateNamedFunction(program.I64Type(), {}, "compute");
     auto sum = program.RShiftI64(program.ConstI64(a0), a1);
     program.Return(sum);
 
@@ -4423,7 +4423,7 @@ TEST_P(BackendTest, I64_SUB) {
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.SubI64(args[0], args[1]);
@@ -4452,8 +4452,8 @@ TEST_P(BackendTest, I64_SubConstArg0) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
@@ -4479,8 +4479,8 @@ TEST_P(BackendTest, I64_SubConstArg1) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubI64(args[0], program.ConstI64(a1));
     program.Return(sum);
@@ -4502,7 +4502,7 @@ TEST_P(BackendTest, I64_MUL) {
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.I64Type(), program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.MulI64(args[0], args[1]);
@@ -4531,8 +4531,8 @@ TEST_P(BackendTest, I64_MULConstArg0) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
@@ -4558,8 +4558,8 @@ TEST_P(BackendTest, I64_MULConstArg1) {
     int64_t a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulI64(args[0], program.ConstI64(a1));
     program.Return(sum);
@@ -4583,7 +4583,7 @@ TEST_P(BackendTest, I64_CONST) {
     int64_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {}, "compute");
+    program.CreateNamedFunction(program.I64Type(), {}, "compute");
     program.Return(program.ConstI64(c));
 
     auto backend = Compile(GetParam(), program);
@@ -4602,8 +4602,8 @@ TEST_P(BackendTest, I64_CONV_F64) {
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI64(args[0]));
 
@@ -4627,8 +4627,8 @@ TEST_P(BackendTest, I64_CONV_F64Const) {
     int64_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.F64Type(), {program.I64Type()},
-                                 "compute");
+    program.CreateNamedFunction(program.F64Type(), {program.I64Type()},
+                                "compute");
     program.Return(program.F64ConvI64(program.ConstI64(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -4648,8 +4648,8 @@ TEST_P(BackendTest, I64_TRUNC_I16) {
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I16Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I16Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I16TruncI64(args[0]));
 
@@ -4673,8 +4673,8 @@ TEST_P(BackendTest, I64_TRUNC_I16Const) {
     uint64_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I16Type(), {program.I64Type()},
-                                 "compute");
+    program.CreateNamedFunction(program.I16Type(), {program.I64Type()},
+                                "compute");
     program.Return(program.I16TruncI64(program.ConstI64(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -4694,8 +4694,8 @@ TEST_P(BackendTest, I64_TRUNC_I32) {
   std::uniform_int_distribution<int64_t> distrib(INT64_MIN, INT64_MAX);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I32Type(),
-                                             {program.I64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I32Type(),
+                                            {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I32TruncI64(args[0]));
 
@@ -4719,8 +4719,8 @@ TEST_P(BackendTest, I64_TRUNC_I32Const) {
     uint64_t c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I32Type(), {program.I64Type()},
-                                 "compute");
+    program.CreateNamedFunction(program.I32Type(), {program.I64Type()},
+                                "compute");
     program.Return(program.I32TruncI64(program.ConstI64(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -4745,7 +4745,7 @@ TEST_P(BackendTest, I64_CMP_XXReturn) {
       int64_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(
+      auto func = program.CreateNamedFunction(
           program.I1Type(), {program.I64Type(), program.I64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, args[0], args[1]));
@@ -4785,7 +4785,7 @@ TEST_P(BackendTest, I64_CMP_XXReturn) {
 
 TEST_P(BackendTest, PTR_CMP_NULLPTRReturn) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I1Type(), {program.PointerType(program.I64Type())}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.IsNullPtr(args[0]));
@@ -4812,7 +4812,7 @@ TEST_P(BackendTest, I64_CMP_XXBranch) {
       int64_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(
+      auto func = program.CreateNamedFunction(
           program.I1Type(), {program.I64Type(), program.I64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
 
@@ -4868,8 +4868,8 @@ TEST_P(BackendTest, I64_CMP_XXConstArg0) {
       int64_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(program.I1Type(),
-                                               {program.I64Type()}, "compute");
+      auto func = program.CreateNamedFunction(program.I1Type(),
+                                              {program.I64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, program.ConstI64(c1), args[0]));
 
@@ -4905,8 +4905,8 @@ TEST_P(BackendTest, I64_CMP_XXConstArg1) {
       int64_t c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(program.I1Type(),
-                                               {program.I64Type()}, "compute");
+      auto func = program.CreateNamedFunction(program.I1Type(),
+                                              {program.I64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, args[0], program.ConstI64(c2)));
 
@@ -4939,7 +4939,7 @@ TEST_P(BackendTest, I64_LOAD) {
     int64_t loc = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I64Type(), {program.PointerType(program.I64Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI64(args[0]));
@@ -4963,7 +4963,7 @@ TEST_P(BackendTest, I64_LOADGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.I64Type(), program.ConstI64(c));
-    program.CreatePublicFunction(program.I64Type(), {}, "compute");
+    program.CreateNamedFunction(program.I64Type(), {}, "compute");
     program.Return(program.LoadI64(global));
 
     auto backend = Compile(GetParam(), program);
@@ -4989,7 +4989,7 @@ TEST_P(BackendTest, I64_LOADStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I64Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I64Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI64(program.StaticGEP(st, args[0], {0, 0})));
@@ -5018,7 +5018,7 @@ TEST_P(BackendTest, I64_LOADStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I64Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I64Type(), {program.PointerType(st), program.I32Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -5047,7 +5047,7 @@ TEST_P(BackendTest, I64_STORE) {
     int64_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(),
         {program.PointerType(program.I64Type()), program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
@@ -5074,7 +5074,7 @@ TEST_P(BackendTest, I64_STOREConst) {
     int64_t c = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(program.I64Type())},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -5102,7 +5102,7 @@ TEST_P(BackendTest, I64_STOREGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.I64Type(), program.ConstI64(c));
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.PointerType(program.I64Type()), {program.I64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.StoreI64(global, args[0]);
@@ -5132,7 +5132,7 @@ TEST_P(BackendTest, I64_STOREStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I64Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(st), program.I64Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -5164,7 +5164,7 @@ TEST_P(BackendTest, I64_STOREStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.I64Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(),
         {program.PointerType(st), program.I64Type(), program.I32Type()},
         "compute");
@@ -5196,7 +5196,7 @@ TEST_P(BackendTest, PHII64) {
 
     ProgramBuilder program;
     auto type = program.I64Type();
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         type, {program.I1Type(), type, type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
@@ -5243,7 +5243,7 @@ TEST_P(BackendTest, PHII64ConstArg0) {
     ProgramBuilder program;
     auto type = program.I64Type();
     auto func =
-        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+        program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -5288,7 +5288,7 @@ TEST_P(BackendTest, PHII64ConstArg1) {
     ProgramBuilder program;
     auto type = program.I64Type();
     auto func =
-        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+        program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -5328,7 +5328,7 @@ TEST_P(BackendTest, F64_ADD) {
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.AddF64(args[0], args[1]);
@@ -5357,8 +5357,8 @@ TEST_P(BackendTest, F64_ADDConstArg0) {
     double a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.F64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
@@ -5384,8 +5384,8 @@ TEST_P(BackendTest, F64_ADDConstArg1) {
     double a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.F64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.AddF64(args[0], program.ConstF64(a1));
     program.Return(sum);
@@ -5407,7 +5407,7 @@ TEST_P(BackendTest, F64_SUB) {
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.SubF64(args[0], args[1]);
@@ -5436,8 +5436,8 @@ TEST_P(BackendTest, F64_SubConstArg0) {
     double a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.F64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
@@ -5463,8 +5463,8 @@ TEST_P(BackendTest, F64_SubConstArg1) {
     double a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.F64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.SubF64(args[0], program.ConstF64(a1));
     program.Return(sum);
@@ -5486,7 +5486,7 @@ TEST_P(BackendTest, F64_MUL) {
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.MulF64(args[0], args[1]);
@@ -5515,8 +5515,8 @@ TEST_P(BackendTest, F64_MULConstArg0) {
     double a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.F64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
@@ -5542,8 +5542,8 @@ TEST_P(BackendTest, F64_MULConstArg1) {
     double a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.F64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.MulF64(args[0], program.ConstF64(a1));
     program.Return(sum);
@@ -5565,7 +5565,7 @@ TEST_P(BackendTest, F64_DIV) {
   std::uniform_real_distribution<double> distrib(-1e100, 1e100);
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.F64Type(), {program.F64Type(), program.F64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   auto sum = program.DivF64(args[0], args[1]);
@@ -5594,8 +5594,8 @@ TEST_P(BackendTest, F64_DIVConstArg0) {
     double a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.F64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.DivF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
@@ -5621,8 +5621,8 @@ TEST_P(BackendTest, F64_DIVConstArg1) {
     double a1 = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.F64Type(),
-                                             {program.F64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.F64Type(),
+                                            {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     auto sum = program.DivF64(args[0], program.ConstF64(a1));
     program.Return(sum);
@@ -5646,7 +5646,7 @@ TEST_P(BackendTest, F64_CONST) {
     double c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.F64Type(), {}, "compute");
+    program.CreateNamedFunction(program.F64Type(), {}, "compute");
     program.Return(program.ConstF64(c));
 
     auto backend = Compile(GetParam(), program);
@@ -5666,8 +5666,8 @@ TEST_P(BackendTest, F64_CONV_I64) {
                                                  9223372036854775807.0);
   for (int i = 0; i < 10; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(program.I64Type(),
-                                             {program.F64Type()}, "compute");
+    auto func = program.CreateNamedFunction(program.I64Type(),
+                                            {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ConvF64(args[0]));
 
@@ -5692,7 +5692,7 @@ TEST_P(BackendTest, F64_CONV_I64Const) {
     double c = distrib(gen);
 
     ProgramBuilder program;
-    program.CreatePublicFunction(program.I64Type(), {}, "compute");
+    program.CreateNamedFunction(program.I64Type(), {}, "compute");
     program.Return(program.I64ConvF64(program.ConstF64(c)));
 
     auto backend = Compile(GetParam(), program);
@@ -5717,7 +5717,7 @@ TEST_P(BackendTest, F64_CMP_XXReturn) {
       double c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(
+      auto func = program.CreateNamedFunction(
           program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, args[0], args[1]));
@@ -5766,7 +5766,7 @@ TEST_P(BackendTest, F64_CMP_XXBranch) {
       double c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(
+      auto func = program.CreateNamedFunction(
           program.I1Type(), {program.F64Type(), program.F64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       auto bb1 = program.GenerateBlock();
@@ -5821,8 +5821,8 @@ TEST_P(BackendTest, F64_CMP_XXConstArg0) {
       double c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(program.I1Type(),
-                                               {program.F64Type()}, "compute");
+      auto func = program.CreateNamedFunction(program.I1Type(),
+                                              {program.F64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, program.ConstF64(c1), args[0]));
 
@@ -5858,8 +5858,8 @@ TEST_P(BackendTest, F64_CMP_XXConstArg1) {
       double c2 = distrib(gen);
 
       ProgramBuilder program;
-      auto func = program.CreatePublicFunction(program.I1Type(),
-                                               {program.F64Type()}, "compute");
+      auto func = program.CreateNamedFunction(program.I1Type(),
+                                              {program.F64Type()}, "compute");
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, args[0], program.ConstF64(c2)));
 
@@ -5892,7 +5892,7 @@ TEST_P(BackendTest, F64_LOAD) {
     double loc = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.F64Type(), {program.PointerType(program.F64Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadF64(args[0]));
@@ -5916,7 +5916,7 @@ TEST_P(BackendTest, F64_LOADGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.F64Type(), program.ConstF64(c));
-    program.CreatePublicFunction(program.F64Type(), {}, "compute");
+    program.CreateNamedFunction(program.F64Type(), {}, "compute");
     program.Return(
         program.LoadF64(program.StaticGEP(program.F64Type(), global, {0})));
 
@@ -5943,7 +5943,7 @@ TEST_P(BackendTest, F64_LOADStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.F64Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.F64Type(), {program.PointerType(st)}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadF64(program.StaticGEP(st, args[0], {0, 0})));
@@ -5972,7 +5972,7 @@ TEST_P(BackendTest, F64_LOADStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.F64Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.F64Type(), {program.PointerType(st), program.I32Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -6001,7 +6001,7 @@ TEST_P(BackendTest, F64_STORE) {
     double c = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(),
         {program.PointerType(program.F64Type()), program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
@@ -6028,7 +6028,7 @@ TEST_P(BackendTest, F64_STOREConst) {
     double c = distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(program.F64Type())},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -6056,7 +6056,7 @@ TEST_P(BackendTest, F64_STOREGlobal) {
 
     ProgramBuilder program;
     auto global = program.Global(program.F64Type(), program.ConstF64(c));
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.PointerType(program.F64Type()), {program.F64Type()}, "compute");
     auto args = program.GetFunctionArguments(func);
     program.StoreF64(program.StaticGEP(program.F64Type(), global, {0}),
@@ -6087,7 +6087,7 @@ TEST_P(BackendTest, F64_STOREStruct) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.F64Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(st), program.F64Type()},
         "compute");
     auto args = program.GetFunctionArguments(func);
@@ -6119,7 +6119,7 @@ TEST_P(BackendTest, F64_STOREStructDynamic) {
 
     ProgramBuilder program;
     auto st = program.StructType({program.F64Type()});
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(),
         {program.PointerType(st), program.F64Type(), program.I32Type()},
         "compute");
@@ -6151,7 +6151,7 @@ TEST_P(BackendTest, PHIF64) {
 
     ProgramBuilder program;
     auto type = program.F64Type();
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         type, {program.I1Type(), type, type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
@@ -6197,7 +6197,7 @@ TEST_P(BackendTest, PHIF64ConstArg0) {
     ProgramBuilder program;
     auto type = program.F64Type();
     auto func =
-        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+        program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -6242,7 +6242,7 @@ TEST_P(BackendTest, PHIF64ConstArg1) {
     ProgramBuilder program;
     auto type = program.F64Type();
     auto func =
-        program.CreatePublicFunction(type, {program.I1Type(), type}, "compute");
+        program.CreateNamedFunction(type, {program.I1Type(), type}, "compute");
     auto args = program.GetFunctionArguments(func);
 
     auto bb1 = program.GenerateBlock();
@@ -6278,7 +6278,7 @@ TEST_P(BackendTest, PHIF64ConstArg1) {
 
 TEST_P(BackendTest, Loop) {
   ProgramBuilder program;
-  program.CreatePublicFunction(program.I32Type(), {}, "compute");
+  program.CreateNamedFunction(program.I32Type(), {}, "compute");
 
   auto bb1 = program.GenerateBlock();
   auto bb2 = program.GenerateBlock();
@@ -6326,7 +6326,7 @@ TEST_P(BackendTest, Loop) {
 
 TEST_P(BackendTest, LoopVariableAccess) {
   ProgramBuilder program;
-  program.CreatePublicFunction(program.I32Type(), {}, "compute");
+  program.CreateNamedFunction(program.I32Type(), {}, "compute");
 
   auto bb1 = program.GenerateBlock();
   auto bb2 = program.GenerateBlock();
@@ -6368,7 +6368,7 @@ TEST_P(BackendTest, DynamicGEPColumnData) {
   ProgramBuilder program;
   auto st = program.StructType(
       {program.PointerType(program.I32Type()), program.I64Type()});
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.PointerType(program.I32Type()),
       {program.PointerType(st), program.I32Type()}, "compute");
 
@@ -6394,7 +6394,7 @@ TEST_P(BackendTest, I32Vec8CmpEQ) {
 
   for (int i = 0; i < 8; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I64Type(), {program.PointerType(program.I32Vec8Type())},
         "compute");
 
@@ -6418,7 +6418,7 @@ TEST_P(BackendTest, I32Vec8CmpNE) {
 
   for (int i = 0; i < 8; i++) {
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I64Type(), {program.PointerType(program.I32Vec8Type())},
         "compute");
 
@@ -6441,7 +6441,7 @@ TEST_P(BackendTest, I32Vec8CmpLT) {
   alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
@@ -6462,7 +6462,7 @@ TEST_P(BackendTest, I32Vec8CmpLE) {
   alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
@@ -6483,7 +6483,7 @@ TEST_P(BackendTest, I32Vec8CmpGT) {
   alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
@@ -6504,7 +6504,7 @@ TEST_P(BackendTest, I32Vec8CmpGE) {
   alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
@@ -6525,7 +6525,7 @@ TEST_P(BackendTest, I32Vec8OR) {
   alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
@@ -6547,7 +6547,7 @@ TEST_P(BackendTest, I32Vec8And) {
   alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
@@ -6569,7 +6569,7 @@ TEST_P(BackendTest, MaskToPermute) {
   alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.PointerType(program.I32Vec8Type()),
       {program.PointerType(program.I32Vec8Type())}, "compute");
 
@@ -6591,7 +6591,7 @@ TEST_P(BackendTest, I32Vec8Permute) {
   alignas(32) int32_t values[8]{1, 2, 3, 4, 5, 6, 7, 8};
 
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.I64Type(), {program.PointerType(program.I32Vec8Type())},
       "compute");
 
@@ -6614,8 +6614,8 @@ TEST_P(BackendTest, I32Vec8Permute) {
 
 TEST_P(BackendTest, I64_POPCOUNT) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(program.I64Type(),
-                                           {program.I64Type()}, "compute");
+  auto func = program.CreateNamedFunction(program.I64Type(),
+                                          {program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.PopcountI64(args[0]));
   auto backend = Compile(GetParam(), program);
@@ -6641,10 +6641,10 @@ TEST_P(BackendTest, I32Vec8MaskedStore) {
 
   ProgramBuilder program;
   auto func =
-      program.CreatePublicFunction(program.I64Type(),
-                                   {program.PointerType(program.I32Type()),
-                                    program.PointerType(program.I32Vec8Type())},
-                                   "compute");
+      program.CreateNamedFunction(program.I64Type(),
+                                  {program.PointerType(program.I32Type()),
+                                   program.PointerType(program.I32Vec8Type())},
+                                  "compute");
 
   auto args = program.GetFunctionArguments(func);
   auto v1 = program.LoadI32Vec8(args[1]);
@@ -6677,10 +6677,10 @@ TEST_P(BackendTest, I32Vec8Add) {
 
   ProgramBuilder program;
   auto func =
-      program.CreatePublicFunction(program.VoidType(),
-                                   {program.PointerType(program.I32Type()),
-                                    program.PointerType(program.I32Vec8Type())},
-                                   "compute");
+      program.CreateNamedFunction(program.VoidType(),
+                                  {program.PointerType(program.I32Type()),
+                                   program.PointerType(program.I32Vec8Type())},
+                                  "compute");
 
   auto args = program.GetFunctionArguments(func);
   auto v1 = program.LoadI32Vec8(args[1]);
@@ -6703,7 +6703,7 @@ TEST_P(BackendTest, I32Vec8Add) {
 
 TEST_P(BackendTest, I32ConvI32Vec8) {
   ProgramBuilder program;
-  auto func = program.CreatePublicFunction(
+  auto func = program.CreateNamedFunction(
       program.VoidType(),
       {program.PointerType(program.I32Type()), program.I32Type()}, "compute");
 

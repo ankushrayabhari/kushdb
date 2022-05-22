@@ -31,7 +31,7 @@ class TableFunction {
  public:
   TableFunction(khir::ProgramBuilder& program,
                 std::function<proxy::Int32(proxy::Int32&, proxy::Bool&)> body) {
-    func_ = program.CreatePublicFunction(
+    func_ = program.CreateNamedFunction(
         program.I32Type(), {program.I32Type(), program.I1Type()},
         "permute_table_" + std::to_string(table_++));
 

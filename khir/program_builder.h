@@ -45,7 +45,7 @@ class FunctionBuilder {
  public:
   FunctionBuilder(ProgramBuilder& program_builder, std::string_view name,
                   Type function_type, Type result_type,
-                  absl::Span<const Type> arg_types, bool external, bool p,
+                  absl::Span<const Type> arg_types, bool external,
                   void* func = nullptr);
   absl::Span<const Value> GetFunctionArguments() const;
 
@@ -62,7 +62,6 @@ class FunctionBuilder {
   khir::Type ReturnType() const;
   khir::Type Type() const;
   bool External() const;
-  bool Public() const;
   void* Addr() const;
   std::string_view Name() const;
   const std::vector<int>& BasicBlockOrder() const;
@@ -90,7 +89,6 @@ class FunctionBuilder {
 
   int current_basic_block_;
   bool external_;
-  bool public_;
 };
 
 class ProgramBuilder {
@@ -121,9 +119,9 @@ class ProgramBuilder {
   // Function
   FunctionRef CreateFunction(Type result_type,
                              absl::Span<const Type> arg_types);
-  FunctionRef CreatePublicFunction(Type result_type,
-                                   absl::Span<const Type> arg_types,
-                                   std::string_view name);
+  FunctionRef CreateNamedFunction(Type result_type,
+                                  absl::Span<const Type> arg_types,
+                                  std::string_view name);
   FunctionRef DeclareExternalFunction(std::string_view name, Type result_type,
                                       absl::Span<const Type> arg_types,
                                       void* func_ptr);

@@ -63,8 +63,7 @@ class BasicBlock {
 
 class Function {
  public:
-  Function(std::string name, Type type, bool pub,
-           std::vector<uint64_t> instructions,
+  Function(std::string name, Type type, std::vector<uint64_t> instructions,
            std::vector<BasicBlock> basic_blocks);
   Function(std::string name, Type type, void* addr);
 
@@ -76,7 +75,6 @@ class Function {
   void* Addr() const;
 
   // Internal
-  bool Public() const;
   const std::vector<uint64_t>& Instrs() const;
   const std::vector<BasicBlock>& BasicBlocks() const;
 
@@ -86,7 +84,6 @@ class Function {
 
   std::string name_;
   khir::Type type_;
-  bool public_;
   std::vector<uint64_t> instructions_;
   std::vector<BasicBlock> basic_blocks_;
 };

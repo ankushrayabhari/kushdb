@@ -56,19 +56,18 @@ void BasicBlock::SetPredecessors(std::vector<int> pred) {
   pred_ = std::move(pred);
 }
 
-Function::Function(std::string name, khir::Type type, bool pub,
+Function::Function(std::string name, khir::Type type,
                    std::vector<uint64_t> instructions,
                    std::vector<BasicBlock> basic_blocks)
     : external_(false),
       addr_(nullptr),
       name_(name),
       type_(type),
-      public_(pub),
       instructions_(std::move(instructions)),
       basic_blocks_(std::move(basic_blocks)) {}
 
 Function::Function(std::string name, khir::Type type, void* addr)
-    : external_(true), addr_(addr), name_(name), type_(type), public_(false) {}
+    : external_(true), addr_(addr), name_(name), type_(type) {}
 
 std::string_view Function::Name() const { return name_; }
 
@@ -78,9 +77,6 @@ khir::Type Function::Type() const { return type_; }
 bool Function::External() const { return external_; }
 
 void* Function::Addr() const { return addr_; }
-
-// Internal
-bool Function::Public() const { return public_; }
 
 const std::vector<uint64_t>& Function::Instrs() const { return instructions_; }
 

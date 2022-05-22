@@ -14,7 +14,7 @@ TEST(LiveIntervalsTest, SingleBasicBlock) {
   auto ex = program.DeclareExternalFunction("test", program.PointerType(type),
                                             {}, nullptr);
 
-  program.CreatePublicFunction(type, {}, "compute");
+  program.CreateNamedFunction(type, {}, "compute");
   auto x_arr = program.Call(ex);
   auto x1 = program.LoadI32(program.StaticGEP(type, x_arr, {0}));
   auto x2 = program.LoadI32(program.StaticGEP(type, x_arr, {1}));

@@ -55,7 +55,7 @@ TEST_P(AggregateHashTableTest, GetBlockIdx) {
     auto entry = runtime::AggregateHashTable::ConstructEntry(salt, offset, idx);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I32Type(), {program.PointerType(program.I64Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     AggregateHashTableEntry ht_entry(program, args[0]);
@@ -84,7 +84,7 @@ TEST_P(AggregateHashTableTest, GetSalt) {
     auto entry = runtime::AggregateHashTable::ConstructEntry(salt, offset, idx);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I16Type(), {program.PointerType(program.I64Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     AggregateHashTableEntry ht_entry(program, args[0]);
@@ -113,7 +113,7 @@ TEST_P(AggregateHashTableTest, GetOffset) {
     auto entry = runtime::AggregateHashTable::ConstructEntry(salt, offset, idx);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.I16Type(), {program.PointerType(program.I64Type())}, "compute");
     auto args = program.GetFunctionArguments(func);
     AggregateHashTableEntry ht_entry(program, args[0]);
@@ -140,7 +140,7 @@ TEST_P(AggregateHashTableTest, Set) {
     auto idx = dw_distrib(gen);
 
     ProgramBuilder program;
-    auto func = program.CreatePublicFunction(
+    auto func = program.CreateNamedFunction(
         program.VoidType(), {program.PointerType(program.I64Type())},
         "compute");
     auto args = program.GetFunctionArguments(func);

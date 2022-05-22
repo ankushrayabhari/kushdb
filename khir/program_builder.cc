@@ -19,15 +19,14 @@ FunctionBuilder::FunctionBuilder(ProgramBuilder& program_builder,
                                  khir::Type function_type,
                                  khir::Type result_type,
                                  absl::Span<const khir::Type> arg_types,
-                                 bool external, bool p, void* func)
+                                 bool external, void* func)
     : program_builder_(program_builder),
       name_(name),
       return_type_(result_type),
       arg_types_(arg_types.begin(), arg_types.end()),
       function_type_(function_type),
       func_(func),
-      external_(external),
-      public_(p) {}
+      external_(external) {}
 
 void FunctionBuilder::InitBody() {
   current_basic_block_ = GenerateBasicBlock();
@@ -54,8 +53,6 @@ khir::Type FunctionBuilder::ReturnType() const { return return_type_; }
 khir::Type FunctionBuilder::Type() const { return function_type_; }
 
 bool FunctionBuilder::External() const { return external_; }
-
-bool FunctionBuilder::Public() const { return public_; }
 
 void* FunctionBuilder::Addr() const { return func_; }
 
@@ -722,7 +719,7 @@ FunctionRef ProgramBuilder::CreateFunction(Type result_type,
   auto idx = functions_.size();
   functions_.emplace_back(*this, "_func" + std::to_string(idx),
                           type_manager_.FunctionType(result_type, arg_types),
-                          result_type, arg_types, false, false);
+                          result_type, arg_types, false);
 
   current_function_ = idx;
   functions_.back().InitBody();
@@ -730,12 +727,12 @@ FunctionRef ProgramBuilder::CreateFunction(Type result_type,
   return static_cast<FunctionRef>(idx);
 }
 
-FunctionRef ProgramBuilder::CreatePublicFunction(
+FunctionRef ProgramBuilder::CreateNamedFunction(
     Type result_type, absl::Span<const Type> arg_types, std::string_view name) {
   auto idx = functions_.size();
   functions_.emplace_back(*this, name,
                           type_manager_.FunctionType(result_type, arg_types),
-                          result_type, arg_types, false, true);
+                          result_type, arg_types, false);
 
   current_function_ = idx;
   functions_.back().InitBody();
@@ -755,7 +752,7 @@ FunctionRef ProgramBuilder::DeclareExternalFunction(
   auto idx = functions_.size();
   functions_.emplace_back(*this, name,
                           type_manager_.FunctionType(result_type, arg_types),
-                          result_type, arg_types, true, false, func);
+                          result_type, arg_types, true, func);
   auto ref = static_cast<FunctionRef>(idx);
   name_to_function_[name] = ref;
   return static_cast<FunctionRef>(idx);
@@ -2498,7 +2495,7 @@ Program ProgramBuilder::Build() {
           func.basic_block_successors_[i], func.basic_block_predecessors_[i]);
     }
     basic_blocks = CFGSimplify(func.instructions_, std::move(basic_blocks));
-    functions.emplace_back(std::move(func.name_), func.Type(), func.Public(),
+    functions.emplace_back(std::move(func.name_), func.Type(),
                            std::move(func.instructions_),
                            std::move(basic_blocks));
   }

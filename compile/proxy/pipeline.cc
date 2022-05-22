@@ -19,21 +19,21 @@ Pipeline::Pipeline(khir::ProgramBuilder& program,
 
 void Pipeline::Init(std::function<void()> init) {
   init_ = true;
-  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline_.InitName());
+  program_.CreateNamedFunction(program_.VoidType(), {}, pipeline_.InitName());
   init();
   program_.Return();
 }
 
 void Pipeline::Reset(std::function<void()> reset) {
   reset_ = true;
-  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline_.ResetName());
+  program_.CreateNamedFunction(program_.VoidType(), {}, pipeline_.ResetName());
   reset();
   program_.Return();
 }
 
 void Pipeline::Size(std::function<Int32()> size) {
   size_ = true;
-  program_.CreatePublicFunction(program_.I32Type(), {}, pipeline_.SizeName());
+  program_.CreateNamedFunction(program_.I32Type(), {}, pipeline_.SizeName());
   auto value = size();
   program_.Return(value.Get());
 }
@@ -43,7 +43,7 @@ void Pipeline::Body(Pipeline& pipeline,
   body_ = true;
   this->Get().SetDriver(pipeline.Get());
   pipeline_.SetSplit(true);
-  auto func = program_.CreatePublicFunction(
+  auto func = program_.CreateNamedFunction(
       program_.VoidType(), {program_.I32Type(), program_.I32Type()},
       pipeline_.BodyName());
   auto args = program_.GetFunctionArguments(func);
@@ -54,7 +54,7 @@ void Pipeline::Body(Pipeline& pipeline,
 void Pipeline::Body(std::function<void()> body) {
   body_ = true;
   pipeline_.SetSplit(false);
-  program_.CreatePublicFunction(program_.VoidType(), {}, pipeline_.BodyName());
+  program_.CreateNamedFunction(program_.VoidType(), {}, pipeline_.BodyName());
   body();
   program_.Return();
 }
