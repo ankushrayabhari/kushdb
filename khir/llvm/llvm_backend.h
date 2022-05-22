@@ -82,6 +82,7 @@ class LLVMBackend : public Backend {
   const khir::Program& program_;
   std::unique_ptr<llvm::orc::LLJIT> jit_;
   absl::flat_hash_map<std::string, void*> compiled_fn_;
+  std::queue<int> to_translate_;
 };
 
 }  // namespace kush::khir

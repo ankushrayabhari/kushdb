@@ -254,7 +254,7 @@ class ProgramBuilder {
 
   const TypeManager& GetTypeManager() const;
 
-  Program Build();
+  std::unique_ptr<Program> Build();
 
  private:
   TypeManager type_manager_;

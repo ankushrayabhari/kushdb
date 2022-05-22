@@ -13,31 +13,30 @@
 
 namespace kush::khir {
 
-CacheEntry::CacheEntry() : compiled_program_(nullptr) {}
+CacheEntry::CacheEntry() : program_(nullptr) {}
 
-bool CacheEntry::IsCompiled() const { return compiled_program_ != nullptr; }
+bool CacheEntry::IsCompiled() const { return program_ != nullptr; }
 
 void* CacheEntry::Func(std::string_view name) const {
-  return compiled_program_->GetFunction(name);
+  return backend_->GetFunction(name);
 }
 
-khir::ProgramBuilder& CacheEntry::ProgramBuilder() { return program_builder_; }
+void CacheEntry::Compile(std::unique_ptr<Program> program) {
+  program_ = std::move(program);
 
-void CacheEntry::Compile() {
-  auto program = program_builder_.Build();
   switch (GetBackendType()) {
     case BackendType::ASM: {
       auto backend =
-          std::make_unique<ASMBackend>(program, khir::RegAllocImpl());
+          std::make_unique<ASMBackend>(*program_, khir::RegAllocImpl());
       backend->Compile();
-      compiled_program_ = std::move(backend);
+      backend_ = std::move(backend);
       break;
     }
 
     case BackendType::LLVM: {
-      auto backend = std::make_unique<LLVMBackend>(program);
+      auto backend = std::make_unique<LLVMBackend>(*program_);
       backend->Compile();
-      compiled_program_ = std::move(backend);
+      backend_ = std::move(backend);
       break;
     }
   }

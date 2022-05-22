@@ -124,7 +124,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
     return reinterpret_cast<ExecuteJoinFn>(entry.Func(func_names[order[0]]));
   }
 
-  auto& program = entry.ProgramBuilder();
+  khir::ProgramBuilder program;
   ForwardDeclare(program);
   ExpressionTranslator expr_translator(program, *this);
 
@@ -809,7 +809,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         });
   }
 
-  entry.Compile();
+  entry.Compile(program.Build());
   return reinterpret_cast<ExecuteJoinFn>(entry.Func(func_names[order[0]]));
 }
 

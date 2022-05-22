@@ -3,8 +3,8 @@
 #include <memory>
 #include <vector>
 
-#include "khir/program_builder.h"
 #include "khir/backend.h"
+#include "khir/program_builder.h"
 
 namespace kush::khir {
 
@@ -13,12 +13,11 @@ class CacheEntry {
   CacheEntry();
   bool IsCompiled() const;
   void* Func(std::string_view name) const;
-  khir::ProgramBuilder& ProgramBuilder();
-  void Compile();
+  void Compile(std::unique_ptr<Program> program);
 
  private:
-  khir::ProgramBuilder program_builder_;
-  std::unique_ptr<Backend> compiled_program_;
+  std::unique_ptr<Program> program_;
+  std::unique_ptr<Backend> backend_;
 };
 
 class CompilationCache {

@@ -10,13 +10,13 @@ namespace kush::execution {
 class ExecutableQuery {
  public:
   ExecutableQuery(std::unique_ptr<compile::OperatorTranslator> translator,
-                  khir::Program program, PipelineBuilder pipelines,
-                  QueryState state);
+                  std::unique_ptr<khir::Program> program,
+                  PipelineBuilder pipelines, QueryState state);
   void Execute();
 
  private:
   std::unique_ptr<compile::OperatorTranslator> translator_;
-  khir::Program program_;
+  std::unique_ptr<khir::Program> program_;
   PipelineBuilder pipelines_;
   QueryState state_;
 };

@@ -11,7 +11,8 @@ namespace kush::execution {
 
 ExecutableQuery::ExecutableQuery(
     std::unique_ptr<compile::OperatorTranslator> translator,
-    khir::Program program, PipelineBuilder pipelines, QueryState state)
+    std::unique_ptr<khir::Program> program, PipelineBuilder pipelines,
+    QueryState state)
     : translator_(std::move(translator)),
       program_(std::move(program)),
       pipelines_(std::move(pipelines)),
@@ -88,15 +89,15 @@ void ExecutableQuery::Execute() {
   std::unique_ptr<khir::Backend> backend;
   switch (khir::GetBackendType()) {
     case khir::BackendType::ASM: {
-      auto b =
-          std::make_unique<khir::ASMBackend>(program_, khir::GetRegAllocImpl());
+      auto b = std::make_unique<khir::ASMBackend>(*program_,
+                                                  khir::GetRegAllocImpl());
       b->Compile();
       backend = std::move(b);
       break;
     }
 
     case khir::BackendType::LLVM: {
-      auto b = std::make_unique<khir::LLVMBackend>(program_);
+      auto b = std::make_unique<khir::LLVMBackend>(*program_);
       b->Compile();
       backend = std::move(b);
       break;

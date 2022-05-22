@@ -17,8 +17,7 @@ using namespace kush::compile::proxy;
 
 std::unique_ptr<Backend> Compile(
     const std::pair<BackendType, khir::RegAllocImpl>& params,
-    khir::ProgramBuilder& program_builder) {
-  auto program = program_builder.Build();
+    khir::Program& program) {
   std::unique_ptr<Backend> backend;
   switch (params.first) {
     case BackendType::ASM: {
@@ -62,7 +61,8 @@ TEST_P(AggregateHashTableTest, GetBlockIdx) {
     auto parts = ht_entry.Get();
     program.Return(parts.block_idx.Get());
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<uint32_t(uint64_t*)>::type;
     auto compute =
@@ -91,7 +91,8 @@ TEST_P(AggregateHashTableTest, GetSalt) {
     auto parts = ht_entry.Get();
     program.Return(parts.salt.Get());
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<uint16_t(uint64_t*)>::type;
     auto compute =
@@ -120,7 +121,8 @@ TEST_P(AggregateHashTableTest, GetOffset) {
     auto parts = ht_entry.Get();
     program.Return(parts.block_offset.Get());
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<uint16_t(uint64_t*)>::type;
     auto compute =
@@ -149,7 +151,8 @@ TEST_P(AggregateHashTableTest, Set) {
                  Int32(program, idx));
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(uint64_t*)>::type;
     auto compute =

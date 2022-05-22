@@ -15,8 +15,7 @@ using namespace kush::khir;
 
 std::unique_ptr<Backend> Compile(
     const std::pair<BackendType, khir::RegAllocImpl>& params,
-    khir::ProgramBuilder& program_builder) {
-  auto program = program_builder.Build();
+    const khir::Program& program) {
   switch (params.first) {
     case BackendType::ASM: {
       auto backend = std::make_unique<khir::ASMBackend>(program, params.second);
@@ -67,7 +66,8 @@ TEST_P(BackendTest, NULLPTR) {
     program.CreateNamedFunction(type, {}, "compute");
     program.Return(program.NullPtr(type));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t*()>::type;
     auto compute =
@@ -85,7 +85,8 @@ TEST_P(BackendTest, PTR_CAST) {
   program.Return(
       program.PointerCast(args[0], program.PointerType(program.F64Type())));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<double*(int8_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -103,7 +104,8 @@ TEST_P(BackendTest, PTR_CASTGlobal) {
   program.Return(
       program.PointerCast(global, program.PointerType(program.F64Type())));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<double*()>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -125,7 +127,8 @@ TEST_P(BackendTest, PTR_CASTStruct) {
   program.Return(program.PointerCast(program.StaticGEP(st, args[0], {0, 0}),
                                      program.PointerType(program.F64Type())));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<double*(Test*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -142,7 +145,8 @@ TEST_P(BackendTest, PTR_LOAD) {
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LoadPtr(args[0]));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t*(int64_t**)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -161,7 +165,8 @@ TEST_P(BackendTest, PTR_LOADGlobal) {
                               "compute");
   program.Return(program.LoadPtr(global));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t*()>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -182,7 +187,8 @@ TEST_P(BackendTest, PTR_LOADStruct) {
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LoadPtr(program.StaticGEP(st, args[0], {0, 0})));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t*(Test*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -205,7 +211,8 @@ TEST_P(BackendTest, PTR_LOADStructDynamic) {
   program.Return(
       program.LoadPtr(program.DynamicGEP(st, args[0], args[1], {0})));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t*(Test*, int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -228,7 +235,8 @@ TEST_P(BackendTest, PTR_STORE) {
   program.StorePtr(args[0], args[1]);
   program.Return();
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<void(int64_t**, int64_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -250,7 +258,8 @@ TEST_P(BackendTest, PTR_STORENullptr) {
                    program.NullPtr(program.PointerType(program.I64Type())));
   program.Return();
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<void(int64_t**)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -272,7 +281,8 @@ TEST_P(BackendTest, PTR_STOREGlobal) {
   auto ptr = program.LoadPtr(args[0]);
   program.Return(program.LoadI64(ptr));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int64_t**)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -298,7 +308,8 @@ TEST_P(BackendTest, PTR_STOREGep) {
   program.StorePtr(args[0], program.StaticGEP(st, args[1], {0, 1}));
   program.Return();
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<void(int64_t**, Test*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -325,7 +336,8 @@ TEST_P(BackendTest, PTR_STOREDynamicGep) {
   program.StorePtr(args[0], program.DynamicGEP(st, args[1], args[2], {0}));
   program.Return();
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<void(int64_t**, Test*, int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -353,7 +365,8 @@ TEST_P(BackendTest, PTR_CMP_NULLPTR_Gep) {
   auto v = program.LoadPtr(program.StaticGEP(st, args[0], {0, 0}));
   program.Return(program.IsNullPtr(v));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<bool(Test*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -376,7 +389,8 @@ TEST_P(BackendTest, PTR_STOREGlobalDest) {
       program.PointerCast(args[0], program.PointerType(program.I64Type())));
   program.Return(program.LoadPtr(global));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t*(int64_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -401,7 +415,8 @@ TEST_P(BackendTest, PTR_STOREGepDest) {
   program.StorePtr(program.StaticGEP(st, args[0], {0, 0}), args[1]);
   program.Return();
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<void(Test*, int64_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -429,7 +444,8 @@ TEST_P(BackendTest, PTR_STOREDynamicGepDest) {
   program.StorePtr(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
   program.Return();
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<void(Test*, int64_t*, int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -477,7 +493,8 @@ TEST_P(BackendTest, PHIPTR) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn =
       std::add_pointer<int64_t*(int8_t, int64_t*, int64_t*)>::type;
@@ -498,7 +515,8 @@ TEST_P(BackendTest, I1_CONST) {
     program.CreateNamedFunction(program.I1Type(), {}, "compute");
     program.Return(program.ConstI1(c));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<bool()>::type;
     auto compute =
@@ -515,7 +533,8 @@ TEST_P(BackendTest, I1_AND) {
   auto args = program.GetFunctionArguments(func);
   program.Return(program.AndI1(args[0], args[1]));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<bool(bool, bool)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -534,7 +553,8 @@ TEST_P(BackendTest, I1_ANDConstArg0) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.AndI1(program.ConstI1(c), args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<bool(bool)>::type;
     auto compute =
@@ -553,7 +573,8 @@ TEST_P(BackendTest, I1_ANDConstArg1) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.AndI1(args[0], program.ConstI1(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<bool(bool)>::type;
     auto compute =
@@ -571,7 +592,8 @@ TEST_P(BackendTest, I1_OR) {
   auto args = program.GetFunctionArguments(func);
   program.Return(program.OrI1(args[0], args[1]));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<bool(bool, bool)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -590,7 +612,8 @@ TEST_P(BackendTest, I1_ORConstArg0) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.OrI1(program.ConstI1(c), args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<bool(bool)>::type;
     auto compute =
@@ -609,7 +632,8 @@ TEST_P(BackendTest, I1_ORConstArg1) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.OrI1(args[0], program.ConstI1(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<bool(bool)>::type;
     auto compute =
@@ -627,7 +651,8 @@ TEST_P(BackendTest, I1_LNOT) {
   auto args = program.GetFunctionArguments(func);
   program.Return(program.LNotI1(args[0]));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<bool(bool)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -642,7 +667,8 @@ TEST_P(BackendTest, I1_LNOTConst) {
     program.CreateNamedFunction(program.I1Type(), {}, "compute");
     program.Return(program.LNotI1(program.ConstI1(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<bool()>::type;
     auto compute =
@@ -663,7 +689,8 @@ TEST_P(BackendTest, I1_CMP_XXReturn) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, args[0], args[1]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
     auto compute =
@@ -712,7 +739,8 @@ TEST_P(BackendTest, I1_CMP_XXBranch) {
     program.SetCurrentBlock(bb2);
     program.Return(program.ConstI1(false));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
     auto compute =
@@ -755,7 +783,8 @@ TEST_P(BackendTest, I1_CMP_XXReturnConstArg0) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, program.ConstI1(c1), args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute =
@@ -786,7 +815,8 @@ TEST_P(BackendTest, I1_CMP_XXReturnConstArg1) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.CmpI1(cmp_type, args[0], program.ConstI1(c2)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute =
@@ -814,7 +844,8 @@ TEST_P(BackendTest, I1_ZEXT_I64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI1(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(bool)>::type;
     auto compute =
@@ -831,7 +862,8 @@ TEST_P(BackendTest, I1_ZEXT_I64Const) {
     program.CreateNamedFunction(program.I64Type(), {}, "compute");
     program.Return(program.I64ZextI1(program.ConstI1(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t()>::type;
     auto compute =
@@ -850,7 +882,8 @@ TEST_P(BackendTest, I1_ZEXT_I8) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I8ZextI1(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(bool)>::type;
     auto compute =
@@ -866,7 +899,8 @@ TEST_P(BackendTest, I1_ZEXT_I8Const) {
     program.CreateNamedFunction(program.I8Type(), {}, "compute");
     program.Return(program.I8ZextI1(program.ConstI1(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t()>::type;
     auto compute =
@@ -906,7 +940,8 @@ TEST_P(BackendTest, PHII1) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t, int8_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -945,7 +980,8 @@ TEST_P(BackendTest, PHII1ConstArg0) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -984,7 +1020,8 @@ TEST_P(BackendTest, PHII1ConstArg1) {
   program.UpdatePhiMember(phi, phi_2);
   program.Return(phi);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -1005,7 +1042,8 @@ TEST_P(BackendTest, I8_ADD) {
   auto sum = program.AddI8(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -1035,7 +1073,8 @@ TEST_P(BackendTest, I8_ADDConstArg0) {
     auto sum = program.AddI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute =
@@ -1062,7 +1101,8 @@ TEST_P(BackendTest, I8_ADDConstArg1) {
     auto sum = program.AddI8(args[0], program.ConstI8(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute =
@@ -1085,7 +1125,8 @@ TEST_P(BackendTest, I8_SUB) {
   auto sum = program.SubI8(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -1114,7 +1155,8 @@ TEST_P(BackendTest, I8_SubConstArg0) {
     auto sum = program.SubI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute =
@@ -1141,7 +1183,8 @@ TEST_P(BackendTest, I8_SubConstArg1) {
     auto sum = program.SubI8(args[0], program.ConstI8(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute =
@@ -1164,7 +1207,8 @@ TEST_P(BackendTest, I8_MUL) {
   auto sum = program.MulI8(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -1193,7 +1237,8 @@ TEST_P(BackendTest, I8_MULConstArg0) {
     auto sum = program.MulI8(program.ConstI8(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute =
@@ -1220,7 +1265,8 @@ TEST_P(BackendTest, I8_MULConstArg1) {
     auto sum = program.MulI8(args[0], program.ConstI8(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
     auto compute =
@@ -1242,7 +1288,8 @@ TEST_P(BackendTest, I8_CONST) {
     program.CreateNamedFunction(program.I8Type(), {}, "compute");
     program.Return(program.ConstI8(c));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t()>::type;
     auto compute =
@@ -1263,7 +1310,8 @@ TEST_P(BackendTest, I8_ZEXT_I64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI8(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int8_t)>::type;
     auto compute =
@@ -1287,7 +1335,8 @@ TEST_P(BackendTest, I8_ZEXT_I64Const) {
                                 "compute");
     program.Return(program.I64ZextI8(program.ConstI8(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int8_t)>::type;
     auto compute =
@@ -1309,7 +1358,8 @@ TEST_P(BackendTest, I8_CONV_F64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI8(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(int8_t)>::type;
     auto compute =
@@ -1333,7 +1383,8 @@ TEST_P(BackendTest, I8_CONV_F64Const) {
                                 "compute");
     program.Return(program.F64ConvI8(program.ConstI8(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(int8_t)>::type;
     auto compute =
@@ -1360,7 +1411,8 @@ TEST_P(BackendTest, I8_CMP_XXReturn) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, args[0], args[1]));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
       auto compute =
@@ -1415,7 +1467,8 @@ TEST_P(BackendTest, I8_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
       auto compute =
@@ -1464,7 +1517,8 @@ TEST_P(BackendTest, I8_CMP_XXConstArg0) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, program.ConstI8(c1), args[0]));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
       auto compute =
@@ -1501,7 +1555,8 @@ TEST_P(BackendTest, I8_CMP_XXConstArg1) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI8(cmp_type, args[0], program.ConstI8(c2)));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int8_t)>::type;
       auto compute =
@@ -1535,7 +1590,8 @@ TEST_P(BackendTest, I8_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI8(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t*)>::type;
     auto compute =
@@ -1557,7 +1613,8 @@ TEST_P(BackendTest, I8_LOADGlobal) {
     program.CreateNamedFunction(program.I8Type(), {}, "compute");
     program.Return(program.LoadI8(global));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t()>::type;
     auto compute =
@@ -1585,7 +1642,8 @@ TEST_P(BackendTest, I8_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI8(program.StaticGEP(st, args[0], {0, 0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(Test*)>::type;
     auto compute =
@@ -1616,7 +1674,8 @@ TEST_P(BackendTest, I8_LOADStructDynamic) {
     program.Return(
         program.LoadI8(program.DynamicGEP(st, args[0], args[1], {0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(Test*, int32_t)>::type;
     auto compute =
@@ -1643,7 +1702,8 @@ TEST_P(BackendTest, I1_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI1(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t*)>::type;
     auto compute =
@@ -1665,7 +1725,8 @@ TEST_P(BackendTest, I1_LOADGlobal) {
     program.CreateNamedFunction(program.I1Type(), {}, "compute");
     program.Return(program.LoadI1(global));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t()>::type;
     auto compute =
@@ -1693,7 +1754,8 @@ TEST_P(BackendTest, I1_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI1(program.StaticGEP(st, args[0], {0, 0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(Test*)>::type;
     auto compute =
@@ -1724,7 +1786,8 @@ TEST_P(BackendTest, I1_LOADStructDynamic) {
     program.Return(
         program.LoadI1(program.DynamicGEP(st, args[0], args[1], {0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(Test*, int32_t)>::type;
     auto compute =
@@ -1753,7 +1816,8 @@ TEST_P(BackendTest, I8_STORE) {
     program.StoreI8(args[0], args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(int8_t*, int8_t)>::type;
     auto compute =
@@ -1779,7 +1843,8 @@ TEST_P(BackendTest, I8_STOREConst) {
     program.StoreI8(args[0], program.ConstI8(c));
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(int8_t*)>::type;
     auto compute =
@@ -1806,7 +1871,8 @@ TEST_P(BackendTest, I8_STOREGlobal) {
     program.StoreI8(global, args[0]);
     program.Return(global);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t*(int8_t)>::type;
     auto compute =
@@ -1837,7 +1903,8 @@ TEST_P(BackendTest, I8_STOREStruct) {
     program.StoreI8(program.StaticGEP(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(Test*, int8_t)>::type;
     auto compute =
@@ -1870,7 +1937,8 @@ TEST_P(BackendTest, I8_STOREStructDynamic) {
     program.StoreI8(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(Test*, int8_t, int32_t)>::type;
     auto compute =
@@ -1918,7 +1986,8 @@ TEST_P(BackendTest, PHII8) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t, int8_t, int8_t)>::type;
     auto compute =
@@ -1963,7 +2032,8 @@ TEST_P(BackendTest, PHII8ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
     auto compute =
@@ -2008,7 +2078,8 @@ TEST_P(BackendTest, PHII8ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int8_t(int8_t, int8_t)>::type;
     auto compute =
@@ -2031,7 +2102,8 @@ TEST_P(BackendTest, I16_ADD) {
   auto sum = program.AddI16(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int16_t(int16_t, int16_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -2060,7 +2132,8 @@ TEST_P(BackendTest, I16_ADDConstArg0) {
     auto sum = program.AddI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute =
@@ -2087,7 +2160,8 @@ TEST_P(BackendTest, I16_ADDConstArg1) {
     auto sum = program.AddI16(args[0], program.ConstI16(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute =
@@ -2110,7 +2184,8 @@ TEST_P(BackendTest, I16_SUB) {
   auto sum = program.SubI16(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int16_t(int16_t, int16_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -2139,7 +2214,8 @@ TEST_P(BackendTest, I16_SubConstArg0) {
     auto sum = program.SubI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute =
@@ -2166,7 +2242,8 @@ TEST_P(BackendTest, I16_SubConstArg1) {
     auto sum = program.SubI16(args[0], program.ConstI16(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute =
@@ -2189,7 +2266,8 @@ TEST_P(BackendTest, I16_MUL) {
   auto sum = program.MulI16(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int16_t(int16_t, int16_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -2218,7 +2296,8 @@ TEST_P(BackendTest, I16_MULConstArg0) {
     auto sum = program.MulI16(program.ConstI16(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute =
@@ -2245,7 +2324,8 @@ TEST_P(BackendTest, I16_MULConstArg1) {
     auto sum = program.MulI16(args[0], program.ConstI16(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(int16_t)>::type;
     auto compute =
@@ -2267,7 +2347,8 @@ TEST_P(BackendTest, I16_CONST) {
     program.CreateNamedFunction(program.I16Type(), {}, "compute");
     program.Return(program.ConstI16(c));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t()>::type;
     auto compute =
@@ -2288,7 +2369,8 @@ TEST_P(BackendTest, I16_ZEXT_I64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI16(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int16_t)>::type;
     auto compute =
@@ -2312,7 +2394,8 @@ TEST_P(BackendTest, I16_ZEXT_I64Const) {
                                 "compute");
     program.Return(program.I64ZextI16(program.ConstI16(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int16_t)>::type;
     auto compute =
@@ -2334,7 +2417,8 @@ TEST_P(BackendTest, I16_CONV_F64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI16(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(int16_t)>::type;
     auto compute =
@@ -2358,7 +2442,8 @@ TEST_P(BackendTest, I16_CONV_F64Const) {
                                 "compute");
     program.Return(program.F64ConvI16(program.ConstI16(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(int16_t)>::type;
     auto compute =
@@ -2385,7 +2470,8 @@ TEST_P(BackendTest, I16_CMP_XXReturn) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, args[0], args[1]));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int16_t, int16_t)>::type;
       auto compute =
@@ -2440,7 +2526,8 @@ TEST_P(BackendTest, I16_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int16_t, int16_t)>::type;
       auto compute =
@@ -2489,7 +2576,8 @@ TEST_P(BackendTest, I16_CMP_XXConstArg0) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, program.ConstI16(c1), args[0]));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int16_t)>::type;
       auto compute =
@@ -2526,7 +2614,8 @@ TEST_P(BackendTest, I16_CMP_XXConstArg1) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI16(cmp_type, args[0], program.ConstI16(c2)));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int16_t)>::type;
       auto compute =
@@ -2560,7 +2649,8 @@ TEST_P(BackendTest, I16_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI16(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(int16_t*)>::type;
     auto compute =
@@ -2582,7 +2672,8 @@ TEST_P(BackendTest, I16_LOADGlobal) {
     program.CreateNamedFunction(program.I16Type(), {}, "compute");
     program.Return(program.LoadI16(global));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t()>::type;
     auto compute =
@@ -2610,7 +2701,8 @@ TEST_P(BackendTest, I16_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI16(program.StaticGEP(st, args[0], {0, 0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(Test*)>::type;
     auto compute =
@@ -2641,7 +2733,8 @@ TEST_P(BackendTest, I16_LOADStructDynamic) {
     program.Return(
         program.LoadI16(program.DynamicGEP(st, args[0], args[1], {0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(Test*, int32_t)>::type;
     auto compute =
@@ -2670,7 +2763,8 @@ TEST_P(BackendTest, I16_STORE) {
     program.StoreI16(args[0], args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(int16_t*, int16_t)>::type;
     auto compute =
@@ -2697,7 +2791,8 @@ TEST_P(BackendTest, I16_STOREConst) {
     program.StoreI16(args[0], program.ConstI16(c));
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(int16_t*)>::type;
     auto compute =
@@ -2724,7 +2819,8 @@ TEST_P(BackendTest, I16_STOREGlobal) {
     program.StoreI16(global, args[0]);
     program.Return(global);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t*(int16_t)>::type;
     auto compute =
@@ -2755,7 +2851,8 @@ TEST_P(BackendTest, I16_STOREStruct) {
     program.StoreI16(program.StaticGEP(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(Test*, int16_t)>::type;
     auto compute =
@@ -2788,7 +2885,8 @@ TEST_P(BackendTest, I16_STOREStructDynamic) {
     program.StoreI16(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(Test*, int16_t, int32_t)>::type;
     auto compute =
@@ -2836,7 +2934,8 @@ TEST_P(BackendTest, PHII16) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn =
         std::add_pointer<int16_t(int8_t, int16_t, int16_t)>::type;
@@ -2882,7 +2981,8 @@ TEST_P(BackendTest, PHII16ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(int8_t, int16_t)>::type;
     auto compute =
@@ -2927,7 +3027,8 @@ TEST_P(BackendTest, PHII16ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int16_t(int8_t, int16_t)>::type;
     auto compute =
@@ -2950,7 +3051,8 @@ TEST_P(BackendTest, I32_ADD) {
   auto sum = program.AddI32(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int32_t(int32_t, int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -2979,7 +3081,8 @@ TEST_P(BackendTest, I32_ADDConstArg0) {
     auto sum = program.AddI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute =
@@ -3006,7 +3109,8 @@ TEST_P(BackendTest, I32_ADDConstArg1) {
     auto sum = program.AddI32(args[0], program.ConstI32(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute =
@@ -3029,7 +3133,8 @@ TEST_P(BackendTest, I32_SUB) {
   auto sum = program.SubI32(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int32_t(int32_t, int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -3058,7 +3163,8 @@ TEST_P(BackendTest, I32_SubConstArg0) {
     auto sum = program.SubI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute =
@@ -3085,7 +3191,8 @@ TEST_P(BackendTest, I32_SubConstArg1) {
     auto sum = program.SubI32(args[0], program.ConstI32(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute =
@@ -3108,7 +3215,8 @@ TEST_P(BackendTest, I32_MUL) {
   auto sum = program.MulI32(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int32_t(int32_t, int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -3137,7 +3245,8 @@ TEST_P(BackendTest, I32_MULConstArg0) {
     auto sum = program.MulI32(program.ConstI32(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute =
@@ -3164,7 +3273,8 @@ TEST_P(BackendTest, I32_MULConstArg1) {
     auto sum = program.MulI32(args[0], program.ConstI32(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(int32_t)>::type;
     auto compute =
@@ -3186,7 +3296,8 @@ TEST_P(BackendTest, I32_CONST) {
     program.CreateNamedFunction(program.I32Type(), {}, "compute");
     program.Return(program.ConstI32(c));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t()>::type;
     auto compute =
@@ -3207,7 +3318,8 @@ TEST_P(BackendTest, I32_ZEXT_I64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ZextI32(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int32_t)>::type;
     auto compute =
@@ -3231,7 +3343,8 @@ TEST_P(BackendTest, I32_ZEXT_I64Const) {
                                 "compute");
     program.Return(program.I64ZextI32(program.ConstI32(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int32_t)>::type;
     auto compute =
@@ -3253,7 +3366,8 @@ TEST_P(BackendTest, I32_CONV_F64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI32(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(int32_t)>::type;
     auto compute =
@@ -3277,7 +3391,8 @@ TEST_P(BackendTest, I32_CONV_F64Const) {
                                 "compute");
     program.Return(program.F64ConvI32(program.ConstI32(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(int32_t)>::type;
     auto compute =
@@ -3300,7 +3415,8 @@ TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC4Return) {
   auto args = program.GetFunctionArguments(func);
   program.Return(program.CmpEqConstI32(args[0], vec));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -3335,7 +3451,8 @@ TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC4Branch) {
   program.SetCurrentBlock(bb2);
   program.Return(program.ConstI1(false));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -3364,7 +3481,8 @@ TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC8Return) {
   auto args = program.GetFunctionArguments(func);
   program.Return(program.CmpEqConstI32(args[0], vec));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -3403,7 +3521,8 @@ TEST_P(BackendTest, I32_CMP_EQ_ANY_CONST_VEC8Branch) {
   program.SetCurrentBlock(bb2);
   program.Return(program.ConstI1(false));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -3440,7 +3559,8 @@ TEST_P(BackendTest, I32_CMP_XXReturn) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, args[0], args[1]));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int32_t, int32_t)>::type;
       auto compute =
@@ -3495,7 +3615,8 @@ TEST_P(BackendTest, I32_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int32_t, int32_t)>::type;
       auto compute =
@@ -3544,7 +3665,8 @@ TEST_P(BackendTest, I32_CMP_XXConstArg0) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, program.ConstI32(c1), args[0]));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
       auto compute =
@@ -3581,7 +3703,8 @@ TEST_P(BackendTest, I32_CMP_XXConstArg1) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI32(cmp_type, args[0], program.ConstI32(c2)));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int32_t)>::type;
       auto compute =
@@ -3615,7 +3738,8 @@ TEST_P(BackendTest, I32_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI32(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(int32_t*)>::type;
     auto compute =
@@ -3637,7 +3761,8 @@ TEST_P(BackendTest, I32_LOADGlobal) {
     program.CreateNamedFunction(program.I32Type(), {}, "compute");
     program.Return(program.LoadI32(global));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t()>::type;
     auto compute =
@@ -3665,7 +3790,8 @@ TEST_P(BackendTest, I32_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI32(program.StaticGEP(st, args[0], {0, 0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(Test*)>::type;
     auto compute =
@@ -3696,7 +3822,8 @@ TEST_P(BackendTest, I32_LOADStructDynamic) {
     program.Return(
         program.LoadI32(program.DynamicGEP(st, args[0], args[1], {0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(Test*, int32_t)>::type;
     auto compute =
@@ -3725,7 +3852,8 @@ TEST_P(BackendTest, I32_STORE) {
     program.StoreI32(args[0], args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(int32_t*, int32_t)>::type;
     auto compute =
@@ -3752,7 +3880,8 @@ TEST_P(BackendTest, I32_STOREConst) {
     program.StoreI32(args[0], program.ConstI32(c));
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(int32_t*)>::type;
     auto compute =
@@ -3779,7 +3908,8 @@ TEST_P(BackendTest, I32_STOREGlobal) {
     program.StoreI32(global, args[0]);
     program.Return(global);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t*(int32_t)>::type;
     auto compute =
@@ -3810,7 +3940,8 @@ TEST_P(BackendTest, I32_STOREStruct) {
     program.StoreI32(program.StaticGEP(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(Test*, int32_t)>::type;
     auto compute =
@@ -3843,7 +3974,8 @@ TEST_P(BackendTest, I32_STOREStructDynamic) {
     program.StoreI32(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(Test*, int32_t, int32_t)>::type;
     auto compute =
@@ -3891,7 +4023,8 @@ TEST_P(BackendTest, PHII32) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn =
         std::add_pointer<int32_t(int8_t, int32_t, int32_t)>::type;
@@ -3937,7 +4070,8 @@ TEST_P(BackendTest, PHII32ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(int8_t, int32_t)>::type;
     auto compute =
@@ -3982,7 +4116,8 @@ TEST_P(BackendTest, PHII32ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int32_t(int8_t, int32_t)>::type;
     auto compute =
@@ -4005,7 +4140,8 @@ TEST_P(BackendTest, I64_ADD) {
   auto sum = program.AddI64(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -4034,7 +4170,8 @@ TEST_P(BackendTest, I64_ADDConstArg0) {
     auto sum = program.AddI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4061,7 +4198,8 @@ TEST_P(BackendTest, I64_ADDConstArg1) {
     auto sum = program.AddI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4084,7 +4222,8 @@ TEST_P(BackendTest, I64_AND) {
   auto sum = program.AndI64(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -4113,7 +4252,8 @@ TEST_P(BackendTest, I64_ANDConstArg0) {
     auto sum = program.AndI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4140,7 +4280,8 @@ TEST_P(BackendTest, I64_ANDConstArg1) {
     auto sum = program.AndI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4163,7 +4304,8 @@ TEST_P(BackendTest, I64_XOR) {
   auto sum = program.XorI64(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -4192,7 +4334,8 @@ TEST_P(BackendTest, I64_XORConstArg0) {
     auto sum = program.XorI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4219,7 +4362,8 @@ TEST_P(BackendTest, I64_XORConstArg1) {
     auto sum = program.XorI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4242,7 +4386,8 @@ TEST_P(BackendTest, I64_OR) {
   auto sum = program.OrI64(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -4271,7 +4416,8 @@ TEST_P(BackendTest, I64_ORConstArg0) {
     auto sum = program.OrI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4298,7 +4444,8 @@ TEST_P(BackendTest, I64_ORConstArg1) {
     auto sum = program.OrI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4326,7 +4473,8 @@ TEST_P(BackendTest, I64_LSHIFT) {
     auto sum = program.LShiftI64(args[0], a1);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4352,7 +4500,8 @@ TEST_P(BackendTest, I64_LSHIFTConstArg0) {
     auto sum = program.LShiftI64(program.ConstI64(a0), a1);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t()>::type;
     auto compute =
@@ -4380,7 +4529,8 @@ TEST_P(BackendTest, I64_RSHIFT) {
     auto sum = program.RShiftI64(args[0], a1);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4406,7 +4556,8 @@ TEST_P(BackendTest, I64_RSHIFTConstArg0) {
     auto sum = program.RShiftI64(program.ConstI64(a0), a1);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t()>::type;
     auto compute =
@@ -4429,7 +4580,8 @@ TEST_P(BackendTest, I64_SUB) {
   auto sum = program.SubI64(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -4458,7 +4610,8 @@ TEST_P(BackendTest, I64_SubConstArg0) {
     auto sum = program.SubI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4485,7 +4638,8 @@ TEST_P(BackendTest, I64_SubConstArg1) {
     auto sum = program.SubI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4508,7 +4662,8 @@ TEST_P(BackendTest, I64_MUL) {
   auto sum = program.MulI64(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int64_t, int64_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -4537,7 +4692,8 @@ TEST_P(BackendTest, I64_MULConstArg0) {
     auto sum = program.MulI64(program.ConstI64(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4564,7 +4720,8 @@ TEST_P(BackendTest, I64_MULConstArg1) {
     auto sum = program.MulI64(args[0], program.ConstI64(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
     auto compute =
@@ -4586,7 +4743,8 @@ TEST_P(BackendTest, I64_CONST) {
     program.CreateNamedFunction(program.I64Type(), {}, "compute");
     program.Return(program.ConstI64(c));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t()>::type;
     auto compute =
@@ -4607,7 +4765,8 @@ TEST_P(BackendTest, I64_CONV_F64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.F64ConvI64(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(int64_t)>::type;
     auto compute =
@@ -4631,7 +4790,8 @@ TEST_P(BackendTest, I64_CONV_F64Const) {
                                 "compute");
     program.Return(program.F64ConvI64(program.ConstI64(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double()>::type;
     auto compute =
@@ -4653,7 +4813,8 @@ TEST_P(BackendTest, I64_TRUNC_I16) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I16TruncI64(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<uint16_t(int64_t)>::type;
     auto compute =
@@ -4677,7 +4838,8 @@ TEST_P(BackendTest, I64_TRUNC_I16Const) {
                                 "compute");
     program.Return(program.I16TruncI64(program.ConstI64(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<uint16_t()>::type;
     auto compute =
@@ -4699,7 +4861,8 @@ TEST_P(BackendTest, I64_TRUNC_I32) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I32TruncI64(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<uint32_t(int64_t)>::type;
     auto compute =
@@ -4723,7 +4886,8 @@ TEST_P(BackendTest, I64_TRUNC_I32Const) {
                                 "compute");
     program.Return(program.I32TruncI64(program.ConstI64(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<uint32_t()>::type;
     auto compute =
@@ -4750,7 +4914,8 @@ TEST_P(BackendTest, I64_CMP_XXReturn) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, args[0], args[1]));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int64_t, int64_t)>::type;
       auto compute =
@@ -4790,7 +4955,8 @@ TEST_P(BackendTest, PTR_CMP_NULLPTRReturn) {
   auto args = program.GetFunctionArguments(func);
   program.Return(program.IsNullPtr(args[0]));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int8_t(int64_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -4824,7 +4990,8 @@ TEST_P(BackendTest, I64_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int64_t, int64_t)>::type;
       auto compute =
@@ -4873,7 +5040,8 @@ TEST_P(BackendTest, I64_CMP_XXConstArg0) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, program.ConstI64(c1), args[0]));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int64_t)>::type;
       auto compute =
@@ -4910,7 +5078,8 @@ TEST_P(BackendTest, I64_CMP_XXConstArg1) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpI64(cmp_type, args[0], program.ConstI64(c2)));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(int64_t)>::type;
       auto compute =
@@ -4944,7 +5113,8 @@ TEST_P(BackendTest, I64_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI64(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int64_t*)>::type;
     auto compute =
@@ -4966,7 +5136,8 @@ TEST_P(BackendTest, I64_LOADGlobal) {
     program.CreateNamedFunction(program.I64Type(), {}, "compute");
     program.Return(program.LoadI64(global));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t()>::type;
     auto compute =
@@ -4994,7 +5165,8 @@ TEST_P(BackendTest, I64_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadI64(program.StaticGEP(st, args[0], {0, 0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(Test*)>::type;
     auto compute =
@@ -5025,7 +5197,8 @@ TEST_P(BackendTest, I64_LOADStructDynamic) {
     program.Return(
         program.LoadI64(program.DynamicGEP(st, args[0], args[1], {0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(Test*, int32_t)>::type;
     auto compute =
@@ -5054,7 +5227,8 @@ TEST_P(BackendTest, I64_STORE) {
     program.StoreI64(args[0], args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(int64_t*, int64_t)>::type;
     auto compute =
@@ -5081,7 +5255,8 @@ TEST_P(BackendTest, I64_STOREConst) {
     program.StoreI64(args[0], program.ConstI64(c));
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(int64_t*)>::type;
     auto compute =
@@ -5108,7 +5283,8 @@ TEST_P(BackendTest, I64_STOREGlobal) {
     program.StoreI64(global, args[0]);
     program.Return(global);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t*(int64_t)>::type;
     auto compute =
@@ -5139,7 +5315,8 @@ TEST_P(BackendTest, I64_STOREStruct) {
     program.StoreI64(program.StaticGEP(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(Test*, int64_t)>::type;
     auto compute =
@@ -5172,7 +5349,8 @@ TEST_P(BackendTest, I64_STOREStructDynamic) {
     program.StoreI64(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(Test*, int64_t, int32_t)>::type;
     auto compute =
@@ -5220,7 +5398,8 @@ TEST_P(BackendTest, PHII64) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn =
         std::add_pointer<int64_t(int8_t, int64_t, int64_t)>::type;
@@ -5266,7 +5445,8 @@ TEST_P(BackendTest, PHII64ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int8_t, int64_t)>::type;
     auto compute =
@@ -5311,7 +5491,8 @@ TEST_P(BackendTest, PHII64ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int8_t, int64_t)>::type;
     auto compute =
@@ -5334,7 +5515,8 @@ TEST_P(BackendTest, F64_ADD) {
   auto sum = program.AddF64(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<double(double, double)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -5363,7 +5545,8 @@ TEST_P(BackendTest, F64_ADDConstArg0) {
     auto sum = program.AddF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(double)>::type;
     auto compute =
@@ -5390,7 +5573,8 @@ TEST_P(BackendTest, F64_ADDConstArg1) {
     auto sum = program.AddF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(double)>::type;
     auto compute =
@@ -5413,7 +5597,8 @@ TEST_P(BackendTest, F64_SUB) {
   auto sum = program.SubF64(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<double(double, double)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -5442,7 +5627,8 @@ TEST_P(BackendTest, F64_SubConstArg0) {
     auto sum = program.SubF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(double)>::type;
     auto compute =
@@ -5469,7 +5655,8 @@ TEST_P(BackendTest, F64_SubConstArg1) {
     auto sum = program.SubF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(double)>::type;
     auto compute =
@@ -5492,7 +5679,8 @@ TEST_P(BackendTest, F64_MUL) {
   auto sum = program.MulF64(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<double(double, double)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -5521,7 +5709,8 @@ TEST_P(BackendTest, F64_MULConstArg0) {
     auto sum = program.MulF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(double)>::type;
     auto compute =
@@ -5548,7 +5737,8 @@ TEST_P(BackendTest, F64_MULConstArg1) {
     auto sum = program.MulF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(double)>::type;
     auto compute =
@@ -5571,7 +5761,8 @@ TEST_P(BackendTest, F64_DIV) {
   auto sum = program.DivF64(args[0], args[1]);
   program.Return(sum);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<double(double, double)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -5600,7 +5791,8 @@ TEST_P(BackendTest, F64_DIVConstArg0) {
     auto sum = program.DivF64(program.ConstF64(a0), args[0]);
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(double)>::type;
     auto compute =
@@ -5627,7 +5819,8 @@ TEST_P(BackendTest, F64_DIVConstArg1) {
     auto sum = program.DivF64(args[0], program.ConstF64(a1));
     program.Return(sum);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(double)>::type;
     auto compute =
@@ -5649,7 +5842,8 @@ TEST_P(BackendTest, F64_CONST) {
     program.CreateNamedFunction(program.F64Type(), {}, "compute");
     program.Return(program.ConstF64(c));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double()>::type;
     auto compute =
@@ -5671,7 +5865,8 @@ TEST_P(BackendTest, F64_CONV_I64) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.I64ConvF64(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(double)>::type;
     auto compute =
@@ -5695,7 +5890,8 @@ TEST_P(BackendTest, F64_CONV_I64Const) {
     program.CreateNamedFunction(program.I64Type(), {}, "compute");
     program.Return(program.I64ConvF64(program.ConstF64(c)));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t()>::type;
     auto compute =
@@ -5722,7 +5918,8 @@ TEST_P(BackendTest, F64_CMP_XXReturn) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, args[0], args[1]));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(double, double)>::type;
       auto compute =
@@ -5777,7 +5974,8 @@ TEST_P(BackendTest, F64_CMP_XXBranch) {
       program.SetCurrentBlock(bb2);
       program.Return(program.ConstI1(false));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(double, double)>::type;
       auto compute =
@@ -5826,7 +6024,8 @@ TEST_P(BackendTest, F64_CMP_XXConstArg0) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, program.ConstF64(c1), args[0]));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(double)>::type;
       auto compute =
@@ -5863,7 +6062,8 @@ TEST_P(BackendTest, F64_CMP_XXConstArg1) {
       auto args = program.GetFunctionArguments(func);
       program.Return(program.CmpF64(cmp_type, args[0], program.ConstF64(c2)));
 
-      auto backend = Compile(GetParam(), program);
+      auto built = program.Build();
+      auto backend = Compile(GetParam(), *built);
 
       using compute_fn = std::add_pointer<int8_t(double)>::type;
       auto compute =
@@ -5897,7 +6097,8 @@ TEST_P(BackendTest, F64_LOAD) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadF64(args[0]));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(double*)>::type;
     auto compute =
@@ -5920,7 +6121,8 @@ TEST_P(BackendTest, F64_LOADGlobal) {
     program.Return(
         program.LoadF64(program.StaticGEP(program.F64Type(), global, {0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double()>::type;
     auto compute =
@@ -5948,7 +6150,8 @@ TEST_P(BackendTest, F64_LOADStruct) {
     auto args = program.GetFunctionArguments(func);
     program.Return(program.LoadF64(program.StaticGEP(st, args[0], {0, 0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(Test*)>::type;
     auto compute =
@@ -5979,7 +6182,8 @@ TEST_P(BackendTest, F64_LOADStructDynamic) {
     program.Return(
         program.LoadF64(program.DynamicGEP(st, args[0], args[1], {0})));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(Test*, int32_t)>::type;
     auto compute =
@@ -6008,7 +6212,8 @@ TEST_P(BackendTest, F64_STORE) {
     program.StoreF64(args[0], args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(double*, double)>::type;
     auto compute =
@@ -6035,7 +6240,8 @@ TEST_P(BackendTest, F64_STOREConst) {
     program.StoreF64(args[0], program.ConstF64(c));
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(double*)>::type;
     auto compute =
@@ -6063,7 +6269,8 @@ TEST_P(BackendTest, F64_STOREGlobal) {
                      args[0]);
     program.Return(global);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double*(double)>::type;
     auto compute =
@@ -6094,7 +6301,8 @@ TEST_P(BackendTest, F64_STOREStruct) {
     program.StoreF64(program.StaticGEP(st, args[0], {0, 0}), args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(Test*, double)>::type;
     auto compute =
@@ -6127,7 +6335,8 @@ TEST_P(BackendTest, F64_STOREStructDynamic) {
     program.StoreF64(program.DynamicGEP(st, args[0], args[2], {0}), args[1]);
     program.Return();
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<void(Test*, double, int32_t)>::type;
     auto compute =
@@ -6175,7 +6384,8 @@ TEST_P(BackendTest, PHIF64) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(int8_t, double, double)>::type;
     auto compute =
@@ -6220,7 +6430,8 @@ TEST_P(BackendTest, PHIF64ConstArg0) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(int8_t, double)>::type;
     auto compute =
@@ -6265,7 +6476,8 @@ TEST_P(BackendTest, PHIF64ConstArg1) {
     program.UpdatePhiMember(phi, phi_2);
     program.Return(phi);
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<double(int8_t, double)>::type;
     auto compute =
@@ -6311,7 +6523,8 @@ TEST_P(BackendTest, Loop) {
   auto scaled = program.MulI32(sumphi, program.ConstI32(3));
   program.Return(scaled);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int32_t()>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6351,7 +6564,8 @@ TEST_P(BackendTest, LoopVariableAccess) {
   program.SetCurrentBlock(bb3);
   program.Return(phi);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int32_t()>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6376,7 +6590,8 @@ TEST_P(BackendTest, DynamicGEPColumnData) {
   auto ptr = program.LoadPtr(program.StaticGEP(st, args[0], {0, 0}));
   program.Return(program.DynamicGEP(program.I32Type(), ptr, args[1], {}));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int32_t*(ColumnData*, int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6404,7 +6619,8 @@ TEST_P(BackendTest, I32Vec8CmpEQ) {
     auto mask = program.CmpI32Vec8(CompType::EQ, v1, v2);
     program.Return(program.ExtractMaskI1Vec8(mask));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
     auto compute =
@@ -6428,7 +6644,8 @@ TEST_P(BackendTest, I32Vec8CmpNE) {
     auto mask = program.CmpI32Vec8(CompType::NE, v1, v2);
     program.Return(program.ExtractMaskI1Vec8(mask));
 
-    auto backend = Compile(GetParam(), program);
+    auto built = program.Build();
+    auto backend = Compile(GetParam(), *built);
 
     using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
     auto compute =
@@ -6451,7 +6668,8 @@ TEST_P(BackendTest, I32Vec8CmpLT) {
   auto mask = program.CmpI32Vec8(CompType::LT, v1, v2);
   program.Return(program.ExtractMaskI1Vec8(mask));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6472,7 +6690,8 @@ TEST_P(BackendTest, I32Vec8CmpLE) {
   auto mask = program.CmpI32Vec8(CompType::LE, v1, v2);
   program.Return(program.ExtractMaskI1Vec8(mask));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6493,7 +6712,8 @@ TEST_P(BackendTest, I32Vec8CmpGT) {
   auto mask = program.CmpI32Vec8(CompType::GT, v1, v2);
   program.Return(program.ExtractMaskI1Vec8(mask));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6514,7 +6734,8 @@ TEST_P(BackendTest, I32Vec8CmpGE) {
   auto mask = program.CmpI32Vec8(CompType::GE, v1, v2);
   program.Return(program.ExtractMaskI1Vec8(mask));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6536,7 +6757,8 @@ TEST_P(BackendTest, I32Vec8OR) {
   auto mask = program.OrI1Vec8(mask1, mask2);
   program.Return(program.ExtractMaskI1Vec8(mask));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6558,7 +6780,8 @@ TEST_P(BackendTest, I32Vec8And) {
   auto mask = program.AndI1Vec8(mask1, mask2);
   program.Return(program.ExtractMaskI1Vec8(mask));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6579,7 +6802,8 @@ TEST_P(BackendTest, MaskToPermute) {
       program.CmpI32Vec8(CompType::EQ, v1, program.ConstI32Vec8(4)));
   program.Return(program.MaskToPermutePtr(mask));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<uint32_t*(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6605,7 +6829,8 @@ TEST_P(BackendTest, I32Vec8Permute) {
   program.Return(program.ExtractMaskI1Vec8(
       program.CmpI32Vec8(CompType::EQ, permuted, program.ConstI32Vec8(4))));
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6618,7 +6843,8 @@ TEST_P(BackendTest, I64_POPCOUNT) {
                                           {program.I64Type()}, "compute");
   auto args = program.GetFunctionArguments(func);
   program.Return(program.PopcountI64(args[0]));
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int64_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6657,7 +6883,8 @@ TEST_P(BackendTest, I32Vec8MaskedStore) {
   program.MaskStoreI32Vec8(args[0], permuted, popcount);
   program.Return(popcount);
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<int64_t(int32_t*, int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6689,7 +6916,8 @@ TEST_P(BackendTest, I32Vec8Add) {
   program.MaskStoreI32Vec8(args[0], sum, program.ConstI64(8));
   program.Return();
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<void(int32_t*, int32_t*)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));
@@ -6712,7 +6940,8 @@ TEST_P(BackendTest, I32ConvI32Vec8) {
   program.MaskStoreI32Vec8(args[0], conv, program.ConstI64(8));
   program.Return();
 
-  auto backend = Compile(GetParam(), program);
+  auto built = program.Build();
+  auto backend = Compile(GetParam(), *built);
 
   using compute_fn = std::add_pointer<void(int32_t*, int32_t)>::type;
   auto compute = reinterpret_cast<compute_fn>(backend->GetFunction("compute"));

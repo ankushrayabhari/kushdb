@@ -21,10 +21,10 @@ TEST(LiveIntervalsTest, SingleBasicBlock) {
   program.Return(program.AddI32(x1, x2));
 
   auto built = program.Build();
-  std::vector<bool> gep_materialize(built.Functions()[1].Instrs().size(),
+  std::vector<bool> gep_materialize(built->Functions()[1].Instrs().size(),
                                     false);
-  auto res = ComputeLiveIntervals(built.Functions()[1], gep_materialize,
-                                  built.TypeManager());
+  auto res = ComputeLiveIntervals(built->Functions()[1], gep_materialize,
+                                  built->TypeManager());
 
   // TODO: add expectations
 }
