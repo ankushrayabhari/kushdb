@@ -2,14 +2,16 @@
 
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
+#include "khir/asm/asm_backend.h"
+#include "khir/asm/reg_alloc_impl.h"
 #include "khir/backend.h"
+#include "khir/llvm/llvm_backend.h"
 
 namespace kush::execution {
 
 ExecutableQuery::ExecutableQuery(
     std::unique_ptr<compile::OperatorTranslator> translator,
-    std::unique_ptr<khir::Backend> program, PipelineBuilder pipelines,
-    QueryState state)
+    khir::Program program, PipelineBuilder pipelines, QueryState state)
     : translator_(std::move(translator)),
       program_(std::move(program)),
       pipelines_(std::move(pipelines)),
@@ -83,6 +85,24 @@ void CleanUpPredecessors(
 constexpr int32_t CHUNK_SIZE = 1 << 14;
 
 void ExecutableQuery::Execute() {
+  std::unique_ptr<khir::Backend> backend;
+  switch (khir::GetBackendType()) {
+    case khir::BackendType::ASM: {
+      auto b =
+          std::make_unique<khir::ASMBackend>(program_, khir::GetRegAllocImpl());
+      b->Compile();
+      backend = std::move(b);
+      break;
+    }
+
+    case khir::BackendType::LLVM: {
+      auto b = std::make_unique<khir::LLVMBackend>(program_);
+      b->Compile();
+      backend = std::move(b);
+      break;
+    }
+  }
+
   auto pipelines = pipelines_.Pipelines();
 
   // generate topological ordering of pipelines
@@ -99,13 +119,13 @@ void ExecutableQuery::Execute() {
 
   // execute each pipeline in topological order
   for (int i : order) {
-    InitializeOutput(i, pipelines, *program_);
+    InitializeOutput(i, pipelines, *backend);
 
     const auto& pipeline = pipelines[i].get();
     if (pipeline.Split()) {
-      auto input_size = GetInputSize(i, pipelines, *program_);
+      auto input_size = GetInputSize(i, pipelines, *backend);
       auto body = reinterpret_cast<split_body_fn>(
-          program_->GetFunction(pipelines[i].get().BodyName()));
+          backend->GetFunction(pipelines[i].get().BodyName()));
       int32_t next_tuple = 0;
       while (next_tuple < input_size) {
         auto start = next_tuple;
@@ -115,11 +135,11 @@ void ExecutableQuery::Execute() {
       }
     } else {
       auto body = reinterpret_cast<body_fn>(
-          program_->GetFunction(pipelines[i].get().BodyName()));
+          backend->GetFunction(pipelines[i].get().BodyName()));
       body();
     }
 
-    CleanUpPredecessors(i, pipelines, users, *program_);
+    CleanUpPredecessors(i, pipelines, users, *backend);
   }
 
   {  // Clean up the final buffer
@@ -128,7 +148,7 @@ void ExecutableQuery::Execute() {
       throw std::runtime_error("A pipeline references the output pipeline");
     }
     auto reset = reinterpret_cast<reset_fn>(
-        program_->GetFunction(pipelines[final].get().ResetName()));
+        backend->GetFunction(pipelines[final].get().ResetName()));
     reset();
   }
 }

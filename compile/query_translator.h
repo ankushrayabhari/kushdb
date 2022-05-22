@@ -9,13 +9,6 @@
 
 namespace kush::compile {
 
-class QueryTranslator {
- public:
-  QueryTranslator(const plan::Operator& op);
-  execution::ExecutableQuery Translate();
-
- private:
-  const plan::Operator& op_;
-};
+execution::ExecutableQuery TranslateQuery(const plan::Operator& op);
 
 }  // namespace kush::compile

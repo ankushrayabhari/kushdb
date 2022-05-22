@@ -11,6 +11,9 @@ cc_library(
         ":query_state",
         "//compile/translators:operator_translator",
         "//khir:backend",
+        "//khir/asm:asm_backend",
+        "//khir/asm:reg_alloc_impl",
+        "//khir/llvm:llvm_backend",
     ],
 )
 

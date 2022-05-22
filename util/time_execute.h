@@ -19,16 +19,14 @@ namespace kush::util {
 
 void TimeExecute(kush::plan::Operator& query) {
   {
-    kush::compile::QueryTranslator translator(query);
-    auto executable_query = translator.Translate();
+    auto executable_query = kush::compile::TranslateQuery(query);
     executable_query.Execute();
   }
 
 #if PROFILE_ENABLED
   Profiler::profile([&]() {
     auto start = std::chrono::system_clock::now();
-    kush::compile::QueryTranslator translator(query);
-    auto executable_query = translator.Translate();
+    auto executable_query = kush::compile::TranslateQuery(query);
     executable_query.Execute();
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;
@@ -37,8 +35,7 @@ void TimeExecute(kush::plan::Operator& query) {
 #else
   for (int i = 0; i < FLAGS_num_trials.Get(); i++) {
     auto start = std::chrono::system_clock::now();
-    kush::compile::QueryTranslator translator(query);
-    auto executable_query = translator.Translate();
+    auto executable_query = kush::compile::TranslateQuery(query);
     executable_query.Execute();
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;

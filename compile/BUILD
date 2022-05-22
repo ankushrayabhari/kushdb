@@ -12,11 +12,7 @@ cc_library(
         "//compile/translators:translator_factory",
         "//execution:executable_query",
         "//execution:pipeline",
-        "//khir:backend",
         "//khir:program_builder",
-        "//khir/asm:asm_backend",
-        "//khir/asm:reg_alloc_impl",
-        "//khir/llvm:llvm_backend",
     ],
 )
 

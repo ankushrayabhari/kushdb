@@ -32,8 +32,7 @@ std::string ExecuteAndCapture(kush::plan::Operator& query) {
   int fd = open(test_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0660);
   RedirectStdout redirect(fd);
 
-  kush::compile::QueryTranslator translator(query);
-  auto executable_query = translator.Translate();
+  auto executable_query = kush::compile::TranslateQuery(query);
   executable_query.Execute();
 
   std::cout.flush();
