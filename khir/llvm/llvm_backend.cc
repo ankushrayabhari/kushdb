@@ -40,8 +40,9 @@
 
 namespace kush::khir {
 
-LLVMBackend::LLVMBackend()
-    : context_(std::make_unique<llvm::LLVMContext>()),
+LLVMBackend::LLVMBackend(const khir::Program& program)
+    : program_(program),
+      context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>("query", *context_)),
       builder_(std::make_unique<llvm::IRBuilder<>>(*context_)) {}
 
@@ -112,8 +113,7 @@ void LLVMBackend::TranslateStructType(absl::Span<const Type> elem_types) {
 }
 
 llvm::Constant* LLVMBackend::ConvertConstantInstr(
-    uint64_t instr, std::vector<llvm::Constant*>& constant_values,
-    const Program& program) {
+    uint64_t instr, std::vector<llvm::Constant*>& constant_values) {
   auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
 
   switch (opcode) {
@@ -135,18 +135,18 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
 
     case ConstantOpcode::I64_CONST: {
       return builder_->getInt64(
-          program.I64Constants()[Type1InstructionReader(instr).Constant()]);
+          program_.I64Constants()[Type1InstructionReader(instr).Constant()]);
     }
 
     case ConstantOpcode::F64_CONST: {
       return llvm::ConstantFP::get(
           builder_->getDoubleTy(),
-          program.F64Constants()[Type1InstructionReader(instr).Constant()]);
+          program_.F64Constants()[Type1InstructionReader(instr).Constant()]);
     }
 
     case ConstantOpcode::PTR_CONST: {
       auto i64_v = builder_->getInt64(reinterpret_cast<uint64_t>(
-          program.PtrConstants()[Type1InstructionReader(instr).Constant()]));
+          program_.PtrConstants()[Type1InstructionReader(instr).Constant()]));
       return llvm::ConstantExpr::getIntToPtr(i64_v, builder_->getInt8PtrTy());
     }
 
@@ -159,14 +159,14 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
 
     case ConstantOpcode::GLOBAL_CHAR_ARRAY_CONST: {
       return builder_->CreateGlobalStringPtr(
-          program
+          program_
               .CharArrayConstants()[Type1InstructionReader(instr).Constant()],
           "", 0, module_.get());
     }
 
     case ConstantOpcode::STRUCT_CONST: {
       const auto& x =
-          program.StructConstants()[Type1InstructionReader(instr).Constant()];
+          program_.StructConstants()[Type1InstructionReader(instr).Constant()];
       std::vector<llvm::Constant*> init;
       for (auto field_init : x.Fields()) {
         assert(field_init.IsConstantGlobal());
@@ -178,7 +178,7 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
 
     case ConstantOpcode::ARRAY_CONST: {
       const auto& x =
-          program.ArrayConstants()[Type1InstructionReader(instr).Constant()];
+          program_.ArrayConstants()[Type1InstructionReader(instr).Constant()];
 
       std::vector<llvm::Constant*> init;
       for (auto element_init : x.Elements()) {
@@ -197,7 +197,7 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
 
     case ConstantOpcode::GLOBAL_REF: {
       const auto& x =
-          program.Globals()[Type1InstructionReader(instr).Constant()];
+          program_.Globals()[Type1InstructionReader(instr).Constant()];
 
       auto type = types_[x.Type().GetID()];
 
@@ -216,7 +216,7 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
     case ConstantOpcode::I32_VEC4_CONST_4: {
       auto idx = Type1InstructionReader(instr).Constant();
       std::vector<llvm::Constant*> constants;
-      for (int x : program.I32Vec4Constants()[idx]) {
+      for (int x : program_.I32Vec4Constants()[idx]) {
         constants.push_back(builder_->getInt32(x));
       }
       return llvm::ConstantVector::get(constants);
@@ -234,7 +234,7 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
     case ConstantOpcode::I32_VEC8_CONST_8: {
       auto idx = Type1InstructionReader(instr).Constant();
       std::vector<llvm::Constant*> constants;
-      for (int x : program.I32Vec8Constants()[idx]) {
+      for (int x : program_.I32Vec8Constants()[idx]) {
         constants.push_back(builder_->getInt32(x));
       }
       return llvm::ConstantVector::get(constants);
@@ -242,12 +242,12 @@ llvm::Constant* LLVMBackend::ConvertConstantInstr(
   }
 }
 
-void LLVMBackend::Translate(const Program& program) {
+void LLVMBackend::Translate() {
   // Populate types_ array
-  program.TypeManager().Translate(*this);
+  program_.TypeManager().Translate(*this);
 
   // Translate all func decls
-  for (const auto& func : program.Functions()) {
+  for (const auto& func : program_.Functions()) {
     std::string fn_name(func.Name());
     auto type = llvm::dyn_cast<llvm::FunctionType>(types_[func.Type().GetID()]);
     auto linkage = (func.External() || func.Public())
@@ -259,14 +259,13 @@ void LLVMBackend::Translate(const Program& program) {
 
   // Convert all constants
   std::vector<llvm::Constant*> constant_values;
-  for (auto instr : program.ConstantInstrs()) {
-    constant_values.push_back(
-        ConvertConstantInstr(instr, constant_values, program));
+  for (auto instr : program_.ConstantInstrs()) {
+    constant_values.push_back(ConvertConstantInstr(instr, constant_values));
   }
 
   // Translate all func bodies
-  for (int func_idx = 0; func_idx < program.Functions().size(); func_idx++) {
-    const auto& func = program.Functions()[func_idx];
+  for (int func_idx = 0; func_idx < program_.Functions().size(); func_idx++) {
+    const auto& func = program_.Functions()[func_idx];
     if (func.External()) {
       external_functions_.emplace_back(func.Name(), func.Addr());
       continue;
@@ -300,9 +299,8 @@ void LLVMBackend::Translate(const Program& program) {
       builder_->SetInsertPoint(basic_blocks_impl[i]);
       for (const auto& [b_start, b_end] : basic_blocks[i].Segments()) {
         for (int instr_idx = b_start; instr_idx <= b_end; instr_idx++) {
-          TranslateInstr(program, program.TypeManager(), args,
-                         basic_blocks_impl, values, constant_values,
-                         phi_member_list, instructions, instr_idx);
+          TranslateInstr(instr_idx, instructions, args, basic_blocks_impl,
+                         values, constant_values, phi_member_list);
         }
       }
     }
@@ -391,15 +389,14 @@ llvm::Value* GetValue(khir::Value v,
 }
 
 void LLVMBackend::TranslateInstr(
-    const Program& program, const TypeManager& manager,
+    int instr_idx, const std::vector<uint64_t>& instructions,
     const std::vector<llvm::Value*>& func_args,
     const std::vector<llvm::BasicBlock*>& basic_blocks,
     std::vector<llvm::Value*>& values,
     const std::vector<llvm::Constant*>& constant_values,
     absl::flat_hash_map<
         uint32_t, std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>&
-        phi_member_list,
-    const std::vector<uint64_t>& instructions, int instr_idx) {
+        phi_member_list) {
   auto instr = instructions[instr_idx];
   auto opcode = OpcodeFrom(GenericInstructionReader(instr).Opcode());
 
@@ -1041,7 +1038,7 @@ void LLVMBackend::Compile() {
   }
 }
 
-void* LLVMBackend::GetFunction(std::string_view name) const {
+void* LLVMBackend::GetFunction(std::string_view name) {
   return compiled_fn_.at(name);
 }
 

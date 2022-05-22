@@ -42,16 +42,22 @@ execution::ExecutableQuery QueryTranslator::Translate() {
   std::unique_ptr<khir::Backend> backend;
   switch (khir::GetBackendType()) {
     case khir::BackendType::ASM: {
-      backend = std::make_unique<khir::ASMBackend>(khir::GetRegAllocImpl());
+      auto b =
+          std::make_unique<khir::ASMBackend>(program, khir::GetRegAllocImpl());
+      b->Translate();
+      b->Compile();
+      backend = std::move(b);
       break;
     }
 
     case khir::BackendType::LLVM: {
-      backend = std::make_unique<khir::LLVMBackend>();
+      auto b = std::make_unique<khir::LLVMBackend>(program);
+      b->Translate();
+      b->Compile();
+      backend = std::move(b);
       break;
     }
   }
-  backend->Translate(program);
   return execution::ExecutableQuery(std::move(translator), std::move(backend),
                                     std::move(pipeline_builder),
                                     std::move(state));

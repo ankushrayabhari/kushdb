@@ -34,7 +34,6 @@ std::string ExecuteAndCapture(kush::plan::Operator& query) {
 
   kush::compile::QueryTranslator translator(query);
   auto executable_query = translator.Translate();
-  executable_query.Compile();
   executable_query.Execute();
 
   std::cout.flush();

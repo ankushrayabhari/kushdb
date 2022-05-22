@@ -28,21 +28,21 @@ void CacheEntry::Compile() {
   switch (GetBackendType()) {
     case BackendType::ASM: {
       auto backend =
-          std::make_unique<khir::ASMBackend>(khir::RegAllocImpl::LINEAR_SCAN);
-      backend->Translate(program);
+          std::make_unique<ASMBackend>(program, RegAllocImpl::LINEAR_SCAN);
+      backend->Translate();
+      backend->Compile();
       compiled_program_ = std::move(backend);
       break;
     }
 
     case BackendType::LLVM: {
-      auto backend = std::make_unique<khir::LLVMBackend>();
-      backend->Translate(program);
+      auto backend = std::make_unique<LLVMBackend>(program);
+      backend->Translate();
+      backend->Compile();
       compiled_program_ = std::move(backend);
       break;
     }
   }
-
-  compiled_program_->Compile();
 }
 
 CompilationCache::CompilationCache(int n) : root_(n), num_tables_(n) {}

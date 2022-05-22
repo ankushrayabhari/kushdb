@@ -6,11 +6,10 @@
 
 namespace kush::khir {
 
-class Backend : public ProgramTranslator {
+class Backend {
  public:
   virtual ~Backend() = default;
-  virtual void Compile() = 0;
-  virtual void* GetFunction(std::string_view name) const = 0;
+  virtual void* GetFunction(std::string_view name) = 0;
 };
 
 enum class BackendType { ASM, LLVM };

@@ -32,48 +32,49 @@ class StackSlotAllocator {
 };
 
 struct GEPDynamicInfo {
-  khir::Value ptr;
-  khir::Value index;
+  Value ptr;
+  Value index;
   int32_t offset;
   int32_t type_size;
 };
 
 struct GEPStaticInfo {
-  khir::Value ptr;
+  Value ptr;
   int32_t offset;
 };
 
 class ASMBackend : public Backend {
  public:
-  ASMBackend(RegAllocImpl impl);
+  ASMBackend(const Program& program, RegAllocImpl impl);
   virtual ~ASMBackend() = default;
 
-  // Program
-  void Translate(const Program& program) override;
-
   // Backend
-  void Compile() override;
-  void* GetFunction(std::string_view name) const override;
+  void Translate();
+  void Compile();
+  void* GetFunction(std::string_view name) override;
 
  private:
-  uint64_t OutputConstant(uint64_t instr, const Program& program);
-  bool IsNullPtr(khir::Value v, const std::vector<uint64_t>& constant_instrs);
-  bool IsConstantPtr(khir::Value v,
-                     const std::vector<uint64_t>& constant_instrs);
-  bool IsConstantCastedPtr(khir::Value v,
-                           const std::vector<uint64_t>& constant_instrs);
-  void TranslateInstr(const Program& program, const Function& current_function,
-                      const TypeManager& type_manager,
-                      const std::vector<void*>& ptr_constants,
-                      const std::vector<uint64_t>& i64_constants,
-                      const std::vector<double>& f64_constants,
+  bool IsNullPtr(Value v);
+  bool IsConstantPtr(Value v);
+  bool IsConstantCastedPtr(Value v);
+  Value GetConstantCastedPtr(Value v);
+  uint8_t GetByteConstant(Value v);
+  uint16_t GetWordConstant(Value v);
+  uint32_t GetDwordConstant(Value v);
+  uint64_t GetQwordConstant(Value v);
+  uint64_t GetPtrConstant(Value v);
+  double GetF64Constant(Value v);
+  asmjit::Label GetGlobalPointer(Value v);
+  GEPStaticInfo StaticGEP(Value v, const std::vector<uint64_t>& instrs);
+  GEPDynamicInfo DynamicGEP(Value v, const std::vector<uint64_t>& instrs);
+
+  uint64_t OutputConstant(uint64_t instr);
+
+  void TranslateInstr(int instr_idx, const std::vector<uint64_t>& instructions,
                       const std::vector<asmjit::Label>& basic_blocks,
-                      const std::vector<Function>& functions,
                       const asmjit::Label& epilogue,
                       std::vector<int32_t>& offsets,
-                      const std::vector<uint64_t>& instructions,
-                      const std::vector<uint64_t>& constant_instrs,
-                      int instr_idx, StackSlotAllocator& stack_allocator,
+                      StackSlotAllocator& stack_allocator,
                       const std::vector<RegisterAssignment>& register_assign,
                       const std::vector<bool>& gep_materialize, int next_bb);
 
@@ -83,264 +84,179 @@ class ASMBackend : public Backend {
 
   asmjit::x86::Mem GetDynamicGEPPtrValue(
       GEPDynamicInfo info, int32_t size, std::vector<int32_t>& offsets,
-      const std::vector<uint64_t>& instrs,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetStaticGEPPtrValue(
       GEPStaticInfo info, int32_t size, std::vector<int32_t>& offsets,
-      const std::vector<uint64_t>& instrs,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
 
   template <typename T>
   void MoveByteValue(T dest, Value v, std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign,
                      int32_t dynamic_stack_alloc = 0);
   template <typename T>
   void AndByteValue(T dest, Value v, std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void OrByteValue(T dest, Value v, std::vector<int32_t>& offsets,
-                   const std::vector<uint64_t>& constant_instrs,
                    const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void AddByteValue(T dest, Value v, std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void SubByteValue(T dest, Value v, std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
   void MulByteValue(Value v, std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::GpbLo GetByteValue(
       Value v, std::vector<int32_t>& offsets,
-      const std::vector<uint64_t>& constant_instrs,
       const std::vector<RegisterAssignment>& register_assign);
   void CmpByteValue(asmjit::x86::GpbLo src, Value v,
                     std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
   void ZextByteValue(asmjit::x86::Gpq dest, Value v,
                      std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
   void SextByteValue(asmjit::x86::Gpq dest, Value v,
                      std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetBytePtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
 
   template <typename T>
   void MoveWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign,
                      int32_t dynamic_stack_alloc = 0);
   template <typename T>
   void AddWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void SubWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
   void MulWordValue(asmjit::x86::Gpw dest, Value v,
                     std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Gpw GetWordValue(
       Value v, std::vector<int32_t>& offsets,
-      const std::vector<uint64_t>& constant_instrs,
       const std::vector<RegisterAssignment>& register_assign);
   void CmpWordValue(asmjit::x86::Gpw src, Value v,
                     std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
                     const std::vector<RegisterAssignment>& register_assign);
   void ZextWordValue(asmjit::x86::Gpq dest, Value v,
                      std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
   void SextWordValue(asmjit::x86::Gpq dest, Value v,
                      std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetWordPtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
 
   template <typename T>
   void MoveDWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                      const std::vector<uint64_t>& constant_instrs,
                       const std::vector<RegisterAssignment>& register_assign,
                       int32_t dynamic_stack_alloc = 0);
   template <typename T>
   void AddDWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void SubDWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
   void MulDWordValue(asmjit::x86::Gpd dest, Value v,
                      std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Gpd GetDWordValue(
       Value v, std::vector<int32_t>& offsets,
-      const std::vector<uint64_t>& constant_instrs,
       const std::vector<RegisterAssignment>& register_assign);
   void CmpDWordValue(asmjit::x86::Gpd src, Value v,
                      std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
                      const std::vector<RegisterAssignment>& register_assign);
   void ZextDWordValue(GPRegister dest, Value v, std::vector<int32_t>& offsets,
-                      const std::vector<uint64_t>& constant_instrs,
                       const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetDWordPtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Mem GetYMMWordPtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
 
   template <typename T>
   void MoveQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                      const std::vector<uint64_t>& constant_instrs,
-                      const std::vector<uint64_t>& i64_constants,
                       const std::vector<RegisterAssignment>& register_assign,
                       int32_t dynamic_stack_alloc = 0);
   template <typename T>
   void AddQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
-                     const std::vector<uint64_t>& i64_constants,
                      const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void AndQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
-                     const std::vector<uint64_t>& i64_constants,
                      const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void XorQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
-                     const std::vector<uint64_t>& i64_constants,
                      const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void OrQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
-                    const std::vector<uint64_t>& i64_constants,
                     const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void LShiftQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                        const std::vector<uint64_t>& constant_instrs,
-                        const std::vector<uint64_t>& i64_constants,
                         const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void RShiftQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                        const std::vector<uint64_t>& constant_instrs,
-                        const std::vector<uint64_t>& i64_constants,
                         const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void SubQWordValue(T dest, Value v, std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
-                     const std::vector<uint64_t>& i64_constants,
                      const std::vector<RegisterAssignment>& register_assign);
   void MulQWordValue(asmjit::x86::Gpq dest, Value v,
                      std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
-                     const std::vector<uint64_t>& i64_constants,
                      const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Gpq GetQWordValue(
       Value v, std::vector<int32_t>& offsets,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<uint64_t>& i64_constants,
       const std::vector<RegisterAssignment>& register_assign);
   void CmpQWordValue(asmjit::x86::Gpq src, Value v,
                      std::vector<int32_t>& offsets,
-                     const std::vector<uint64_t>& constant_instrs,
-                     const std::vector<uint64_t>& i64_constants,
                      const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void MovePtrValue(T dest, Value v, std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
-                    const std::vector<void*>& ptr_constants,
                     const std::vector<RegisterAssignment>& register_assign,
                     int32_t dynamic_stack_alloc = 0);
   asmjit::x86::Mem GetQWordPtrValue(
       Value v, std::vector<int32_t>& offsets,
       const std::vector<uint64_t>& instrs,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<void*>& ptr_constants,
       const std::vector<RegisterAssignment>& register_assign);
 
-  void MaterializeGep(asmjit::x86::Mem dest, khir::Value v,
+  void MaterializeGep(asmjit::x86::Mem dest, Value v,
                       std::vector<int32_t>& offsets,
                       const std::vector<uint64_t>& instrs,
-                      const std::vector<uint64_t>& constant_instrs,
-                      const std::vector<void*>& ptr_constants,
                       const std::vector<RegisterAssignment>& register_assign);
-  void MaterializeGep(asmjit::x86::Gpq dest, khir::Value v,
+  void MaterializeGep(asmjit::x86::Gpq dest, Value v,
                       std::vector<int32_t>& offsets,
                       const std::vector<uint64_t>& instrs,
-                      const std::vector<uint64_t>& constant_instrs,
-                      const std::vector<void*>& ptr_constants,
                       const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void MoveF64Value(T dest, Value v, std::vector<int32_t>& offsets,
-                    const std::vector<uint64_t>& constant_instrs,
-                    const std::vector<double>& f64_constants,
                     const std::vector<RegisterAssignment>& register_assign);
   void AddF64Value(asmjit::x86::Xmm dest, Value v,
                    std::vector<int32_t>& offsets,
-                   const std::vector<uint64_t>& constant_instrs,
-                   const std::vector<double>& f64_constants,
                    const std::vector<RegisterAssignment>& register_assign);
   void SubF64Value(asmjit::x86::Xmm dest, Value v,
                    std::vector<int32_t>& offsets,
-                   const std::vector<uint64_t>& constant_instrs,
-                   const std::vector<double>& f64_constants,
                    const std::vector<RegisterAssignment>& register_assign);
   void MulF64Value(asmjit::x86::Xmm dest, Value v,
                    std::vector<int32_t>& offsets,
-                   const std::vector<uint64_t>& constant_instrs,
-                   const std::vector<double>& f64_constants,
                    const std::vector<RegisterAssignment>& register_assign);
   void DivF64Value(asmjit::x86::Xmm dest, Value v,
                    std::vector<int32_t>& offsets,
-                   const std::vector<uint64_t>& constant_instrs,
-                   const std::vector<double>& f64_constants,
                    const std::vector<RegisterAssignment>& register_assign);
   asmjit::x86::Xmm GetF64Value(
       Value v, std::vector<int32_t>& offsets,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<double>& f64_constants,
       const std::vector<RegisterAssignment>& register_assign);
   void CmpF64Value(asmjit::x86::Xmm src, Value v, std::vector<int32_t>& offsets,
-                   const std::vector<uint64_t>& constant_instrs,
-                   const std::vector<double>& f64_constants,
                    const std::vector<RegisterAssignment>& register_assign);
   template <typename T>
   void F64ConvI64Value(T dest, Value v, std::vector<int32_t>& offsets,
-                       const std::vector<uint64_t>& constant_instrs,
-                       const std::vector<double>& f64_constants,
                        const std::vector<RegisterAssignment>& register_assign);
   void CondBrFlag(Value v, int true_bb, int false_bb,
                   const std::vector<uint64_t>& instructions,
@@ -358,13 +274,13 @@ class ASMBackend : public Backend {
 
   asmjit::x86::Ymm GetYMMWordValue(
       Value v, std::vector<int32_t>& offsets,
-      const std::vector<uint64_t>& constant_instrs,
-      const std::vector<std::array<int32_t, 8>>& vec8_constants,
       const std::vector<RegisterAssignment>& register_assign);
 
   asmjit::Label EmbedI32(int32_t c);
   asmjit::Label EmbedI32Vec8(int32_t c);
   asmjit::Label EmbedI32Vec8(std::array<int32_t, 8> c);
+
+  const Program& program_;
 
   RegAllocImpl reg_alloc_impl_;
   asmjit::JitRuntime rt_;
@@ -378,7 +294,6 @@ class ASMBackend : public Backend {
 
   std::vector<asmjit::Label> char_array_constants_;
   std::vector<asmjit::Label> globals_;
-  asmjit::Label GetGlobalPointer(uint64_t instr);
 
   std::vector<void*> external_func_addr_;
   std::vector<asmjit::Label> internal_func_labels_;
@@ -390,8 +305,8 @@ class ASMBackend : public Backend {
   int num_stack_args_;
   void* buffer_start_;
 
-  std::vector<std::pair<khir::Value, khir::Type>> regular_call_args_;
-  std::vector<khir::Value> floating_point_call_args_;
+  std::vector<std::pair<Value, Type>> regular_call_args_;
+  std::vector<Value> floating_point_call_args_;
 
   absl::flat_hash_map<std::string, std::pair<asmjit::Label, asmjit::Label>>
       function_start_end_;

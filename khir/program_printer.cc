@@ -10,9 +10,11 @@
 
 namespace kush::khir {
 
-void OutputValue(khir::Value v, const Program& program) {
+ProgramPrinter::ProgramPrinter(const Program& program) : program_(program) {}
+
+void ProgramPrinter::OutputValue(khir::Value v) {
   if (v.IsConstantGlobal()) {
-    auto instr = program.ConstantInstrs()[v.GetIdx()];
+    auto instr = program_.ConstantInstrs()[v.GetIdx()];
     auto opcode = ConstantOpcodeFrom(GenericInstructionReader(instr).Opcode());
 
     switch (opcode) {
@@ -43,7 +45,7 @@ void OutputValue(khir::Value v, const Program& program) {
       case ConstantOpcode::I32_VEC4_CONST_4: {
         int v = Type1InstructionReader(instr).Constant();
         std::cerr << "i32:{";
-        for (int x : program.I32Vec4Constants()[v]) {
+        for (int x : program_.I32Vec4Constants()[v]) {
           std::cerr << " " << x;
         }
         std::cerr << " }";
@@ -63,7 +65,7 @@ void OutputValue(khir::Value v, const Program& program) {
       case ConstantOpcode::I32_VEC8_CONST_8: {
         int v = Type1InstructionReader(instr).Constant();
         std::cerr << "i32:{";
-        for (int x : program.I32Vec8Constants()[v]) {
+        for (int x : program_.I32Vec8Constants()[v]) {
           std::cerr << " " << x;
         }
         std::cerr << " }";
@@ -72,13 +74,13 @@ void OutputValue(khir::Value v, const Program& program) {
 
       case ConstantOpcode::I64_CONST: {
         int v = Type1InstructionReader(instr).Constant();
-        std::cerr << "i64:" << program.I64Constants()[v];
+        std::cerr << "i64:" << program_.I64Constants()[v];
         return;
       }
 
       case ConstantOpcode::F64_CONST: {
         int v = Type1InstructionReader(instr).Constant();
-        std::cerr << "f64:" << program.F64Constants()[v];
+        std::cerr << "f64:" << program_.F64Constants()[v];
         return;
       }
 
@@ -106,20 +108,20 @@ void OutputValue(khir::Value v, const Program& program) {
 
       case ConstantOpcode::FUNC_PTR: {
         std::cerr
-            << program.Functions()[Type3InstructionReader(instr).Arg()].Name();
+            << program_.Functions()[Type3InstructionReader(instr).Arg()].Name();
         return;
       }
 
       case ConstantOpcode::PTR_CONST: {
         int v = Type1InstructionReader(instr).Constant();
-        std::cerr << "ptr:" << program.PtrConstants()[v];
+        std::cerr << "ptr:" << program_.PtrConstants()[v];
         return;
       }
 
       case ConstantOpcode::PTR_CAST: {
         auto reader = Type3InstructionReader(instr);
         Value v(reader.Arg());
-        OutputValue(v, program);
+        OutputValue(v);
         return;
       }
     }
@@ -128,8 +130,7 @@ void OutputValue(khir::Value v, const Program& program) {
   std::cerr << "%" << v.GetIdx();
 }
 
-void ProgramPrinter::OutputInstr(int idx, const Program& program,
-                                 const Function& func) {
+void ProgramPrinter::OutputInstr(int idx, const Function& func) {
   auto instrs = func.Instrs();
 
   auto opcode = OpcodeFrom(GenericInstructionReader(instrs[idx]).Opcode());
@@ -208,9 +209,9 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, program);
+      OutputValue(v0);
       std::cerr << " ";
-      OutputValue(v1, program);
+      OutputValue(v1);
       std::cerr << "\n";
 
       return;
@@ -248,7 +249,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, program);
+      OutputValue(v0);
       std::cerr << "\n";
 
       return;
@@ -266,9 +267,9 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
       Value v1(reader.Arg1());
 
       std::cerr << "   " << magic_enum::enum_name(opcode) << " ";
-      OutputValue(v0, program);
+      OutputValue(v0);
       std::cerr << " ";
-      OutputValue(v1, program);
+      OutputValue(v1);
       std::cerr << "\n";
       return;
     }
@@ -291,7 +292,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
       Value v0(reader.Arg());
 
       std::cerr << "   " << magic_enum::enum_name(opcode) << " ";
-      OutputValue(v0, program);
+      OutputValue(v0);
       int label0 = reader.Marg0();
       int label1 = reader.Marg1();
       std::cerr << " ." << label0 << " ." << label1 << "\n";
@@ -309,7 +310,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
       Value v0(reader.Arg());
 
       std::cerr << "   " << magic_enum::enum_name(opcode) << " ";
-      OutputValue(v0, program);
+      OutputValue(v0);
       std::cerr << "\n";
 
       return;
@@ -326,9 +327,9 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, program);
+      OutputValue(v0);
       std::cerr << " ";
-      OutputValue(v1, program);
+      OutputValue(v1);
       std::cerr << "\n";
 
       return;
@@ -347,11 +348,11 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, program);
+      OutputValue(v0);
       std::cerr << " ";
-      OutputValue(v1, program);
+      OutputValue(v1);
       std::cerr << " ";
-      OutputValue(v2, program);
+      OutputValue(v2);
       std::cerr << "\n";
 
       return;
@@ -366,7 +367,7 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
 
       std::cerr << "   %" << idx << " = " << magic_enum::enum_name(opcode)
                 << " ";
-      OutputValue(v0, program);
+      OutputValue(v0);
       std::cerr << "\n";
 
       return;
@@ -385,14 +386,14 @@ void ProgramPrinter::OutputInstr(int idx, const Program& program,
       Type3InstructionReader reader(instrs[idx]);
       Value v0(reader.Arg());
 
-      if (!manager_->IsVoid(static_cast<Type>(reader.TypeID()))) {
+      if (!program_.TypeManager().IsVoid(static_cast<Type>(reader.TypeID()))) {
         std::cerr << "   %" << idx << " = ";
       } else {
         std::cerr << "   ";
       }
 
       std::cerr << magic_enum::enum_name(opcode) << " "
-                << program.Functions()[reader.Arg()].Name() << "\n";
+                << program_.Functions()[reader.Arg()].Name() << "\n";
       return;
     }
   }
@@ -417,10 +418,11 @@ void ProgramPrinter::TranslateI64Type() { type_to_string_.push_back("i64"); }
 void ProgramPrinter::TranslateF64Type() { type_to_string_.push_back("f64"); }
 
 void ProgramPrinter::TranslatePointerType(Type elem) {
-  if (manager_->IsI1Type(elem) || manager_->IsI8Type(elem) ||
-      manager_->IsI16Type(elem) || manager_->IsI64Type(elem) ||
-      manager_->IsI32Type(elem) || manager_->IsF64Type(elem) ||
-      manager_->IsPtrType(elem)) {
+  const auto& manager = program_.TypeManager();
+  if (manager.IsI1Type(elem) || manager.IsI8Type(elem) ||
+      manager.IsI16Type(elem) || manager.IsI64Type(elem) ||
+      manager.IsI32Type(elem) || manager.IsF64Type(elem) ||
+      manager.IsPtrType(elem)) {
     type_to_string_.push_back(type_to_string_[elem.GetID()] + "*");
   } else {
     type_to_string_.push_back("(" + type_to_string_[elem.GetID()] + ")*");
@@ -458,22 +460,21 @@ void ProgramPrinter::TranslateStructType(absl::Span<const Type> elem_types) {
   type_to_string_.push_back(output);
 }
 
-void ProgramPrinter::Translate(const Program& program) {
-  manager_ = &program.TypeManager();
-  program.TypeManager().Translate(*this);
+void ProgramPrinter::Translate() {
+  program_.TypeManager().Translate(*this);
 
   int i = 0;
-  for (const auto& v : program.CharArrayConstants()) {
+  for (const auto& v : program_.CharArrayConstants()) {
     std::cerr << "$" << i++ << " = \"" << v << "\";\n\n";
   }
 
   i = 0;
-  for (const auto& glob : program.Globals()) {
+  for (const auto& glob : program_.Globals()) {
     std::cerr << "#" << i++ << " = " << type_to_string_[glob.Type().GetID()]
               << ";\n\n";
   }
 
-  for (const auto& func : program.Functions()) {
+  for (const auto& func : program_.Functions()) {
     const auto& basic_blocks = func.BasicBlocks();
 
     if (func.External()) {
@@ -489,7 +490,7 @@ void ProgramPrinter::Translate(const Program& program) {
       const auto& block = basic_blocks[i];
       for (const auto& [segment_start, segment_end] : block.Segments()) {
         for (int j = segment_start; j <= segment_end; j++) {
-          OutputInstr(j, program, func);
+          OutputInstr(j, func);
         }
       }
     }

@@ -19,15 +19,15 @@ std::unique_ptr<Backend> Compile(
   auto program = program_builder.Build();
   switch (params.first) {
     case BackendType::ASM: {
-      auto backend = std::make_unique<khir::ASMBackend>(params.second);
-      backend->Translate(program);
+      auto backend = std::make_unique<khir::ASMBackend>(program, params.second);
+      backend->Translate();
       backend->Compile();
       return std::move(backend);
     }
 
     case BackendType::LLVM: {
-      auto backend = std::make_unique<khir::LLVMBackend>();
-      backend->Translate(program);
+      auto backend = std::make_unique<khir::LLVMBackend>(program);
+      backend->Translate();
       backend->Compile();
       return std::move(backend);
     }

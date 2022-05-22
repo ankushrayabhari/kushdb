@@ -13,7 +13,7 @@ namespace kush::khir {
 
 class LLVMBackend : public Backend, public TypeTranslator {
  public:
-  LLVMBackend();
+  LLVMBackend(const khir::Program& program);
   virtual ~LLVMBackend();
 
   // Types
@@ -33,28 +33,26 @@ class LLVMBackend : public Backend, public TypeTranslator {
                              absl::Span<const Type> arg_types) override;
   void TranslateStructType(absl::Span<const Type> elem_types) override;
 
-  // Program
-  void Translate(const Program& program) override;
-
   // Backend
-  void Compile() override;
-  void* GetFunction(std::string_view name) const override;
+  void Compile();
+  void Translate();
+  void* GetFunction(std::string_view name) override;
 
  private:
   llvm::Constant* ConvertConstantInstr(
-      uint64_t instr, std::vector<llvm::Constant*>& constant_values,
-      const Program& program);
+      uint64_t instr, std::vector<llvm::Constant*>& constant_values);
 
   void TranslateInstr(
-      const Program& program, const TypeManager& manager,
+      int instr_idx, const std::vector<uint64_t>& instructions,
       const std::vector<llvm::Value*>& func_args,
       const std::vector<llvm::BasicBlock*>& basic_blocks,
       std::vector<llvm::Value*>& values,
       const std::vector<llvm::Constant*>& constant_values,
       absl::flat_hash_map<
           uint32_t, std::vector<std::pair<llvm::Value*, llvm::BasicBlock*>>>&
-          phi_member_list,
-      const std::vector<uint64_t>& instructions, int instr_idx);
+          phi_member_list);
+
+  const khir::Program& program_;
 
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> module_;

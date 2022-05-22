@@ -15,8 +15,6 @@ ExecutableQuery::ExecutableQuery(
       pipelines_(std::move(pipelines)),
       state_(std::move(state)) {}
 
-void ExecutableQuery::Compile() { program_->Compile(); }
-
 void TopSortVisit(
     int curr, std::vector<bool>& visited,
     std::vector<std::reference_wrapper<const kush::execution::Pipeline>>

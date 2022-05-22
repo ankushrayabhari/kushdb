@@ -12,7 +12,6 @@ class ExecutableQuery {
   ExecutableQuery(std::unique_ptr<compile::OperatorTranslator> translator,
                   std::unique_ptr<khir::Backend> program,
                   PipelineBuilder pipelines, QueryState state);
-  void Compile();
   void Execute();
 
  private:

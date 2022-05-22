@@ -132,9 +132,4 @@ class Program {
   std::vector<std::array<int32_t, 8>> vec8_constants_;
 };
 
-class ProgramTranslator {
- public:
-  virtual void Translate(const Program& program) = 0;
-};
-
 }  // namespace kush::khir

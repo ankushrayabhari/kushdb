@@ -5,8 +5,9 @@
 
 namespace kush::khir {
 
-class ProgramPrinter : public TypeTranslator, public ProgramTranslator {
+class ProgramPrinter : public TypeTranslator {
  public:
+  ProgramPrinter(const Program& program);
   virtual ~ProgramPrinter() = default;
 
   // Types
@@ -24,12 +25,13 @@ class ProgramPrinter : public TypeTranslator, public ProgramTranslator {
                              absl::Span<const Type> arg_types) override;
   void TranslateStructType(absl::Span<const Type> elem_types) override;
 
-  void Translate(const Program& program) override;
+  void Translate();
 
-  void OutputInstr(int idx, const Program& program, const Function& func);
+  void OutputValue(khir::Value v);
+  void OutputInstr(int idx, const Function& func);
 
  private:
-  const TypeManager* manager_;
+  const Program& program_;
   std::vector<std::string> type_to_string_;
 };
 

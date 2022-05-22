@@ -21,7 +21,6 @@ void TimeExecute(kush::plan::Operator& query) {
   {
     kush::compile::QueryTranslator translator(query);
     auto executable_query = translator.Translate();
-    executable_query.Compile();
     executable_query.Execute();
   }
 
@@ -30,7 +29,6 @@ void TimeExecute(kush::plan::Operator& query) {
     auto start = std::chrono::system_clock::now();
     kush::compile::QueryTranslator translator(query);
     auto executable_query = translator.Translate();
-    executable_query.Compile();
     executable_query.Execute();
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;
@@ -41,7 +39,6 @@ void TimeExecute(kush::plan::Operator& query) {
     auto start = std::chrono::system_clock::now();
     kush::compile::QueryTranslator translator(query);
     auto executable_query = translator.Translate();
-    executable_query.Compile();
     executable_query.Execute();
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;

@@ -22,17 +22,21 @@ std::unique_ptr<Backend> Compile(
   std::unique_ptr<Backend> backend;
   switch (params.first) {
     case BackendType::ASM: {
-      backend = std::make_unique<khir::ASMBackend>(params.second);
+      auto b = std::make_unique<khir::ASMBackend>(program, params.second);
+      b->Translate();
+      b->Compile();
+      backend = std::move(b);
       break;
     }
 
     case BackendType::LLVM: {
-      backend = std::make_unique<khir::LLVMBackend>();
+      auto b = std::make_unique<khir::LLVMBackend>(program);
+      b->Translate();
+      b->Compile();
+      backend = std::move(b);
       break;
     }
   }
-  backend->Translate(program);
-  backend->Compile();
   return backend;
 }
 
