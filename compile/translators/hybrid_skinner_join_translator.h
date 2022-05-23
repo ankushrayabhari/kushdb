@@ -23,15 +23,15 @@
 
 namespace kush::compile {
 
-class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
-                                         public RecompilingJoinTranslator {
+class HybridSkinnerJoinTranslator : public OperatorTranslator,
+                                    public RecompilingJoinTranslator {
  public:
-  RecompilingSkinnerJoinTranslator(
+  HybridSkinnerJoinTranslator(
       const plan::SkinnerJoinOperator& join, khir::ProgramBuilder& program,
       execution::PipelineBuilder& pipeline_builder,
       execution::QueryState& state,
       std::vector<std::unique_ptr<OperatorTranslator>> children);
-  virtual ~RecompilingSkinnerJoinTranslator() = default;
+  virtual ~HybridSkinnerJoinTranslator() = default;
   void Produce(proxy::Pipeline&) override;
   void Consume(OperatorTranslator& src) override;
   ExecuteJoinFn CompileJoinOrder(

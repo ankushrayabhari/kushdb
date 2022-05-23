@@ -6,18 +6,18 @@
 #include "khir/backend.h"
 #include "khir/program_builder.h"
 
-namespace kush::khir {
+namespace kush::compile {
 
 class CacheEntry {
  public:
   CacheEntry();
   bool IsCompiled() const;
   void* Func(std::string_view name) const;
-  void Compile(std::unique_ptr<Program> program);
+  void Compile(std::unique_ptr<khir::Program> program);
 
  private:
-  std::unique_ptr<Program> program_;
-  std::unique_ptr<Backend> backend_;
+  std::unique_ptr<khir::Program> program_;
+  std::unique_ptr<khir::Backend> backend_;
 };
 
 class CompilationCache {
@@ -41,4 +41,4 @@ class CompilationCache {
   int num_tables_;
 };
 
-}  // namespace kush::khir
+}  // namespace kush::compile

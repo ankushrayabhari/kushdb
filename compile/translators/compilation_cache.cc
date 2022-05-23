@@ -1,4 +1,4 @@
-#include "khir/compilation_cache.h"
+#include "compile/translators/compilation_cache.h"
 
 #include <memory>
 #include <string>
@@ -11,7 +11,7 @@
 #include "khir/llvm/llvm_backend.h"
 #include "khir/program_builder.h"
 
-namespace kush::khir {
+namespace kush::compile {
 
 CacheEntry::CacheEntry() : program_(nullptr) {}
 
@@ -21,20 +21,20 @@ void* CacheEntry::Func(std::string_view name) const {
   return backend_->GetFunction(name);
 }
 
-void CacheEntry::Compile(std::unique_ptr<Program> program) {
+void CacheEntry::Compile(std::unique_ptr<khir::Program> program) {
   program_ = std::move(program);
 
-  switch (GetBackendType()) {
-    case BackendType::ASM: {
+  switch (khir::GetBackendType()) {
+    case khir::BackendType::ASM: {
       auto backend =
-          std::make_unique<ASMBackend>(*program_, khir::RegAllocImpl());
+          std::make_unique<khir::ASMBackend>(*program_, khir::RegAllocImpl());
       backend->Compile();
       backend_ = std::move(backend);
       break;
     }
 
-    case BackendType::LLVM: {
-      auto backend = std::make_unique<LLVMBackend>(*program_);
+    case khir::BackendType::LLVM: {
+      auto backend = std::make_unique<khir::LLVMBackend>(*program_);
       backend_ = std::move(backend);
       break;
     }
@@ -72,4 +72,4 @@ CacheEntry& CompilationCache::GetOrInsert(const std::vector<int>& order) {
   return curr->GetEntry();
 }
 
-}  // namespace kush::khir
+}  // namespace kush::compile

@@ -87,6 +87,13 @@ void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
     return;
   }
 
+  if (FLAGS_skinner_join.CurrentValue() == "hybrid") {
+    this->Return(std::make_unique<RecompilingSkinnerJoinTranslator>(
+        skinner_join, program_, pipeline_builder_, state_,
+        GetChildTranslators(skinner_join)));
+    return;
+  }
+
   throw std::runtime_error("Unknown skinner join implementation.");
 }
 

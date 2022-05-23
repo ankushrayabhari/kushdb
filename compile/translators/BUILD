@@ -207,10 +207,24 @@ cc_library(
 )
 
 cc_library(
-    name = "recompiling_skinner_join_translator",
-    srcs = ["recompiling_skinner_join_translator.cc"],
-    hdrs = ["recompiling_skinner_join_translator.h"],
+    name = "compilation_cache",
+    srcs = ["compilation_cache.cc"],
+    hdrs = ["compilation_cache.h"],
     deps = [
+        "//khir:backend",
+        "//khir:program_builder",
+        "//khir/asm:asm_backend",
+        "//khir/asm:reg_alloc_impl",
+        "//khir/llvm:llvm_backend",
+    ],
+)
+
+cc_library(
+    name = "hybrid_skinner_join_translator",
+    srcs = ["hybrid_skinner_join_translator.cc"],
+    hdrs = ["hybrid_skinner_join_translator.h"],
+    deps = [
+        ":compilation_cache",
         ":expression_translator",
         ":operator_translator",
         ":predicate_column_collector",
@@ -232,7 +246,42 @@ cc_library(
         "//execution:pipeline",
         "//execution:query_state",
         "//khir:backend",
-        "//khir:compilation_cache",
+        "//khir:program_builder",
+        "//plan/operator:skinner_join_operator",
+        "//util:vector_util",
+        "@absl//absl/container:btree",
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/container:flat_hash_set",
+    ],
+)
+
+cc_library(
+    name = "recompiling_skinner_join_translator",
+    srcs = ["recompiling_skinner_join_translator.cc"],
+    hdrs = ["recompiling_skinner_join_translator.h"],
+    deps = [
+        ":compilation_cache",
+        ":expression_translator",
+        ":operator_translator",
+        ":predicate_column_collector",
+        ":recompiling_join_translator",
+        ":scan_translator",
+        "//compile:forward_declare",
+        "//compile/proxy:column_index",
+        "//compile/proxy:disk_column_index",
+        "//compile/proxy:function",
+        "//compile/proxy:materialized_buffer",
+        "//compile/proxy:memory_column_index",
+        "//compile/proxy:skinner_join_executor",
+        "//compile/proxy:struct",
+        "//compile/proxy:tuple_idx_table",
+        "//compile/proxy:vector",
+        "//compile/proxy/control_flow:if",
+        "//compile/proxy/control_flow:loop",
+        "//compile/proxy/value:ir_value",
+        "//execution:pipeline",
+        "//execution:query_state",
+        "//khir:backend",
         "//khir:program_builder",
         "//plan/operator:skinner_join_operator",
         "//util:vector_util",

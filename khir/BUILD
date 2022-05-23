@@ -10,19 +10,6 @@ cc_library(
 )
 
 cc_library(
-    name = "compilation_cache",
-    srcs = ["compilation_cache.cc"],
-    hdrs = ["compilation_cache.h"],
-    deps = [
-        ":backend",
-        ":program_builder",
-        "//khir/asm:asm_backend",
-        "//khir/asm:reg_alloc_impl",
-        "//khir/llvm:llvm_backend",
-    ],
-)
-
-cc_library(
     name = "cfg_simplify",
     srcs = ["cfg_simplify.cc"],
     hdrs = ["cfg_simplify.h"],
