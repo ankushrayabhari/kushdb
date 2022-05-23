@@ -3,6 +3,7 @@
 #include <string>
 
 struct ParameterValues {
+  std::string pipeline_mode;
   std::string backend;
   std::string reg_alloc;
   std::string skinner;

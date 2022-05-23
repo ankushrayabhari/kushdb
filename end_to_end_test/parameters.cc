@@ -7,9 +7,14 @@
 ABSL_DECLARE_FLAG(std::string, backend);
 ABSL_DECLARE_FLAG(std::string, reg_alloc);
 ABSL_DECLARE_FLAG(std::string, skinner_join);
+ABSL_DECLARE_FLAG(std::string, pipeline_mode);
 ABSL_DECLARE_FLAG(int32_t, budget_per_episode);
 
 void SetFlags(const ParameterValues& params) {
+  if (!params.pipeline_mode.empty()) {
+    absl::SetFlag(&FLAGS_pipeline_mode, params.pipeline_mode);
+  }
+
   if (!params.backend.empty()) {
     absl::SetFlag(&FLAGS_backend, params.backend);
   }

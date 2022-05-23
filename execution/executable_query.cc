@@ -1,5 +1,9 @@
 #include "execution/executable_query.h"
 
+#include <iostream>
+
+#include "absl/flags/flag.h"
+
 #include "compile/translators/operator_translator.h"
 #include "execution/pipeline.h"
 #include "khir/asm/asm_backend.h"
@@ -7,7 +11,12 @@
 #include "khir/backend.h"
 #include "khir/llvm/llvm_backend.h"
 
+ABSL_FLAG(std::string, pipeline_mode, "static",
+          "Pipeline Mode: static/adaptive.");
+
 namespace kush::execution {
+
+enum class PipelineMode { STATIC, ADAPTIVE };
 
 ExecutableQuery::ExecutableQuery(
     std::unique_ptr<compile::OperatorTranslator> translator,
@@ -83,11 +92,25 @@ void CleanUpPredecessors(
   }
 }
 
-constexpr int32_t CHUNK_SIZE = 1 << 14;
+constexpr int32_t CHUNK_SIZE = 1 << 13;
 
 void ExecutableQuery::Execute() {
+  PipelineMode mode;
+  if (FLAGS_pipeline_mode.CurrentValue() == "static") {
+    mode = PipelineMode::STATIC;
+  } else if (FLAGS_pipeline_mode.CurrentValue() == "adaptive") {
+    mode = PipelineMode::ADAPTIVE;
+  } else {
+    throw std::runtime_error("Unknown pipeline mode.");
+  }
+
   std::unique_ptr<khir::Backend> backend;
-  switch (khir::GetBackendType()) {
+  std::unique_ptr<khir::Backend> optimized_backend;
+  auto backend_type = khir::GetBackendType();
+  if (mode == PipelineMode::ADAPTIVE) {
+    backend_type = khir::BackendType::ASM;
+  }
+  switch (backend_type) {
     case khir::BackendType::ASM: {
       auto b = std::make_unique<khir::ASMBackend>(*program_,
                                                   khir::GetRegAllocImpl());
@@ -97,10 +120,12 @@ void ExecutableQuery::Execute() {
     }
 
     case khir::BackendType::LLVM: {
-      auto b = std::make_unique<khir::LLVMBackend>(*program_);
-      backend = std::move(b);
+      backend = std::make_unique<khir::LLVMBackend>(*program_);
       break;
     }
+  }
+  if (mode == PipelineMode::ADAPTIVE) {
+    optimized_backend = std::make_unique<khir::LLVMBackend>(*program_);
   }
 
   auto pipelines = pipelines_.Pipelines();
@@ -126,13 +151,60 @@ void ExecutableQuery::Execute() {
       auto input_size = GetInputSize(i, pipelines, *backend);
       auto body = reinterpret_cast<split_body_fn>(
           backend->GetFunction(pipelines[i].get().BodyName()));
-      int32_t next_tuple = 0;
-      while (next_tuple < input_size) {
-        auto start = next_tuple;
-        auto end = std::min(next_tuple + CHUNK_SIZE - 1, input_size - 1);
-        body(start, end);
-        next_tuple = end + 1;
+
+      if (mode == PipelineMode::ADAPTIVE) {
+        int count = 0;
+        int THRESHOLD = 2;
+        double tot = 0;
+
+        int32_t next_tuple = 0;
+        while (next_tuple < input_size && count < THRESHOLD) {
+          auto start = next_tuple;
+          auto end = std::min(next_tuple + CHUNK_SIZE - 1, input_size - 1);
+
+          next_tuple = end + 1;
+
+          auto t1 = std::chrono::high_resolution_clock::now();
+          body(start, end);
+          auto t2 = std::chrono::high_resolution_clock::now();
+          std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+          tot += fp_ms.count();
+          count++;
+        }
+
+        if (next_tuple < input_size) {
+          auto time_per_morsel = tot / THRESHOLD;
+          // estimate a 1.2x speedup
+          // estimate comp time at 10ms?
+          auto opt_time_per_morsel = time_per_morsel / 1.2;
+          auto num_morsels_left = (input_size - next_tuple) / CHUNK_SIZE;
+
+          auto duration_unoptimized = time_per_morsel * num_morsels_left;
+          auto duration_optimized = opt_time_per_morsel * num_morsels_left + 10;
+
+          auto exec = body;
+          if (duration_optimized < duration_unoptimized) {
+            exec = reinterpret_cast<split_body_fn>(
+                optimized_backend->GetFunction(pipelines[i].get().BodyName()));
+          }
+
+          while (next_tuple < input_size) {
+            auto start = next_tuple;
+            auto end = std::min(next_tuple + CHUNK_SIZE - 1, input_size - 1);
+            exec(start, end);
+            next_tuple = end + 1;
+          }
+        }
+      } else {
+        int32_t next_tuple = 0;
+        while (next_tuple < input_size) {
+          auto start = next_tuple;
+          auto end = std::min(next_tuple + CHUNK_SIZE - 1, input_size - 1);
+          body(start, end);
+          next_tuple = end + 1;
+        }
       }
+
     } else {
       auto body = reinterpret_cast<body_fn>(
           backend->GetFunction(pipelines[i].get().BodyName()));

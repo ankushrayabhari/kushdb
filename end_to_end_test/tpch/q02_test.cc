@@ -336,3 +336,7 @@ INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan, TPCHTest,
 
 INSTANTIATE_TEST_SUITE_P(LLVMBackend, TPCHTest,
                          testing::Values(ParameterValues{.backend = "llvm"}));
+
+INSTANTIATE_TEST_SUITE_P(Adaptive, TPCHTest,
+                         testing::Values(ParameterValues{
+                             .pipeline_mode = "adaptive"}));
