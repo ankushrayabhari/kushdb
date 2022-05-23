@@ -35,24 +35,23 @@ class HybridSkinnerJoinTranslator : public OperatorTranslator,
   void Produce(proxy::Pipeline&) override;
   void Consume(OperatorTranslator& src) override;
   ExecuteJoinFn CompileJoinOrder(
-      const std::vector<int>& order, void** materialized_buffers,
-      void** materialized_indexes, void* tuple_idx_table, int32_t* progress_arr,
-      int32_t* table_ctr, int32_t* idx_arr, int32_t* offset_arr,
-      std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler)
+      const std::vector<int>& order, void** materialized_buffers_raw,
+      void** materialized_indexes_raw, void* tuple_idx_table_ptr_raw,
+      int32_t* progress_arr_raw, int32_t* table_ctr_raw, int32_t* idx_arr_raw,
+      int32_t* offset_arr_raw,
+      std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler_raw)
       override;
 
  private:
   bool ShouldExecute(int pred, int table_idx,
                      const absl::flat_hash_set<int>& available_tables);
 
-  std::string CompileFullJoinOrder(
-      std::vector<std::unique_ptr<proxy::MaterializedBuffer>>&
-          materialized_buffers,
-      std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
-      proxy::TupleIdxTable& tuple_idx_table, khir::Value idx_array,
-      khir::Value progress_arr, khir::Value offset_array,
-      khir::Value table_ctr_ptr, khir::Value valid_tuple_handler,
-      const std::vector<int>& order);
+  void CompileFullJoinOrder(
+      CacheEntry& entry, const std::vector<int>& order,
+      void** materialized_buffers_raw, void** materialized_indexes_raw,
+      void* tuple_idx_table_ptr_raw, int32_t* progress_arr_raw,
+      int32_t* table_ctr_raw, int32_t* idx_arr_raw, int32_t* offset_arr_raw,
+      std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler_raw);
 
   const plan::SkinnerJoinOperator& join_;
   khir::ProgramBuilder* program_;

@@ -390,6 +390,7 @@ cc_library(
         ":cross_product_translator",
         ":group_by_aggregate_translator",
         ":hash_join_translator",
+        ":hybrid_skinner_join_translator",
         ":operator_translator",
         ":order_by_translator",
         ":output_translator",

@@ -54,7 +54,8 @@ class HybridRecompilingTableFunction {
   static int table_;
 };
 
-bool EqualityPredicate(std::reference_wrapper<const plan::Expression> expr) {
+bool CheckEqualityPredicate(
+    std::reference_wrapper<const plan::Expression> expr) {
   if (auto eq =
           dynamic_cast<const plan::BinaryArithmeticExpression*>(&expr.get())) {
     if (eq->OpType() == plan::BinaryArithmeticExpressionType::EQ) {
@@ -99,17 +100,68 @@ bool HybridSkinnerJoinTranslator::ShouldExecute(
   return true;
 }
 
-std::string HybridSkinnerJoinTranslator::CompileFullJoinOrder(
-    std::vector<std::unique_ptr<proxy::MaterializedBuffer>>&
-        materialized_buffers,
-    std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
-    proxy::TupleIdxTable& tuple_idx_table, khir::Value idx_array,
-    khir::Value progress_arr, khir::Value offset_array,
-    khir::Value table_ctr_ptr, khir::Value valid_tuple_handler,
-    const std::vector<int>& order) {
+void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
+    CacheEntry& entry, const std::vector<int>& order,
+    void** materialized_buffers_raw, void** materialized_indexes_raw,
+    void* tuple_idx_table_ptr_raw, int32_t* progress_arr_raw,
+    int32_t* table_ctr_raw, int32_t* idx_arr_raw, int32_t* offset_arr_raw,
+    std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler_raw) {
   auto child_translators = this->Children();
   auto child_operators = this->join_.Children();
   auto conditions = join_.Conditions();
+
+  khir::ProgramBuilder program_builder;
+  program_ = &program_builder;
+
+  ForwardDeclare(*program_);
+  expr_translator_ = std::make_unique<ExpressionTranslator>(*program_, *this);
+
+  // Regenerate idx array.
+  auto idx_array_type = program_->PointerType(program_->I32Type());
+  auto idx_array =
+      program_->PointerCast(program_->ConstPtr(idx_arr_raw), idx_array_type);
+
+  // Regenerate progress array
+  auto progress_array_type = program_->PointerType(program_->I32Type());
+  auto progress_arr = program_->PointerCast(
+      program_->ConstPtr(progress_arr_raw), progress_array_type);
+
+  // Regenerate offset array
+  auto offset_array_type = program_->PointerType(program_->I32Type());
+  auto offset_array = program_->PointerCast(program_->ConstPtr(offset_arr_raw),
+                                            offset_array_type);
+
+  // Regenerate table_ctr
+  auto table_ctr_type = program_->PointerType(program_->I32Type());
+  auto table_ctr_ptr =
+      program_->PointerCast(program_->ConstPtr(table_ctr_raw), table_ctr_type);
+
+  // Regenerate all child struct types/buffers in new program
+  std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers;
+  for (int i = 0; i < join_.Children().size(); i++) {
+    materialized_buffers.push_back(materialized_buffers_[i]->Regenerate(
+        *program_, materialized_buffers_raw[i]));
+  }
+
+  // Regenerate all indexes in new program
+  std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes;
+  for (int i = 0; i < indexes_.size(); i++) {
+    indexes.push_back(
+        indexes_[i]->Regenerate(*program_, materialized_indexes_raw[i]));
+  }
+
+  // Regenerate tuple idx table
+  proxy::TupleIdxTable tuple_idx_table(
+      *program_,
+      program_->PointerCast(program_->ConstPtr(tuple_idx_table_ptr_raw),
+                            program_->PointerType(program_->GetOpaqueType(
+                                proxy::TupleIdxTable::TypeName))));
+
+  // Regenerate valid_tuple_handler
+  auto valid_tuple_handler = program_->PointerCast(
+      program_->ConstPtr((void*)valid_tuple_handler_raw),
+      program_->PointerType(program_->FunctionType(
+          program_->I32Type(), {program_->I32Type(), program_->I1Type()})));
 
   std::vector<std::string> func_names(order.size());
   std::string func_name = std::to_string(order[0]);
@@ -194,7 +246,7 @@ std::string HybridSkinnerJoinTranslator::CompileFullJoinOrder(
             }
 
             auto cond = conditions[pred];
-            if (!EqualityPredicate(cond)) {
+            if (!CheckEqualityPredicate(cond)) {
               continue;
             }
 
@@ -716,7 +768,7 @@ std::string HybridSkinnerJoinTranslator::CompileFullJoinOrder(
         });
   }
 
-  return func_names[order[0]];
+  entry.Compile(program_builder.Build(), func_names[order[0]]);
 }
 
 RecompilingJoinTranslator::ExecuteJoinFn
@@ -725,69 +777,16 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
     void** materialized_indexes_raw, void* tuple_idx_table_ptr_raw,
     int32_t* progress_arr_raw, int32_t* table_ctr_raw, int32_t* idx_arr_raw,
     int32_t* offset_arr_raw,
-    std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler) {
+    std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler_raw) {
   auto& entry = cache_.GetOrInsert(order);
   if (entry.IsCompiled()) {
     return reinterpret_cast<ExecuteJoinFn>(entry.Func());
   }
 
-  khir::ProgramBuilder program_builder;
-  program_ = &program_builder;
-
-  ForwardDeclare(*program_);
-  expr_translator_ = std::make_unique<ExpressionTranslator>(*program_, *this);
-
-  // Regenerate idx array.
-  auto idx_array_type = program_->PointerType(program_->I32Type());
-  auto idx_array =
-      program_->PointerCast(program_->ConstPtr(idx_arr_raw), idx_array_type);
-
-  // Regenerate progress array
-  auto progress_array_type = program_->PointerType(program_->I32Type());
-  auto progress_arr = program_->PointerCast(
-      program_->ConstPtr(progress_arr_raw), progress_array_type);
-
-  // Regenerate offset array
-  auto offset_array_type = program_->PointerType(program_->I32Type());
-  auto offset_array = program_->PointerCast(program_->ConstPtr(offset_arr_raw),
-                                            offset_array_type);
-
-  // Regenerate table_ctr
-  auto table_ctr_type = program_->PointerType(program_->I32Type());
-  auto table_ctr_ptr =
-      program_->PointerCast(program_->ConstPtr(table_ctr_raw), table_ctr_type);
-
-  // Regenerate all child struct types/buffers in new program
-  std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers;
-  for (int i = 0; i < join_.Children().size(); i++) {
-    materialized_buffers.push_back(materialized_buffers_[i]->Regenerate(
-        *program_, materialized_buffers_raw[i]));
-  }
-
-  // Regenerate all indexes in new program
-  std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes;
-  for (int i = 0; i < indexes_.size(); i++) {
-    indexes.push_back(
-        indexes_[i]->Regenerate(*program_, materialized_indexes_raw[i]));
-  }
-
-  // Regenerate tuple idx table
-  proxy::TupleIdxTable tuple_idx_table(
-      *program_,
-      program_->PointerCast(program_->ConstPtr(tuple_idx_table_ptr_raw),
-                            program_->PointerType(program_->GetOpaqueType(
-                                proxy::TupleIdxTable::TypeName))));
-
-  // Regenerate valid_tuple_handler
-  auto handler = program_->PointerCast(
-      program_->ConstPtr((void*)valid_tuple_handler),
-      program_->PointerType(program_->FunctionType(
-          program_->I32Type(), {program_->I32Type(), program_->I1Type()})));
-
-  auto join_order = CompileFullJoinOrder(
-      materialized_buffers, indexes, tuple_idx_table, idx_array, progress_arr,
-      offset_array, table_ctr_ptr, handler, order);
-  entry.Compile(program_builder.Build(), join_order);
+  CompileFullJoinOrder(entry, order, materialized_buffers_raw,
+                       materialized_indexes_raw, tuple_idx_table_ptr_raw,
+                       progress_arr_raw, table_ctr_raw, idx_arr_raw,
+                       offset_arr_raw, valid_tuple_handler_raw);
   return reinterpret_cast<ExecuteJoinFn>(entry.Func());
 }
 

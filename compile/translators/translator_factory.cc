@@ -8,6 +8,7 @@
 #include "compile/translators/cross_product_translator.h"
 #include "compile/translators/group_by_aggregate_translator.h"
 #include "compile/translators/hash_join_translator.h"
+#include "compile/translators/hybrid_skinner_join_translator.h"
 #include "compile/translators/operator_translator.h"
 #include "compile/translators/order_by_translator.h"
 #include "compile/translators/output_translator.h"
@@ -88,7 +89,7 @@ void TranslatorFactory::Visit(const plan::SkinnerJoinOperator& skinner_join) {
   }
 
   if (FLAGS_skinner_join.CurrentValue() == "hybrid") {
-    this->Return(std::make_unique<RecompilingSkinnerJoinTranslator>(
+    this->Return(std::make_unique<HybridSkinnerJoinTranslator>(
         skinner_join, program_, pipeline_builder_, state_,
         GetChildTranslators(skinner_join)));
     return;
