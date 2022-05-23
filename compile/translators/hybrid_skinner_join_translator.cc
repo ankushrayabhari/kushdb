@@ -25,15 +25,121 @@
 #include "compile/translators/predicate_column_collector.h"
 #include "compile/translators/recompiling_join_translator.h"
 #include "compile/translators/scan_translator.h"
+#include "khir/asm/asm_backend.h"
+#include "khir/llvm/llvm_backend.h"
 #include "khir/program_builder.h"
 #include "khir/program_printer.h"
 #include "util/vector_util.h"
 
 namespace kush::compile {
 
-class HybridRecompilingTableFunction {
+PermutableCache::PermutableCache(int num_tables)
+    : num_tables_(num_tables),
+      table_handlers_(new void*[num_tables]),
+      num_flags_(-1),
+      flags_(nullptr) {}
+
+int8_t* PermutableCache::AllocateFlags(int num_flags) {
+  num_flags_ = num_flags;
+  flags_ = new int8_t[num_flags];
+  return flags_;
+}
+
+void PermutableCache::SetValidTupleHandler(void* valid) {
+  valid_tuple_handler_ = valid;
+}
+
+void PermutableCache::SetFlagInfo(
+    int total_preds,
+    absl::flat_hash_map<std::pair<int, int>, int> pred_table_to_flag) {
+  total_preds_ = total_preds;
+  pred_table_to_flag_ = std::move(pred_table_to_flag);
+}
+
+void* PermutableCache::Order(const std::vector<int>& order) {
+  // Reset all flags to 0
+  for (int i = 0; i < num_flags_; i++) {
+    flags_[i] = 0;
+  }
+
+  // Set all predicate flags
+  absl::flat_hash_set<int> available_tables;
+  absl::flat_hash_set<int> executed_preds;
+  for (int order_idx = 0; order_idx < order.size(); order_idx++) {
+    auto table = order[order_idx];
+    available_tables.insert(table);
+
+    // all tables in available_tables have been joined
+    // execute any non-executed general predicate
+    for (int pred = 0; pred < total_preds_; pred++) {
+      if (executed_preds.contains(pred)) {
+        continue;
+      }
+
+      bool all_tables_available = true;
+      for (int t = 0; t < order.size(); t++) {
+        if (pred_table_to_flag_.contains({pred, t})) {
+          all_tables_available =
+              all_tables_available && available_tables.contains(t);
+        }
+      }
+      if (!all_tables_available) {
+        continue;
+      }
+      executed_preds.insert(pred);
+
+      auto flag = pred_table_to_flag_.at({pred, table});
+      flags_[flag] = 1;
+    }
+  }
+
+  for (int i = 0; i < order.size() - 1; i++) {
+    // set the ith handler to i+1 function
+    int current_table = order[i];
+    int next_table = order[i + 1];
+
+    table_handlers_[current_table] = table_functions_[next_table];
+  }
+
+  // set last handler to be the valid tuple handler
+  table_handlers_[order[order.size() - 1]] = valid_tuple_handler_;
+
+  return table_functions_[order[0]];
+}
+
+void* PermutableCache::TableHandlers() { return table_handlers_; }
+
+bool PermutableCache::IsCompiled() const { return program_ != nullptr; }
+
+void PermutableCache::Compile(std::unique_ptr<khir::Program> program,
+                              std::vector<std::string> function_names) {
+  program_ = std::move(program);
+
+  switch (khir::GetBackendType()) {
+    case khir::BackendType::ASM: {
+      auto backend =
+          std::make_unique<khir::ASMBackend>(*program_, khir::RegAllocImpl());
+      backend->Compile();
+      backend_ = std::move(backend);
+      break;
+    }
+
+    case khir::BackendType::LLVM: {
+      auto backend = std::make_unique<khir::LLVMBackend>(*program_);
+      backend_ = std::move(backend);
+      break;
+    }
+  }
+
+  table_functions_ = std::vector<void*>(num_tables_);
+  for (int i = 0; i < num_tables_; i++) {
+    table_functions_[i] = backend_->GetFunction(function_names[i]);
+  }
+}
+
+class HybridTableFunction {
  public:
-  HybridRecompilingTableFunction(
+  HybridTableFunction(
       std::string name, khir::ProgramBuilder& program,
       std::function<proxy::Int32(proxy::Int32&, proxy::Bool&)> body) {
     func_ = program.CreateNamedFunction(
@@ -82,7 +188,8 @@ HybridSkinnerJoinTranslator::HybridSkinnerJoinTranslator(
       state_(state),
       expr_translator_(
           std::make_unique<ExpressionTranslator>(*program_, *this)),
-      cache_(join_.Children().size()) {}
+      cache_(join_.Children().size()),
+      permutable_cache_(join_.Children().size()) {}
 
 bool HybridSkinnerJoinTranslator::ShouldExecute(
     int pred, int table_idx, const absl::flat_hash_set<int>& available_tables) {
@@ -116,25 +223,23 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
   ForwardDeclare(*program_);
   expr_translator_ = std::make_unique<ExpressionTranslator>(*program_, *this);
 
+  auto i32_ty = program_->I32Type();
+
   // Regenerate idx array.
-  auto idx_array_type = program_->PointerType(program_->I32Type());
-  auto idx_array =
-      program_->PointerCast(program_->ConstPtr(idx_arr_raw), idx_array_type);
+  auto idx_array = program_->PointerCast(program_->ConstPtr(idx_arr_raw),
+                                         program_->PointerType(i32_ty));
 
   // Regenerate progress array
-  auto progress_array_type = program_->PointerType(program_->I32Type());
   auto progress_arr = program_->PointerCast(
-      program_->ConstPtr(progress_arr_raw), progress_array_type);
+      program_->ConstPtr(progress_arr_raw), program_->PointerType(i32_ty));
 
   // Regenerate offset array
-  auto offset_array_type = program_->PointerType(program_->I32Type());
   auto offset_array = program_->PointerCast(program_->ConstPtr(offset_arr_raw),
-                                            offset_array_type);
+                                            program_->PointerType(i32_ty));
 
   // Regenerate table_ctr
-  auto table_ctr_type = program_->PointerType(program_->I32Type());
-  auto table_ctr_ptr =
-      program_->PointerCast(program_->ConstPtr(table_ctr_raw), table_ctr_type);
+  auto table_ctr_ptr = program_->PointerCast(program_->ConstPtr(table_ctr_raw),
+                                             program_->PointerType(i32_ty));
 
   // Regenerate all child struct types/buffers in new program
   std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers;
@@ -188,12 +293,12 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
   // - add remaining for each general column
   auto predicate_struct = std::make_unique<proxy::StructBuilder>(*program_);
   absl::flat_hash_map<std::pair<int, int>, int>
-      colref_to_predicate_struct_field_;
+      colref_to_predicate_struct_field;
   int pred_struct_size = 0;
   for (auto& c : predicate_columns_) {
     auto child_idx = c.get().GetChildIdx();
     auto column_idx = c.get().GetColumnIdx();
-    colref_to_predicate_struct_field_[{child_idx, column_idx}] =
+    colref_to_predicate_struct_field[{child_idx, column_idx}] =
         pred_struct_size++;
     const auto& column_schema =
         child_operators[child_idx].get().Schema().Columns()[column_idx];
@@ -209,14 +314,12 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
           program_->ConstantStruct(predicate_struct->Type(),
                                    predicate_struct->DefaultValues())));
 
-  std::vector<HybridRecompilingTableFunction> table_functions;
+  std::vector<HybridTableFunction> table_functions;
 
   absl::flat_hash_set<int> available_tables;
   for (int t : order) {
     available_tables.insert(t);
   }
-
-  auto i32_ptr_ty = program_->PointerType(program_->I32Type());
 
   for (int order_idx = order.size() - 1; order_idx >= 0; order_idx--) {
     auto table_idx = order[order_idx];
@@ -270,7 +373,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
             std::pair<int, int> key = {other_colref.GetChildIdx(),
                                        other_colref.GetColumnIdx()};
             if (!loaded_columns.contains(key)) {
-              auto field = colref_to_predicate_struct_field_.at(key);
+              auto field = colref_to_predicate_struct_field.at(key);
               auto& child_translator = child_translators[key.first].get();
               child_translator.SchemaValues().SetValue(
                   key.second, global_predicate_struct.Get(field));
@@ -286,13 +389,11 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                   proxy::If(
                       *program_, budget == 0,
                       [&]() {
-                        auto idx_ptr = program_->StaticGEP(
-                            i32_ptr_ty, idx_array, {0, table_idx});
+                        auto idx_ptr =
+                            program_->StaticGEP(i32_ty, idx_array, {table_idx});
                         program_->StoreI32(idx_ptr, (cardinality - 1).Get());
-                        program_->StoreI32(
-                            program_->StaticGEP(i32_ptr_ty, table_ctr_ptr,
-                                                {0, 0}),
-                            program_->ConstI32(table_idx));
+                        program_->StoreI32(table_ctr_ptr,
+                                           program_->ConstI32(table_idx));
                         program_->Return(program_->ConstI32(-1));
                       },
                       [&]() { program_->Return(budget.Get()); });
@@ -313,13 +414,11 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                     proxy::If(
                         *program_, budget == 0,
                         [&]() {
-                          auto idx_ptr = program_->StaticGEP(
-                              i32_ptr_ty, idx_array, {0, table_idx});
+                          auto idx_ptr = program_->StaticGEP(i32_ty, idx_array,
+                                                             {table_idx});
                           program_->StoreI32(idx_ptr, (cardinality - 1).Get());
-                          program_->StoreI32(
-                              program_->StaticGEP(i32_ptr_ty, table_ctr_ptr,
-                                                  {0, 0}),
-                              program_->ConstI32(table_idx));
+                          program_->StoreI32(table_ctr_ptr,
+                                             program_->ConstI32(table_idx));
                           program_->Return(program_->ConstI32(-1));
                         },
                         [&]() { program_->Return(budget.Get()); });
@@ -331,8 +430,8 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
             auto progress_next_tuple = proxy::Ternary(
                 *program_, resume_progress,
                 [&]() {
-                  auto progress_ptr = program_->StaticGEP(
-                      i32_ptr_ty, progress_arr, {0, table_idx});
+                  auto progress_ptr =
+                      program_->StaticGEP(i32_ty, progress_arr, {table_idx});
                   return proxy::Int32(*program_,
                                       program_->LoadI32(progress_ptr));
                 },
@@ -340,7 +439,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
             auto offset_next_tuple =
                 proxy::Int32(*program_,
                              program_->LoadI32(program_->StaticGEP(
-                                 i32_ptr_ty, offset_array, {0, table_idx}))) +
+                                 i32_ty, offset_array, {table_idx}))) +
                 1;
             auto initial_next_tuple = proxy::Ternary(
                 *program_, offset_next_tuple > progress_next_tuple,
@@ -389,8 +488,8 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                         auto continue_resume_progress = proxy::Ternary(
                             *program_, resume_progress,
                             [&]() {
-                              auto bucket_next_tuple_ptr = program_->StaticGEP(
-                                  program_->I32Type(), result, {0});
+                              auto bucket_next_tuple_ptr =
+                                  program_->StaticGEP(i32_ty, result, {0});
                               auto initial_next_tuple = proxy::Int32(
                                   *program_,
                                   program_->LoadI32(bucket_next_tuple_ptr));
@@ -415,8 +514,8 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                         auto next_tuple = SortedIntersectionResultGet(
                             *program_, result, bucket_idx);
 
-                        auto idx_ptr = program_->StaticGEP(
-                            i32_ptr_ty, idx_array, {0, table_idx});
+                        auto idx_ptr =
+                            program_->StaticGEP(i32_ty, idx_array, {table_idx});
                         program_->StoreI32(idx_ptr, next_tuple.Get());
 
                         /*
@@ -430,7 +529,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                         // values into the global_predicate_struct.
                         std::vector<std::pair<int, int>> cols;
                         for (auto [col_ref, field] :
-                             colref_to_predicate_struct_field_) {
+                             colref_to_predicate_struct_field) {
                           auto [child_idx, col_idx] = col_ref;
                           if (child_idx == table_idx) {
                             cols.emplace_back(col_idx, field);
@@ -466,7 +565,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                             if (key.first == table_idx) continue;
                             if (!loaded_columns.contains(key)) {
                               auto field =
-                                  colref_to_predicate_struct_field_.at(key);
+                                  colref_to_predicate_struct_field.at(key);
                               auto& child_translator =
                                   child_translators[key.first].get();
                               child_translator.SchemaValues().SetValue(
@@ -488,9 +587,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                                     *program_, budget == 0,
                                     [&]() {
                                       program_->StoreI32(
-                                          program_->StaticGEP(i32_ptr_ty,
-                                                              table_ctr_ptr,
-                                                              {0, 0}),
+                                          table_ctr_ptr,
                                           program_->ConstI32(table_idx));
                                       program_->Return(program_->ConstI32(-1));
                                     },
@@ -511,9 +608,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                                           *program_, budget == 0,
                                           [&]() {
                                             program_->StoreI32(
-                                                program_->StaticGEP(
-                                                    i32_ptr_ty, table_ctr_ptr,
-                                                    {0, 0}),
+                                                table_ctr_ptr,
                                                 program_->ConstI32(table_idx));
                                             program_->Return(
                                                 program_->ConstI32(-1));
@@ -528,10 +623,8 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                         }
 
                         proxy::If(*program_, budget == 0, [&]() {
-                          program_->StoreI32(
-                              program_->StaticGEP(i32_ptr_ty, table_ctr_ptr,
-                                                  {0, 0}),
-                              program_->ConstI32(table_idx));
+                          program_->StoreI32(table_ctr_ptr,
+                                             program_->ConstI32(table_idx));
                           program_->Return(program_->ConstI32(-2));
                         });
 
@@ -585,16 +678,15 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                       *program_, resume_progress,
                       [&]() {
                         auto progress_ptr = program_->StaticGEP(
-                            i32_ptr_ty, progress_arr, {0, table_idx});
+                            i32_ty, progress_arr, {table_idx});
                         return proxy::Int32(*program_,
                                             program_->LoadI32(progress_ptr));
                       },
                       [&]() { return proxy::Int32(*program_, 0); });
                   auto offset_next_tuple =
-                      proxy::Int32(
-                          *program_,
-                          program_->LoadI32(program_->StaticGEP(
-                              i32_ptr_ty, offset_array, {0, table_idx}))) +
+                      proxy::Int32(*program_,
+                                   program_->LoadI32(program_->StaticGEP(
+                                       i32_ty, offset_array, {table_idx}))) +
                       1;
                   auto initial_next_tuple = proxy::Ternary(
                       *program_, offset_next_tuple > progress_next_tuple,
@@ -608,7 +700,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                       *program_, resume_progress,
                       [&]() {
                         auto progress_ptr = program_->StaticGEP(
-                            i32_ptr_ty, progress_arr, {0, table_idx});
+                            i32_ty, progress_arr, {table_idx});
                         auto progress_next_tuple = proxy::Int32(
                             *program_, program_->LoadI32(progress_ptr));
                         return initial_next_tuple == progress_next_tuple;
@@ -629,8 +721,8 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                   auto resume_progress =
                       loop.template GetLoopVariable<proxy::Bool>(2);
 
-                  auto idx_ptr = program_->StaticGEP(i32_ptr_ty, idx_array,
-                                                     {0, table_idx});
+                  auto idx_ptr =
+                      program_->StaticGEP(i32_ty, idx_array, {table_idx});
                   program_->StoreI32(idx_ptr, next_tuple.Get());
 
                   /*
@@ -644,7 +736,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                   // values into the global_predicate_struct.
                   std::vector<std::pair<int, int>> cols;
                   for (auto [col_ref, field] :
-                       colref_to_predicate_struct_field_) {
+                       colref_to_predicate_struct_field) {
                     auto [child_idx, col_idx] = col_ref;
                     if (child_idx == table_idx) {
                       cols.emplace_back(col_idx, field);
@@ -671,7 +763,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                                                  col.get().GetColumnIdx()};
                       if (key.first == table_idx) continue;
                       if (!loaded_columns.contains(key)) {
-                        auto field = colref_to_predicate_struct_field_.at(key);
+                        auto field = colref_to_predicate_struct_field.at(key);
                         auto& child_translator =
                             child_translators[key.first].get();
                         child_translator.SchemaValues().SetValue(
@@ -692,8 +784,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                               *program_, budget == 0,
                               [&]() {
                                 program_->StoreI32(
-                                    program_->StaticGEP(i32_ptr_ty,
-                                                        table_ctr_ptr, {0, 0}),
+                                    table_ctr_ptr,
                                     program_->ConstI32(table_idx));
                                 program_->Return(program_->ConstI32(-1));
                               },
@@ -712,9 +803,7 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                                     *program_, budget == 0,
                                     [&]() {
                                       program_->StoreI32(
-                                          program_->StaticGEP(i32_ptr_ty,
-                                                              table_ctr_ptr,
-                                                              {0, 0}),
+                                          table_ctr_ptr,
                                           program_->ConstI32(table_idx));
                                       program_->Return(program_->ConstI32(-1));
                                     },
@@ -728,9 +817,8 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
                   }
 
                   proxy::If(*program_, budget == 0, [&]() {
-                    program_->StoreI32(
-                        program_->StaticGEP(i32_ptr_ty, table_ctr_ptr, {0, 0}),
-                        program_->ConstI32(table_idx));
+                    program_->StoreI32(table_ctr_ptr,
+                                       program_->ConstI32(table_idx));
                     program_->Return(program_->ConstI32(-2));
                   });
 
@@ -771,6 +859,656 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
   entry.Compile(program_builder.Build(), func_names[order[0]]);
 }
 
+void HybridSkinnerJoinTranslator::CompilePermutable(
+    PermutableCache& entry, void** materialized_buffers_raw,
+    void** materialized_indexes_raw, void* tuple_idx_table_ptr_raw,
+    int32_t* progress_arr_raw, int32_t* table_ctr_raw, int32_t* idx_arr_raw,
+    int32_t* offset_arr_raw,
+    std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler_raw) {
+  auto child_translators = this->Children();
+  auto child_operators = this->join_.Children();
+  auto conditions = join_.Conditions();
+
+  khir::ProgramBuilder program_builder;
+  program_ = &program_builder;
+
+  ForwardDeclare(*program_);
+  expr_translator_ = std::make_unique<ExpressionTranslator>(*program_, *this);
+
+  auto i32_ty = program_->I32Type();
+
+  // Regenerate idx array.
+  auto idx_array = program_->PointerCast(program_->ConstPtr(idx_arr_raw),
+                                         program_->PointerType(i32_ty));
+
+  // Regenerate progress array
+  auto progress_arr = program_->PointerCast(
+      program_->ConstPtr(progress_arr_raw), program_->PointerType(i32_ty));
+
+  // Regenerate offset array
+  auto offset_array = program_->PointerCast(program_->ConstPtr(offset_arr_raw),
+                                            program_->PointerType(i32_ty));
+
+  // Regenerate table_ctr
+  auto table_ctr_ptr = program_->PointerCast(program_->ConstPtr(table_ctr_raw),
+                                             program_->PointerType(i32_ty));
+
+  // Regenerate all child struct types/buffers in new program
+  std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers;
+  for (int i = 0; i < join_.Children().size(); i++) {
+    materialized_buffers.push_back(materialized_buffers_[i]->Regenerate(
+        *program_, materialized_buffers_raw[i]));
+  }
+
+  // Regenerate all indexes in new program
+  std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes;
+  for (int i = 0; i < indexes_.size(); i++) {
+    indexes.push_back(
+        indexes_[i]->Regenerate(*program_, materialized_indexes_raw[i]));
+  }
+
+  // Regenerate tuple idx table
+  proxy::TupleIdxTable tuple_idx_table(
+      *program_,
+      program_->PointerCast(program_->ConstPtr(tuple_idx_table_ptr_raw),
+                            program_->PointerType(program_->GetOpaqueType(
+                                proxy::TupleIdxTable::TypeName))));
+
+  std::vector<std::string> func_names(child_operators.size());
+  for (int i = 0; i < child_operators.size(); i++) {
+    func_names[i] = "permute_table_" + std::to_string(i);
+  }
+
+  // Fill child handlers.
+  for (int i = 0; i < child_translators.size(); i++) {
+    auto& child_translator = child_translators[i].get();
+    auto& child_operator = child_operators[i].get();
+    child_translator.SchemaValues().PopulateWithNotNull(
+        *program_, child_operator.Schema());
+  }
+
+  // Setup join evaluation. Setup struct of predicate columns.
+  proxy::StructBuilder predicate_struct(*program_);
+  absl::flat_hash_map<std::pair<int, int>, int>
+      colref_to_predicate_struct_field;
+  int pred_struct_size = 0;
+  for (auto& c : predicate_columns_) {
+    auto child_idx = c.get().GetChildIdx();
+    auto column_idx = c.get().GetColumnIdx();
+    colref_to_predicate_struct_field[{child_idx, column_idx}] =
+        pred_struct_size++;
+    const auto& column_schema =
+        child_operators[child_idx].get().Schema().Columns()[column_idx];
+    predicate_struct.Add(column_schema.Expr().Type(),
+                         column_schema.Expr().Nullable());
+  }
+  predicate_struct.Build();
+
+  proxy::Struct global_predicate_struct(
+      *program_, predicate_struct,
+      program_->Global(
+          predicate_struct.Type(),
+          program_->ConstantStruct(predicate_struct.Type(),
+                                   predicate_struct.DefaultValues())));
+
+  // Setup flag array. Allocate a flag for each table in a predicate.
+  absl::flat_hash_map<std::pair<int, int>, int> pred_table_to_flag;
+  int total_flags = 0;
+  for (int pred = 0; pred < conditions.size(); pred++) {
+    PredicateColumnCollector collector;
+    conditions[pred].get().Accept(collector);
+    auto cond = collector.PredicateColumns();
+
+    absl::flat_hash_set<int> tables;
+    for (const auto& col_ref : cond) {
+      tables.insert(col_ref.get().GetChildIdx());
+    }
+
+    for (auto t : tables) {
+      if (!join_.PrefixOrder().empty() && join_.PrefixOrder()[0] == t) {
+        continue;
+      }
+
+      pred_table_to_flag[{pred, t}] = total_flags++;
+    }
+  }
+
+  auto i8_ty = program_->I8Type();
+  auto flag_array = program_->PointerCast(
+      program_->ConstPtr(entry.AllocateFlags(total_flags)),
+      program_->PointerType(i8_ty));
+
+  auto handler_ptr_ty = program_->PointerType(program_->FunctionType(
+      program_->I32Type(), {program_->I32Type(), program_->I1Type()}));
+  auto handler_array =
+      program_->PointerCast(program_->ConstPtr(entry.TableHandlers()),
+                            program_->PointerType(handler_ptr_ty));
+
+  int bucket_list_max_size = predicate_columns_.size();
+  std::vector<HybridTableFunction> table_functions;
+  for (int table_idx = 0; table_idx < child_translators.size(); table_idx++) {
+    table_functions.emplace_back(
+        func_names[table_idx], *program_,
+        [&](auto& initial_budget, auto& resume_progress) {
+          auto handler_ptr =
+              program_->StaticGEP(handler_ptr_ty, handler_array, {table_idx});
+          auto handler = program_->LoadPtr(handler_ptr);
+
+          {
+            // Unpack the predicate struct.
+            auto column_values = global_predicate_struct.Unpack();
+
+            for (const auto& [colref, field] :
+                 colref_to_predicate_struct_field) {
+              auto [child_idx, col_idx] = colref;
+
+              // Set the ColumnIdx value of the ChildIdx operator to be the
+              // unpacked value.
+              auto& child_translator = child_translators[child_idx].get();
+              child_translator.SchemaValues().SetValue(col_idx,
+                                                       column_values[field]);
+            }
+          }
+
+          auto& buffer = *materialized_buffers[table_idx];
+          auto cardinality = buffer.Size();
+
+          // for each equality predicate, if the buffer DNE, then return since
+          // no result tuples with current column values.
+          proxy::ColumnIndexBucketArray bucket_list(*program_,
+                                                    bucket_list_max_size);
+
+          for (auto [pred_table, flag] : pred_table_to_flag) {
+            if (pred_table.second != table_idx) {
+              continue;
+            }
+
+            auto cond = conditions[pred_table.first];
+            if (!CheckEqualityPredicate(cond)) {
+              continue;
+            }
+            const auto& eq =
+                dynamic_cast<const plan::BinaryArithmeticExpression&>(
+                    cond.get());
+            const auto& left =
+                dynamic_cast<const plan::ColumnRefExpression&>(eq.LeftChild());
+            const auto& right =
+                dynamic_cast<const plan::ColumnRefExpression&>(eq.RightChild());
+
+            auto flag_ptr = program_->StaticGEP(i8_ty, flag_array, {flag});
+            proxy::Int8 flag_value(*program_, program_->LoadI8(flag_ptr));
+
+            proxy::If(*program_, flag_value != 0, [&]() {
+              auto other_side_value = left.GetChildIdx() == table_idx
+                                          ? expr_translator_->Compute(right)
+                                          : expr_translator_->Compute(left);
+              auto table_column = left.GetChildIdx() == table_idx
+                                      ? left.GetColumnIdx()
+                                      : right.GetColumnIdx();
+
+              proxy::If(
+                  *program_, other_side_value.IsNull(),
+                  [&]() {
+                    auto budget = initial_budget - 1;
+                    proxy::If(
+                        *program_, budget == 0,
+                        [&]() {
+                          auto idx_ptr = program_->StaticGEP(i32_ty, idx_array,
+                                                             {table_idx});
+                          program_->StoreI32(idx_ptr, (cardinality - 1).Get());
+                          program_->StoreI32(table_ctr_ptr,
+                                             program_->ConstI32(table_idx));
+                          program_->Return(program_->ConstI32(-1));
+                        },
+                        [&]() { program_->Return(budget.Get()); });
+                  },
+                  [&]() {
+                    auto it =
+                        column_to_index_idx_.find({table_idx, table_column});
+                    if (it == column_to_index_idx_.end()) {
+                      throw std::runtime_error("Expected index.");
+                    }
+                    auto index_idx = it->second;
+
+                    auto bucket_from_index =
+                        indexes[index_idx]->GetBucket(other_side_value.Get());
+                    bucket_list.PushBack(bucket_from_index);
+                    proxy::If(*program_, bucket_from_index.DoesNotExist(),
+                              [&]() {
+                                auto budget = initial_budget - 1;
+                                proxy::If(
+                                    *program_, budget == 0,
+                                    [&]() {
+                                      auto idx_ptr = program_->StaticGEP(
+                                          i32_ty, idx_array, {table_idx});
+                                      program_->StoreI32(
+                                          idx_ptr, (cardinality - 1).Get());
+                                      program_->StoreI32(
+                                          table_ctr_ptr,
+                                          program_->ConstI32(table_idx));
+                                      program_->Return(program_->ConstI32(-1));
+                                    },
+                                    [&]() { program_->Return(budget.Get()); });
+                              });
+                  });
+            });
+          }
+
+          auto use_index = proxy::Ternary(
+              *program_, bucket_list.Size() > 0,
+              [&]() {
+                auto progress_next_tuple = proxy::Ternary(
+                    *program_, resume_progress,
+                    [&]() {
+                      auto progress_ptr = program_->StaticGEP(
+                          i32_ty, progress_arr, {table_idx});
+                      return proxy::Int32(*program_,
+                                          program_->LoadI32(progress_ptr));
+                    },
+                    [&]() { return proxy::Int32(*program_, 0); });
+                auto offset_next_tuple =
+                    proxy::Int32(*program_,
+                                 program_->LoadI32(program_->StaticGEP(
+                                     i32_ty, offset_array, {table_idx}))) +
+                    1;
+                auto initial_next_tuple = proxy::Ternary(
+                    *program_, offset_next_tuple > progress_next_tuple,
+                    [&]() { return offset_next_tuple; },
+                    [&]() { return progress_next_tuple; });
+
+                bucket_list.InitSortedIntersection(initial_next_tuple);
+
+                int result_max_size = 64;
+                auto result_array_type =
+                    program_->ArrayType(program_->I32Type(), result_max_size);
+                std::vector<khir::Value> initial_result_values(
+                    result_max_size, program_->ConstI32(0));
+                auto result_array = program_->Global(
+                    result_array_type,
+                    program_->ConstantArray(result_array_type,
+                                            initial_result_values));
+                auto result = program_->StaticGEP(result_array_type,
+                                                  result_array, {0, 0});
+
+                auto result_initial_size =
+                    bucket_list.PopulateSortedIntersectionResult(
+                        result, result_max_size);
+
+                proxy::Loop loop(
+                    *program_,
+                    [&](auto& loop) {
+                      loop.AddLoopVariable(initial_budget);
+                      loop.AddLoopVariable(result_initial_size);
+                    },
+                    [&](auto& loop) {
+                      auto result_size =
+                          loop.template GetLoopVariable<proxy::Int32>(1);
+                      return result_size > 0;
+                    },
+                    [&](auto& loop) {
+                      auto budget =
+                          loop.template GetLoopVariable<proxy::Int32>(0);
+                      auto result_size =
+                          loop.template GetLoopVariable<proxy::Int32>(1);
+
+                      // loop over all elements in result
+                      proxy::Loop result_loop(
+                          *program_,
+                          [&](auto& loop) {
+                            loop.AddLoopVariable(proxy::Int32(*program_, 0));
+                            loop.AddLoopVariable(budget);
+
+                            auto continue_resume_progress = proxy::Ternary(
+                                *program_, resume_progress,
+                                [&]() {
+                                  auto bucket_next_tuple_ptr =
+                                      program_->StaticGEP(i32_ty, result, {0});
+                                  auto initial_next_tuple = proxy::Int32(
+                                      *program_,
+                                      program_->LoadI32(bucket_next_tuple_ptr));
+                                  return initial_next_tuple ==
+                                         progress_next_tuple;
+                                },
+                                [&]() {
+                                  return proxy::Bool(*program_, false);
+                                });
+                            loop.AddLoopVariable(continue_resume_progress);
+                          },
+                          [&](auto& loop) {
+                            auto bucket_idx =
+                                loop.template GetLoopVariable<proxy::Int32>(0);
+                            return bucket_idx < result_size;
+                          },
+                          [&](auto& loop) {
+                            auto bucket_idx =
+                                loop.template GetLoopVariable<proxy::Int32>(0);
+                            auto budget =
+                                loop.template GetLoopVariable<proxy::Int32>(1) -
+                                1;
+                            auto resume_progress =
+                                loop.template GetLoopVariable<proxy::Bool>(2);
+
+                            auto next_tuple = SortedIntersectionResultGet(
+                                *program_, result, bucket_idx);
+
+                            auto idx_ptr = program_->StaticGEP(
+                                i32_ty, idx_array, {table_idx});
+                            program_->StoreI32(idx_ptr, next_tuple.Get());
+
+                            /*
+                            proxy::Printer printer(program_, true);
+                            printer.Print(proxy::Int32(*program_, table_idx));
+                            printer.Print(next_tuple);
+                            printer.PrintNewline();
+                            */
+
+                            // Store each of this table's predicate column
+                            // values into the global_predicate_struct.
+                            std::vector<std::pair<int, int>> cols;
+                            for (auto [col_ref, field] :
+                                 colref_to_predicate_struct_field) {
+                              auto [child_idx, col_idx] = col_ref;
+                              if (child_idx == table_idx) {
+                                cols.emplace_back(col_idx, field);
+                              }
+                            }
+                            std::sort(cols.begin(), cols.end(),
+                                      [](const auto& p1, const auto& p2) {
+                                        return p1.first < p2.first;
+                                      });
+
+                            for (auto [col_idx, field] : cols) {
+                              auto value = buffer.Get(next_tuple, col_idx);
+                              child_translators[table_idx]
+                                  .get()
+                                  .SchemaValues()
+                                  .SetValue(col_idx, value);
+                            }
+
+                            for (auto [pred_table, flag] : pred_table_to_flag) {
+                              auto pred = pred_table.first;
+                              auto table = pred_table.second;
+                              if (table != table_idx) {
+                                continue;
+                              }
+
+                              auto flag_ptr = program_->StaticGEP(
+                                  i8_ty, flag_array, {flag});
+                              proxy::Int8 flag_value(
+                                  *program_, program_->LoadI8(flag_ptr));
+                              proxy::If(*program_, flag_value != 0, [&]() {
+                                auto cond = expr_translator_->Compute(
+                                    conditions[pred].get());
+
+                                proxy::If(
+                                    *program_, cond.IsNull(),
+                                    [&]() {
+                                      // If budget, depleted return -1 and set
+                                      // table ctr
+                                      proxy::If(
+                                          *program_, budget == 0,
+                                          [&]() {
+                                            program_->StoreI32(
+                                                table_ctr_ptr,
+                                                program_->ConstI32(table_idx));
+                                            program_->Return(
+                                                program_->ConstI32(-1));
+                                          },
+                                          [&]() {
+                                            loop.Continue(
+                                                bucket_idx + 1, budget,
+                                                proxy::Bool(*program_, false));
+                                          });
+                                    },
+                                    [&]() {
+                                      proxy::If(
+                                          *program_, NOT,
+                                          static_cast<proxy::Bool&>(cond.Get()),
+                                          [&]() {
+                                            // If budget, depleted return -1 and
+                                            // set table ctr
+                                            proxy::If(
+                                                *program_, budget == 0,
+                                                [&]() {
+                                                  program_->StoreI32(
+                                                      table_ctr_ptr,
+                                                      program_->ConstI32(
+                                                          table_idx));
+                                                  program_->Return(
+                                                      program_->ConstI32(-1));
+                                                },
+                                                [&]() {
+                                                  loop.Continue(
+                                                      bucket_idx + 1, budget,
+                                                      proxy::Bool(*program_,
+                                                                  false));
+                                                });
+                                          });
+                                    });
+                              });
+                            }
+
+                            proxy::If(*program_, budget == 0, [&]() {
+                              program_->StoreI32(table_ctr_ptr,
+                                                 program_->ConstI32(table_idx));
+                              program_->Return(program_->ConstI32(-2));
+                            });
+
+                            for (auto [col_idx, field] : cols) {
+                              auto value = child_translators[table_idx]
+                                               .get()
+                                               .SchemaValues()
+                                               .Value(col_idx);
+                              global_predicate_struct.Update(field, value);
+                            }
+
+                            // Valid tuple
+                            auto next_budget = proxy::Int32(
+                                *program_,
+                                program_->Call(
+                                    handler,
+                                    {budget.Get(), resume_progress.Get()}));
+                            proxy::If(*program_, next_budget < 0, [&]() {
+                              program_->Return(next_budget.Get());
+                            });
+
+                            return loop.Continue(bucket_idx + 1, next_budget,
+                                                 proxy::Bool(*program_, false));
+                          });
+
+                      auto next_budget =
+                          result_loop.template GetLoopVariable<proxy::Int32>(1);
+                      auto next_result_size =
+                          bucket_list.PopulateSortedIntersectionResult(
+                              result, result_max_size);
+                      return loop.Continue(next_budget, next_result_size);
+                    });
+
+                return loop.template GetLoopVariable<proxy::Int32>(0);
+              },
+              [&]() {
+                // Loop over tuples in buffer
+                proxy::Loop loop(
+                    *program_,
+                    [&](auto& loop) {
+                      auto progress_next_tuple = proxy::Ternary(
+                          *program_, resume_progress,
+                          [&]() {
+                            auto progress_ptr = program_->StaticGEP(
+                                i32_ty, progress_arr, {table_idx});
+                            return proxy::Int32(
+                                *program_, program_->LoadI32(progress_ptr));
+                          },
+                          [&]() { return proxy::Int32(*program_, 0); });
+                      auto offset_next_tuple =
+                          proxy::Int32(
+                              *program_,
+                              program_->LoadI32(program_->StaticGEP(
+                                  i32_ty, offset_array, {table_idx}))) +
+                          1;
+                      auto initial_next_tuple = proxy::Ternary(
+                          *program_, offset_next_tuple > progress_next_tuple,
+                          [&]() { return offset_next_tuple; },
+                          [&]() { return progress_next_tuple; });
+
+                      loop.AddLoopVariable(initial_next_tuple);
+                      loop.AddLoopVariable(initial_budget);
+
+                      auto continue_resume_progress = proxy::Ternary(
+                          *program_, resume_progress,
+                          [&]() {
+                            auto progress_ptr = program_->StaticGEP(
+                                i32_ty, progress_arr, {table_idx});
+                            auto progress_next_tuple = proxy::Int32(
+                                *program_, program_->LoadI32(progress_ptr));
+                            return initial_next_tuple == progress_next_tuple;
+                          },
+                          [&]() { return proxy::Bool(*program_, false); });
+                      loop.AddLoopVariable(continue_resume_progress);
+                    },
+                    [&](auto& loop) {
+                      auto next_tuple =
+                          loop.template GetLoopVariable<proxy::Int32>(0);
+                      return next_tuple < cardinality;
+                    },
+                    [&](auto& loop) {
+                      auto next_tuple =
+                          loop.template GetLoopVariable<proxy::Int32>(0);
+                      auto budget =
+                          loop.template GetLoopVariable<proxy::Int32>(1) - 1;
+                      auto resume_progress =
+                          loop.template GetLoopVariable<proxy::Bool>(2);
+
+                      auto idx_ptr =
+                          program_->StaticGEP(i32_ty, idx_array, {table_idx});
+                      program_->StoreI32(idx_ptr, next_tuple.Get());
+
+                      /*
+                      proxy::Printer printer(*program_, true);
+                      printer.Print(proxy::Int32(*program_, table_idx));
+                      printer.Print(next_tuple);
+                      printer.PrintNewline();
+                      */
+
+                      std::vector<std::pair<int, int>> cols;
+                      for (auto [col_ref, field] :
+                           colref_to_predicate_struct_field) {
+                        auto [child_idx, col_idx] = col_ref;
+                        if (child_idx == table_idx) {
+                          cols.emplace_back(col_idx, field);
+                        }
+                      }
+                      std::sort(cols.begin(), cols.end(),
+                                [](const auto& p1, const auto& p2) {
+                                  return p1.first < p2.first;
+                                });
+
+                      for (auto [col_idx, field] : cols) {
+                        auto value = buffer.Get(next_tuple, col_idx);
+                        child_translators[table_idx]
+                            .get()
+                            .SchemaValues()
+                            .SetValue(col_idx, std::move(value));
+                      }
+
+                      for (auto [pred_table, flag] : pred_table_to_flag) {
+                        auto pred = pred_table.first;
+                        auto table = pred_table.second;
+                        if (table != table_idx) {
+                          continue;
+                        }
+
+                        auto flag_ptr =
+                            program_->StaticGEP(i8_ty, flag_array, {flag});
+                        proxy::Int8 flag_value(*program_,
+                                               program_->LoadI8(flag_ptr));
+                        proxy::If(*program_, flag_value != 0, [&]() {
+                          auto cond =
+                              expr_translator_->Compute(conditions[pred].get());
+
+                          proxy::If(
+                              *program_, cond.IsNull(),
+                              [&]() {
+                                // If budget, depleted return -1 and set
+                                // table ctr
+                                proxy::If(
+                                    *program_, budget == 0,
+                                    [&]() {
+                                      program_->StoreI32(
+                                          table_ctr_ptr,
+                                          program_->ConstI32(table_idx));
+                                      program_->Return(program_->ConstI32(-1));
+                                    },
+                                    [&]() {
+                                      loop.Continue(
+                                          next_tuple + 1, budget,
+                                          proxy::Bool(*program_, false));
+                                    });
+                              },
+                              [&]() {
+                                proxy::If(
+                                    *program_, NOT,
+                                    static_cast<proxy::Bool&>(cond.Get()),
+                                    [&]() {
+                                      // If budget, depleted return -1 and set
+                                      // table ctr
+                                      proxy::If(
+                                          *program_, budget == 0,
+                                          [&]() {
+                                            program_->StoreI32(
+                                                table_ctr_ptr,
+                                                program_->ConstI32(table_idx));
+                                            program_->Return(
+                                                program_->ConstI32(-1));
+                                          },
+                                          [&]() {
+                                            loop.Continue(
+                                                next_tuple + 1, budget,
+                                                proxy::Bool(*program_, false));
+                                          });
+                                    });
+                              });
+                        });
+                      }
+
+                      proxy::If(*program_, budget == 0, [&]() {
+                        program_->StoreI32(table_ctr_ptr,
+                                           program_->ConstI32(table_idx));
+                        program_->Return(program_->ConstI32(-2));
+                      });
+
+                      for (auto [col_idx, field] : cols) {
+                        auto value = child_translators[table_idx]
+                                         .get()
+                                         .SchemaValues()
+                                         .Value(col_idx);
+                        global_predicate_struct.Update(field, value);
+                      }
+
+                      // Valid tuple
+                      auto next_budget = proxy::Int32(
+                          *program_,
+                          program_->Call(
+                              handler, {budget.Get(), resume_progress.Get()}));
+                      proxy::If(*program_, next_budget < 0,
+                                [&]() { program_->Return(next_budget.Get()); });
+
+                      return loop.Continue(next_tuple + 1, next_budget,
+                                           proxy::Bool(*program_, false));
+                    });
+
+                return loop.template GetLoopVariable<proxy::Int32>(1);
+              });
+
+          return use_index;
+        });
+  }
+
+  entry.SetValidTupleHandler(reinterpret_cast<void*>(valid_tuple_handler_raw));
+  entry.SetFlagInfo(conditions.size(), pred_table_to_flag);
+  entry.Compile(program_builder.Build(), func_names);
+}
+
 RecompilingJoinTranslator::ExecuteJoinFn
 HybridSkinnerJoinTranslator::CompileJoinOrder(
     const std::vector<int>& order, void** materialized_buffers_raw,
@@ -778,6 +1516,17 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
     int32_t* progress_arr_raw, int32_t* table_ctr_raw, int32_t* idx_arr_raw,
     int32_t* offset_arr_raw,
     std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler_raw) {
+  if (permutable_cache_.IsCompiled()) {
+    return reinterpret_cast<ExecuteJoinFn>(permutable_cache_.Order(order));
+  }
+
+  CompilePermutable(permutable_cache_, materialized_buffers_raw,
+                    materialized_indexes_raw, tuple_idx_table_ptr_raw,
+                    progress_arr_raw, table_ctr_raw, idx_arr_raw,
+                    offset_arr_raw, valid_tuple_handler_raw);
+  return reinterpret_cast<ExecuteJoinFn>(permutable_cache_.Order(order));
+
+  /*
   auto& entry = cache_.GetOrInsert(order);
   if (entry.IsCompiled()) {
     return reinterpret_cast<ExecuteJoinFn>(entry.Func());
@@ -788,6 +1537,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                        progress_arr_raw, table_ctr_raw, idx_arr_raw,
                        offset_arr_raw, valid_tuple_handler_raw);
   return reinterpret_cast<ExecuteJoinFn>(entry.Func());
+  */
 }
 
 void HybridSkinnerJoinTranslator::Produce(proxy::Pipeline& output) {
@@ -933,7 +1683,7 @@ void HybridSkinnerJoinTranslator::Produce(proxy::Pipeline& output) {
 
   // Setup function for each valid tuple
   static int valid_id = 0;
-  HybridRecompilingTableFunction valid_tuple_handler(
+  HybridTableFunction valid_tuple_handler(
       "recompile_valid_tuple_handler" + std::to_string(valid_id++), *program_,
       [&](const auto& budget, const auto& resume_progress) {
         // Insert tuple idx into hash table

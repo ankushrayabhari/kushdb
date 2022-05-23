@@ -247,6 +247,8 @@ cc_library(
         "//execution:query_state",
         "//khir:backend",
         "//khir:program_builder",
+        "//khir/asm:asm_backend",
+        "//khir/asm:reg_alloc_impl",
         "//plan/operator:skinner_join_operator",
         "//util:vector_util",
         "@absl//absl/container:btree",
