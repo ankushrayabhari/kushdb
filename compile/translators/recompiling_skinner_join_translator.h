@@ -61,7 +61,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
                      const absl::flat_hash_set<int>& available_tables);
 
   const plan::SkinnerJoinOperator& join_;
-  khir::ProgramBuilder& program_;
+  khir::ProgramBuilder* program_;
   execution::PipelineBuilder& pipeline_builder_;
   execution::QueryState& state_;
   ExpressionTranslator expr_translator_;
