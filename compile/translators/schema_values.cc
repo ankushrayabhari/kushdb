@@ -4,10 +4,100 @@
 #include <string>
 #include <vector>
 
+#include "compile/proxy/value/ir_value.h"
 #include "compile/proxy/value/sql_value.h"
+#include "plan/operator/operator.h"
 #include "util/vector_util.h"
 
 namespace kush::compile {
+
+void SchemaValues::PopulateWithNull(khir::ProgramBuilder& program,
+                                    const plan::OperatorSchema& op) {
+  ResetValues();
+  const auto& schema = op.Columns();
+  for (int i = 0; i < schema.size(); i++) {
+    const auto& type = schema[i].Expr().Type();
+    switch (type.type_id) {
+      case catalog::TypeId::SMALLINT:
+        AddVariable(proxy::SQLValue(proxy::Int16(program, 0),
+                                    proxy::Bool(program, true)));
+        break;
+      case catalog::TypeId::INT:
+        AddVariable(proxy::SQLValue(proxy::Int32(program, 0),
+                                    proxy::Bool(program, true)));
+        break;
+      case catalog::TypeId::DATE:
+        AddVariable(proxy::SQLValue(
+            proxy::Date(program, runtime::Date::DateBuilder(2000, 1, 1)),
+            proxy::Bool(program, true)));
+        break;
+      case catalog::TypeId::BIGINT:
+        AddVariable(proxy::SQLValue(proxy::Int64(program, 0),
+                                    proxy::Bool(program, true)));
+        break;
+      case catalog::TypeId::BOOLEAN:
+        AddVariable(proxy::SQLValue(proxy::Bool(program, false),
+                                    proxy::Bool(program, true)));
+        break;
+      case catalog::TypeId::REAL:
+        AddVariable(proxy::SQLValue(proxy::Float64(program, 0),
+                                    proxy::Bool(program, true)));
+        break;
+      case catalog::TypeId::TEXT:
+        AddVariable(proxy::SQLValue(proxy::String::Global(program, ""),
+                                    proxy::Bool(program, true)));
+        break;
+      case catalog::TypeId::ENUM:
+        AddVariable(proxy::SQLValue(proxy::Enum(program, type.enum_id, -1),
+                                    proxy::Bool(program, true)));
+        break;
+    }
+  }
+}
+
+void SchemaValues::PopulateWithNotNull(khir::ProgramBuilder& program,
+                                       const plan::OperatorSchema& op) {
+  ResetValues();
+  const auto& schema = op.Columns();
+  for (int i = 0; i < schema.size(); i++) {
+    const auto& type = schema[i].Expr().Type();
+    switch (type.type_id) {
+      case catalog::TypeId::SMALLINT:
+        AddVariable(proxy::SQLValue(proxy::Int16(program, 0),
+                                    proxy::Bool(program, false)));
+        break;
+      case catalog::TypeId::INT:
+        AddVariable(proxy::SQLValue(proxy::Int32(program, 0),
+                                    proxy::Bool(program, false)));
+        break;
+      case catalog::TypeId::DATE:
+        AddVariable(proxy::SQLValue(
+            proxy::Date(program, runtime::Date::DateBuilder(2000, 1, 1)),
+            proxy::Bool(program, false)));
+        break;
+      case catalog::TypeId::BIGINT:
+        AddVariable(proxy::SQLValue(proxy::Int64(program, 0),
+                                    proxy::Bool(program, false)));
+        break;
+      case catalog::TypeId::BOOLEAN:
+        AddVariable(proxy::SQLValue(proxy::Bool(program, false),
+                                    proxy::Bool(program, false)));
+        break;
+      case catalog::TypeId::REAL:
+        AddVariable(proxy::SQLValue(proxy::Float64(program, 0),
+                                    proxy::Bool(program, false)));
+        break;
+      case catalog::TypeId::TEXT:
+        AddVariable(proxy::SQLValue(proxy::String::Global(program, ""),
+                                    proxy::Bool(program, false)));
+        break;
+      case catalog::TypeId::ENUM:
+        AddVariable(proxy::SQLValue(proxy::Enum(program, type.enum_id, -1),
+                                    proxy::Bool(program, false)));
+        break;
+    }
+  }
+}
 
 void SchemaValues::ResetValues() { values_.clear(); }
 

@@ -136,50 +136,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
   for (int i = 0; i < child_translators.size(); i++) {
     auto& child_translator = child_translators[i].get();
     auto& child_operator = child_operators[i].get();
-
-    const auto& schema = child_operator.Schema().Columns();
-
-    child_translator.SchemaValues().ResetValues();
-    for (int i = 0; i < schema.size(); i++) {
-      const auto& type = schema[i].Expr().Type();
-      switch (type.type_id) {
-        case catalog::TypeId::SMALLINT:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Int16(*program_, 0), proxy::Bool(*program_, false)));
-          break;
-        case catalog::TypeId::INT:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Int32(*program_, 0), proxy::Bool(*program_, false)));
-          break;
-        case catalog::TypeId::DATE:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Date(*program_, runtime::Date::DateBuilder(2000, 1, 1)),
-              proxy::Bool(*program_, false)));
-          break;
-        case catalog::TypeId::BIGINT:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Int64(*program_, 0), proxy::Bool(*program_, false)));
-          break;
-        case catalog::TypeId::BOOLEAN:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Bool(*program_, false), proxy::Bool(*program_, false)));
-          break;
-        case catalog::TypeId::REAL:
-          child_translator.SchemaValues().AddVariable(proxy::SQLValue(
-              proxy::Float64(*program_, 0), proxy::Bool(*program_, false)));
-          break;
-        case catalog::TypeId::TEXT:
-          child_translator.SchemaValues().AddVariable(
-              proxy::SQLValue(proxy::String::Global(*program_, ""),
-                              proxy::Bool(*program_, false)));
-          break;
-        case catalog::TypeId::ENUM:
-          child_translator.SchemaValues().AddVariable(
-              proxy::SQLValue(proxy::Enum(*program_, type.enum_id, -1),
-                              proxy::Bool(*program_, false)));
-          break;
-      }
-    }
+    child_translator.SchemaValues().PopulateWithNotNull(
+        *program_, child_operator.Schema());
   }
 
   // Setup struct of predicate columns

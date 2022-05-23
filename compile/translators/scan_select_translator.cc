@@ -109,49 +109,8 @@ void ScanSelectTranslator::Produce(proxy::Pipeline& output) {
         [&](auto& loop) {
           auto i = loop.template GetLoopVariable<proxy::Int32>(0);
 
-          const auto& scan_schema_columns = scan_select_.ScanSchema().Columns();
-          for (int i = 0; i < scan_schema_columns.size(); i++) {
-            const auto& type = scan_schema_columns[i].Expr().Type();
-            switch (type.type_id) {
-              case catalog::TypeId::SMALLINT:
-                this->virtual_values_.AddVariable(proxy::SQLValue(
-                    proxy::Int16(program_, 0), proxy::Bool(program_, false)));
-                break;
-              case catalog::TypeId::INT:
-                this->virtual_values_.AddVariable(proxy::SQLValue(
-                    proxy::Int32(program_, 0), proxy::Bool(program_, false)));
-                break;
-              case catalog::TypeId::DATE:
-                this->virtual_values_.AddVariable(proxy::SQLValue(
-                    proxy::Date(program_,
-                                runtime::Date::DateBuilder(2000, 1, 1)),
-                    proxy::Bool(program_, false)));
-                break;
-              case catalog::TypeId::BIGINT:
-                this->virtual_values_.AddVariable(proxy::SQLValue(
-                    proxy::Int64(program_, 0), proxy::Bool(program_, false)));
-                break;
-              case catalog::TypeId::BOOLEAN:
-                this->virtual_values_.AddVariable(
-                    proxy::SQLValue(proxy::Bool(program_, false),
-                                    proxy::Bool(program_, false)));
-                break;
-              case catalog::TypeId::REAL:
-                this->virtual_values_.AddVariable(proxy::SQLValue(
-                    proxy::Float64(program_, 0), proxy::Bool(program_, false)));
-                break;
-              case catalog::TypeId::TEXT:
-                this->virtual_values_.AddVariable(
-                    proxy::SQLValue(proxy::String::Global(program_, ""),
-                                    proxy::Bool(program_, false)));
-                break;
-              case catalog::TypeId::ENUM:
-                this->virtual_values_.AddVariable(
-                    proxy::SQLValue(proxy::Enum(program_, type.enum_id, -1),
-                                    proxy::Bool(program_, false)));
-                break;
-            }
-          }
+          this->virtual_values_.PopulateWithNotNull(program_,
+                                                    scan_select_.ScanSchema());
 
           absl::flat_hash_set<int> loaded_cols;
 
@@ -174,7 +133,7 @@ void ScanSelectTranslator::Produce(proxy::Pipeline& output) {
                       [&]() { loop.Continue(i + 1); });
           }
 
-          auto num_cols = scan_schema_columns.size();
+          auto num_cols = scan_select_.ScanSchema().Columns().size();
           for (int col_idx = 0; col_idx < num_cols; col_idx++) {
             if (!loaded_cols.contains(col_idx)) {
               this->virtual_values_.SetValue(

@@ -5,11 +5,18 @@
 #include <vector>
 
 #include "compile/proxy/value/sql_value.h"
+#include "khir/program_builder.h"
+#include "plan/operator/operator_schema.h"
 
 namespace kush::compile {
 
 class SchemaValues {
  public:
+  void PopulateWithNull(khir::ProgramBuilder& program,
+                        const plan::OperatorSchema& op);
+  void PopulateWithNotNull(khir::ProgramBuilder& program,
+                           const plan::OperatorSchema& op);
+
   void ResetValues();
   void AddVariable(proxy::SQLValue value);
 

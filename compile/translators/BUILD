@@ -7,7 +7,10 @@ cc_library(
     srcs = ["schema_values.cc"],
     hdrs = ["schema_values.h"],
     deps = [
+        "//compile/proxy/value:ir_value",
         "//compile/proxy/value:sql_value",
+        "//khir:program_builder",
+        "//plan/operator",
         "//util:vector_util",
     ],
 )
