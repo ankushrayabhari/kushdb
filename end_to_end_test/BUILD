@@ -57,3 +57,8 @@ cc_library(
         "//runtime:enum",
     ],
 )
+
+cc_library(
+    name = "test_macros",
+    hdrs = ["test_macros.h"],
+)

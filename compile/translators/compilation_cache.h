@@ -12,12 +12,14 @@ class CacheEntry {
  public:
   CacheEntry();
   bool IsCompiled() const;
-  void* Func(std::string_view name) const;
-  void Compile(std::unique_ptr<khir::Program> program);
+  void* Func() const;
+  void Compile(std::unique_ptr<khir::Program> program,
+               std::string_view main_name);
 
  private:
   std::unique_ptr<khir::Program> program_;
   std::unique_ptr<khir::Backend> backend_;
+  void* func_;
 };
 
 class CompilationCache {

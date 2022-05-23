@@ -79,7 +79,8 @@ HybridSkinnerJoinTranslator::HybridSkinnerJoinTranslator(
       program_(&program),
       pipeline_builder_(pipeline_builder),
       state_(state),
-      expr_translator_(*program_, *this),
+      expr_translator_(
+          std::make_unique<ExpressionTranslator>(*program_, *this)),
       cache_(join_.Children().size()) {}
 
 bool HybridSkinnerJoinTranslator::ShouldExecute(
@@ -98,13 +99,18 @@ bool HybridSkinnerJoinTranslator::ShouldExecute(
   return true;
 }
 
-RecompilingJoinTranslator::ExecuteJoinFn
-HybridSkinnerJoinTranslator::CompileJoinOrder(
-    const std::vector<int>& order, void** materialized_buffers_raw,
-    void** materialized_indexes_raw, void* tuple_idx_table_ptr_raw,
-    int32_t* progress_arr_raw, int32_t* table_ctr_raw, int32_t* idx_arr_raw,
-    int32_t* offset_arr_raw,
-    std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler) {
+std::string HybridSkinnerJoinTranslator::CompileFullJoinOrder(
+    std::vector<std::unique_ptr<proxy::MaterializedBuffer>>&
+        materialized_buffers,
+    std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
+    proxy::TupleIdxTable& tuple_idx_table, khir::Value idx_array,
+    khir::Value progress_arr, khir::Value offset_array,
+    khir::Value table_ctr_ptr, khir::Value valid_tuple_handler,
+    const std::vector<int>& order) {
+  auto child_translators = this->Children();
+  auto child_operators = this->join_.Children();
+  auto conditions = join_.Conditions();
+
   std::vector<std::string> func_names(order.size());
   std::string func_name = std::to_string(order[0]);
   for (int i = 1; i < order.size(); i++) {
@@ -114,21 +120,6 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
     func_names[order[i]] =
         "recompile_" + func_name + "_table_" + std::to_string(order[i]);
   }
-
-  auto child_translators = this->Children();
-  auto child_operators = this->join_.Children();
-  auto conditions = join_.Conditions();
-
-  auto& entry = cache_.GetOrInsert(order);
-  if (entry.IsCompiled()) {
-    return reinterpret_cast<ExecuteJoinFn>(entry.Func(func_names[order[0]]));
-  }
-
-  khir::ProgramBuilder program_builder;
-  program_ = &program_builder;
-
-  ForwardDeclare(*program_);
-  ExpressionTranslator expr_translator(*program_, *this);
 
   // initially fill the child_translators schema values with garbage
   // this will get overwritten when we actually load tuples/update predicate
@@ -166,53 +157,14 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
           program_->ConstantStruct(predicate_struct->Type(),
                                    predicate_struct->DefaultValues())));
 
-  // Setup idx array.
-  auto idx_array_type = program_->PointerType(program_->I32Type());
-  auto idx_array =
-      program_->PointerCast(program_->ConstPtr(idx_arr_raw), idx_array_type);
-
-  // Setup progress array
-  auto progress_array_type = program_->PointerType(program_->I32Type());
-  auto progress_arr = program_->PointerCast(
-      program_->ConstPtr(progress_arr_raw), progress_array_type);
-
-  // Setup offset array
-  auto offset_array_type = program_->PointerType(program_->I32Type());
-  auto offset_array = program_->PointerCast(program_->ConstPtr(offset_arr_raw),
-                                            offset_array_type);
-
-  // Setup table_ctr
-  auto table_ctr_type = program_->PointerType(program_->I32Type());
-  auto table_ctr_ptr =
-      program_->PointerCast(program_->ConstPtr(table_ctr_raw), table_ctr_type);
-
-  // Regenerate all child struct types/buffers in new program
-  std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers;
-  for (int i = 0; i < child_operators.size(); i++) {
-    materialized_buffers.push_back(materialized_buffers_[i]->Regenerate(
-        *program_, materialized_buffers_raw[i]));
-  }
-
-  // Regenerate all indexes in new program
-  std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes;
-  for (int i = 0; i < indexes_.size(); i++) {
-    indexes.push_back(
-        indexes_[i]->Regenerate(*program_, materialized_indexes_raw[i]));
-  }
-
-  // Regenerate tuple idx table
-  proxy::TupleIdxTable tuple_idx_table(
-      *program_,
-      program_->PointerCast(program_->ConstPtr(tuple_idx_table_ptr_raw),
-                            program_->PointerType(program_->GetOpaqueType(
-                                proxy::TupleIdxTable::TypeName))));
-
   std::vector<HybridRecompilingTableFunction> table_functions;
 
   absl::flat_hash_set<int> available_tables;
   for (int t : order) {
     available_tables.insert(t);
   }
+
+  auto i32_ptr_ty = program_->PointerType(program_->I32Type());
 
   for (int order_idx = order.size() - 1; order_idx >= 0; order_idx--) {
     auto table_idx = order[order_idx];
@@ -273,7 +225,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
               loaded_columns.insert(key);
             }
 
-            auto other_side_value = expr_translator.Compute(other_colref);
+            auto other_side_value = expr_translator_->Compute(other_colref);
 
             proxy::If(
                 *program_, other_side_value.IsNull(),
@@ -283,10 +235,10 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                       *program_, budget == 0,
                       [&]() {
                         auto idx_ptr = program_->StaticGEP(
-                            idx_array_type, idx_array, {0, table_idx});
+                            i32_ptr_ty, idx_array, {0, table_idx});
                         program_->StoreI32(idx_ptr, (cardinality - 1).Get());
                         program_->StoreI32(
-                            program_->StaticGEP(table_ctr_type, table_ctr_ptr,
+                            program_->StaticGEP(i32_ptr_ty, table_ctr_ptr,
                                                 {0, 0}),
                             program_->ConstI32(table_idx));
                         program_->Return(program_->ConstI32(-1));
@@ -310,10 +262,10 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                         *program_, budget == 0,
                         [&]() {
                           auto idx_ptr = program_->StaticGEP(
-                              idx_array_type, idx_array, {0, table_idx});
+                              i32_ptr_ty, idx_array, {0, table_idx});
                           program_->StoreI32(idx_ptr, (cardinality - 1).Get());
                           program_->StoreI32(
-                              program_->StaticGEP(table_ctr_type, table_ctr_ptr,
+                              program_->StaticGEP(i32_ptr_ty, table_ctr_ptr,
                                                   {0, 0}),
                               program_->ConstI32(table_idx));
                           program_->Return(program_->ConstI32(-1));
@@ -328,15 +280,15 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                 *program_, resume_progress,
                 [&]() {
                   auto progress_ptr = program_->StaticGEP(
-                      progress_array_type, progress_arr, {0, table_idx});
+                      i32_ptr_ty, progress_arr, {0, table_idx});
                   return proxy::Int32(*program_,
                                       program_->LoadI32(progress_ptr));
                 },
                 [&]() { return proxy::Int32(*program_, 0); });
             auto offset_next_tuple =
-                proxy::Int32(*program_, program_->LoadI32(program_->StaticGEP(
-                                            offset_array_type, offset_array,
-                                            {0, table_idx}))) +
+                proxy::Int32(*program_,
+                             program_->LoadI32(program_->StaticGEP(
+                                 i32_ptr_ty, offset_array, {0, table_idx}))) +
                 1;
             auto initial_next_tuple = proxy::Ternary(
                 *program_, offset_next_tuple > progress_next_tuple,
@@ -412,7 +364,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                             *program_, result, bucket_idx);
 
                         auto idx_ptr = program_->StaticGEP(
-                            idx_array_type, idx_array, {0, table_idx});
+                            i32_ptr_ty, idx_array, {0, table_idx});
                         program_->StoreI32(idx_ptr, next_tuple.Get());
 
                         /*
@@ -473,7 +425,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                           }
 
                           auto cond =
-                              expr_translator.Compute(conditions[pred].get());
+                              expr_translator_->Compute(conditions[pred].get());
 
                           proxy::If(
                               *program_, cond.IsNull(),
@@ -484,7 +436,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                                     *program_, budget == 0,
                                     [&]() {
                                       program_->StoreI32(
-                                          program_->StaticGEP(table_ctr_type,
+                                          program_->StaticGEP(i32_ptr_ty,
                                                               table_ctr_ptr,
                                                               {0, 0}),
                                           program_->ConstI32(table_idx));
@@ -508,8 +460,8 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                                           [&]() {
                                             program_->StoreI32(
                                                 program_->StaticGEP(
-                                                    table_ctr_type,
-                                                    table_ctr_ptr, {0, 0}),
+                                                    i32_ptr_ty, table_ctr_ptr,
+                                                    {0, 0}),
                                                 program_->ConstI32(table_idx));
                                             program_->Return(
                                                 program_->ConstI32(-1));
@@ -525,7 +477,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
 
                         proxy::If(*program_, budget == 0, [&]() {
                           program_->StoreI32(
-                              program_->StaticGEP(table_ctr_type, table_ctr_ptr,
+                              program_->StaticGEP(i32_ptr_ty, table_ctr_ptr,
                                                   {0, 0}),
                               program_->ConstI32(table_idx));
                           program_->Return(program_->ConstI32(-2));
@@ -541,16 +493,11 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
 
                         proxy::Int32 next_budget(*program_, 0);
                         if (order_idx == order.size() - 1) {
-                          auto handler = program_->PointerCast(
-                              program_->ConstPtr((void*)valid_tuple_handler),
-                              program_->PointerType(program_->FunctionType(
-                                  program_->I32Type(),
-                                  {program_->I32Type(), program_->I1Type()})));
-
                           next_budget = proxy::Int32(
                               *program_,
-                              program_->Call(handler, {budget.Get(),
-                                                       resume_progress.Get()}));
+                              program_->Call(
+                                  valid_tuple_handler,
+                                  {budget.Get(), resume_progress.Get()}));
                         } else {
                           auto handler = handler_ptr->Get();
                           next_budget = proxy::Int32(
@@ -586,16 +533,16 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                       *program_, resume_progress,
                       [&]() {
                         auto progress_ptr = program_->StaticGEP(
-                            progress_array_type, progress_arr, {0, table_idx});
+                            i32_ptr_ty, progress_arr, {0, table_idx});
                         return proxy::Int32(*program_,
                                             program_->LoadI32(progress_ptr));
                       },
                       [&]() { return proxy::Int32(*program_, 0); });
                   auto offset_next_tuple =
-                      proxy::Int32(*program_,
-                                   program_->LoadI32(program_->StaticGEP(
-                                       offset_array_type, offset_array,
-                                       {0, table_idx}))) +
+                      proxy::Int32(
+                          *program_,
+                          program_->LoadI32(program_->StaticGEP(
+                              i32_ptr_ty, offset_array, {0, table_idx}))) +
                       1;
                   auto initial_next_tuple = proxy::Ternary(
                       *program_, offset_next_tuple > progress_next_tuple,
@@ -609,7 +556,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                       *program_, resume_progress,
                       [&]() {
                         auto progress_ptr = program_->StaticGEP(
-                            progress_array_type, progress_arr, {0, table_idx});
+                            i32_ptr_ty, progress_arr, {0, table_idx});
                         auto progress_next_tuple = proxy::Int32(
                             *program_, program_->LoadI32(progress_ptr));
                         return initial_next_tuple == progress_next_tuple;
@@ -630,7 +577,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                   auto resume_progress =
                       loop.template GetLoopVariable<proxy::Bool>(2);
 
-                  auto idx_ptr = program_->StaticGEP(idx_array_type, idx_array,
+                  auto idx_ptr = program_->StaticGEP(i32_ptr_ty, idx_array,
                                                      {0, table_idx});
                   program_->StoreI32(idx_ptr, next_tuple.Get());
 
@@ -681,7 +628,8 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                       }
                     }
 
-                    auto cond = expr_translator.Compute(conditions[pred].get());
+                    auto cond =
+                        expr_translator_->Compute(conditions[pred].get());
 
                     proxy::If(
                         *program_, cond.IsNull(),
@@ -692,7 +640,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                               *program_, budget == 0,
                               [&]() {
                                 program_->StoreI32(
-                                    program_->StaticGEP(table_ctr_type,
+                                    program_->StaticGEP(i32_ptr_ty,
                                                         table_ctr_ptr, {0, 0}),
                                     program_->ConstI32(table_idx));
                                 program_->Return(program_->ConstI32(-1));
@@ -712,7 +660,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                                     *program_, budget == 0,
                                     [&]() {
                                       program_->StoreI32(
-                                          program_->StaticGEP(table_ctr_type,
+                                          program_->StaticGEP(i32_ptr_ty,
                                                               table_ctr_ptr,
                                                               {0, 0}),
                                           program_->ConstI32(table_idx));
@@ -729,8 +677,7 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
 
                   proxy::If(*program_, budget == 0, [&]() {
                     program_->StoreI32(
-                        program_->StaticGEP(table_ctr_type, table_ctr_ptr,
-                                            {0, 0}),
+                        program_->StaticGEP(i32_ptr_ty, table_ctr_ptr, {0, 0}),
                         program_->ConstI32(table_idx));
                     program_->Return(program_->ConstI32(-2));
                   });
@@ -745,15 +692,9 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                   // Valid tuple
                   proxy::Int32 next_budget(*program_, 0);
                   if (order_idx == order.size() - 1) {
-                    auto handler = program_->PointerCast(
-                        program_->ConstPtr((void*)valid_tuple_handler),
-                        program_->PointerType(program_->FunctionType(
-                            program_->I32Type(),
-                            {program_->I32Type(), program_->I1Type()})));
-
                     next_budget = proxy::Int32(
                         *program_,
-                        program_->Call(handler,
+                        program_->Call(valid_tuple_handler,
                                        {budget.Get(), resume_progress.Get()}));
                   } else {
                     auto handler = handler_ptr->Get();
@@ -775,8 +716,79 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
         });
   }
 
-  entry.Compile(program_builder.Build());
-  return reinterpret_cast<ExecuteJoinFn>(entry.Func(func_names[order[0]]));
+  return func_names[order[0]];
+}
+
+RecompilingJoinTranslator::ExecuteJoinFn
+HybridSkinnerJoinTranslator::CompileJoinOrder(
+    const std::vector<int>& order, void** materialized_buffers_raw,
+    void** materialized_indexes_raw, void* tuple_idx_table_ptr_raw,
+    int32_t* progress_arr_raw, int32_t* table_ctr_raw, int32_t* idx_arr_raw,
+    int32_t* offset_arr_raw,
+    std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler) {
+  auto& entry = cache_.GetOrInsert(order);
+  if (entry.IsCompiled()) {
+    return reinterpret_cast<ExecuteJoinFn>(entry.Func());
+  }
+
+  khir::ProgramBuilder program_builder;
+  program_ = &program_builder;
+
+  ForwardDeclare(*program_);
+  expr_translator_ = std::make_unique<ExpressionTranslator>(*program_, *this);
+
+  // Regenerate idx array.
+  auto idx_array_type = program_->PointerType(program_->I32Type());
+  auto idx_array =
+      program_->PointerCast(program_->ConstPtr(idx_arr_raw), idx_array_type);
+
+  // Regenerate progress array
+  auto progress_array_type = program_->PointerType(program_->I32Type());
+  auto progress_arr = program_->PointerCast(
+      program_->ConstPtr(progress_arr_raw), progress_array_type);
+
+  // Regenerate offset array
+  auto offset_array_type = program_->PointerType(program_->I32Type());
+  auto offset_array = program_->PointerCast(program_->ConstPtr(offset_arr_raw),
+                                            offset_array_type);
+
+  // Regenerate table_ctr
+  auto table_ctr_type = program_->PointerType(program_->I32Type());
+  auto table_ctr_ptr =
+      program_->PointerCast(program_->ConstPtr(table_ctr_raw), table_ctr_type);
+
+  // Regenerate all child struct types/buffers in new program
+  std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers;
+  for (int i = 0; i < join_.Children().size(); i++) {
+    materialized_buffers.push_back(materialized_buffers_[i]->Regenerate(
+        *program_, materialized_buffers_raw[i]));
+  }
+
+  // Regenerate all indexes in new program
+  std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes;
+  for (int i = 0; i < indexes_.size(); i++) {
+    indexes.push_back(
+        indexes_[i]->Regenerate(*program_, materialized_indexes_raw[i]));
+  }
+
+  // Regenerate tuple idx table
+  proxy::TupleIdxTable tuple_idx_table(
+      *program_,
+      program_->PointerCast(program_->ConstPtr(tuple_idx_table_ptr_raw),
+                            program_->PointerType(program_->GetOpaqueType(
+                                proxy::TupleIdxTable::TypeName))));
+
+  // Regenerate valid_tuple_handler
+  auto handler = program_->PointerCast(
+      program_->ConstPtr((void*)valid_tuple_handler),
+      program_->PointerType(program_->FunctionType(
+          program_->I32Type(), {program_->I32Type(), program_->I1Type()})));
+
+  auto join_order = CompileFullJoinOrder(
+      materialized_buffers, indexes, tuple_idx_table, idx_array, progress_arr,
+      offset_array, table_ctr_ptr, handler, order);
+  entry.Compile(program_builder.Build(), join_order);
+  return reinterpret_cast<ExecuteJoinFn>(entry.Func());
 }
 
 void HybridSkinnerJoinTranslator::Produce(proxy::Pipeline& output) {
@@ -1030,7 +1042,7 @@ void HybridSkinnerJoinTranslator::Produce(proxy::Pipeline& output) {
               this->values_.ResetValues();
               for (const auto& column : join_.Schema().Columns()) {
                 this->values_.AddVariable(
-                    expr_translator_.Compute(column.Expr()));
+                    expr_translator_->Compute(column.Expr()));
               }
 
               // Push tuples to next operator

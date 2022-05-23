@@ -13,15 +13,14 @@
 
 namespace kush::compile {
 
-CacheEntry::CacheEntry() : program_(nullptr) {}
+CacheEntry::CacheEntry() : func_(nullptr) {}
 
-bool CacheEntry::IsCompiled() const { return program_ != nullptr; }
+bool CacheEntry::IsCompiled() const { return func_ != nullptr; }
 
-void* CacheEntry::Func(std::string_view name) const {
-  return backend_->GetFunction(name);
-}
+void* CacheEntry::Func() const { return func_; }
 
-void CacheEntry::Compile(std::unique_ptr<khir::Program> program) {
+void CacheEntry::Compile(std::unique_ptr<khir::Program> program,
+                         std::string_view main_name) {
   program_ = std::move(program);
 
   switch (khir::GetBackendType()) {
@@ -39,6 +38,8 @@ void CacheEntry::Compile(std::unique_ptr<khir::Program> program) {
       break;
     }
   }
+
+  func_ = backend_->GetFunction(main_name);
 }
 
 CompilationCache::CompilationCache(int n) : root_(n), num_tables_(n) {}

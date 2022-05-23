@@ -11,6 +11,7 @@
 #include "compile/query_translator.h"
 #include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
+#include "end_to_end_test/test_macros.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -161,79 +162,4 @@ TEST_P(TPCHTest, Q12Skinner) {
       CHECK_EQ_TBL(expected, output, query->Child().Schema().Columns()));
 }
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Recompile_HighBudget, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .reg_alloc = "stack_spill",
-                             .skinner = "recompile",
-                             .budget_per_episode = 10000}));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Permute_HighBudget, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .reg_alloc = "stack_spill",
-                             .skinner = "permute",
-                             .budget_per_episode = 10000}));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Recompile_LowBudget, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .reg_alloc = "stack_spill",
-                             .skinner = "recompile",
-                             .budget_per_episode = 10}));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill_Permute_LowBudget, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .reg_alloc = "stack_spill",
-                             .skinner = "permute",
-                             .budget_per_episode = 10}));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Recompile_HighBudget, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .reg_alloc = "linear_scan",
-                             .skinner = "recompile",
-                             .budget_per_episode = 10000}));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Permute_HighBudget, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .reg_alloc = "linear_scan",
-                             .skinner = "permute",
-                             .budget_per_episode = 10000}));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Recompile_LowBudget, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .reg_alloc = "linear_scan",
-                             .skinner = "recompile",
-                             .budget_per_episode = 10}));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan_Permute_LowBudget, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .reg_alloc = "linear_scan",
-                             .skinner = "permute",
-                             .budget_per_episode = 10}));
-
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Recompile_HighBudget, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "llvm",
-                             .skinner = "recompile",
-                             .budget_per_episode = 10000}));
-
-INSTANTIATE_TEST_SUITE_P(
-    LLVMBackend_Permute_HighBudget, TPCHTest,
-    testing::Values(ParameterValues{
-        .backend = "llvm", .skinner = "permute", .budget_per_episode = 10000}));
-
-INSTANTIATE_TEST_SUITE_P(
-    LLVMBackend_Recompile_LowBudget, TPCHTest,
-    testing::Values(ParameterValues{
-        .backend = "llvm", .skinner = "recompile", .budget_per_episode = 10}));
-
-INSTANTIATE_TEST_SUITE_P(
-    LLVMBackend_Permute_LowBudget, TPCHTest,
-    testing::Values(ParameterValues{
-        .backend = "llvm", .skinner = "permute", .budget_per_episode = 10}));
+SKINNER_TEST(TPCHTest)

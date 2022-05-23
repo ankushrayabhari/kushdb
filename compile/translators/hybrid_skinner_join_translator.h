@@ -40,31 +40,25 @@ class HybridSkinnerJoinTranslator : public OperatorTranslator,
       int32_t* table_ctr, int32_t* idx_arr, int32_t* offset_arr,
       std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler)
       override;
-  proxy::Int32 GenerateChildLoops(
-      int curr, const std::vector<int>& order, khir::ProgramBuilder& program,
-      ExpressionTranslator& expr_translator,
-      std::vector<std::unique_ptr<proxy::MaterializedBuffer>>&
-          materialized_buffers,
-      std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
-      const std::vector<proxy::Int32>& cardinalities,
-      proxy::TupleIdxTable& tuple_idx_table,
-      absl::flat_hash_set<int>& evaluated_conditions,
-      absl::flat_hash_set<int>& available_tables, khir::Value idx_array,
-      khir::Value offset_array, khir::Value progress_arr,
-      khir::Value table_ctr_ptr, khir::Value num_result_tuples_ptr,
-      proxy::Int32 initial_budget, proxy::Bool resume_progress,
-      std::vector<proxy::ColumnIndexBucketArray>& bucket_lists,
-      const std::vector<khir::Value>& results, const int result_max_size);
 
  private:
   bool ShouldExecute(int pred, int table_idx,
                      const absl::flat_hash_set<int>& available_tables);
 
+  std::string CompileFullJoinOrder(
+      std::vector<std::unique_ptr<proxy::MaterializedBuffer>>&
+          materialized_buffers,
+      std::vector<std::unique_ptr<proxy::ColumnIndex>>& indexes,
+      proxy::TupleIdxTable& tuple_idx_table, khir::Value idx_array,
+      khir::Value progress_arr, khir::Value offset_array,
+      khir::Value table_ctr_ptr, khir::Value valid_tuple_handler,
+      const std::vector<int>& order);
+
   const plan::SkinnerJoinOperator& join_;
   khir::ProgramBuilder* program_;
   execution::PipelineBuilder& pipeline_builder_;
   execution::QueryState& state_;
-  ExpressionTranslator expr_translator_;
+  std::unique_ptr<ExpressionTranslator> expr_translator_;
   proxy::Vector* buffer_;
   std::vector<std::unique_ptr<proxy::MaterializedBuffer>> materialized_buffers_;
   std::vector<std::unique_ptr<proxy::ColumnIndex>> indexes_;

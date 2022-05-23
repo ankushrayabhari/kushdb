@@ -121,7 +121,7 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
 
   auto& entry = cache_.GetOrInsert(order);
   if (entry.IsCompiled()) {
-    return reinterpret_cast<ExecuteJoinFn>(entry.Func(func_names[order[0]]));
+    return reinterpret_cast<ExecuteJoinFn>(entry.Func());
   }
 
   khir::ProgramBuilder program_builder;
@@ -775,8 +775,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         });
   }
 
-  entry.Compile(program_builder.Build());
-  return reinterpret_cast<ExecuteJoinFn>(entry.Func(func_names[order[0]]));
+  entry.Compile(program_builder.Build(), func_names[order[0]]);
+  return reinterpret_cast<ExecuteJoinFn>(entry.Func());
 }
 
 void RecompilingSkinnerJoinTranslator::Produce(proxy::Pipeline& output) {
