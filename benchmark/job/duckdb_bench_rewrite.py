@@ -40,7 +40,7 @@ def bench(db, query_path):
             print('DuckDB', db, query, times[time_idx] * 1000, sep=',')
 
 if __name__ == "__main__":
-    bench("JOB (original)", "benchmark/job/queries_robust/original/")
-    bench("JOB (increasing)", "benchmark/job/queries_robust/increasing/")
-    bench("JOB (decreasing)", "benchmark/job/queries_robust/decreasing/")
-    bench("JOB (random)", "benchmark/job/queries_robust/random/")
+    bench("JOB (original)", "benchmark/job/queries_rewrite/original/")
+    bench("JOB (increasing)", "benchmark/job/queries_rewrite/increasing/")
+    bench("JOB (decreasing)", "benchmark/job/queries_rewrite/decreasing/")
+    bench("JOB (random)", "benchmark/job/queries_rewrite/random/")

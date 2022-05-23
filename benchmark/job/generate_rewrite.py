@@ -147,10 +147,10 @@ def generate_duplicate_queries(query, cards):
 
 def shuffle_duplicates():
     output_dirs = [
-        f"benchmark/job/queries_robust/original/",
-        f"benchmark/job/queries_robust/increasing/",
-        f"benchmark/job/queries_robust/decreasing/",
-        f"benchmark/job/queries_robust/random/"
+        f"benchmark/job/queries_rewrite/original/",
+        f"benchmark/job/queries_rewrite/increasing/",
+        f"benchmark/job/queries_rewrite/decreasing/",
+        f"benchmark/job/queries_rewrite/random/"
     ]
     for output_prefix in output_dirs:
         os.makedirs(output_prefix, exist_ok=True)
