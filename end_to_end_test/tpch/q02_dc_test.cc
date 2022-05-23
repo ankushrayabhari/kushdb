@@ -16,6 +16,7 @@
 #include "plan/expression/column_ref_expression.h"
 #include "plan/expression/literal_expression.h"
 #include "plan/expression/virtual_column_ref_expression.h"
+#include "plan/operator/aggregate_operator.h"
 #include "plan/operator/cross_product_operator.h"
 #include "plan/operator/group_by_aggregate_operator.h"
 #include "plan/operator/hash_join_operator.h"
