@@ -30,7 +30,7 @@
 #include "plan/operator/skinner_join_operator.h"
 
 ABSL_FLAG(std::string, skinner_join, "permute",
-          "Skinner Join Implementation: permute or recompile");
+          "Skinner Join Implementation: permute, recompile, hybrid");
 
 namespace kush::compile {
 

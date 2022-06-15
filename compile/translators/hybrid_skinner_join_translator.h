@@ -32,7 +32,7 @@ class PermutableCache {
 
   bool IsCompiled() const;
   void Compile(std::unique_ptr<khir::Program> program,
-               std::vector<std::string> function_names);
+               std::vector<std::string> function_names, khir::BackendType type);
 
   void SetFlagInfo(
       int total_preds,

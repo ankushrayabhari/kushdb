@@ -775,7 +775,8 @@ RecompilingSkinnerJoinTranslator::CompileJoinOrder(
         });
   }
 
-  entry.Compile(program_builder.Build(), func_names[order[0]]);
+  entry.Compile(program_builder.Build(), func_names[order[0]],
+                khir::GetBackendType());
   return reinterpret_cast<ExecuteJoinFn>(entry.Func());
 }
 

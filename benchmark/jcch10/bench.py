@@ -36,11 +36,13 @@ def bench(database, flags):
 
 
 if __name__ == "__main__":
-    bench('kushdb ASM (Join Permute)',       ['--pipeline_mode=adaptive', '--backend=asm', '--skinner_join=permute', '--use_dictionary=false'])
-    bench('kushdb ASM (Join Recompile)',     ['--pipeline_mode=adaptive', '--backend=asm', '--skinner_join=recompile', '--use_dictionary=false'])
-    bench('kushdb LLVM (Join Permute)',      ['--pipeline_mode=adaptive', '--backend=llvm', '--skinner_join=permute', '--use_dictionary=false'])
-    bench('kushdb LLVM (Join Recompile)',    ['--pipeline_mode=adaptive', '--backend=llvm', '--skinner_join=recompile', '--use_dictionary=false'])
-    bench('kushdb DC ASM (Join Permute)',    ['--pipeline_mode=adaptive', '--backend=asm', '--skinner_join=permute', '--use_dictionary=true'])
-    bench('kushdb DC ASM (Join Recompile)',  ['--pipeline_mode=adaptive', '--backend=asm', '--skinner_join=recompile', '--use_dictionary=true'])
-    bench('kushdb DC LLVM (Join Permute)',   ['--pipeline_mode=adaptive', '--backend=llvm', '--skinner_join=permute', '--use_dictionary=true'])
-    bench('kushdb DC LLVM (Join Recompile)', ['--pipeline_mode=adaptive', '--backend=llvm', '--skinner_join=recompile', '--use_dictionary=true'])
+    bench('kushdb (ASM Permute)',       ['--pipeline_mode=adaptive', '--use_dictionary=false', '--skinner_join=permute',   '--backend=asm'])
+    bench('kushdb (ASM Recompile)',     ['--pipeline_mode=adaptive', '--use_dictionary=false', '--skinner_join=recompile', '--backend=asm'])
+    bench('kushdb (LLVM Permute)',      ['--pipeline_mode=adaptive', '--use_dictionary=false', '--skinner_join=permute',   '--backend=llvm'])
+    bench('kushdb (LLVM Recompile)',    ['--pipeline_mode=adaptive', '--use_dictionary=false', '--skinner_join=recompile', '--backend=llvm'])
+    bench('kushdb (Hybrid)',            ['--pipeline_mode=adaptive', '--use_dictionary=false', '--skinner_join=hybrid'])
+    bench('kushdb DC (ASM Permute)',    ['--pipeline_mode=adaptive', '--use_dictionary=true',  '--skinner_join=permute',   '--backend=asm'])
+    bench('kushdb DC (ASM Recompile)',  ['--pipeline_mode=adaptive', '--use_dictionary=true',  '--skinner_join=recompile', '--backend=asm'])
+    bench('kushdb DC (LLVM Permute)',   ['--pipeline_mode=adaptive', '--use_dictionary=true',  '--skinner_join=permute',   '--backend=llvm'])
+    bench('kushdb DC (LLVM Recompile)', ['--pipeline_mode=adaptive', '--use_dictionary=true',  '--skinner_join=recompile', '--backend=llvm'])
+    bench('kushdb DC (Hybrid)',         ['--pipeline_mode=adaptive', '--use_dictionary=true',  '--skinner_join=hybrid'])

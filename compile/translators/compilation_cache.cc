@@ -13,17 +13,20 @@
 
 namespace kush::compile {
 
-CacheEntry::CacheEntry() : func_(nullptr) {}
+CacheEntry::CacheEntry() : func_(nullptr), visits_(0) {}
 
 bool CacheEntry::IsCompiled() const { return func_ != nullptr; }
 
 void* CacheEntry::Func() const { return func_; }
 
+int64_t CacheEntry::Visits() { return visits_; }
+
 void CacheEntry::Compile(std::unique_ptr<khir::Program> program,
-                         std::string_view main_name) {
+                         std::string_view main_name,
+                         khir::BackendType backend) {
   program_ = std::move(program);
 
-  switch (khir::GetBackendType()) {
+  switch (backend) {
     case khir::BackendType::ASM: {
       auto backend =
           std::make_unique<khir::ASMBackend>(*program_, khir::RegAllocImpl());
@@ -70,7 +73,12 @@ CacheEntry& CompilationCache::GetOrInsert(const std::vector<int>& order) {
     curr = child.get();
   }
 
-  return curr->GetEntry();
+  auto& result = curr->GetEntry();
+  result.visits_++;
+  visits_++;
+  return result;
 }
+
+int64_t CompilationCache::Visits() { return visits_; }
 
 }  // namespace kush::compile

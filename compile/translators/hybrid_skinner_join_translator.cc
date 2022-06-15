@@ -112,10 +112,11 @@ void* PermutableCache::TableHandlers() { return table_handlers_; }
 bool PermutableCache::IsCompiled() const { return program_ != nullptr; }
 
 void PermutableCache::Compile(std::unique_ptr<khir::Program> program,
-                              std::vector<std::string> function_names) {
+                              std::vector<std::string> function_names,
+                              khir::BackendType backend_type) {
   program_ = std::move(program);
 
-  switch (khir::GetBackendType()) {
+  switch (backend_type) {
     case khir::BackendType::ASM: {
       auto backend =
           std::make_unique<khir::ASMBackend>(*program_, khir::RegAllocImpl());
@@ -856,7 +857,8 @@ void HybridSkinnerJoinTranslator::CompileFullJoinOrder(
         });
   }
 
-  entry.Compile(program_builder.Build(), func_names[order[0]]);
+  entry.Compile(program_builder.Build(), func_names[order[0]],
+                khir::BackendType::LLVM);
 }
 
 void HybridSkinnerJoinTranslator::CompilePermutable(
@@ -1506,7 +1508,7 @@ void HybridSkinnerJoinTranslator::CompilePermutable(
 
   entry.SetValidTupleHandler(reinterpret_cast<void*>(valid_tuple_handler_raw));
   entry.SetFlagInfo(conditions.size(), pred_table_to_flag);
-  entry.Compile(program_builder.Build(), func_names);
+  entry.Compile(program_builder.Build(), func_names, khir::BackendType::ASM);
 }
 
 RecompilingJoinTranslator::ExecuteJoinFn
@@ -1516,20 +1518,20 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
     int32_t* progress_arr_raw, int32_t* table_ctr_raw, int32_t* idx_arr_raw,
     int32_t* offset_arr_raw,
     std::add_pointer<int32_t(int32_t, int8_t)>::type valid_tuple_handler_raw) {
-  if (permutable_cache_.IsCompiled()) {
-    return reinterpret_cast<ExecuteJoinFn>(permutable_cache_.Order(order));
-  }
-
-  CompilePermutable(permutable_cache_, materialized_buffers_raw,
-                    materialized_indexes_raw, tuple_idx_table_ptr_raw,
-                    progress_arr_raw, table_ctr_raw, idx_arr_raw,
-                    offset_arr_raw, valid_tuple_handler_raw);
-  return reinterpret_cast<ExecuteJoinFn>(permutable_cache_.Order(order));
-
-  /*
   auto& entry = cache_.GetOrInsert(order);
   if (entry.IsCompiled()) {
     return reinterpret_cast<ExecuteJoinFn>(entry.Func());
+  }
+
+  if (entry.Visits() < 10) {
+    if (!permutable_cache_.IsCompiled()) {
+      CompilePermutable(permutable_cache_, materialized_buffers_raw,
+                        materialized_indexes_raw, tuple_idx_table_ptr_raw,
+                        progress_arr_raw, table_ctr_raw, idx_arr_raw,
+                        offset_arr_raw, valid_tuple_handler_raw);
+    }
+
+    return reinterpret_cast<ExecuteJoinFn>(permutable_cache_.Order(order));
   }
 
   CompileFullJoinOrder(entry, order, materialized_buffers_raw,
@@ -1537,7 +1539,6 @@ HybridSkinnerJoinTranslator::CompileJoinOrder(
                        progress_arr_raw, table_ctr_raw, idx_arr_raw,
                        offset_arr_raw, valid_tuple_handler_raw);
   return reinterpret_cast<ExecuteJoinFn>(entry.Func());
-  */
 }
 
 void HybridSkinnerJoinTranslator::Produce(proxy::Pipeline& output) {
