@@ -12,6 +12,7 @@ cc_test(
         "//compile:query_translator",
         "//end_to_end_test:parameters",
         "//end_to_end_test:schema",
+        "//end_to_end_test:test_macros",
         "//plan/expression",
         "//plan/expression:arithmetic_expression",
         "//plan/expression:column_ref_expression",

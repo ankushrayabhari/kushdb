@@ -11,7 +11,7 @@
 #include "khir/backend.h"
 #include "khir/llvm/llvm_backend.h"
 
-ABSL_FLAG(std::string, pipeline_mode, "static",
+ABSL_FLAG(std::string, pipeline_mode, "adaptive",
           "Pipeline Mode: static/adaptive.");
 
 namespace kush::execution {

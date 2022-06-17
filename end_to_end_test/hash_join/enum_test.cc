@@ -11,6 +11,7 @@
 #include "compile/query_translator.h"
 #include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
+#include "end_to_end_test/test_macros.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -78,17 +79,4 @@ TEST_P(HashJoinTest, EnumCol) {
   EXPECT_EQ(output, expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill, HashJoinTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .reg_alloc = "stack_spill",
-                         }));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan, HashJoinTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm",
-                             .reg_alloc = "linear_scan",
-                         }));
-
-INSTANTIATE_TEST_SUITE_P(LLVMBackend, HashJoinTest,
-                         testing::Values(ParameterValues{.backend = "llvm"}));
+NORMAL_TEST(HashJoinTest)

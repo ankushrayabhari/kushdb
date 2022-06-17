@@ -11,6 +11,7 @@
 #include "compile/query_translator.h"
 #include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
+#include "end_to_end_test/test_macros.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -325,17 +326,4 @@ TEST_P(TPCHTest, Q08) {
       CHECK_EQ_TBL(expected, output, query->Child().Schema().Columns()));
 }
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_StackSpill, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm", .reg_alloc = "stack_spill"}));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_LinearScan, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .backend = "asm", .reg_alloc = "linear_scan"}));
-
-INSTANTIATE_TEST_SUITE_P(LLVMBackend, TPCHTest,
-                         testing::Values(ParameterValues{.backend = "llvm"}));
-
-INSTANTIATE_TEST_SUITE_P(Adaptive, TPCHTest,
-                         testing::Values(ParameterValues{
-                             .pipeline_mode = "adaptive"}));
+NORMAL_TEST(TPCHTest)

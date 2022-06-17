@@ -127,7 +127,9 @@ double LLVMBackend::compilation_time_ = 0;
 
 LLVMBackend::LLVMBackend(const khir::Program& program)
     : program_(program), functions_(program_.Functions().size(), nullptr) {
+#ifdef COMP_TIME
   auto t1 = std::chrono::high_resolution_clock::now();
+#endif
   auto target_triple = llvm::sys::getDefaultTargetTriple();
   std::string error;
   auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
@@ -222,9 +224,11 @@ LLVMBackend::LLVMBackend(const khir::Program& program)
 
     CompileAndLink(std::move(mod), std::move(context), to_add);
   }
+#ifdef COMP_TIME
   auto t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
   compilation_time_ += fp_ms.count();
+#endif
 }
 
 llvm::Constant* LLVMBackend::GetConstant(
@@ -442,9 +446,6 @@ double LLVMBackend::CompilationTime() { return compilation_time_; }
 void LLVMBackend::ResetCompilationTime() { compilation_time_ = 0; }
 
 void LLVMBackend::Translate(std::string_view name) {
-#ifdef COMP_TIME
-  auto t1 = std::chrono::high_resolution_clock::now();
-#endif
   auto context = std::make_unique<llvm::LLVMContext>();
   auto mod = std::make_unique<llvm::Module>("query", *context);
   auto builder = std::make_unique<llvm::IRBuilder<>>(*context);
@@ -485,12 +486,6 @@ void LLVMBackend::Translate(std::string_view name) {
   }
 
   CompileAndLink(std::move(mod), std::move(context), to_add);
-
-#ifdef COMP_TIME
-  auto t2 = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
-  compilation_time_ += fp_ms.count();
-#endif
 }
 
 using LLVMCmp = llvm::CmpInst::Predicate;
@@ -1248,7 +1243,15 @@ void LLVMBackend::CompileAndLink(std::unique_ptr<llvm::Module> mod,
 
 void* LLVMBackend::GetFunction(std::string_view name) {
   if (!compiled_fn_.contains(name)) {
+#ifdef COMP_TIME
+    auto t1 = std::chrono::high_resolution_clock::now();
+#endif
     Translate(name);
+#ifdef COMP_TIME
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+    compilation_time_ += fp_ms.count();
+#endif
   }
   return compiled_fn_.at(name);
 }

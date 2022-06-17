@@ -11,6 +11,7 @@
 #include "compile/query_translator.h"
 #include "end_to_end_test/parameters.h"
 #include "end_to_end_test/schema.h"
+#include "end_to_end_test/test_macros.h"
 #include "plan/expression/aggregate_expression.h"
 #include "plan/expression/arithmetic_expression.h"
 #include "plan/expression/column_ref_expression.h"
@@ -34,12 +35,12 @@ using namespace kush::compile;
 using namespace kush::catalog;
 using namespace std::literals;
 
-class OrderByTest
-    : public testing::TestWithParam<std::pair<ParameterValues, bool>> {};
+class OrderByTest : public testing::TestWithParam<ParameterValues> {};
 
 TEST_P(OrderByTest, SmallIntCol) {
-  auto [params, asc] = GetParam();
+  auto params = GetParam();
   SetFlags(params);
+  auto asc = params.asc;
 
   auto db = Schema();
 
@@ -76,48 +77,4 @@ TEST_P(OrderByTest, SmallIntCol) {
   EXPECT_EQ(output, expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(ASMBackend_Asc_StackSpill, OrderByTest,
-                         testing::Values(std::make_pair(
-                             ParameterValues{
-                                 .backend = "asm",
-                                 .reg_alloc = "stack_spill",
-                             },
-                             true)));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_Desc_StackSpill, OrderByTest,
-                         testing::Values(std::make_pair(
-                             ParameterValues{
-                                 .backend = "asm",
-                                 .reg_alloc = "stack_spill",
-                             },
-                             false)));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_Asc_LinearScan, OrderByTest,
-                         testing::Values(std::make_pair(
-                             ParameterValues{
-                                 .backend = "asm",
-                                 .reg_alloc = "linear_scan",
-                             },
-                             true)));
-
-INSTANTIATE_TEST_SUITE_P(ASMBackend_Desc_LinearScan, OrderByTest,
-                         testing::Values(std::make_pair(
-                             ParameterValues{
-                                 .backend = "asm",
-                                 .reg_alloc = "linear_scan",
-                             },
-                             false)));
-
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Asc, OrderByTest,
-                         testing::Values(std::make_pair(
-                             ParameterValues{
-                                 .backend = "llvm",
-                             },
-                             true)));
-
-INSTANTIATE_TEST_SUITE_P(LLVMBackend_Desc, OrderByTest,
-                         testing::Values(std::make_pair(
-                             ParameterValues{
-                                 .backend = "llvm",
-                             },
-                             false)));
+ORDER_TEST(OrderByTest)

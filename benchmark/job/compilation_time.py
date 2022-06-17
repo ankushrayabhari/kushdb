@@ -10,7 +10,7 @@ def execute(cmd):
 
 def bench(database, flags):
     binary = 'bazel run -c opt --config=comptime --ui_event_filters=-info,-stdout,-stderr --noshow_progress //benchmark/job:query_runner'
-    args = ' -- --join_seed=1337 --num_trials=1'
+    args = ' -- --join_seed=1337'
     for flag in flags:
         args += ' ' + flag
     redirect = ' > /dev/null 2> /tmp/bench_time.txt'
@@ -32,12 +32,12 @@ def bench(database, flags):
             it = iter(times)
             times = [t for t in zip(it, it, it)]
             for (t1, t2, t3) in times:
-                print(database, 'JOB', query_num, t1, t2, t3, sep=',', flush=True)
+                print(database + ' - ' + query_num, t1, t2, t3, sep=',', flush=True)
 
 
 if __name__ == "__main__":
-    bench('ASM Permute',    ['--pipeline_mode=adaptive', '--use_dictionary=true',  '--skinner_join=permute',   '--backend=asm'])
-    bench('ASM Recompile',  ['--pipeline_mode=adaptive', '--use_dictionary=true',  '--skinner_join=recompile', '--backend=asm'])
-    bench('LLVM Permute',   ['--pipeline_mode=adaptive', '--use_dictionary=true',  '--skinner_join=permute',   '--backend=llvm'])
-    bench('LLVM Recompile', ['--pipeline_mode=adaptive', '--use_dictionary=true',  '--skinner_join=recompile', '--backend=llvm'])
-    #bench('Hybrid',         ['--pipeline_mode=adaptive', '--use_dictionary=true',  '--skinner_join=hybrid'])
+    bench('ASM Permute',    ['--use_dictionary=true',  '--skinner_join=permute',   '--backend=asm'])
+    bench('ASM Recompile',  ['--use_dictionary=true',  '--skinner_join=recompile', '--backend=asm'])
+    bench('Hybrid',         ['--use_dictionary=true',  '--skinner_join=hybrid'])
+    bench('LLVM Permute',   ['--use_dictionary=true',  '--skinner_join=permute',   '--backend=llvm'])
+    bench('LLVM Recompile', ['--use_dictionary=true',  '--skinner_join=recompile', '--backend=llvm'])

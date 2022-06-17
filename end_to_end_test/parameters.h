@@ -8,6 +8,7 @@ struct ParameterValues {
   std::string reg_alloc;
   std::string skinner;
   int32_t budget_per_episode = 0;
+  bool asc = false;
 };
 
 void SetFlags(const ParameterValues& params);
