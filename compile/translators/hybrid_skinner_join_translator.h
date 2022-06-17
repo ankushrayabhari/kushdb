@@ -23,41 +23,6 @@
 
 namespace kush::compile {
 
-class PermutableCache {
- public:
-  PermutableCache(int num_tables);
-
-  int8_t* AllocateFlags(int num_flags);
-  void* TableHandlers();
-
-  bool IsCompiled() const;
-  void Compile(std::unique_ptr<khir::Program> program,
-               std::vector<std::string> function_names, khir::BackendType type);
-
-  void SetFlagInfo(
-      int total_preds,
-      absl::flat_hash_map<std::pair<int, int>, int> pred_table_to_flag);
-
-  void* Order(const std::vector<int>& order);
-
-  void SetValidTupleHandler(void* table_handler);
-
- private:
-  int num_tables_;
-  int total_preds_;
-  void** table_handlers_;
-  int num_flags_;
-  int8_t* flags_;
-
-  void* valid_tuple_handler_;
-
-  std::vector<void*> table_functions_;
-  absl::flat_hash_map<std::pair<int, int>, int> pred_table_to_flag_;
-
-  std::unique_ptr<khir::Program> program_;
-  std::unique_ptr<khir::Backend> backend_;
-};
-
 class HybridSkinnerJoinTranslator : public OperatorTranslator,
                                     public RecompilingJoinTranslator {
  public:
@@ -111,7 +76,7 @@ class HybridSkinnerJoinTranslator : public OperatorTranslator,
   std::vector<absl::btree_set<int>> conditions_per_table_;
   absl::flat_hash_set<std::pair<int, int>> table_connections_;
   int child_idx_ = -1;
-  CompilationCache cache_;
+  RecompilingCache cache_;
   PermutableCache permutable_cache_;
 };
 

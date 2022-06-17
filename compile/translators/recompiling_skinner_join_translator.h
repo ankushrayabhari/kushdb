@@ -63,7 +63,7 @@ class RecompilingSkinnerJoinTranslator : public OperatorTranslator,
   std::vector<absl::btree_set<int>> conditions_per_table_;
   absl::flat_hash_set<std::pair<int, int>> table_connections_;
   int child_idx_ = -1;
-  CompilationCache cache_;
+  RecompilingCache cache_;
 };
 
 }  // namespace kush::compile
