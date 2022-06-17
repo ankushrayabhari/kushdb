@@ -46,6 +46,8 @@ class LLVMBackend : public Backend {
   virtual ~LLVMBackend() = default;
 
   void* GetFunction(std::string_view name) override;
+  static double CompilationTime();
+  static void ResetCompilationTime();
 
  private:
   void Translate(std::string_view name);
@@ -85,6 +87,8 @@ class LLVMBackend : public Backend {
   absl::flat_hash_map<std::string, void*> compiled_fn_;
   std::queue<int> to_translate_;
   std::vector<llvm::Function*> functions_;
+
+  static double compilation_time_;
 };
 
 }  // namespace kush::khir

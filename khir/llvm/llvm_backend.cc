@@ -123,8 +123,11 @@ llvm::Function* DeclareFunction(const Function& func, llvm::Module* mod,
   return llvm::Function::Create(type, linkage, fn_name.c_str(), *mod);
 }
 
+double LLVMBackend::compilation_time_ = 0;
+
 LLVMBackend::LLVMBackend(const khir::Program& program)
     : program_(program), functions_(program_.Functions().size(), nullptr) {
+  auto t1 = std::chrono::high_resolution_clock::now();
   auto target_triple = llvm::sys::getDefaultTargetTriple();
   std::string error;
   auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
@@ -219,6 +222,9 @@ LLVMBackend::LLVMBackend(const khir::Program& program)
 
     CompileAndLink(std::move(mod), std::move(context), to_add);
   }
+  auto t2 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+  compilation_time_ += fp_ms.count();
 }
 
 llvm::Constant* LLVMBackend::GetConstant(
@@ -431,7 +437,14 @@ void LLVMBackend::TranslateFunction(
   }
 }
 
+double LLVMBackend::CompilationTime() { return compilation_time_; }
+
+void LLVMBackend::ResetCompilationTime() { compilation_time_ = 0; }
+
 void LLVMBackend::Translate(std::string_view name) {
+#ifdef COMP_TIME
+  auto t1 = std::chrono::high_resolution_clock::now();
+#endif
   auto context = std::make_unique<llvm::LLVMContext>();
   auto mod = std::make_unique<llvm::Module>("query", *context);
   auto builder = std::make_unique<llvm::IRBuilder<>>(*context);
@@ -472,6 +485,12 @@ void LLVMBackend::Translate(std::string_view name) {
   }
 
   CompileAndLink(std::move(mod), std::move(context), to_add);
+
+#ifdef COMP_TIME
+  auto t2 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+  compilation_time_ += fp_ms.count();
+#endif
 }
 
 using LLVMCmp = llvm::CmpInst::Predicate;

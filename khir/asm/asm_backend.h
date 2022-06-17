@@ -52,6 +52,9 @@ class ASMBackend : public Backend {
   void Compile();
   void* GetFunction(std::string_view name) override;
 
+  static double CompilationTime();
+  static void ResetCompilationTime();
+
  private:
   void Translate();
   bool IsNullPtr(Value v);
@@ -310,6 +313,8 @@ class ASMBackend : public Backend {
 
   absl::flat_hash_map<std::string, std::pair<asmjit::Label, asmjit::Label>>
       function_start_end_;
+
+  static double compilation_time_;
 };
 
 }  // namespace kush::khir

@@ -56,6 +56,8 @@ class ErrorPrinter : public ErrorHandler {
   }
 };
 
+double ASMBackend::compilation_time_ = 0;
+
 ASMBackend::ASMBackend(const Program& program, RegAllocImpl impl)
     : program_(program), reg_alloc_impl_(impl), logger_(stderr) {}
 
@@ -4512,9 +4514,23 @@ void ASMBackend::TranslateInstr(
   }
 }
 
+double ASMBackend::CompilationTime() { return compilation_time_; }
+
+void ASMBackend::ResetCompilationTime() { compilation_time_ = 0; }
+
 void ASMBackend::Compile() {
+#ifdef COMP_TIME
+  auto t1 = std::chrono::high_resolution_clock::now();
+#endif
+
   Translate();
   rt_.add(&buffer_start_, &code_);
+
+#ifdef COMP_TIME
+  auto t2 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+  compilation_time_ += fp_ms.count();
+#endif
 
 #ifdef PROFILE_ENABLED
   for (const auto& [name, labels] : function_start_end_) {

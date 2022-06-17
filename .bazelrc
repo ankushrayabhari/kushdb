@@ -4,6 +4,8 @@ build --experimental_guard_against_concurrent_changes
 build:profile --cxxopt=-DPROFILE_ENABLED
 build:profile --cxxopt=-fno-omit-frame-pointer
 
+build:comptime --cxxopt=-DCOMP_TIME
+
 build:remote --jobs=50
 build:remote --define=EXECUTOR=remote
 build:remote --bes_results_url=https://app.buildbuddy.io/invocation/
