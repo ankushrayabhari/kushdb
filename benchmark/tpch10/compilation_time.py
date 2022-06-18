@@ -9,18 +9,21 @@ def execute(cmd):
 
 
 def bench(database, flags):
-    binary = 'bazel run -c opt --config=comptime --ui_event_filters=-info,-stdout,-stderr --noshow_progress //benchmark/job:query_runner'
-    args = ' -- --join_seed=1337'
-    for flag in flags:
-        args += ' ' + flag
-    redirect = ' > /dev/null 2> /tmp/bench_time.txt'
-
-    queries = glob.glob('benchmark/job/queries/*.sql')
+    queries = ['q01', 'q02', 'q03', 'q05', 'q06', 'q07', 'q08', 'q09', 'q10',
+               'q11', 'q12', 'q14', 'q18', 'q19']
     for query in queries:
-        execute(binary + args + ' --query=' + query + ' ' + redirect)
+        binary = 'bazel run -c opt --config=comptime --ui_event_filters=-info,-stdout,-stderr --noshow_progress //benchmark/tpch10/queries:' + query
 
-        parts = query.split('/')
-        query_num = parts[3][:-4]
+        binary += ' -- --join_seed=1337'
+        for f in flags:
+            binary += ' ' + f
+        redirect = ' > /dev/null 2> /tmp/bench_time.txt'
+        executable = binary + redirect
+
+        execute(executable)
+
+        query_num = int(query[1:])
+
         with open('/tmp/bench_time.txt', 'r') as file:
             data = file.read().replace('\n', ' ')
             times = []
@@ -32,7 +35,7 @@ def bench(database, flags):
             it = iter(times)
             times = [t for t in zip(it, it, it)]
             for (t1, t2, t3) in times:
-                print(query_num + '-' database, t1, t2, t3, sep=',', flush=True)
+                print('TPC-H SF10', str(query_num) + '-' + database, t1, t2, t3, sep=',', flush=True)
 
 
 if __name__ == "__main__":
