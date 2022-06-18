@@ -32,12 +32,12 @@ def bench(database, flags):
             it = iter(times)
             times = [t for t in zip(it, it, it)]
             for (t1, t2, t3) in times:
-                print(database + ' - ' + query_num, t1, t2, t3, sep=',', flush=True)
+                print(query_num + '-' database, t1, t2, t3, sep=',', flush=True)
 
 
 if __name__ == "__main__":
     bench('ASM Permute',    ['--use_dictionary=true',  '--skinner_join=permute',   '--backend=asm'])
     bench('ASM Recompile',  ['--use_dictionary=true',  '--skinner_join=recompile', '--backend=asm'])
-    bench('Hybrid',         ['--use_dictionary=true',  '--skinner_join=hybrid'])
+    #bench('Hybrid',         ['--use_dictionary=true',  '--skinner_join=hybrid'])
     bench('LLVM Permute',   ['--use_dictionary=true',  '--skinner_join=permute',   '--backend=llvm'])
     bench('LLVM Recompile', ['--use_dictionary=true',  '--skinner_join=recompile', '--backend=llvm'])

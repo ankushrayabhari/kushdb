@@ -14,6 +14,8 @@
 ABSL_FLAG(std::string, pipeline_mode, "adaptive",
           "Pipeline Mode: static/adaptive.");
 
+constexpr int32_t CHUNK_SIZE = 1 << 13;
+
 namespace kush::execution {
 
 enum class PipelineMode { STATIC, ADAPTIVE };
@@ -92,7 +94,107 @@ void CleanUpPredecessors(
   }
 }
 
-constexpr int32_t CHUNK_SIZE = 1 << 13;
+void ExecuteNonSplitPipeline(
+    int i,
+    std::vector<std::reference_wrapper<const kush::execution::Pipeline>>
+        pipelines,
+    khir::Backend& asm_backend, khir::Backend& llvm_backend) {
+  body_fn body;
+  switch (khir::GetBackendType()) {
+    case khir::BackendType::ASM:
+      body = reinterpret_cast<body_fn>(
+          asm_backend.GetFunction(pipelines[i].get().BodyName()));
+      break;
+
+    case khir::BackendType::LLVM:
+      body = reinterpret_cast<body_fn>(
+          llvm_backend.GetFunction(pipelines[i].get().BodyName()));
+      break;
+  }
+
+  body();
+}
+
+void ExecuteSplitPipelineStatic(
+    int i,
+    std::vector<std::reference_wrapper<const kush::execution::Pipeline>>
+        pipelines,
+    khir::Backend& asm_backend, khir::Backend& llvm_backend) {
+  auto input_size = GetInputSize(i, pipelines, asm_backend);
+  split_body_fn body;
+  switch (khir::GetBackendType()) {
+    case khir::BackendType::ASM:
+      body = reinterpret_cast<split_body_fn>(
+          asm_backend.GetFunction(pipelines[i].get().BodyName()));
+      break;
+
+    case khir::BackendType::LLVM:
+      body = reinterpret_cast<split_body_fn>(
+          llvm_backend.GetFunction(pipelines[i].get().BodyName()));
+      break;
+  }
+
+  int32_t next_tuple = 0;
+  while (next_tuple < input_size) {
+    auto start = next_tuple;
+    auto end = std::min(next_tuple + CHUNK_SIZE - 1, input_size - 1);
+    body(start, end);
+    next_tuple = end + 1;
+  }
+}
+
+void ExecuteSplitPipelineAdaptive(
+    int i,
+    std::vector<std::reference_wrapper<const kush::execution::Pipeline>>
+        pipelines,
+    khir::Backend& asm_backend, khir::Backend& llvm_backend) {
+  auto input_size = GetInputSize(i, pipelines, asm_backend);
+  auto body = reinterpret_cast<split_body_fn>(
+      asm_backend.GetFunction(pipelines[i].get().BodyName()));
+
+  int count = 0;
+  int THRESHOLD = 2;
+  double tot = 0;
+
+  int32_t next_tuple = 0;
+  while (next_tuple < input_size && count < THRESHOLD) {
+    auto start = next_tuple;
+    auto end = std::min(next_tuple + CHUNK_SIZE - 1, input_size - 1);
+
+    next_tuple = end + 1;
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    body(start, end);
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+    tot += fp_ms.count();
+    count++;
+  }
+
+  if (next_tuple < input_size) {
+    auto time_per_morsel = tot / THRESHOLD;
+    // estimate a 1.2x speedup
+    // estimate comp time at 10ms?
+    auto opt_time_per_morsel = time_per_morsel / 1.2;
+    auto num_morsels_left = (input_size - next_tuple) / CHUNK_SIZE;
+
+    auto duration_unoptimized = time_per_morsel * num_morsels_left;
+    auto duration_optimized = opt_time_per_morsel * num_morsels_left + 10;
+
+    auto exec = body;
+    if (duration_optimized < duration_unoptimized) {
+      exec = reinterpret_cast<split_body_fn>(
+          llvm_backend.GetFunction(pipelines[i].get().BodyName()));
+    }
+
+    while (next_tuple < input_size) {
+      auto start = next_tuple;
+      auto end = std::min(next_tuple + CHUNK_SIZE - 1, input_size - 1);
+      exec(start, end);
+      next_tuple = end + 1;
+    }
+  }
+}
 
 void ExecutableQuery::Execute() {
   PipelineMode mode;
@@ -104,29 +206,10 @@ void ExecutableQuery::Execute() {
     throw std::runtime_error("Unknown pipeline mode.");
   }
 
-  std::unique_ptr<khir::Backend> backend;
-  std::unique_ptr<khir::Backend> optimized_backend;
-  auto backend_type = khir::GetBackendType();
-  if (mode == PipelineMode::ADAPTIVE) {
-    backend_type = khir::BackendType::ASM;
-  }
-  switch (backend_type) {
-    case khir::BackendType::ASM: {
-      auto b = std::make_unique<khir::ASMBackend>(*program_,
-                                                  khir::GetRegAllocImpl());
-      b->Compile();
-      backend = std::move(b);
-      break;
-    }
-
-    case khir::BackendType::LLVM: {
-      backend = std::make_unique<khir::LLVMBackend>(*program_);
-      break;
-    }
-  }
-  if (mode == PipelineMode::ADAPTIVE) {
-    optimized_backend = std::make_unique<khir::LLVMBackend>(*program_);
-  }
+  auto asm_backend =
+      std::make_unique<khir::ASMBackend>(*program_, khir::GetRegAllocImpl());
+  asm_backend->Compile();
+  auto llvm_backend = std::make_unique<khir::LLVMBackend>(*program_);
 
   auto pipelines = pipelines_.Pipelines();
 
@@ -144,74 +227,20 @@ void ExecutableQuery::Execute() {
 
   // execute each pipeline in topological order
   for (int i : order) {
-    InitializeOutput(i, pipelines, *backend);
+    InitializeOutput(i, pipelines, *asm_backend);
 
     const auto& pipeline = pipelines[i].get();
     if (pipeline.Split()) {
-      auto input_size = GetInputSize(i, pipelines, *backend);
-      auto body = reinterpret_cast<split_body_fn>(
-          backend->GetFunction(pipelines[i].get().BodyName()));
-
       if (mode == PipelineMode::ADAPTIVE) {
-        int count = 0;
-        int THRESHOLD = 2;
-        double tot = 0;
-
-        int32_t next_tuple = 0;
-        while (next_tuple < input_size && count < THRESHOLD) {
-          auto start = next_tuple;
-          auto end = std::min(next_tuple + CHUNK_SIZE - 1, input_size - 1);
-
-          next_tuple = end + 1;
-
-          auto t1 = std::chrono::high_resolution_clock::now();
-          body(start, end);
-          auto t2 = std::chrono::high_resolution_clock::now();
-          std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
-          tot += fp_ms.count();
-          count++;
-        }
-
-        if (next_tuple < input_size) {
-          auto time_per_morsel = tot / THRESHOLD;
-          // estimate a 1.2x speedup
-          // estimate comp time at 10ms?
-          auto opt_time_per_morsel = time_per_morsel / 1.2;
-          auto num_morsels_left = (input_size - next_tuple) / CHUNK_SIZE;
-
-          auto duration_unoptimized = time_per_morsel * num_morsels_left;
-          auto duration_optimized = opt_time_per_morsel * num_morsels_left + 10;
-
-          auto exec = body;
-          if (duration_optimized < duration_unoptimized) {
-            exec = reinterpret_cast<split_body_fn>(
-                optimized_backend->GetFunction(pipelines[i].get().BodyName()));
-          }
-
-          while (next_tuple < input_size) {
-            auto start = next_tuple;
-            auto end = std::min(next_tuple + CHUNK_SIZE - 1, input_size - 1);
-            exec(start, end);
-            next_tuple = end + 1;
-          }
-        }
+        ExecuteSplitPipelineAdaptive(i, pipelines, *asm_backend, *llvm_backend);
       } else {
-        int32_t next_tuple = 0;
-        while (next_tuple < input_size) {
-          auto start = next_tuple;
-          auto end = std::min(next_tuple + CHUNK_SIZE - 1, input_size - 1);
-          body(start, end);
-          next_tuple = end + 1;
-        }
+        ExecuteSplitPipelineStatic(i, pipelines, *asm_backend, *llvm_backend);
       }
-
     } else {
-      auto body = reinterpret_cast<body_fn>(
-          backend->GetFunction(pipelines[i].get().BodyName()));
-      body();
+      ExecuteNonSplitPipeline(i, pipelines, *asm_backend, *llvm_backend);
     }
 
-    CleanUpPredecessors(i, pipelines, users, *backend);
+    CleanUpPredecessors(i, pipelines, users, *asm_backend);
   }
 
   {  // Clean up the final buffer
@@ -220,7 +249,7 @@ void ExecutableQuery::Execute() {
       throw std::runtime_error("A pipeline references the output pipeline");
     }
     auto reset = reinterpret_cast<reset_fn>(
-        backend->GetFunction(pipelines[final].get().ResetName()));
+        asm_backend->GetFunction(pipelines[final].get().ResetName()));
     reset();
   }
 }
