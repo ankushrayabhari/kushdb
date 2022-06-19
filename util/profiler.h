@@ -14,7 +14,7 @@
 
 #include "util/profile_map_generator.h"
 
-ABSL_FLAG(std::string, perfpath, "perf output path", "Perf output path");
+ABSL_FLAG(std::string, perfpath, "/tmp/perfpath", "Perf output path");
 
 namespace kush::util {
 struct Profiler {
