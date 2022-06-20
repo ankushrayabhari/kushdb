@@ -41,5 +41,3 @@ if __name__ == "__main__":
     bench('kushdb DC (ASM Recompile)',  ['--use_dictionary=true',  '--skinner_join=recompile', '--backend=asm'])
     bench('kushdb DC (LLVM Permute)',   ['--use_dictionary=true',  '--skinner_join=permute',   '--backend=llvm'])
     bench('kushdb DC (LLVM Recompile)', ['--use_dictionary=true',  '--skinner_join=recompile', '--backend=llvm'])
-    bench('kushdb (Hybrid)',            ['--use_dictionary=false', '--skinner_join=hybrid'])
-    bench('kushdb DC (Hybrid)',         ['--use_dictionary=true',  '--skinner_join=hybrid'])

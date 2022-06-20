@@ -40,4 +40,3 @@ if __name__ == "__main__":
     bench('ASM Recompile',  ['--use_dictionary=true',  '--skinner_join=recompile', '--backend=asm'])
     bench('LLVM Permute',   ['--use_dictionary=true',  '--skinner_join=permute',   '--backend=llvm'])
     bench('LLVM Recompile', ['--use_dictionary=true',  '--skinner_join=recompile', '--backend=llvm'])
-    #bench('Hybrid',         ['--use_dictionary=true',  '--skinner_join=hybrid'])
